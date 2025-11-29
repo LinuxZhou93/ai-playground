@@ -1,0 +1,810 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Titan Mindset v8.0 - Cognitive OS</title>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons (Vanilla JS version) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020617; /* slate-950 */
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent; 
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155; 
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569; 
+    }
+
+    /* 3D Transform Utilities for Visualizers */
+    .preserve-3d {
+      transform-style: preserve-3d;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+    
+    // --- 图标适配器 (Icon Adapter) ---
+    // 将 Lucide 原生图标数据转换为 React 组件
+    const createReactIcon = (iconName, iconDef) => {
+      return ({ size = 24, className = "", ...props }) => {
+        return (
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width={size} 
+            height={size} 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            className={className}
+            {...props}
+          >
+            {iconDef.map((child, index) => {
+              const [tag, attrs] = child;
+              return React.createElement(tag, { ...attrs, key: index });
+            })}
+          </svg>
+        );
+      };
+    };
+
+    const LucideIcons = Object.keys(lucide.icons).reduce((acc, key) => {
+      acc[key] = createReactIcon(key, lucide.icons[key]);
+      return acc;
+    }, {});
+
+    const { 
+      Brain, Rocket, Layers, Menu, X: CloseIcon, ChevronRight, ChevronDown, Lightbulb, Target, Cpu, BookOpen, ArrowRight, Sparkles, MessageSquare, RefreshCw, Send, Scale, Activity, Table, Clock, Search, Repeat, Zap, Filter, ArrowDown, MousePointer, RotateCcw, ZoomIn, Map: MapIcon, Anchor, TrendingUp, ShieldCheck, Minimize2, Atom, Play, CheckCircle, Sliders, Puzzle, FlaskConical, Eye, Globe, Network, Mountain, Lock, Unlock, Split, Move3d, Ship, Smile, UserPlus, ArrowUpCircle, PieChart, BarChart3, Highlighter, PenTool, Link2, Star, CheckSquare, Users, Mic, Heart, Crown
+    } = LucideIcons;
+
+    // --- 1. 基础 UI 组件 (Base UI Components) ---
+
+    const Card = ({ children, className = '', onClick }) => (
+      <div 
+        onClick={onClick}
+        className={`
+          relative overflow-hidden
+          bg-slate-900/60 backdrop-blur-xl 
+          border border-slate-700/50 
+          rounded-2xl p-6 
+          transition-all duration-300 ease-out
+          ${onClick ? 'cursor-pointer active:scale-[0.99] hover:border-blue-500/30 hover:bg-slate-800/80 hover:shadow-lg hover:shadow-blue-900/20' : ''} 
+          ${className}
+        `}
+      >
+        {children}
+      </div>
+    );
+
+    const Badge = ({ children, color = 'blue' }) => {
+      const colors = {
+        blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+        purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+        emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        orange: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+        pink: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+        cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+      };
+      return (
+        <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${colors[color] || colors.blue} mr-2 whitespace-nowrap shadow-sm inline-flex items-center gap-1`}>
+          {children}
+        </span>
+      );
+    };
+
+    // --- 2. 学习功能组件 (Learning Features) ---
+
+    const ActionCard = ({ scene }) => {
+      if (!scene) return null;
+      return (
+        <div className="mt-6 bg-gradient-to-br from-slate-900 to-blue-950 border border-blue-500/30 rounded-2xl p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 group hover:border-blue-400/50 transition-all duration-500 hover:shadow-lg hover:shadow-blue-500/10">
+          <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity group-hover:scale-110 duration-500">
+            <Zap className="w-16 h-16 text-yellow-400" />
+          </div>
+          <div className="flex items-start gap-5 relative z-10">
+            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-600/30 group-hover:rotate-12 transition-transform duration-300">
+              <CheckCircle className="text-white w-7 h-7" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-1">Actionable Scene · 马上用起来</div>
+              <h4 className="text-white font-bold text-xl mb-2 tracking-tight">{scene.title}</h4>
+              <p className="text-slate-300 text-sm leading-relaxed">{scene.desc}</p>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const MasteryCheck = ({ isMastered, onToggle }) => (
+      <button 
+        onClick={onToggle}
+        className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl border transition-all duration-300 font-bold text-sm group ${
+          isMastered 
+          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]' 
+          : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white'
+        }`}
+      >
+        {isMastered ? <CheckCircle className="w-5 h-5" /> : <CheckSquare className="w-5 h-5 group-hover:text-blue-400" />}
+        {isMastered ? "已掌握 (Mastered)" : "标记为已掌握"}
+      </button>
+    );
+
+    const ReflectionNote = () => {
+      const [note, setNote] = useState('');
+      return (
+        <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 transition-colors focus-within:border-blue-500/50 focus-within:bg-slate-900/60">
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase mb-2">
+            <PenTool className="w-3 h-3" /> 学习笔记 (My Reflection)
+          </div>
+          <textarea 
+            className="w-full bg-transparent border-none text-sm text-slate-300 placeholder-slate-600 focus:ring-0 resize-none h-24 leading-relaxed outline-none"
+            placeholder="写下你的感悟，或者你想如何应用这个模型..."
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </div>
+      );
+    };
+
+    // --- 3. 可视化图表组件 (Visualizer Engine) ---
+
+    const ConceptDiagram = ({ model }) => {
+      const type = model.visualType;
+      const labels = model.visualData || {}; 
+      const [activeState, setActiveState] = useState(0); 
+
+      // 1. [Roots] 树状/下钻
+      if (type === 'roots') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 relative overflow-hidden cursor-pointer group flex flex-col items-center justify-center border border-slate-700/50" onClick={() => setActiveState(p => (p + 1) % 3)}>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.1)_0%,transparent_70%)]" />
+          <div className="absolute top-2 right-2 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 点击拆解</div>
+          <div className="relative z-10 flex flex-col items-center gap-2">
+             <div className={`w-24 h-8 rounded bg-slate-700 border border-slate-600 flex items-center justify-center text-[10px] text-slate-300 transition-all duration-500 ${activeState > 0 ? 'opacity-40 scale-90' : 'opacity-100 scale-100 shadow-lg'}`}>{labels.top || "现象"}</div>
+             <ArrowDown className={`w-4 h-4 text-slate-500 transition-all duration-300 ${activeState > 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`} />
+             <div className={`flex gap-2 transition-all duration-500 ${activeState >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center text-[8px] text-blue-300">A</div>
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center text-[8px] text-blue-300">B</div>
+             </div>
+             <ArrowDown className={`w-4 h-4 text-blue-500 transition-all duration-500 delay-100 ${activeState >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`} />
+             <div className={`px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded shadow-lg shadow-blue-500/30 transition-all duration-500 delay-150 ${activeState >= 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>{labels.bottom || "本质"}</div>
+          </div>
+        </div>
+      );
+      
+      // 2. [Domino] 多米诺
+      if (type === 'domino') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-end justify-center gap-3 relative overflow-hidden cursor-pointer" onClick={() => setActiveState(1)} onMouseLeave={() => setActiveState(0)}>
+           <div className="absolute top-2 right-2 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 点击推倒</div>
+           {[1, 2, 3].map((i) => (
+             <div key={i} className={`w-10 h-28 rounded-sm border flex items-center justify-center text-xs font-bold transition-all duration-700 origin-bottom-right shadow-md ${i===1 ? 'bg-slate-700 border-slate-600 text-slate-400' : i===2 ? 'bg-blue-900/40 border-blue-500/30 text-blue-300' : 'bg-red-900/40 border-red-500/30 text-red-300'} ${activeState ? 'translate-x-2' : ''}`} style={{ transform: activeState ? `rotate(${65 + i*5}deg) translateX(${i*2}px)` : 'none' }}>{i}</div>
+           ))}
+           <div className={`absolute bottom-4 text-sm font-bold text-red-400 transition-opacity duration-500 ${activeState ? 'opacity-100' : 'opacity-0'}`}>{labels.effect || "后果"}</div>
+        </div>
+      );
+
+      // 3. [Reverse] 逆向
+      if (type === 'reverse') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 relative flex flex-col justify-center">
+          <div className="absolute top-3 right-3 flex justify-center gap-2 z-10">
+             <button onClick={() => setActiveState(0)} className={`px-2 py-1 rounded text-[10px] transition-colors ${activeState === 0 ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-500'}`}>正向</button>
+             <button onClick={() => setActiveState(1)} className={`px-2 py-1 rounded text-[10px] transition-colors ${activeState === 1 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-500'}`}>逆向</button>
+          </div>
+          <div className="flex items-center justify-between px-10 mt-6 relative">
+             <div className={`flex flex-col items-center transition-all duration-500 ${activeState===0 ? 'scale-110 opacity-100' : 'scale-90 opacity-40 blur-sm'}`}><div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-[10px] text-slate-300 font-bold">{labels.start || "起点"}</div></div>
+             <div className="flex-1 h-0.5 bg-slate-700 mx-4 relative"><div className={`absolute inset-0 bg-emerald-500 transition-transform duration-500 origin-right ${activeState===1 ? 'scale-x-100' : 'scale-x-0'}`}></div><ArrowRight className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 transition-all duration-500 ${activeState===1 ? 'rotate-180 text-emerald-400' : 'text-slate-500'}`} /></div>
+             <div className={`flex flex-col items-center transition-all duration-500 ${activeState===1 ? 'scale-110 opacity-100' : 'scale-90 opacity-40 blur-sm'}`}><div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${activeState === 1 ? 'border-emerald-500 text-emerald-400 bg-emerald-900/20' : 'border-slate-600 text-slate-500'}`}>{labels.end || "终点"}</div></div>
+          </div>
+        </div>
+      );
+
+      // 4. [Loop] 循环
+      if (type === 'loop') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex justify-center items-center relative group cursor-pointer" onClick={() => setActiveState(p => !p)}>
+           <div className={`relative w-40 h-40 transition-all duration-700 ${activeState ? 'scale-105' : 'scale-100'}`}>
+              <svg className={`w-full h-full overflow-visible ${activeState ? '' : 'animate-[spin_12s_linear_infinite]'}`}>
+                <circle cx="80" cy="80" r="60" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 4" className="opacity-30" />
+                {[{l:labels.top,c:'#3b82f6',x:80,y:20},{l:labels.right,c:'#a855f7',x:140,y:80},{l:labels.bottom,c:'#10b981',x:80,y:140},{l:labels.left,c:'#f59e0b',x:20,y:80}].map((item, i) => (
+                  <g key={i} transform={`translate(${item.x}, ${item.y})`}><circle r="8" fill={item.c} className="shadow-lg" /><text y={i===0?-15:i===2?25:5} x={i===1?15:i===3?-15:0} textAnchor="middle" fill={item.c} fontSize="10" fontWeight="bold" className={`transition-opacity duration-300 ${activeState ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{transform: activeState ? `rotate(${-90*i}deg)` : ''}}>{item.l}</text></g>
+                ))}
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center"><Repeat className="w-8 h-8 text-slate-600" /></div>
+           </div>
+        </div>
+      );
+
+      // 5. [Pyramid] 金字塔
+      if (type === 'pyramid') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex justify-center items-end pb-6 cursor-pointer" onClick={() => setActiveState(p => !p)}>
+           <div className={`flex flex-col items-center gap-1 w-full max-w-xs transition-all duration-500 ${activeState ? 'gap-3 translate-y-0' : 'gap-1 translate-y-2'}`}>
+              <div className="w-24 py-2 bg-emerald-500/20 border border-emerald-500 text-center text-[10px] text-emerald-300 rounded-t font-bold shadow-[0_0_10px_rgba(16,185,129,0.2)]">{labels.top || "结论"}</div>
+              <div className="flex gap-1 w-full justify-center"><div className="w-20 py-2 bg-slate-800 border border-slate-700 text-center text-[9px] text-slate-400 rounded-sm">论点 A</div><div className="w-20 py-2 bg-slate-800 border border-slate-700 text-center text-[9px] text-slate-400 rounded-sm">论点 B</div></div>
+              <div className="flex gap-1 w-full justify-center">{[1,2,3,4].map(i=><div key={i} className="w-9 py-2 bg-slate-800/50 border border-slate-700/50 text-center text-[8px] text-slate-500 rounded-sm">论据</div>)}</div>
+           </div>
+         </div>
+      );
+
+      // 6. [Razor] 剃刀
+      if (type === 'razor') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex flex-col items-center justify-center relative cursor-pointer overflow-hidden" onClick={() => setActiveState(1)} onMouseLeave={() => setActiveState(0)}>
+            <div className="absolute top-2 right-2 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 点击过滤</div>
+            <div className={`flex gap-2 mb-8 transition-all duration-500 ${activeState ? 'translate-y-10 opacity-0 blur-sm' : 'translate-y-0 opacity-100'}`}><div className="px-3 py-1 border border-dashed border-slate-500 text-slate-500 text-xs rounded">{labels.noise1 || "噪音A"}</div><div className="px-3 py-1 border border-dashed border-slate-500 text-slate-500 text-xs rounded">{labels.noise2 || "噪音B"}</div></div>
+            <div className={`w-[120%] h-0.5 bg-red-500 my-4 relative shadow-[0_0_15px_red] transition-all duration-300 z-20 ${activeState ? 'scale-x-100 rotate-12' : 'scale-x-50 opacity-50 rotate-0'}`}><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-2 text-[10px] text-red-500 font-bold">FILTER</div></div>
+            <div className={`transition-all duration-500 ${activeState ? '-translate-y-6 scale-110 opacity-100' : 'translate-y-0 scale-100 opacity-50'}`}><div className="px-5 py-2 bg-emerald-500/20 border border-emerald-500 text-emerald-400 text-xs font-bold rounded shadow-lg">{labels.truth || "真相"}</div></div>
+         </div>
+      );
+
+      // 7. [Timeline] 时间轴
+      if (type === 'timeline') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex flex-col justify-center cursor-pointer" onClick={() => setActiveState(p => (p+1)%3)}>
+            <div className="flex items-center justify-between px-8 relative"><div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-700 -z-10"></div>{['10m', '10mo', '10y'].map((t, i) => (<div key={t} className={`flex flex-col items-center gap-2 transition-all duration-300 ${activeState === i ? 'scale-125 opacity-100' : 'opacity-40 scale-100'}`}><div className={`w-4 h-4 rounded-full outline outline-4 outline-slate-900 ${i===0?'bg-red-500':i===1?'bg-blue-500':'bg-emerald-500'}`}></div><div className="text-[10px] text-slate-300 font-bold uppercase">{t}</div></div>))}</div>
+            <div className="text-center mt-10 text-sm font-bold text-slate-200 h-6">{activeState===0 ? "当下：冲动/爽" : activeState===1 ? "中期：代价/痛苦" : "长期：毫无意义"}</div>
+         </div>
+      );
+
+      // 8. [Lever] 杠杆
+      if (type === 'lever') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className={`absolute bottom-10 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[20px] border-b-slate-600 transition-all duration-500 ${activeState ? 'left-1/2' : 'left-1/3'}`}></div><div className={`w-2/3 h-1 bg-slate-500 transition-all duration-500 origin-[33%_50%] rounded ${activeState ? 'rotate-0' : '-rotate-6'}`}></div><div className="absolute bottom-20 left-[25%] flex flex-col items-center"><div className="w-10 h-10 bg-slate-800 border border-slate-600 rounded flex items-center justify-center text-[10px] text-slate-400 font-bold shadow-lg">{labels.left || "投入"}</div></div><div className={`absolute right-[25%] flex flex-col items-center transition-all duration-500 ${activeState ? 'bottom-20' : 'bottom-10'}`}><div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500 rounded flex items-center justify-center text-sm text-emerald-400 font-bold shadow-xl shadow-emerald-500/20">{labels.right || "产出"}</div></div></div>
+      );
+
+      // 9. [Iceberg] 冰山
+      if (type === 'iceberg') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center relative overflow-hidden cursor-pointer" onClick={() => setActiveState(p => !p)}><div className="absolute top-2 right-2 text-[10px] text-slate-500 flex items-center"><MousePointer className="w-3 h-3 mr-1" /> 点击透视</div><div className={`absolute left-0 w-full h-full bg-blue-900/20 z-10 transition-all duration-700 ${activeState ? 'top-[90%]' : 'top-1/3'}`}><div className="w-full h-0.5 bg-blue-500/50 shadow-[0_0_10px_blue]"></div></div><div className="relative z-0 flex flex-col items-center transition-transform duration-700"><div className="w-0 h-0 border-l-[30px] border-l-transparent border-r-[30px] border-r-transparent border-b-[60px] border-b-white/90 mb-0.5 relative group"><div className="absolute -top-8 -left-16 w-32 text-center text-[10px] text-slate-900 font-bold bg-white/80 px-2 py-1 rounded shadow">{labels.visible || "可见"}</div></div><div className="w-0 h-0 border-l-[60px] border-l-transparent border-r-[60px] border-r-transparent border-t-[120px] border-t-white/10 relative"><div className={`absolute top-8 -left-16 w-32 text-center text-xs text-blue-200 font-bold transition-opacity duration-500 ${activeState ? 'opacity-100' : 'opacity-0'}`}>{labels.hidden || "隐藏"}</div></div></div></div>
+      );
+
+      // 10. [Curve] 曲线
+      if (type === 'curve') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer" onClick={() => { setActiveState(0); setTimeout(() => setActiveState(1), 50); }}><div className="absolute top-2 right-2 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><Play className="w-3 h-3 mr-1" /> 重播</div><div className="absolute left-10 bottom-10 w-48 h-px bg-slate-600"></div><div className="absolute left-10 bottom-10 w-px h-32 bg-slate-600"></div><svg className="w-48 h-32 overflow-visible relative left-2 top-[-10px]"><path d={labels.wave ? "M0 60 Q 40 10, 80 60 T 160 60" : "M0 120 Q 80 120, 160 10"} fill="none" stroke={labels.wave ? "#f59e0b" : "#10b981"} strokeWidth="3" strokeLinecap="round" className={`transition-all duration-[2000ms] ease-in-out ${activeState === 1 ? 'stroke-dasharray-0' : 'stroke-dasharray-[300] stroke-dashoffset-[300]'}`} style={{ strokeDasharray: 300, strokeDashoffset: activeState ? 0 : 300 }} /></svg><div className={`absolute right-8 top-12 text-[10px] ${labels.wave ? 'text-orange-400' : 'text-emerald-400'} font-bold transition-opacity delay-[1500ms] ${activeState ? 'opacity-100' : 'opacity-0'}`}>{labels.high || "爆发"}</div></div>
+      );
+
+      // 11. [Target] 靶心
+      if (type === 'target') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className="relative w-36 h-36 flex items-center justify-center"><div className={`absolute inset-0 rounded-full border-2 border-slate-700 border-dashed bg-slate-800/30 transition-all duration-500 ${activeState ? 'scale-110 border-red-500/30' : 'scale-100'}`}>{activeState && <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-red-400 whitespace-nowrap bg-slate-900 px-2 rounded">学习区/未知</div>}</div><div className={`absolute w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all duration-500 ${activeState ? 'scale-90 bg-emerald-500/40' : 'scale-100'}`}><span className="text-[10px] text-emerald-300 font-bold text-center leading-tight">{labels.center || "舒适区"}</span></div></div></div>
+      );
+
+      // 12. [Matrix] 矩阵
+      if (type === 'matrix') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center"><div className="grid grid-cols-2 gap-3"><div className="w-20 h-12 bg-slate-800 border border-slate-700 rounded flex items-center justify-center text-[10px] text-slate-500 hover:bg-blue-500/20 hover:border-blue-500 hover:text-blue-300 transition-colors cursor-pointer">选项A</div><div className="w-20 h-12 bg-slate-800 border border-slate-700 rounded flex items-center justify-center text-[10px] text-slate-500 hover:bg-blue-500/20 hover:border-blue-500 hover:text-blue-300 transition-colors cursor-pointer">选项B</div><div className="w-20 h-12 bg-slate-800 border border-slate-700 rounded flex items-center justify-center text-[10px] text-slate-500 hover:bg-blue-500/20 hover:border-blue-500 hover:text-blue-300 transition-colors cursor-pointer">选项C</div><div className="w-20 h-12 bg-slate-800 border border-slate-700 rounded flex items-center justify-center text-[10px] text-slate-500 hover:bg-blue-500/20 hover:border-blue-500 hover:text-blue-300 transition-colors cursor-pointer">选项D</div></div></div>
+      );
+
+      // 13. [Doors] 门
+      if (type === 'doors') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-around px-8 cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className={`flex flex-col items-center gap-3 transition-opacity duration-300 ${activeState ? 'opacity-30' : 'opacity-100'}`}><div className="w-16 h-24 border-2 border-red-500/50 bg-red-900/10 rounded flex items-center justify-center relative shadow-lg"><CloseIcon className="text-red-500 w-8 h-8" /></div><div className="text-[10px] text-red-400 font-bold">{labels.left || "单向门"}</div></div><div className={`flex flex-col items-center gap-3 transition-transform duration-300 ${activeState ? 'scale-110' : 'scale-100'}`}><div className="w-16 h-24 border-2 border-emerald-500/50 bg-emerald-900/10 rounded flex items-center justify-center relative group shadow-[0_0_15px_rgba(16,185,129,0.2)]"><RotateCcw className={`text-emerald-500 w-8 h-8 transition-transform duration-500 ${activeState ? 'rotate-180' : ''}`} /></div><div className="text-[10px] text-emerald-400 font-bold">{labels.right || "双向门"}</div></div></div>
+      );
+
+      // 14. [Fishbone] 鱼骨
+      if (type === 'fishbone') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center overflow-hidden cursor-pointer group" onClick={() => setActiveState(p=>!p)}><div className="relative w-full max-w-xs h-32 flex items-center"><div className="w-full h-1 bg-slate-500 relative"><div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[16px] border-l-slate-500"></div></div><div className="absolute right-0 top-1/2 -translate-y-1/2 bg-red-900/50 border border-red-500 px-2 py-1 text-[10px] text-red-300 rounded font-bold">问题</div>{[20, 50, 80].map((left, i) => (<React.Fragment key={i}><div className={`absolute bottom-1/2 w-12 h-px bg-slate-600 origin-bottom-left -rotate-45 transition-all duration-500 ${activeState ? 'h-px w-12' : 'w-0'}`} style={{left: `${left}%`}}><div className={`absolute -top-5 -right-2 text-[9px] text-slate-400 bg-slate-900/80 px-1 rounded ${activeState ? 'opacity-100' : 'opacity-0'}`}>因素{i+1}</div></div><div className={`absolute top-1/2 w-12 h-px bg-slate-600 origin-top-left rotate-45 transition-all duration-500 ${activeState ? 'h-px w-12' : 'w-0'}`} style={{left: `${left+10}%`}}><div className={`absolute -bottom-5 -right-2 text-[9px] text-slate-400 bg-slate-900/80 px-1 rounded ${activeState ? 'opacity-100' : 'opacity-0'}`}>因素{i+4}</div></div></React.Fragment>))}</div></div>
+      );
+
+      // 15. [Scale] 天平
+      if (type === 'scale') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className="w-1 h-24 bg-slate-600 mt-10 relative"><div className={`absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-slate-500 transition-transform duration-700 origin-center ${activeState ? 'rotate-12' : '-rotate-12'}`}><div className="absolute left-0 top-0 h-12 w-0.5 bg-slate-400/50 origin-top rotate-[-12deg] flex flex-col justify-end items-center"><div className={`w-14 h-10 border-b-2 border-slate-400 rounded-b-full flex items-center justify-center text-[10px] font-bold ${activeState ? 'bg-slate-800/50 text-slate-500' : 'bg-red-900/30 text-red-400'}`}>{labels.left || "损失"}</div></div><div className="absolute right-0 top-0 h-12 w-0.5 bg-slate-400/50 origin-top rotate-[-12deg] flex flex-col justify-end items-center"><div className={`w-14 h-10 border-b-2 border-slate-400 rounded-b-full flex items-center justify-center text-[10px] font-bold ${activeState ? 'bg-emerald-900/30 text-emerald-400' : 'bg-slate-800/50 text-slate-500'}`}>{labels.right || "收益"}</div></div></div></div></div>
+      );
+
+      // 16. [Bridge] 桥梁
+      if (type === 'bridge') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center gap-8 relative overflow-hidden" onClick={() => setActiveState(1)} onMouseLeave={() => setActiveState(0)}><div className="flex flex-col items-center gap-2 z-10"><div className="w-16 h-16 bg-slate-800 border border-slate-600 rounded-lg flex items-center justify-center text-[10px] text-slate-400 font-bold">{labels.left || "旧事物"}</div></div><div className="flex-1 h-1 bg-slate-700 relative max-w-[100px] rounded"><div className={`absolute top-0 left-0 h-full bg-blue-500 transition-all duration-1000 ${activeState ? 'w-full' : 'w-0'}`}></div>{activeState && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[9px] text-blue-300 bg-slate-900 px-2 py-0.5 rounded border border-blue-500/50 whitespace-nowrap">Mapping</div>}</div><div className="flex flex-col items-center gap-2 z-10"><div className={`w-16 h-16 bg-blue-900/20 border border-blue-500/50 rounded-lg flex items-center justify-center text-[10px] text-blue-300 font-bold transition-all duration-1000 ${activeState ? 'opacity-100' : 'opacity-30'}`}>{labels.right || "新问题"}</div></div></div>
+      );
+
+      // 17. [Steps] 阶梯
+      if (type === 'steps') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center cursor-pointer" onClick={() => setActiveState(p => (p+1)%4)}><div className="flex flex-col-reverse items-center gap-1"><div className={`w-32 h-10 bg-slate-800 border border-slate-600 rounded flex items-center justify-center text-xs text-slate-400 transition-all ${activeState>=0 ? 'opacity-100' : 'opacity-30'}`}>{labels.step1 || "1"}</div><ArrowDown className="w-3 h-3 text-slate-600 rotate-180" /><div className={`w-32 h-10 bg-slate-800 border border-blue-900 rounded flex items-center justify-center text-xs text-blue-300 transition-all ${activeState>=1 ? 'opacity-100' : 'opacity-30'}`}>{labels.step2 || "2"}</div><ArrowDown className="w-3 h-3 text-slate-600 rotate-180" /><div className={`w-32 h-10 bg-slate-800 border border-emerald-900 rounded flex items-center justify-center text-xs text-emerald-300 font-bold transition-all ${activeState>=2 ? 'opacity-100' : 'opacity-30'}`}>{labels.step3 || "3"}</div></div></div>
+      );
+
+      // 18. [Chaos] 熵增/混乱
+      if (type === 'chaos') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center relative overflow-hidden cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className="relative w-48 h-48">{[...Array(16)].map((_, i) => (<div key={i} className={`absolute w-2 h-2 rounded-full transition-all duration-1000 ease-in-out ${activeState ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]' : 'bg-red-500 opacity-60'}`} style={{top: activeState ? `${Math.floor(i/4)*30 + 30}px` : `${Math.random()*80 + 10}%`, left: activeState ? `${(i%4)*30 + 30}px` : `${Math.random()*80 + 10}%`}} />))}</div><div className="absolute bottom-3 text-xs font-bold text-slate-400">{activeState ? "有序 (做功)" : "无序 (自然)"}</div></div>
+      );
+
+      // 19. [Funnel] 漏斗
+      if (type === 'funnel') return (
+         <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex flex-col items-center justify-center relative cursor-pointer" onMouseEnter={()=>setActiveState(1)} onMouseLeave={()=>setActiveState(0)}><div className="relative w-32"><svg viewBox="0 0 100 100" className="w-full drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]"><path d="M0 0 L100 0 L60 60 L60 100 L40 100 L40 60 Z" fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" strokeWidth="2" /></svg><div className="absolute top-0 w-full flex justify-center gap-1">{[1,2,3].map(i => <div key={i} className={`w-1 h-1 bg-white rounded-full transition-all duration-1000 ${activeState ? 'translate-y-20 opacity-0' : 'animate-bounce'}`}></div>)}</div><div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_5px_rgba(52,211,153,1)] transition-all duration-300 ${activeState ? 'scale-150' : 'scale-100'}`}></div></div><div className="mt-2 text-[10px] text-slate-500 uppercase tracking-widest">{labels.label || "Bottleneck"}</div></div>
+      );
+
+      // 20. [Lens] 透镜
+      if (type === 'lens') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer" onClick={() => setActiveState(p=>(p+1)%3)}><div className="absolute inset-0 flex items-center justify-center text-6xl font-bold text-slate-800 select-none">DATA</div><div className={`absolute w-32 h-32 rounded-full border-4 flex items-center justify-center backdrop-blur-sm transition-all duration-500 ${activeState===0 ? 'border-slate-600 bg-slate-500/10' : activeState===1 ? 'border-blue-500 bg-blue-500/10' : 'border-purple-500 bg-purple-500/10'}`}><span className={`text-sm font-bold ${activeState===0 ? 'text-slate-400' : activeState===1 ? 'text-blue-400' : 'text-purple-400'}`}>{activeState===0 ? "直觉" : activeState===1 ? "物理学" : "经济学"}</span></div><div className="absolute bottom-4 text-[10px] text-slate-500">点击切换视角</div></div>
+      );
+
+      // 21. [Puzzle] 拼图
+      if (type === 'puzzle') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className={`grid grid-cols-2 gap-1 transition-all duration-700 ${activeState ? 'gap-4 rotate-45' : 'gap-0.5 rotate-0'}`}><div className="w-12 h-12 bg-blue-600 rounded-tl-lg flex items-center justify-center"><Puzzle className="text-white/50 w-6 h-6"/></div><div className="w-12 h-12 bg-emerald-600 rounded-tr-lg"></div><div className="w-12 h-12 bg-purple-600 rounded-bl-lg"></div><div className="w-12 h-12 bg-orange-600 rounded-br-lg"></div></div><div className="absolute bottom-4 text-[10px] text-slate-500">{activeState ? "拆解 / 重组" : "整体"}</div></div>
+      );
+
+      // 22. [Mixer] 调音台
+      if (type === 'mixer') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center gap-4 px-8 cursor-pointer" onClick={() => setActiveState(p=>!p)}>{[1,2,3,4].map(i => (<div key={i} className="h-32 w-2 bg-slate-700 rounded-full relative"><div className={`absolute w-6 h-4 bg-slate-300 rounded shadow-lg left-1/2 -translate-x-1/2 transition-all duration-700`} style={{ bottom: activeState ? `${Math.random()*80}%` : '10%' }}></div></div>))}<div className="absolute bottom-4 text-[10px] text-slate-500 flex items-center"><Sliders className="w-3 h-3 mr-1"/> 调整参数</div></div>
+      );
+
+      // 23. [Chemistry] 化学
+      if (type === 'chemistry') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className={`flex items-end gap-1 transition-all duration-500 ${activeState ? 'gap-0' : 'gap-8'}`}><div className="flex flex-col items-center"><div className="w-10 h-10 rounded-full bg-blue-500/50 animate-pulse"></div><span className="text-[10px] text-blue-300 mt-2">A</span></div>{activeState && <span className="text-white font-bold text-xl mb-4">+</span>}<div className="flex flex-col items-center"><div className="w-10 h-10 rounded-full bg-purple-500/50 animate-pulse delay-75"></div><span className="text-[10px] text-purple-300 mt-2">B</span></div></div>{activeState && <div className="absolute inset-0 bg-white/10 animate-ping rounded-lg"></div>}</div>
+      );
+
+      // 24. [Flywheel] 飞轮
+      if (type === 'flywheel') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex flex-col items-center justify-center relative cursor-pointer overflow-hidden" onClick={() => setActiveState(p => p === 0 ? 1 : p === 1 ? 2 : 0)}><div className="absolute top-2 right-2 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 点击加速</div><div className={`relative w-40 h-40 rounded-full border-4 border-slate-700 flex items-center justify-center transition-all duration-[2000ms] ease-in-out ${activeState === 0 ? 'animate-[spin_10s_linear_infinite]' : activeState === 1 ? 'animate-[spin_3s_linear_infinite] border-blue-500' : 'animate-[spin_0.5s_linear_infinite] border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.4)]'}`}><div className="absolute w-full h-1 bg-slate-700 top-1/2 left-0 -translate-y-1/2"></div><div className="absolute w-1 h-full bg-slate-700 left-1/2 top-0 -translate-x-1/2"></div><div className="absolute top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-500 rounded-full"></div><div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-500 rounded-full"></div><div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center z-10 border border-slate-600"><RotateCcw className={`w-6 h-6 ${activeState === 2 ? 'text-emerald-400' : 'text-slate-500'}`} /></div></div><div className="absolute bottom-4 text-xs font-bold text-slate-300">{activeState === 0 ? "起步 (费力)" : activeState === 1 ? "加速 (惯性)" : "飞轮效应 (自动)"}</div></div>
+      );
+
+      // 25. [Network] 网络
+      if (type === 'network') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className="relative w-48 h-48"><div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full z-20 transition-all duration-500 ${activeState ? 'scale-150 shadow-[0_0_20px_blue]' : 'scale-100'}`}></div>{[...Array(6)].map((_, i) => { const angle = (i * 60) * (Math.PI / 180); const x = Math.cos(angle) * 60; const y = Math.sin(angle) * 60; return (<React.Fragment key={i}><div className={`absolute top-1/2 left-1/2 h-0.5 bg-slate-700 origin-left transition-all duration-1000 z-0 ${activeState ? 'w-[60px] opacity-100' : 'w-0 opacity-0'}`} style={{ transform: `rotate(${i * 60}deg)` }}></div><div className={`absolute w-3 h-3 bg-slate-600 rounded-full z-10 transition-all duration-1000 delay-100 ${activeState ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} style={{ top: `calc(50% + ${y}px - 6px)`, left: `calc(50% + ${x}px - 6px)` }}></div></React.Fragment>) })}</div><div className="absolute bottom-4 text-xs font-bold text-slate-400">{labels.label || "节点连接"}</div></div>
+      );
+
+      // 26. [Peaks] 爬山
+      if (type === 'peaks') return (
+        <div className="bg-slate-900/50 rounded-lg h-56 border border-slate-700/50 flex items-end justify-center px-8 pb-8 relative cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className="w-1/3 h-24 bg-slate-700 rounded-t-full relative group"><div className={`absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center transition-opacity duration-500 ${activeState ? 'opacity-30' : 'opacity-100'}`}><div className="w-4 h-8 bg-red-500/50 rounded-full animate-bounce"></div><span className="text-[10px] text-red-300">我在这</span></div><div className="absolute bottom-2 w-full text-center text-[10px] text-slate-400">局部最优</div></div><div className="w-1/6 h-4 border-b-2 border-dashed border-slate-600 mb-0"></div><div className="w-1/2 h-40 bg-emerald-900/40 border-t border-x border-emerald-500/30 rounded-t-full relative"><div className={`absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center transition-opacity duration-500 ${activeState ? 'opacity-100' : 'opacity-0'}`}><div className="w-4 h-8 bg-emerald-500 rounded-full animate-bounce"></div><span className="text-[10px] text-emerald-300">全局最优</span></div><div className="absolute bottom-2 w-full text-center text-[10px] text-emerald-500/50">下山&rarr;上山</div></div></div>
+      );
+
+      // 27. [U-Curve] U型思考
+      if (type === 'u-curve') return (
+        <div className="bg-slate-900/50 rounded-xl h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer overflow-hidden" onClick={() => setActiveState(p=>(p+1)%3)}><div className="absolute top-3 right-3 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 点击挖掘</div><div className="relative w-64 h-40"><svg className="w-full h-full overflow-visible"><path d="M10 10 Q 10 140, 128 140 T 246 10" fill="none" stroke="#1e293b" strokeWidth="4" strokeLinecap="round" /><path d="M10 10 Q 10 140, 128 140 T 246 10" fill="none" stroke={activeState===2 ? "#10b981" : "#3b82f6"} strokeWidth="4" strokeLinecap="round" className="transition-all duration-1000 ease-in-out" strokeDasharray="500" strokeDashoffset={activeState === 0 ? 500 : activeState === 1 ? 250 : 0} /></svg><div className={`absolute top-0 left-0 flex flex-col items-center transition-all duration-500 ${activeState>=0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><div className="w-8 h-8 bg-slate-700 border border-slate-500 rounded-full flex items-center justify-center text-xs font-bold text-slate-300 z-10">问</div><span className="text-[10px] text-slate-400 mt-1">问题</span></div><div className={`absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center transition-all duration-500 ${activeState>=1 ? 'opacity-100 scale-110' : 'opacity-30 scale-90'}`}><div className="w-10 h-10 bg-purple-600 border-2 border-purple-400 rounded-full flex items-center justify-center text-xs font-bold text-white z-10 shadow-[0_0_20px_rgba(147,51,234,0.5)]">本</div><span className="text-[10px] text-purple-300 mt-1 font-bold">本质</span></div><div className={`absolute top-0 right-0 flex flex-col items-center transition-all duration-500 ${activeState>=2 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><div className="w-8 h-8 bg-emerald-600 border border-emerald-400 rounded-full flex items-center justify-center text-xs font-bold text-white z-10">解</div><span className="text-[10px] text-emerald-400 mt-1">方案</span></div></div></div>
+      );
+
+      // 28. [Dimension] 升维
+      if (type === 'dimension') return (
+        <div className="bg-slate-900/50 rounded-xl h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer perspective-[800px] overflow-hidden" onClick={() => setActiveState(p=>!p)}><div className="absolute top-3 right-3 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 点击升维</div><div className={`relative w-32 h-32 transition-all duration-1000 preserve-3d ${activeState ? 'rotate-x-[20deg] rotate-y-[-30deg]' : 'rotate-0'}`} style={{transformStyle: 'preserve-3d'}}><div className={`absolute inset-0 border-2 border-dashed border-slate-600 bg-slate-800/30 flex items-center justify-center transition-all duration-1000 ${activeState ? 'translate-y-16 rotate-x-90 opacity-40' : 'opacity-100'}`}>{!activeState && <span className="text-xs text-slate-400 font-mono">2D: Flat</span>}</div>{activeState && (<><div className="absolute inset-0 border-2 border-blue-500/50 bg-blue-500/10 translate-z-[32px] animate-in fade-in duration-1000"></div><div className="absolute inset-0 border-2 border-blue-500/50 bg-blue-500/10 translate-z-[-32px]"></div><div className="absolute inset-0 border-2 border-blue-500/50 bg-blue-500/10 rotate-y-90 translate-z-[32px]"></div><div className="absolute inset-0 border-2 border-blue-500/50 bg-blue-500/10 rotate-y-90 translate-z-[-32px]"></div><div className="absolute inset-0 border-2 border-blue-500/50 bg-blue-500/10 rotate-x-90 translate-z-[32px]"></div></>)}<div className={`absolute top-1/2 left-1/2 w-4 h-4 bg-red-500 rounded-full shadow-[0_0_10px_red] transition-all duration-1000 ${activeState ? 'translate-y-[-40px] translate-z-[0px]' : 'translate-x-[-40px] translate-y-0'}`}></div></div></div>
+      );
+
+      // 29. [Fork] 分岔路
+      if (type === 'fork') return (
+        <div className="bg-slate-900/50 rounded-xl h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className="absolute top-3 right-3 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 点击推演</div><div className="relative w-64 h-32 flex items-center"><div className="w-16 h-1 bg-slate-600 rounded-l-full"></div><div className="w-6 h-6 bg-slate-500 rounded-full relative z-10 border-4 border-slate-800 shadow-lg flex items-center justify-center text-[8px] text-white">Now</div><div className={`absolute left-[70px] top-[calc(50%-2px)] w-40 h-20 border-t-4 border-l-4 border-slate-700 rounded-tl-3xl transition-all duration-700 origin-bottom-left ${activeState ? 'opacity-30' : 'opacity-100'}`}><div className="absolute -right-2 top-[-12px] flex items-center gap-2"><span className="text-xs text-slate-500">现状</span><div className="w-3 h-3 bg-slate-600 rounded-full"></div></div></div><div className={`absolute left-[70px] bottom-[calc(50%-2px)] w-40 h-20 border-b-4 border-l-4 border-purple-500 rounded-bl-3xl transition-all duration-700 origin-top-left ${activeState ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'}`}><div className="absolute -right-2 bottom-[-24px] flex items-center gap-2"><span className="text-xs text-purple-400 font-bold">如果...</span><div className="w-4 h-4 bg-purple-500 rounded-full shadow-[0_0_15px_purple]"></div></div></div></div></div>
+      );
+
+      // 30. [Ocean] 红蓝海
+      if (type === 'ocean') return (
+        <div className="bg-slate-900/50 rounded-xl h-56 border border-slate-700/50 relative overflow-hidden cursor-pointer" onClick={() => setActiveState(p=>!p)}><div className={`absolute inset-0 transition-all duration-1000 ${activeState ? 'bg-cyan-900/20' : 'bg-red-900/20'}`}></div><div className="absolute bottom-0 w-full h-32 opacity-30"><svg className="w-full h-full" preserveAspectRatio="none"><path d="M0 50 Q 50 20 100 50 T 200 50 T 300 50 V 100 H 0 Z" fill={activeState ? "#06b6d4" : "#ef4444"} className="animate-[wave_5s_linear_infinite]" /></svg></div><div className="absolute inset-0 flex items-center justify-center">{activeState ? (<div className="flex flex-col items-center animate-in zoom-in duration-500"><div className="relative"><Ship className="w-16 h-16 text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]" /><Sparkles className="absolute -top-4 -right-4 text-yellow-300 w-6 h-6 animate-pulse" /></div><span className="mt-4 text-sm text-cyan-300 font-bold tracking-widest border border-cyan-500/30 px-3 py-1 rounded-full bg-cyan-900/50">蓝海 (无人区)</span></div>) : (<div className="flex flex-col items-center animate-in zoom-in duration-500"><div className="flex -space-x-4 items-end"><Ship className="w-10 h-10 text-red-500 opacity-60" /><Ship className="w-14 h-14 text-red-500 z-10" /><Ship className="w-10 h-10 text-red-500 opacity-60" /></div><span className="mt-4 text-sm text-red-400 font-bold tracking-widest border border-red-500/30 px-3 py-1 rounded-full bg-red-900/50">红海 (厮杀)</span></div>)}</div><div className="absolute top-3 right-3 text-[10px] text-slate-500 flex items-center bg-slate-900/50 px-2 py-1 rounded-full"><RefreshCw className="w-3 h-3 mr-1" /> 切换市场</div></div>
+      );
+
+      // 31. [Mask] 替身
+      if (type === 'mask') return (
+        <div className="bg-slate-900/50 rounded-xl h-56 border border-slate-700/50 flex items-center justify-center cursor-pointer relative" onClick={() => setActiveState(p=>(p+1)%3)}><div className="absolute top-3 right-3 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 切换视角</div><div className="relative w-40 h-40 flex items-center justify-center"><div className={`absolute inset-0 rounded-full border-2 border-dashed border-slate-600 flex flex-col items-center justify-center transition-all duration-500 ${activeState===0 ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}><Smile className="w-10 h-10 text-slate-500 mb-2" /><span className="text-xs text-slate-500 font-bold">我 (本能)</span></div><div className={`absolute inset-0 rounded-full bg-blue-500/10 border-2 border-blue-500 flex items-center justify-center transition-all duration-500 ${activeState===1 ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-150 rotate-90'}`}><div className="text-center"><Brain className="w-12 h-12 text-blue-400 mx-auto mb-2 drop-shadow-[0_0_10px_blue]"/><span className="text-sm text-blue-300 font-bold">乔布斯视角</span></div></div><div className={`absolute inset-0 rounded-full bg-purple-500/10 border-2 border-purple-500 flex items-center justify-center transition-all duration-500 ${activeState===2 ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-150 -rotate-90'}`}><div className="text-center"><Rocket className="w-12 h-12 text-purple-400 mx-auto mb-2 drop-shadow-[0_0_10px_purple]"/><span className="text-sm text-purple-300 font-bold">马斯克视角</span></div></div></div></div>
+      );
+
+      // 32. [Hats] 思考帽
+      if (type === 'hats') return (
+        <div className="bg-slate-900/50 rounded-xl h-56 border border-slate-700/50 flex flex-col items-center justify-center relative cursor-pointer" onClick={() => setActiveState(p=>(p+1)%7)}><div className="absolute top-3 right-3 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 换帽子</div><div className={`transition-all duration-500 transform ${activeState===0 ? 'scale-100' : 'scale-110'}`}>{activeState===0 && <div className="text-center"><div className="grid grid-cols-3 gap-2 mb-2 opacity-50">{['⚪','🔴','⚫','🟡','🟢','🔵'].map(e=><div key={e} className="text-2xl">{e}</div>)}</div><div className="text-xs text-slate-400">点击切换思考角度</div></div>}{activeState===1 && <div className="text-center animate-in zoom-in"><div className="w-20 h-20 bg-white rounded-t-full mx-auto mb-2 shadow-[0_0_30px_rgba(255,255,255,0.2)] opacity-90"></div><div className="text-white font-bold">白帽：客观事实</div></div>}{activeState===2 && <div className="text-center animate-in zoom-in"><div className="w-20 h-20 bg-red-500 rounded-t-full mx-auto mb-2 shadow-[0_0_30px_rgba(239,68,68,0.4)]"></div><div className="text-red-400 font-bold">红帽：感性直觉</div></div>}{activeState===3 && <div className="text-center animate-in zoom-in"><div className="w-20 h-20 bg-slate-800 border border-slate-600 rounded-t-full mx-auto mb-2 shadow-[0_0_30px_rgba(0,0,0,0.5)]"></div><div className="text-slate-400 font-bold">黑帽：批判风险</div></div>}{activeState===4 && <div className="text-center animate-in zoom-in"><div className="w-20 h-20 bg-yellow-400 rounded-t-full mx-auto mb-2 shadow-[0_0_30px_rgba(250,204,21,0.4)]"></div><div className="text-yellow-400 font-bold">黄帽：积极利益</div></div>}{activeState===5 && <div className="text-center animate-in zoom-in"><div className="w-20 h-20 bg-emerald-500 rounded-t-full mx-auto mb-2 shadow-[0_0_30px_rgba(16,185,129,0.4)]"></div><div className="text-emerald-400 font-bold">绿帽：创造新意</div></div>}{activeState===6 && <div className="text-center animate-in zoom-in"><div className="w-20 h-20 bg-blue-500 rounded-t-full mx-auto mb-2 shadow-[0_0_30px_rgba(59,130,246,0.4)]"></div><div className="text-blue-400 font-bold">蓝帽：指挥控制</div></div>}</div></div>
+      );
+
+      // 33. [Journey] 英雄之旅
+      if (type === 'journey') return (
+        <div className="bg-slate-900/50 rounded-xl h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer" onClick={() => setActiveState(p=>(p+1)%4)}><div className="absolute top-3 right-3 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 启程</div><div className="relative w-48 h-48"><svg className="w-full h-full overflow-visible animate-[spin_20s_linear_infinite] opacity-20"><circle cx="96" cy="96" r="80" fill="none" stroke="white" strokeWidth="1" strokeDasharray="4 4" /></svg><div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-500 ${activeState===0 ? 'scale-125 opacity-100' : 'scale-100 opacity-50'}`}><div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">🏠</div><div className="text-[10px] mt-1">舒适区</div></div><div className={`absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-500 ${activeState===1 ? 'scale-125 opacity-100' : 'scale-100 opacity-50'}`}><div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">⚔️</div><div className="text-[10px] mt-1">挑战</div></div><div className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex flex-col items-center transition-all duration-500 ${activeState===2 ? 'scale-125 opacity-100' : 'scale-100 opacity-50'}`}><div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">🐲</div><div className="text-[10px] mt-1">深渊</div></div><div className={`absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-500 ${activeState===3 ? 'scale-125 opacity-100' : 'scale-100 opacity-50'}`}><div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">🎁</div><div className="text-[10px] mt-1">归来</div></div><div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-400">{activeState===0 ? "召唤" : activeState===1 ? "试炼" : activeState===2 ? "决战" : "蜕变"}</div></div></div>
+      );
+
+      // 34. [Primacy] 记忆曲线
+      if (type === 'u-curve-mem') return (
+        <div className="bg-slate-900/50 rounded-xl h-56 border border-slate-700/50 flex items-center justify-center relative cursor-pointer overflow-hidden" onClick={() => setActiveState(p=>!p)}><div className="absolute top-3 right-3 text-[10px] text-slate-500 flex items-center bg-slate-800/50 px-2 py-1 rounded-full"><MousePointer className="w-3 h-3 mr-1" /> 展示重点</div><div className="relative w-64 h-40"><svg className="w-full h-full overflow-visible"><path d="M10 20 Q 60 120, 128 120 T 246 20" fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" /></svg><div className={`absolute top-0 left-0 -translate-y-2 transition-all duration-500 ${activeState ? 'scale-110' : 'scale-100'}`}><div className="px-2 py-1 bg-emerald-500/20 border border-emerald-500 rounded text-[10px] text-emerald-400">首因 (开头)</div></div><div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 opacity-50"><div className="text-[10px] text-slate-500">中间 (遗忘)</div></div><div className={`absolute top-0 right-0 -translate-y-2 transition-all duration-500 ${activeState ? 'scale-110' : 'scale-100'}`}><div className="px-2 py-1 bg-emerald-500/20 border border-emerald-500 rounded text-[10px] text-emerald-400">近因 (结尾)</div></div></div></div>
+      );
+
+      // Fallback
+      return <div className="h-56 bg-slate-900/50 border border-slate-700/50 rounded flex items-center justify-center text-slate-500 text-xs">Visualizing...</div>;
+    };
+
+    // --- 全量数据：10大模块，100个模型 (FULL DATA) ---
+    const courseData = [
+      {
+        id: 'module-1',
+        title: '模块一：基石思维',
+        desc: '构建你的思维底座',
+        icon: <Layers className="w-5 h-5" />,
+        models: [
+          { id: '01', title: '第一性原理', engTitle: 'First Principles', visualType: 'roots', visualData: { top: "经验", bottom: "真理" }, slogan: '别只看别人怎么做，要看物理定律允许你怎么做。', tags: ['Musk', '物理学', '创新'], concept: { analogy: '把乐高拆散重拼。', contrast: '类比 (Copy) vs 原理 (Create)' }, caseStudy: { title: 'Musk火箭', content: '成本降低10倍。' }, algorithm: ['归零', '拆解', '重构'], challenge: { title: '书包', desc: '拆解本质。' }, actionableScene: { title: "拆解", desc: "把大任务拆成物理步骤。" } },
+          { id: '02', title: '第二序思维', engTitle: 'Second-Order', visualType: 'domino', visualData: { effect: "后果" }, slogan: '聪明人看一步，智慧者看三步。', tags: ['决策', '长期主义'], concept: { analogy: '吃糖一阶爽，蛀牙二阶痛。', contrast: '当下 vs 未来' }, caseStudy: { title: '眼镜蛇', content: '养蛇换赏金。' }, algorithm: ['然后呢', '再然后'], challenge: { title: '作业机', desc: '考试咋办。' }, actionableScene: { title: "推演", desc: "熬夜的连锁反应。" } },
+          { id: '03', title: '逆向思维', engTitle: 'Inversion', visualType: 'reverse', visualData: { start: "成功", end: "失败" }, slogan: '想要赢，先想清楚怎样才会输。', tags: ['芒格', '风控'], concept: { analogy: '想怎么失败，避开它。', contrast: '正向 vs 逆向' }, caseStudy: { title: '幸存者', content: '看没回来的飞机。' }, algorithm: ['反转', '规避'], challenge: { title: '必败', desc: '列必败清单。' }, actionableScene: { title: "减肥", desc: "列必胖清单。" } },
+          { id: '04', title: '系统思维', engTitle: 'System', visualType: 'loop', visualData: { top: "输入", right: "系统", bottom: "输出", left: "反馈" }, slogan: '不要只盯着树叶，要看整片森林。', tags: ['达利欧', '宏观'], concept: { analogy: '头疼医脚。', contrast: '点 vs 网' }, caseStudy: { title: '生态瓶', content: '牵一发致全身。' }, algorithm: ['连接', '循环'], challenge: { title: '乱循环', desc: '切断点。' }, actionableScene: { title: "阻力", desc: "切断多巴胺回路。" } },
+          { id: '05', title: '金字塔原理', engTitle: 'Pyramid', visualType: 'pyramid', visualData: { top: "结论" }, slogan: '像编程一样，把思想整理成有序的代码块。', tags: ['沟通', '逻辑'], concept: { analogy: '结论先行。', contrast: '流水账 vs 结构' }, caseStudy: { title: '乔布斯', content: '先说结论。' }, algorithm: ['结论', '支撑'], challenge: { title: '申请', desc: '先说买无人机。' }, actionableScene: { title: "汇报", desc: "30秒说重点。" } }
+        ]
+      },
+      {
+        id: 'module-2',
+        title: '模块二：决策与判断',
+        desc: '在不确定性中做聪明选择',
+        icon: <Brain className="w-5 h-5" />,
+        models: [
+          { id: '06', title: '思维模型', engTitle: 'Mental Models', visualType: 'lens', slogan: '手里只有锤子，看什么都像是钉子。', tags: ['元认知'], concept: { analogy: '工具箱。', contrast: '单一 vs 多元' }, caseStudy: { title: '芒格', content: '格栅理论。' }, algorithm: ['换工具'], challenge: { title: '盘点', desc: '你有几个工具？' }, actionableScene: { title: "换视角", desc: "戴不同帽子看问题。" } },
+          { id: '07', title: '奥卡姆剃刀', engTitle: 'Occam Razor', visualType: 'razor', visualData: { noise1: "外星人", truth: "简单" }, slogan: '如无必要，勿增实体。', tags: ['极简'], concept: { analogy: '简单的解释是对的。', contrast: '复杂 vs 简单' }, caseStudy: { title: 'Google', content: '首页极简。' }, algorithm: ['剃除'], challenge: { title: '借口', desc: '别编故事。' }, actionableScene: { title: "实话", desc: "实话最简单。" } },
+          { id: '08', title: '汉隆剃刀', engTitle: 'Hanlon Razor', visualType: 'razor', visualData: { noise1: "恶意", truth: "蠢/忘" }, slogan: '能解释为愚蠢的，就不要归咎于恶意。', tags: ['情绪'], concept: { analogy: '不是坏，是蠢。', contrast: '受害 vs 客观' }, caseStudy: { title: 'Bug', content: '程序员累了。' }, algorithm: ['找动机'], challenge: { title: '挂机', desc: '断网了。' }, actionableScene: { title: "原谅", desc: "爸妈是累了。" } },
+          { id: '09', title: '10-10-10', engTitle: '10-10-10', visualType: 'timeline', slogan: '不仅要活在当下，还要活在未来。', tags: ['决策'], concept: { analogy: '时光机。', contrast: '短视 vs 远见' }, caseStudy: { title: '贝佐斯', content: '长期主义。' }, algorithm: ['10分', '10月', '10年'], challenge: { title: '熬夜', desc: '10年后重要吗？' }, actionableScene: { title: "冷静", desc: "购物车放10天。" } },
+          { id: '10', title: '认知偏见', engTitle: 'Bias', visualType: 'funnel', visualData: { label: "茧房" }, slogan: '大脑是哈哈镜。', tags: ['心理'], concept: { analogy: '只看想看的。', contrast: '偏见 vs 真相' }, caseStudy: { title: '茧房', content: '越看越推。' }, algorithm: ['搜反例'], challenge: { title: '反搜', desc: '搜讨厌的人优点。' }, actionableScene: { title: "破滤镜", desc: "搜反面观点。" } },
+          { id: '11', title: '概率思维', engTitle: 'Probabilistic', visualType: 'lever', visualData: { left: "胜率", right: "下注" }, slogan: '高手谈几率。', tags: ['数学'], concept: { analogy: '算期望值。', contrast: '赌徒 vs 玩家' }, caseStudy: { title: '扑克', content: '下注。' }, algorithm: ['算概率'], challenge: { title: '带伞', desc: '代价大就带。' }, actionableScene: { title: "天气", desc: "30%雨带伞。" } },
+          { id: '12', title: '可逆决策', engTitle: 'Reversible', visualType: 'doors', visualData: { left: "单向", right: "双向" }, slogan: '单向门慎重，双向门要快。', tags: ['速度'], concept: { analogy: '双向门快做。', contrast: '慢 vs 快' }, caseStudy: { title: '亚马逊', content: '可逆别开会。' }, algorithm: ['分类'], challenge: { title: '买游戏', desc: '能退款。' }, actionableScene: { title: "试错", desc: "报社团。" } },
+          { id: '13', title: '非对称风险', engTitle: 'Asymmetric', visualType: 'lever', visualData: { left: "亏2元", right: "赚500万" }, slogan: '亏损有限，收益无限。', tags: ['塔勒布'], concept: { analogy: '彩票表白。', contrast: '对称 vs 非对称' }, caseStudy: { title: '风投', content: '死9成1。' }, algorithm: ['下限低', '上限高'], challenge: { title: '举手', desc: '没损失。' }, actionableScene: { title: "搭讪", desc: "认识人。" } },
+          { id: '14', title: '决策矩阵', engTitle: 'Matrix', visualType: 'matrix', slogan: '数学做决定。', tags: ['工具'], concept: { analogy: '列表打分。', contrast: '直觉 vs 数据' }, caseStudy: { title: 'Google', content: '打分表。' }, algorithm: ['权重'], challenge: { title: '午餐', desc: '打分。' }, actionableScene: { title: "选鞋", desc: "列表比。" } },
+          { id: '15', title: '机会成本', engTitle: 'Opportunity', visualType: 'scale', visualData: { left: "睡懒觉", right: "读书" }, slogan: '免费的最贵。', tags: ['经济'], concept: { analogy: '放弃的价值。', contrast: '显性 vs 隐性' }, caseStudy: { title: '现金', content: '等机会。' }, algorithm: ['比价'], challenge: { title: '周末', desc: '睡懒觉代价。' }, actionableScene: { title: "时薪", desc: "别为10元花1小时。" } }
+        ]
+      },
+      {
+        id: 'module-3',
+        title: '模块三：解决问题',
+        desc: '像工程师一样拆解万难',
+        icon: <Target className="w-5 h-5" />,
+        models: [
+          { id: '16', title: '5Why 分析法', engTitle: '5 Whys', visualType: 'roots', visualData: { top: "问题", bottom: "根因" }, slogan: '别只治标，要治本。', tags: ['丰田', '根因'], concept: { analogy: '像剥洋葱一样。表皮是“考砸了”。剥开一层是“没复习”。再剥一层是“玩游戏”。核心可能是“逃避学习压力”。', contrast: '解决表面 (Symptom) vs 解决根本 (Root)' }, caseStudy: { title: '杰斐逊纪念堂的墙', content: '墙面腐蚀严重。Why? 清洗太频繁。Why? 鸟粪多。Why? 蜘蛛多（鸟食）。Why? 飞虫多（蜘蛛食）。Why? 晚灯开太早吸引飞虫。解：推迟开灯。' }, algorithm: ['现象：描述当前的问题。', '追问：为什么会这样？（第1次）', '继续：为什么那个原因会发生？（重复5次直到找到根源）'], challenge: { title: '为什么迟到？', desc: '你今天迟到了。别只说“闹钟没响”。请用5Why分析法，找到你迟到的根本原因（可能是昨晚熬夜？为什么熬夜？）。' }, actionableScene: { title: "深入自我", desc: "“我为什么不开心？”->因为无聊->因为没目标->因为怕失败。找到“怕失败”这个根因。" } },
+          { id: '17', title: '鱼骨图', engTitle: 'Fishbone Diagram', visualType: 'fishbone', slogan: '把模糊的问题，拆解成清晰的骨架。', tags: ['工具', '分析'], concept: { analogy: '面对复杂问题，大脑容易乱成一团浆糊。鱼骨图就像整理衣柜，把所有可能的原因分门别类挂好。', contrast: '混乱思考 (Chaos) vs 结构化分析 (Order)' }, caseStudy: { title: '波音飞机的安全检查', content: '飞机故障原因成千上万。工程师使用鱼骨图，从“人、机、料、法、环”五个维度进行排查，确保没有任何遗漏。' }, algorithm: ['画骨：画一条主干线，写上问题。', '分类：画出大鱼刺（人、机、物、法、环）。', '填充：在每根鱼刺上写下具体原因。'], challenge: { title: '为什么科技节项目失败？', desc: '假设项目失败了。请画一个脑中鱼骨图：是人的问题（配合）？机的问题（设备坏了）？还是法的问题（时间安排不对）？' }, actionableScene: { title: "考前诊断", desc: "成绩不好？画鱼骨：知识点（漏了？）、心态（慌了？）、身体（困了？）。" } },
+          { id: '18', title: '帕累托原则', engTitle: 'Pareto Principle', visualType: 'lever', visualData: { left: "20%因", right: "80%果" }, slogan: '抓大放小，把精力花在刀刃上。', tags: ['效率', '重点'], concept: { analogy: '花园里80%的豌豆是20%的豆荚结出来的。考试80%的分数来自书本上20%的核心知识点。', contrast: '平均用力 (Average) vs 聚焦重点 (Focus)' }, caseStudy: { title: '微软修复Bug', content: '微软发现，只要修复“最严重的20% Bug”，就能解决80%的用户崩溃报告。于是他们优先处理这些关键错误，系统稳定性大增。' }, algorithm: ['列出所有任务/原因。', '评估：哪20%是最重要的？（能产生80%效果）', '删除：剩下的80%琐事，能不做就不做。'], challenge: { title: '整理书包', desc: '书包里有100样东西，但你常用的可能只有5样（书、笔、iPad）。请找出那20%的关键物品，其他的能否清理掉？' }, actionableScene: { title: "复习策略", desc: "别从第一页开始看书。先看目录，找出那20%你完全不会的“硬骨头”，死磕它们。" } },
+          { id: '19', title: '瓶颈分析', engTitle: 'Bottleneck Analysis', visualType: 'funnel', visualData: { label: "瓶颈" }, slogan: '系统的速度，取决于最慢的那个环节。', tags: ['约束', '优化'], concept: { analogy: '一个宽阔的瓶身，如果瓶口很窄，水倒出来的速度依然很慢。那个瓶口就是“瓶颈”。不管瓶身多大都没用。', contrast: '局部优化 (Local) vs 全局突破 (Global)' }, caseStudy: { title: '工厂流水线', content: '特斯拉Model 3量产初期很慢。马斯克发现瓶颈不在组装，而在电池生产。于是他住进电池工厂，专门解决这一个环节，产能瞬间爆发。' }, algorithm: ['寻找：哪个环节前面堆积的任务最多？（就是它堵住了）', '聚焦：集中所有资源打通这个环节。', '循环：解决后，寻找下一个瓶颈。'], challenge: { title: '写作业太慢', desc: '你觉得写作业慢。分析流程：找书 -> 思考 -> 书写 -> 检查。瓶颈在哪里？是找书找半天（环境瓶颈）？还是思考卡住（知识瓶颈）？' }, actionableScene: { title: "早起流程", desc: "早上总迟到？分析瓶颈：是赖床（意志）？还是找衣服（习惯）？如果是找衣服，前晚睡前备好。" } },
+          { id: '20', title: 'MVP 思维', engTitle: 'Minimum Viable Product', visualType: 'domino', visualData: { effect: "迭代" }, slogan: '先造滑板，再造汽车。', tags: ['创业', '敏捷'], concept: { analogy: '你想造车。不要一上来就造引擎、车门。先造个滑板（能动），让人滑一下。如果没人喜欢滑，你就不用造车了。', contrast: '完美主义 (Perfect) vs 快速迭代 (Iterate)' }, caseStudy: { title: 'Dropbox 的 MVP', content: 'Dropbox 刚开始连代码都没写。创始人只做了一个 3 分钟的假视频，演示“未来的功能”。结果几万人排队注册。这个视频就是 MVP。' }, algorithm: ['定义：最核心的功能是什么？（砍掉所有修饰）', '制作：用最快速度做出原型（哪怕是纸做的）。', '测试：给人用，听反馈。'], challenge: { title: '设计一款新桌游', desc: '不要去买精美的棋子和打印地图。请用纸片和硬币，15分钟内做一个“能玩”的原型，找同学试玩一局。' }, actionableScene: { title: "烂草稿万岁", desc: "写作文别想一句写一句。先花5分钟写个“烂草稿”（MVP），列出大纲，再慢慢改。" } },
+          { id: '21', title: '设计思维', engTitle: 'Design Thinking', visualType: 'loop', visualData: { top: "共情", right: "定义", bottom: "原型", left: "测试" }, slogan: '以人为本，而非以技术为本。', tags: ['斯坦福', '创新'], concept: { analogy: '工程师思考：我能把这个电机做得多快？设计师思考：用户拿着这个吹风机手会不会酸？', contrast: '技术导向 (Tech) vs 用户导向 (Human)' }, caseStudy: { title: 'MRI 核磁共振仪', content: '儿童很怕做MRI检查。设计师没有升级机器技术，而是把机器刷成海盗船，把检查变成“海盗冒险”。孩子们的恐惧消失了。' }, algorithm: ['共情 (Empathize)：用户感觉怎么样？', '定义 (Define)：真正的痛点是什么？', '构思 (Ideate) -> 原型 (Prototype) -> 测试 (Test)。'], challenge: { title: '改良教室椅子', desc: '不要只想着加软垫。去观察同学坐椅子的姿势（跷二郎腿？趴着？）。他们的痛点是什么？设计一个能解决这些痛点的椅子草图。' }, actionableScene: { title: "用心送礼", desc: "别送你喜欢的。用设计思维：TA平时抱怨什么（痛点）？送一个能解决TA痛点的小东西。" } },
+          { id: '22', title: '逆向工作法', engTitle: 'Working Backwards', visualType: 'reverse', visualData: { start: "发布会", end: "写代码" }, slogan: '先写新闻稿，再写代码。', tags: ['亚马逊', '目标'], concept: { analogy: '迷宫游戏。从入口走很难，但如果你从出口倒着画线，一下子就通了。先确定终点，再倒推路径。', contrast: '正向推导 (Forward) vs 终局思维 (Backward)' }, caseStudy: { title: 'Amazon 的发布会', content: '在亚马逊，产品经理必须先写好“未来的产品发布新闻稿”。如果这个新闻稿让人不兴奋，产品就直接取消，一行代码都不许写。' }, algorithm: ['终点：写出产品发布那天的“成功新闻稿”。', '倒推：为了发布，前一个月要有什么功能？', '起点：为了有功能，今天该做什么？'], challenge: { title: '你的期末成绩单', desc: '想象你已经拿到了期末全A的成绩单。倒推：考试前一周你在做什么？现在（两个月前）你必须开始做什么？' }, actionableScene: { title: "日程表", desc: "考试是周五。周四复习错题，周三做模拟卷...一直倒推到今天。日程表自动生成。" } },
+          { id: '23', title: '拆解法 (MECE)', engTitle: 'Decomposition', visualType: 'puzzle', slogan: '将大象装进冰箱，分几步？', tags: ['麦肯锡', '结构'], concept: { analogy: '把一个大乐高模型拆成头、身体、四肢。MECE 原则要求：相互独立（不重叠），完全穷尽（不遗漏）。', contrast: '一团乱麻 (Mess) vs 清晰模块 (Blocks)' }, caseStudy: { title: '登月计划', content: '肯尼迪说“我们要登月”。这太难了。NASA 把它拆解为：火箭推进系统、导航系统、生命维持系统、着陆系统。每个系统再拆解...直到变成一颗螺丝钉。' }, algorithm: ['切分：把大问题切成3-5个子问题。', '检查：子问题之间有重叠吗？有遗漏吗？(MECE)', '再切：把子问题继续切分，直到可以执行。'], challenge: { title: '策划一次班级旅行', desc: '别只说“去玩”。请用MECE拆解：交通、食宿、活动、安全。确保没有遗漏（比如忘了买保险），也没有重叠。' }, actionableScene: { title: "整理电脑文件", desc: "按MECE建立文件夹：‘学校’、‘个人’、‘照片’。确保每个文件都有家，且只有一个家。" } },
+          { id: '24', title: 'SCAMPER 创意法', engTitle: 'SCAMPER', visualType: 'mixer', slogan: '创意不是无中生有，而是旧元素的重组。', tags: ['创新', '重组'], concept: { analogy: '像玩“我的世界”合成台。你可以替代材料、合并道具、改变大小、反转用途。创意就是魔改。', contrast: '死板复制 (Copy) vs 灵活重组 (Remix)' }, caseStudy: { title: '麦当劳的创新', content: '麦当劳把餐厅“流水线化”（Combine/Adjust），取消了服务员（Eliminate），让顾客自己端盘子（Reverse）。这就是 SCAMPER 的应用。' }, algorithm: ['S (Substitute) 替代：能换个材料吗？', 'C (Combine) 合并：能和别的组合吗？', 'E (Eliminate) 删除：能去掉什么？', 'R (Reverse) 反转：能倒过来做吗？'], challenge: { title: '魔改铅笔', desc: '看着手里的铅笔。用SCAMPER：能合并什么（加橡皮）？能改变用途（做发簪）？能消除什么（自动铅笔消除了削笔）？' }, actionableScene: { title: "旧衣改造", desc: "这件旧T恤能怎么改？剪短（删除）？画图（修改）？当抹布（改变用途）？" } },
+          { id: '25', title: '类比思维', engTitle: 'Analogy Thinking', visualType: 'bridge', visualData: { left: "蝙蝠", right: "雷达" }, slogan: '像......一样思考。', tags: ['跨界', '灵感'], concept: { analogy: '虽然我们平时说要用第一性原理，但在解决陌生问题时，类比是最好的向导。由于心脏像泵，所以我们可以修泵一样修心脏。', contrast: '陌生探索 (Unknown) vs 熟悉借用 (Borrowed)' }, caseStudy: { title: '雷达的发明', content: '科学家不知道怎么探测飞机。他们研究蝙蝠（类比），发现蝙蝠发超声波回声定位。于是模仿蝙蝠造出了雷达。' }, algorithm: ['源头：这个陌生问题像什么熟悉的东西？', '映射：那个熟悉东西是怎么解决问题的？', '应用：把那个解决方案搬过来。'], challenge: { title: '治理学校拥堵', desc: '放学时校门口很堵。这像什么？像血管堵塞？像水流不畅？如果像血管，能不能加“支架”（拓宽道路）或“分流”（错峰放学）？' }, actionableScene: { title: "解释新概念", desc: "当你想给别人解释‘内存’时，说‘它就像书桌桌面，硬盘是书架’。秒懂。" } }
+        ]
+      },
+      {
+        id: 'module-4',
+        title: '模块四：学习与洞察',
+        desc: '成为知识炼金术士',
+        icon: <BookOpen className="w-5 h-5" />,
+        models: [
+          { id: '26', title: '费曼技巧', engTitle: 'Feynman', visualType: 'loop', visualData: { top: "学", right: "教", bottom: "卡", left: "简" }, slogan: '讲给人听。', tags: ['学习'], concept: { analogy: '教不会别人即没懂。', contrast: '输入 vs 输出' }, caseStudy: { title: '费曼', content: '大白话。' }, algorithm: ['教'], challenge: { title: '黑洞', desc: '吸尘器。' }, actionableScene: { title: "讲题", desc: "对鸭子讲。" } },
+          { id: '27', title: '推论阶梯', engTitle: 'Ladder', visualType: 'steps', visualData: { step1: "数据", step2: "意义", step3: "行动" }, slogan: '别急下结论。', tags: ['沟通'], concept: { analogy: '爬梯子。', contrast: '跳 vs 爬' }, caseStudy: { title: '皱眉', content: '牙疼。' }, algorithm: ['回数据'], challenge: { title: '不回信', desc: '忙。' }, actionableScene: { title: "暂停", desc: "看事实。" } },
+          { id: '28', title: '能力圈', engTitle: 'Circle', visualType: 'target', slogan: '知之为知之。', tags: ['认知'], concept: { analogy: '别扛怪。', contrast: '全 vs 专' }, caseStudy: { title: '巴菲特', content: '不懂不投。' }, algorithm: ['画圈'], challenge: { title: '科目', desc: '强弱。' }, actionableScene: { title: "承认", desc: "不知道。" } },
+          { id: '29', title: '元认知', engTitle: 'Meta-cognition', visualType: 'loop', slogan: '思考的思考。', tags: ['反思'], concept: { analogy: '驾驶员。', contrast: '自动 vs 觉察' }, caseStudy: { title: '棋手', content: '复盘。' }, algorithm: ['监控'], challenge: { title: '错题', desc: '为何错。' }, actionableScene: { title: "旁白", desc: "观察情绪。" } },
+          { id: '30', title: '刻意练习', engTitle: 'Deliberate', visualType: 'target', visualData: { center: "舒适" }, slogan: '恐慌区边缘。', tags: ['技能'], concept: { analogy: '练补刀。', contrast: '重复 vs 刻意' }, caseStudy: { title: '莫扎特', content: '拆分练。' }, algorithm: ['反馈'], challenge: { title: '投篮', desc: '纠错。' }, actionableScene: { title: "遮答", desc: "重做。" } },
+          { id: '31', title: '批判性思维', engTitle: 'Critical', visualType: 'razor', visualData: { noise1: "谣言", noise2: "情绪", truth: "证据" }, slogan: '信息过滤。', tags: ['求真'], concept: { analogy: '过滤器。', contrast: '信 vs 疑' }, caseStudy: { title: '香烟', content: '查数据。' }, algorithm: ['证据'], challenge: { title: '谣言', desc: '找源头。' }, actionableScene: { title: "查源", desc: "找论文。" } },
+          { id: '32', title: 'DIKW', engTitle: 'DIKW', visualType: 'pyramid', visualData: { top: "智慧" }, slogan: '数据不是智慧。', tags: ['层级'], concept: { analogy: '数据->智慧。', contrast: '碎 vs 整' }, caseStudy: { title: '福尔摩斯', content: '推理。' }, algorithm: ['升维'], challenge: { title: '气象', desc: '带伞。' }, actionableScene: { title: "笔记", desc: "写用法。" } },
+          { id: '33', title: '隐含前提', engTitle: 'Suppressed', visualType: 'iceberg', visualData: { visible: "观点", hidden: "假设" }, slogan: '找没说的话。', tags: ['逻辑'], concept: { analogy: '不派对=不合群？错。', contrast: '表 vs 里' }, caseStudy: { title: '征兵', content: '男人参军。' }, algorithm: ['攻假设'], challenge: { title: '唠叨', desc: '题错=没大学。' }, actionableScene: { title: "应该", desc: "破应该。" } },
+          { id: '34', title: '地图非疆域', engTitle: 'Map!=Territory', visualType: 'bridge', slogan: '模型非真理。', tags: ['局限'], concept: { analogy: '导航错。', contrast: '模 vs 实' }, caseStudy: { title: '金融危机', content: '模型错。' }, algorithm: ['验证'], challenge: { title: '导航', desc: '信眼睛。' }, actionableScene: { title: "体验", desc: "信手感。" } },
+          { id: '35', title: '联结之力', engTitle: 'Synergy', visualType: 'chemistry', slogan: '1+1>2。', tags: ['综合'], concept: { analogy: '可乐组合。', contrast: '单 vs 多' }, caseStudy: { title: 'iPhone', content: '融合。' }, algorithm: ['组合'], challenge: { title: '学习法', desc: '多法并用。' }, actionableScene: { title: "混搭", desc: "跨界。" } }
+        ]
+      },
+      {
+        id: 'module-5',
+        title: '模块五：科学与工程',
+        desc: '洞悉底层代码',
+        icon: <Atom className="w-5 h-5" />,
+        models: [
+          { id: '36', title: '复利效应', engTitle: 'Compound', visualType: 'curve', visualData: { high: "爆发" }, slogan: '耐心是朋友。', tags: ['增长'], concept: { analogy: '滚雪球。', contrast: '线 vs 指数' }, caseStudy: { title: '巴菲特', content: '老了有钱。' }, algorithm: ['公式'], challenge: { title: '背词', desc: '坚持3年。' }, actionableScene: { title: "微习惯", desc: "每天1个。" } },
+          { id: '37', title: '杠杆原理', engTitle: 'Leverage', visualType: 'lever', visualData: { left: "小", right: "大" }, slogan: '撬动地球。', tags: ['效能'], concept: { analogy: '棍子撬石。', contrast: '蛮力 vs 借力' }, caseStudy: { title: '代码', content: '复制0成本。' }, algorithm: ['支点'], challenge: { title: '工具', desc: '搜索。' }, actionableScene: { title: "搜", desc: "别死磕。" } },
+          { id: '38', title: '牛顿第三定律', engTitle: 'Newton 3', visualType: 'reverse', visualData: { start: "作用", end: "反作用" }, slogan: '反作用力。', tags: ['物理'], concept: { analogy: '打墙手痛。', contrast: '单向 vs 互动' }, caseStudy: { title: '火箭', content: '反推。' }, algorithm: ['回击'], challenge: { title: '说服', desc: '示弱。' }, actionableScene: { title: "微笑", desc: "对他笑。" } },
+          { id: '39', title: '边际安全', engTitle: 'Margin Safety', visualType: 'funnel', visualData: { label: "余量" }, slogan: '断绳也能开。', tags: ['稳健'], concept: { analogy: '备胎。', contrast: '极限 vs 冗余' }, caseStudy: { title: '缆绳', content: '多根。' }, algorithm: ['留余'], challenge: { title: '早起', desc: '提前20分。' }, actionableScene: { title: "电量", desc: "20%充。" } },
+          { id: '40', title: '熵增定律', engTitle: 'Entropy', visualType: 'chaos', slogan: '主动做功。', tags: ['自律'], concept: { analogy: '耳机打结。', contrast: '自乱 vs 做功' }, caseStudy: { title: '倒闭', content: '不创新死。' }, algorithm: ['做功'], challenge: { title: '理桌', desc: '每天理。' }, actionableScene: { title: "归位", desc: "随手放。" } },
+          { id: '41', title: '损失规避', engTitle: 'Loss Aversion', visualType: 'scale', visualData: { left: "痛", right: "乐" }, slogan: '宁不赚不亏。', tags: ['心理'], concept: { analogy: '丢钱痛。', contrast: '理智 vs 情感' }, caseStudy: { title: '试用', content: '不退订。' }, algorithm: ['别怕'], challenge: { title: '断舍离', desc: '假装别人的。' }, actionableScene: { title: "离场", desc: "电影烂快走。" } },
+          { id: '42', title: '回归平均', engTitle: 'Regression', visualType: 'curve', visualData: { high: "波动", wave: true }, slogan: '运气波动。', tags: ['统计'], concept: { analogy: '考好考差。', contrast: '波动 vs 实力' }, caseStudy: { title: '魔咒', content: '巅峰必跌。' }, algorithm: ['平常心'], challenge: { title: '考砸', desc: '会涨。' }, actionableScene: { title: "收手", desc: "顺手快跑。" } },
+          { id: '43', title: '囚徒困境', engTitle: 'Prisoner', visualType: 'matrix', slogan: '互咬双输。', tags: ['博弈'], concept: { analogy: '背叛vs合作。', contrast: '私利 vs 共赢' }, caseStudy: { title: '价格战', content: '没钱赚。' }, algorithm: ['合作'], challenge: { title: '扫除', desc: '定规则。' }, actionableScene: { title: "带饭", desc: "轮流。" } },
+          { id: '44', title: '临界质量', engTitle: 'Critical Mass', visualType: 'curve', visualData: { high: "沸点" }, slogan: '量变质变。', tags: ['爆发'], concept: { analogy: '烧水。', contrast: '渐 vs 突' }, caseStudy: { title: '核裂', content: '堆够。' }, algorithm: ['积累'], challenge: { title: '单词', desc: '3000。' }, actionableScene: { title: "坚持", desc: "跑过极点。" } },
+          { id: '45', title: 'SCQA', engTitle: 'SCQA', visualType: 'steps', visualData: { step1: "S", step2: "C", step3: "QA" }, slogan: '讲故事。', tags: ['沟通'], concept: { analogy: '电影。', contrast: '平 vs 奇' }, caseStudy: { title: 'iPad', content: '填空白。' }, algorithm: ['S情境', 'C冲突'], challenge: { title: '请假', desc: '爷爷病。' }, actionableScene: { title: "汇报", desc: "S背景C冲突。" } }
+        ]
+      },
+      {
+        id: 'module-6',
+        title: '模块六：模式与系统',
+        desc: '看清复杂结构',
+        icon: <Globe className="w-5 h-5" />,
+        models: [
+          { id: '46', title: '飞轮效应', engTitle: 'Flywheel Effect', visualType: 'flywheel', slogan: '最难的是第一圈，之后越来越快。', tags: ['增长'], concept: { analogy: '推轮子，起步难，后自动转。', contrast: '单次 vs 积累' }, caseStudy: { title: '亚马逊', content: '低价->流量->卖家->低价循环。' }, algorithm: ['找起点', '推'], challenge: { title: '学习', desc: '成绩->自信->成绩。' }, actionableScene: { title: "微习惯", desc: "每天背1个词，坚持30天。" } },
+          { id: '47', title: '路径依赖', engTitle: 'Path Dependence', visualType: 'roots', visualData: { top: "选择", bottom: "锁定" }, slogan: '你走过的路，决定了你只能去哪里。', tags: ['习惯'], concept: { analogy: '马屁股决定火箭直径。历史锁定未来。', contrast: '自由 vs 锁定' }, caseStudy: { title: '键盘', content: 'QWERTY是为了慢，却沿用至今。' }, algorithm: ['慎始', '跳出'], challenge: { title: '握笔', desc: '习惯难改。' }, actionableScene: { title: "开学", desc: "第一天别迟到。" } },
+          { id: '48', title: '蝴蝶效应', engTitle: 'Butterfly Effect', visualType: 'network', slogan: '亚马逊蝴蝶扇翅膀，德州龙卷风。', tags: ['混沌'], concept: { analogy: '初始微小变化被放大。', contrast: '线性 vs 混沌' }, caseStudy: { title: '一战', content: '一声枪响引发大战。' }, algorithm: ['防微杜渐'], challenge: { title: '心情', desc: '皱眉传染全班。' }, actionableScene: { title: "整理", desc: "叠被子带来一天有序。" } },
+          { id: '49', title: '网络效应', engTitle: 'Network Effects', visualType: 'network', slogan: '用的人越多，产品越值钱。', tags: ['价值'], concept: { analogy: '电话一部没用，十亿部是必需品。', contrast: '单机 vs 连接' }, caseStudy: { title: '微信', content: '朋友都在用。' }, algorithm: ['加入网', '连接'], challenge: { title: '社团', desc: '选人多的。' }, actionableScene: { title: "分享", desc: "笔记发群里。" } },
+          { id: '50', title: '增强回路', engTitle: 'Reinforcing Loop', visualType: 'u-curve', slogan: '好会更好，坏会更坏。', tags: ['系统'], concept: { analogy: '麦克风啸叫。正反馈。', contrast: '平衡 vs 爆发' }, caseStudy: { title: '富人', content: '越有钱越投资。' }, algorithm: ['识别', '利用/切断'], challenge: { title: '自卑', desc: '考差->笨->不学->考差。切断。' }, actionableScene: { title: "赞美", desc: "夸人得夸奖。" } },
+          { id: '51', title: '空-雨-伞', engTitle: 'Sor-Ame-Kasa', visualType: 'steps', visualData: { step1: "空", step2: "雨", step3: "伞" }, slogan: '看见天空，判断下雨，带上雨伞。', tags: ['行动'], concept: { analogy: '事实->判断->行动。', contrast: '发呆 vs 行动' }, caseStudy: { title: '医生', content: '发烧->流感->开药。' }, algorithm: ['事实', '判断', '行动'], challenge: { title: '试卷', desc: '70分->基础差->练基础。' }, actionableScene: { title: "焦虑", desc: "3天考->复习不完->只看重点。" } },
+          { id: '52', title: '局部最优', engTitle: 'Local Maxima', visualType: 'peaks', slogan: '为了爬更高的山，必须先下山。', tags: ['格局'], concept: { analogy: '小山头到珠峰，必须先下坡。', contrast: '眼前 vs 长远' }, caseStudy: { title: '柯达', content: '舍不得胶卷，死于数码。' }, algorithm: ['敢下山'], challenge: { title: '改错题', desc: '抄答案快，改错慢但有效。' }, actionableScene: { title: "换方法", desc: "放弃死记，开始理解。" } },
+          { id: '53', title: '非线性思维', engTitle: 'Non-Linear', visualType: 'curve', slogan: '世界不是直线的。', tags: ['趋势'], concept: { analogy: '竹子前4年不长，第5年暴长。', contrast: '直线 vs 曲线' }, caseStudy: { title: '病毒', content: '指数爆发。' }, algorithm: ['找拐点'], challenge: { title: '突击', desc: '通宵没用。' }, actionableScene: { title: "健身", desc: "前期没效果别急。" } },
+          { id: '54', title: '迭代思维', engTitle: 'Iterative Thinking', visualType: 'loop', slogan: '完成比完美重要。', tags: ['进化'], concept: { analogy: '先画轮廓再上色。', contrast: '憋大招 vs 小步跑' }, caseStudy: { title: '微信', content: '1.0只能发字。' }, algorithm: ['v0.1', '反馈', 'v0.2'], challenge: { title: '演讲稿', desc: '先写烂稿。' }, actionableScene: { title: "版本", desc: "作业v1.0。" } },
+          { id: '55', title: '涌现', engTitle: 'Emergence', visualType: 'chaos', slogan: '整体大于部分之和。', tags: ['奇迹'], concept: { analogy: '脑细胞无意识，大脑有意识。', contrast: '叠加 vs 涌现' }, caseStudy: { title: '硅谷', content: '聚集创新。' }, algorithm: ['连接', '互动'], challenge: { title: '班级', desc: '学霸气场。' }, actionableScene: { title: "组队", desc: "学习小组。" } }
+        ]
+      },
+      {
+        id: 'module-7',
+        title: '模块七：创新与创造',
+        desc: '打破常规，创造未来',
+        icon: <Lightbulb className="w-5 h-5" />,
+        models: [
+          { id: '56', title: 'U型思考', engTitle: 'U-Shaped', visualType: 'u-curve', slogan: '先挖本质，再做方案。', tags: ['深度'], concept: { analogy: '别直接跳方案，先下挖。', contrast: '水平 vs 深度' }, caseStudy: { title: '打车', content: '难->共享运力->滴滴。' }, algorithm: ['问', '挖', '解'], challenge: { title: '成绩', desc: '挖本质漏洞。' }, actionableScene: { title: "深挖", desc: "哪不懂？" } },
+          { id: '57', title: '升维打击', engTitle: 'Dimension Upgrading', visualType: 'dimension', slogan: '高维打低维。', tags: ['视角'], concept: { analogy: '蚂蚁走迷宫vs人跨过去。', contrast: '同维 vs 降维' }, caseStudy: { title: '三体', content: '二向箔。' }, algorithm: ['升维'], challenge: { title: '班长', desc: '比服务。' }, actionableScene: { title: "立体", desc: "立体几何。" } },
+          { id: '58', title: '反事实思维', engTitle: 'Counterfactual', visualType: 'fork', slogan: '如果当初...', tags: ['复盘'], concept: { analogy: '平行宇宙。', contrast: '现实 vs 可能' }, caseStudy: { title: '萨利', content: '模拟飞行。' }, algorithm: ['上行', '下行'], challenge: { title: '吵架', desc: '少说一句。' }, actionableScene: { title: "庆幸", desc: "幸好没丢手机。" } },
+          { id: '59', title: '遗憾最小化', engTitle: 'Regret Min', visualType: 'timeline', slogan: '80岁时后悔吗？', tags: ['Bezos'], concept: { analogy: '终点回看。', contrast: '短期 vs 终身' }, caseStudy: { title: '创业', content: '怕后悔。' }, algorithm: ['穿越'], challenge: { title: '比赛', desc: '怕输vs怕没试。' }, actionableScene: { title: "表白", desc: "现在说。" } },
+          { id: '60', title: '上帝视角', engTitle: "God's View", visualType: 'dimension', slogan: '跳出迷宫看路。', tags: ['全局'], concept: { analogy: '俯瞰视角。', contrast: '当局 vs 旁观' }, caseStudy: { title: '诺曼底', content: '看地图。' }, algorithm: ['抽离'], challenge: { title: '吵架', desc: '看两个小孩。' }, actionableScene: { title: "日记", desc: "第三人称写。" } },
+          { id: '61', title: '蓝海战略', engTitle: 'Blue Ocean', visualType: 'ocean', slogan: '去无人竞争的地方。', tags: ['差异'], concept: { analogy: '红海厮杀vs蓝海游泳。', contrast: '卷 vs 创' }, caseStudy: { title: 'Switch', content: '不拼画质拼体感。' }, algorithm: ['剔除', '增创'], challenge: { title: '海报', desc: '不画海报。' }, actionableScene: { title: "作文", desc: "写不一样的。" } },
+          { id: '62', title: '破坏性创新', engTitle: 'Disruptive', visualType: 'u-curve', slogan: '低端切入逆袭。', tags: ['逆袭'], concept: { analogy: '小树苗长得快。', contrast: '维持 vs 破坏' }, caseStudy: { title: '数码相机', content: '像素低但方便。' }, algorithm: ['低端', '迭代'], challenge: { title: '学习', desc: '科普切入。' }, actionableScene: { title: "博主", desc: "手机拍。" } },
+          { id: '63', title: '替身决策', engTitle: 'Surrogate', visualType: 'mask', slogan: '如果是他怎么做？', tags: ['借智'], concept: { analogy: '带偶像面具。', contrast: '自我 vs 借用' }, caseStudy: { title: '乔布斯', content: '他会觉得丑吗？' }, algorithm: ['选替身', '模仿'], challenge: { title: '难题', desc: '学霸怎么做。' }, actionableScene: { title: "附体", desc: "苏炳添。" } },
+          { id: '64', title: '重组创新', engTitle: 'Remix', visualType: 'puzzle', slogan: '旧要素新组合。', tags: ['组合'], concept: { analogy: '积木重拼。', contrast: '0到1 vs 组合' }, caseStudy: { title: '拉杆箱', content: '轮子+箱子。' }, algorithm: ['拆解', '组合'], challenge: { title: '零食', desc: '辣条冰淇淋。' }, actionableScene: { title: "跨界", desc: "文+画。" } },
+          { id: '65', title: '技术曲线', engTitle: 'Adoption Curve', visualType: 'curve', slogan: '卖给有头发的人。', tags: ['趋势'], concept: { analogy: '创新者->大众。', contrast: '小众 vs 大众' }, caseStudy: { title: '手机', content: '极客先用。' }, algorithm: ['找创新者'], challenge: { title: '安利', desc: '找极客同学。' }, actionableScene: { title: "同类", desc: "找社区。" } }
+        ]
+      },
+      {
+        id: 'module-8',
+        title: '模块八：沟通与影响力',
+        desc: '让想法产生影响',
+        icon: <Users className="w-5 h-5" />,
+        models: [
+          { id: '66', title: '六顶思考帽', engTitle: '6 Hats', visualType: 'hats', slogan: '分角色思考。', tags: ['博诺'], concept: { analogy: '换帽子换脑子。', contrast: '混 vs 清' }, caseStudy: { title: '会议', content: '不吵架。' }, algorithm: ['轮流'], challenge: { title: '讨论', desc: '戴帽。' }, actionableScene: { title: "纠结", desc: "白红黑黄绿蓝。" } },
+          { id: '67', title: '英雄之旅', engTitle: 'Hero Journey', visualType: 'journey', slogan: '坎坷是剧情。', tags: ['故事'], concept: { analogy: '电影剧本。', contrast: '平 vs 奇' }, caseStudy: { title: '星战', content: '卢克。' }, algorithm: ['召唤'], challenge: { title: '挫折', desc: '是试炼。' }, actionableScene: { title: "日记", desc: "我在深渊。" } },
+          { id: '68', title: '冰山理论', engTitle: 'Iceberg', visualType: 'iceberg', slogan: '看不见的更重要。', tags: ['深度'], concept: { analogy: '水下90%。', contrast: '行 vs 动' }, caseStudy: { title: '海明威', content: '留白。' }, algorithm: ['下潜'], challenge: { title: '生气', desc: '渴望。' }, actionableScene: { title: "读人", desc: "他想要啥。" } },
+          { id: '69', title: '首因近因', engTitle: 'Primacy', visualType: 'u-curve-mem', slogan: '开头结尾最重要。', tags: ['记忆'], concept: { analogy: '凤头豹尾。', contrast: '平 vs 翘' }, caseStudy: { title: '背词', content: '首尾。' }, algorithm: ['重头尾'], challenge: { title: '演讲', desc: '金句。' }, actionableScene: { title: "印象", desc: "微笑再见。" } },
+          { id: '70', title: '激励机制', engTitle: 'Incentives', visualType: 'lever', slogan: '屁股决定脑袋。', tags: ['动力'], concept: { analogy: '胡萝卜大棒。', contrast: '推 vs 拉' }, caseStudy: { title: '英国', content: '运囚犯。' }, algorithm: ['找利'], challenge: { title: '求人', desc: '对他有啥好。' }, actionableScene: { title: "谈判", desc: "双赢。" } },
+          { id: '71', title: '思维投影', engTitle: 'Projection', visualType: 'lens', slogan: '世界是你的镜子。', tags: ['心理'], concept: { analogy: '墨镜。', contrast: '实 vs 虚' }, caseStudy: { title: '苏轼', content: '佛印。' }, algorithm: ['擦镜'], challenge: { title: '讨厌', desc: '像自己。' }, actionableScene: { title: "转念", desc: "我怎么了。" } },
+          { id: '72', title: '影响力六', engTitle: 'Influence 6', visualType: 'network', slogan: '说服的开关。', tags: ['西奥迪尼'], concept: { analogy: '按按钮。', contrast: '硬 vs 软' }, caseStudy: { title: '销售', content: '互惠。' }, algorithm: ['互惠'], challenge: { title: '借书', desc: '先帮他。' }, actionableScene: { title: "从众", desc: "大家都在。" } },
+          { id: '73', title: '双目标', engTitle: 'Two Lists', visualType: 'razor', slogan: '专注是做减法。', tags: ['巴菲特'], concept: { analogy: '5/25。', contrast: '多 vs 少' }, caseStudy: { title: '飞机', content: '撕清单。' }, algorithm: ['列25', '圈5', '扔20'], challenge: { title: '爱好', desc: '只留3。' }, actionableScene: { title: "周末", desc: "只做1件。" } },
+          { id: '74', title: '情绪ABC', engTitle: 'ABC', visualType: 'domino', slogan: '想法决定情绪。', tags: ['认知'], concept: { analogy: '墨镜色。', contrast: '事 vs 想' }, caseStudy: { title: '半杯水', content: '幸好vs只剩。' }, algorithm: ['改B'], challenge: { title: '考差', desc: '是反馈。' }, actionableScene: { title: "换框", desc: "好事。" } },
+          { id: '75', title: '沉默螺旋', engTitle: 'Spiral', visualType: 'funnel', slogan: '随大流。', tags: ['传播'], concept: { analogy: '喇叭。', contrast: '独 vs 众' }, caseStudy: { title: '网暴', content: '不敢说。' }, algorithm: ['发声'], challenge: { title: '班会', desc: '敢说吗。' }, actionableScene: { title: "支持", desc: "帮少数。" } }
+        ]
+      },
+      {
+        id: 'module-9',
+        title: '模块九：战略与规划',
+        desc: '为人生和项目绘制航线',
+        icon: <MapIcon className="w-5 h-5" />,
+        models: [
+          { id: '76', title: '长线思维', engTitle: 'Long-Term Thinking', visualType: 'timeline', slogan: '流水不争先，争的是滔滔不绝。', tags: ['战略'], concept: { analogy: '种树。今天乘凉是因为10年前种了树。', contrast: '短视博弈 vs 长期主义' }, caseStudy: { title: '亚马逊', content: '亏损20年为了占领未来。' }, algorithm: ['穿越: 10年后想要什么？', '倒推: 今天该做什么？'], challenge: { title: '存钱', desc: '为了大学毕业旅行，每月存50。' }, actionableScene: { title: "忍耐", desc: "枯燥的背单词是为了看懂原版书。" } },
+          { id: '77', title: 'Day 1 心态', engTitle: 'Day 1 Philosophy', visualType: 'roots', visualData: { top: "增长", bottom: "初心" }, slogan: '每天都是创业第一天。', tags: ['贝佐斯'], concept: { analogy: '像刚谈恋爱一样保持热情。Day 2 是停滞和死亡。', contrast: '僵化 (Day 2) vs 活力 (Day 1)' }, caseStudy: { title: '亚马逊总部', content: '大楼叫Day 1。' }, algorithm: ['关注客户', '抵制形式'], challenge: { title: '大扫除', desc: '把房间当新房理。' }, actionableScene: { title: "开学", desc: "把期中当开学第一天。" } },
+          { id: '78', title: '正确与非共识', engTitle: 'Non-Consensus', visualType: 'matrix', slogan: '在没人看好的地方寻找宝藏。', tags: ['投资'], concept: { analogy: '大家都买的股票不赚钱。', contrast: '从众 vs 独见' }, caseStudy: { title: 'Airbnb', content: '没人敢住陌生人家，他们敢。' }, algorithm: ['独立思考', '反直觉'], challenge: { title: '爱好', desc: '喜欢冷门但有价值的事。' }, actionableScene: { title: "选书", desc: "读大家没读过的经典。" } },
+          { id: '79', title: '艾森豪威尔矩阵', engTitle: 'Eisenhower Matrix', visualType: 'matrix', slogan: '要事第一。', tags: ['效率'], concept: { analogy: '急诊室分诊。', contrast: '紧急 vs 重要' }, caseStudy: { title: '总统', content: '只做重要不紧急。' }, algorithm: ['重要紧急: 做', '重要不急: 划', '急不重要: 托', '不急不重: 删'], challenge: { title: '周末', desc: '分类任务。' }, actionableScene: { title: "复习", desc: "先做重要知识点。" } },
+          { id: '80', title: 'OODA 循环', engTitle: 'OODA Loop', visualType: 'loop', visualData: { top: "观察", right: "调整", bottom: "决策", left: "行动" }, slogan: '天下武功，唯快不破。', tags: ['空战'], concept: { analogy: '战斗机狗斗。', contrast: '迟钝 vs 敏捷' }, caseStudy: { title: '空战', content: '比敌人快一秒。' }, algorithm: ['观察(Observe)', '调整(Orient)', '决策(Decide)', '行动(Act)'], challenge: { title: '吵架', desc: '快速观察对方情绪变了。' }, actionableScene: { title: "考试", desc: "一看难题卡住，马上跳过（调整）。" } },
+          { id: '81', title: 'SWOT 分析', engTitle: 'SWOT Analysis', visualType: 'matrix', slogan: '知己知彼，百战不殆。', tags: ['战略'], concept: { analogy: '体检报告。', contrast: '模糊 vs 清晰' }, caseStudy: { title: '耐克', content: '分析对手。' }, algorithm: ['S优势', 'W劣势', 'O机会', 'T威胁'], challenge: { title: '竞选', desc: '分析自己。' }, actionableScene: { title: "择校", desc: "分析志愿。" } },
+          { id: '82', title: '沉没成本', engTitle: 'Sunk Cost', visualType: 'scale', visualData: { left: "过去投入", right: "未来价值" }, slogan: '别为打翻的牛奶哭泣。', tags: ['经济'], concept: { analogy: '烂电影不看完。', contrast: '纠结过去 vs 面向未来' }, caseStudy: { title: '协和飞机', content: '亏钱也要飞（反例）。' }, algorithm: ['归零', '止损'], challenge: { title: '游戏', desc: '号练废了重练。' }, actionableScene: { title: "放弃", desc: "这本书读不下去就扔。" } },
+          { id: '83', title: '护城河', engTitle: 'Economic Moat', visualType: 'target', visualData: { center: "核心" }, slogan: '易守难攻的竞争优势。', tags: ['巴菲特'], concept: { analogy: '城堡外的河。', contrast: '平原 vs 城堡' }, caseStudy: { title: '可口可乐', content: '品牌是河。' }, algorithm: ['无形资产', '转换成本', '网络效应'], challenge: { title: '技能', desc: '什么是别人偷不走的？' }, actionableScene: { title: "绝活", desc: "练一手字。" } },
+          { id: '84', title: '投资组合', engTitle: 'Portfolio', visualType: 'pyramid', visualData: { top: "战略" }, slogan: '不要把鸡蛋放在一个篮子里。', tags: ['配置'], concept: { analogy: '膳食营养均衡。', contrast: '单一 vs 多元' }, caseStudy: { title: '基金', content: '股债平衡。' }, algorithm: ['基础60%', '成长30%', '冒险10%'], challenge: { title: '阅读', desc: '小说/课本/杂书比例。' }, actionableScene: { title: "时间", desc: "学习/娱乐/运动分配。" } },
+          { id: '85', title: '五步设计法', engTitle: 'Musk 5 Steps', visualType: 'steps', visualData: { step1: "质疑", step2: "删除", step3: "简化" }, slogan: '最好的零件是由于没有零件。', tags: ['马斯克'], concept: { analogy: '减法雕塑。', contrast: '优化 vs 删除' }, caseStudy: { title: '星舰', content: '不刷漆。' }, algorithm: ['质疑需求', '删除部件', '简化优化', '加速', '自动化'], challenge: { title: '作业', desc: '删掉不必要的步骤。' }, actionableScene: { title: "流程", desc: "不做无用功。" } }
+        ]
+      },
+      {
+        id: 'module-10',
+        title: '模块十：心智与效率',
+        desc: '优化你的内在操作系统',
+        icon: <Heart className="w-5 h-5" />,
+        models: [
+          { id: '86', title: '卡尼曼双系统', engTitle: 'System 1 & 2', visualType: 'matrix', slogan: '直觉是快思考，理性是慢思考。', tags: ['心理'], concept: { analogy: '骑象人与大象。', contrast: '本能 vs 理性' }, caseStudy: { title: '冲动消费', content: '系统1买买买，系统2后悔。' }, algorithm: ['识别', '调用系统2'], challenge: { title: '刷题', desc: '别只凭感觉选C。' }, actionableScene: { title: "冷静", desc: "数到10再说话。" } },
+          { id: '87', title: '可得性偏差', engTitle: 'Availability Bias', visualType: 'lens', slogan: '你看到的不是全部。', tags: ['偏见'], concept: { analogy: '幸存者。', contrast: '印象 vs 事实' }, caseStudy: { title: '飞机', content: '觉得飞机危险因新闻多。' }, algorithm: ['查数据', '找反例'], challenge: { title: '恐惧', desc: '真的危险吗？' }, actionableScene: { title: "判断", desc: "看统计概率。" } },
+          { id: '88', title: '确认偏误', engTitle: 'Confirmation Bias', visualType: 'funnel', visualData: { label: "筛选" }, slogan: '人只相信自己愿意相信的。', tags: ['偏见'], concept: { analogy: '回音室。', contrast: '求真 vs 求同' }, caseStudy: { title: '算命', content: '只记准的。' }, algorithm: ['反向思考', '证伪'], challenge: { title: '争论', desc: '找对方合理的点。' }, actionableScene: { title: "搜索", desc: "搜反对意见。" } },
+          { id: '89', title: '锚定效应', engTitle: 'Anchoring Effect', visualType: 'scale', visualData: { left: "锚", right: "值" }, slogan: '第一印象是重锚。', tags: ['谈判'], concept: { analogy: '标价。', contrast: '绝对 vs 相对' }, caseStudy: { title: '打折', content: '原价是锚。' }, algorithm: ['重设锚'], challenge: { title: '砍价', desc: '先出低价。' }, actionableScene: { title: "谈判", desc: "先开口设锚。" } },
+          { id: '90', title: '心流', engTitle: 'Flow', visualType: 'curve', visualData: { high: "心流", wave: true }, slogan: '挑战与能力的完美平衡。', tags: ['效率'], concept: { analogy: '冲浪。', contrast: '焦虑 vs 无聊' }, caseStudy: { title: '游戏', content: '难度适中。' }, algorithm: ['设目标', '反馈', '匹配难度'], challenge: { title: '作业', desc: '限时挑战。' }, actionableScene: { title: "专注", desc: "关网1小时。" } },
+          { id: '91', title: '反脆弱', engTitle: 'Antifragile', visualType: 'chaos', slogan: '从混乱中获益。', tags: ['塔勒布'], concept: { analogy: '乒乓球 vs 玻璃球。', contrast: '强韧 vs 反脆弱' }, caseStudy: { title: '健身', content: '肌肉撕裂后更强。' }, algorithm: ['压力', '恢复', '增强'], challenge: { title: '被骂', desc: '变强动力。' }, actionableScene: { title: "试错", desc: "主动犯小错。" } },
+          { id: '92', title: '需求层次', engTitle: 'Maslow Hierarchy', visualType: 'pyramid', visualData: { top: "自我" }, slogan: '先吃饱，再谈理想。', tags: ['动机'], concept: { analogy: '盖楼。', contrast: '基础 vs 高级' }, caseStudy: { title: '乞丐', content: '只需食物。' }, algorithm: ['定位需求'], challenge: { title: '激励', desc: '知己知彼。' }, actionableScene: { title: "安慰", desc: "先给水喝。" } },
+          { id: '93', title: 'SCARF模型', engTitle: 'SCARF', visualType: 'network', slogan: '大脑的社交按钮。', tags: ['社交'], concept: { analogy: '威胁/奖赏开关。', contrast: '恐惧 vs 安全' }, caseStudy: { title: '表扬', content: '提升地位感。' }, algorithm: ['地位', '确定', '自主', '关联', '公平'], challenge: { title: '合作', desc: '给对方自主权。' }, actionableScene: { title: "夸奖", desc: "公开表扬。" } },
+          { id: '94', title: '省力杠杆', engTitle: 'Effort Leverage', visualType: 'lever', visualData: { left: "巧劲", right: "结果" }, slogan: '选择阻力最小的路。', tags: ['策略'], concept: { analogy: '顺水行舟。', contrast: '死磕 vs 借势' }, caseStudy: { title: '习惯', content: '环境暗示。' }, algorithm: ['降阻力'], challenge: { title: '吉他', desc: '放手边。' }, actionableScene: { title: "准备", desc: "运动衣放床头。" } },
+          { id: '95', title: '可复制思维', engTitle: 'Replicable', visualType: 'steps', visualData: { step1: "做", step2: "理", step3: "传" }, slogan: '把经验变成SOP。', tags: ['管理'], concept: { analogy: '菜谱。', contrast: '灵感 vs 流程' }, caseStudy: { title: '麦当劳', content: '薯条炸3分钟。' }, algorithm: ['标准化'], challenge: { title: '笔记', desc: '模板化。' }, actionableScene: { title: "清单", desc: "打包行李单。" } },
+          { id: '96', title: '波特五力', engTitle: 'Five Forces', visualType: 'network', slogan: '谁在瓜分你的蛋糕？', tags: ['竞争'], concept: { analogy: '围城。', contrast: '内 vs 外' }, caseStudy: { title: '奶茶店', content: '门槛低竞争大。' }, algorithm: ['分析五力'], challenge: { title: '竞选', desc: '看对手。' }, actionableScene: { title: "择业", desc: "看替代品。" } },
+          { id: '97', title: 'GTD', engTitle: 'Getting Things Done', visualType: 'funnel', visualData: { label: "执行" }, slogan: '清空大脑，专注当下。', tags: ['效率'], concept: { analogy: '流水线。', contrast: '脑记 vs 笔记' }, caseStudy: { title: '清单', content: '不焦虑。' }, algorithm: ['收集', '整理', '执行'], challenge: { title: '杂事', desc: '全写下来。' }, actionableScene: { title: "清空", desc: "2分钟原则。" } },
+          { id: '98', title: '帕金森定律', engTitle: 'Parkinson Law', visualType: 'timeline', slogan: '时间像海绵里的水。', tags: ['效率'], concept: { analogy: '气体填满空间。', contrast: '无限 vs 截止' }, caseStudy: { title: '暑假作业', content: '最后一天做完。' }, algorithm: ['设DDL'], challenge: { title: '作业', desc: '压缩一半时间。' }, actionableScene: { title: "限时", desc: "倒计时。" } },
+          { id: '99', title: '习得性无助', engTitle: 'Learned Helplessness', visualType: 'doors', visualData: { left: "假锁", right: "自由" }, slogan: '别被过去的失败锁住。', tags: ['心理'], concept: { analogy: '栓小象的绳子。', contrast: '定势 vs 成长' }, caseStudy: { title: '马戏团', content: '大象不跑。' }, algorithm: ['小成功'], challenge: { title: '偏科', desc: '试着做对一题。' }, actionableScene: { title: "突破", desc: "赢一次。" } },
+          { id: '100', title: '多元视角', engTitle: 'Multiple Perspectives', visualType: 'lens', slogan: '横看成岭侧成峰。', tags: ['综合'], concept: { analogy: '盲人摸象。', contrast: '片面 vs 全息' }, caseStudy: { title: '查理芒格', content: '100个模型。' }, algorithm: ['换学科'], challenge: { title: '问题', desc: '用物理/经济看。' }, actionableScene: { title: "综述", desc: "正反合。" } }
+        ]
+      }
+    ];
+
+    // --- 4. 主应用组件 (Main App) ---
+
+    const TitanApp = () => {
+      const [activeModule, setActiveModule] = useState(null);
+      const [activeModelId, setActiveModelId] = useState(null);
+      const [isSidebarOpen, setSidebarOpen] = useState(true);
+      const [openModules, setOpenModules] = useState({}); 
+      const contentRef = useRef(null);
+      
+      // AI State
+      const [aiAnalogy, setAiAnalogy] = useState('');
+      const [isAnalogyLoading, setAnalogyLoading] = useState(false);
+      const [challengeInput, setChallengeInput] = useState('');
+      const [aiChallengeFeedback, setAiChallengeFeedback] = useState('');
+      const [isChallengeLoading, setChallengeLoading] = useState(false);
+      const [isMastered, setIsMastered] = useState(false);
+
+      const currentModule = courseData.find(m => m.id === activeModule);
+      const currentModel = courseData.flatMap(m => m.models || []).find(m => m.id === activeModelId);
+
+      useEffect(() => {
+        setAiAnalogy('');
+        setAiChallengeFeedback('');
+        setChallengeInput('');
+        setIsMastered(false);
+        if (contentRef.current) contentRef.current.scrollTop = 0;
+      }, [activeModelId]);
+
+      const handleModelClick = (modId, modelId) => {
+        setActiveModule(modId);
+        setActiveModelId(modelId);
+        if (window.innerWidth < 768) setSidebarOpen(false);
+      };
+
+      const toggleModule = (modId) => {
+        setOpenModules(prev => ({...prev, [modId]: !prev[modId]}));
+      };
+
+      // Helpers
+      const flatModels = courseData.flatMap(m => m.models || []);
+      const currentIndex = flatModels.findIndex(m => m.id === activeModelId);
+      const prevModel = flatModels[currentIndex - 1];
+      const nextModel = flatModels[currentIndex + 1];
+
+      const navigateTo = (model) => {
+        if(!model) return;
+        const parent = courseData.find(mod => mod.models?.some(m => m.id === model.id));
+        if(parent) {
+          setActiveModule(parent.id);
+          setActiveModelId(model.id);
+          setOpenModules(prev => ({...prev, [parent.id]: true})); 
+        }
+      };
+
+      // AI Mock
+      const generateNewAnalogy = () => {
+        setAnalogyLoading(true);
+        setTimeout(() => { setAiAnalogy("AI: 想象你在玩《我的世界》，这个概念就像是合成表中的..."); setAnalogyLoading(false); }, 1000);
+      };
+      const submitChallenge = () => {
+        setChallengeLoading(true);
+        setTimeout(() => { setAiChallengeFeedback("AI: 很有创意的思考！尤其是第二点切中要害。建议可以再具体一点..."); setChallengeLoading(false); }, 1000);
+      };
+
+      return (
+        <div className="flex h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30 overflow-hidden">
+          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="fixed top-4 right-4 z-50 md:hidden bg-slate-800 p-2 rounded-lg border border-slate-700"><Menu size={20} /></button>
+
+          <div className={`fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 border-r border-slate-800 transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
+            <div className="p-6 border-b border-slate-800 flex items-center space-x-3 shrink-0 bg-slate-900/95 backdrop-blur-sm z-10">
+              <div className="w-9 h-9 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/50 border border-white/10"><Brain className="text-white w-5 h-5" /></div>
+              <div><h1 className="font-bold text-lg text-white tracking-tight">Titan Mindset</h1><p className="text-xs text-slate-400 font-mono">v8.0 Final</p></div>
+            </div>
+            <div className="p-4 space-y-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700">
+              <div onClick={() => {setActiveModelId(null); setActiveModule(null);}} className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${activeModelId===null ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20 shadow-lg shadow-blue-900/20' : 'hover:bg-slate-800 text-slate-400'}`}><Rocket className="w-5 h-5" /><span className="font-medium">总控仪表盘</span></div>
+              {courseData.map((module) => (
+                <div key={module.id} className="border-b border-slate-800/50 pb-2">
+                  <div onClick={() => toggleModule(module.id)} className="flex items-center justify-between p-2 cursor-pointer text-slate-400 hover:text-white transition-colors">
+                    <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider">{module.icon}<span>{module.title}</span></div>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${openModules[module.id] ? 'rotate-180' : ''}`} />
+                  </div>
+                  {openModules[module.id] && (
+                    <div className="space-y-1 ml-2 pl-2 border-l border-slate-800 mt-1 animate-in slide-in-from-top-2 duration-200">
+                      {module.models?.map((model) => (
+                        <button key={model.id} onClick={() => handleModelClick(module.id, model.id)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center justify-between group ${activeModelId === model.id ? 'bg-slate-800 text-white font-medium shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}>
+                          <span className="truncate">{model.id}. {model.title}</span>
+                          {activeModelId === model.id && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_blue]"></div>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div ref={contentRef} className="flex-1 overflow-y-auto bg-slate-950 relative">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none fixed"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/5 to-transparent pointer-events-none fixed"></div>
+
+            {!activeModelId ? (
+              <div className="max-w-6xl mx-auto p-8 md:p-12 relative z-10">
+                <div className="mb-16 text-center animate-in fade-in zoom-in duration-700">
+                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold mb-6 border border-blue-500/20 animate-pulse">
+                    <Sparkles className="w-3 h-3 mr-2" /> 100个思维模型装载完毕
+                  </div>
+                  <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-500">科技特长生<br/>认知操作系统</h2>
+                  <p className="text-slate-400 text-xl max-w-2xl mx-auto leading-relaxed">从 <span className="text-blue-400 font-bold">第一性原理</span> 到 <span className="text-purple-400 font-bold">多元视角</span>，<br/>这是你应对复杂世界的底层代码。</p>
+                </div>
+                <div className="grid md:grid-cols-3 gap-6 mb-16">
+                  {/* Dashboard Cards (Stats) */}
+                  <Card className="relative overflow-hidden group hover:-translate-y-1"><div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20"><Target size={80} /></div><h3 className="text-4xl font-bold text-white mb-1 group-hover:text-blue-400">100</h3><p className="text-slate-400 text-xs font-bold tracking-widest">模型库</p></Card>
+                  <Card className="relative overflow-hidden group hover:-translate-y-1"><div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20"><Layers size={80} /></div><h3 className="text-4xl font-bold text-white mb-1 group-hover:text-purple-400">10</h3><p className="text-slate-400 text-xs font-bold tracking-widest">核心模块</p></Card>
+                  <Card className="relative overflow-hidden group hover:-translate-y-1"><div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20"><Brain size={80} /></div><h3 className="text-4xl font-bold text-white mb-1 group-hover:text-emerald-400">Lv.10</h3><p className="text-slate-400 text-xs font-bold tracking-widest">认知等级</p></Card>
+                </div>
+                {/* Module Preview Grid */}
+                <h3 className="text-slate-500 font-bold uppercase text-xs tracking-widest mb-6 flex items-center"><ArrowDown className="w-3 h-3 mr-2" /> 模块全览</h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 pb-20">
+                   {courseData.map((m) => (
+                      <div key={m.id} onClick={() => handleModelClick(m.id, m.models[0].id)} className="p-4 bg-slate-900/40 border border-slate-800 rounded-xl cursor-pointer hover:bg-slate-800 hover:border-blue-500/30 transition-all group">
+                         <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-colors">{m.icon}</div>
+                            <div className="font-bold text-slate-300 text-sm group-hover:text-white">{m.title.split('：')[1]}</div>
+                         </div>
+                         <div className="text-xs text-slate-500">{m.models.length} models</div>
+                      </div>
+                   ))}
+                </div>
+              </div>
+            ) : (
+              currentModel ? (
+                <div className="max-w-6xl mx-auto p-6 md:p-10 pb-32 relative z-10">
+                  <header className="mb-8 border-b border-slate-800/60 pb-8">
+                    <div className="flex items-center space-x-3 mb-4"><span className="text-blue-500 font-mono text-xs font-bold bg-blue-500/5 px-2 py-1 rounded">MODEL {currentModel.id}</span>{currentModel.tags?.map(tag => <Badge key={tag} color="blue">{tag}</Badge>)}</div>
+                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">{currentModel.title}</h1>
+                    <div className="text-xl text-slate-400 font-serif italic mb-6 opacity-80">{currentModel.engTitle}</div>
+                    <p className="text-lg text-emerald-400 border-l-4 border-emerald-500 pl-6 py-2 bg-gradient-to-r from-emerald-900/10 to-transparent rounded-r-lg italic">"{currentModel.slogan}"</p>
+                  </header>
+
+                  <div className="grid lg:grid-cols-3 gap-8 mb-8">
+                    <div className="lg:col-span-2">
+                       <Card className="h-full flex flex-col">
+                          <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center space-x-2 text-purple-400"><Lightbulb className="w-5 h-5" /><h3 className="font-bold text-sm uppercase tracking-wider">核心图示</h3></div>
+                            <button onClick={generateNewAnalogy} disabled={isAnalogyLoading} className="text-xs bg-purple-500/10 text-purple-300 px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-purple-500/20 transition-colors border border-purple-500/20">{isAnalogyLoading?<RefreshCw className="animate-spin w-3 h-3"/>:<Sparkles className="w-3 h-3"/>} AI 换个比喻</button>
+                          </div>
+                          <ConceptDiagram model={currentModel} />
+                          <div className="mt-6 p-4 bg-slate-950/50 rounded-xl border border-slate-800">
+                             <p className="text-slate-300 text-lg leading-relaxed mb-3">{currentModel.concept?.analogy}</p>
+                             <div className="flex items-center gap-3 text-sm"><span className="text-purple-400 font-bold text-xs uppercase tracking-wider">VS</span><span className="text-slate-400">{currentModel.concept?.contrast}</span></div>
+                          </div>
+                          {aiAnalogy && <div className="mt-4 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30 text-sm text-purple-200 animate-in fade-in">{aiAnalogy}</div>}
+                       </Card>
+                    </div>
+                    <div className="space-y-6">
+                       <Card className="bg-slate-800/40">
+                          <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase mb-4"><Star className="w-4 h-4"/> 核心要点</div>
+                          <ul className="space-y-3 text-sm text-slate-300 list-disc pl-4 marker:text-emerald-500">
+                             {currentModel.algorithm?.map((step,i)=><li key={i}>{step}</li>)}
+                          </ul>
+                       </Card>
+                       <MasteryCheck isMastered={isMastered} onToggle={() => setIsMastered(!isMastered)} />
+                       <ReflectionNote />
+                    </div>
+                  </div>
+
+                  <div className="grid lg:grid-cols-2 gap-8 mb-8">
+                     <Card>
+                        <div className="flex items-center space-x-2 mb-5 text-blue-400"><BookOpen className="w-5 h-5" /><h3 className="font-bold text-sm uppercase tracking-wider">科技档案</h3></div>
+                        <div className="bg-slate-800/30 p-6 rounded-xl border-l-4 border-blue-500">
+                          <h4 className="font-bold text-white mb-2 text-lg">{currentModel.caseStudy?.title}</h4>
+                          <p className="text-slate-300 leading-relaxed">{currentModel.caseStudy?.content}</p>
+                        </div>
+                     </Card>
+                     <div>
+                        <Card className="bg-gradient-to-b from-slate-900 to-slate-950 border-orange-500/20 h-full">
+                          <div className="flex items-center space-x-2 mb-5 text-orange-400"><Target className="w-5 h-5" /><h3 className="font-bold text-sm uppercase tracking-wider">微挑战</h3></div>
+                          <h4 className="font-bold text-white mb-2">{currentModel.challenge?.title}</h4>
+                          <p className="text-sm text-slate-400 mb-5 leading-relaxed">{currentModel.challenge?.desc}</p>
+                          <div className="space-y-3">
+                            <textarea className="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-orange-500/50 transition-colors resize-none" rows={3} placeholder="输入思考..." value={challengeInput} onChange={(e)=>setChallengeInput(e.target.value)} />
+                            <button onClick={submitChallenge} disabled={isChallengeLoading} className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-bold flex justify-center items-center gap-2 transition-all disabled:opacity-50">{isChallengeLoading?<RefreshCw className="animate-spin w-4 h-4"/>:<Send className="w-4 h-4"/>} 提交</button>
+                          </div>
+                          {aiChallengeFeedback && <div className="mt-4 p-4 bg-orange-950/30 border border-orange-500/30 rounded-lg text-sm text-orange-100 animate-in fade-in">{aiChallengeFeedback}</div>}
+                        </Card>
+                     </div>
+                  </div>
+
+                  <ActionCard scene={currentModel.actionableScene} />
+
+                  <div className="mt-16 flex justify-between pt-8 border-t border-slate-800/60">
+                    <button onClick={() => navigateTo(prevModel)} className="group flex items-center px-4 py-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all disabled:opacity-0" disabled={!prevModel}><ArrowRight className="w-4 h-4 mr-2 rotate-180" /><div className="text-left"><div className="text-[10px] uppercase font-bold">Prev</div><div className="text-sm">{prevModel?.title}</div></div></button>
+                    <button onClick={() => navigateTo(nextModel)} className="group flex items-center px-4 py-2 rounded-lg text-blue-500 hover:text-white hover:bg-blue-600 transition-all disabled:opacity-0" disabled={!nextModel}><div className="text-right"><div className="text-[10px] uppercase font-bold opacity-70">Next</div><div className="text-sm font-bold">{nextModel?.title}</div></div><ArrowRight className="w-4 h-4 ml-2" /></button>
+                  </div>
+                </div>
+              ) : <div className="flex items-center justify-center h-full text-slate-500">Loading...</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<TitanApp />);
+  </script>
+</body>
+</html>
