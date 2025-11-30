@@ -4,133 +4,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zhou Xiaomai | 未来架构师</title>
+    <title>Zhou Xiaomai | 星际指挥官</title>
     <link rel="preconnect" href="https://fonts.loli.net">
     <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
     <link href="https://fonts.loli.net/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
         rel="stylesheet">
-
-    <!-- Resource Prefetching for Faster Navigation -->
-    <link rel="prefetch" href="post-4.html">
-    <link rel="prefetch" href="post-5.html">
-    <link rel="prefetch" href="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js">
-    <link rel="prefetch" href="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js">
-    <link rel="prefetch" href="https://cdn.staticfile.org/babel-standalone/7.23.5/babel.min.js">
-    <link rel="prefetch" href="https://cdn.tailwindcss.com">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
-            --primary-color: #00f3ff;
-            --secondary-color: #ff00ff;
-            --bg-color: #050505;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-main: #e0e0e0;
-            --text-dim: #888;
+            --hud-color: #00f3ff;
+            --hud-alert: #ff3333;
+            --hud-dim: rgba(0, 243, 255, 0.3);
+            --bg-color: #000;
         }
 
         * {
             box-sizing: border-box;
+            cursor: crosshair;
+            /* Global crosshair cursor */
         }
 
         body {
             margin: 0;
             padding: 0;
             background-color: var(--bg-color);
-            color: var(--text-main);
+            color: var(--hud-color);
             font-family: 'Share Tech Mono', monospace;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            overflow: hidden;
+            /* Prevent scroll, it's a fixed cockpit */
+            height: 100vh;
+            width: 100vw;
         }
 
-        /* Animated Background */
+        /* ---------------------------------------------------------
+           3D Background Canvas
+           --------------------------------------------------------- */
         #bg-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1;
-            opacity: 0.6;
+            z-index: 0;
         }
 
-        /* Main Container */
-        .container {
-            position: relative;
-            z-index: 1;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            padding: 3rem;
-            border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
-            max-width: 800px;
-            width: 90%;
-            text-align: center;
-            animation: fadeIn 1s ease-out;
+        /* ---------------------------------------------------------
+           Cockpit HUD Overlay (The "Window" Frame)
+           --------------------------------------------------------- */
+        .cockpit-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            /* Let clicks pass through */
+            background: radial-gradient(circle at center, transparent 60%, rgba(0, 10, 20, 0.8) 100%);
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9);
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Logo */
-        .logo {
+        /* HUD Lines */
+        .hud-line {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            font-family: 'Orbitron', sans-serif;
+            background: var(--hud-color);
+            opacity: 0.5;
+        }
+
+        .hl-top {
+            top: 50px;
+            left: 50px;
+            right: 50px;
+            height: 1px;
+        }
+
+        .hl-bottom {
+            bottom: 50px;
+            left: 50px;
+            right: 50px;
+            height: 1px;
+        }
+
+        .hl-left {
+            top: 50px;
+            bottom: 50px;
+            left: 50px;
+            width: 1px;
+        }
+
+        .hl-right {
+            top: 50px;
+            bottom: 50px;
+            right: 50px;
+            width: 1px;
+        }
+
+        /* HUD Data Blocks */
+        .hud-data {
+            position: absolute;
             font-size: 0.8rem;
-            color: var(--text-dim);
-            letter-spacing: 2px;
+            color: var(--hud-color);
+            text-shadow: 0 0 5px var(--hud-color);
+        }
+
+        .hd-tl {
+            top: 20px;
+            left: 50px;
+        }
+
+        .hd-tr {
+            top: 20px;
+            right: 50px;
+            text-align: right;
+        }
+
+        .hd-bl {
+            bottom: 20px;
+            left: 50px;
+        }
+
+        .hd-br {
+            bottom: 20px;
+            right: 50px;
+            text-align: right;
+        }
+
+        /* ---------------------------------------------------------
+           Main Holographic Terminal (Content)
+           --------------------------------------------------------- */
+        .main-terminal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            width: 800px;
+            max-width: 90%;
+            background: rgba(0, 20, 40, 0.6);
+            border: 1px solid var(--hud-dim);
+            padding: 40px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+            clip-path: polygon(20px 0, 100% 0,
+                    100% calc(100% - 20px), calc(100% - 20px) 100%,
+                    0 100%, 0 20px);
+            text-align: center;
+            transition: transform 0.1s ease-out;
+            /* For subtle parallax */
+        }
+
+        .main-terminal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg,
+                    transparent 0px,
+                    transparent 2px,
+                    rgba(0, 243, 255, 0.05) 3px);
+            pointer-events: none;
         }
 
         /* Avatar */
-        .avatar-wrapper {
+        .avatar-container {
             position: relative;
-            width: 150px;
-            height: 150px;
-            margin: 0 auto 2rem;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
         }
 
         .avatar {
             width: 100%;
             height: 100%;
             border-radius: 50%;
+            border: 2px solid var(--hud-color);
             object-fit: cover;
-            border: 2px solid var(--primary-color);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
-            position: relative;
-            z-index: 2;
+            filter: sepia(100%) hue-rotate(130deg) saturate(200%);
+            /* Hologram effect */
+            opacity: 0.9;
         }
 
-        .avatar-ring {
+        .avatar-scan {
             position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
-            border: 2px dashed var(--secondary-color);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
-            animation: spin 10s linear infinite;
-            z-index: 1;
+            border-top: 2px solid var(--hud-color);
+            animation: scan 2s linear infinite;
+            box-shadow: 0 0 15px var(--hud-color);
         }
 
-        @keyframes spin {
-            to {
+        @keyframes scan {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
                 transform: rotate(360deg);
             }
         }
@@ -138,374 +211,225 @@
         /* Typography */
         h1 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 3rem;
-            margin: 0 0 1rem;
-            text-transform: uppercase;
-            background: linear-gradient(90deg, #fff, var(--primary-color));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            font-size: 2.5rem;
+            margin: 0 0 10px;
+            color: #fff;
+            text-shadow: 0 0 10px var(--hud-color);
+            letter-spacing: 4px;
         }
 
-        .bio {
-            font-size: 1.2rem;
-            line-height: 1.6;
-            color: var(--text-dim);
-            margin-bottom: 2.5rem;
-            min-height: 3.2em;
-            /* Reserve space for typing effect */
+        .status-text {
+            color: var(--hud-color);
+            font-size: 1rem;
+            margin-bottom: 30px;
+            opacity: 0.8;
         }
 
-        /* Buttons */
-        .links {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
+        /* Grid of Links */
+        .command-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
         }
 
-        .btn {
-            position: relative;
+        .cmd-btn {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--hud-color);
+            color: var(--hud-color);
+            padding: 15px;
             text-decoration: none;
-            color: var(--primary-color);
-            background: transparent;
-            padding: 12px 30px;
             font-family: 'Orbitron', sans-serif;
-            font-weight: bold;
-            letter-spacing: 1px;
-            border: 1px solid var(--primary-color);
-            text-transform: uppercase;
-            overflow: hidden;
+            font-size: 0.9rem;
             transition: 0.3s;
-            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn::before {
+        .cmd-btn:hover {
+            background: var(--hud-color);
+            color: #000;
+            box-shadow: 0 0 20px var(--hud-color);
+        }
+
+        .cmd-btn::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.2), transparent);
-            transition: 0.5s;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            clip-path: polygon(100% 0, 0 100%, 100% 100%);
         }
 
-        .btn:hover {
-            background: rgba(0, 243, 255, 0.1);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
-            text-shadow: 0 0 8px var(--primary-color);
-            transform: translateY(-2px);
-        }
-
-        .btn:hover::before {
-            left: 100%;
-        }
-
-        .btn-secondary {
-            color: var(--secondary-color);
-            border-color: var(--secondary-color);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 0, 255, 0.1);
-            box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
-            text-shadow: 0 0 8px var(--secondary-color);
-        }
-
-        /* Footer */
-        .footer {
-            margin-top: 3rem;
-            font-size: 0.8rem;
-            color: #444;
-        }
-
-        /* Glitch Effect Class */
-        .glitch-text {
-            position: relative;
-        }
-
-        .glitch-text:hover {
-            animation: glitch-anim 0.3s infinite;
-        }
-
-        @keyframes glitch-anim {
-            0% {
-                transform: translate(0)
-            }
-
-            20% {
-                transform: translate(-2px, 2px)
-            }
-
-            40% {
-                transform: translate(-2px, -2px)
-            }
-
-            60% {
-                transform: translate(2px, 2px)
-            }
-
-            80% {
-                transform: translate(2px, -2px)
-            }
-
-            100% {
-                transform: translate(0)
-            }
-        }
-
-        /* Scanline Overlay */
-        .scanlines {
+        /* Music Button */
+        .music-toggle {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        /* Tech Corners */
-        .tech-corner {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border: 2px solid var(--primary-color);
-            transition: 0.3s;
-        }
-
-        .tl {
-            top: -2px;
-            left: -2px;
-            border-right: 0;
-            border-bottom: 0;
-        }
-
-        .tr {
-            top: -2px;
-            right: -2px;
-            border-left: 0;
-            border-bottom: 0;
-        }
-
-        .bl {
-            bottom: -2px;
-            left: -2px;
-            border-right: 0;
-            border-top: 0;
-        }
-
-        .br {
-            bottom: -2px;
-            right: -2px;
-            border-left: 0;
-            border-top: 0;
-        }
-
-        .container:hover .tech-corner {
-            width: 40px;
-            height: 40px;
-            box-shadow: 0 0 10px var(--primary-color);
-        }
-
-        /* Music Control */
-        .music-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+            top: 80px;
+            right: 80px;
             z-index: 100;
+            color: var(--hud-color);
+            border: 1px solid var(--hud-color);
+            padding: 10px;
             background: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             cursor: pointer;
-            transition: 0.3s;
-            backdrop-filter: blur(5px);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
         }
 
-        .music-btn:hover {
-            background: var(--primary-color);
+        .music-toggle:hover {
+            background: var(--hud-color);
             color: #000;
-            box-shadow: 0 0 15px var(--primary-color);
-            transform: rotate(360deg);
-        }
-
-        .music-btn.playing {
-            animation: pulse-music 2s infinite;
-            background: rgba(0, 243, 255, 0.2);
-        }
-
-        @keyframes pulse-music {
-            0% {
-                box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.4);
-            }
-
-            70% {
-                box-shadow: 0 0 0 10px rgba(0, 243, 255, 0);
-            }
-
-            100% {
-                box-shadow: 0 0 0 0 rgba(0, 243, 255, 0);
-            }
         }
     </style>
 </head>
 
 <body>
-    <div class="scanlines"></div>
+
+    <!-- 3D Scene -->
     <canvas id="bg-canvas"></canvas>
 
-    <!-- Audio Player -->
+    <!-- Audio -->
     <audio id="bgm" loop>
         <source src="bgm.mp3" type="audio/mpeg">
     </audio>
+    <div class="music-toggle" id="musicBtn">[ AUDIO: OFF ]</div>
 
-    <div class="music-btn" id="musicToggle" title="播放/暂停背景音乐">
-        🎵
+    <!-- Cockpit HUD -->
+    <div class="cockpit-overlay">
+        <div class="hud-line hl-top"></div>
+        <div class="hud-line hl-bottom"></div>
+        <div class="hud-line hl-left"></div>
+        <div class="hud-line hl-right"></div>
+
+        <div class="hud-data hd-tl">
+            SYS.STATUS: ONLINE<br>
+            CPU: <span id="cpu-val">45%</span>
+        </div>
+        <div class="hud-data hd-tr">
+            COORDS: <span id="coords">00.00.00</span><br>
+            VELOCITY: MACH 10
+        </div>
+        <div class="hud-data hd-bl">
+            SHIELDS: 100%<br>
+            WEAPONS: SAFE
+        </div>
+        <div class="hud-data hd-br">
+            TIME: <span id="time-display">00:00:00</span>
+        </div>
     </div>
 
-    <div class="container">
-        <div class="tech-corner tl"></div>
-        <div class="tech-corner tr"></div>
-        <div class="tech-corner bl"></div>
-        <div class="tech-corner br"></div>
-        <div class="logo">系统.根.用户: ZHOU_XIAOMAI</div>
-
-        <div class="avatar-wrapper">
-            <div class="avatar-ring"></div>
-            <img src="avatar_optimized.jpg" alt="Avatar" class="avatar">
+    <!-- Main Terminal -->
+    <div class="main-terminal" id="terminal">
+        <div class="avatar-container">
+            <img src="avatar_optimized.jpg" class="avatar">
+            <div class="avatar-scan"></div>
         </div>
 
-        <h1 class="glitch-text">Zhou Xiaomai</h1>
-
-        <div class="bio" id="bio-text"></div>
-
-        <div class="links">
-            <a href="https://github.com/LinuxZhou93" target="_blank" class="btn">GitHub_仓库</a>
-            <a href="blog.html" class="btn">教育思考</a>
-            <a href="post-4.html" class="btn">培养_图谱</a>
-            <a href="post-5.html" class="btn">认知_系统</a>
-            <a href="games.html" class="btn">🎮游戏区</a>
-            <a href="mailto:zhoulin.linux@gmail.com" class="btn">通讯_链接</a>
+        <h1>ZHOU XIAOMAI</h1>
+        <div class="status-text">
+            > 身份识别: 架构师 / 领航员<br>
+            > 任务目标: 构建数字化第二大脑
         </div>
 
-        <div class="footer">
-            // 系统状态: 在线 <br>
-            © 2025 Zhou Xiaomai. All rights reserved.
+        <div class="command-grid">
+            <a href="https://github.com/LinuxZhou93" target="_blank" class="cmd-btn">GITHUB_基地</a>
+            <a href="blog.html" class="cmd-btn">教育_日志</a>
+            <a href="post-4.html" class="cmd-btn">培养_图谱</a>
+            <a href="post-5.html" class="cmd-btn">认知_系统</a>
+            <a href="games.html" class="cmd-btn">模拟_训练场</a>
+            <a href="mailto:zhoulin.linux@gmail.com" class="cmd-btn">建立_通讯</a>
         </div>
     </div>
 
     <script>
-        // Typing Effect
-        const text = "你好呀，我是周小麦。\n专注科技特长生培养十二年。\n正在构建属于我的数字化第二大脑。";
-        const bioElement = document.getElementById('bio-text');
-        let index = 0;
-
-        function typeWriter() {
-            if (index < text.length) {
-                const char = text.charAt(index);
-                bioElement.innerHTML += char === '\n' ? '<br>' : char;
-                index++;
-                setTimeout(typeWriter, 50);
-            }
+        // ---------------------------------------------------------
+        // HUD Logic
+        // ---------------------------------------------------------
+        function updateHUD() {
+            const now = new Date();
+            document.getElementById('time-display').innerText = now.toLocaleTimeString();
+            document.getElementById('cpu-val').innerText = Math.floor(Math.random() * 20 + 30) + '%';
+            document.getElementById('coords').innerText =
+                `${Math.floor(Math.random() * 99)}.${Math.floor(Math.random() * 99)}.${Math.floor(Math.random() * 99)}`;
         }
+        setInterval(updateHUD, 1000);
+        updateHUD();
 
-        // Start typing after a slight delay
-        setTimeout(typeWriter, 500);
-
-        // Background Particles (Removed in favor of Three.js)
-
-
-        // Music Control
+        // Music
         const bgm = document.getElementById('bgm');
-        const musicBtn = document.getElementById('musicToggle');
+        const musicBtn = document.getElementById('musicBtn');
         let isPlaying = false;
-
-        // Set initial volume
-        bgm.volume = 0.3;
+        bgm.volume = 0.4;
 
         musicBtn.addEventListener('click', () => {
             if (isPlaying) {
                 bgm.pause();
-                musicBtn.classList.remove('playing');
-                musicBtn.innerHTML = '🎵';
-                musicBtn.style.animation = 'none';
+                musicBtn.innerText = '[ AUDIO: OFF ]';
             } else {
-                bgm.play().catch(e => console.log("Audio play failed:", e));
-                musicBtn.classList.add('playing');
-                musicBtn.innerHTML = 'II';
+                bgm.play();
+                musicBtn.innerText = '[ AUDIO: ON ]';
             }
             isPlaying = !isPlaying;
         });
 
         // ---------------------------------------------------------
-        // 3D Sci-Fi Background (Three.js)
+        // 3D Realistic Space Scene (Three.js)
         // ---------------------------------------------------------
-        const scene = new THREE.Scene();
-        // Add subtle fog for depth
-        scene.fog = new THREE.FogExp2(0x000000, 0.002);
-
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.z = 1000;
-
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true });
+        const canvas = document.getElementById('bg-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
 
-        // 1. Starfield (Warp Effect)
-        const starGeo = new THREE.BufferGeometry();
-        const starCount = 6000;
-        const posArray = new Float32Array(starCount * 3);
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.001); // Deep space fog
 
-        for (let i = 0; i < starCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 4000; // Spread stars wide
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.z = 1;
+        camera.rotation.x = Math.PI / 2; // Look up/forward
+
+        // 1. Realistic Starfield (Thousands of particles)
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 15000;
+        const positions = new Float32Array(starCount * 3);
+        const velocities = []; // For warp effect
+
+        for (let i = 0; i < starCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 600;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 600;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 600;
+            velocities.push(0);
         }
 
-        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        // Create a soft glow texture for stars
+        const sprite = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/disc.png');
 
         const starMat = new THREE.PointsMaterial({
-            color: 0x00f3ff,
-            size: 2,
+            color: 0xaaaaaa,
+            size: 0.7,
+            map: sprite,
             transparent: true,
             opacity: 0.8
         });
 
-        const starMesh = new THREE.Points(starGeo, starMat);
-        scene.add(starMesh);
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
 
-        // 2. Cyber Planet (Wireframe)
-        const planetGeo = new THREE.IcosahedronGeometry(300, 2);
-        const planetMat = new THREE.MeshBasicMaterial({
-            color: 0xff00ff,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.3
-        });
-        const planet = new THREE.Mesh(planetGeo, planetMat);
-        planet.position.z = -500; // Far in the background
-        scene.add(planet);
-
-        // 3. Interaction & Animation Variables
+        // 2. Interaction
         let mouseX = 0;
         let mouseY = 0;
-        let targetX = 0;
-        let targetY = 0;
+        const terminal = document.getElementById('terminal');
 
-        const windowHalfX = window.innerWidth / 2;
-        const windowHalfY = window.innerHeight / 2;
+        document.addEventListener('mousemove', (e) => {
+            // Normalize mouse position -1 to 1
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
 
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX - windowHalfX);
-            mouseY = (event.clientY - windowHalfY);
+            // Move Terminal (Parallax)
+            terminal.style.transform = `translate(-50%, -50%) perspective(1000px) rotateY(${mouseX * 5}deg) rotateX(${-mouseY * 5}deg)`;
         });
 
         window.addEventListener('resize', () => {
@@ -514,37 +438,41 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
+        // 3. Animation Loop
         function animate() {
-            requestAnimationFrame(animate);
+            // Move stars to simulate forward movement
+            const posAttribute = starGeo.attributes.position;
 
-            // Star Warp Animation
-            const positions = starGeo.attributes.position.array;
-            for (let i = 1; i < starCount * 3; i += 3) { // Iterate Z coordinates
-                positions[i + 1] += 10; // Move stars towards camera (Z+)
+            for (let i = 0; i < starCount; i++) {
+                // Move star in Y direction (relative to camera rotation) effectively Z
+                // Actually let's just move them towards camera.
+                // Since camera is rotated X=90deg, Y is "forward".
 
-                // Reset if passed camera
-                if (positions[i + 1] > 1000) {
-                    positions[i + 1] = -3000;
+                let y = posAttribute.getY(i);
+                y -= 0.5; // Cruise speed
+
+                // Warp effect based on mouse Y (Throttle)
+                // if(mouseY > 0) y -= mouseY * 2; 
+
+                if (y < -300) {
+                    y = 300;
                 }
+
+                posAttribute.setY(i, y);
             }
-            starGeo.attributes.position.needsUpdate = true;
+            posAttribute.needsUpdate = true;
 
-            // Planet Rotation
-            planet.rotation.x += 0.001;
-            planet.rotation.y += 0.002;
-
-            // Camera Parallax (Smooth follow)
-            targetX = mouseX * 0.001;
-            targetY = mouseY * 0.001;
-
-            starMesh.rotation.y += 0.0005; // Slowly rotate the whole starfield
-            starMesh.rotation.x = targetY * 0.2;
-            starMesh.rotation.y += targetX * 0.2;
+            // Camera Look (Mouse Interaction)
+            // Gently rotate camera based on mouse
+            camera.rotation.y += (-mouseX * 0.5 - camera.rotation.y) * 0.05;
+            camera.rotation.x += ((Math.PI / 2 + mouseY * 0.2) - camera.rotation.x) * 0.05;
 
             renderer.render(scene, camera);
+            requestAnimationFrame(animate);
         }
 
         animate();
+
     </script>
 </body>
 
