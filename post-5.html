@@ -93,10 +93,19 @@
       };
     };
 
-    const LucideIcons = Object.keys(lucide.icons).reduce((acc, key) => {
-      acc[key] = createReactIcon(key, lucide.icons[key]);
-      return acc;
-    }, {});
+    // --- 性能优化：使用 Proxy 按需创建图标组件，避免一次性初始化所有图标 ---
+    const LucideIcons = new Proxy(lucide.icons, {
+      get: (target, prop) => {
+        if (target[prop]) {
+          // 缓存已创建的组件（可选，React自身也会处理组件引用，但这里做一层缓存更稳妥）
+          if (!target[prop].ReactComponent) {
+            target[prop].ReactComponent = createReactIcon(prop, target[prop]);
+          }
+          return target[prop].ReactComponent;
+        }
+        return () => null;
+      }
+    });
 
     const Home = ({ size = 24, className = "", ...props }) => (
       <svg
@@ -128,7 +137,7 @@
         onClick={onClick}
         className={`
           relative overflow-hidden
-          bg-slate-900/60 backdrop-blur-xl 
+          bg-slate-900/60 backdrop-blur-md 
           border border-slate-700/50 
           rounded-2xl p-6 
           transition-all duration-300 ease-out
