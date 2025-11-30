@@ -1,0 +1,683 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成电创客瞪羚俱乐部 | 全栈科技特长生培养图谱 V15.0</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0a0a0c', // Classic Dark BG
+                        surface: '#13151a',
+                        border: '#2A2F3A',
+                        vex: '#00F0FF', // Cyan for VEX
+                        maker: '#FFD600', // Gold for Maker
+                        core: '#FF0055', // Red for Self-Management
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { 
+            background-color: #0a0a0c; 
+            color: #E2E8F0; 
+            overflow-x: hidden;
+        }
+        
+        /* Classic Grid Background */
+        .bg-grid-pattern {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at 50% 0%, black 40%, transparent 100%);
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(19, 21, 26, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Card Styles - Restored from previous UI */
+        .node-card {
+            background: rgba(30, 34, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .node-card:hover {
+            background: rgba(40, 44, 52, 0.8);
+            transform: translateY(-4px);
+            border-color: var(--theme-color);
+            box-shadow: 0 10px 30px -10px rgba(var(--theme-rgb), 0.15);
+        }
+        
+        /* Bento Card Styles for Modal */
+        .bento-card {
+            background: rgba(26, 30, 40, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0c; }
+        ::-webkit-scrollbar-thumb { background: #2A2F3A; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- ICONS ---
+        const Icon = ({ path, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
+        );
+        const icons = {
+            vex: <><path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M12 8v4"/><path d="M12 12c-2.76 0-5 2.24-5 5v3"/><path d="M12 12c2.76 0 5 2.24 5 5v3"/><circle cx="12" cy="12" r="10"/></>,
+            maker: <><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/><path d="M2 21h20"/></>,
+            trophy: <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6 M18 9h1.5a2.5 2.5 0 0 0 0-5H18 M4 22h16 M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22 M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22 M18 2H6v7a6 6 0 0 0 12 0V2Z"/>,
+            camp: <><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M2 21h20"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/><path d="M14 9h1"/><path d="M14 13h1"/><path d="M14 17h1"/></>,
+            target: <><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>,
+            arrowRight: <path d="M5 12h14 M12 5l7 7-7 7" />,
+            brain: <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>,
+            subject: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>,
+            skill: <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
+            manage: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></>,
+            check: <polyline points="20 6 9 17 4 12" />,
+            heart: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />,
+            globe: <><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></>,
+            star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        };
+
+        // --- DATA STRUCTURE ---
+        const ageGroups = [
+            { id: '5-7', label: '启蒙期', age: '5-7岁', color: 'text-blue-400', bar: 'bg-blue-500' },
+            { id: '8-9', label: '基础期', age: '8-9岁', color: 'text-cyan-400', bar: 'bg-cyan-500' },
+            { id: '10-11', label: '进阶期', age: '10-11岁', color: 'text-emerald-400', bar: 'bg-emerald-500' },
+            { id: '12-14', label: '高阶期', age: '12-14岁', color: 'text-purple-400', bar: 'bg-purple-500' },
+            { id: '15+', label: '领航期', age: '15+岁', color: 'text-pink-400', bar: 'bg-pink-500' },
+        ];
+
+        const tracks = [
+            { 
+                id: 'alpha', 
+                title: 'VEX机器人课程线路', 
+                icon: 'vex',
+                theme: 'vex', 
+                hex: '#00F0FF',
+                rgb: '0, 240, 255',
+                desc: '主修 · 竞技导向',
+                exit: {
+                    title: '竞赛集训营',
+                    desc: '直通 VEX 世锦赛',
+                    icon: 'trophy'
+                }
+            },
+            { 
+                id: 'beta', 
+                title: '工程技术创客线路', 
+                icon: 'maker',
+                theme: 'maker', 
+                hex: '#FFD600',
+                rgb: '255, 214, 0',
+                desc: '辅修 · 工程导向',
+                exit: {
+                    title: '技术工程营地',
+                    desc: '孵化青科赛/ISEF项目',
+                    icon: 'camp'
+                }
+            },
+        ];
+
+        // Content Data (V14.0 Rich Content)
+        const roadmapData = {
+            'alpha': {
+                '5-7': {
+                    title: "建构启蒙 (VEX GO)",
+                    self_mgmt: "培养专注力与器材整理",
+                    short_desc: "通过大颗粒积木建立物理空间感，理解齿轮传动与杠杆原理。",
+                    key_tags: ["结构搭建", "物理启蒙"],
+                    methodology: { type: "mit", title: "MIT Creative Spiral", steps: ["Imagine", "Create", "Play", "Share", "Reflect"] },
+                    academic: { theory: "建构主义 (Constructionism)", desc: "Seymour Papert: 学习发生在创造有意义物品的过程中。", ref: "Papert, S. (1980). Mindstorms." },
+                    axis: {
+                        cognitive: "具象思维：通过手部操作建立物理空间感知",
+                        subject: "物理启蒙：力的传递、齿轮传动、杠杆原理",
+                        skills: "VEX GO/Lego大颗粒搭建、手眼协调"
+                    },
+                    outcome: "能搭建稳固机械结构，理解简单机械原理。",
+                    project: "小小工程师：自动闸门装置",
+                    mastery: ["能否不看图纸搭建一个稳固的三角形结构？", "能否解释大齿轮带动小齿轮转得更快还是更慢？"],
+                    parentTips: "此阶段重点是'玩中学'。不要过早介入说教，多问'如果这样拼会发生什么？'。",
+                    standard: "NGSS K-PS2-1"
+                },
+                '8-9': {
+                    title: "IQ 基础与操控",
+                    self_mgmt: "建立目标感与抗挫能力",
+                    short_desc: "学习VEX IQ底盘结构与Blockly图形化编程，完成自动巡线。",
+                    key_tags: ["Blockly编程", "遥控策略"],
+                    methodology: { type: "mit", title: "4P Learning", steps: ["Projects", "Peers", "Passion", "Play"] },
+                    academic: { theory: "计算思维", desc: "将问题拆解为可由机器执行的步骤序列。", ref: "Wing, J. M. (2006)." },
+                    axis: {
+                        cognitive: "计算思维：任务拆解与序列化思考",
+                        subject: "数学应用：几何图形、角度计算、距离估算",
+                        skills: "底盘结构设计、遥控策略、Blockly图形化编程"
+                    },
+                    outcome: "具备区级参赛能力，完成自动巡线与搬运任务。",
+                    project: "自动巡线机器人",
+                    mastery: ["能否画出机器人完成任务的流程图？", "能否独立排查电机不转的3种可能原因？"],
+                    parentTips: "孩子可能会遇到程序报错的挫折，请庆祝每一个被解决的Bug。",
+                    standard: "CSTA 1B-AP-10"
+                },
+                '10-11': {
+                    title: "IQ 进阶与算法",
+                    self_mgmt: "团队分工与有效沟通",
+                    short_desc: "深入PID算法与复杂机械臂设计，冲击VEX国赛奖项。",
+                    key_tags: ["PID算法", "传感器应用"],
+                    methodology: { type: "stanford", title: "Design Thinking", steps: ["Empathize", "Define", "Ideate", "Prototype", "Test"] },
+                    academic: { theory: "元认知", desc: "对思考过程的监控与调节。在此阶段体现为优化比赛策略。", ref: "Flavell (1979)" },
+                    axis: {
+                        cognitive: "逻辑思维：处理因果关系与条件判断 (If-Else)",
+                        subject: "经典力学：摩擦力、重心平衡、简单机械臂设计",
+                        skills: "PID控制算法入门、多种传感器应用、工程笔记撰写"
+                    },
+                    outcome: "冲击国赛奖项，掌握闭环控制逻辑。",
+                    project: "精准投射机器人",
+                    mastery: ["能否向队友解释PID算法中P的作用？", "工程笔记是否记录了至少3次迭代过程？"],
+                    parentTips: "团队合作中难免有摩擦，引导孩子用'我认为...因为...'的句式沟通。",
+                    standard: "CCSS.Math.Practice.MP4"
+                },
+                '12-14': {
+                    title: "V5 金属工程",
+                    self_mgmt: "时间管理与项目迭代",
+                    short_desc: "过渡到金属V5平台，掌握C++面向对象编程与气动系统。",
+                    key_tags: ["C++编程", "气动系统"],
+                    methodology: { type: "stanford", title: "Engineering Design", steps: ["Ask", "Imagine", "Plan", "Create", "Improve"] },
+                    academic: { theory: "系统思维", desc: "理解复杂系统中的反馈回路与制约关系。", ref: "Meadows (2008)" },
+                    axis: {
+                        cognitive: "系统思维：软硬件资源分配与统筹",
+                        subject: "高等物理：材料力学、气动系统、运动学",
+                        skills: "C++面向对象编程、金属加工、高扭矩电机应用"
+                    },
+                    outcome: "选拔进入VRC世锦赛战队，具备全流程工程设计能力。",
+                    project: "VRC 竞技机器人",
+                    mastery: ["能否独立设计并加工一个非标金属件？", "代码中是否运用了函数封装以提高复用性？"],
+                    parentTips: "这是不仅是比赛，更是小型创业项目。放手让他们管理时间和资源。",
+                    standard: "NGSS HS-ETS1-2"
+                },
+                '15+': {
+                    title: "VEX AI 极致工程",
+                    self_mgmt: "领导力与全球视野",
+                    short_desc: "引入机器视觉与GPS定位，进行科研级全自动对抗。",
+                    key_tags: ["机器视觉", "GPS定位"],
+                    methodology: { type: "stanford", title: "Research Cycle", steps: ["Hypothesis", "Experiment", "Analyze", "Conclusion", "Publish"] },
+                    academic: { theory: "第一性原理", desc: "回归物理本质寻找最优解，打破经验主义束缚。", ref: "Aristotle / Musk" },
+                    axis: {
+                        cognitive: "第一性原理：回归本质寻找最优解",
+                        subject: "前沿科技：计算机视觉、导航算法、路径规划",
+                        skills: "GPS/视觉传感器融合、高级AI策略、战队管理"
+                    },
+                    outcome: "顶尖名校背景提升，科研级工程实践。",
+                    project: "全自动对抗系统",
+                    mastery: ["能否阅读并复现一篇关于SLAM导航的英文论文？", "能否带领新人队员完成入门培训？"],
+                    parentTips: "此时家长应退居幕后，成为'资源链接者'而非'管理者'。",
+                    standard: "CSTA 3B-AP-24"
+                }
+            },
+            'beta': {
+                '5-7': {
+                    title: "创客初探 (Maker)",
+                    self_mgmt: "工具安全 & 规范",
+                    short_desc: "通过纸电路和简单木工，探索导体/绝缘体等科学常识。",
+                    key_tags: ["纸电路", "创意手工"],
+                    methodology: { type: "mit", title: "Tinkering", steps: ["Play", "Discover", "Build", "Share", "Reflect"] },
+                    academic: { theory: "多感官学习", desc: "通过视觉、触觉等多感官通道加深对电路概念的理解。", ref: "Shams & Seitz (2008)" },
+                    axis: {
+                        cognitive: "观察力：发现材料特性与生活问题",
+                        subject: "科学常识：导体与绝缘体、光与电、简单机械",
+                        skills: "纸电路制作、简单木工、安全工具使用"
+                    },
+                    outcome: "完成发光贺卡等作品，爱上动手创造。",
+                    project: "会发光的立体贺卡",
+                    mastery: ["能否区分哪些材料导电哪些绝缘？", "能否安全使用热胶枪？"],
+                    parentTips: "安全第一，但在安全范围内允许孩子把手弄脏。",
+                    standard: "NGSS K-PS2-1"
+                },
+                '8-9': {
+                    title: "3D设计与电子",
+                    self_mgmt: "主动探索 & 提问",
+                    short_desc: "学习3DOne建模与基础电路，使用AIGC辅助绘本创作。",
+                    key_tags: ["3DOne", "万用表", "AIGC"],
+                    methodology: { type: "stanford", title: "Design Thinking Jr.", steps: ["Look", "Ask", "Make", "Try", "Share"] },
+                    academic: { theory: "设计思维", desc: "以人为本的解决问题。从'我想要'转变为'用户需要'。", ref: "Stanford d.school" },
+                    axis: {
+                        cognitive: "设计思维：从想法(Idea)到原型(Prototype)",
+                        subject: "电子基础：电压电流、串并联电路、欧姆定律初步",
+                        skills: "3DOne建模、万用表使用、通义万相AIGC绘图"
+                    },
+                    outcome: "产出3D打印作品，理解电路基础，AIGC辅助创作。",
+                    project: "3D打印名牌 & 红绿灯电路",
+                    mastery: ["能否用万用表测量电池电压？", "3D模型是否考虑了打印悬空问题？"],
+                    parentTips: "鼓励孩子观察生活中的设计，问'为什么这个杯子把手是圆的？'",
+                    standard: "ISTE 4.a"
+                },
+                '10-11': {
+                    title: "智能硬件与AIGC",
+                    self_mgmt: "方案优化 & 批判思维",
+                    short_desc: "Solidworks装配与传感器应用，结合即梦AI生成视频。",
+                    key_tags: ["Solidworks", "555定时器"],
+                    methodology: { type: "mit", title: "Remix Culture", steps: ["Copy", "Modify", "Combine", "Create", "Share"] },
+                    academic: { theory: "支架式教学", desc: "在现有知识基础上，通过工具搭建脚手架实现复杂功能。", ref: "Vygotsky (1978)" },
+                    axis: {
+                        cognitive: "工程思维：功能实现与迭代优化",
+                        subject: "数字电路：逻辑门、传感器(光敏/声控)原理",
+                        skills: "Solidworks装配设计、即梦AI视频生成、555定时器"
+                    },
+                    outcome: "制作功能性电子装置，参加电子制作赛。",
+                    project: "智能感应夜灯",
+                    mastery: ["能否解释光敏电阻控制LED亮灭的原理？", "能否用AI生成一段有剧情的视频素材？"],
+                    parentTips: "关注过程而非结果。如果作品失败了，引导孩子分析是设计问题还是材料问题。",
+                    standard: "CSTA 2-CS-02"
+                },
+                '12-14': {
+                    title: "机电一体化 (PBL)",
+                    self_mgmt: "项目规划 & 执行力",
+                    short_desc: "基于立创EDA与Python，设计并制作解决真实痛点的机电装置。",
+                    key_tags: ["立创EDA", "Python"],
+                    methodology: { type: "stanford", title: "Needfinding", steps: ["Observe", "Interview", "Immerse", "Synthesize", "Define"] },
+                    academic: { theory: "项目式学习 (PBL)", desc: "以解决真实世界问题为驱动，整合跨学科知识。", ref: "Buck Institute (PBLWorks)" },
+                    axis: {
+                        cognitive: "产品思维：用户需求分析与可行性验证",
+                        subject: "自动控制：输入-处理-输出系统模型",
+                        skills: "立创EDA(PCB设计)、Python算法、激光切割"
+                    },
+                    outcome: "独立完成机电一体化项目，参加创客大赛。",
+                    project: "自动化灌溉系统",
+                    mastery: ["能否绘制规范的电路原理图？", "项目是否解决了真实的痛点（如植物枯死）？"],
+                    parentTips: "支持孩子进行社会调研，了解真实需求。",
+                    standard: "NGSS MS-ETS1-1"
+                },
+                '15+': {
+                    title: "开源硬件与科研",
+                    self_mgmt: "社会责任 & 学术严谨",
+                    short_desc: "参与开源社区，使用嵌入式与大模型技术进行科研探究。",
+                    key_tags: ["嵌入式", "大模型微调"],
+                    methodology: { type: "mit", title: "Open Source Ethos", steps: ["Contribute", "Collaborate", "Document", "Maintain", "Evangelize"] },
+                    academic: { theory: "分布式认知", desc: "利用开源社区、GitHub等外部工具和网络延伸认知能力。", ref: "Hutchins, E. (1995)." },
+                    axis: {
+                        cognitive: "学术思维：文献综述与严谨探究",
+                        subject: "跨学科融合：机械+算法+电子+艺术",
+                        skills: "嵌入式开发、大模型微调、PCB打样"
+                    },
+                    outcome: "发布开源硬件项目或发表学术论文，冲击ISEF工程组。",
+                    project: "桌面机械臂 / AI校园助手",
+                    mastery: ["GitHub仓库是否有清晰的README文档？", "能否给祖母解释清楚你的AI模型原理？"],
+                    parentTips: "鼓励孩子参与全球开源社区交流，建立国际视野。",
+                    standard: "AP Research"
+                }
+            }
+        };
+
+        // --- COMPONENTS ---
+
+        const NavHeader = () => (
+            <div className="fixed top-0 w-full z-50 glass-panel border-b border-white/5">
+                <div className="max-w-[1920px] mx-auto px-6 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-vex to-blue-600 flex items-center justify-center text-black font-bold text-xl shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+                            🦄
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-white tracking-tight leading-none">
+                                成电创客<span className="text-vex">瞪羚</span>俱乐部
+                            </h1>
+                            <div className="text-[10px] text-gray-500 font-mono tracking-[0.25em] uppercase mt-1">
+                                Chengdian Maker Gazelle Club
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Core Value Badge */}
+                    <div className="hidden md:flex items-center gap-3 bg-core/10 px-5 py-2 rounded-full border border-core/30">
+                        <Icon path={icons.manage} className="w-4 h-4 text-core animate-pulse" />
+                        <span className="text-xs text-gray-300 font-mono uppercase tracking-widest">
+                            Core Philosophy: <span className="text-white font-bold">Self-Management</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // SVG Connecting Lines
+        const ConnectingLine = ({ startId, endId, color }) => {
+            const [coords, setCoords] = useState(null);
+
+            useEffect(() => {
+                const update = () => {
+                    const start = document.getElementById(startId);
+                    const end = document.getElementById(endId);
+                    const container = document.getElementById('roadmap-container');
+                    
+                    if (start && end && container) {
+                        const startRect = start.getBoundingClientRect();
+                        const endRect = end.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+
+                        setCoords({
+                            x1: startRect.right - containerRect.left,
+                            y1: startRect.top + startRect.height / 2 - containerRect.top,
+                            x2: endRect.left - containerRect.left,
+                            y2: endRect.top + endRect.height / 2 - containerRect.top
+                        });
+                    }
+                };
+                
+                setTimeout(update, 500); // Allow render time
+                window.addEventListener('resize', update);
+                return () => window.removeEventListener('resize', update);
+            }, []);
+
+            if (!coords) return null;
+
+            return (
+                <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 overflow-visible">
+                    <path 
+                        d={`M ${coords.x1} ${coords.y1} C ${(coords.x1 + coords.x2) / 2} ${coords.y1}, ${(coords.x1 + coords.x2) / 2} ${coords.y2}, ${coords.x2} ${coords.y2}`}
+                        stroke={color === '#00F0FF' ? '#00F0FF' : '#FFD600'} 
+                        strokeWidth="1.5" 
+                        fill="none" 
+                        strokeDasharray="4 4"
+                        className="opacity-40"
+                    />
+                </svg>
+            );
+        };
+
+        const ProcessSteps = ({ method }) => {
+            if (!method) return null;
+            const colors = method.type === 'mit' ? 'text-pink-500 border-pink-500' : 'text-purple-500 border-purple-500';
+            
+            return (
+                <div className="mt-4">
+                    <div className="flex justify-between items-center mb-3">
+                        <span className={`text-[10px] font-bold uppercase tracking-widest ${method.type === 'mit' ? 'text-pink-500' : 'text-purple-500'}`}>
+                            {method.title}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between relative">
+                        <div className="absolute top-1/2 w-full h-px bg-white/10 -z-10"></div>
+                        {method.steps.map((step, i) => (
+                            <div key={i} className="flex flex-col items-center gap-2 bg-[#1a1e26] px-1">
+                                <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-bold ${colors} bg-black/50`}>
+                                    {i + 1}
+                                </div>
+                                <span className="text-[9px] text-gray-400 uppercase">{step}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const DetailModal = ({ data, track, age, onClose }) => {
+            if (!data) return null;
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}></div>
+                    <div className="relative w-full max-w-5xl bg-[#1A1D26] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+                        
+                        {/* Header */}
+                        <div className="p-6 border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg border border-white/10 ${track.id === 'alpha' ? 'bg-alpha/10 text-alpha' : 'bg-beta/10 text-beta'}`}>
+                                    <Icon path={track.id === 'alpha' ? icons.vex : icons.maker} className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${track.id === 'alpha' ? 'border-alpha/30 text-alpha bg-alpha/5' : 'border-beta/30 text-beta bg-beta/5'}`}>{track.title}</span>
+                                        <span className="text-[10px] text-gray-500 font-mono">/ {age.label}</span>
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-white tracking-tight">{data.title}</h2>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 text-gray-500 hover:text-white transition-colors">✕</button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                
+                                {/* Col 1: Core & Method */}
+                                <div className="md:col-span-4 flex flex-col gap-6">
+                                    <div className="bento-card p-5 rounded-xl border-l-4 border-core">
+                                        <div className="flex items-center gap-2 mb-2 text-core">
+                                            <Icon path={icons.manage} className="w-4 h-4" />
+                                            <h3 className="text-xs font-bold uppercase tracking-widest">Self-Management</h3>
+                                        </div>
+                                        <p className="text-white font-medium">{data.self_mgmt}</p>
+                                    </div>
+                                    <div className="bento-card p-5 rounded-xl">
+                                        <ProcessSteps method={data.methodology} />
+                                    </div>
+                                    <div className="bento-card p-5 rounded-xl border-l-4 border-blue-500">
+                                        <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Academic Basis</h3>
+                                        <h4 className="text-white font-bold text-sm mb-1">{data.academic.theory}</h4>
+                                        <p className="text-xs text-gray-400 leading-relaxed mb-2">{data.academic.desc}</p>
+                                    </div>
+                                </div>
+
+                                {/* Col 2: Tri-Dimension & Project */}
+                                <div className="md:col-span-8 flex flex-col gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="bento-card p-4 rounded-xl hover:bg-blue-500/5 transition-colors">
+                                            <div className="text-blue-400 mb-2"><Icon path={icons.brain} className="w-5 h-5" /></div>
+                                            <h4 className="text-xs font-bold text-blue-400 uppercase mb-1">Cognitive</h4>
+                                            <p className="text-xs text-gray-300">{data.axis.cognitive}</p>
+                                        </div>
+                                        <div className="bento-card p-4 rounded-xl hover:bg-emerald-500/5 transition-colors">
+                                            <div className="text-emerald-400 mb-2"><Icon path={icons.subject} className="w-5 h-5" /></div>
+                                            <h4 className="text-xs font-bold text-emerald-400 uppercase mb-1">Subject</h4>
+                                            <p className="text-xs text-gray-300">{data.axis.subject}</p>
+                                        </div>
+                                        <div className="bento-card p-4 rounded-xl hover:bg-purple-500/5 transition-colors">
+                                            <div className="text-purple-400 mb-2"><Icon path={icons.skill} className="w-5 h-5" /></div>
+                                            <h4 className="text-xs font-bold text-purple-400 uppercase mb-1">Skills</h4>
+                                            <p className="text-xs text-gray-300">{data.axis.skills}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bento-card p-6 rounded-xl border-t-4 border-white/20">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Signature Project</div>
+                                                <h3 className="text-xl font-bold text-white">{data.project}</h3>
+                                            </div>
+                                            <div className="p-3 bg-white/5 rounded-full"><Icon path={icons.trophy} className="w-6 h-6 text-white" /></div>
+                                        </div>
+                                        <div className="h-px w-full bg-white/10 my-3"></div>
+                                        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Outcome</div>
+                                        <p className="text-sm text-gray-300">{data.outcome}</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bento-card p-4 rounded-xl">
+                                            <div className="flex items-center gap-2 mb-3 text-green-400"><Icon path={icons.check} className="w-4 h-4" /><h3 className="text-xs font-bold uppercase">Mastery Check</h3></div>
+                                            <ul className="space-y-2">{data.mastery.map((m,i)=><li key={i} className="text-xs text-gray-400 flex gap-2"><span>✓</span>{m}</li>)}</ul>
+                                        </div>
+                                        <div className="bento-card p-4 rounded-xl bg-pink-500/5">
+                                            <div className="flex items-center gap-2 mb-2 text-pink-400"><Icon path={icons.heart} className="w-3 h-3" /><h3 className="text-xs font-bold uppercase">Parent Guide</h3></div>
+                                            <p className="text-xs text-gray-300 italic">"{data.parentTips}"</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+
+            return (
+                <div className="min-h-screen font-sans text-gray-200 pb-20">
+                    <div className="bg-grid-pattern"></div>
+                    <NavHeader />
+
+                    <main className="max-w-[1600px] mx-auto pt-28 px-6 lg:px-12">
+                        
+                        {/* Timeline Header */}
+                        <div className="grid grid-cols-[200px_1fr_120px] gap-8 mb-8">
+                            <div className="flex flex-col justify-end pb-4 border-b border-white/10">
+                                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest text-right pr-6">Development Track</span>
+                            </div>
+                            <div className="grid grid-cols-5 gap-4 pb-4 border-b border-white/10">
+                                {ageGroups.map((age) => (
+                                    <div key={age.id} className="text-center group relative">
+                                        <div className={`text-sm font-bold mb-1 ${age.color}`}>{age.label}</div>
+                                        <div className="text-[10px] text-gray-600 font-mono">{age.age}</div>
+                                        <div className={`absolute bottom-[-17px] left-0 w-full h-0.5 ${age.bar} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300`}></div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex flex-col justify-end pb-4 border-b border-white/10">
+                                <span className="text-xs font-mono text-gray-500 uppercase tracking-widest text-center">Exit</span>
+                            </div>
+                        </div>
+
+                        {/* Tracks Container */}
+                        <div id="roadmap-container" className="flex flex-col gap-12 relative">
+                            {tracks.map((track) => (
+                                <div key={track.id} className="grid grid-cols-[200px_1fr_120px] gap-8 group">
+                                    
+                                    {/* Left Sidebar */}
+                                    <div className="flex flex-col items-end pt-6 pr-6 border-r border-white/10 relative">
+                                        <div className={`absolute right-0 top-8 w-1 h-12 rounded-l ${track.id === 'alpha' ? 'bg-vex shadow-[0_0_10px_#00F0FF]' : 'bg-maker shadow-[0_0_10px_#FFD600]'}`}></div>
+                                        <div className={`text-3xl mb-3 ${track.id === 'alpha' ? 'text-vex' : 'text-maker'}`}>
+                                            <Icon path={icons[track.icon]} className="w-8 h-8" />
+                                        </div>
+                                        <h2 className={`text-xl font-bold text-right mb-1 ${track.id === 'alpha' ? 'text-vex' : 'text-maker'}`}>{track.title}</h2>
+                                        <p className="text-[10px] text-gray-500 text-right font-mono uppercase tracking-wider">{track.subtitle}</p>
+                                    </div>
+
+                                    {/* Card Grid */}
+                                    <div className="relative grid grid-cols-5 gap-4 z-10">
+                                        {/* Connector Line */}
+                                        <div className="absolute top-1/2 left-0 w-full h-px bg-white/5 -z-10"></div>
+                                        <ConnectingLine startId={`node-${track.id}-5-7`} endId={`node-${track.id}-15+`} color={track.hex} />
+
+                                        {ageGroups.map((age, i) => {
+                                            const nodeData = roadmapData[track.id][age.id];
+                                            const id = `node-${track.id}-${age.id}`;
+                                            return (
+                                                <div 
+                                                    key={age.id} 
+                                                    id={id}
+                                                    onClick={() => setSelectedNode({ data: nodeData, track, age })}
+                                                    className="node-card h-[200px] rounded-xl p-5 flex flex-col justify-between cursor-pointer"
+                                                    style={{'--theme-color': track.hex, '--theme-rgb': track.rgb}}
+                                                >
+                                                    <div>
+                                                        <div className="flex justify-between items-start mb-3">
+                                                            <div className={`p-1.5 rounded-lg border border-white/5 ${track.id === 'alpha' ? 'bg-vex/10 text-vex' : 'bg-maker/10 text-maker'}`}>
+                                                                <Icon path={icons[track.icon]} className="w-4 h-4" />
+                                                            </div>
+                                                            <Icon path={icons.arrowRight} className="w-4 h-4 text-gray-600 -rotate-45 group-hover:text-white transition-colors" />
+                                                        </div>
+                                                        <h4 className="text-sm font-bold text-white mb-2 leading-snug group-hover:text-[var(--theme-color)] transition-colors">
+                                                            {nodeData.title}
+                                                        </h4>
+                                                        
+                                                        {/* Tags - V14 Feature */}
+                                                        <div className="flex flex-wrap gap-1 mb-2">
+                                                            {nodeData.key_tags.slice(0,2).map((t, idx) => (
+                                                                <span key={idx} className="text-[9px] px-1.5 py-0.5 rounded border border-white/5 bg-black/30 text-gray-400">{t}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Self Mgmt Pill - V14 Feature */}
+                                                    <div className="mt-auto pt-3 border-t border-white/5 flex items-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                        <Icon path={icons.manage} className="w-3 h-3 text-core" />
+                                                        <span className="text-[9px] text-gray-500 font-mono truncate">{nodeData.self_mgmt}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Exit Portal - Compact & End of Line */}
+                                    <div className="flex items-center justify-center pl-4 border-l border-white/5 border-dashed">
+                                        <div className="flex flex-col items-center gap-3 group cursor-default">
+                                            <div className="text-[9px] text-gray-600 font-mono uppercase tracking-widest" style={{writingMode: 'vertical-rl'}}>Exit Strategy</div>
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center border border-white/10 shadow-lg transition-transform group-hover:scale-110 ${track.id === 'alpha' ? 'bg-vex/10 text-vex shadow-vex/20' : 'bg-maker/10 text-maker shadow-maker/20'}`}>
+                                                <Icon path={track.exit.icon === 'trophy' ? icons.trophy : icons.camp} className="w-6 h-6" />
+                                            </div>
+                                            <div className="text-[10px] font-bold text-gray-300 text-center leading-tight">{track.exit.title}</div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            ))}
+                        </div>
+
+                    </main>
+
+                    {selectedNode && (
+                        <DetailModal 
+                            data={selectedNode.data} 
+                            track={selectedNode.track} 
+                            age={selectedNode.age} 
+                            onClose={() => setSelectedNode(null)} 
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
