@@ -1,109 +1,132 @@
-import pygame
+import tkinter as tk
+from tkinter import messagebox
 import random
-import sys
+import time
 
-# 初始化 Pygame
-pygame.init()
-
-# 设置游戏窗口
+# 设置游戏窗口参数
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("赛车小游戏")
+GAME_SPEED = 16  # 毫秒
 
-# 颜色定义
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 100, 255)
-YELLOW = (255, 255, 0)
-GRAY = (128, 128, 128)
-
-# 时钟
-CLOCK = pygame.time.Clock()
-FPS = 60
-
-# 字体
-FONT_LARGE = pygame.font.Font(None, 48)
-FONT_MEDIUM = pygame.font.Font(None, 36)
-FONT_SMALL = pygame.font.Font(None, 24)
+# 颜色定义 (RGB)
+BLACK = "#000000"
+WHITE = "#FFFFFF"
+RED = "#FF0000"
+GREEN = "#00FF00"
+BLUE = "#0064FF"
+YELLOW = "#FFFF00"
+GRAY = "#808080"
 
 
-class Player(pygame.sprite.Sprite):
+
+class Player:
     """玩家赛车类"""
-    def __init__(self):
-        super().__init__()
-        self.image = pygame.Surface((50, 60))
-        self.image.fill(GREEN)
-        self.rect = self.image.get_rect()
-        self.rect.centerx = SCREEN_WIDTH // 2
-        self.rect.bottom = SCREEN_HEIGHT - 10
-        self.speed = 5
+    def __init__(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.speed = 15
+        self.canvas_id = None
 
-    def update(self):
-        """更新玩家位置"""
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            if self.rect.left > 0:
-                self.rect.x -= self.speed
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            if self.rect.right < SCREEN_WIDTH:
-                self.rect.x += self.speed
+    def move_left(self, max_x=0):
+        """向左移动"""
+        if self.x > max_x:
+            self.x -= self.speed
 
-    def draw(self, surface):
-        """绘制赛车"""
-        surface.blit(self.image, self.rect)
+    def move_right(self, max_x=SCREEN_WIDTH):
+        """向右移动"""
+        if self.x + self.width < max_x:
+            self.x += self.speed
+
+    def get_rect(self):
+        """获取玩家矩形"""
+        return (self.x, self.y, self.x + self.width, self.y + self.height)
 
 
-class Obstacle(pygame.sprite.Sprite):
+class Obstacle:
     """障碍物类"""
     def __init__(self):
-        super().__init__()
         self.width = random.randint(40, 80)
-        self.image = pygame.Surface((self.width, 50))
-        self.image.fill(RED)
-        self.rect = self.image.get_rect()
-        self.rect.x = random.randint(0, SCREEN_WIDTH - self.width)
-        self.rect.y = -50
+        self.x = random.randint(0, SCREEN_WIDTH - self.width)
+        self.y = -50
+        self.height = 50
         self.speed = 3
+        self.canvas_id = None
 
     def update(self):
         """更新障碍物位置"""
-        self.rect.y += self.speed
+        self.y += self.speed
 
-    def draw(self, surface):
-        """绘制障碍物"""
-        surface.blit(self.image, self.rect)
+    def get_rect(self):
+        """获取障碍物矩形"""
+        return (self.x, self.y, self.x + self.width, self.y + self.height)
+
+    def is_off_screen(self):
+        """检查是否超出屏幕"""
+        return self.y > SCREEN_HEIGHT
 
 
 class Game:
     """游戏主类"""
-    def __init__(self):
+    def __init__(self, root):
+        self.root = root
+        self.root.title("赛车小游戏")
+        self.root.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+        self.root.resizable(False, False)
+        
+        # 创建画布
+        self.canvas = tk.Canvas(self.root, width=SCREEN_WIDTH, height=SCREEN_HEIGHT, bg=BLACK)
+        self.canvas.pack()
+        self.canvas.bind("<Key>", self.on_key_press)
+        self.canvas.focus()
+        
+        # 游戏状态
         self.running = True
         self.game_started = False
         self.game_over = False
         self.score = 0
         self.difficulty = 0
         
-        self.player = Player()
-        self.obstacles = pygame.sprite.Group()
+        # 游戏对象
+        self.player = Player(SCREEN_WIDTH // 2 - 25, SCREEN_HEIGHT - 70, 50, 60)
+        self.obstacles = []
         
+        # 计时器
         self.spawn_timer = 0
-        self.spawn_rate = 60  # 每60帧生成一个障碍物
+        self.spawn_rate = 60
         self.base_speed = 3
         
-    def handle_events(self):
-        """处理游戏事件"""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    if not self.game_started or self.game_over:
-                        self.reset_game()
-                elif event.key == pygame.K_ESCAPE:
-                    self.running = False
+        # 键盘状态
+        self.keys_pressed = set()
+        
+        # 绘制开始画面
+        self.draw_start_screen()
+        
+        # 启动游戏循环
+        self.game_loop()
+
+    def on_key_press(self, event):
+        """处理键盘按下"""
+        self.keys_pressed.add(event.keysym)
+        
+        if event.keysym == "space":
+            if not self.game_started or self.game_over:
+                self.reset_game()
+        elif event.keysym == "Escape":
+            self.running = False
+            self.root.quit()
+
+    def on_key_release(self, event):
+        """处理键盘释放"""
+        if event.keysym in self.keys_pressed:
+            self.keys_pressed.discard(event.keysym)
+
+    def detect_collision(self, rect1, rect2):
+        """检测两个矩形是否碰撞"""
+        x1_min, y1_min, x1_max, y1_max = rect1
+        x2_min, y2_min, x2_max, y2_max = rect2
+        return not (x1_max < x2_min or x1_min > x2_max or y1_max < y2_min or y1_min > y2_max)
 
     def reset_game(self):
         """重置游戏"""
@@ -112,24 +135,27 @@ class Game:
         self.score = 0
         self.difficulty = 0
         self.spawn_timer = 0
-        self.obstacles.empty()
-        self.player.rect.centerx = SCREEN_WIDTH // 2
+        self.obstacles = []
+        self.player.x = SCREEN_WIDTH // 2 - 25
         self.base_speed = 3
+        self.spawn_rate = 60
 
     def update(self):
         """更新游戏状态"""
         if not self.game_started or self.game_over:
             return
 
-        # 更新玩家
-        self.player.update()
+        # 更新玩家位置
+        if "Left" in self.keys_pressed or "a" in self.keys_pressed:
+            self.player.move_left()
+        if "Right" in self.keys_pressed or "d" in self.keys_pressed:
+            self.player.move_right()
 
         # 生成障碍物
         self.spawn_timer += 1
         if self.spawn_timer >= self.spawn_rate:
-            self.obstacles.add(Obstacle())
+            self.obstacles.append(Obstacle())
             self.spawn_timer = 0
-            # 增加难度：障碍物生成更频繁
             if self.spawn_rate > 30:
                 self.spawn_rate -= 1
 
@@ -139,81 +165,138 @@ class Game:
             obstacle.update()
 
         # 检查碰撞
+        player_rect = self.player.get_rect()
         for obstacle in self.obstacles:
-            if pygame.sprite.spritecollide(self.player, pygame.sprite.Group(obstacle), False):
+            if self.detect_collision(player_rect, obstacle.get_rect()):
                 self.game_over = True
                 return
 
         # 移除超出屏幕的障碍物并增加分数
+        self.obstacles = [obs for obs in self.obstacles if not obs.is_off_screen()]
+        self.score = (60 - len(self.obstacles)) * 10  # 简单计分方式
+        self.difficulty = self.score // 100
+
+        if self.base_speed < 8:
+            self.base_speed += 0.01
+
+    def draw_start_screen(self):
+        """绘制开始画面"""
+        self.canvas.delete("all")
+        
+        # 绘制标题
+        self.canvas.create_text(
+            SCREEN_WIDTH // 2, 150,
+            text="赛车小游戏",
+            font=("Arial", 48, "bold"),
+            fill=BLUE
+        )
+        
+        # 绘制开始提示
+        self.canvas.create_text(
+            SCREEN_WIDTH // 2, 250,
+            text="按 SPACE 开始游戏",
+            font=("Arial", 36),
+            fill=WHITE
+        )
+        
+        # 绘制操作说明
+        self.canvas.create_text(
+            SCREEN_WIDTH // 2, 350,
+            text="左/右箭头 或 A/D 键 - 移动赛车",
+            font=("Arial", 20),
+            fill=GRAY
+        )
+        
+        self.canvas.create_text(
+            SCREEN_WIDTH // 2, 380,
+            text="ESC - 退出游戏",
+            font=("Arial", 20),
+            fill=GRAY
+        )
+
+    def draw_game_screen(self):
+        """绘制游戏画面"""
+        self.canvas.delete("all")
+        
+        # 绘制背景
+        self.canvas.create_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, fill=BLACK, outline=BLACK)
+        
+        # 绘制道路线
+        self.canvas.create_line(SCREEN_WIDTH // 4, 0, SCREEN_WIDTH // 4, SCREEN_HEIGHT, fill=GRAY, width=2)
+        self.canvas.create_line(3 * SCREEN_WIDTH // 4, 0, 3 * SCREEN_WIDTH // 4, SCREEN_HEIGHT, fill=GRAY, width=2)
+        
+        # 绘制玩家
+        px1, py1, px2, py2 = self.player.get_rect()
+        self.canvas.create_rectangle(px1, py1, px2, py2, fill=GREEN, outline=GREEN)
+        
+        # 绘制障碍物
         for obstacle in self.obstacles:
-            if obstacle.rect.top > SCREEN_HEIGHT:
-                self.obstacles.remove(obstacle)
-                self.score += 10
-                self.difficulty += 1
-                # 增加基础速度
-                if self.base_speed < 8:
-                    self.base_speed += 0.05
+            ox1, oy1, ox2, oy2 = obstacle.get_rect()
+            self.canvas.create_rectangle(ox1, oy1, ox2, oy2, fill=RED, outline=RED)
+        
+        # 显示分数
+        self.canvas.create_text(20, 20, text=f"分数: {self.score}", font=("Arial", 24), fill=WHITE, anchor="nw")
+        
+        # 显示难度
+        self.canvas.create_text(20, 50, text=f"难度等级: {self.difficulty}", font=("Arial", 16), fill=YELLOW, anchor="nw")
+
+    def draw_game_over_screen(self):
+        """绘制游戏结束画面"""
+        self.canvas.delete("all")
+        
+        # 绘制背景
+        self.canvas.create_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, fill=BLACK, outline=BLACK)
+        
+        # 绘制游戏结束文本
+        self.canvas.create_text(
+            SCREEN_WIDTH // 2, 150,
+            text="游戏结束",
+            font=("Arial", 48, "bold"),
+            fill=RED
+        )
+        
+        self.canvas.create_text(
+            SCREEN_WIDTH // 2, 250,
+            text=f"最终分数: {self.score}",
+            font=("Arial", 36),
+            fill=WHITE
+        )
+        
+        self.canvas.create_text(
+            SCREEN_WIDTH // 2, 310,
+            text=f"达到难度等级: {self.difficulty}",
+            font=("Arial", 36),
+            fill=WHITE
+        )
+        
+        self.canvas.create_text(
+            SCREEN_WIDTH // 2, 400,
+            text="按 SPACE 重新开始",
+            font=("Arial", 32),
+            fill=YELLOW
+        )
 
     def draw(self):
-        """绘制游戏画面"""
-        SCREEN.fill(BLACK)
-        
-        # 绘制道路背景
-        pygame.draw.line(SCREEN, GRAY, (SCREEN_WIDTH // 4, 0), (SCREEN_WIDTH // 4, SCREEN_HEIGHT), 2)
-        pygame.draw.line(SCREEN, GRAY, (3 * SCREEN_WIDTH // 4, 0), (3 * SCREEN_WIDTH // 4, SCREEN_HEIGHT), 2)
-        
-        # 绘制游戏元素
-        if self.game_started and not self.game_over:
-            self.player.draw(SCREEN)
-            for obstacle in self.obstacles:
-                obstacle.draw(SCREEN)
-            
-            # 显示分数
-            score_text = FONT_MEDIUM.render(f"分数: {self.score}", True, WHITE)
-            SCREEN.blit(score_text, (10, 10))
-            
-            # 显示难度
-            level_text = FONT_SMALL.render(f"难度等级: {self.difficulty}", True, YELLOW)
-            SCREEN.blit(level_text, (10, 50))
-        
-        elif not self.game_started:
-            # 显示开始画面
-            title_text = FONT_LARGE.render("赛车小游戏", True, BLUE)
-            start_text = FONT_MEDIUM.render("按 SPACE 开始游戏", True, WHITE)
-            instruction1 = FONT_SMALL.render("左/右箭头 或 A/D 键 - 移动赛车", True, GRAY)
-            instruction2 = FONT_SMALL.render("ESC - 退出游戏", True, GRAY)
-            
-            SCREEN.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, 150))
-            SCREEN.blit(start_text, (SCREEN_WIDTH // 2 - start_text.get_width() // 2, 250))
-            SCREEN.blit(instruction1, (SCREEN_WIDTH // 2 - instruction1.get_width() // 2, 350))
-            SCREEN.blit(instruction2, (SCREEN_WIDTH // 2 - instruction2.get_width() // 2, 380))
-        
+        """绘制游戏"""
+        if not self.game_started:
+            self.draw_start_screen()
         elif self.game_over:
-            # 显示游戏结束画面
-            game_over_text = FONT_LARGE.render("游戏结束", True, RED)
-            final_score_text = FONT_MEDIUM.render(f"最终分数: {self.score}", True, WHITE)
-            level_text = FONT_MEDIUM.render(f"达到难度等级: {self.difficulty}", True, WHITE)
-            restart_text = FONT_MEDIUM.render("按 SPACE 重新开始", True, YELLOW)
-            
-            SCREEN.blit(game_over_text, (SCREEN_WIDTH // 2 - game_over_text.get_width() // 2, 150))
-            SCREEN.blit(final_score_text, (SCREEN_WIDTH // 2 - final_score_text.get_width() // 2, 250))
-            SCREEN.blit(level_text, (SCREEN_WIDTH // 2 - level_text.get_width() // 2, 310))
-            SCREEN.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, 400))
-        
-        pygame.display.flip()
+            self.draw_game_over_screen()
+        else:
+            self.draw_game_screen()
 
-    def run(self):
-        """运行游戏主循环"""
-        while self.running:
-            self.handle_events()
+    def game_loop(self):
+        """游戏主循环"""
+        if self.running:
+            self.canvas.bind("<KeyRelease>", self.on_key_release)
             self.update()
             self.draw()
-            CLOCK.tick(FPS)
-        
-        pygame.quit()
-        sys.exit()
+            self.root.after(GAME_SPEED, self.game_loop)
+        else:
+            self.root.quit()
 
 
 if __name__ == "__main__":
-    game = Game()
-    game.run()
+    root = tk.Tk()
+    game = Game(root)
+    root.mainloop()
