@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科技特长生全栈培养图谱</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #0a0a0c;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; 
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-in {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 图标组件定义 (Inline SVGs to replace Lucide imports) ---
+        const IconBase = ({ children, className, ...props }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className} 
+                {...props}
+            >
+                {children}
+            </svg>
+        );
+
+        const Brain = (props) => <IconBase {...props}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></IconBase>;
+        const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></IconBase>;
+        const Cpu = (props) => <IconBase {...props}><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></IconBase>;
+        const ChevronRight = (props) => <IconBase {...props}><path d="m9 18 6-6-6-6"/></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
+        const Lightbulb = (props) => <IconBase {...props}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.4 1.5-4.1 0-3-2.5-5.5-5.5-5.5S7 4.5 7 7.5c0 1.7.5 3.1 1.5 4.1.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></IconBase>;
+        const Wrench = (props) => <IconBase {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></IconBase>;
+        const Code = (props) => <IconBase {...props}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></IconBase>;
+        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
+        const GraduationCap = (props) => <IconBase {...props}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></IconBase>;
+        const Target = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></IconBase>;
+        const Trophy = (props) => <IconBase {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></IconBase>;
+        const Terminal = (props) => <IconBase {...props}><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></IconBase>;
+        const Layers = (props) => <IconBase {...props}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></IconBase>;
+        const Sparkles = (props) => <IconBase {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 5H5"/><path d="M3 5h2"/></IconBase>;
+
+        // --- 数据结构定义 (深度优化版) ---
+
+        const ageGroups = [
+          { 
+            id: '5-7', 
+            label: '5-7岁', 
+            stage: '感官运动整合期',
+            features: ['感官主导', '逻辑雏形', '直观行动思维'],
+            color: 'bg-orange-400' 
+          },
+          { 
+            id: '8-9', 
+            label: '8-9岁', 
+            stage: '抽象思维萌芽期',
+            features: ['具体运算', '逻辑增强', '注意力提升'],
+            color: 'bg-cyan-500' 
+          },
+          { 
+            id: '10-11', 
+            label: '10-11岁', 
+            stage: '批判思维形成期',
+            features: ['抽象推理', '高级认知', '元认知觉醒'],
+            color: 'bg-green-500' 
+          },
+          { 
+            id: '12-14', 
+            label: '12-14岁', 
+            stage: '形式逻辑过渡期',
+            features: ['多维分析', '假设演绎', '数图统一'],
+            color: 'bg-blue-600' 
+          },
+          { 
+            id: '15+', 
+            label: '15岁+', 
+            stage: '综合能力成熟期',
+            features: ['系统思维', '社会认知', '创造性解决'],
+            color: 'bg-teal-600' 
+          },
+        ];
+
+        const tracks = [
+          { 
+            id: 'thinking', 
+            title: '基本能力与思维 (核心基础)', 
+            icon: Brain, 
+            color: 'text-cyan-400',
+            description: '认知发展、计算思维与逻辑构建'
+          },
+          { 
+            id: 'knowledge', 
+            title: '基础学科知识 (数理化)', 
+            icon: Calculator, 
+            color: 'text-yellow-400',
+            description: '数学工具、物理模型与科学素养'
+          },
+          { 
+            id: 'skills', 
+            title: '全栈技能树 (工程/信奥/AI)', 
+            icon: Cpu, 
+            color: 'text-green-400',
+            description: '编程算法、机器人工程与人工智能'
+          },
+        ];
+
+        const roadmapData = {
+          'thinking': {
+            '5-7': {
+              title: '感官统合与具象逻辑',
+              points: ['空间想象力构建 (积木/拼图)', '顺序与分类逻辑', '专注力与观察力训练'],
+              competitions: ['图形化编程等级考试(一级)', '益智类桌游比赛'],
+              tools: ['七巧板', '乐高大颗粒', '逻辑狗', '数独(初级)'],
+              outcome: '建立对秩序、空间和因果关系的直观理解',
+              icon: Lightbulb
+            },
+            '8-9': {
+              title: '抽象思维萌芽',
+              points: ['计算思维初步 (把大问题拆解)', '模式识别与归纳', '阅读理解与表达能力'],
+              competitions: ['Bebras国际计算思维挑战赛', '袋鼠数学(1-2级)'],
+              tools: ['思维导图', 'Scratch', '数独(中级)', '国际象棋/围棋'],
+              outcome: '能独立拆解简单问题，具备初步的算法思维',
+              icon: Brain
+            },
+            '10-11': {
+              title: '批判性思维与建模',
+              points: ['数学建模雏形', '抽象推理与论证', '元认知 (反思学习方法)'],
+              competitions: ['DI创新思维大赛', 'OM头脑奥林匹克', '袋鼠数学(3-4级)'],
+              tools: ['流程图', '伪代码', 'Notion/Obsidian(知识管理启蒙)'],
+              outcome: '能运用数学语言描述现实问题，形成自主学习闭环',
+              icon: Target
+            },
+            '12-14': {
+              title: '系统性逻辑体系',
+              points: ['形式逻辑与演绎推理', '多变量系统分析', '工程设计思维 (Design Thinking)'],
+              competitions: ['辩论赛', '模拟联合国', '商业模拟挑战赛'],
+              tools: ['UML图', 'Latex(基础)', 'Python数据分析库'],
+              outcome: '具备严密的逻辑推演能力，能处理复杂系统的变量关系',
+              icon: Zap
+            },
+            '15+': {
+              title: '科研与创新思维',
+              points: ['第一性原理思考', '跨学科融合创新', '学术批判精神'],
+              competitions: ['丘成桐中学科学奖', 'ISEF国际科学与工程大奖赛', 'CTB全球创新研究大挑战'],
+              tools: ['arXiv', 'Google Scholar', 'Matlab/Mathematica'],
+              outcome: '具备准研究生的科研素养，能独立提出假设并验证',
+              icon: GraduationCap
+            }
+          },
+          'knowledge': {
+            '5-7': {
+              title: '数感与科学启蒙',
+              points: ['自然数与四则运算基础', '平面几何形状认知', '生活中的物理现象观察'],
+              competitions: ['无，重点在生活应用'],
+              tools: ['百数板', '测量工具', '科学绘本'],
+              outcome: '不排斥数学，保持对自然现象的强烈好奇心',
+              icon: Calculator
+            },
+            '8-9': {
+              title: '几何与应用数学',
+              points: ['多位数与分数运算', '周长/面积/体积概念', '基础统计与图表'],
+              competitions: ['澳洲AMC (A/B)', '华罗庚金杯(低年级)'],
+              tools: ['几何画板', 'Excel(基础)', '物理实验箱(力学)'],
+              outcome: '熟练掌握基础算术，理解数学与物理世界的对应关系',
+              icon: Calculator
+            },
+            '10-11': {
+              title: '高阶代数与物理前置',
+              points: ['代数方程与不等式', '初等数论(整除/质数)', '经典力学基础(速度/杠杆)'],
+              competitions: ['AMC8 (争取Top 5%)', '希望杯', '美国大联盟'],
+              tools: ['GeoGebra', 'Python(NumPy基础)', '电路实验箱'],
+              outcome: '建立代数思维，为信奥赛(数论基础)和物理竞赛打下地基',
+              icon: BookOpen
+            },
+            '12-14': {
+              title: '函数、几何与微观世界',
+              points: ['平面解析几何', '函数与映射', '电磁学与化学基础', '组合数学与概率'],
+              competitions: ['AMC10/12', '物理碗(Physics Bowl)', '全国初中数学联赛'],
+              tools: ['Desmos', 'WolframAlpha', '化学分子模型'],
+              outcome: '掌握高中核心理科知识，数学能力足以支撑算法竞赛需求',
+              icon: BookOpen
+            },
+            '15+': {
+              title: '大学先修与学科竞赛',
+              points: ['微积分与线性代数', '离散数学(图论/组合)', '大学普通物理', '量子力学概念'],
+              competitions: ['AIME/USAMO', '全国高中数学联赛(CMO)', 'CPhO(物理奥赛)'],
+              tools: ['MATLAB', 'SPSS', '大学教材(同济高数/费曼物理讲义)'],
+              outcome: '达到理工科大一/大二水平，具备强基计划笔试/面试能力',
+              icon: BookOpen
+            }
+          },
+          'skills': {
+            '5-7': {
+              title: '积木构建与指令启蒙',
+              points: ['机械结构搭建(齿轮/杠杆)', '图形化指令序列', '电子积木拼接'],
+              competitions: ['全国青少年电子制作锦标赛', 'WRO (WeDo组)'],
+              tools: ['Lego 9686', 'ScratchJr', 'Code.org', 'Snap Circuits'],
+              outcome: '动手能力强，理解“输入-处理-输出”的基本计算机概念',
+              icon: Wrench
+            },
+            '8-9': {
+              title: '代码过渡与创客基础',
+              points: ['从图形化转向代码(Python/C++)', '3D建模与打印基础', '简单闭环控制系统'],
+              competitions: ['蓝桥杯(Scratch/Python组)', 'NOC大赛', 'VEX IQ (小学组)'],
+              tools: ['Scratch 3.0', 'Python (Turtle)', 'Tinkercad', '3D打印机'],
+              outcome: '能通过编程控制硬件，具备“像工程师一样思考”的雏形',
+              icon: Wrench
+            },
+            '10-11': {
+              title: '信奥起步与开源硬件',
+              points: ['C++ 语法与基础算法', '数据结构入门(数组/栈/队列)', 'Arduino/Micro:bit 嵌入式开发'],
+              competitions: ['CSP-J (入门级)', '蓝桥杯(C++组)', 'VEX IQ / FLL', '全国青少年科技创新大赛'],
+              tools: ['Dev-C++', 'Arduino IDE', 'Fusion 360'],
+              outcome: '掌握一门编译型语言(C++)，具备参加官方白名单竞赛的能力',
+              icon: Code
+            },
+            '12-14': {
+              title: '算法进阶与硬核工程',
+              points: ['复杂算法(DP/搜索/图论)', '机器人视觉与PID控制', 'ROS机器人操作系统入门'],
+              competitions: ['CSP-S (提高级)', 'NOIP (省选)', 'VEX V5 / FRC', 'RoboCup'],
+              tools: ['Linux (Ubuntu)', 'Git/GitHub', 'OpenCV', 'Raspberry Pi'],
+              outcome: '在CSP-S/NOIP中获奖(特长生核心敲门砖)，或独立开发复杂机电项目',
+              icon: Cpu,
+              isSplit: true
+            },
+            '15+': {
+              title: '人工智能与科研项目',
+              points: ['机器学习/深度学习框架', '全栈软件开发', 'FPGA/高级嵌入式', '科研论文写作'],
+              competitions: ['NOI (国赛)', 'Kaggle数据科学竞赛', 'ISEF', '丘成桐计算机奖'],
+              tools: ['PyTorch/TensorFlow', 'Docker', 'React/Vue', 'LaTeX'],
+              outcome: '拥有国家级奖项或高水平科研论文/专利，冲击顶尖名校强基/综评',
+              icon: Cpu
+            }
+          }
+        };
+
+        const keyMilestones = [
+          {
+            title: "第一关键节点：10-11岁 (小学高年级)",
+            subtitle: "特长生分水岭",
+            tags: ["CSP-J入门", "AMC8", "习惯养成"],
+            desc: "这是从'兴趣'转向'专业'的关键期。必须完成从图形化编程到C++代码的转换，数学能力需覆盖初中知识点。目标是拿下CSP-J初赛或复赛奖项，为小升初科技特长生做准备。",
+            color: "bg-orange-500"
+          },
+          {
+            title: "第二关键节点：14-15岁 (初升高/高一)",
+            subtitle: "核心竞争力确立",
+            tags: ["NOIP省一", "强基计划", "科研项目"],
+            desc: "这是决定能否走通'科技特长生'升学路径的决胜期。需要在NOIP/CSP-S中取得省级一等奖以上，或在ISEF等科创大赛获奖。此时应具备独立阅读英文文档和进行PBL项目式研究的能力。",
+            color: "bg-red-500"
+          }
+        ];
+
+        // --- 组件 ---
+
+        const DetailModal = ({ isOpen, onClose, data, trackColor }) => {
+          if (!isOpen || !data) return null;
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+              <div 
+                className="relative w-full max-w-2xl bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className={`p-5 ${trackColor || 'bg-blue-600'} flex justify-between items-center flex-shrink-0`}>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      {data.icon && <data.icon className="w-6 h-6 text-white" />}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-white leading-none mb-1">
+                        {data.title}
+                      </h3>
+                      <p className="text-white/80 text-sm font-medium">阶段目标详解</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={onClose} 
+                    className="text-white/70 hover:text-white hover:bg-white/20 p-2 rounded-full transition-all"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                {/* Scrollable Content */}
+                <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+                  
+                  {/* Core Content */}
+                  <div className="space-y-3">
+                    <h4 className="flex items-center gap-2 text-sm uppercase tracking-wider text-blue-400 font-bold">
+                      <Layers className="w-4 h-4" /> 核心训练内容
+                    </h4>
+                    <div className="grid grid-cols-1 gap-2">
+                      {data.points.map((point, idx) => (
+                        <div key={idx} className="flex items-start gap-3 bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+                          <span className="mt-1.5 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)] flex-shrink-0" />
+                          <span className="text-gray-200 text-sm md:text-base leading-relaxed">{point}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Competitions */}
+                    <div className="space-y-3">
+                      <h4 className="flex items-center gap-2 text-sm uppercase tracking-wider text-yellow-400 font-bold">
+                        <Trophy className="w-4 h-4" /> 核心竞赛 (白名单)
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {data.competitions && data.competitions.map((comp, idx) => (
+                          <span key={idx} className="px-3 py-1.5 bg-yellow-400/10 text-yellow-200 border border-yellow-400/20 rounded text-xs font-medium">
+                            {comp}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Tools */}
+                    <div className="space-y-3">
+                      <h4 className="flex items-center gap-2 text-sm uppercase tracking-wider text-green-400 font-bold">
+                        <Terminal className="w-4 h-4" /> 工具与技术栈
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {data.tools && data.tools.map((tool, idx) => (
+                          <span key={idx} className="px-3 py-1.5 bg-green-400/10 text-green-200 border border-green-400/20 rounded-md text-xs font-mono">
+                            {tool}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Outcome */}
+                  <div className="mt-4 bg-gradient-to-r from-gray-800 to-gray-800/30 p-5 rounded-xl border border-gray-700 border-l-4 border-l-purple-500">
+                    <h4 className="text-xs uppercase tracking-wider text-purple-400 font-bold mb-2">阶段性里程碑</h4>
+                    <p className="text-gray-200 text-sm md:text-base leading-relaxed font-medium">
+                      {data.outcome}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Footer */}
+                <div className="p-4 bg-gray-950 border-t border-gray-800 flex justify-end">
+                  <button 
+                    onClick={onClose}
+                    className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-bold transition-all transform active:scale-95"
+                  >
+                    关闭详情
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const ConnectingLine = ({ startId, endId, color = "#4B5563" }) => {
+          const [coords, setCoords] = useState(null);
+
+          const updateCoords = () => {
+            const startEl = document.getElementById(startId);
+            const endEl = document.getElementById(endId);
+
+            if (startEl && endEl) {
+              const startRect = startEl.getBoundingClientRect();
+              const endRect = endEl.getBoundingClientRect();
+              const container = document.getElementById('roadmap-container');
+              if (!container) return;
+              
+              const containerRect = container.getBoundingClientRect();
+
+              setCoords({
+                x1: startRect.right - containerRect.left,
+                y1: startRect.top + startRect.height / 2 - containerRect.top,
+                x2: endRect.left - containerRect.left,
+                y2: endRect.top + endRect.height / 2 - containerRect.top
+              });
+            }
+          };
+
+          useEffect(() => {
+            updateCoords();
+            window.addEventListener('resize', updateCoords);
+            // Observer for dynamic content changes
+            const observer = new ResizeObserver(updateCoords);
+            const container = document.getElementById('roadmap-container');
+            if (container) observer.observe(container);
+
+            return () => {
+              window.removeEventListener('resize', updateCoords);
+              observer.disconnect();
+            };
+          }, []);
+
+          // Additional backup for layout stabilization
+          useEffect(() => {
+            const timer = setTimeout(updateCoords, 500);
+            return () => clearTimeout(timer);
+          });
+
+          if (!coords) return null;
+
+          return (
+            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 overflow-visible">
+              <defs>
+                <marker id={`arrowhead-${color.replace('#','')}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill={color} />
+                </marker>
+              </defs>
+              <path 
+                d={`M ${coords.x1} ${coords.y1} C ${(coords.x1 + coords.x2) / 2} ${coords.y1}, ${(coords.x1 + coords.x2) / 2} ${coords.y2}, ${coords.x2} ${coords.y2}`}
+                stroke={color} 
+                strokeWidth="2" 
+                fill="none" 
+                markerEnd={`url(#arrowhead-${color.replace('#','')})`}
+                strokeDasharray="6 3"
+                className="opacity-40 hover:opacity-100 transition-opacity duration-300"
+              />
+            </svg>
+          );
+        };
+
+        const App = () => {
+          const [selectedNode, setSelectedNode] = useState(null);
+          const [selectedTrackColor, setSelectedTrackColor] = useState(null);
+          const [isReady, setIsReady] = useState(false);
+
+          useEffect(() => {
+            setTimeout(() => setIsReady(true), 100);
+          }, []);
+
+          return (
+            <div className="min-h-screen bg-[#0a0a0c] text-gray-100 font-sans selection:bg-blue-500/30 overflow-x-hidden">
+              <div className="max-w-7xl mx-auto px-4 py-8">
+                
+                {/* Hero Section */}
+                <header className="mb-16 text-center relative">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full pointer-events-none"></div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/30 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-widest mb-4">
+                    Elite Tech Talent Pathway
+                  </div>
+                  <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight">
+                    科技特长生<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-400">全栈培养图谱</span>
+                  </h1>
+                  <p className="text-gray-400 max-w-3xl mx-auto text-lg md:text-xl leading-relaxed">
+                    融合强基计划、信奥赛（CSP/NOI）与机器人工程的系统化成长路线
+                  </p>
+                </header>
+
+                {/* Legend / Timeline Header - OPTIMIZED */}
+                <div className="sticky top-0 z-30 bg-[#0a0a0c]/95 backdrop-blur border-b border-gray-800 pb-4 pt-4 mb-8 shadow-2xl transition-all duration-300">
+                   <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 items-end">
+                    <div className="hidden md:block pb-2 text-gray-500 font-bold text-xs uppercase tracking-widest text-right pr-6">
+                      Cognitive Development
+                    </div>
+                    <div className="grid grid-cols-5 gap-2 md:gap-4">
+                      {ageGroups.map((age) => (
+                        <div key={age.id} className="flex flex-col items-center group/header relative">
+                          
+                          {/* Cognitive Features (Desktop) */}
+                          <div className="hidden md:flex flex-col items-center mb-3 space-y-1.5 w-full opacity-60 group-hover/header:opacity-100 transition-opacity duration-300">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-300/80 uppercase tracking-wider text-center">
+                                <Sparkles className="w-3 h-3" />
+                                {age.stage}
+                            </div>
+                            <div className="flex flex-wrap justify-center gap-1 px-1">
+                                {age.features.map((f, i) => (
+                                    <span key={i} className="text-[9px] text-gray-400 bg-gray-800/50 px-1.5 py-0.5 rounded border border-gray-700/50 whitespace-nowrap">
+                                      {f}
+                                    </span>
+                                ))}
+                            </div>
+                          </div>
+
+                          {/* Mobile Simple Label */}
+                          <div className="md:hidden text-[9px] text-gray-500 mb-1 text-center scale-90 origin-bottom">
+                            {age.stage.split('期')[0]}
+                          </div>
+
+                          {/* Line Marker */}
+                          <div className={`w-full ${age.color} h-1 rounded-full mb-2 shadow-[0_0_10px_currentColor] opacity-80`} />
+                          
+                          {/* Age Label */}
+                          <div className="text-gray-200 font-bold text-[10px] md:text-sm text-center leading-tight">
+                            {age.label.split(' ')[0]}
+                          </div>
+                          <div className="hidden md:block text-[10px] text-gray-500 mt-0.5 font-medium">
+                            {age.label.split(' ')[1]}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Content Grid */}
+                <div id="roadmap-container" className="relative grid grid-cols-1 md:grid-cols-[220px_1fr] gap-y-16 gap-x-4 mb-24">
+                  
+                  {/* SVG Connector Layer */}
+                  {isReady && (
+                    <>
+                      {/* Connector logic optimized for visual clarity */}
+                      {['thinking', 'knowledge', 'skills'].map((trackId, tIdx) => {
+                        const colors = ["#22d3ee", "#facc15", "#4ade80"];
+                        const color = colors[tIdx];
+                        return (
+                          <React.Fragment key={trackId}>
+                            <ConnectingLine startId={`node-${trackId}-5-7`} endId={`node-${trackId}-8-9`} color={color} />
+                            <ConnectingLine startId={`node-${trackId}-8-9`} endId={`node-${trackId}-10-11`} color={color} />
+                            <ConnectingLine startId={`node-${trackId}-10-11`} endId={`node-${trackId}-12-14`} color={color} />
+                            <ConnectingLine startId={`node-${trackId}-12-14`} endId={`node-${trackId}-15+`} color={color} />
+                          </React.Fragment>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {tracks.map((track) => (
+                    <React.Fragment key={track.id}>
+                      {/* Sidebar Label (Desktop) */}
+                      <div className="hidden md:flex flex-col pt-4 pr-6 border-r border-gray-800 relative">
+                        <div className={`absolute right-0 top-8 w-1 h-8 rounded-l-full ${track.color.replace('text-', 'bg-')}`} />
+                        <div className={`flex items-center gap-3 font-bold text-xl mb-2 ${track.color}`}>
+                          <track.icon className="w-6 h-6" />
+                          {track.title.split(' ')[0]}
+                        </div>
+                        <p className="text-xs text-gray-500 font-medium leading-relaxed text-right">
+                          {track.description}
+                        </p>
+                      </div>
+
+                      {/* Sidebar Label (Mobile) */}
+                      <div className="md:hidden col-span-1 flex items-center gap-2 font-bold text-lg text-white mb-[-3rem] pt-6 pl-2 border-t border-gray-800/50">
+                        <track.icon className={`w-5 h-5 ${track.color}`} />
+                        {track.title}
+                      </div>
+
+                      {/* Nodes Row */}
+                      <div className="grid grid-cols-5 gap-2 md:gap-4 relative z-10">
+                        {ageGroups.map((age) => {
+                          const data = roadmapData[track.id][age.id];
+                          const nodeId = `node-${track.id}-${age.id}`;
+                          
+                          return (
+                            <div 
+                              key={nodeId}
+                              id={nodeId}
+                              className="relative group h-full"
+                            >
+                              <button
+                                onClick={() => {
+                                  setSelectedNode(data);
+                                  setSelectedTrackColor(age.color.replace('bg-', 'bg-'));
+                                }}
+                                className={`
+                                  w-full h-full min-h-[120px] md:min-h-[180px]
+                                  flex flex-col items-center justify-start pt-6 px-2 pb-2 rounded-xl
+                                  bg-gray-900/50 backdrop-blur-sm border border-gray-800
+                                  hover:bg-gray-800 hover:border-gray-600 hover:shadow-2xl hover:shadow-${age.color}/10 hover:-translate-y-2
+                                  transition-all duration-300 relative overflow-hidden
+                                `}
+                              >
+                                {/* Background Decoration */}
+                                <div className={`absolute top-0 left-0 w-full h-1 ${age.color} opacity-50`} />
+                                <div className={`absolute -right-4 -top-4 w-12 h-12 ${age.color} rounded-full blur-2xl opacity-10 group-hover:opacity-30 transition-opacity`} />
+                                
+                                {/* Icon */}
+                                <div className="mb-3 p-2 rounded-lg bg-gray-950 shadow-inner group-hover:scale-110 transition-transform duration-300">
+                                  {data.icon && <data.icon className={`w-5 h-5 md:w-6 md:h-6 ${track.color}`} />}
+                                </div>
+                                
+                                {/* Title */}
+                                <h4 className="text-[10px] md:text-sm font-bold text-gray-200 group-hover:text-white transition-colors leading-tight mb-2">
+                                  {data.title}
+                                </h4>
+
+                                {/* Outcomes (Desktop Only) */}
+                                <p className="hidden md:block text-[10px] text-gray-500 leading-snug line-clamp-3 px-1">
+                                  {data.outcome}
+                                </p>
+
+                                {/* Mobile 'More' hint */}
+                                <div className="mt-auto pt-2 md:hidden">
+                                  <div className={`w-1 h-1 rounded-full ${age.color}`} />
+                                </div>
+
+                                {/* Action Hint */}
+                                <div className="absolute bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] font-bold text-blue-400 flex items-center gap-1">
+                                  查看详情 <ChevronRight className="w-3 h-3" />
+                                </div>
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Key Milestones Section - Redesigned */}
+                <div className="relative mt-24">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-900/10 to-transparent pointer-events-none" />
+                  <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-2">
+                    <Target className="text-red-500" /> 
+                    生涯关键里程碑 (Critical Milestones)
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {keyMilestones.map((milestone, idx) => (
+                      <div key={idx} className="group relative overflow-hidden bg-[#0F1115] rounded-2xl border border-gray-800 hover:border-gray-600 transition-colors p-1">
+                        <div className={`absolute top-0 left-0 w-1.5 h-full ${milestone.color} shadow-[0_0_15px_currentColor]`} />
+                        <div className="p-6 md:p-8 h-full bg-gradient-to-br from-gray-900 to-[#0F1115] rounded-xl">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                               <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${milestone.color} text-white mb-2 shadow-lg`}>
+                                {milestone.title}
+                              </span>
+                              <h3 className="text-xl md:text-2xl font-bold text-white">{milestone.subtitle}</h3>
+                            </div>
+                            <div className="flex flex-col gap-1 items-end">
+                               {milestone.tags.map(tag => (
+                                 <span key={tag} className="text-[10px] uppercase tracking-wide text-gray-500 font-mono border border-gray-800 px-1 rounded">{tag}</span>
+                               ))}
+                            </div>
+                          </div>
+                          <p className="text-gray-400 text-sm md:text-base leading-relaxed">
+                            {milestone.desc}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <footer className="mt-20 pt-8 border-t border-gray-800 text-center">
+                  <p className="text-gray-600 text-sm">
+                     特长生规划建议仅供参考，请根据学生实际情况和当地升学政策（如强基计划、综合评价）进行调整。
+                  </p>
+                  <p className="text-gray-700 text-xs mt-2 font-mono">
+                    Powered by TechTalent Architecture v2.0
+                  </p>
+                </footer>
+
+              </div>
+
+              <DetailModal 
+                isOpen={!!selectedNode} 
+                onClose={() => setSelectedNode(null)} 
+                data={selectedNode}
+                trackColor={selectedTrackColor}
+              />
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
