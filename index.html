@@ -4,35 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zhou Xiaomai | 星际指挥官</title>
-    <link rel="preconnect" href="https://fonts.loli.net">
-    <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
-    <link href="https://fonts.loli.net/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
-        rel="stylesheet">
+    <title>Zhou Xiaomai | 像素指挥官</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
-            --hud-color: #00f3ff;
-            --hud-alert: #ff3333;
-            --hud-dim: rgba(0, 243, 255, 0.2);
-            --bg-color: #000;
-            --panel-bg: rgba(0, 20, 40, 0.7);
+            --mc-green: #55ff55;
+            --mc-cyan: #00ffff;
+            --mc-dark: #111;
+            --mc-panel: rgba(0, 0, 0, 0.75);
+            --mc-border: #333;
         }
 
         * {
             box-sizing: border-box;
-            cursor: crosshair;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%2355ff55" d="M0 0h24v24H0z" fill-opacity="0"/><path fill="%2355ff55" d="M11 11h2v2h-2zM9 11h2v2H9zM11 9h2v2h-2zM11 13h2v2h-2z"/></svg>') 12 12, auto;
         }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg-color);
-            color: var(--hud-color);
-            font-family: 'Share Tech Mono', monospace;
+            background-color: var(--mc-dark);
+            color: var(--mc-green);
+            font-family: 'VT323', monospace;
             overflow: hidden;
             height: 100vh;
             width: 100vw;
+            font-size: 1.2rem;
         }
 
         /* 3D Background */
@@ -46,9 +46,9 @@
         }
 
         /* ---------------------------------------------------------
-           HUD Overlay (The "Window" Frame)
+           Minecraft UI Overlay
            --------------------------------------------------------- */
-        .cockpit-overlay {
+        .ui-layer {
             position: fixed;
             top: 0;
             left: 0;
@@ -56,470 +56,346 @@
             height: 100%;
             z-index: 10;
             pointer-events: none;
-            background: radial-gradient(circle at center, transparent 60%, rgba(0, 10, 20, 0.8) 100%);
-            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9);
-        }
-
-        /* Decorative HUD Lines */
-        .hud-line {
-            position: absolute;
-            background: var(--hud-color);
-            opacity: 0.5;
-        }
-
-        .hl-top {
-            top: 40px;
-            left: 40px;
-            right: 40px;
-            height: 1px;
-        }
-
-        .hl-bottom {
-            bottom: 40px;
-            left: 40px;
-            right: 40px;
-            height: 1px;
-        }
-
-        .hl-left {
-            top: 40px;
-            bottom: 40px;
-            left: 40px;
-            width: 1px;
-        }
-
-        .hl-right {
-            top: 40px;
-            bottom: 40px;
-            right: 40px;
-            width: 1px;
-        }
-
-        /* HUD Corners */
-        .hud-corner {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--hud-color);
-        }
-
-        .hc-tl {
-            top: 38px;
-            left: 38px;
-            border-right: 0;
-            border-bottom: 0;
-        }
-
-        .hc-tr {
-            top: 38px;
-            right: 38px;
-            border-left: 0;
-            border-bottom: 0;
-        }
-
-        .hc-bl {
-            bottom: 38px;
-            left: 38px;
-            border-right: 0;
-            border-top: 0;
-        }
-
-        .hc-br {
-            bottom: 38px;
-            right: 38px;
-            border-left: 0;
-            border-top: 0;
-        }
-
-        /* HUD Data Blocks */
-        .hud-data {
-            position: absolute;
-            font-size: 0.8rem;
-            color: var(--hud-color);
-            text-shadow: 0 0 5px var(--hud-color);
-        }
-
-        .hd-tl {
-            top: 15px;
-            left: 40px;
-        }
-
-        .hd-tr {
-            top: 15px;
-            right: 40px;
-            text-align: right;
-        }
-
-        .hd-bl {
-            bottom: 15px;
-            left: 40px;
+            padding: 20px;
             display: flex;
-            gap: 20px;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .hd-br {
-            bottom: 15px;
-            right: 40px;
-            text-align: right;
+        /* Hotbar Style Bottom */
+        .hotbar-container {
+            align-self: center;
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border: 4px solid #555;
+            border-radius: 4px;
+            pointer-events: auto;
         }
 
-        /* ---------------------------------------------------------
-           Main Interface Layout
-           --------------------------------------------------------- */
-        .interface-grid {
+        .slot {
+            width: 60px;
+            height: 60px;
+            background: #8b8b8b;
+            border: 4px solid #373737;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: 0.2s;
+            position: relative;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .slot:hover {
+            background: #a0a0a0;
+            transform: scale(1.1);
+            border-color: var(--mc-green);
+            z-index: 10;
+        }
+
+        .slot .tooltip {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #111;
+            color: #fff;
+            padding: 5px 10px;
+            border: 2px solid var(--mc-cyan);
+            font-family: 'VT323', monospace;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.2s;
+        }
+
+        .slot:hover .tooltip {
+            opacity: 1;
+            bottom: 80px;
+        }
+
+        /* Main Window */
+        .main-window {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 20;
-            width: 1000px;
-            max-width: 95%;
-            display: grid;
-            grid-template-columns: 250px 1fr 200px;
-            gap: 20px;
-            height: 600px;
-            max-height: 90vh;
-        }
-
-        /* Common Panel Style */
-        .panel {
-            background: var(--panel-bg);
-            border: 1px solid var(--hud-dim);
-            padding: 20px;
-            backdrop-filter: blur(5px);
-            position: relative;
+            width: 800px;
+            max-width: 90%;
+            background: #c6c6c6;
+            /* Classic MC GUI Grey */
+            border: 4px solid #000;
+            box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
             display: flex;
             flex-direction: column;
-            transition: transform 0.1s ease-out;
+            padding: 4px;
         }
 
-        .panel::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: var(--hud-color);
-            box-shadow: 0 0 10px var(--hud-color);
+        .window-header {
+            background: var(--mc-dark);
+            color: var(--mc-green);
+            padding: 10px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid #555;
         }
 
-        /* Left Panel: Profile */
-        .profile-panel {
-            grid-column: 1;
+        .window-content {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 10px;
+            padding: 10px;
+            background: #c6c6c6;
+        }
+
+        /* Profile Section */
+        .profile-box {
+            background: #8b8b8b;
+            border: 2px solid #373737;
+            border-bottom-color: #fff;
+            border-right-color: #fff;
+            padding: 10px;
             text-align: center;
         }
 
-        .avatar-container {
-            width: 150px;
-            height: 150px;
-            margin: 0 auto 20px;
+        .avatar-frame {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #000;
+            border: 4px solid var(--mc-cyan);
+            margin-bottom: 10px;
             position: relative;
+            overflow: hidden;
         }
 
         .avatar {
             width: 100%;
             height: 100%;
-            border-radius: 50%;
-            border: 2px solid var(--hud-color);
             object-fit: cover;
-            /* REMOVED FILTERS as requested */
+            image-rendering: pixelated;
+            /* Pixelate the avatar */
         }
 
-        .avatar-scan {
-            position: absolute;
-            top: -5px;
-            left: -5px;
-            right: -5px;
-            bottom: -5px;
-            border-radius: 50%;
-            border-top: 2px solid var(--hud-color);
-            animation: scan 2s linear infinite;
-        }
-
-        @keyframes scan {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .profile-name {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.5rem;
-            margin-bottom: 10px;
+        .stats {
+            text-align: left;
+            font-size: 1rem;
             color: #fff;
+            margin-top: 10px;
         }
 
-        .profile-role {
-            font-size: 0.9rem;
-            color: var(--hud-dim);
-            margin-bottom: 20px;
-        }
-
-        /* Center Panel: Command Center */
-        .command-panel {
-            grid-column: 2;
+        .stat-row {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .section-title {
-            font-family: 'Orbitron', sans-serif;
-            border-bottom: 1px solid var(--hud-dim);
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-            color: #fff;
-        }
-
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .cmd-btn {
-            background: rgba(0, 243, 255, 0.05);
-            border: 1px solid var(--hud-color);
-            color: var(--hud-color);
-            padding: 15px;
-            text-decoration: none;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.9rem;
-            transition: 0.3s;
-            position: relative;
-            display: flex;
-            align-items: center;
             justify-content: space-between;
+            margin-bottom: 5px;
         }
 
-        .cmd-btn:hover {
-            background: var(--hud-color);
-            color: #000;
-            box-shadow: 0 0 15px var(--hud-color);
+        .stat-val {
+            color: var(--mc-green);
         }
 
-        .cmd-btn span {
-            font-size: 1.2rem;
-        }
-
-        /* Right Panel: System Logs */
-        .log-panel {
-            grid-column: 3;
-            font-size: 0.75rem;
+        /* Content Area */
+        .content-box {
+            background: #1a1a1a;
+            border: 2px solid #373737;
+            border-bottom-color: #fff;
+            border-right-color: #fff;
+            padding: 20px;
+            color: #fff;
+            position: relative;
             overflow: hidden;
         }
 
-        .log-content {
+        .content-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
-            overflow-y: hidden;
-            color: var(--hud-dim);
-            line-height: 1.5;
+            background: repeating-linear-gradient(0deg,
+                    transparent 0px,
+                    transparent 4px,
+                    rgba(0, 255, 0, 0.05) 5px);
+            pointer-events: none;
         }
 
-        .log-entry {
-            margin-bottom: 5px;
-            border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+        .typing-text {
+            font-size: 1.4rem;
+            line-height: 1.4;
+            color: var(--mc-cyan);
+            text-shadow: 0 0 5px var(--mc-cyan);
         }
 
-        .log-time {
-            color: var(--hud-color);
-        }
-
-        /* Music Toggle */
-        .music-toggle {
-            position: fixed;
-            top: 60px;
-            right: 60px;
-            z-index: 100;
-            color: var(--hud-color);
-            border: 1px solid var(--hud-color);
-            padding: 8px 15px;
-            background: rgba(0, 0, 0, 0.8);
+        /* Music Button */
+        .music-btn {
+            width: 40px;
+            height: 40px;
+            background: #8b8b8b;
+            border: 2px solid #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
             cursor: pointer;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.8rem;
-            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
         }
 
-        .music-toggle:hover {
-            background: var(--hud-color);
-            color: #000;
+        .music-btn:active {
+            border: 2px solid #555;
+            border-right-color: #fff;
+            border-bottom-color: #fff;
         }
 
-        /* Responsive */
-        @media (max-width: 900px) {
-            .interface-grid {
-                grid-template-columns: 1fr;
-                height: auto;
-                position: relative;
-                top: 0;
-                left: 0;
-                transform: none;
-                margin: 60px auto;
+        /* Glitch Text */
+        .glitch {
+            animation: glitch 1s linear infinite;
+        }
+
+        @keyframes glitch {
+
+            2%,
+            64% {
+                transform: translate(2px, 0) skew(0deg);
             }
 
-            .log-panel {
-                display: none;
+            4%,
+            60% {
+                transform: translate(-2px, 0) skew(0deg);
             }
 
-            /* Hide logs on mobile */
+            62% {
+                transform: translate(0, 0) skew(5deg);
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- 3D Scene -->
     <canvas id="bg-canvas"></canvas>
 
     <!-- Audio -->
     <audio id="bgm" loop>
         <source src="bgm.mp3" type="audio/mpeg">
     </audio>
-    <div class="music-toggle" id="musicBtn">[ AUDIO: OFF ]</div>
 
-    <!-- Cockpit HUD -->
-    <div class="cockpit-overlay">
-        <div class="hud-line hl-top"></div>
-        <div class="hud-line hl-bottom"></div>
-        <div class="hud-line hl-left"></div>
-        <div class="hud-line hl-right"></div>
-
-        <div class="hud-corner hc-tl"></div>
-        <div class="hud-corner hc-tr"></div>
-        <div class="hud-corner hc-bl"></div>
-        <div class="hud-corner hc-br"></div>
-
-        <div class="hud-data hd-tl">
-            USS-ZHOU COMMAND<br>
-            SYS.STATUS: <span style="color:#0f0">NORMAL</span>
-        </div>
-        <div class="hud-data hd-tr">
-            COORDS: <span id="coords">00.00.00</span><br>
-            VELOCITY: WARP 9
-        </div>
-        <div class="hud-data hd-bl">
-            <div>SHIELDS: 100%</div>
-            <div>WEAPONS: SAFE</div>
-            <div>FUEL: 98%</div>
-        </div>
-        <div class="hud-data hd-br">
-            MISSION TIME: <span id="time-display">00:00:00</span>
-        </div>
-    </div>
-
-    <!-- Main Interface -->
-    <div class="interface-grid" id="main-interface">
-
-        <!-- Left: Profile -->
-        <div class="panel profile-panel">
-            <div class="avatar-container">
-                <img src="avatar_optimized.jpg" class="avatar">
-                <div class="avatar-scan"></div>
+    <div class="ui-layer">
+        <!-- Top Bar -->
+        <div style="display: flex; justify-content: space-between; pointer-events: auto;">
+            <div style="background: rgba(0,0,0,0.7); padding: 5px 10px; border: 2px solid var(--mc-green);">
+                SERVER: ZHOU_SMP_2025
             </div>
-            <div class="profile-name">ZHOU XIAOMAI</div>
-            <div class="profile-role">FLEET COMMANDER</div>
-            <div style="text-align: left; font-size: 0.8rem; line-height: 1.6; color: #aaa;">
-                > 专注科技特长生培养<br>
-                > 数字化第二大脑构建中<br>
-                > 目标: 星辰大海
+            <div style="background: rgba(0,0,0,0.7); padding: 5px 10px; border: 2px solid var(--mc-cyan);">
+                PING: 1ms
             </div>
         </div>
 
-        <!-- Center: Modules -->
-        <div class="panel command-panel">
-            <div class="section-title">NAVIGATION MODULES</div>
-            <div class="module-grid">
-                <a href="post-4.html" class="cmd-btn">培养图谱 <span>🗺️</span></a>
-                <a href="post-5.html" class="cmd-btn">认知系统 <span>🧠</span></a>
-                <a href="blog.html" class="cmd-btn">教育日志 <span>📝</span></a>
-                <a href="games.html" class="cmd-btn">模拟训练 <span>🎮</span></a>
+        <!-- Main Window -->
+        <div class="main-window">
+            <div class="window-header">
+                <span>INVENTORY // ZHOU_XIAOMAI</span>
+                <div class="music-btn" id="musicToggle">🎵</div>
             </div>
-
-            <div class="section-title">COMMUNICATION</div>
-            <div class="module-grid">
-                <a href="https://github.com/LinuxZhou93" target="_blank" class="cmd-btn">GITHUB 基地 <span>💻</span></a>
-                <a href="mailto:zhoulin.linux@gmail.com" class="cmd-btn">加密通讯 <span>✉️</span></a>
+            <div class="window-content">
+                <!-- Left -->
+                <div class="profile-box">
+                    <div class="avatar-frame">
+                        <img src="avatar_optimized.jpg" class="avatar">
+                    </div>
+                    <div class="stats">
+                        <div class="stat-row"><span>LVL:</span> <span class="stat-val">99</span></div>
+                        <div class="stat-row"><span>EXP:</span> <span class="stat-val">MAX</span></div>
+                        <div class="stat-row"><span>ROLE:</span> <span class="stat-val">ADMIN</span></div>
+                    </div>
+                </div>
+                <!-- Right -->
+                <div class="content-box">
+                    <div class="typing-text" id="bio-text"></div>
+                    <div style="margin-top: 20px; font-size: 1rem; color: #aaa;">
+                        > 装备: 数字化第二大脑<br>
+                        > 附魔: 效率 V, 创造力 III<br>
+                        > 任务: 探索科技与教育的边界
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Right: Logs -->
-        <div class="panel log-panel">
-            <div class="section-title">SYSTEM LOGS</div>
-            <div class="log-content" id="log-container">
-                <!-- Logs injected by JS -->
-            </div>
+        <!-- Bottom Hotbar -->
+        <div class="hotbar-container">
+            <a href="https://github.com/LinuxZhou93" target="_blank" class="slot">
+                💻
+                <div class="tooltip">GitHub 基地</div>
+            </a>
+            <a href="blog.html" class="slot">
+                📝
+                <div class="tooltip">教育日志</div>
+            </a>
+            <a href="post-4.html" class="slot">
+                🗺️
+                <div class="tooltip">培养图谱</div>
+            </a>
+            <a href="post-5.html" class="slot">
+                🧠
+                <div class="tooltip">认知系统</div>
+            </a>
+            <a href="games.html" class="slot" style="border-color: var(--mc-green);">
+                🎮
+                <div class="tooltip">游戏服务器</div>
+            </a>
+            <a href="mailto:zhoulin.linux@gmail.com" class="slot">
+                ✉️
+                <div class="tooltip">发送私信</div>
+            </a>
         </div>
-
     </div>
 
     <script>
-        // ---------------------------------------------------------
-        // HUD & System Logic
-        // ---------------------------------------------------------
-        function updateHUD() {
-            const now = new Date();
-            document.getElementById('time-display').innerText = now.toLocaleTimeString();
-            document.getElementById('coords').innerText =
-                `${Math.floor(Math.random() * 999)}.${Math.floor(Math.random() * 99)}.${Math.floor(Math.random() * 99)}`;
-        }
-        setInterval(updateHUD, 1000);
-        updateHUD();
+        // Typing Effect
+        const text = "欢迎来到我的世界。\n正在加载区块...\n地形生成完毕。";
+        const bioElement = document.getElementById('bio-text');
+        let index = 0;
 
-        // System Logs Generator
-        const logs = [
-            "Scanning sector 7G...",
-            "Life support systems: STABLE",
-            "Incoming transmission blocked",
-            "Updating navigation charts...",
-            "Checking cognitive sub-routines...",
-            "Optimizing render pipeline...",
-            "Shield harmonics synchronized",
-            "Warp drive charging: 98%",
-            "Detected anomaly in sector 4",
-            "Downloading knowledge packet..."
-        ];
-        const logContainer = document.getElementById('log-container');
-
-        function addLog() {
-            const log = logs[Math.floor(Math.random() * logs.length)];
-            const time = new Date().toLocaleTimeString().split(' ')[0];
-            const div = document.createElement('div');
-            div.className = 'log-entry';
-            div.innerHTML = `<span class="log-time">[${time}]</span> ${log}`;
-            logContainer.prepend(div);
-            if (logContainer.children.length > 15) logContainer.lastChild.remove();
+        function typeWriter() {
+            if (index < text.length) {
+                const char = text.charAt(index);
+                bioElement.innerHTML += char === '\n' ? '<br>' : char;
+                index++;
+                setTimeout(typeWriter, 80);
+            }
         }
-        setInterval(addLog, 2000);
+        setTimeout(typeWriter, 500);
 
         // Music
         const bgm = document.getElementById('bgm');
-        const musicBtn = document.getElementById('musicBtn');
+        const musicBtn = document.getElementById('musicToggle');
         let isPlaying = false;
         bgm.volume = 0.3;
 
         musicBtn.addEventListener('click', () => {
             if (isPlaying) {
                 bgm.pause();
-                musicBtn.innerText = '[ AUDIO: OFF ]';
-                musicBtn.style.background = 'rgba(0,0,0,0.8)';
+                musicBtn.innerText = '🎵';
+                musicBtn.style.color = '#000';
             } else {
                 bgm.play();
-                musicBtn.innerText = '[ AUDIO: ON ]';
-                musicBtn.style.background = 'var(--hud-color)';
-                musicBtn.style.color = '#000';
+                musicBtn.innerText = 'II';
+                musicBtn.style.color = '#00f';
             }
             isPlaying = !isPlaying;
         });
 
         // ---------------------------------------------------------
-        // 3D Realistic Space Scene (Three.js)
+        // 3D Voxel Space Scene (Three.js)
         // ---------------------------------------------------------
         const canvas = document.getElementById('bg-canvas');
         const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: false });
@@ -527,48 +403,50 @@
         renderer.setPixelRatio(window.devicePixelRatio);
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000000, 0.0015);
+        scene.background = new THREE.Color(0x050505);
+        scene.fog = new THREE.Fog(0x050505, 10, 50);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.z = 1;
-        camera.rotation.x = Math.PI / 2;
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 20;
 
-        // 1. Realistic Starfield
-        const starGeo = new THREE.BufferGeometry();
-        const starCount = 12000;
-        const positions = new Float32Array(starCount * 3);
+        // Voxel Cubes
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const materialWire = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.3 });
+        const materialSolid = new THREE.MeshBasicMaterial({ color: 0x55ff55, wireframe: false, transparent: true, opacity: 0.8 });
 
-        for (let i = 0; i < starCount; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 800;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 800;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 800;
+        const cubes = [];
+        const group = new THREE.Group();
+
+        for (let i = 0; i < 100; i++) {
+            const isWire = Math.random() > 0.3;
+            const mesh = new THREE.Mesh(geometry, isWire ? materialWire : materialSolid);
+
+            mesh.position.x = (Math.random() - 0.5) * 40;
+            mesh.position.y = (Math.random() - 0.5) * 40;
+            mesh.position.z = (Math.random() - 0.5) * 40;
+
+            mesh.rotation.x = Math.random() * Math.PI;
+            mesh.rotation.y = Math.random() * Math.PI;
+
+            const scale = Math.random() * 1.5 + 0.5;
+            mesh.scale.set(scale, scale, scale);
+
+            group.add(mesh);
+            cubes.push({
+                mesh: mesh,
+                speedX: (Math.random() - 0.5) * 0.02,
+                speedY: (Math.random() - 0.5) * 0.02
+            });
         }
+        scene.add(group);
 
-        starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-        const sprite = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/disc.png');
-        const starMat = new THREE.PointsMaterial({
-            color: 0xaaaaaa,
-            size: 0.8,
-            map: sprite,
-            transparent: true,
-            opacity: 0.8
-        });
-
-        const stars = new THREE.Points(starGeo, starMat);
-        scene.add(stars);
-
-        // 2. Interaction (Parallax)
+        // Interaction
         let mouseX = 0;
         let mouseY = 0;
-        const interfaceGrid = document.getElementById('main-interface');
 
         document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-
-            // Tilt the interface
-            interfaceGrid.style.transform = `translate(-50%, -50%) perspective(1000px) rotateY(${mouseX * 2}deg) rotateX(${-mouseY * 2}deg)`;
+            mouseX = (e.clientX - window.innerWidth / 2) * 0.001;
+            mouseY = (e.clientY - window.innerHeight / 2) * 0.001;
         });
 
         window.addEventListener('resize', () => {
@@ -577,24 +455,23 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // 3. Animation Loop
         function animate() {
-            const posAttribute = starGeo.attributes.position;
+            requestAnimationFrame(animate);
 
-            for (let i = 0; i < starCount; i++) {
-                let y = posAttribute.getY(i);
-                y -= 0.8; // Speed
-                if (y < -400) y = 400;
-                posAttribute.setY(i, y);
-            }
-            posAttribute.needsUpdate = true;
+            group.rotation.y += 0.002;
+            group.rotation.x += 0.001;
 
-            // Camera gentle sway
-            camera.rotation.y += (-mouseX * 0.3 - camera.rotation.y) * 0.05;
-            camera.rotation.x += ((Math.PI / 2 + mouseY * 0.1) - camera.rotation.x) * 0.05;
+            // Parallax
+            camera.position.x += (mouseX * 10 - camera.position.x) * 0.05;
+            camera.position.y += (-mouseY * 10 - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+
+            cubes.forEach(c => {
+                c.mesh.rotation.x += c.speedX;
+                c.mesh.rotation.y += c.speedY;
+            });
 
             renderer.render(scene, camera);
-            requestAnimationFrame(animate);
         }
 
         animate();
