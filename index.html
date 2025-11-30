@@ -17,6 +17,7 @@
     <link rel="prefetch" href="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js">
     <link rel="prefetch" href="https://cdn.staticfile.org/babel-standalone/7.23.5/babel.min.js">
     <link rel="prefetch" href="https://cdn.tailwindcss.com">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --primary-color: #00f3ff;
@@ -490,58 +491,103 @@
             isPlaying = !isPlaying;
         });
 
-        // Mouse Interaction
-        let mouse = { x: null, y: null };
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.x;
-            mouse.y = e.y;
+        // ---------------------------------------------------------
+        // 3D Sci-Fi Background (Three.js)
+        // ---------------------------------------------------------
+        const scene = new THREE.Scene();
+        // Add subtle fog for depth
+        scene.fog = new THREE.FogExp2(0x000000, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.z = 1000;
+
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        // 1. Starfield (Warp Effect)
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 6000;
+        const posArray = new Float32Array(starCount * 3);
+
+        for (let i = 0; i < starCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 4000; // Spread stars wide
+        }
+
+        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        const starMat = new THREE.PointsMaterial({
+            color: 0x00f3ff,
+            size: 2,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const starMesh = new THREE.Points(starGeo, starMat);
+        scene.add(starMesh);
+
+        // 2. Cyber Planet (Wireframe)
+        const planetGeo = new THREE.IcosahedronGeometry(300, 2);
+        const planetMat = new THREE.MeshBasicMaterial({
+            color: 0xff00ff,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.3
+        });
+        const planet = new THREE.Mesh(planetGeo, planetMat);
+        planet.position.z = -500; // Far in the background
+        scene.add(planet);
+
+        // 3. Interaction & Animation Variables
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetX = 0;
+        let targetY = 0;
+
+        const windowHalfX = window.innerWidth / 2;
+        const windowHalfY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - windowHalfX);
+            mouseY = (event.clientY - windowHalfY);
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
         function animate() {
-            ctx.fillStyle = 'rgba(5, 5, 5, 0.1)';
-            ctx.fillRect(0, 0, width, height);
-
-            particles.forEach(p => {
-                // Mouse repulsion
-                if (mouse.x != null) {
-                    const dx = p.x - mouse.x;
-                    const dy = p.y - mouse.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance < 100) {
-                        const angle = Math.atan2(dy, dx);
-                        p.x += Math.cos(angle) * 2;
-                        p.y += Math.sin(angle) * 2;
-                    }
-                }
-
-                p.update();
-                p.draw();
-            });
-
-            // Draw connections
-            particles.forEach((p1, i) => {
-                particles.slice(i + 1).forEach(p2 => {
-                    const dx = p1.x - p2.x;
-                    const dy = p1.y - p2.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 100) {
-                        ctx.strokeStyle = `rgba(0, 243, 255, ${1 - dist / 100})`;
-                        ctx.lineWidth = 0.5;
-                        ctx.beginPath();
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.stroke();
-                    }
-                });
-            });
-
             requestAnimationFrame(animate);
+
+            // Star Warp Animation
+            const positions = starGeo.attributes.position.array;
+            for (let i = 1; i < starCount * 3; i += 3) { // Iterate Z coordinates
+                positions[i + 1] += 10; // Move stars towards camera (Z+)
+
+                // Reset if passed camera
+                if (positions[i + 1] > 1000) {
+                    positions[i + 1] = -3000;
+                }
+            }
+            starGeo.attributes.position.needsUpdate = true;
+
+            // Planet Rotation
+            planet.rotation.x += 0.001;
+            planet.rotation.y += 0.002;
+
+            // Camera Parallax (Smooth follow)
+            targetX = mouseX * 0.001;
+            targetY = mouseY * 0.001;
+
+            starMesh.rotation.y += 0.0005; // Slowly rotate the whole starfield
+            starMesh.rotation.x = targetY * 0.2;
+            starMesh.rotation.y += targetX * 0.2;
+
+            renderer.render(scene, camera);
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        initParticles();
         animate();
     </script>
 </body>
