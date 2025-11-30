@@ -254,13 +254,74 @@
                 transform: translate(0)
             }
         }
+
+        /* Scanline Overlay */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Tech Corners */
+        .tech-corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--primary-color);
+            transition: 0.3s;
+        }
+
+        .tl {
+            top: -2px;
+            left: -2px;
+            border-right: 0;
+            border-bottom: 0;
+        }
+
+        .tr {
+            top: -2px;
+            right: -2px;
+            border-left: 0;
+            border-bottom: 0;
+        }
+
+        .bl {
+            bottom: -2px;
+            left: -2px;
+            border-right: 0;
+            border-top: 0;
+        }
+
+        .br {
+            bottom: -2px;
+            right: -2px;
+            border-left: 0;
+            border-top: 0;
+        }
+
+        .container:hover .tech-corner {
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 0 10px var(--primary-color);
+        }
     </style>
 </head>
 
 <body>
+    <div class="scanlines"></div>
     <canvas id="bg-canvas"></canvas>
 
     <div class="container">
+        <div class="tech-corner tl"></div>
+        <div class="tech-corner tr"></div>
+        <div class="tech-corner bl"></div>
+        <div class="tech-corner br"></div>
         <div class="logo">系统.根.用户: ZHOU_XIAOMAI</div>
 
         <div class="avatar-wrapper">
@@ -352,11 +413,30 @@
             }
         }
 
+        // Mouse Interaction
+        let mouse = { x: null, y: null };
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+
         function animate() {
             ctx.fillStyle = 'rgba(5, 5, 5, 0.1)';
             ctx.fillRect(0, 0, width, height);
 
             particles.forEach(p => {
+                // Mouse repulsion
+                if (mouse.x != null) {
+                    const dx = p.x - mouse.x;
+                    const dy = p.y - mouse.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 100) {
+                        const angle = Math.atan2(dy, dx);
+                        p.x += Math.cos(angle) * 2;
+                        p.y += Math.sin(angle) * 2;
+                    }
+                }
+
                 p.update();
                 p.draw();
             });
