@@ -213,8 +213,42 @@
         const keys = {
             ArrowLeft: false,
             ArrowRight: false,
+            ArrowRight: false,
             Space: false
         };
+
+        // Touch State
+        let isTouching = false;
+        let lastShotFrame = 0;
+        const fireRate = 10; // Fire every 10 frames
+
+        // Touch Events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isTouching = true;
+            if (!gameRunning) startGame();
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isTouching = false;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            // Calculate scale in case canvas is resized via CSS
+            const scaleX = canvas.width / rect.width;
+            let touchX = (touch.clientX - rect.left) * scaleX;
+
+            // Update player position
+            player.x = touchX;
+
+            // Boundary checks
+            if (player.x < 20) player.x = 20;
+            if (player.x > canvas.width - 20) player.x = canvas.width - 20;
+        }, { passive: false });
 
         document.addEventListener('keydown', (e) => {
             if (e.code === 'ArrowLeft') keys.ArrowLeft = true;
@@ -377,6 +411,12 @@
             // Player Movement
             if (keys.ArrowLeft && player.x > 20) player.x -= player.speed;
             if (keys.ArrowRight && player.x < canvas.width - 20) player.x += player.speed;
+
+            // Auto-fire on touch
+            if (isTouching && (frames - lastShotFrame > fireRate)) {
+                shoot();
+                lastShotFrame = frames;
+            }
 
             drawPlayer();
 
