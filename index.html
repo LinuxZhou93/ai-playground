@@ -61,6 +61,157 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            opacity: 0;
+            /* Hidden initially */
+            transform: scale(0.95);
+            transition: opacity 1s ease, transform 1s ease;
+        }
+
+        .ui-layer.active {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+            /* Enable interaction when active */
+        }
+
+        /* ---------------------------------------------------------
+           Intro Overlay (Loot Crate)
+           --------------------------------------------------------- */
+        #intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease;
+        }
+
+        .crate-container {
+            perspective: 1000px;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 30px;
+        }
+
+        .crate {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotateCrate 6s infinite linear;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .crate:hover {
+            animation-play-state: paused;
+            transform: scale(1.1) rotateX(-20deg) rotateY(45deg);
+        }
+
+        .face {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: rgba(0, 10, 20, 0.95);
+            border: 4px solid var(--mc-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--mc-cyan);
+            box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.3);
+            backface-visibility: visible;
+        }
+
+        /* Minecraft Chest Pattern */
+        .face::after {
+            content: '';
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            border: 2px dashed var(--mc-green);
+            opacity: 0.5;
+        }
+
+        .face.front {
+            transform: translateZ(60px);
+        }
+
+        .face.back {
+            transform: rotateY(180deg) translateZ(60px);
+        }
+
+        .face.right {
+            transform: rotateY(90deg) translateZ(60px);
+        }
+
+        .face.left {
+            transform: rotateY(-90deg) translateZ(60px);
+        }
+
+        .face.top {
+            transform: rotateX(90deg) translateZ(60px);
+        }
+
+        .face.bottom {
+            transform: rotateX(-90deg) translateZ(60px);
+        }
+
+        @keyframes rotateCrate {
+            0% {
+                transform: rotateX(-20deg) rotateY(0deg);
+            }
+
+            100% {
+                transform: rotateX(-20deg) rotateY(360deg);
+            }
+        }
+
+        .intro-text {
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            font-size: 1rem;
+            animation: blink 1s infinite;
+            text-shadow: 0 0 10px var(--mc-cyan);
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Explosion Animation Class */
+        .crate.opening {
+            animation: explode 0.8s forwards ease-out;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.5) rotate(180deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
         }
 
         /* Hotbar Style Bottom */
@@ -606,350 +757,398 @@
         <source src="bgm.mp3" type="audio/mpeg">
     </audio>
 
-    <div class="ui-layer">
-        <!-- Top Bar -->
-        <div style="display: flex; justify-content: space-between; pointer-events: auto;">
-            <div style="background: rgba(0,0,0,0.7); padding: 5px 10px; border: 2px solid var(--mc-green);">
-                SERVER: ZHOU_SMP_2025
-            </div>
-            <div style="background: rgba(0,0,0,0.7); padding: 5px 10px; border: 2px solid var(--mc-cyan);">
-                PING: 1ms
+    <!-- Intro Overlay -->
+    <div id="intro-overlay">
+        <div class="crate-container">
+            <div class="crate" id="lootCrate">
+                <div class="face front">?</div>
+                <div class="face back">?</div>
+                <div class="face right">?</div>
+                <div class="face left">?</div>
+                <div class="face top"></div>
+                <div class="face bottom"></div>
             </div>
         </div>
+        <div class="intro-text">>> CLICK TO START <<< /div>
+        </div>
 
-        <!-- Main Window -->
-        <div class="main-window">
-            <div class="window-header">
-                <span>INVENTORY // ZHOU_XIAOMAI</span>
-                <div class="music-btn" id="musicToggle">🎵</div>
-            </div>
-            <div class="window-content">
-                <!-- Left -->
-                <div class="profile-box">
-                    <div class="avatar-frame" id="aiCoach">
-                        <div class="speech-bubble" id="coachBubble">你好，我是你的AI教练！</div>
-                        <img src="avatar_hologram.png" class="avatar">
-                        <div class="hologram-base"></div>
-                    </div>
-                    <div class="stats">
-                        <div class="stat-row"><span>LVL:</span> <span class="stat-val">99</span></div>
-                        <div class="stat-row"><span>EXP:</span> <span class="stat-val">MAX</span></div>
-                        <div class="stat-row"><span>ROLE:</span> <span class="stat-val">ADMIN</span></div>
-                    </div>
+        <div class="ui-layer" id="mainUI">
+            <!-- Top Bar -->
+            <div style="display: flex; justify-content: space-between; pointer-events: auto;">
+                <div style="background: rgba(0,0,0,0.7); padding: 5px 10px; border: 2px solid var(--mc-green);">
+                    SERVER: ZHOU_SMP_2025
                 </div>
-                <!-- Right -->
-                <div class="content-box">
-                    <div class="typing-text" id="bio-text"></div>
-                    <div style="margin-top: 20px; font-size: 1rem; color: #aaa;">
-                        > 装备: 数字化第二大脑<br>
-                        > 附魔: 效率 V, 创造力 III<br>
-                        > 任务: 探索科技与教育的边界
-                    </div>
-
-                    <!-- Skill Tree Navigation -->
-                    <div class="skill-tree-wrapper">
-                        <div
-                            style="font-family: 'Press Start 2P'; font-size: 0.8rem; color: var(--mc-green); margin-bottom: 10px; text-shadow: 0 0 5px var(--mc-green);">
-                            >> SKILL_TREE // 技能树
-                        </div>
-
-                        <div class="skill-tree" id="skillTree">
-                            <svg class="tree-svg" id="treeSvg"></svg>
-
-                            <!-- Level 1 -->
-                            <a href="junior-math-curriculum.html" class="tree-node"
-                                style="top: 20px; left: 50%; transform: translateX(-50%);" id="node-math">
-                                <span>🔢</span>
-                                <div>数学</div>
-                            </a>
-
-                            <!-- Level 2 -->
-                            <a href="junior-physics-curriculum.html" class="tree-node"
-                                style="top: 110px; left: 50%; transform: translateX(-50%);" id="node-phy">
-                                <span>⚡</span>
-                                <div>物理</div>
-                            </a>
-
-                            <a href="junior-infotech-curriculum.html" class="tree-node"
-                                style="top: 110px; left: 80%; transform: translateX(-50%);" id="node-info">
-                                <span>💻</span>
-                                <div>信息</div>
-                            </a>
-
-                            <!-- Level 3 -->
-                            <a href="junior-chemistry-curriculum.html" class="tree-node"
-                                style="top: 200px; left: 35%; transform: translateX(-50%);" id="node-chem">
-                                <span>🧪</span>
-                                <div>化学</div>
-                            </a>
-
-                            <a href="junior-biology-curriculum.html" class="tree-node"
-                                style="top: 200px; left: 65%; transform: translateX(-50%);" id="node-bio">
-                                <span>🧬</span>
-                                <div>生物</div>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Experiment Zone (Compact) -->
-                    <div style="margin-top: 20px; border-top: 1px dashed var(--mc-cyan); padding-top: 15px;">
-                        <div
-                            style="font-family: 'Press Start 2P'; font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">
-                            >> SIDE_QUESTS // 实验副本
-                        </div>
-                        <div class="experiment-grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px;">
-                            <a href="experiment-periodic-table.html" class="exp-card"
-                                style="flex-direction: column; text-align: center; padding: 8px;">
-                                <div class="exp-icon" style="font-size: 1.2rem;">🧪</div>
-                                <div class="exp-title" style="font-size: 0.9rem;">元素</div>
-                            </a>
-                            <a href="experiment-circuit.html" class="exp-card"
-                                style="flex-direction: column; text-align: center; padding: 8px;">
-                                <div class="exp-icon" style="font-size: 1.2rem;">⚡</div>
-                                <div class="exp-title" style="font-size: 0.9rem;">电路</div>
-                            </a>
-                            <a href="experiment-optics.html" class="exp-card"
-                                style="flex-direction: column; text-align: center; padding: 8px;">
-                                <div class="exp-icon" style="font-size: 1.2rem;">🌈</div>
-                                <div class="exp-title" style="font-size: 0.9rem;">光学</div>
-                            </a>
-                            <a href="experiment-life.html" class="exp-card"
-                                style="flex-direction: column; text-align: center; padding: 8px;">
-                                <div class="exp-icon" style="font-size: 1.2rem;">🦠</div>
-                                <div class="exp-title" style="font-size: 0.9rem;">生命</div>
-                            </a>
-                        </div>
-                    </div>
+                <div style="background: rgba(0,0,0,0.7); padding: 5px 10px; border: 2px solid var(--mc-cyan);">
+                    PING: 1ms
                 </div>
             </div>
+
+            <!-- Main Window -->
+            <div class="main-window">
+                <div class="window-header">
+                    <span>INVENTORY // ZHOU_XIAOMAI</span>
+                    <div class="music-btn" id="musicToggle">🎵</div>
+                </div>
+                <div class="window-content">
+                    <!-- Left -->
+                    <div class="profile-box">
+                        <div class="avatar-frame" id="aiCoach">
+                            <div class="speech-bubble" id="coachBubble">你好，我是你的AI教练！</div>
+                            <img src="avatar_hologram.png" class="avatar">
+                            <div class="hologram-base"></div>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-row"><span>LVL:</span> <span class="stat-val">99</span></div>
+                            <div class="stat-row"><span>EXP:</span> <span class="stat-val">MAX</span></div>
+                            <div class="stat-row"><span>ROLE:</span> <span class="stat-val">ADMIN</span></div>
+                        </div>
+                    </div>
+                    <!-- Right -->
+                    <div class="content-box">
+                        <div class="typing-text" id="bio-text"></div>
+                        <div style="margin-top: 20px; font-size: 1rem; color: #aaa;">
+                            > 装备: 数字化第二大脑<br>
+                            > 附魔: 效率 V, 创造力 III<br>
+                            > 任务: 探索科技与教育的边界
+                        </div>
+
+                        <!-- Skill Tree Navigation -->
+                        <div class="skill-tree-wrapper">
+                            <div
+                                style="font-family: 'Press Start 2P'; font-size: 0.8rem; color: var(--mc-green); margin-bottom: 10px; text-shadow: 0 0 5px var(--mc-green);">
+                                >> SKILL_TREE // 技能树
+                            </div>
+
+                            <div class="skill-tree" id="skillTree">
+                                <svg class="tree-svg" id="treeSvg"></svg>
+
+                                <!-- Level 1 -->
+                                <a href="junior-math-curriculum.html" class="tree-node"
+                                    style="top: 20px; left: 50%; transform: translateX(-50%);" id="node-math">
+                                    <span>🔢</span>
+                                    <div>数学</div>
+                                </a>
+
+                                <!-- Level 2 -->
+                                <a href="junior-physics-curriculum.html" class="tree-node"
+                                    style="top: 110px; left: 50%; transform: translateX(-50%);" id="node-phy">
+                                    <span>⚡</span>
+                                    <div>物理</div>
+                                </a>
+
+                                <a href="junior-infotech-curriculum.html" class="tree-node"
+                                    style="top: 110px; left: 80%; transform: translateX(-50%);" id="node-info">
+                                    <span>💻</span>
+                                    <div>信息</div>
+                                </a>
+
+                                <!-- Level 3 -->
+                                <a href="junior-chemistry-curriculum.html" class="tree-node"
+                                    style="top: 200px; left: 35%; transform: translateX(-50%);" id="node-chem">
+                                    <span>🧪</span>
+                                    <div>化学</div>
+                                </a>
+
+                                <a href="junior-biology-curriculum.html" class="tree-node"
+                                    style="top: 200px; left: 65%; transform: translateX(-50%);" id="node-bio">
+                                    <span>🧬</span>
+                                    <div>生物</div>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Experiment Zone (Compact) -->
+                        <div style="margin-top: 20px; border-top: 1px dashed var(--mc-cyan); padding-top: 15px;">
+                            <div
+                                style="font-family: 'Press Start 2P'; font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">
+                                >> SIDE_QUESTS // 实验副本
+                            </div>
+                            <div class="experiment-grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                                <a href="experiment-periodic-table.html" class="exp-card"
+                                    style="flex-direction: column; text-align: center; padding: 8px;">
+                                    <div class="exp-icon" style="font-size: 1.2rem;">🧪</div>
+                                    <div class="exp-title" style="font-size: 0.9rem;">元素</div>
+                                </a>
+                                <a href="experiment-circuit.html" class="exp-card"
+                                    style="flex-direction: column; text-align: center; padding: 8px;">
+                                    <div class="exp-icon" style="font-size: 1.2rem;">⚡</div>
+                                    <div class="exp-title" style="font-size: 0.9rem;">电路</div>
+                                </a>
+                                <a href="experiment-optics.html" class="exp-card"
+                                    style="flex-direction: column; text-align: center; padding: 8px;">
+                                    <div class="exp-icon" style="font-size: 1.2rem;">🌈</div>
+                                    <div class="exp-title" style="font-size: 0.9rem;">光学</div>
+                                </a>
+                                <a href="experiment-life.html" class="exp-card"
+                                    style="flex-direction: column; text-align: center; padding: 8px;">
+                                    <div class="exp-icon" style="font-size: 1.2rem;">🦠</div>
+                                    <div class="exp-title" style="font-size: 0.9rem;">生命</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Hotbar -->
+            <div class="hotbar-container">
+                <a href="https://github.com/LinuxZhou93" target="_blank" class="slot">
+                    💻
+                    <div class="tooltip">GitHub 基地</div>
+                </a>
+                <a href="blog.html" class="slot">
+                    📝
+                    <div class="tooltip">教育日志</div>
+                </a>
+                <a href="post-4.html" class="slot">
+                    🗺️
+                    <div class="tooltip">培养图谱</div>
+                </a>
+                <a href="post-6.html" class="slot">
+                    🧭
+                    <div class="tooltip">课程地图</div>
+                </a>
+                <a href="post-5.html" class="slot">
+                    🧠
+                    <div class="tooltip">认知系统</div>
+                </a>
+                <a href="subject-synergy.html" class="slot">
+                    🧬
+                    <div class="tooltip">学科协同</div>
+                </a>
+                <a href="games.html" class="slot" style="border-color: var(--mc-green);">
+                    🎮
+                    <div class="tooltip">游戏服务器</div>
+                </a>
+                <a href="mailto:zhoulin.linux@gmail.com" class="slot">
+                    ✉️
+                    <div class="tooltip">发送私信</div>
+                </a>
+            </div>
         </div>
 
-        <!-- Bottom Hotbar -->
-        <div class="hotbar-container">
-            <a href="https://github.com/LinuxZhou93" target="_blank" class="slot">
-                💻
-                <div class="tooltip">GitHub 基地</div>
-            </a>
-            <a href="blog.html" class="slot">
-                📝
-                <div class="tooltip">教育日志</div>
-            </a>
-            <a href="post-4.html" class="slot">
-                🗺️
-                <div class="tooltip">培养图谱</div>
-            </a>
-            <a href="post-6.html" class="slot">
-                🧭
-                <div class="tooltip">课程地图</div>
-            </a>
-            <a href="post-5.html" class="slot">
-                🧠
-                <div class="tooltip">认知系统</div>
-            </a>
-            <a href="subject-synergy.html" class="slot">
-                🧬
-                <div class="tooltip">学科协同</div>
-            </a>
-            <a href="games.html" class="slot" style="border-color: var(--mc-green);">
-                🎮
-                <div class="tooltip">游戏服务器</div>
-            </a>
-            <a href="mailto:zhoulin.linux@gmail.com" class="slot">
-                ✉️
-                <div class="tooltip">发送私信</div>
-            </a>
-        </div>
-    </div>
+        <script>
+            // Typing Effect (Moved to start after intro)
+            const text = "欢迎来到我的世界。\n正在加载区块...\n地形生成完毕。";
+            const bioElement = document.getElementById('bio-text');
+            let index = 0;
 
-    <script>
-        // Typing Effect
-        const text = "欢迎来到我的世界。\n正在加载区块...\n地形生成完毕。";
-        const bioElement = document.getElementById('bio-text');
-        let index = 0;
-
-        function typeWriter() {
-            if (index < text.length) {
-                const char = text.charAt(index);
-                bioElement.innerHTML += char === '\n' ? '<br>' : char;
-                index++;
-                setTimeout(typeWriter, 80);
+            function typeWriter() {
+                if (index < text.length) {
+                    const char = text.charAt(index);
+                    bioElement.innerHTML += char === '\n' ? '<br>' : char;
+                    index++;
+                    setTimeout(typeWriter, 80);
+                }
             }
-        }
-        setTimeout(typeWriter, 500);
 
-        // Music
-        const bgm = document.getElementById('bgm');
-        const musicBtn = document.getElementById('musicToggle');
-        let isPlaying = false;
-        bgm.volume = 0.3;
+            // Intro Logic
+            const lootCrate = document.getElementById('lootCrate');
+            const introOverlay = document.getElementById('intro-overlay');
+            const mainUI = document.getElementById('mainUI');
 
-        musicBtn.addEventListener('click', () => {
-            if (isPlaying) {
-                bgm.pause();
-                musicBtn.innerText = '🎵';
-                musicBtn.style.color = '#000';
-            } else {
-                bgm.play();
+            lootCrate.addEventListener('click', () => {
+                // 1. Play Animation
+                lootCrate.classList.add('opening');
+
+                // 2. Play Music
+                const bgm = document.getElementById('bgm');
+                bgm.volume = 0.3;
+                bgm.play().catch(e => console.log("Audio play failed:", e));
+
+                // Update button state
+                const musicBtn = document.getElementById('musicToggle');
                 musicBtn.innerText = 'II';
                 musicBtn.style.color = '#00f';
-            }
-            isPlaying = !isPlaying;
-        });
+                window.isPlaying = true; // Set global state if needed
 
-        // ---------------------------------------------------------
-        // 3D Voxel Space Scene (Three.js)
-        // ---------------------------------------------------------
-        const canvas = document.getElementById('bg-canvas');
-        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: false });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
-        scene.fog = new THREE.Fog(0x050505, 10, 50);
-
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 20;
-
-        // Voxel Cubes
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const materialWire = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.3 });
-        const materialSolid = new THREE.MeshBasicMaterial({ color: 0x55ff55, wireframe: false, transparent: true, opacity: 0.8 });
-
-        const cubes = [];
-        const group = new THREE.Group();
-
-        for (let i = 0; i < 100; i++) {
-            const isWire = Math.random() > 0.3;
-            const mesh = new THREE.Mesh(geometry, isWire ? materialWire : materialSolid);
-
-            mesh.position.x = (Math.random() - 0.5) * 40;
-            mesh.position.y = (Math.random() - 0.5) * 40;
-            mesh.position.z = (Math.random() - 0.5) * 40;
-
-            mesh.rotation.x = Math.random() * Math.PI;
-            mesh.rotation.y = Math.random() * Math.PI;
-
-            const scale = Math.random() * 1.5 + 0.5;
-            mesh.scale.set(scale, scale, scale);
-
-            group.add(mesh);
-            cubes.push({
-                mesh: mesh,
-                speedX: (Math.random() - 0.5) * 0.02,
-                speedY: (Math.random() - 0.5) * 0.02
+                // 3. Transition
+                setTimeout(() => {
+                    introOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        introOverlay.style.display = 'none';
+                        mainUI.classList.add('active');
+                        // Start typing effect only after reveal
+                        setTimeout(typeWriter, 500);
+                    }, 800);
+                }, 600);
             });
-        }
-        scene.add(group);
 
-        // Interaction
-        let mouseX = 0;
-        let mouseY = 0;
+            // Music
+            // Music Toggle Logic
+            const bgm = document.getElementById('bgm');
+            const musicBtn = document.getElementById('musicToggle');
+            // isPlaying is handled in the intro click now, but we keep the toggle logic
+            let isPlaying = false;
 
-        document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX - window.innerWidth / 2) * 0.001;
-            mouseY = (e.clientY - window.innerHeight / 2) * 0.001;
-        });
+            musicBtn.addEventListener('click', () => {
+                if (bgm.paused) {
+                    bgm.play();
+                    musicBtn.innerText = 'II';
+                    musicBtn.style.color = '#00f';
+                    isPlaying = true;
+                } else {
+                    bgm.pause();
+                    musicBtn.innerText = '🎵';
+                    musicBtn.style.color = '#000';
+                    isPlaying = false;
+                }
+            });
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+            // ---------------------------------------------------------
+            // 3D Voxel Space Scene (Three.js)
+            // ---------------------------------------------------------
+            const canvas = document.getElementById('bg-canvas');
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: false });
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+            renderer.setPixelRatio(window.devicePixelRatio);
 
-        function animate() {
-            requestAnimationFrame(animate);
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050505);
+            scene.fog = new THREE.Fog(0x050505, 10, 50);
 
-            group.rotation.y += 0.002;
-            group.rotation.x += 0.001;
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 20;
 
-            // Parallax
-            camera.position.x += (mouseX * 10 - camera.position.x) * 0.05;
-            camera.position.y += (-mouseY * 10 - camera.position.y) * 0.05;
-            camera.lookAt(scene.position);
+            // Voxel Cubes
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const materialWire = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.3 });
+            const materialSolid = new THREE.MeshBasicMaterial({ color: 0x55ff55, wireframe: false, transparent: true, opacity: 0.8 });
 
-            cubes.forEach(c => {
-                c.mesh.rotation.x += c.speedX;
-                c.mesh.rotation.y += c.speedY;
+            const cubes = [];
+            const group = new THREE.Group();
+
+            for (let i = 0; i < 100; i++) {
+                const isWire = Math.random() > 0.3;
+                const mesh = new THREE.Mesh(geometry, isWire ? materialWire : materialSolid);
+
+                mesh.position.x = (Math.random() - 0.5) * 40;
+                mesh.position.y = (Math.random() - 0.5) * 40;
+                mesh.position.z = (Math.random() - 0.5) * 40;
+
+                mesh.rotation.x = Math.random() * Math.PI;
+                mesh.rotation.y = Math.random() * Math.PI;
+
+                const scale = Math.random() * 1.5 + 0.5;
+                mesh.scale.set(scale, scale, scale);
+
+                group.add(mesh);
+                cubes.push({
+                    mesh: mesh,
+                    speedX: (Math.random() - 0.5) * 0.02,
+                    speedY: (Math.random() - 0.5) * 0.02
+                });
+            }
+            scene.add(group);
+
+            // Interaction
+            let mouseX = 0;
+            let mouseY = 0;
+
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX - window.innerWidth / 2) * 0.001;
+                mouseY = (e.clientY - window.innerHeight / 2) * 0.001;
             });
 
-            renderer.render(scene, camera);
-        }
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
 
-        animate();
+            function animate() {
+                requestAnimationFrame(animate);
 
-        // ---------------------------------------------------------
-        // Skill Tree Connections
-        // ---------------------------------------------------------
-        function connectNodes(id1, id2) {
-            const n1 = document.getElementById(id1);
-            const n2 = document.getElementById(id2);
-            const svg = document.getElementById('treeSvg');
+                group.rotation.y += 0.002;
+                group.rotation.x += 0.001;
 
-            if (!n1 || !n2 || !svg) return;
+                // Parallax
+                camera.position.x += (mouseX * 10 - camera.position.x) * 0.05;
+                camera.position.y += (-mouseY * 10 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
 
-            // Get coordinates relative to the container
-            const container = document.getElementById('skillTree');
-            const cRect = container.getBoundingClientRect();
-            const r1 = n1.getBoundingClientRect();
-            const r2 = n2.getBoundingClientRect();
+                cubes.forEach(c => {
+                    c.mesh.rotation.x += c.speedX;
+                    c.mesh.rotation.y += c.speedY;
+                });
 
-            const x1 = r1.left + r1.width / 2 - cRect.left;
-            const y1 = r1.top + r1.height / 2 - cRect.top;
-            const x2 = r2.left + r2.width / 2 - cRect.left;
-            const y2 = r2.top + r2.height / 2 - cRect.top;
+                renderer.render(scene, camera);
+            }
 
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', x1);
-            line.setAttribute('y1', y1);
-            line.setAttribute('x2', x2);
-            line.setAttribute('y2', y2);
-            line.setAttribute('class', 'tree-line');
+            animate();
 
-            svg.appendChild(line);
-        }
+            // ---------------------------------------------------------
+            // Skill Tree Connections
+            // ---------------------------------------------------------
+            function connectNodes(id1, id2) {
+                const n1 = document.getElementById(id1);
+                const n2 = document.getElementById(id2);
+                const svg = document.getElementById('treeSvg');
 
-        function drawConnections() {
-            const svg = document.getElementById('treeSvg');
-            if (svg) svg.innerHTML = ''; // Clear existing lines
+                if (!n1 || !n2 || !svg) return;
 
-            // Define connections
-            connectNodes('node-math', 'node-phy');
-            connectNodes('node-math', 'node-info');
-            connectNodes('node-phy', 'node-chem');
-            connectNodes('node-phy', 'node-bio'); // Physics underlies Biology too? Or maybe Chemistry -> Biology
-            connectNodes('node-chem', 'node-bio');
-        }
+                // Get coordinates relative to the container
+                const container = document.getElementById('skillTree');
+                const cRect = container.getBoundingClientRect();
+                const r1 = n1.getBoundingClientRect();
+                const r2 = n2.getBoundingClientRect();
 
-        // Draw on load and resize
-        window.addEventListener('load', drawConnections);
-        window.addEventListener('resize', drawConnections);
-        // Also draw after a short delay to ensure layout is settled
-        setTimeout(drawConnections, 100);
+                const x1 = r1.left + r1.width / 2 - cRect.left;
+                const y1 = r1.top + r1.height / 2 - cRect.top;
+                const x2 = r2.left + r2.width / 2 - cRect.left;
+                const y2 = r2.top + r2.height / 2 - cRect.top;
 
-        // ---------------------------------------------------------
-        // AI Coach Logic
-        // ---------------------------------------------------------
-        const coachQuotes = [
-            "今天的代码写了吗？",
-            "记得复习牛顿第二定律！",
-            "保持好奇心，探索未知！",
-            "休息一下，喝口水吧。",
-            "Bug 只是未被发现的特性。",
-            "数学是宇宙的语言。",
-            "你的大脑需要升级了！",
-            "效率 V 附魔已激活！",
-            "准备好开始新的实验了吗？"
-        ];
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('class', 'tree-line');
 
-        const aiCoach = document.getElementById('aiCoach');
-        const coachBubble = document.getElementById('coachBubble');
+                svg.appendChild(line);
+            }
 
-        aiCoach.addEventListener('mouseenter', () => {
-            const randomQuote = coachQuotes[Math.floor(Math.random() * coachQuotes.length)];
-            coachBubble.innerText = randomQuote;
-        });
-    </script>
+            function drawConnections() {
+                const svg = document.getElementById('treeSvg');
+                if (svg) svg.innerHTML = ''; // Clear existing lines
+
+                // Define connections
+                connectNodes('node-math', 'node-phy');
+                connectNodes('node-math', 'node-info');
+                connectNodes('node-phy', 'node-chem');
+                connectNodes('node-phy', 'node-bio'); // Physics underlies Biology too? Or maybe Chemistry -> Biology
+                connectNodes('node-chem', 'node-bio');
+            }
+
+            // Draw on load and resize
+            window.addEventListener('load', drawConnections);
+            window.addEventListener('resize', drawConnections);
+            // Also draw after a short delay to ensure layout is settled
+            setTimeout(drawConnections, 100);
+
+            // ---------------------------------------------------------
+            // AI Coach Logic
+            // ---------------------------------------------------------
+            const coachQuotes = [
+                "今天的代码写了吗？",
+                "记得复习牛顿第二定律！",
+                "保持好奇心，探索未知！",
+                "休息一下，喝口水吧。",
+                "Bug 只是未被发现的特性。",
+                "数学是宇宙的语言。",
+                "你的大脑需要升级了！",
+                "效率 V 附魔已激活！",
+                "准备好开始新的实验了吗？"
+            ];
+
+            const aiCoach = document.getElementById('aiCoach');
+            const coachBubble = document.getElementById('coachBubble');
+
+            aiCoach.addEventListener('mouseenter', () => {
+                const randomQuote = coachQuotes[Math.floor(Math.random() * coachQuotes.length)];
+                coachBubble.innerText = randomQuote;
+            });
+        </script>
 </body>
 
 </html>
