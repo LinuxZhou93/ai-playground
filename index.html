@@ -1278,7 +1278,8 @@
 
         // Voxel Cubes
         const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const materialSolid = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.3 });
+        // Use Lambert material for lighting support
+        const materialSolid = new THREE.MeshLambertMaterial({ color: 0x00ff00, transparent: true, opacity: 0.6 });
         const materialWire = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true, transparent: true, opacity: 0.1 });
 
         const cubes = [];
@@ -1306,6 +1307,13 @@
             });
         }
         scene.add(group);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0x00ff00, 2, 50); // Green light, intensity 2, distance 50
+        scene.add(pointLight);
 
         // Interaction
         let mouseX = 0;
@@ -1342,37 +1350,46 @@
             camera.position.y += (-mouseY * 10 - camera.position.y) * 0.05;
             camera.lookAt(scene.position);
 
+            // Move Light with Mouse
+            // Map mouse (-1 to 1) to scene coordinates (approx -20 to 20)
+            pointLight.position.x = mouse.x * 20;
+            pointLight.position.y = mouse.y * 20;
+            pointLight.position.z = 10; // Slightly in front
+
+            // Proximity Field Interaction
+            const vector = new THREE.Vector3();
+
             cubes.forEach(c => {
                 c.mesh.rotation.x += c.speedX;
                 c.mesh.rotation.y += c.speedY;
-            });
 
-            // Raycasting
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(group.children);
+                // Get screen position for distance check
+                c.mesh.updateMatrixWorld();
+                vector.setFromMatrixPosition(c.mesh.matrixWorld);
+                vector.project(camera);
 
-            if (intersects.length > 0) {
-                if (INTERSECTED != intersects[0].object) {
-                    if (INTERSECTED) {
-                        INTERSECTED.material.color.setHex(INTERSECTED.currentHex);
-                        INTERSECTED.scale.set(INTERSECTED.currentScale, INTERSECTED.currentScale, INTERSECTED.currentScale);
+                const dx = vector.x - mouse.x;
+                const dy = vector.y - mouse.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Interaction Threshold (0.5 = half screen width)
+                if (distance < 0.5) {
+                    // Scale up based on proximity
+                    const targetScale = 3.0 - (distance * 4);
+                    c.mesh.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
+
+                    // Solid cubes get brighter (handled by light), wireframes get thicker/brighter manually if needed
+                    if (c.mesh.material.wireframe) {
+                        c.mesh.material.opacity = 0.5 - distance;
                     }
-
-                    INTERSECTED = intersects[0].object;
-                    INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
-                    INTERSECTED.currentScale = INTERSECTED.scale.x;
-
-                    // Interaction Effect: Change color and scale up
-                    INTERSECTED.material.color.setHex(0x00ff00); // Green highlight
-                    INTERSECTED.scale.set(2.5, 2.5, 2.5); // Slightly larger scale for visibility
+                } else {
+                    // Reset
+                    c.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
+                    if (c.mesh.material.wireframe) {
+                        c.mesh.material.opacity = 0.1;
+                    }
                 }
-            } else {
-                if (INTERSECTED) {
-                    INTERSECTED.material.color.setHex(INTERSECTED.currentHex);
-                    INTERSECTED.scale.set(INTERSECTED.currentScale, INTERSECTED.currentScale, INTERSECTED.currentScale);
-                }
-                INTERSECTED = null;
-            }
+            });
 
             renderer.render(scene, camera);
         }
