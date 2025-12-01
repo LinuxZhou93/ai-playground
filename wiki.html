@@ -468,21 +468,60 @@
 
         // Global State
         let currentFilter = 'all';
+        let currentData = []; // Store the currently filtered dataset
+        let renderedCount = 0; // Track how many items are currently on screen
+        const BATCH_SIZE = 24; // Number of items to load per batch
 
-        function renderCards(data) {
+        function initWiki() {
+            currentData = wikiData; // Initial load: all data
+            renderCards(true); // true = reset container
+
+            // Add scroll listener for infinite scroll
+            const mainContent = document.querySelector('.main-content');
+            mainContent.addEventListener('scroll', handleScroll);
+        }
+
+        function handleScroll() {
+            const mainContent = document.querySelector('.main-content');
+            const { scrollTop, scrollHeight, clientHeight } = mainContent;
+
+            // Check if scrolled near bottom (within 100px)
+            if (scrollTop + clientHeight >= scrollHeight - 100) {
+                loadMore();
+            }
+        }
+
+        function loadMore() {
+            if (renderedCount >= currentData.length) return; // All loaded
+
+            const container = document.getElementById('wiki-container');
+            const nextBatch = currentData.slice(renderedCount, renderedCount + BATCH_SIZE);
+
+            appendCards(nextBatch, container);
+            renderedCount += nextBatch.length;
+        }
+
+        function renderCards(reset = false) {
             const container = document.getElementById('wiki-container');
             const totalCounter = document.getElementById('total-entries');
 
             // Update Counter Animation
-            animateValue(totalCounter, parseInt(totalCounter.innerText), data.length, 1000);
+            animateValue(totalCounter, parseInt(totalCounter.innerText), currentData.length, 1000);
 
-            container.innerHTML = '';
+            if (reset) {
+                container.innerHTML = '';
+                renderedCount = 0;
+                // Load first batch
+                loadMore();
+            }
+        }
 
-            data.forEach((item, index) => {
+        function appendCards(items, container) {
+            items.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.className = 'wiki-card';
-                // Staggered animation delay
-                card.style.animation = `fadeIn 0.5s ease forwards ${index * 0.02}s`;
+                // Staggered animation delay for new items
+                card.style.animation = `fadeIn 0.5s ease forwards ${index * 0.05}s`;
                 card.style.opacity = '0'; // Start hidden for animation
 
                 card.innerHTML = `
@@ -525,27 +564,34 @@
             }
 
             currentFilter = filter;
-            let filteredData = wikiData;
 
-            if (filter !== 'all') {
+            // Update current dataset
+            if (filter === 'all') {
+                currentData = wikiData;
+            } else {
                 if (['elementary', 'middle', 'high', 'university'].includes(filter)) {
-                    filteredData = wikiData.filter(item => item.stage === filter);
+                    currentData = wikiData.filter(item => item.stage === filter);
                 } else if (['concept', 'tool', 'course'].includes(filter)) {
-                    filteredData = wikiData.filter(item => item.category === filter);
+                    currentData = wikiData.filter(item => item.category === filter);
                 }
             }
 
-            renderCards(filteredData);
+            // Reset and render new dataset
+            renderCards(true);
         }
 
         function searchWiki() {
             const query = document.querySelector('.search-input').value.toLowerCase();
-            const filteredData = wikiData.filter(item =>
+
+            // Update current dataset based on search
+            currentData = wikiData.filter(item =>
                 item.title.toLowerCase().includes(query) ||
                 item.content.toLowerCase().includes(query) ||
                 item.tags.some(tag => tag.toLowerCase().includes(query))
             );
-            renderCards(filteredData);
+
+            // Reset and render new dataset
+            renderCards(true);
         }
 
         // Number Counter Animation
@@ -563,7 +609,7 @@
         }
 
         // Initial render
-        renderCards(wikiData);
+        initWiki();
 
     </script>
 </body>
