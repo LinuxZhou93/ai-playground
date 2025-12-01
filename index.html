@@ -296,7 +296,11 @@
             left: 50%;
             transform: translate(-50%, -50%);
             width: 850px;
-            max-width: 90%;
+            max-width: 95%;
+            max-height: 85vh;
+            /* Limit height for scrolling */
+            overflow-y: auto;
+            /* Enable scrolling */
             background: var(--mc-panel);
             border: 2px solid var(--mc-cyan);
             box-shadow: var(--mc-glow), inset 0 0 50px rgba(0, 0, 0, 0.8);
@@ -304,10 +308,29 @@
             display: flex;
             flex-direction: column;
             padding: 2px;
+            padding-bottom: 100px;
+            /* Prevent bottom content from being hidden by hotbar */
             backdrop-filter: blur(5px);
             clip-path: polygon(20px 0, 100% 0,
                     100% calc(100% - 20px), calc(100% - 20px) 100%,
                     0 100%, 0 20px);
+            scrollbar-width: thin;
+            /* Firefox */
+            scrollbar-color: var(--mc-cyan) var(--mc-dark);
+        }
+
+        /* Custom Scrollbar for Webkit */
+        .main-window::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .main-window::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .main-window::-webkit-scrollbar-thumb {
+            background: var(--mc-cyan);
+            border-radius: 4px;
         }
 
         .window-header {
@@ -777,38 +800,56 @@
 
         .tree-node {
             position: absolute;
-            width: 70px;
-            height: 70px;
+            width: 60px;
+            height: 60px;
             background: rgba(0, 20, 40, 0.9);
-            border: 2px solid var(--mc-cyan);
+            border: 2px solid var(--mc-green);
+            border-radius: 50%;
+            /* Circular nodes */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            color: var(--mc-cyan);
+            color: #fff;
             text-decoration: none;
-            font-size: 0.75rem;
             transition: 0.3s;
-            z-index: 5;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            z-index: 2;
+            box-shadow: 0 0 10px var(--mc-green), inset 0 0 10px var(--mc-green);
+        }
+
+        .tree-node::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 1px dashed var(--mc-green);
+            border-radius: 50%;
+            animation: spin 10s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .tree-node:hover {
-            transform: scale(1.2) !important;
-            /* Override inline styles on hover */
-            background: var(--mc-cyan);
+            transform: translateX(-50%) scale(1.1);
+            background: var(--mc-green);
             color: #000;
-            box-shadow: 0 0 25px var(--mc-cyan);
-            z-index: 10;
-            cursor: pointer;
+            box-shadow: 0 0 20px var(--mc-green);
         }
 
         .tree-node span {
             font-size: 1.5rem;
             margin-bottom: 2px;
-            display: block;
+        }
+
+        .tree-node div {
+            font-size: 0.7rem;
+            font-family: 'Press Start 2P', cursive;
         }
 
         .tree-svg {
@@ -821,17 +862,20 @@
             pointer-events: none;
         }
 
+
+
         .tree-line {
-            stroke: var(--mc-cyan);
+            stroke: var(--mc-green);
             stroke-width: 2;
-            opacity: 0.4;
-            stroke-dasharray: 5;
-            animation: dash 20s linear infinite;
+            fill: none;
+            opacity: 0.6;
+            stroke-dasharray: 10;
+            animation: flow 1s linear infinite;
         }
 
-        @keyframes dash {
+        @keyframes flow {
             to {
-                stroke-dashoffset: 1000;
+                stroke-dashoffset: -20;
             }
         }
     </style>
@@ -1312,8 +1356,8 @@
                     INTERSECTED.currentScale = INTERSECTED.scale.x;
 
                     // Interaction Effect: Change color and scale up
-                    INTERSECTED.material.color.setHex(0xff00ff); // Magenta highlight
-                    INTERSECTED.scale.set(2, 2, 2);
+                    INTERSECTED.material.color.setHex(0x00ff00); // Green highlight
+                    INTERSECTED.scale.set(1.5, 1.5, 1.5);
                 }
             } else {
                 if (INTERSECTED) {
@@ -1329,7 +1373,7 @@
         animate();
 
         // ---------------------------------------------------------
-        // Skill Tree Connections
+        // Skill Tree Connections (Circuit Style)
         // ---------------------------------------------------------
         function connectNodes(id1, id2, containerId = 'skillTree', svgId = 'treeSvg') {
             const n1 = document.getElementById(id1);
@@ -1349,14 +1393,16 @@
             const x2 = r2.left + r2.width / 2 - cRect.left;
             const y2 = r2.top + r2.height / 2 - cRect.top;
 
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', x1);
-            line.setAttribute('y1', y1);
-            line.setAttribute('x2', x2);
-            line.setAttribute('y2', y2);
-            line.setAttribute('class', 'tree-line');
+            // Orthogonal Path: Down -> Horizontal -> Down
+            const midY = (y1 + y2) / 2;
 
-            svg.appendChild(line);
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            // M x1 y1 L x1 midY L x2 midY L x2 y2
+            const d = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+
+            path.setAttribute('d', d);
+            path.setAttribute('class', 'tree-line');
+            svg.appendChild(path);
         }
 
         function drawConnections() {
