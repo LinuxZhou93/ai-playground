@@ -1335,39 +1335,46 @@
             camera.position.y += (-mouseY * 10 - camera.position.y) * 0.05;
             camera.lookAt(scene.position);
 
+            // Proximity Interaction
+            // Project 3D position to 2D screen space
+            const vector = new THREE.Vector3();
+
             cubes.forEach(c => {
+                // Update rotation
                 c.mesh.rotation.x += c.speedX;
                 c.mesh.rotation.y += c.speedY;
+
+                // Get screen position
+                c.mesh.updateMatrixWorld();
+                vector.setFromMatrixPosition(c.mesh.matrixWorld);
+                vector.project(camera);
+
+                // Calculate distance to mouse (in normalized device coordinates)
+                const dx = vector.x - mouse.x;
+                const dy = vector.y - mouse.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Threshold for interaction (0.2 is roughly 10% of screen width)
+                if (distance < 0.2) {
+                    // Active State
+                    c.mesh.material.color.setHex(0x00ff00); // Green
+                    const scale = 2.0 - (distance * 5); // Scale based on proximity
+                    c.mesh.scale.set(scale, scale, scale);
+                } else {
+                    // Reset State
+                    if (c.mesh.material.wireframe) {
+                        c.mesh.material.color.setHex(0x00ffff); // Cyan wireframe
+                    } else {
+                        c.mesh.material.color.setHex(0x55ff55); // Green solid
+                    }
+                    // Smoothly return to original scale (approximate)
+                    c.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
+                }
             });
 
-            // Raycasting
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(group.children);
-
-            if (intersects.length > 0) {
-                if (INTERSECTED != intersects[0].object) {
-                    if (INTERSECTED) {
-                        INTERSECTED.material.color.setHex(INTERSECTED.currentHex);
-                        INTERSECTED.scale.set(INTERSECTED.currentScale, INTERSECTED.currentScale, INTERSECTED.currentScale);
-                    }
-
-                    INTERSECTED = intersects[0].object;
-                    INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
-                    INTERSECTED.currentScale = INTERSECTED.scale.x;
-
-                    // Interaction Effect: Change color and scale up
-                    INTERSECTED.material.color.setHex(0x00ff00); // Green highlight
-                    INTERSECTED.scale.set(1.5, 1.5, 1.5);
-                }
-            } else {
-                if (INTERSECTED) {
-                    INTERSECTED.material.color.setHex(INTERSECTED.currentHex);
-                    INTERSECTED.scale.set(INTERSECTED.currentScale, INTERSECTED.currentScale, INTERSECTED.currentScale);
-                }
-                INTERSECTED = null;
-            }
-
             renderer.render(scene, camera);
+
+
         }
 
         animate();
