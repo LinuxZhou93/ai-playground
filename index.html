@@ -347,15 +347,30 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            perspective: 1000px;
+            /* Enable 3D space */
+        }
+
+        .avatar-container {
+            width: 80%;
+            height: 80%;
+            position: relative;
+            transition: transform 0.1s ease-out;
+            /* Smooth movement */
+            transform-style: preserve-3d;
+            will-change: transform;
         }
 
         .avatar {
-            width: 80%;
-            height: auto;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
-            filter: drop-shadow(0 0 10px var(--mc-cyan));
-            animation: float 3s ease-in-out infinite;
-            opacity: 0.9;
+            /* C4D Style: Solid, slight shadow, no ghosting */
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+            border-radius: 20px;
+            /* Soft edges like clay/plastic */
+            background: #1a1a1a;
+            /* Fallback for transparency */
         }
 
         @keyframes float {
@@ -403,9 +418,10 @@
         /* Speech Bubble */
         .speech-bubble {
             position: absolute;
-            top: -40px;
+            top: -50px;
             left: 50%;
-            transform: translateX(-50%) scale(0);
+            transform: translateX(-50%) scale(0) translateZ(50px);
+            /* Pop out in 3D */
             background: #fff;
             color: #000;
             padding: 10px 15px;
@@ -416,7 +432,7 @@
             pointer-events: none;
             transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 20;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             border: 2px solid var(--mc-cyan);
         }
 
@@ -431,9 +447,9 @@
             border-color: #fff transparent transparent transparent;
         }
 
-        .avatar-frame:hover .speech-bubble {
-            transform: translateX(-50%) scale(1);
-            top: -60px;
+        .avatar-container:hover .speech-bubble {
+            transform: translateX(-50%) scale(1) translateZ(50px);
+            top: -70px;
         }
 
         .stats {
@@ -770,7 +786,7 @@
                 <div class="face bottom"></div>
             </div>
         </div>
-        <div class="intro-text">>> CLICK TO START <<</div>
+        <div class="intro-text">>> CLICK TO START <<< /div>
         </div>
 
         <div class="ui-layer" id="mainUI">
@@ -793,10 +809,12 @@
                 <div class="window-content">
                     <!-- Left -->
                     <div class="profile-box">
-                        <div class="avatar-frame" id="aiCoach">
-                            <div class="speech-bubble" id="coachBubble">你好，我是你的AI教练！</div>
-                            <img src="avatar_hologram.png" class="avatar">
-                            <div class="hologram-base"></div>
+                        <div class="avatar-frame">
+                            <div class="avatar-container" id="aiCoach">
+                                <div class="speech-bubble" id="coachBubble">你好，我是你的AI教练！</div>
+                                <!-- Reverting to optimized image as placeholder since generation failed, but style is updated -->
+                                <img src="avatar_optimized.jpg" class="avatar" id="avatarImg">
+                            </div>
                         </div>
                         <div class="stats">
                             <div class="stat-row"><span>LVL:</span> <span class="stat-val">99</span></div>
@@ -1147,10 +1165,27 @@
 
             const aiCoach = document.getElementById('aiCoach');
             const coachBubble = document.getElementById('coachBubble');
+            const avatarImg = document.getElementById('avatarImg');
 
             aiCoach.addEventListener('mouseenter', () => {
                 const randomQuote = coachQuotes[Math.floor(Math.random() * coachQuotes.length)];
                 coachBubble.innerText = randomQuote;
+            });
+
+            // 3D Tilt Effect
+            document.addEventListener('mousemove', (e) => {
+                if (!aiCoach) return;
+
+                const rect = aiCoach.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+
+                // Calculate rotation (limit to +/- 20 degrees)
+                // Note: RotateY corresponds to X movement, RotateX corresponds to Y movement (inverted)
+                const rotateY = (x / rect.width) * 40; // Max 20deg each side
+                const rotateX = -(y / rect.height) * 40; // Max 20deg each side
+
+                aiCoach.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
             });
         </script>
 </body>
