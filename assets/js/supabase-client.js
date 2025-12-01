@@ -8,24 +8,38 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let _supabase;
 const isSupabaseConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL' && SUPABASE_KEY !== 'YOUR_SUPABASE_ANON_KEY';
 
-// Access the global supabase object provided by the CDN
-const supabaseLib = window.supabase;
+// Function to initialize Supabase client (Lazy Init)
+function initSupabase() {
+    if (_supabase) return true;
 
-if (supabaseLib && supabaseLib.createClient && isSupabaseConfigured) {
-    try {
-        _supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('Supabase client initialized');
-    } catch (e) {
-        console.error('Supabase initialization failed:', e);
+    if (!isSupabaseConfigured) {
+        console.warn('Supabase keys not configured.');
+        return false;
     }
-} else {
-    console.warn('Supabase SDK not loaded or keys not configured. Using localStorage fallback.');
+
+    // Try to get createClient from global window.supabase (CDN)
+    if (window.supabase && window.supabase.createClient) {
+        try {
+            _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('Supabase client initialized successfully via Lazy Init');
+            return true;
+        } catch (e) {
+            console.error('Supabase initialization failed:', e);
+            return false;
+        }
+    } else {
+        console.error('window.supabase is not available. CDN script might not be loaded.');
+        return false;
+    }
 }
+
+// Try to initialize immediately
+initSupabase();
 
 // --- Authentication Functions ---
 
 async function signUp(email, password) {
-    if (!_supabase) return { error: { message: 'Supabase not configured' } };
+    if (!initSupabase()) return { error: { message: 'Supabase not configured or SDK not loaded' } };
     const { data, error } = await _supabase.auth.signUp({
         email: email,
         password: password,
@@ -34,7 +48,7 @@ async function signUp(email, password) {
 }
 
 async function signIn(email, password) {
-    if (!_supabase) return { error: { message: 'Supabase not configured' } };
+    if (!initSupabase()) return { error: { message: 'Supabase not configured or SDK not loaded' } };
     const { data, error } = await _supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -43,19 +57,19 @@ async function signIn(email, password) {
 }
 
 async function signOut() {
-    if (!_supabase) return;
+    if (!initSupabase()) return;
     const { error } = await _supabase.auth.signOut();
     return { error };
 }
 
 async function getCurrentUser() {
-    if (!_supabase) return null;
+    if (!initSupabase()) return null;
     const { data: { user } } = await _supabase.auth.getUser();
     return user;
 }
 
 function onAuthStateChange(callback) {
-    if (!_supabase) return;
+    if (!initSupabase()) return;
     _supabase.auth.onAuthStateChange((event, session) => {
         callback(event, session);
     });
@@ -66,7 +80,7 @@ function onAuthStateChange(callback) {
 // Helper function to upload score
 async function uploadScore(gameId, playerName, score) {
     // Fallback to localStorage if Supabase is not configured
-    if (!_supabase) {
+    if (!initSupabase()) {
         console.log('Saving score to localStorage (Offline Mode)');
         const localData = JSON.parse(localStorage.getItem('local_leaderboard') || '[]');
         localData.push({
@@ -105,7 +119,7 @@ async function uploadScore(gameId, playerName, score) {
 // Helper function to get leaderboard
 async function getLeaderboard(gameId) {
     // Fallback to localStorage if Supabase is not configured
-    if (!_supabase) {
+    if (!initSupabase()) {
         console.log('Fetching leaderboard from localStorage (Offline Mode)');
         const localData = JSON.parse(localStorage.getItem('local_leaderboard') || '[]');
         return localData
