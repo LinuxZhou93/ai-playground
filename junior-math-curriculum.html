@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初中数学新课标核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #0f172a;
+            /* Slate 900 */
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></IconBase>;
+        const Shapes = (props) => <IconBase {...props}><path d="M12 3l10 18H2L12 3z" /><path d="M20 20h-6v-6h6v6z" /><circle cx="12" cy="14" r="3" /></IconBase>;
+        const Chart = (props) => <IconBase {...props}><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></IconBase>;
+        const Compass = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const Book = (props) => <IconBase {...props}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></IconBase>;
+        const Cpu = (props) => <IconBase {...props}><rect x="4" y="4" width="16" height="16" rx="2" /><rect x="9" y="9" width="6" height="6" /><path d="M15 2v2" /><path d="M15 20v2" /><path d="M2 15h2" /><path d="M2 9h2" /><path d="M20 15h2" /><path d="M20 9h2" /><path d="M9 2v2" /><path d="M9 20v2" /></IconBase>;
+        const Trophy = (props) => <IconBase {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            {
+                id: "grade-7",
+                label: "七年级",
+                subtitle: "数形结合与逻辑起步",
+                color: "bg-indigo-500",
+                textColor: "text-indigo-400",
+                borderColor: "border-indigo-500/30",
+                bgSoft: "bg-indigo-500/10"
+            },
+            {
+                id: "grade-8",
+                label: "八年级",
+                subtitle: "函数思想与几何证明",
+                color: "bg-violet-500",
+                textColor: "text-violet-400",
+                borderColor: "border-violet-500/30",
+                bgSoft: "bg-violet-500/10"
+            },
+            {
+                id: "grade-9",
+                label: "九年级",
+                subtitle: "综合应用与模型构建",
+                color: "bg-fuchsia-500",
+                textColor: "text-fuchsia-400",
+                borderColor: "border-fuchsia-500/30",
+                bgSoft: "bg-fuchsia-500/10"
+            }
+        ];
+
+        const tracks = [
+            {
+                id: "algebra",
+                title: "数与代数",
+                desc: "实数 · 方程 · 函数",
+                icon: Calculator,
+                color: "text-indigo-400",
+                gradient: "from-indigo-500/20 to-indigo-900/5"
+            },
+            {
+                id: "geometry",
+                title: "图形与几何",
+                desc: "证明 · 变换 · 相似",
+                icon: Shapes,
+                color: "text-violet-400",
+                gradient: "from-violet-500/20 to-violet-900/5"
+            },
+            {
+                id: "stats",
+                title: "统计与概率",
+                desc: "抽样 · 分析 · 决策",
+                icon: Chart,
+                color: "text-fuchsia-400",
+                gradient: "from-fuchsia-500/20 to-fuchsia-900/5"
+            },
+            {
+                id: "practice",
+                title: "综合与实践",
+                desc: "建模 · 探究 · 跨学科",
+                icon: Compass,
+                color: "text-pink-400",
+                gradient: "from-pink-500/20 to-pink-900/5"
+            }
+        ];
+
+        const curriculumData = {
+            "algebra": {
+                "grade-7": {
+                    title: "有理数与一元一次方程",
+                    core: ["有理数及其运算", "整式的加减", "一元一次方程", "二元一次方程组"],
+                    literacy: "运算能力、抽象能力",
+                    detail: "从算术数过渡到有理数，引入负数。掌握代数式运算，体会方程是刻画现实世界数量关系的有效模型。",
+                    example: "例：利用一元一次方程解决打折销售利润问题。",
+                    ai_integration: "【AI思维】线性回归基础：用y=kx+b拟合数据点",
+                    challenge: "【思维拓展】不定方程的整数解、同余理论初步"
+                },
+                "grade-8": {
+                    title: "函数与不等式",
+                    core: ["实数与二次根式", "一次函数", "整式的乘除与因式分解", "一元一次不等式"],
+                    literacy: "模型观念、应用意识",
+                    detail: "引入无理数，完善实数系统。初步认识函数概念，研究一次函数的图象与性质。掌握因式分解的基本方法。",
+                    example: "例：用一次函数决策最佳手机资费套餐。",
+                    ai_integration: "【AI思维】激活函数：理解函数映射在神经网络中的作用",
+                    challenge: "【思维拓展】柯西不等式初步、绝对值不等式"
+                },
+                "grade-9": {
+                    title: "二次函数与反比例函数",
+                    core: ["一元二次方程", "二次函数", "反比例函数", "锐角三角函数"],
+                    literacy: "抽象能力、模型观念",
+                    detail: "深入研究二次函数，理解其极值与变化趋势。掌握一元二次方程的解法。利用三角函数解决直角三角形问题。",
+                    example: "例：利用二次函数求抛物线拱桥的最高点。",
+                    ai_integration: "【AI思维】梯度下降：寻找二次函数(损失函数)的最小值",
+                    challenge: "【思维拓展】韦达定理应用、二次函数综合压轴题"
+                }
+            },
+            "geometry": {
+                "grade-7": {
+                    title: "几何图形初步与相交线",
+                    core: ["几何图形初步", "相交线与平行线", "三角形基础", "全等三角形"],
+                    literacy: "几何直观、推理能力",
+                    detail: "认识基本几何元素，掌握平行线的判定与性质。探索三角形的边角关系，掌握全等三角形的判定方法。",
+                    example: "例：利用全等三角形证明线段相等。",
+                    ai_integration: "【AI思维】计算机视觉：边缘检测与线条识别",
+                    challenge: "【思维拓展】几何变换（平移、旋转）在解题中的应用"
+                },
+                "grade-8": {
+                    title: "四边形与勾股定理",
+                    core: ["轴对称", "勾股定理", "平行四边形", "特殊四边形"],
+                    literacy: "空间观念、推理能力",
+                    detail: "探索勾股定理及其逆定理。研究平行四边形、矩形、菱形、正方形的性质与判定。理解轴对称变换。",
+                    example: "例：利用勾股定理计算梯子靠墙的底端距离。",
+                    ai_integration: "【AI思维】距离度量：欧氏距离与曼哈顿距离",
+                    challenge: "【思维拓展】费马点问题、几何最值问题"
+                },
+                "grade-9": {
+                    title: "圆与相似",
+                    core: ["圆的性质", "直线与圆的位置关系", "正多边形与圆", "相似三角形", "投影与视图"],
+                    literacy: "几何直观、抽象能力",
+                    detail: "深入研究圆的垂径定理、圆周角定理。掌握相似三角形的判定与性质。了解中心投影与平行投影。",
+                    example: "例：利用相似三角形测量旗杆高度。",
+                    ai_integration: "【AI思维】图像缩放与特征匹配：相似性的应用",
+                    challenge: "【思维拓展】梅涅劳斯定理、托勒密定理"
+                }
+            },
+            "stats": {
+                "grade-7": {
+                    title: "数据的收集与整理",
+                    core: ["普查与抽样调查", "直方图", "统计图的选择"],
+                    literacy: "数据观念",
+                    detail: "了解全面调查与抽样调查的区别。会画频数分布直方图。根据问题需要选择合适的统计图。",
+                    example: "例：设计问卷调查全校学生的视力情况。",
+                    ai_integration: "【AI思维】数据清洗：处理缺失值与异常值",
+                    challenge: "【思维拓展】辛普森悖论：分组数据与整体数据的矛盾"
+                },
+                "grade-8": {
+                    title: "数据的分析",
+                    core: ["平均数/中位数/众数", "方差与标准差", "数据的波动程度"],
+                    literacy: "数据观念、分析能力",
+                    detail: "理解集中趋势和离散程度的统计量。会计算加权平均数。用方差刻画数据的稳定性。",
+                    example: "例：比较两名射击运动员的成绩稳定性。",
+                    ai_integration: "【AI思维】特征工程：提取数据的统计特征",
+                    challenge: "【思维拓展】切比雪夫不等式初步"
+                },
+                "grade-9": {
+                    title: "概率初步",
+                    core: ["随机事件", "概率的意义", "列举法求概率", "频率与概率"],
+                    literacy: "随机观念",
+                    detail: "理解概率是频率的稳定值。掌握列表法和画树状图法求概率。用概率知识解释生活中的现象。",
+                    example: "例：分析“三局两胜”制与“五局三胜”制的公平性。",
+                    ai_integration: "【AI思维】贝叶斯概率：根据新信息更新概率",
+                    challenge: "【思维拓展】几何概型、蒙特卡洛模拟"
+                }
+            },
+            "practice": {
+                "grade-7": {
+                    title: "数学活动与探究",
+                    core: ["制作长方体包装盒", "寻找生活中的平行线", "日历中的方程"],
+                    literacy: "应用意识、创新意识",
+                    detail: "将数学知识应用于实际制作。发现生活中的数学几何元素。用方程解决有趣的数字谜题。",
+                    example: "例：设计一个容积最大的无盖长方体纸盒（初步尝试）。",
+                    ai_integration: "【AI思维】逻辑门电路：与、或、非的基本逻辑",
+                    challenge: "【思维拓展】简单的组合计数原理"
+                },
+                "grade-8": {
+                    title: "课题学习",
+                    core: ["最短路径问题", "勾股树的绘制", "一次函数与经济决策"],
+                    literacy: "模型观念、应用意识",
+                    detail: "利用轴对称解决“将军饮马”等最短路径问题。结合几何画板绘制分形图形。解决经济利润最大化问题。",
+                    example: "例：规划送货路线以节省燃油。",
+                    ai_integration: "【AI思维】路径规划算法：A*算法思想",
+                    challenge: "【思维拓展】图论初步：欧拉回路与哈密顿回路"
+                },
+                "grade-9": {
+                    title: "项目式学习",
+                    core: ["设计遮阳棚", "测量地球半径(模拟)", "拱桥修复方案"],
+                    literacy: "创新意识、模型观念",
+                    detail: "综合运用三角函数、相似、二次函数等知识解决复杂的工程问题。撰写详细的项目报告。",
+                    example: "例：根据太阳高度角设计窗户遮阳棚的宽度。",
+                    ai_integration: "【AI思维】机器学习项目流程：从数据到模型再到部署",
+                    challenge: "【思维拓展】数学建模竞赛真题赏析"
+                }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-slate-700 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Book className="w-4 h-4" /> 知识要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-slate-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-slate-300 font-bold mb-2">🎓 课标解读</h4>
+                                    <p className="text-slate-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-indigo-900/10 p-4 rounded-xl border border-indigo-500/20">
+                                    <h4 className="text-indigo-300 font-bold mb-2">💡 典型例题</h4>
+                                    <p className="text-indigo-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-fuchsia-900/10 p-4 rounded-xl border border-fuchsia-500/20">
+                                        <h4 className="text-fuchsia-300 font-bold mb-2 flex items-center gap-2">
+                                            <Cpu className="w-4 h-4" /> AI & 编程融合
+                                        </h4>
+                                        <p className="text-fuchsia-200/80 text-sm">{data.ai_integration}</p>
+                                    </div>
+                                    <div className="bg-pink-900/10 p-4 rounded-xl border border-pink-500/20">
+                                        <h4 className="text-pink-300 font-bold mb-2 flex items-center gap-2">
+                                            <Trophy className="w-4 h-4" /> 思维拓展
+                                        </h4>
+                                        <p className="text-pink-200/80 text-sm">{data.challenge}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            return (
+                <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20">
+                    {/* Navigation */}
+                    <a href="subject-synergy.html" className="fixed top-6 right-6 z-40 p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-indigo-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回学科协同</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-20 pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-fuchsia-500 mb-4 relative z-10">
+                            初中数学新课标核心素养全景图 (Pro)
+                        </h1>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+                            连接抽象思维与现实世界的逻辑桥梁
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4 overflow-x-auto custom-scrollbar">
+                        <div className="min-w-[1000px]">
+                            {/* Stage Headers */}
+                            <div className="grid grid-cols-[200px_1fr_1fr_1fr] gap-6 mb-8 sticky top-0 bg-[#0f172a]/95 backdrop-blur z-30 py-4 border-b border-slate-800">
+                                <div className="flex items-end justify-end px-4 pb-2 text-slate-500 font-bold text-sm uppercase tracking-widest">
+                                    核心领域 / 学习阶段
+                                </div>
+                                {stages.map(stage => (
+                                    <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                        <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                        <span className="text-xs text-slate-400 mt-1">{stage.subtitle}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Tracks & Nodes */}
+                            <div className="space-y-8">
+                                {tracks.map(track => (
+                                    <div key={track.id} className="grid grid-cols-[200px_1fr_1fr_1fr] gap-6 group">
+                                        {/* Track Header */}
+                                        <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                            <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                            <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                            <p className="text-xs text-slate-500 font-medium">{track.desc}</p>
+                                        </div>
+
+                                        {/* Stage Nodes */}
+                                        {stages.map(stage => {
+                                            const data = curriculumData[track.id][stage.id];
+                                            return (
+                                                <div
+                                                    key={`${track.id}-${stage.id}`}
+                                                    onClick={() => {
+                                                        setSelectedNode(data);
+                                                        setSelectedStageColor(stage.color);
+                                                    }}
+                                                    className={`
+                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                            bg-slate-800/40 border border-slate-700/50
+                            hover:bg-slate-800 hover:border-slate-600 hover:shadow-xl hover:-translate-y-1
+                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                          `}
+                                                >
+                                                    {/* Hover Glow */}
+                                                    <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                    <div className="relative z-10 h-full flex flex-col">
+                                                        <h4 className="text-lg font-bold text-slate-200 mb-3 group-hover/card:text-white transition-colors">
+                                                            {data.title}
+                                                        </h4>
+
+                                                        <div className="space-y-2 mb-4 flex-grow">
+                                                            {data.core.slice(0, 3).map((item, i) => (
+                                                                <div key={i} className="flex items-center gap-2 text-xs text-slate-400">
+                                                                    <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                    {item}
+                                                                </div>
+                                                            ))}
+                                                            {data.core.length > 3 && <div className="text-xs text-slate-600 pl-3.5">...</div>}
+                                                        </div>
+
+                                                        <div className="mt-auto pt-3 border-t border-slate-700/50 flex flex-col gap-2">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded bg-slate-900 ${stage.textColor}`}>
+                                                                    {stage.label.split(' ')[0]}
+                                                                </span>
+                                                                <span className="text-xs text-slate-500 group-hover/card:text-indigo-400 transition-colors flex items-center gap-1">
+                                                                    详情 <Check className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                            {/* Tags for AI/Challenge */}
+                                                            <div className="flex gap-1">
+                                                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20">AI思维</span>
+                                                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">拓展</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
