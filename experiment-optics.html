@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optics Lab | 光学实验</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mc-cyan: #00f3ff;
+            --mc-dark: #050505;
+        }
+
+        body {
+            background-color: var(--mc-dark);
+            color: var(--mc-cyan);
+            font-family: 'VT323', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--mc-cyan);
+            padding-bottom: 10px;
+        }
+
+        .back-btn {
+            text-decoration: none;
+            color: var(--mc-cyan);
+            border: 1px solid var(--mc-cyan);
+            padding: 5px 15px;
+            font-size: 1.2rem;
+            transition: 0.3s;
+        }
+
+        .back-btn:hover {
+            background: var(--mc-cyan);
+            color: #000;
+        }
+
+        #canvas-container {
+            border: 2px solid var(--mc-cyan);
+            background: #000;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>>> OPTICS_LAB // 光学实验</h1>
+        <a href="index.html" class="back-btn">[ ESC ] RETURN</a>
+    </div>
+
+    <canvas id="optics" width="800" height="500"></canvas>
+
+    <div class="controls">
+        <p>Move your mouse to change the light source angle.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('optics');
+        const ctx = canvas.getContext('2d');
+
+        let mouseY = 250;
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseY = e.clientY - rect.top;
+        });
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Prism Triangle
+            const p1 = { x: 400, y: 100 };
+            const p2 = { x: 300, y: 400 };
+            const p3 = { x: 500, y: 400 };
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // White Light Beam
+            const sourceY = Math.max(150, Math.min(350, mouseY));
+            const hitY = 250 + (sourceY - 250) * 0.5; // Approx hit point on left face
+            const hitX = 350; // Approx
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#fff';
+            ctx.moveTo(0, sourceY);
+            ctx.lineTo(330, 280); // Simplified hit point
+            ctx.stroke();
+
+            // Inside Prism (Refraction)
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.moveTo(330, 280);
+            ctx.lineTo(470, 300);
+            ctx.stroke();
+
+            // Dispersion (Rainbow)
+            const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
+            const spread = (sourceY - 250) * 0.1;
+
+            colors.forEach((col, i) => {
+                ctx.beginPath();
+                ctx.strokeStyle = col;
+                ctx.shadowColor = col;
+                ctx.lineWidth = 2;
+                ctx.moveTo(470, 300);
+                ctx.lineTo(800, 250 + (i * 15) + spread * 5);
+                ctx.stroke();
+            });
+
+            ctx.shadowBlur = 0;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+
+</html>
