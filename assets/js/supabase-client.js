@@ -5,12 +5,15 @@ const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
 
 // Check if Supabase is loaded and keys are configured
-let supabase;
+let _supabase;
 const isSupabaseConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL' && SUPABASE_KEY !== 'YOUR_SUPABASE_ANON_KEY';
 
-if (typeof createClient !== 'undefined' && isSupabaseConfigured) {
+// Access the global supabase object provided by the CDN
+const supabaseLib = window.supabase;
+
+if (supabaseLib && supabaseLib.createClient && isSupabaseConfigured) {
     try {
-        supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        _supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
         console.log('Supabase client initialized');
     } catch (e) {
         console.error('Supabase initialization failed:', e);
@@ -22,8 +25,8 @@ if (typeof createClient !== 'undefined' && isSupabaseConfigured) {
 // --- Authentication Functions ---
 
 async function signUp(email, password) {
-    if (!supabase) return { error: { message: 'Supabase not configured' } };
-    const { data, error } = await supabase.auth.signUp({
+    if (!_supabase) return { error: { message: 'Supabase not configured' } };
+    const { data, error } = await _supabase.auth.signUp({
         email: email,
         password: password,
     });
@@ -31,8 +34,8 @@ async function signUp(email, password) {
 }
 
 async function signIn(email, password) {
-    if (!supabase) return { error: { message: 'Supabase not configured' } };
-    const { data, error } = await supabase.auth.signInWithPassword({
+    if (!_supabase) return { error: { message: 'Supabase not configured' } };
+    const { data, error } = await _supabase.auth.signInWithPassword({
         email: email,
         password: password,
     });
@@ -40,20 +43,20 @@ async function signIn(email, password) {
 }
 
 async function signOut() {
-    if (!supabase) return;
-    const { error } = await supabase.auth.signOut();
+    if (!_supabase) return;
+    const { error } = await _supabase.auth.signOut();
     return { error };
 }
 
 async function getCurrentUser() {
-    if (!supabase) return null;
-    const { data: { user } } = await supabase.auth.getUser();
+    if (!_supabase) return null;
+    const { data: { user } } = await _supabase.auth.getUser();
     return user;
 }
 
 function onAuthStateChange(callback) {
-    if (!supabase) return;
-    supabase.auth.onAuthStateChange((event, session) => {
+    if (!_supabase) return;
+    _supabase.auth.onAuthStateChange((event, session) => {
         callback(event, session);
     });
 }
@@ -63,7 +66,7 @@ function onAuthStateChange(callback) {
 // Helper function to upload score
 async function uploadScore(gameId, playerName, score) {
     // Fallback to localStorage if Supabase is not configured
-    if (!supabase) {
+    if (!_supabase) {
         console.log('Saving score to localStorage (Offline Mode)');
         const localData = JSON.parse(localStorage.getItem('local_leaderboard') || '[]');
         localData.push({
@@ -81,7 +84,7 @@ async function uploadScore(gameId, playerName, score) {
     const userId = user ? user.id : null;
     // Use user email prefix as name if logged in and playerName not provided (though prompt logic handles this usually)
 
-    const { data, error } = await supabase
+    const { data, error } = await _supabase
         .from('leaderboard')
         .insert([
             {
@@ -102,7 +105,7 @@ async function uploadScore(gameId, playerName, score) {
 // Helper function to get leaderboard
 async function getLeaderboard(gameId) {
     // Fallback to localStorage if Supabase is not configured
-    if (!supabase) {
+    if (!_supabase) {
         console.log('Fetching leaderboard from localStorage (Offline Mode)');
         const localData = JSON.parse(localStorage.getItem('local_leaderboard') || '[]');
         return localData
@@ -111,7 +114,7 @@ async function getLeaderboard(gameId) {
             .slice(0, 10);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await _supabase
         .from('leaderboard')
         .select('*')
         .eq('game_id', gameId)
