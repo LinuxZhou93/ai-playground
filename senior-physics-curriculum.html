@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高中物理新课标核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #0f172a;
+            /* Slate 900 */
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#0f172a] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-sky-900/30 border-t-sky-500 rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center text-xs text-sky-500 font-bold animate-pulse">
+                LOADING</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Atom = (props) => <IconBase {...props}><circle cx="12" cy="12" r="1" /><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5z" /><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5z" /></IconBase>;
+        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></IconBase>;
+        const Move = (props) => <IconBase {...props}><polyline points="5 9 2 12 5 15" /><polyline points="9 5 12 2 15 5" /><polyline points="15 19 12 22 9 19" /><polyline points="19 15 22 12 19 9" /><circle cx="12" cy="12" r="3" /></IconBase>;
+        const Beaker = (props) => <IconBase {...props}><path d="M4.5 3h15" /><path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3" /><path d="M6 14h12" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const Book = (props) => <IconBase {...props}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></IconBase>;
+        const Wrench = (props) => <IconBase {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></IconBase>;
+        const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            {
+                id: "stage-1",
+                label: "高二 (声光热)",
+                subtitle: "现象观察与规律探索",
+                color: "bg-amber-500",
+                textColor: "text-amber-400",
+                borderColor: "border-amber-500/30",
+                bgSoft: "bg-amber-500/10"
+            },
+            {
+                id: "stage-2",
+                label: "八/高三 (力学)",
+                subtitle: "运动与相互作用",
+                color: "bg-sky-500",
+                textColor: "text-sky-400",
+                borderColor: "border-sky-500/30",
+                bgSoft: "bg-sky-500/10"
+            },
+            {
+                id: "stage-3",
+                label: "高三 (电磁能)",
+                subtitle: "能量转换与现代科技",
+                color: "bg-violet-500",
+                textColor: "text-violet-400",
+                borderColor: "border-violet-500/30",
+                bgSoft: "bg-violet-500/10"
+            }
+        ];
+
+        const tracks = [
+            {
+                id: "phenomena",
+                title: "声光热现象",
+                desc: "波动 · 光学 · 热学",
+                icon: Atom,
+                color: "text-amber-400",
+                gradient: "from-amber-500/20 to-amber-900/5"
+            },
+            {
+                id: "mechanics",
+                title: "力学与机械",
+                desc: "运动 · 力 · 功与能",
+                icon: Move,
+                color: "text-sky-400",
+                gradient: "from-sky-500/20 to-sky-900/5"
+            },
+            {
+                id: "electricity",
+                title: "电磁学",
+                desc: "电路 · 磁场 · 信息",
+                icon: Zap,
+                color: "text-violet-400",
+                gradient: "from-violet-500/20 to-violet-900/5"
+            },
+            {
+                id: "experiment",
+                title: "实验与探究",
+                desc: "测量 · 验证 · 创新",
+                icon: Beaker,
+                color: "text-emerald-400",
+                gradient: "from-emerald-500/20 to-emerald-900/5"
+            }
+        ];
+
+        const curriculumData = {
+            "phenomena": {
+                "stage-1": {
+                    title: "声现象与光现象",
+                    core: ["声音的产生与传播", "光的反射与折射", "透镜及其应用", "物态变化"],
+                    literacy: "物理观念",
+                    detail: "探究声音的特性。理解光的直线传播、反射定律、折射规律。掌握凸透镜成像规律。了解熔化、凝固、汽化、液化等。",
+                    example: "例：探究凸透镜成像规律，解释照相机原理。",
+                    engineering: "【工程设计】自制简易照相机或潜望镜",
+                    math_connection: "【数学应用】几何光学中的角度计算与相似三角形"
+                },
+                "stage-2": {
+                    title: "质量与密度",
+                    core: ["质量的测量", "密度的概念", "密度的测量与应用"],
+                    literacy: "科学思维",
+                    detail: "会使用天平测量质量。理解密度是物质的一种特性。能用密度公式进行简单计算。",
+                    example: "例：测量不规则石块的密度。",
+                    engineering: "【工程设计】利用密度知识鉴别物质真伪",
+                    math_connection: "【数学应用】正比例函数图像在m-V关系中的应用"
+                },
+                "stage-3": {
+                    title: "内能与热机",
+                    core: ["分子热运动", "内能", "比热容", "热机与热机效率"],
+                    literacy: "能量观念",
+                    detail: "了解分子动理论。理解改变内能的方式。掌握比热容概念及热量计算。了解四冲程汽油机工作原理。",
+                    example: "例：比较不同物质的吸热能力。",
+                    engineering: "【工程设计】设计一个保温箱",
+                    math_connection: "【数学应用】热平衡方程的列式与求解"
+                }
+            },
+            "mechanics": {
+                "stage-1": {
+                    title: "机械运动",
+                    core: ["长度与时间的测量", "速度与平均速度", "参照物"],
+                    literacy: "物理观念",
+                    detail: "掌握刻度尺的使用。理解运动的相对性。会计算速度。",
+                    example: "例：测量纸锥下落的速度。",
+                    engineering: "【工程设计】设计一个测量反应时间的装置",
+                    math_connection: "【数学应用】路程-时间(s-t)图像的分析"
+                },
+                "stage-2": {
+                    title: "力与运动",
+                    core: ["重力/弹力/摩擦力", "牛顿第一定律", "二力平衡", "压强与浮力"],
+                    literacy: "科学思维、科学探究",
+                    detail: "探究阻力对物体运动的影响。理解惯性。掌握阿基米德原理。理解液体压强规律。",
+                    example: "例：探究浮力大小与哪些因素有关。",
+                    engineering: "【工程设计】制作密度计或潜水艇模型",
+                    math_connection: "【数学应用】受力分析中的矢量合成（同一直线）"
+                },
+                "stage-3": {
+                    title: "功与机械能",
+                    core: ["功与功率", "动能与势能", "杠杆与滑轮", "机械效率"],
+                    literacy: "能量观念",
+                    detail: "理解做功的两个必要因素。探究动能大小的影响因素。掌握杠杆平衡条件。测定滑轮组机械效率。",
+                    example: "例：测量滑轮组的机械效率。",
+                    engineering: "【工程设计】设计一个省力的提升装置",
+                    math_connection: "【数学应用】极值问题在机械效率中的体现"
+                }
+            },
+            "electricity": {
+                "stage-1": {
+                    title: "电荷与电路基础",
+                    core: ["摩擦起电", "串联与并联", "电流的测量"],
+                    literacy: "物理观念",
+                    detail: "认识电荷及其相互作用。会连接简单的串并联电路。会使用电流表。",
+                    example: "例：设计一个病房呼叫电路。",
+                    engineering: "【工程设计】制作简单的红绿灯控制系统",
+                    math_connection: "【数学应用】逻辑电路的初步认识（与或非）"
+                },
+                "stage-2": {
+                    title: "欧姆定律",
+                    core: ["电压与电阻", "欧姆定律", "电阻的串并联"],
+                    literacy: "科学思维",
+                    detail: "探究电流与电压、电阻的关系。掌握欧姆定律并进行计算。理解伏安法测电阻。",
+                    example: "例：伏安法测量小灯泡的电阻。",
+                    engineering: "【工程设计】制作电子秤（利用滑动变阻器）",
+                    math_connection: "【数学应用】反比例函数在I-R关系中的应用"
+                },
+                "stage-3": {
+                    title: "电功率与电磁",
+                    core: ["电功与电功率", "焦耳定律", "家庭电路", "电与磁"],
+                    literacy: "能量观念、责任态度",
+                    detail: "理解电功率概念。探究电流热效应。了解电生磁、磁生电现象。了解安全用电常识。",
+                    example: "例：测量小灯泡的电功率。",
+                    engineering: "【工程设计】制作电磁起重机或简易电动机",
+                    math_connection: "【数学应用】电功率极值问题的二次函数求解"
+                }
+            },
+            "experiment": {
+                "stage-1": {
+                    title: "基本仪器使用",
+                    core: ["刻度尺/停表", "温度计", "天平/量筒"],
+                    literacy: "科学探究",
+                    detail: "掌握物理实验基本仪器的正确使用方法和读数规则。培养严谨的实验态度。",
+                    example: "例：练习使用天平测量微小物体（如大头针）的质量。",
+                    engineering: "【工程设计】自制简易温度计",
+                    math_connection: "【数学应用】有效数字与误差分析"
+                },
+                "stage-2": {
+                    title: "探究性实验设计",
+                    core: ["控制变量法", "转换法", "实验数据分析"],
+                    literacy: "科学探究、科学思维",
+                    detail: "学会运用控制变量法设计实验。能对实验数据进行分析论证，得出结论。",
+                    example: "例：探究影响滑动摩擦力大小的因素。",
+                    engineering: "【工程设计】改进实验装置以减小误差",
+                    math_connection: "【数学应用】利用图像法处理实验数据"
+                },
+                "stage-3": {
+                    title: "综合实践活动",
+                    core: ["能源利用", "信息传递", "跨学科实践"],
+                    literacy: "责任态度、创新实践",
+                    detail: "调查当地能源使用情况。了解电磁波的应用。进行跨学科的物理制作与探究。",
+                    example: "例：调查家庭用电情况并提出节电建议。",
+                    engineering: "【工程设计】制作太阳能小车",
+                    math_connection: "【数学应用】能源消耗的统计与预测"
+                }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-slate-700 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Book className="w-4 h-4" /> 知识要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-slate-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-slate-300 font-bold mb-2">🔭 课标解读</h4>
+                                    <p className="text-slate-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-amber-900/10 p-4 rounded-xl border border-amber-500/20">
+                                    <h4 className="text-amber-300 font-bold mb-2">🧪 典型例题</h4>
+                                    <p className="text-amber-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-sky-900/10 p-4 rounded-xl border border-sky-500/20">
+                                        <h4 className="text-sky-300 font-bold mb-2 flex items-center gap-2">
+                                            <Wrench className="w-4 h-4" /> 工程与设计
+                                        </h4>
+                                        <p className="text-sky-200/80 text-sm">{data.engineering}</p>
+                                    </div>
+                                    <div className="bg-violet-900/10 p-4 rounded-xl border border-violet-500/20">
+                                        <h4 className="text-violet-300 font-bold mb-2 flex items-center gap-2">
+                                            <Calculator className="w-4 h-4" /> 数学与数据
+                                        </h4>
+                                        <p className="text-violet-200/80 text-sm">{data.math_connection}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20">
+                    {/* Navigation */}
+                    <a href="subject-synergy.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-sky-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回学科协同</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-sky-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-sky-500 to-violet-500 mb-4 relative z-10">
+                            高中物理新课标核心素养全景图 (Pro)
+                        </h1>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-lg">
+                            探索物质、运动与能量的奥秘
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-slate-500 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="min-w-[1000px]">
+                                {/* Stage Headers */}
+                                <div className="grid grid-cols-[200px_1fr_1fr_1fr] gap-6 mb-8 sticky top-0 bg-[#0f172a]/95 backdrop-blur z-30 py-4 border-b border-slate-800">
+                                    <div className="flex items-end justify-end px-4 pb-2 text-slate-500 font-bold text-sm uppercase tracking-widest">
+                                        核心领域 / 学习阶段
+                                    </div>
+                                    {stages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-slate-400 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className="grid grid-cols-[200px_1fr_1fr_1fr] gap-6 group">
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-slate-500 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {stages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                            bg-slate-800/40 border border-slate-700/50
+                            hover:bg-slate-800 hover:border-slate-600 hover:shadow-xl hover:-translate-y-1
+                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                          `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-slate-200 mb-3 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-2 mb-4 flex-grow">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2 text-xs text-slate-400">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-xs text-slate-600 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-slate-700/50 flex flex-col gap-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded bg-slate-900 ${stage.textColor}`}>
+                                                                        {stage.label.split(' ')[0]}
+                                                                    </span>
+                                                                    <span className="text-xs text-slate-500 group-hover/card:text-sky-400 transition-colors flex items-center gap-1">
+                                                                        详情 <Check className="w-3 h-3" />
+                                                                    </span>
+                                                                </div>
+                                                                {/* Tags for Engineering/Math */}
+                                                                <div className="flex gap-1">
+                                                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">工程</span>
+                                                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20">数学</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
