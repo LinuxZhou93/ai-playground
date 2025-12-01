@@ -374,6 +374,36 @@
             gameRunning = false;
             finalScoreEl.innerText = score;
             gameOverScreen.style.display = 'block';
+
+            // Upload score and update leaderboard
+            const playerName = prompt("Enter your pilot name:", "Guest") || "Anonymous";
+            uploadScore('space-shooter', playerName, score).then(() => {
+                updateLeaderboardUI();
+            });
+        }
+
+        async function updateLeaderboardUI() {
+            const list = document.getElementById('leaderboardList');
+            list.innerHTML = 'Loading...';
+
+            const data = await getLeaderboard('space-shooter');
+
+            if (data.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #888;">No records yet</div>';
+                return;
+            }
+
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            data.forEach((item, index) => {
+                const color = index < 3 ? '#ff00ff' : '#fff';
+                html += `<tr style="color: ${color}; border-bottom: 1px solid rgba(0,255,255,0.1);">
+                    <td style="padding: 5px;">#${index + 1}</td>
+                    <td style="padding: 5px;">${item.player_name}</td>
+                    <td style="padding: 5px; text-align: right;">${item.score}</td>
+                </tr>`;
+            });
+            html += '</table>';
+            list.innerHTML = html;
         }
 
         function shoot() {

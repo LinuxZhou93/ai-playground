@@ -9,6 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
         rel="stylesheet">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-client.js"></script>
     <style>
         :root {
             --primary-color: #00f3ff;
@@ -176,12 +179,39 @@
             <p>点击_初始化</p>
         </div>
         <div id="gameOverScreen" class="overlay" style="display: none;">
-            <h1>系统_故障</h1>
-            <p>点击_重启</p>
+            <h1>SYSTEM FAILURE</h1>
+            <p>SCORE: <span id="finalScore">0</span></p>
+
+            <div id="leaderboardGO"
+                style="margin: 20px 0; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #ff0055; border-radius: 5px; max-height: 200px; overflow-y: auto;">
+                <h3 style="color: #ff0055; font-size: 16px; margin-bottom: 10px;">GLOBAL RANKINGS</h3>
+                <div id="leaderboardListGO" style="font-size: 14px; text-align: left; padding: 0 20px;">
+                    Loading...
+                </div>
+            </div>
+
+            <button onclick="resetGame()">REBOOT SYSTEM</button>
+            <a href="index.html"
+                style="display: inline-block; margin-top: 15px; color: #ff0055; text-decoration: none; font-family: 'Share Tech Mono', monospace; border: 1px solid #ff0055; padding: 10px 20px; text-transform: uppercase; letter-spacing: 2px; transition: all 0.3s;">EXIT
+                TO MAIN</a>
         </div>
+
         <div id="winScreen" class="overlay" style="display: none;">
-            <h1>系统_入侵</h1>
-            <p>点击_重启</p>
+            <h1>SYSTEM HACKED</h1>
+            <p>SCORE: <span id="winScore">0</span></p>
+
+            <div id="leaderboardWin"
+                style="margin: 20px 0; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #00ff99; border-radius: 5px; max-height: 200px; overflow-y: auto;">
+                <h3 style="color: #00ff99; font-size: 16px; margin-bottom: 10px;">GLOBAL RANKINGS</h3>
+                <div id="leaderboardListWin" style="font-size: 14px; text-align: left; padding: 0 20px;">
+                    Loading...
+                </div>
+            </div>
+
+            <button onclick="resetGame()">NEXT LEVEL</button>
+            <a href="index.html"
+                style="display: inline-block; margin-top: 15px; color: #00ff99; text-decoration: none; font-family: 'Share Tech Mono', monospace; border: 1px solid #00ff99; padding: 10px 20px; text-transform: uppercase; letter-spacing: 2px; transition: all 0.3s;">EXIT
+                TO MAIN</a>
         </div>
     </div>
 
@@ -191,6 +221,8 @@
         const startScreen = document.getElementById('startScreen');
         const gameOverScreen = document.getElementById('gameOverScreen');
         const winScreen = document.getElementById('winScreen');
+        const finalScoreEl = document.getElementById('finalScore');
+        const winScoreEl = document.getElementById('winScore');
 
         // Game State
         let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER, WIN
@@ -362,6 +394,10 @@
             initBricks();
             resetBall();
             particles = [];
+            gameState = 'PLAYING'; // Ensure game state is set to playing after reset
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            winScreen.style.display = 'none';
         }
 
         function resetBall() {
@@ -391,8 +427,7 @@
                             }
 
                             if (score === brickRowCount * brickColumnCount) {
-                                gameState = 'WIN';
-                                winScreen.style.display = 'block';
+                                winGame();
                             }
                         }
                     }
@@ -498,8 +533,7 @@
                 } else {
                     lives--;
                     if (!lives) {
-                        gameState = 'GAMEOVER';
-                        gameOverScreen.style.display = 'block';
+                        gameOver();
                     } else {
                         resetBall();
                     }
@@ -507,6 +541,54 @@
             }
 
             collisionDetection();
+        }
+
+        function gameOver() {
+            gameState = 'GAMEOVER';
+            finalScoreEl.innerText = score;
+            gameOverScreen.style.display = 'block';
+
+            // Upload score
+            const playerName = prompt("Enter your hacker alias:", "Guest") || "Anonymous";
+            uploadScore('breakout', playerName, score).then(() => {
+                updateLeaderboardUI('leaderboardListGO');
+            });
+        }
+
+        function winGame() {
+            gameState = 'WIN';
+            winScoreEl.innerText = score;
+            winScreen.style.display = 'block';
+
+            // Upload score
+            const playerName = prompt("Enter your hacker alias:", "Guest") || "Anonymous";
+            uploadScore('breakout', playerName, score).then(() => {
+                updateLeaderboardUI('leaderboardListWin');
+            });
+        }
+
+        async function updateLeaderboardUI(elementId) {
+            const list = document.getElementById(elementId);
+            list.innerHTML = 'Loading...';
+
+            const data = await getLeaderboard('breakout');
+
+            if (data.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #888;">No records yet</div>';
+                return;
+            }
+
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            data.forEach((item, index) => {
+                const color = index < 3 ? (elementId.includes('Win') ? '#00ff99' : '#ff0055') : '#fff';
+                html += `<tr style="color: ${color}; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <td style="padding: 5px;">#${index + 1}</td>
+                    <td style="padding: 5px;">${item.player_name}</td>
+                    <td style="padding: 5px; text-align: right;">${item.score}</td>
+                </tr>`;
+            });
+            html += '</table>';
+            list.innerHTML = html;
         }
 
         function draw() {
