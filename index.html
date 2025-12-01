@@ -1186,6 +1186,16 @@
                 <span class="slot-icon">🎮</span>
                 <span class="slot-label">玩中学习</span>
             </a>
+            <div class="slot" id="auth-btn" onclick="toggleAuthModal()" style="cursor: pointer;">
+                <span class="slot-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </span>
+                <span class="slot-label" id="auth-label">登录/注册</span>
+            </div>
             <a href="contact.html" class="slot">
                 <span class="slot-icon">✉️</span>
                 <span class="slot-label">联系我们</span>
@@ -1518,6 +1528,140 @@
         aiCoach.addEventListener('mouseenter', () => {
             const randomQuote = coachQuotes[Math.floor(Math.random() * coachQuotes.length)];
             coachBubble.innerText = randomQuote;
+        });
+    </script>
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="overlay" style="display: none;">
+        <div class="crate-container" style="max-width: 400px;">
+            <div class="crate-header">
+                <span class="crate-title">IDENTITY VERIFICATION</span>
+                <span class="crate-close" onclick="toggleAuthModal()">[X]</span>
+            </div>
+            <div class="crate-content">
+                <div id="auth-form">
+                    <div style="margin-bottom: 15px;">
+                        <label
+                            style="display: block; color: var(--primary-color); margin-bottom: 5px; font-family: 'Share Tech Mono';">EMAIL_ADDRESS</label>
+                        <input type="email" id="auth-email"
+                            style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--primary-color); color: #fff; font-family: 'Share Tech Mono';">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label
+                            style="display: block; color: var(--primary-color); margin-bottom: 5px; font-family: 'Share Tech Mono';">ACCESS_CODE</label>
+                        <input type="password" id="auth-password"
+                            style="width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--primary-color); color: #fff; font-family: 'Share Tech Mono';">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="handleLogin()" class="cyber-btn" style="flex: 1;">LOGIN</button>
+                        <button onclick="handleRegister()" class="cyber-btn"
+                            style="flex: 1; border-color: #ff0055; color: #ff0055;">REGISTER</button>
+                    </div>
+                    <div id="auth-message" style="margin-top: 15px; font-size: 12px; min-height: 20px;"></div>
+                </div>
+                <div id="user-profile" style="display: none; text-align: center;">
+                    <div
+                        style="width: 80px; height: 80px; background: var(--primary-color); border-radius: 50%; margin: 0 auto 20px; display: flex; items-center; justify-content: center; font-size: 40px; color: #000;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <h3 id="user-email-display"
+                        style="color: #fff; margin-bottom: 20px; font-family: 'Share Tech Mono';"></h3>
+                    <button onclick="handleLogout()" class="cyber-btn"
+                        style="width: 100%; border-color: #ff0055; color: #ff0055;">LOGOUT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auth Logic
+        const authModal = document.getElementById('auth-modal');
+        const authForm = document.getElementById('auth-form');
+        const userProfile = document.getElementById('user-profile');
+        const authMessage = document.getElementById('auth-message');
+        const authLabel = document.getElementById('auth-label');
+        const userEmailDisplay = document.getElementById('user-email-display');
+
+        function toggleAuthModal() {
+            authModal.style.display = authModal.style.display === 'none' ? 'flex' : 'none';
+            authMessage.innerText = '';
+        }
+
+        async function handleRegister() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+
+            if (!email || !password) {
+                showMessage('Please enter email and password', 'red');
+                return;
+            }
+
+            showMessage('Registering...', '#fff');
+            const { data, error } = await signUp(email, password);
+
+            if (error) {
+                showMessage(error.message, 'red');
+            } else {
+                showMessage('Registration successful! Please check your email or login.', '#0f0');
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+
+            if (!email || !password) {
+                showMessage('Please enter email and password', 'red');
+                return;
+            }
+
+            showMessage('Logging in...', '#fff');
+            const { data, error } = await signIn(email, password);
+
+            if (error) {
+                showMessage(error.message, 'red');
+            } else {
+                toggleAuthModal(); // Close modal on success
+            }
+        }
+
+        async function handleLogout() {
+            await signOut();
+            toggleAuthModal();
+        }
+
+        function showMessage(msg, color) {
+            authMessage.innerText = msg;
+            authMessage.style.color = color;
+        }
+
+        function updateAuthUI(user) {
+            if (user) {
+                authLabel.innerText = user.email.split('@')[0]; // Show username
+                authForm.style.display = 'none';
+                userProfile.style.display = 'block';
+                userEmailDisplay.innerText = user.email;
+            } else {
+                authLabel.innerText = '登录/注册';
+                authForm.style.display = 'block';
+                userProfile.style.display = 'none';
+            }
+        }
+
+        // Initialize Auth Listener
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check initial user
+            const user = await getCurrentUser();
+            updateAuthUI(user);
+
+            // Listen for changes
+            onAuthStateChange((event, session) => {
+                console.log('Auth state changed:', event);
+                updateAuthUI(session?.user);
+            });
         });
     </script>
 </body>

@@ -19,6 +19,47 @@ if (typeof createClient !== 'undefined' && isSupabaseConfigured) {
     console.warn('Supabase SDK not loaded or keys not configured. Using localStorage fallback.');
 }
 
+// --- Authentication Functions ---
+
+async function signUp(email, password) {
+    if (!supabase) return { error: { message: 'Supabase not configured' } };
+    const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+    });
+    return { data, error };
+}
+
+async function signIn(email, password) {
+    if (!supabase) return { error: { message: 'Supabase not configured' } };
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
+    return { data, error };
+}
+
+async function signOut() {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signOut();
+    return { error };
+}
+
+async function getCurrentUser() {
+    if (!supabase) return null;
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+}
+
+function onAuthStateChange(callback) {
+    if (!supabase) return;
+    supabase.auth.onAuthStateChange((event, session) => {
+        callback(event, session);
+    });
+}
+
+// --- Leaderboard Functions ---
+
 // Helper function to upload score
 async function uploadScore(gameId, playerName, score) {
     // Fallback to localStorage if Supabase is not configured
@@ -35,10 +76,20 @@ async function uploadScore(gameId, playerName, score) {
         return;
     }
 
+    // Check if user is logged in
+    const user = await getCurrentUser();
+    const userId = user ? user.id : null;
+    // Use user email prefix as name if logged in and playerName not provided (though prompt logic handles this usually)
+
     const { data, error } = await supabase
         .from('leaderboard')
         .insert([
-            { game_id: gameId, player_name: playerName, score: score }
+            {
+                game_id: gameId,
+                player_name: playerName,
+                score: score,
+                // user_id: userId // Optional: if you add user_id column to table later
+            }
         ]);
 
     if (error) {
