@@ -186,20 +186,102 @@
         .avatar-frame {
             width: 100%;
             aspect-ratio: 1;
-            background: #000;
-            border: 2px solid var(--mc-cyan);
+            background: transparent;
+            /* Transparent for hologram */
+            border: none;
+            /* No border for hologram */
             margin-bottom: 15px;
             position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .avatar {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            image-rendering: pixelated;
-            /* Pixelate the avatar */
+            width: 80%;
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px var(--mc-cyan));
+            animation: float 3s ease-in-out infinite;
+            opacity: 0.9;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        /* Hologram Base */
+        .hologram-base {
+            position: absolute;
+            bottom: 0;
+            width: 60%;
+            height: 10px;
+            background: radial-gradient(ellipse at center, var(--mc-cyan) 0%, transparent 70%);
+            opacity: 0.6;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.4;
+                transform: scale(0.8);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.2);
+            }
+
+            100% {
+                opacity: 0.4;
+                transform: scale(0.8);
+            }
+        }
+
+        /* Speech Bubble */
+        .speech-bubble {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%) scale(0);
+            background: #fff;
+            color: #000;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+            white-space: nowrap;
+            pointer-events: none;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            border: 2px solid var(--mc-cyan);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: #fff transparent transparent transparent;
+        }
+
+        .avatar-frame:hover .speech-bubble {
+            transform: translateX(-50%) scale(1);
+            top: -60px;
         }
 
         .stats {
@@ -544,8 +626,10 @@
             <div class="window-content">
                 <!-- Left -->
                 <div class="profile-box">
-                    <div class="avatar-frame">
-                        <img src="avatar_optimized.jpg" class="avatar">
+                    <div class="avatar-frame" id="aiCoach">
+                        <div class="speech-bubble" id="coachBubble">你好，我是你的AI教练！</div>
+                        <img src="avatar_hologram.png" class="avatar">
+                        <div class="hologram-base"></div>
                     </div>
                     <div class="stats">
                         <div class="stat-row"><span>LVL:</span> <span class="stat-val">99</span></div>
@@ -843,6 +927,28 @@
         // Also draw after a short delay to ensure layout is settled
         setTimeout(drawConnections, 100);
 
+        // ---------------------------------------------------------
+        // AI Coach Logic
+        // ---------------------------------------------------------
+        const coachQuotes = [
+            "今天的代码写了吗？",
+            "记得复习牛顿第二定律！",
+            "保持好奇心，探索未知！",
+            "休息一下，喝口水吧。",
+            "Bug 只是未被发现的特性。",
+            "数学是宇宙的语言。",
+            "你的大脑需要升级了！",
+            "效率 V 附魔已激活！",
+            "准备好开始新的实验了吗？"
+        ];
+
+        const aiCoach = document.getElementById('aiCoach');
+        const coachBubble = document.getElementById('coachBubble');
+
+        aiCoach.addEventListener('mouseenter', () => {
+            const randomQuote = coachQuotes[Math.floor(Math.random() * coachQuotes.length)];
+            coachBubble.innerText = randomQuote;
+        });
     </script>
 </body>
 
