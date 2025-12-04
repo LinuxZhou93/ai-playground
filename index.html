@@ -1779,13 +1779,13 @@
     <script src="https://crumbly-uninhumed-laurie.ngrok-free.dev/embed.min.js" id="dify-chatbot-embed" defer>
     </script>
     <style>
-        /* Hide the default Dify launcher button (use opacity to keep it in DOM) */
+        /* Hide the default Dify launcher button by moving it off-screen */
         #dify-chatbot-bubble-button {
-            opacity: 0 !important;
-            pointer-events: none !important;
-            position: absolute !important;
-            /* Take out of flow if needed, but keep in DOM */
-            z-index: -1 !important;
+            position: fixed !important;
+            left: -10000px !important;
+            bottom: -10000px !important;
+            visibility: hidden !important;
+            /* Double insurance */
         }
 
         /* Make avatar clickable */
@@ -1803,27 +1803,18 @@
             const avatar = document.getElementById('aiCoach');
             if (avatar) {
                 avatar.addEventListener('click', () => {
-                    console.log('Avatar clicked, attempting to open Dify chat...');
+                    console.log('Avatar clicked...');
 
-                    // Function to find and click the button
-                    const triggerChat = () => {
-                        const difyBtn = document.getElementById('dify-chatbot-bubble-button');
-                        if (difyBtn) {
-                            console.log('Found Dify button, clicking...');
-                            difyBtn.style.pointerEvents = 'auto'; // Temporarily enable to allow click
-                            difyBtn.click();
-                            difyBtn.style.pointerEvents = 'none'; // Re-disable
-                            return true;
-                        } else {
-                            console.warn('Dify chatbot button not found.');
-                            return false;
-                        }
-                    };
-
-                    // Try immediately
-                    if (!triggerChat()) {
-                        // Retry after 1s (in case it's lazy loaded)
-                        setTimeout(triggerChat, 1000);
+                    const difyBtn = document.getElementById('dify-chatbot-bubble-button');
+                    if (difyBtn) {
+                        // Temporarily make it visible to the browser engine (but still off-screen) so click works
+                        difyBtn.style.visibility = 'visible';
+                        difyBtn.click();
+                        difyBtn.style.visibility = 'hidden';
+                    } else {
+                        // If button not found, alert the user
+                        alert('正在连接大脑... (Dify组件尚未加载，请稍后再试或检查网络)');
+                        console.warn('Dify button not found');
                     }
                 });
             }
