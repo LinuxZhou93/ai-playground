@@ -1769,26 +1769,161 @@
             });
         });
     </script>
-    <!-- Dify Chatbot Embed -->
-    <script>
-        window.difyChatbotConfig = {
-            token: 'Fh6zdEI6bw3GqPaD', // Correct WebApp Token retrieved from DB
-            baseUrl: 'https://paxil-ave-penny-cheque.trycloudflare.com'
-        }
-    </script>
-    <script src="https://paxil-ave-penny-cheque.trycloudflare.com/embed.min.js" id="dify-chatbot-embed" defer>
-    </script>
+    <!-- Custom Cyberpunk Chat Interface -->
+    <div id="custom-chat-interface" style="display: none;">
+        <div class="chat-header">
+            <span class="glitch-text">NEURAL LINK // ZHOU_XIAOMAI</span>
+            <button id="close-chat-btn">[X]</button>
+        </div>
+        <div id="chat-history">
+            <div class="chat-msg system">
+                <span class="prefix">SYSTEM:</span> <span class="typing">Connection established...</span>
+            </div>
+            <div class="chat-msg ai">
+                <span class="prefix">ZHOU_XIAOMAI:</span> <span class="typing">你好，我是你的AI教练！请下达指令。</span>
+            </div>
+        </div>
+        <div class="chat-input-wrapper">
+            <span class="prompt">></span>
+            <input type="text" id="chat-input" placeholder="Input command..." autocomplete="off">
+            <button id="send-chat-btn">SEND</button>
+        </div>
+    </div>
+
     <style>
-        /* Hide the default Dify launcher button by moving it off-screen */
-        #dify-chatbot-bubble-button {
-            position: fixed !important;
-            left: -10000px !important;
-            bottom: -10000px !important;
-            visibility: hidden !important;
-            /* Double insurance */
+        /* Cyberpunk Chat Interface Styles */
+        #custom-chat-interface {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background-color: rgba(0, 10, 20, 0.95);
+            border: 2px solid var(--mc-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            font-family: 'VT323', monospace;
+            color: var(--mc-green);
+            backdrop-filter: blur(5px);
+            transition: opacity 0.3s, transform 0.3s;
+            transform-origin: bottom right;
         }
 
-        /* Make avatar clickable */
+        .chat-header {
+            background: rgba(0, 243, 255, 0.1);
+            padding: 10px;
+            border-bottom: 1px solid var(--mc-cyan);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px var(--mc-cyan);
+        }
+
+        #close-chat-btn {
+            background: none;
+            border: none;
+            color: var(--mc-cyan);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1.2rem;
+        }
+
+        #close-chat-btn:hover {
+            color: #fff;
+            text-shadow: 0 0 8px #fff;
+        }
+
+        #chat-history {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--mc-cyan) transparent;
+        }
+
+        #chat-history::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #chat-history::-webkit-scrollbar-thumb {
+            background-color: var(--mc-cyan);
+        }
+
+        .chat-msg {
+            line-height: 1.4;
+            font-size: 1.1rem;
+            word-wrap: break-word;
+        }
+
+        .chat-msg.user {
+            color: #fff;
+            text-align: right;
+        }
+
+        .chat-msg.ai {
+            color: var(--mc-green);
+            text-shadow: 0 0 2px var(--mc-green);
+        }
+
+        .chat-msg.system {
+            color: #ff0055;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .prefix {
+            font-weight: bold;
+            margin-right: 5px;
+            opacity: 0.7;
+        }
+
+        .chat-input-wrapper {
+            padding: 10px;
+            border-top: 1px solid var(--mc-cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .prompt {
+            color: var(--mc-cyan);
+            animation: blink 1s infinite;
+        }
+
+        #chat-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            outline: none;
+        }
+
+        #send-chat-btn {
+            background: var(--mc-cyan);
+            color: #000;
+            border: none;
+            padding: 5px 15px;
+            font-family: 'VT323', monospace;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #send-chat-btn:hover {
+            background: #fff;
+            box-shadow: 0 0 10px #fff;
+        }
+
+        /* Avatar Clickable Style */
         #aiCoach {
             cursor: pointer;
             transition: transform 0.2s;
@@ -1798,28 +1933,107 @@
             transform: scale(0.95);
         }
     </style>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const avatar = document.getElementById('aiCoach');
+            const chatInterface = document.getElementById('custom-chat-interface');
+            const closeBtn = document.getElementById('close-chat-btn');
+            const sendBtn = document.getElementById('send-chat-btn');
+            const inputField = document.getElementById('chat-input');
+            const historyDiv = document.getElementById('chat-history');
+
+            let conversationId = '';
+            const API_KEY = 'Fh6zdEI6bw3GqPaD'; // WebApp Token
+            const API_URL = 'https://paxil-ave-penny-cheque.trycloudflare.com/v1/chat-messages';
+
+            // Toggle Chat
             if (avatar) {
                 avatar.addEventListener('click', () => {
-                    console.log('Avatar clicked...');
-
-                    const difyBtn = document.getElementById('dify-chatbot-bubble-button');
-                    if (difyBtn) {
-                        // Temporarily make it visible to the browser engine (but still off-screen) so click works
-                        difyBtn.style.visibility = 'visible';
-                        difyBtn.click();
-                        difyBtn.style.visibility = 'hidden';
-                    } else {
-                        // If button not found, alert the user
-                        alert('正在连接大脑... (Dify组件尚未加载，请稍后再试或检查网络)');
-                        console.warn('Dify button not found');
-                    }
+                    chatInterface.style.display = 'flex';
+                    inputField.focus();
                 });
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    chatInterface.style.display = 'none';
+                });
+            }
+
+            // Send Message
+            const sendMessage = async () => {
+                const text = inputField.value.trim();
+                if (!text) return;
+
+                // Add User Message
+                appendMessage('USER', text, 'user');
+                inputField.value = '';
+
+                // Show Loading
+                const loadingId = appendMessage('ZHOU_XIAOMAI', 'Thinking...', 'ai');
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${API_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            inputs: {},
+                            query: text,
+                            response_mode: "blocking",
+                            conversation_id: conversationId,
+                            user: "commander-zhou"
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    // Remove Loading
+                    removeMessage(loadingId);
+
+                    if (response.ok) {
+                        conversationId = data.conversation_id;
+                        appendMessage('ZHOU_XIAOMAI', data.answer, 'ai');
+                    } else {
+                        console.error('API Error:', data);
+                        appendMessage('SYSTEM', `ERROR: ${data.message || 'Neural Link Failed'}`, 'system');
+                        if (data.code === 'invalid_param') {
+                            appendMessage('SYSTEM', 'HINT: Backend model configuration missing. Please check Dify settings.', 'system');
+                        }
+                    }
+
+                } catch (error) {
+                    removeMessage(loadingId);
+                    appendMessage('SYSTEM', 'CRITICAL ERROR: Connection Lost', 'system');
+                    console.error('Network Error:', error);
+                }
+            };
+
+            // Bind Send Events
+            sendBtn.addEventListener('click', sendMessage);
+            inputField.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Helper: Append Message
+            function appendMessage(sender, text, type) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `chat-msg ${type}`;
+                msgDiv.id = `msg-${Date.now()}`;
+                msgDiv.innerHTML = `<span class="prefix">${sender}:</span> ${text}`;
+                historyDiv.appendChild(msgDiv);
+                historyDiv.scrollTop = historyDiv.scrollHeight;
+                return msgDiv.id;
+            }
+
+            // Helper: Remove Message
+            function removeMessage(id) {
+                const el = document.getElementById(id);
+                if (el) el.remove();
             }
         });
     </script>
 </body>
-
-</html>
