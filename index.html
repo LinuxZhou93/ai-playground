@@ -1779,9 +1779,13 @@
     <script src="https://crumbly-uninhumed-laurie.ngrok-free.dev/embed.min.js" id="dify-chatbot-embed" defer>
     </script>
     <style>
-        /* Hide the default Dify launcher button */
+        /* Hide the default Dify launcher button (use opacity to keep it in DOM) */
         #dify-chatbot-bubble-button {
-            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            position: absolute !important;
+            /* Take out of flow if needed, but keep in DOM */
+            z-index: -1 !important;
         }
 
         /* Make avatar clickable */
@@ -1799,14 +1803,27 @@
             const avatar = document.getElementById('aiCoach');
             if (avatar) {
                 avatar.addEventListener('click', () => {
-                    // Try to find the Dify button (it might be inside shadow DOM or just an ID)
-                    // Dify usually creates a button with ID 'dify-chatbot-bubble-button'
-                    const difyBtn = document.getElementById('dify-chatbot-bubble-button');
-                    if (difyBtn) {
-                        difyBtn.click();
-                    } else {
-                        console.warn('Dify chatbot button not found. Waiting for it to load...');
-                        // Optional: specific logic if Dify uses Shadow DOM, but usually ID is global
+                    console.log('Avatar clicked, attempting to open Dify chat...');
+
+                    // Function to find and click the button
+                    const triggerChat = () => {
+                        const difyBtn = document.getElementById('dify-chatbot-bubble-button');
+                        if (difyBtn) {
+                            console.log('Found Dify button, clicking...');
+                            difyBtn.style.pointerEvents = 'auto'; // Temporarily enable to allow click
+                            difyBtn.click();
+                            difyBtn.style.pointerEvents = 'none'; // Re-disable
+                            return true;
+                        } else {
+                            console.warn('Dify chatbot button not found.');
+                            return false;
+                        }
+                    };
+
+                    // Try immediately
+                    if (!triggerChat()) {
+                        // Retry after 1s (in case it's lazy loaded)
+                        setTimeout(triggerChat, 1000);
                     }
                 });
             }
