@@ -46,106 +46,168 @@
     <style>
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            background: #0a0a0a;
             color: white;
+            height: 100vh;
+            overflow: hidden;
+            /* Prevent body scroll */
         }
 
         .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(20, 20, 30, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
+        /* Modern Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
+            height: 6px;
         }
 
         ::-webkit-scrollbar-track {
-            background: #0a0a0a;
+            background: transparent;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, #8B5CF6, #EC4899);
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
         }
 
         .lesson-item {
-            transition: all 0.3s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
         }
 
         .lesson-item:hover {
-            background: rgba(139, 92, 246, 0.1);
-            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .lesson-item.active {
-            background: rgba(139, 92, 246, 0.2);
-            border-left: 3px solid #8B5CF6;
+            background: rgba(139, 92, 246, 0.15);
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
+        }
+
+        /* Markdown Styles */
+        .prose h1,
+        .prose h2,
+        .prose h3 {
+            color: #f3f4f6;
+        }
+
+        .prose strong {
+            color: #22d3ee;
+            /* Cyan highlight */
+        }
+
+        .prose blockquote {
+            border-left-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            color: #d1d5db;
         }
     </style>
 </head>
 
-<body class="bg-black text-white">
+<body class="bg-black text-white h-screen flex flex-col">
 
-    <div id="app">
+    <div id="app" class="h-full flex flex-col">
         <!-- Navigation Bar -->
-        <nav class="fixed top-0 w-full h-16 glass z-50">
+        <nav class="h-16 glass z-50 flex-shrink-0 relative">
             <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
-                <a href="learn.html" class="flex items-center gap-3 group">
-                    <svg class="w-6 h-6 transform group-hover:-translate-x-1 transition-transform" fill="none"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    <span class="font-semibold">返回课程列表</span>
+                <a href="learn.html"
+                    class="flex items-center gap-3 group text-gray-300 hover:text-white transition-colors">
+                    <div class="p-1 rounded-lg group-hover:bg-white/10 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </div>
+                    <span class="font-medium">返回课程列表</span>
                 </a>
 
                 <div class="flex items-center gap-4">
                     <div v-if="user" class="flex items-center gap-2">
-                        <div
-                            class="w-8 h-8 rounded-full bg-gradient-to-br from-odyssey-cyan to-odyssey-purple overflow-hidden">
-                            <img v-if="user.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-odyssey-cyan to-odyssey-purple p-[1px]">
+                            <div class="w-full h-full rounded-full overflow-hidden bg-black">
+                                <img v-if="user.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
+                                <div v-else class="w-full h-full flex items-center justify-center text-xs font-bold">
+                                    {{ user.username?.[0]?.toUpperCase() || 'U' }}
+                                </div>
+                            </div>
                         </div>
-                        <span class="text-sm font-semibold">{{ user.username || 'Learner' }}</span>
+                        <span class="text-sm font-medium text-gray-300">{{ user.username || 'Learner' }}</span>
                     </div>
                 </div>
             </div>
         </nav>
 
         <!-- Main Layout -->
-        <div class="pt-16 flex h-screen">
+        <div class="flex-1 flex overflow-hidden relative"> <!-- flex-1 ensures it takes remaining height -->
 
             <!-- Left Sidebar: Course Outline -->
-            <aside class="w-80 glass border-r border-white/10 overflow-y-auto">
-                <div class="p-6">
-                    <h2 class="text-xl font-bold mb-2">{{ course.title }}</h2>
-                    <div class="flex items-center gap-4 text-sm text-gray-400 mb-6">
-                        <span>{{ completedLessons }}/{{ totalLessons }} 已完成</span>
-                        <div class="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-odyssey-purple to-odyssey-cyan rounded-full transition-all duration-500"
+            <aside class="w-80 glass border-r border-white/5 flex flex-col flex-shrink-0 z-20">
+                <div class="p-5 border-b border-white/5 bg-black/20">
+                    <h2 class="text-lg font-bold mb-3 leading-tight">{{ course.title }}</h2>
+                    <div class="flex items-center gap-3 text-xs text-gray-400">
+                        <div class="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-odyssey-purple to-odyssey-cyan transition-all duration-500"
                                 :style="{width: progressPercentage + '%'}"></div>
                         </div>
+                        <span>{{ Math.round(progressPercentage) }}%</span>
                     </div>
+                </div>
 
-                    <!-- Lesson List -->
-                    <div class="space-y-2">
-                        <div v-for="(lesson, index) in lessons" :key="lesson.id" @click="selectLesson(lesson)"
-                            class="lesson-item p-3 rounded-lg cursor-pointer"
-                            :class="{'active': currentLesson?.id === lesson.id}">
-                            <div class="flex items-start gap-3">
-                                <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                                    :class="lesson.completed ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'">
-                                    <span v-if="lesson.completed">✓</span>
-                                    <span v-else>{{ index + 1 }}</span>
+                <!-- Lesson List (Scrollable) -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1" ref="lessonListContainer">
+                    <div v-for="(lesson, index) in lessons" :key="lesson.id" @click="selectLesson(lesson)"
+                        :id="'lesson-' + lesson.id" class="lesson-item p-3 rounded-lg cursor-pointer group"
+                        :class="{'active': currentLesson?.id === lesson.id}">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-0.5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors"
+                                :class="getLessonStatusClass(lesson)">
+                                <span v-if="lesson.completed">✓</span>
+                                <span v-else>{{ index + 1 }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-sm mb-0.5 truncate group-hover:text-white transition-colors"
+                                    :class="currentLesson?.id === lesson.id ? 'text-white' : 'text-gray-400'">
+                                    {{ lesson.title }}
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="font-semibold text-sm mb-1 truncate">{{ lesson.title }}</div>
-                                    <div class="flex items-center gap-2 text-xs text-gray-500">
-                                        <span v-if="lesson.type === 'video'">🎥 {{
-                                            formatDuration(lesson.duration_seconds) }}</span>
-                                        <span v-else-if="lesson.type === 'quiz'">📝 测验</span>
-                                        <span v-else-if="lesson.type === 'reading'">📖 阅读</span>
-                                    </div>
+                                <div
+                                    class="flex items-center gap-2 text-[10px] text-gray-600 group-hover:text-gray-500">
+                                    <span v-if="lesson.type === 'video'" class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        {{ formatDuration(lesson.duration_seconds) }}
+                                    </span>
+                                    <span v-else-if="lesson.type === 'quiz'" class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                                            </path>
+                                        </svg>
+                                        测验
+                                    </span>
+                                    <span v-else-if="lesson.type === 'reading'" class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                                            </path>
+                                        </svg>
+                                        阅读
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -154,8 +216,8 @@
             </aside>
 
             <!-- Center: Video Player / Content Area -->
-            <main class="flex-1 overflow-y-auto">
-                <div class="max-w-5xl mx-auto p-6">
+            <main class="flex-1 overflow-y-auto relative custom-scrollbar bg-[#0a0a0a]" ref="mainContent">
+                <div class="max-w-5xl mx-auto p-8 pb-32">
 
                     <!-- Loading State -->
                     <div v-if="loading" class="text-center py-20">
@@ -1384,9 +1446,35 @@
                         }
                     };
 
+                    const lessonListContainer = ref(null);
+                    const mainContent = ref(null);
+
+                    const scrollToActiveLesson = () => {
+                        nextTick(() => {
+                            if (!currentLesson.value || !lessonListContainer.value) return;
+                            const activeEl = document.getElementById('lesson-' + currentLesson.value.id);
+                            if (activeEl) {
+                                activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }
+                        });
+                    };
+
+                    const getLessonStatusClass = (lesson) => {
+                        if (lesson.completed) return 'bg-green-500 text-white border-green-500';
+                        if (currentLesson.value?.id === lesson.id) return 'bg-odyssey-purple text-white border-odyssey-purple';
+                        return 'bg-transparent text-gray-500 border-gray-700';
+                    };
+
                     const selectLesson = (lesson) => {
                         currentLesson.value = lesson;
-                        // Note loading handled by watcher
+
+                        // Scroll main content to top
+                        if (mainContent.value) {
+                            mainContent.value.scrollTop = 0;
+                        }
+
+                        // Scroll sidebar to active (audit trail)
+                        scrollToActiveLesson();
 
                         // Reset Quiz State
                         quizStarted.value = false;
@@ -1505,6 +1593,7 @@
                     onMounted(async () => {
                         if (supabase) { const { data } = await supabase.auth.getUser(); user.value = data.user; }
                         await fetchCourse();
+                        scrollToActiveLesson();
                     });
 
                     return {
@@ -1516,7 +1605,8 @@
                         selectLesson, markAsCompleted, handleTimeUpdate, handleVideoEnded, formatDuration,
                         consoleLogs, runCode,
                         showSettings, tempApiKey, saveApiKey, apiKey,
-                        previousLesson, nextLesson, correctAnswersCount, renderMarkdown
+                        previousLesson, nextLesson, correctAnswersCount, renderMarkdown,
+                        lessonListContainer, mainContent, getLessonStatusClass
                     };
                 }
             }).mount('#app');
