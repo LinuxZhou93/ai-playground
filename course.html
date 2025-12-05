@@ -17,6 +17,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -442,20 +443,33 @@
                 <!-- Notes Tab -->
                 <div v-show="activeTab === 'notes'" class="flex-1 flex flex-col min-h-0 bg-[#1e1e1e]">
                     <div class="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
-                        <span class="text-xs text-gray-400" v-if="noteSavedStatus">{{ noteSavedStatus }}</span>
-                        <span class="text-xs text-gray-500" v-else>自动保存到本地</span>
-                        <button @click="downloadNote" class="text-gray-400 hover:text-odyssey-purple transition-colors"
-                            title="下载笔记">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 min-w-[40px]" v-if="noteSavedStatus">{{ noteSavedStatus
+                                }}</span>
+                            <span class="text-xs text-gray-500 min-w-[40px]" v-else>已同步</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button @click="isPreviewMode = !isPreviewMode"
+                                class="text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors"
+                                :class="isPreviewMode ? 'text-odyssey-cyan bg-white/5' : 'text-gray-400'">
+                                {{ isPreviewMode ? '编辑' : '预览' }}
+                            </button>
+                            <button @click="downloadNote"
+                                class="text-gray-400 hover:text-odyssey-purple transition-colors" title="下载笔记">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <textarea v-model="currentNote" @input="handleNoteInput"
+                    <div v-if="isPreviewMode"
+                        class="flex-1 w-full bg-transparent p-4 overflow-y-auto prose prose-invert prose-sm max-w-none"
+                        v-html="renderedNote"></div>
+                    <textarea v-else v-model="currentNote" @input="handleNoteInput"
                         class="flex-1 w-full bg-transparent p-4 resize-none focus:outline-none text-sm leading-relaxed text-gray-300 font-mono"
                         placeholder="在此处记下您的学习笔记...
--主要观点
+- 主要观点
 - 代码片段
 - 疑问"></textarea>
                 </div>
@@ -523,7 +537,12 @@
                 // Notes State
                 const currentNote = ref('');
                 const noteSavedStatus = ref('');
+                const isPreviewMode = ref(false);
                 let noteSaveTimeout = null;
+
+                const renderedNote = computed(() => {
+                    return currentNote.value ? marked.parse(currentNote.value) : '';
+                });
 
                 // Discussion State
                 const comments = ref([]);
@@ -574,18 +593,64 @@
                 });
 
                 // Methods
-                const loadNote = () => {
+                const loadNote = async () => {
                     if (!currentLesson.value) return;
-                    const key = `odyssey_note_${courseId || 'demo'}_${currentLesson.value.id}`;
-                    const saved = localStorage.getItem(key);
-                    currentNote.value = saved || '';
+
+                    // Supabase
+                    if (supabase && user.value) {
+                        try {
+                            const { data, error } = await supabase.from('lesson_notes')
+                                .select('content')
+                                .eq('user_id', user.value.id)
+                                .eq('lesson_id', currentLesson.value.id)
+                                .single();
+
+                            if (data) {
+                                currentNote.value = data.content || '';
+                            } else {
+                                // Try localStorage fallback if no remote note found
+                                const key = `odyssey_note_${courseId || 'demo'}_${currentLesson.value.id}`;
+                                const saved = localStorage.getItem(key);
+                                currentNote.value = saved || '';
+                            }
+                        } catch (err) {
+                            console.error("Error loading note:", err);
+                        }
+                    } else {
+                        // LocalStorage fallback for demo/no-auth
+                        const key = `odyssey_note_${courseId || 'demo'}_${currentLesson.value.id}`;
+                        const saved = localStorage.getItem(key);
+                        currentNote.value = saved || '';
+                    }
                 };
 
-                const saveNote = () => {
+                const saveNote = async () => {
                     if (!currentLesson.value) return;
+
+                    // Always save to localStorage as backup/fast cache
                     const key = `odyssey_note_${courseId || 'demo'}_${currentLesson.value.id}`;
                     localStorage.setItem(key, currentNote.value);
-                    noteSavedStatus.value = '已保存';
+
+                    // Supabase
+                    if (supabase && user.value) {
+                        try {
+                            const { error } = await supabase.from('lesson_notes').upsert({
+                                user_id: user.value.id,
+                                lesson_id: currentLesson.value.id,
+                                content: currentNote.value,
+                                updated_at: new Date()
+                            }, { onConflict: 'user_id, lesson_id' });
+
+                            if (error) throw error;
+                            noteSavedStatus.value = '已云端同步';
+                        } catch (err) {
+                            console.error("Error saving note to cloud:", err);
+                            noteSavedStatus.value = '仅本地保存';
+                        }
+                    } else {
+                        noteSavedStatus.value = '已本地保存';
+                    }
+
                     setTimeout(() => noteSavedStatus.value = '', 2000);
                 };
 
