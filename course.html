@@ -434,7 +434,7 @@
     </div>
 
     <script>
-        const { createApp, ref, onMounted, computed } = Vue;
+        const { createApp, ref, onMounted, computed, nextTick } = Vue;
 
         const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
@@ -674,6 +674,62 @@
                     return 'bg-white/5 border-white/10 opacity-50';
                 };
 
+                // Chat Logic
+                const chatContainer = ref(null);
+                const chatMessages = ref([]);
+                const newMessage = ref('');
+                const isAiTyping = ref(false);
+
+                const scrollToBottom = () => {
+                    nextTick(() => {
+                        if (chatContainer.value) {
+                            chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                        }
+                    });
+                };
+
+                const sendMessage = async () => {
+                    const content = newMessage.value.trim();
+                    if (!content) return;
+
+                    // Add User Message
+                    chatMessages.value.push({ role: 'user', content });
+                    newMessage.value = '';
+                    scrollToBottom();
+
+                    // Simulate AI Response
+                    isAiTyping.value = true;
+                    scrollToBottom();
+
+                    // Mock delay
+                    setTimeout(() => {
+                        let response = "这个问题很有意思！";
+
+                        if (content.includes("核心概念")) {
+                            response = "本节课的核心概念是利用 Python 的简单语法来快速实现逻辑。特别是变量作为数据容器的作用，以及利用缩进来定义代码块的结构。";
+                        } else if (content.includes("例子")) {
+                            response = "比如在数据分析中，你可以用 Python 读取 CSV 文件，然后用几行代码生成图表。这比 Excel 处理大量数据要快得多。";
+                        } else if (content.includes("hello")) {
+                            response = "你好！今天学习顺利吗？";
+                        } else {
+                            response = "我明白了。这是一个很好的问题。基于当前课程内容，我们需要关注这一点的实现细节。你可以尝试回顾一下视频的第 5 分钟，那里有详细的解释。";
+                        }
+
+                        chatMessages.value.push({ role: 'assistant', content: response });
+                        isAiTyping.value = false;
+                        scrollToBottom();
+                    }, 1500);
+                };
+
+                const sendQuery = (query) => {
+                    newMessage.value = query;
+                    sendMessage();
+                };
+
+                const clearChat = () => {
+                    chatMessages.value = [];
+                };
+
                 const initVideoPlayer = (url) => {
                     if (!videoPlayer.value) return;
 
@@ -763,6 +819,14 @@
                     resetQuiz,
                     finishQuiz,
                     getOptionClass,
+                    // Chat
+                    chatContainer,
+                    chatMessages,
+                    newMessage,
+                    isAiTyping,
+                    sendMessage,
+                    sendQuery,
+                    clearChat
                 };
             }
         }).mount('#app');
