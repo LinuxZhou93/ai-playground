@@ -92,8 +92,103 @@
         }
     </style>
 </head>
-<script src="assets/js/project-storage.js?v=4"></script>
+</style>
+</head>
 <script src="assets/js/supabase-client.js"></script>
+
+<script>
+    /**
+     * Simple Project Storage System using LocalStorage (Inlined for reliability)
+     */
+    const STORAGE_KEY = 'scratch_community_projects';
+
+    const ProjectStorage = {
+        getAllProjects: () => {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                return stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                console.error("Storage error:", e);
+                return [];
+            }
+        },
+        saveProject: (projectData) => {
+            const projects = ProjectStorage.getAllProjects();
+            const newProject = {
+                id: 'proj_' + Date.now(),
+                created_at: new Date().toISOString(),
+                likes: 0,
+                view_count: 0,
+                ...projectData
+            };
+            projects.unshift(newProject);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+            return newProject;
+        },
+        getMyProjects: () => {
+            const projects = ProjectStorage.getAllProjects();
+            return projects.filter(p => p.isLocal === true);
+        },
+        getCommunityProjects: () => {
+            return ProjectStorage.getAllProjects();
+        },
+        seedDemoData: () => {
+            if (!localStorage.getItem(STORAGE_KEY)) {
+                const demoProjects = [
+                    {
+                        id: 'feat_1',
+                        title: 'Witch Magic (Demo)',
+                        description: '体验魔法世界的奇妙冒险！点击绿旗开始。',
+                        author: 'ScratchTeam',
+                        type: 'scratch',
+                        thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/10128431_480x360.png',
+                        project_url: 'https://scratch.mit.edu/projects/10128431/',
+                        view_count: 520,
+                        likes: 128,
+                        created_at: new Date().toISOString(),
+                        isLocal: false
+                    },
+                    {
+                        id: 'feat_2',
+                        title: 'Geometry Dash',
+                        description: '经典的几何冲刺游戏复刻版。',
+                        author: 'Griffpatch',
+                        type: 'scratch',
+                        thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/105500895_480x360.png',
+                        project_url: 'https://scratch.mit.edu/projects/105500895/',
+                        view_count: 8900,
+                        likes: 4500,
+                        created_at: new Date().toISOString(),
+                        isLocal: false
+                    },
+                    {
+                        id: 'feat_3',
+                        title: '3D Maze',
+                        description: '惊人的 3D 迷宫探索引擎。',
+                        author: 'GenericUser',
+                        type: 'scratch',
+                        thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/21264366_480x360.png',
+                        project_url: 'https://scratch.mit.edu/projects/21264366/',
+                        view_count: 345,
+                        likes: 77,
+                        created_at: new Date().toISOString(),
+                        isLocal: false
+                    }
+                ];
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(demoProjects));
+            }
+        }
+    };
+
+    // Initialize immediately
+    try {
+        ProjectStorage.seedDemoData();
+        window.ProjectStorage = ProjectStorage;
+        console.log("ProjectStorage initialized successfully");
+    } catch (e) {
+        console.error("ProjectStorage init failed:", e);
+    }
+</script>
 
 <body
     class="bg-slate-900 text-slate-200 min-h-screen selection:bg-scratch-orange selection:text-white overflow-x-hidden">
