@@ -1789,6 +1789,7 @@
         <div class="chat-input-wrapper">
             <span class="prompt">></span>
             <input type="text" id="chat-input" placeholder="Input command..." autocomplete="off">
+            <button id="voice-input-btn" title="Voice Input">🎤</button>
             <button id="send-chat-btn">SEND</button>
         </div>
     </div>
@@ -1947,6 +1948,41 @@
             box-shadow: 0 0 10px #fff;
         }
 
+        #voice-input-btn {
+            background: transparent;
+            color: var(--mc-cyan);
+            border: 1px solid var(--mc-cyan);
+            padding: 5px 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-right: 5px;
+            transition: all 0.3s;
+        }
+
+        #voice-input-btn:hover {
+            background: var(--mc-cyan);
+            color: #000;
+            box-shadow: 0 0 10px var(--mc-cyan);
+        }
+
+        #voice-input-btn.recording {
+            background: #ff0055;
+            border-color: #ff0055;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
         /* Avatar Clickable Style */
         #aiCoach {
             cursor: pointer;
@@ -2003,6 +2039,52 @@
                         appendMessage('ZHOU_XIAOMAI', '你好，我是你的AI教练！请下达指令。', 'ai');
                     }
                 });
+            }
+
+            // Voice Input (Web Speech API)
+            const voiceBtn = document.getElementById('voice-input-btn');
+            let recognition = null;
+
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'zh-CN'; // Chinese
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onstart = () => {
+                    voiceBtn.classList.add('recording');
+                    voiceBtn.textContent = '🔴';
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    inputField.value = transcript;
+                    inputField.focus();
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    voiceBtn.classList.remove('recording');
+                    voiceBtn.textContent = '🎤';
+                };
+
+                recognition.onend = () => {
+                    voiceBtn.classList.remove('recording');
+                    voiceBtn.textContent = '🎤';
+                };
+
+                voiceBtn.addEventListener('click', () => {
+                    if (voiceBtn.classList.contains('recording')) {
+                        recognition.stop();
+                    } else {
+                        recognition.start();
+                    }
+                });
+            } else {
+                voiceBtn.disabled = true;
+                voiceBtn.title = 'Voice input not supported in this browser';
+                voiceBtn.style.opacity = '0.5';
             }
 
             // Send Message (Streaming Support for Agent)
