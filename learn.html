@@ -498,6 +498,148 @@
             </div>
         </section>
 
+        <!-- Featured Courses with Search & Filters -->
+        <section id="courses" class="py-20 px-6">
+            <div class="max-w-7xl mx-auto">
+                <!-- Search & Filter Bar -->
+                <div class="mb-12 space-y-6">
+                    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <h2 class="text-4xl md:text-5xl font-black">
+                            <span class="gradient-text">精选课程</span>
+                        </h2>
+
+                        <!-- Search Bar -->
+                        <div class="relative w-full md:w-96">
+                            <input v-model="searchQuery" type="text" placeholder="搜索课程..."
+                                class="w-full px-6 py-3 pl-12 rounded-2xl glass border border-white/10 focus:border-odyssey-cyan focus:outline-none transition-colors text-white placeholder-gray-500">
+                            <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500"
+                                fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Category Filters -->
+                    <div class="flex flex-wrap gap-3">
+                        <button v-for="category in courseCategories" :key="category.id"
+                            @click="selectedCategory = category.id"
+                            class="px-5 py-2 rounded-full font-semibold text-sm transition-all" :class="selectedCategory === category.id 
+                                ? 'bg-white text-black' 
+                                : 'glass hover:bg-white/10 text-gray-300'">
+                            {{ category.icon }} {{ category.name }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div v-if="coursesLoading" class="text-center py-20">
+                    <div
+                        class="inline-block animate-spin w-12 h-12 border-4 border-gray-800 border-t-odyssey-cyan rounded-full mb-4">
+                    </div>
+                    <p class="text-gray-400">加载课程中...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else-if="filteredCourses.length === 0" class="text-center py-20">
+                    <div class="text-6xl mb-4">🔍</div>
+                    <h3 class="text-2xl font-bold mb-2">未找到课程</h3>
+                    <p class="text-gray-400">试试其他关键词或分类</p>
+                </div>
+
+                <!-- Course Grid -->
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div v-for="course in filteredCourses" :key="course.id" @click="goToCourse(course.id)"
+                        class="group glass rounded-3xl overflow-hidden hover:border-white/30 transition-all hover:-translate-y-2 cursor-pointer card-3d">
+                        <!-- Thumbnail -->
+                        <div class="aspect-video bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
+                            <img v-if="course.thumbnail_url" :src="course.thumbnail_url"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <div v-else class="w-full h-full flex items-center justify-center text-gray-700">
+                                <svg width="60" height="60" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+
+                            <!-- Difficulty Badge -->
+                            <div class="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold backdrop-blur"
+                                :class="{
+                                     'bg-green-500/80 text-white': course.difficulty === 'beginner',
+                                     'bg-yellow-500/80 text-white': course.difficulty === 'intermediate',
+                                     'bg-red-500/80 text-white': course.difficulty === 'advanced'
+                                 }">
+                                {{ getDifficultyLabel(course.difficulty) }}
+                            </div>
+
+                            <!-- Play Button Overlay -->
+                            <div
+                                class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div
+                                    class="w-16 h-16 rounded-full bg-white/20 backdrop-blur flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                    <svg width="24" height="24" fill="white">
+                                        <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info -->
+                        <div class="p-6">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase"
+                                    :class="getCategoryColor(course.category)">
+                                    {{ getCategoryName(course.category) }}
+                                </span>
+                            </div>
+
+                            <h3
+                                class="font-bold text-lg mb-2 line-clamp-2 group-hover:text-odyssey-cyan transition-colors">
+                                {{ course.title }}
+                            </h3>
+
+                            <p class="text-sm text-gray-400 mb-4 line-clamp-2">
+                                {{ course.description }}
+                            </p>
+
+                            <div class="flex items-center justify-between text-xs text-gray-600">
+                                <div class="flex items-center gap-4">
+                                    <span class="flex items-center gap-1">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8v4m0 0v4m0-4h4m-4 0H8" />
+                                        </svg>
+                                        {{ course.lesson_count || 12 }} 课时
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        {{ course.student_count || 0 }}
+                                    </span>
+                                </div>
+
+                                <!-- Rating -->
+                                <div v-if="course.rating" class="flex items-center gap-1">
+                                    <span class="text-yellow-400">★</span>
+                                    <span class="text-white font-semibold">{{ course.rating }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load More Button -->
+                <div v-if="hasMoreCourses && !coursesLoading" class="text-center mt-12">
+                    <button @click="loadMoreCourses"
+                        class="px-8 py-4 rounded-2xl glass hover:bg-white/10 transition-colors font-bold border border-white/20">
+                        加载更多课程
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <!-- Learning Paths (Brilliant-inspired interactive visualization) -->
         <section id="paths" class="py-20 px-6 bg-gradient-to-b from-transparent to-black/50">
             <div class="max-w-7xl mx-auto">
@@ -555,7 +697,7 @@
     </div>
 
     <script>
-        const { createApp, ref, onMounted, onUnmounted } = Vue;
+        const { createApp, ref, onMounted, onUnmounted, computed } = Vue;
 
         const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
@@ -569,6 +711,25 @@
             setup() {
                 const user = ref(null);
                 const scrolled = ref(false);
+
+                // Course Data
+                const courses = ref([]);
+                const coursesLoading = ref(true);
+                const searchQuery = ref('');
+                const selectedCategory = ref('all');
+                const hasMoreCourses = ref(false);
+                const currentPage = ref(1);
+
+                const courseCategories = ref([
+                    { id: 'all', name: '全部', icon: '🌟' },
+                    { id: 'programming', name: '编程', icon: '💻' },
+                    { id: 'ai', name: 'AI', icon: '🤖' },
+                    { id: 'robotics', name: '机器人', icon: '🦾' },
+                    { id: 'design', name: '设计', icon: '🎨' },
+                    { id: 'science', name: '科学', icon: '🧬' },
+                    { id: 'game', name: '游戏', icon: '🎮' },
+                ]);
+
                 const learningPaths = ref([
                     {
                         icon: '🚀',
@@ -608,12 +769,167 @@
                     },
                 ]);
 
+                // Computed: Filtered Courses
+                const filteredCourses = computed(() => {
+                    let result = courses.value;
+
+                    // Filter by category
+                    if (selectedCategory.value !== 'all') {
+                        result = result.filter(c => c.category === selectedCategory.value);
+                    }
+
+                    // Filter by search query
+                    if (searchQuery.value.trim()) {
+                        const query = searchQuery.value.toLowerCase();
+                        result = result.filter(c =>
+                            c.title.toLowerCase().includes(query) ||
+                            c.description?.toLowerCase().includes(query)
+                        );
+                    }
+
+                    return result;
+                });
+
+                // Methods
                 const scrollToExplore = () => {
                     document.getElementById('explore').scrollIntoView({ behavior: 'smooth' });
                 };
 
                 const handleScroll = () => {
                     scrolled.value = window.scrollY > 50;
+                };
+
+                const fetchCourses = async () => {
+                    coursesLoading.value = true;
+
+                    if (!supabase) {
+                        // Mock data for demo
+                        courses.value = [
+                            {
+                                id: 1,
+                                title: 'Python 编程入门',
+                                description: '从零开始学习 Python，掌握编程基础，适合完全没有编程经验的初学者',
+                                category: 'programming',
+                                difficulty: 'beginner',
+                                lesson_count: 24,
+                                student_count: 1250,
+                                rating: 4.8,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 2,
+                                title: '深度学习与神经网络',
+                                description: '使用 TensorFlow 和 PyTorch 构建深度神经网络，掌握 AI 核心技术',
+                                category: 'ai',
+                                difficulty: 'advanced',
+                                lesson_count: 36,
+                                student_count: 856,
+                                rating: 4.9,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 3,
+                                title: 'VEX 机器人竞赛实战',
+                                description: '学习机器人设计、编程与调试，备战 VEX IQ/V5 竞赛',
+                                category: 'robotics',
+                                difficulty: 'intermediate',
+                                lesson_count: 18,
+                                student_count: 432,
+                                rating: 4.7,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 4,
+                                title: 'UI/UX 设计进阶',
+                                description: '掌握 Figma 设计工具，学习用户体验设计原则与实战技巧',
+                                category: 'design',
+                                difficulty: 'intermediate',
+                                lesson_count: 20,
+                                student_count: 678,
+                                rating: 4.6,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 5,
+                                title: 'Unity 游戏开发基础',
+                                description: '使用 Unity 引擎创建 2D/3D 游戏，从零到发布完整流程',
+                                category: 'game',
+                                difficulty: 'beginner',
+                                lesson_count: 28,
+                                student_count: 923,
+                                rating: 4.8,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 6,
+                                title: '物理学趣味实验',
+                                description: '通过动手实验理解物理原理，培养科学思维',
+                                category: 'science',
+                                difficulty: 'beginner',
+                                lesson_count: 15,
+                                student_count: 345,
+                                rating: 4.5,
+                                thumbnail_url: null
+                            },
+                        ];
+                        coursesLoading.value = false;
+                        return;
+                    }
+
+                    try {
+                        const { data, error } = await supabase
+                            .from('courses')
+                            .select('*')
+                            .eq('is_published', true)
+                            .order('created_at', { ascending: false })
+                            .limit(12);
+
+                        if (error && error.code !== 'PGRST116') {
+                            console.error('Error fetching courses:', error);
+                        } else {
+                            courses.value = data || [];
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    } finally {
+                        coursesLoading.value = false;
+                    }
+                };
+
+                const loadMoreCourses = async () => {
+                    // Implement pagination
+                    currentPage.value++;
+                    // Fetch next page...
+                };
+
+                const goToCourse = (courseId) => {
+                    window.location.href = `course.html?id=${courseId}`;
+                };
+
+                const getDifficultyLabel = (difficulty) => {
+                    const labels = {
+                        'beginner': '入门',
+                        'intermediate': '进阶',
+                        'advanced': '高级'
+                    };
+                    return labels[difficulty] || difficulty;
+                };
+
+                const getCategoryName = (categoryId) => {
+                    const category = courseCategories.value.find(c => c.id === categoryId);
+                    return category ? category.name : categoryId;
+                };
+
+                const getCategoryColor = (categoryId) => {
+                    const colors = {
+                        'programming': 'bg-odyssey-purple/20 text-odyssey-purple border-odyssey-purple/30',
+                        'ai': 'bg-odyssey-cyan/20 text-odyssey-cyan border-odyssey-cyan/30',
+                        'robotics': 'bg-odyssey-pink/20 text-odyssey-pink border-odyssey-pink/30',
+                        'design': 'bg-odyssey-amber/20 text-odyssey-amber border-odyssey-amber/30',
+                        'science': 'bg-odyssey-lime/20 text-odyssey-lime border-odyssey-lime/30',
+                        'game': 'bg-red-500/20 text-red-400 border-red-500/30',
+                    };
+                    return colors[categoryId] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
                 };
 
                 onMounted(async () => {
@@ -624,13 +940,32 @@
 
                     window.addEventListener('scroll', handleScroll);
                     init3DScene();
+                    fetchCourses();
                 });
 
                 onUnmounted(() => {
                     window.removeEventListener('scroll', handleScroll);
                 });
 
-                return { user, scrolled, learningPaths, scrollToExplore };
+                return {
+                    user,
+                    scrolled,
+                    learningPaths,
+                    scrollToExplore,
+                    // Course data
+                    courses,
+                    coursesLoading,
+                    searchQuery,
+                    selectedCategory,
+                    courseCategories,
+                    filteredCourses,
+                    hasMoreCourses,
+                    loadMoreCourses,
+                    goToCourse,
+                    getDifficultyLabel,
+                    getCategoryName,
+                    getCategoryColor,
+                };
             }
         }).mount('#app');
 
