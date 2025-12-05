@@ -138,6 +138,25 @@
         </div>
     </div>
 
+    <style>
+        /* Tech Button Background */
+        .tech-btn-bg {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.3) 50%, rgba(16, 185, 129, 0.1) 100%);
+            background-size: 200% 100%;
+            animation: tech-flow 3s linear infinite;
+        }
+
+        @keyframes tech-flow {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: -100% 0;
+            }
+        }
+    </style>
+
     <!-- Navigation -->
     <a href="index.html"
         class="fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-cyan-600 transition-all shadow-lg group">
@@ -151,13 +170,17 @@
 
     <!-- White List Entry (New) -->
     <button onclick="openWhiteList()"
-        class="fixed top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-emerald-900/40 backdrop-blur border border-emerald-500/30 rounded-full text-emerald-400 hover:text-white hover:bg-emerald-600 hover:border-emerald-400 transition-all shadow-lg group animate-in">
-        <span class="text-lg">📋</span>
-        <div class="text-left leading-tight hidden md:block">
-            <div class="text-[10px] opacity-70 font-mono">2025-2028</div>
-            <div class="text-xs font-bold">教育部白名单赛事</div>
+        class="fixed top-6 left-6 z-50 flex items-center gap-3 px-6 py-3 bg-emerald-900/40 backdrop-blur border border-emerald-500/30 rounded-2xl text-emerald-300 hover:text-white hover:border-emerald-400 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] group animate-in overflow-hidden hover:scale-105 duration-300">
+        <!-- Tech BG -->
+        <div class="absolute inset-0 tech-btn-bg opacity-0 group-hover:opacity-100 transition-opacity duration-500">
         </div>
-        <span class="md:hidden font-bold text-xs">白名单</span>
+
+        <span class="text-2xl relative z-10 drop-shadow-md">🏫</span>
+        <div class="text-left leading-tight hidden md:block relative z-10">
+            <div class="text-xs opacity-80 font-mono tracking-wider text-emerald-200">2025-2028 | MINISTRY LIST</div>
+            <div class="font-bold text-base text-white drop-shadow-sm">教育部白名单赛事明细</div>
+        </div>
+        <span class="md:hidden font-bold text-sm relative z-10">白名单赛事</span>
     </button>
 
     <!-- Main Content -->
@@ -895,62 +918,200 @@
 
         // --- White List Logic ---
         let currentWhiteListTab = 'science';
+        let currentWhiteDetail = null; // Store current detail item
 
         function openWhiteList() {
             const modal = document.getElementById('white-list-modal');
             modal.classList.remove('hidden');
             void modal.offsetWidth;
             modal.classList.remove('opacity-0');
+
+            // Generate descriptions if not present (Lazy Polyfill)
+            polyfillDescriptions();
+
             renderWhiteList();
         }
 
         function closeWhiteList() {
             const modal = document.getElementById('white-list-modal');
             modal.classList.add('opacity-0');
-            setTimeout(() => modal.classList.add('hidden'), 300);
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                currentWhiteDetail = null; // Reset
+            }, 300);
         }
 
         function switchWhiteListTab(tab) {
             currentWhiteListTab = tab;
+            currentWhiteDetail = null; // Back to list when switching tabs
+            renderWhiteList();
+        }
+
+        function openWhiteDetail(id) {
+            const items = whiteListData[currentWhiteListTab];
+            const item = items.find(i => i.id === id);
+            if (item) {
+                currentWhiteDetail = item;
+                renderWhiteDetail();
+            }
+        }
+
+        function backToWhiteList() {
+            currentWhiteDetail = null;
             renderWhiteList();
         }
 
         function renderWhiteList() {
             const container = document.getElementById('white-list-content');
+
+            // If in detail mode, don't render list
+            if (currentWhiteDetail) {
+                renderWhiteDetail();
+                return;
+            }
+
             const items = whiteListData[currentWhiteListTab];
 
             // Render Tabs
             const tabsHtml = `
-                <div class="flex gap-2 mb-6 border-b border-slate-700 pb-2">
-                    <button onclick="switchWhiteListTab('science')" class="px-4 py-2 font-bold transition-colors ${currentWhiteListTab === 'science' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400 hover:text-white'}">自然科学类</button>
-                    <button onclick="switchWhiteListTab('humanities')" class="px-4 py-2 font-bold transition-colors ${currentWhiteListTab === 'humanities' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400 hover:text-white'}">人文综合类</button>
-                    <button onclick="switchWhiteListTab('arts')" class="px-4 py-2 font-bold transition-colors ${currentWhiteListTab === 'arts' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400 hover:text-white'}">艺术体育类</button>
+                <div class="flex flex-wrap gap-4 mb-8 border-b border-slate-700 pb-4">
+                    <button onclick="switchWhiteListTab('science')" class="px-6 py-2 rounded-lg font-bold transition-all ${currentWhiteListTab === 'science' ? 'bg-cyan-900/50 text-cyan-300 border border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">自然科学类</button>
+                    <button onclick="switchWhiteListTab('humanities')" class="px-6 py-2 rounded-lg font-bold transition-all ${currentWhiteListTab === 'humanities' ? 'bg-purple-900/50 text-purple-300 border border-purple-500/50 shadow-[0_0_15px_rgba(192,132,252,0.2)]' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">人文综合类</button>
+                    <button onclick="switchWhiteListTab('arts')" class="px-6 py-2 rounded-lg font-bold transition-all ${currentWhiteListTab === 'arts' ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">艺术体育类</button>
                 </div>
             `;
 
-            // Render List
-            const listHtml = items.map(item => `
-                <div class="bg-slate-800/30 p-3 rounded-lg border border-slate-700/50 flex justify-between items-center group hover:bg-slate-800/50 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <span class="text-slate-500 font-mono text-sm w-6">${item.id}.</span>
-                        <div>
-                            <div class="font-bold text-slate-200 flex items-center gap-2">
+            // Render Card Grid
+            const listHtml = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full pb-20 custom-scrollbar overflow-y-auto">
+                    ${items.map(item => `
+                        <div onclick="openWhiteDetail(${item.id})" 
+                             class="bg-slate-800/40 p-5 rounded-xl border border-slate-700/60 hover:bg-slate-700/60 hover:border-slate-500 hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden">
+                             
+                             <!-- Side Accent -->
+                             <div class="absolute left-0 top-0 bottom-0 w-1 ${currentWhiteListTab === 'science' ? 'bg-cyan-500' : currentWhiteListTab === 'humanities' ? 'bg-purple-500' : 'bg-emerald-500'} opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                             
+                             <div class="flex justify-between items-start mb-2 pl-3">
+                                <span class="text-xs font-mono text-slate-500">NO.${item.id}</span>
+                                ${item.tag ? `<span class="px-2 py-0.5 bg-white/10 text-white text-[10px] rounded border border-white/20 shadow">${item.tag}</span>` : ''}
+                             </div>
+                             
+                             <h3 class="text-base font-bold text-slate-200 group-hover:text-white mb-2 pl-3 leading-snug min-h-[48px] flex items-center">
                                 ${item.name}
-                                ${item.tag ? `<span class="px-1.5 py-0.5 bg-red-500/20 text-red-300 text-[10px] rounded border border-red-500/20">${item.tag}</span>` : ''}
+                             </h3>
+                             
+                             <div class="pl-3 space-y-2">
+                                 <div class="text-xs text-slate-400 flex items-start gap-2">
+                                     <span class="opacity-50 mt-0.5">🏢</span>
+                                     <span class="line-clamp-1">${item.organizer}</span>
+                                 </div>
+                                 <div class="text-xs text-slate-400 flex items-start gap-2">
+                                     <span class="opacity-50 mt-0.5">🎓</span>
+                                     <span class="line-clamp-1">${item.scope}</span>
+                                 </div>
+                             </div>
+
+                             <!-- Hover Arrow -->
+                             <div class="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-slate-400">
+                                 →
+                             </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            container.innerHTML = tabsHtml + listHtml;
+        }
+
+        function renderWhiteDetail() {
+            const container = document.getElementById('white-list-content');
+            const item = currentWhiteDetail;
+            const themeColor = currentWhiteListTab === 'science' ? 'cyan' : currentWhiteListTab === 'humanities' ? 'purple' : 'emerald';
+
+            container.innerHTML = `
+                <div class="h-full flex flex-col animate-in">
+                    <!-- Back Button -->
+                    <button onclick="backToWhiteList()" class="self-start mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+                        <div class="p-1 rounded bg-slate-800 border border-slate-700 group-hover:border-${themeColor}-500 transition-colors">
+                            <svg width="16" height="16" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </div>
+                        <span class="text-sm font-bold">返回列表</span>
+                    </button>
+
+                    <!-- Detail Card -->
+                    <div class="flex-1 bg-slate-800/20 rounded-2xl border border-slate-700/50 p-6 md:p-10 overflow-y-auto custom-scrollbar relative">
+                        <!-- BG Glow -->
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-${themeColor}-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+
+                        <div class="relative z-10">
+                            <div class="flex flex-wrap items-center gap-3 mb-4">
+                                <span class="px-3 py-1 bg-${themeColor}-900/30 text-${themeColor}-300 border border-${themeColor}-500/30 rounded-lg text-xs font-bold">教育部白名单 NO.${item.id}</span>
+                                <span class="px-3 py-1 bg-slate-700/50 text-slate-300 border border-slate-600 rounded-lg text-xs">${item.scope}</span>
                             </div>
-                            <div class="text-xs text-slate-500">${item.organizer}</div>
+
+                            <h1 class="text-3xl md:text-4xl font-black text-white mb-8 leading-tight tracking-tight">
+                                ${item.name}
+                            </h1>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wider">主办单位 Organizer</div>
+                                    <div class="text-slate-200 font-medium">${item.organizer}</div>
+                                </div>
+                                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wider">竞赛类别 Category</div>
+                                    <div class="text-slate-200 font-medium">
+                                        ${currentWhiteListTab === 'science' ? '自然科学素养类' : currentWhiteListTab === 'humanities' ? '人文综合素养类' : '艺术体育类'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <section class="mb-8">
+                                <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                    <span class="text-${themeColor}-400">📖</span> 赛事简介
+                                </h3>
+                                <p class="text-slate-300 leading-relaxed text-lg bg-slate-800/30 p-6 rounded-2xl border border-slate-700/30 shadow-inner">
+                                    ${item.description || '暂无详细介绍。该赛事为教育部批准的全国性竞赛活动，旨在提升中小学生的综合素养。建议访问官方网站获取最新赛制和报名信息。'}
+                                </p>
+                            </section>
+
+                            <div class="flex gap-4">
+                                <a href="#" onclick="alert('即将上线：跳转至赛事官网'); return false;" class="px-6 py-3 bg-${themeColor}-600 hover:bg-${themeColor}-500 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-${themeColor}-500/20 flex items-center gap-2">
+                                    <span>🌐</span> 访问官方网站
+                                </a>
+                                <button class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-all">
+                                    收藏赛事
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-[10px] bg-slate-700/30 px-2 py-1 rounded text-slate-400 whitespace-nowrap hidden sm:block">
-                        ${item.scope}
-                    </div>
                 </div>
-            `).join('');
+            `;
+        }
 
-            container.innerHTML = tabsHtml + '<div class="space-y-2 h-[50vh] overflow-y-auto custom-scrollbar">' + listHtml + '</div>';
+        // Helper to add dummy descriptions (Idempotent)
+        function polyfillDescriptions() {
+            Object.keys(whiteListData).forEach(key => {
+                whiteListData[key].forEach(item => {
+                    if (!item.description) {
+                        // Basic template based on type
+                        let type = key === 'science' ? '科技创新与科学探究' :
+                            key === 'humanities' ? '人文素养与社会实践' : '艺术审美与体育竞技';
+
+                        item.description = `
+                            <strong>${item.name}</strong> 是由 <strong>${item.organizer}</strong> 主办的面向 <strong>${item.scope}</strong> 的国家级竞赛活动。<br><br>
+                            该赛事属于教育部"白名单"中的${type}类项目，具有极高的权威性和认可度。
+                            通过参与该赛事，学生不仅能够锻炼专业技能，还能在综合素质评价、名校申请（强基计划/综合评价）中获得重要优势。<br><br>
+                            适合希望在 ${item.name.includes("奥林匹克") ? "学科竞赛" : item.name.includes("创新") ? "科技发明" : "综合素养"} 领域深入发展的同学参与。
+                         `;
+                    }
+                });
+            });
         }
 
 
+
+        // Close modal on click outside
         // Close modal on click outside
         document.getElementById('modal-backdrop').addEventListener('click', (e) => {
             if (e.target === document.getElementById('modal-backdrop')) {
