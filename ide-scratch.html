@@ -146,6 +146,49 @@
         </main>
     </div>
 
+    <!-- Shared Storage Logic -->
+    <script src="assets/js/project-storage.js"></script>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-700 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                <span class="text-scratch-purple">☁️</span>
+                <span data-i18n="share_project">分享作品</span>
+            </h3>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-1" data-i18n="project_title">项目标题</label>
+                    <input type="text" id="proj-title"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 focus:border-scratch-purple outline-none transition-colors"
+                        placeholder="我的精彩作品">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-1" data-i18n="project_desc">项目描述</label>
+                    <textarea id="proj-desc" rows="3"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 focus:border-scratch-purple outline-none transition-colors"
+                        placeholder="介绍一下你的作品玩法..."></textarea>
+                </div>
+
+                <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-300">
+                    <p class="font-bold mb-1">💡 提示 (Tip)</p>
+                    <p>请先在编辑器中点击 <b>"文件 > 保存到电脑"</b> 获得 .sb3 文件，所有数据将保存到你的浏览记录中。</p>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeShareModal()"
+                        class="flex-1 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 font-bold transition-colors"
+                        data-i18n="cancel">取消</button>
+                    <button onclick="confirmShare()"
+                        class="flex-1 py-2 rounded-lg bg-scratch-purple hover:bg-purple-600 font-bold text-white transition-colors shadow-lg shadow-purple-900/30"
+                        data-i18n="publish">发布到社区</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Vue 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
@@ -155,43 +198,22 @@
         createApp({
             setup() {
                 const lessons = ref([
-                    { id: 1, title: '初识 Scratch：让小猫动起来', type: 'tutorial', projectId: '' }, // Empty project for clean start
-                    { id: 2, title: '制作音乐动画', type: 'tutorial', projectId: '456789' }, // Example ID
-                    { id: 3, title: '躲避球游戏基础', type: 'tutorial', projectId: '987654' }, // Example ID
-                    { id: 4, title: '互动故事大挑战', type: 'tutorial', projectId: '123123' }  // Example ID
+                    { id: 1, title: '初识 Scratch：让小猫动起来', type: 'tutorial', projectId: '' },
+                    { id: 2, title: '制作音乐动画', type: 'tutorial', projectId: '' },
+                    { id: 3, title: '躲避球游戏基础', type: 'tutorial', projectId: '' },
+                    { id: 4, title: '互动故事大挑战', type: 'tutorial', projectId: '' }
                 ]);
 
                 const currentLesson = ref(null);
                 const isLoading = ref(true);
-
-                // Scratch Editor URL - Using TurboWarp
-                // Using 'editor' path to ensure full editor UI
                 const BASE_EDITOR_URL = 'https://turbowarp.org/editor?fps=60&interpolation&hq&offscreen';
 
                 const loadLesson = (lesson) => {
                     currentLesson.value = lesson;
                     isLoading.value = true;
-
                     const iframe = document.getElementById('scratch-iframe');
                     iframe.style.display = 'none';
-
-                    // If lesson has a specific project ID, we could load it. 
-                    // For now, TurboWarp loads empty by default or by ID via URL hash usually, 
-                    // but embedding specific projects needs correct URL format: https://turbowarp.org/PROJECT_ID/editor
-
-                    let url = BASE_EDITOR_URL;
-                    if (lesson.projectId) {
-                        // Note: TurboWarp structure might vary, but widely supports loading existing scratch projects
-                        // url = `https://turbowarp.org/${lesson.projectId}/editor`;
-                        // For this demo, we'll just reload the base editor to simulate "new lesson environment"
-                        // In a real app, you'd integrate with the VM definition.
-                        console.log("Loading project: " + lesson.projectId);
-                    }
-
-                    // Reload iframe
-                    iframe.src = url;
-
-                    // Reset loading state on load
+                    iframe.src = BASE_EDITOR_URL;
                     iframe.onload = () => {
                         isLoading.value = false;
                         iframe.style.display = 'block';
@@ -203,14 +225,8 @@
                     currentLesson.value = null;
                 };
 
-                // Initial Load
                 onMounted(() => {
                     const iframe = document.getElementById('scratch-iframe');
-                    const loadingEl = document.getElementById('loading');
-
-                    // Handle initial static loading element visibility manually before Vue takes over fully
-                    // (Vue v-show handles it after mount)
-
                     iframe.src = BASE_EDITOR_URL;
                     iframe.onload = () => {
                         isLoading.value = false;
@@ -218,40 +234,58 @@
                     };
                 });
 
-                return {
-                    lessons,
-                    currentLesson,
-                    loadLesson,
-                    resetEditor,
-                    isLoading
-                };
+                return { lessons, currentLesson, loadLesson, resetEditor, isLoading };
             }
         }).mount('#app');
 
-        // Existing Vanilla JS functions for top bar (kept for compatibility with inline onclicks)
+        // --- Share Feature Logic ---
+        window.shareProject = function () {
+            document.getElementById('share-modal').classList.remove('hidden');
+        }
 
-        // Save Project
+        window.closeShareModal = function () {
+            document.getElementById('share-modal').classList.add('hidden');
+        }
+
+        window.confirmShare = function () {
+            const title = document.getElementById('proj-title').value;
+            const desc = document.getElementById('proj-desc').value;
+
+            if (!title) {
+                alert('请填写项目标题');
+                return;
+            }
+
+            // Save to LocalStorage via ProjectStorage
+            ProjectStorage.saveProject({
+                title: title,
+                description: desc,
+                author: 'Local User', // Placeholder
+                type: 'scratch',
+                isLocal: true,
+                thumbnail_url: null // Could add file input to upload wrapper image later
+            });
+
+            alert('✅ 发布成功！\n\n你的作品已添加到"社区实验室"页面。');
+            closeShareModal();
+            // Optional: Redirect to community
+            // window.location.href = 'coding.html';
+        }
+
+        // --- Existing Logic ---
         window.saveProject = function () {
             alert('提示：\n\n1. 在编辑器内点击"文件 > 保存到电脑"即可保存项目\n2. 项目会保存为 .sb3 文件\n3. 下次可以通过"文件 > 从电脑中上传"来加载项目');
         }
 
-        // Share Project  
-        window.shareProject = function () {
-            alert('分享功能提示：\n\n1. 先保存项目到电脑\n2. 访问 https://scratch.mit.edu 创建账号\n3. 上传并分享你的作品\n\n或者使用 TurboWarp 的分享功能（编辑器内）');
-        }
-
-        // Toggle Fullscreen
         window.toggleFullscreen = function () {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+                if (document.exitFullscreen) document.exitFullscreen();
             }
         }
 
-        // Language Logic (Vanilla implementation migrated inside or kept as is)
+        // Language Logic
         let currentLang = localStorage.getItem('ide_lang') || 'zh';
         const translations = {
             zh: {
@@ -263,7 +297,11 @@
                 first_load: '首次加载可能需要几秒钟',
                 lessons: '教学课程',
                 reset_editor: '重置编辑器',
-                load_failed: '编辑器加载失败'
+                share_project: '分享作品',
+                project_title: '项目标题',
+                project_desc: '项目描述',
+                cancel: '取消',
+                publish: '发布到社区'
             },
             en: {
                 ide_title: 'Scratch IDE',
@@ -274,36 +312,30 @@
                 first_load: 'First load may take a few seconds',
                 lessons: 'Tutorials',
                 reset_editor: 'Reset Editor',
-                load_failed: 'Editor failed to load'
+                share_project: 'Share Project',
+                project_title: 'Project Title',
+                project_desc: 'Project Description',
+                cancel: 'Cancel',
+                publish: 'Publish'
             }
         };
 
         window.setLanguage = function (lang) {
             currentLang = lang;
             localStorage.setItem('ide_lang', lang);
-
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
-                if (translations[lang][key]) {
-                    el.textContent = translations[lang][key];
-                }
+                if (translations[lang][key]) el.textContent = translations[lang][key];
             });
-
             const langText = document.getElementById('lang-text');
-            if (langText) {
-                langText.textContent = lang === 'zh' ? 'EN' : '中文';
-            }
+            if (langText) langText.textContent = lang === 'zh' ? 'EN' : '中文';
         }
 
         window.toggleLanguage = function () {
             setLanguage(currentLang === 'zh' ? 'en' : 'zh');
         }
 
-        // Initialize language
-        window.addEventListener('load', () => {
-            setLanguage(currentLang);
-        });
-
+        window.addEventListener('load', () => setLanguage(currentLang));
     </script>
 </body>
 
