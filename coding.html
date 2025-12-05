@@ -70,6 +70,26 @@
             pointer-events: none;
             z-index: -1;
         }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .search-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #4D97FF;
+            box-shadow: 0 0 0 2px rgba(77, 151, 255, 0.2);
+            outline: none;
+        }
     </style>
 </head>
 <script src="assets/js/project-storage.js?v=4"></script>
@@ -100,10 +120,9 @@
                         class="w-10 h-10 rounded-xl bg-gradient-to-br from-scratch-orange to-red-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-500/20">
                         C</div>
                     <div>
-                        <h1 class="font-bold text-white text-lg leading-tight" data-i18n="site_title">Creative Lab</h1>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-                            data-i18n="site_subtitle">Code Your World
-                        </div>
+                        <h1 class="font-bold text-white text-lg leading-tight">科技特长生实训平台</h1>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Tech Talent
+                            Workspace</div>
                     </div>
                 </div>
             </div>
@@ -210,21 +229,42 @@
                 </div>
             </div>
 
-            <!-- Gallery Filter -->
-            <div class="flex items-center justify-between mb-8">
-                <h2 class="text-2xl font-bold text-white" data-i18n="community_lab">Community Lab</h2>
-                <div class="flex bg-slate-800 rounded-lg p-1">
-                    <button @click="filter = 'all'" :class="{'bg-slate-700 text-white shadow': filter === 'all'}"
-                        class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 transition-all"
-                        data-i18n="filter_all">All</button>
-                    <button @click="filter = 'my'" :class="{'bg-slate-700 text-white shadow': filter === 'my'}"
-                        class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 transition-all"
-                        data-i18n="filter_my">My
-                        Projects</button>
-                    <button @click="filter = 'featured'"
-                        :class="{'bg-slate-700 text-white shadow': filter === 'featured'}"
-                        class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 transition-all"
-                        data-i18n="filter_featured">Featured</button>
+            <!-- Gallery Filter & Search -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <span data-i18n="community_lab">Community Lab</span>
+                    <span class="text-xs font-normal text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">{{
+                        projects.length }}</span>
+                </h2>
+
+                <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                    <!-- Search -->
+                    <div class="relative group">
+                        <input v-model="searchQuery" type="text"
+                            class="search-input w-full sm:w-64 pl-10 pr-4 py-2 rounded-xl text-sm text-white placeholder-slate-500"
+                            :placeholder="currentLang === 'zh' ? '搜索项目...' : 'Search projects...'">
+                        <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-500 group-focus-within:text-scratch-cyan transition-colors"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700/50">
+                        <button @click="filter = 'all'"
+                            :class="{'bg-slate-600 text-white shadow-sm': filter === 'all', 'text-slate-400 hover:text-slate-200': filter !== 'all'}"
+                            class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all"
+                            data-i18n="filter_all">All</button>
+                        <button @click="filter = 'my'"
+                            :class="{'bg-slate-600 text-white shadow-sm': filter === 'my', 'text-slate-400 hover:text-slate-200': filter !== 'my'}"
+                            class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all" data-i18n="filter_my">My
+                            Projects</button>
+                        <button @click="filter = 'featured'"
+                            :class="{'bg-slate-600 text-white shadow-sm': filter === 'featured', 'text-slate-400 hover:text-slate-200': filter !== 'featured'}"
+                            class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all"
+                            data-i18n="filter_featured">Featured</button>
+                    </div>
                 </div>
             </div>
 
@@ -245,49 +285,63 @@
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Project Card -->
                     <div v-for="project in projects" :key="project.id"
-                        class="group bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden hover:border-slate-500 transition-all hover:-translate-y-1 block">
+                        class="glass-panel group rounded-2xl overflow-hidden hover:border-scratch-purple/50 transition-all hover:translate-y-[-4px] block relative">
                         <!-- Thumbnail -->
                         <div
                             class="aspect-video bg-slate-900 relative overflow-hidden group-hover:opacity-90 transition-opacity">
                             <img v-if="project.thumbnail_url" :src="project.thumbnail_url"
-                                class="w-full h-full object-cover">
+                                class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
                             <div v-else
                                 class="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600">
-                                <!-- Dynamic Type Icon -->
                                 <span class="text-4xl text-white/20">{{ project.type === 'scratch' ? '🐱' : '🧩'
                                     }}</span>
                             </div>
 
                             <!-- Type Badge -->
                             <div
-                                class="absolute top-2 left-2 px-2 py-1 rounded bg-black/50 backdrop-blur text-[10px] font-bold text-white border border-white/10 uppercase">
+                                class="absolute top-2 left-2 px-2 py-1 rounded bg-black/60 backdrop-blur-md text-[10px] font-bold text-white border border-white/10 uppercase tracking-wider flex items-center gap-1">
+                                <span>{{ project.type === 'scratch' ? '🐱' : '🧩' }}</span>
                                 {{ project.type }}
                             </div>
                         </div>
 
                         <!-- Info -->
                         <div class="p-4">
-                            <h3 class="font-bold text-white truncate mb-1">{{ project.title }}</h3>
-                            <p class="text-xs text-slate-500 mb-2 truncate">{{ project.description || 'No description'
-                                }}</p>
+                            <div class="flexjustify-between items-start mb-1">
+                                <h3
+                                    class="font-bold text-white truncate text-lg group-hover:text-scratch-cyan transition-colors">
+                                    {{ project.title }}</h3>
+                            </div>
+                            <p class="text-xs text-slate-400 mb-3 truncate font-medium">{{ project.description || 'No
+                                description' }}</p>
 
-                            <div class="flex items-center justify-between text-xs text-slate-500">
-                                <span class="flex items-center gap-1">
-                                    <span class="truncate max-w-[80px]">By {{ project.isLocal ? 'Me' : (project.author
-                                        || 'User') }}</span>
+                            <div
+                                class="flex items-center justify-between text-xs text-slate-500 border-t border-slate-700/50 pt-3">
+                                <span class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
+                                    <div
+                                        class="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center text-[8px] text-white">
+                                        {{ (project.author || 'U')[0] }}
+                                    </div>
+                                    <span class="truncate max-w-[80px]">{{ project.isLocal ? 'Me' : (project.author ||
+                                        'User') }}</span>
                                 </span>
-                                <span class="flex items-center gap-2">
-                                    <span class="flex items-center gap-1">👁️ {{ project.view_count || 0 }}</span>
-                                    <span class="flex items-center gap-1">❤️ {{ project.likes || 0 }}</span>
+                                <span class="flex items-center gap-3">
+                                    <span
+                                        class="flex items-center gap-1 hover:text-scratch-cyan transition-colors"><span
+                                            class="text-[10px]">👁️</span> {{ project.view_count || 0 }}</span>
+                                    <span class="flex items-center gap-1 hover:text-red-400 transition-colors"><span
+                                            class="text-[10px]">❤️</span> {{ project.likes || 0 }}</span>
                                 </span>
                             </div>
 
-                            <div class="mt-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <!-- Action Overlay -->
+                            <div
+                                class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-900/90 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex gap-2">
                                 <button @click="playProject(project)"
-                                    class="flex-1 py-1.5 bg-white text-slate-900 rounded font-bold text-xs hover:bg-slate-200"
+                                    class="flex-1 py-2 bg-white text-slate-900 rounded-lg font-bold text-xs hover:bg-scratch-cyan hover:text-white transition-colors shadow-lg"
                                     data-i18n="play">Play</button>
                                 <button @click="playProject(project, 'remix')"
-                                    class="flex-1 py-1.5 bg-slate-700 text-white rounded font-bold text-xs hover:bg-slate-600"
+                                    class="flex-1 py-1.5 bg-slate-800/80 backdrop-blur text-white border border-slate-600 rounded-lg font-bold text-xs hover:bg-slate-700"
                                     data-i18n="remix">Remix</button>
                             </div>
                         </div>
@@ -356,81 +410,46 @@
                     }
                 };
 
+                const searchQuery = ref('');
+
                 const fetchProjects = () => {
                     loading.value = true;
                     try {
+                        // Ensure seeds exist if empty
+                        if (window.ProjectStorage && typeof ProjectStorage.seedDemoData === 'function') {
+                            ProjectStorage.seedDemoData();
+                        }
+
+                        // 1. Get All
                         let allProjects = [];
-
-                        // --- NUCLEAR OPTION: HARD RESET DATA V5 ---
-                        // Force write correct data if v5 flag is missing, bypassing external script logic
-                        if (!localStorage.getItem('seeded_v5')) {
-                            console.log("Applying Hard Reset v5...");
-                            const demoProjects = [
-                                {
-                                    id: 'feat_1',
-                                    title: 'Witch Magic (Demo)',
-                                    description: '体验魔法世界的奇妙冒险！点击绿旗开始。',
-                                    author: 'ScratchTeam',
-                                    type: 'scratch',
-                                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/10128431_480x360.png',
-                                    project_url: 'https://scratch.mit.edu/projects/10128431/',
-                                    view_count: 520,
-                                    likes: 128,
-                                    created_at: new Date().toISOString(),
-                                    isLocal: false
-                                },
-                                {
-                                    id: 'feat_2',
-                                    title: 'Geometry Dash',
-                                    description: '经典的几何冲刺游戏复刻版。',
-                                    author: 'Griffpatch',
-                                    type: 'scratch',
-                                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/105500895_480x360.png',
-                                    project_url: 'https://scratch.mit.edu/projects/105500895/',
-                                    view_count: 8900,
-                                    likes: 4500,
-                                    created_at: new Date().toISOString(),
-                                    isLocal: false
-                                },
-                                {
-                                    id: 'feat_3',
-                                    title: '3D Maze',
-                                    description: '惊人的 3D 迷宫探索引擎。',
-                                    author: 'GenericUser',
-                                    type: 'scratch',
-                                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/21264366_480x360.png',
-                                    project_url: 'https://scratch.mit.edu/projects/21264366/',
-                                    view_count: 345,
-                                    likes: 77,
-                                    created_at: new Date().toISOString(),
-                                    isLocal: false
-                                }
-                            ];
-                            localStorage.setItem('scratch_community_projects', JSON.stringify(demoProjects));
-                            localStorage.setItem('seeded_v5', 'true');
-
-                            // Immediately update local var in case ProjectStorage read old data before this write
-                            allProjects = demoProjects;
+                        if (window.ProjectStorage) {
+                            allProjects = ProjectStorage.getAllProjects();
                         } else {
-                            // If seeded, ensure we read the latest (handled by ProjectStorage or Fallback)
-                            if (window.ProjectStorage) {
-                                allProjects = ProjectStorage.getAllProjects();
-                            } else {
-                                allProjects = JSON.parse(localStorage.getItem('scratch_community_projects') || '[]');
-                            }
+                            // Fallback if script missing
+                            allProjects = JSON.parse(localStorage.getItem('scratch_community_projects') || '[]');
                         }
 
-                        // 2. Filter Logic
+                        // 2. Filter Logic (Tab)
+                        let filtered = [];
                         if (filter.value === 'my') {
-                            // Filter for local projects
-                            projects.value = allProjects.filter(p => p.isLocal === true);
+                            filtered = allProjects.filter(p => p.isLocal === true);
                         } else if (filter.value === 'featured') {
-                            // Projects with project_url are featured/hosted
-                            projects.value = allProjects.filter(p => p.project_url);
+                            filtered = allProjects.filter(p => p.project_url); // Has URL usually means featured
                         } else {
-                            // All
-                            projects.value = allProjects;
+                            filtered = allProjects;
                         }
+
+                        // 3. Search Logic
+                        if (searchQuery.value.trim()) {
+                            const q = searchQuery.value.toLowerCase();
+                            filtered = filtered.filter(p =>
+                                p.title.toLowerCase().includes(q) ||
+                                (p.description && p.description.toLowerCase().includes(q)) ||
+                                (p.author && p.author.toLowerCase().includes(q))
+                            );
+                        }
+
+                        projects.value = filtered;
 
                     } catch (e) {
                         console.error("Error fetching projects:", e);
@@ -444,7 +463,7 @@
                     alert("Auth not connected locally. Using Guest Mode.");
                 };
 
-                watch(filter, () => {
+                watch([filter, searchQuery], () => {
                     fetchProjects();
                 });
 
@@ -468,8 +487,8 @@
 
                 const translations = {
                     zh: {
-                        site_title: '创意实验室',
-                        site_subtitle: '编程你的世界',
+                        site_title: '科技特长生实训平台',
+                        site_subtitle: 'Tech Talent Workspace',
                         login: '登录',
                         age_8plus: '🚀 适合 8 岁以上',
                         scratch_mode: 'Scratch 模式',
@@ -489,8 +508,8 @@
                         remix: '改编'
                     },
                     en: {
-                        site_title: 'Creative Lab',
-                        site_subtitle: 'Code Your World',
+                        site_title: 'Tech Talent Workspace',
+                        site_subtitle: 'Future Innovators',
                         login: 'Login',
                         age_8plus: '🚀 For Ages 8+',
                         scratch_mode: 'Scratch Mode',
@@ -548,6 +567,7 @@
                     loading,
                     projects,
                     filter,
+                    searchQuery,
                     loginWithGithub,
                     currentLang,
                     toggleLanguage,
