@@ -1957,7 +1957,7 @@
             // Load conversation ID from local storage to maintain history
             let conversationId = localStorage.getItem('dify_conversation_id') || '';
             const API_KEY = 'app-XZYyFcpsU6Qk1dIoWDz92ZCR'; // New Agent API Key (With Search)
-            const API_URL = 'https://successfully-satisfy-yamaha-sri.trycloudflare.com/v1/chat-messages';
+            const API_URL = 'https://shield-trees-herb-finances.trycloudflare.com/v1/chat-messages';
 
             // Toggle Chat
             if (avatar) {
@@ -2029,16 +2029,24 @@
                         localStorage.setItem('dify_conversation_id', conversationId); // Save for persistence
                         appendMessage('ZHOU_XIAOMAI', data.answer, 'ai');
                     } else {
-                        console.error('API Error:', data);
-                        appendMessage('SYSTEM', `ERROR: ${data.message || 'Neural Link Failed'}`, 'system');
-                        if (data.code === 'invalid_param') {
-                            appendMessage('SYSTEM', 'HINT: Backend model configuration missing. Please check Dify settings.', 'system');
+                        // Handle Error (e.g., Invalid Conversation ID due to App Switch)
+                        if (response.status === 404 || response.status === 400) {
+                            console.warn('Session mismatch detected. Resetting conversation.');
+                            localStorage.removeItem('dify_conversation_id');
+                            conversationId = '';
+                            appendMessage('SYSTEM', '⚠️ Session expired due to system upgrade. Please ask your question again.', 'system');
+                        } else {
+                            console.error('API Error:', data);
+                            appendMessage('SYSTEM', `Error: ${data.message || response.statusText}`, 'error');
+                            if (data.code === 'invalid_param') {
+                                appendMessage('SYSTEM', 'HINT: Backend model configuration missing. Please check Dify settings.', 'system');
+                            }
                         }
                     }
 
                 } catch (error) {
                     removeMessage(loadingId);
-                    appendMessage('SYSTEM', 'CRITICAL ERROR: Connection Lost', 'system');
+                    appendMessage('SYSTEM', 'Connection Error: ' + error.message, 'error');
                     console.error('Network Error:', error);
                 }
             };
