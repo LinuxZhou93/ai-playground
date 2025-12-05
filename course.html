@@ -920,215 +920,314 @@
                             markAsCompleted();
                             consoleLogs.value.push({ type: 'success', message: '🎉 任务完成！' });
                         }
-
                     } catch (e) {
-                        consoleLogs.value.push({ type: 'error', message: e.message });
-                    }
-                };
+                    };
 
-                const loadMockData = () => {
-                    course.value = { id: courseId || 'demo', title: 'Python 编程入门 (Demo Mode)', description: '从零开始学习 Python' };
-                    lessons.value = [
-                        { id: 1, title: '第1课：Python 简介', type: 'video', duration_seconds: 600, content_url: '', completed: false },
-                        { id: 2, title: '第2课：变量与数据类型', type: 'video', duration_seconds: 900, content_url: '', completed: false },
-                        { id: 3, title: '第3课：条件语句', type: 'video', duration_seconds: 720, content_url: '', completed: false },
-                        {
-                            id: 4,
-                            title: '测验：基础知识',
-                            type: 'quiz',
-                            duration_seconds: 300,
-                            completed: false,
-                            content: JSON.stringify({
-                                questions: [
-                                    { id: 1, text: "Python 中用于输出内容的函数是？", options: ["echo()", "console.log()", "print()", "write()"], correctIndex: 2 },
-                                    { id: 2, text: "以下哪个不是 Python 的基本数据类型？", options: ["int", "float", "char", "str"], correctIndex: 2 },
-                                    { id: 3, text: "如何开始一个 while 循环？", options: ["while x > y:", "while (x > y)", "while x > y {", "if x > y:"], correctIndex: 0 }
+                    const loadMockData = () => {
+                        // 根据课程 ID 加载对应的课程数据
+                        const allCourses = {
+                            '1': {
+                                id: '1',
+                                title: 'Python 编程入门',
+                                description: '从零开始学习 Python,掌握编程基础,适合完全没有编程经验的初学者',
+                                lessons: [
+                                    { id: 1, title: '第1课:Python 简介与环境搭建', type: 'video', duration_seconds: 720, content_url: '', completed: false },
+                                    { id: 2, title: '第2课:变量与数据类型', type: 'video', duration_seconds: 900, content_url: '', completed: false },
+                                    { id: 3, title: '第3课:条件语句与逻辑运算', type: 'video', duration_seconds: 840, content_url: '', completed: false },
+                                    {
+                                        id: 4,
+                                        title: '测验:基础知识检测',
+                                        type: 'quiz',
+                                        duration_seconds: 300,
+                                        completed: false,
+                                        content: JSON.stringify({
+                                            questions: [
+                                                { id: 1, text: "Python 中用于输出内容的函数是?", options: ["echo()", "console.log()", "print()", "write()"], correctIndex: 2 },
+                                                { id: 2, text: "以下哪个不是 Python 的基本数据类型?", options: ["int", "float", "char", "str"], correctIndex: 2 },
+                                                { id: 3, text: "如何开始一个 while 循环?", options: ["while x > y:", "while (x > y)", "while x > y {", "if x > y:"], correctIndex: 0 }
+                                            ]
+                                        })
+                                    },
+                                    {
+                                        id: 5,
+                                        title: '编程练习:Hello Python',
+                                        type: 'code',
+                                        description: '使用 print() 函数在控制台输出问候语,这是你的第一个 Python 程序!',
+                                        tasks: ['输出 "Hello, Python!"', '输出你的名字', '尝试输出一个数学运算结果'],
+                                        initialCode: '# 在这里写下你的代码\nprint("Hello, Python!")\n',
+                                        hint: '使用 print("内容") 来输出文本,可以在括号内进行数学运算',
+                                        completed: false
+                                    }
                                 ]
-                            })
-                        },
-                        {
-                            id: 5,
-                            title: '练习：Hello Python',
-                            type: 'code',
-                            description: '使用 print() 函数在控制台输出问候语。',
-                            tasks: ['输出 "Hello, Python!"', '输出你的名字'],
-                            initialCode: '# 在这里写下你的代码\nprint("Hello, Python!")\n',
-                            hint: '使用 print("内容") 来输出文本',
-                            completed: false
-                        },
-                        { id: 6, title: '第4课：循环结构', type: 'video', duration_seconds: 840, content_url: '', completed: false },
-                    ];
-                    currentLesson.value = lessons.value[0];
-                };
-
-                const fetchCourse = async () => {
-                    if (!courseId) {
-                        loadMockData();
-                        loading.value = false;
-                        return;
-                    }
-
-                    if (!supabase) {
-                        loadMockData();
-                        loading.value = false;
-                        return;
-                    }
-
-                    try {
-                        const { data: courseData, error: courseError } = await supabase.from('courses').select('*').eq('id', courseId).single();
-                        if (courseError || !courseData) throw new Error('Course fetch failed');
-
-                        course.value = courseData;
-
-                        const { data: lessonsData, error: lessonsError } = await supabase.from('lessons').select('*').eq('course_id', courseId).order('order_index');
-
-                        if (lessonsError || !lessonsData || lessonsData.length === 0) throw new Error('Lessons fetch failed');
-
-                        lessons.value = lessonsData;
-                        currentLesson.value = lessons.value[0];
-                    } catch (e) {
-                        console.warn("Falling back to demo data due to:", e);
-                        loadMockData();
-                    } finally {
-                        loading.value = false;
-                    }
-                };
-
-                const selectLesson = (lesson) => {
-                    currentLesson.value = lesson;
-                    // Note loading handled by watcher
-
-                    // Reset Quiz State
-                    quizStarted.value = false;
-                    quizCompleted.value = false;
-                    currentQuestionIndex.value = 0;
-                    selectedOptionIndex.value = null;
-                    hasAnsweredCurrent.value = false;
-                    correctAnswersCount.value = 0;
-
-                    // Initialize HLS player if video
-                    if (lesson.type === 'video' && lesson.content_url) {
-                        setTimeout(() => initVideoPlayer(lesson.content_url), 100);
-                    }
-                };
-
-                // Quiz Logic (kept same)
-                const startQuiz = () => {
-                    if (currentLesson.value.type !== 'quiz') return;
-                    try {
-                        let content = currentLesson.value.content;
-                        if (typeof content === 'string') content = JSON.parse(content);
-                        if (content && content.questions) {
-                            quizQuestions.value = content.questions;
-                            quizStarted.value = true;
-                        } else { alert('测验数据格式错误'); }
-                    } catch (e) {
-                        console.error('Failed to parse quiz content', e);
-                        quizQuestions.value = [{ text: "测试问题 1", options: ["A", "B", "C", "D"], correctIndex: 0 }];
-                        quizStarted.value = true;
-                    }
-                };
-                const selectOption = (index) => { if (hasAnsweredCurrent.value) return; selectedOptionIndex.value = index; hasAnsweredCurrent.value = true; if (index === quizQuestions.value[currentQuestionIndex.value].correctIndex) correctAnswersCount.value++; };
-                const nextQuestion = () => { if (currentQuestionIndex.value < quizQuestions.value.length - 1) { currentQuestionIndex.value++; selectedOptionIndex.value = null; hasAnsweredCurrent.value = false; } else { quizScore.value = Math.round((correctAnswersCount.value / quizQuestions.value.length) * 100); quizCompleted.value = true; } };
-                const resetQuiz = () => { currentQuestionIndex.value = 0; selectedOptionIndex.value = null; hasAnsweredCurrent.value = false; quizCompleted.value = false; correctAnswersCount.value = 0; };
-                const finishQuiz = () => { markAsCompleted(); };
-                const getOptionClass = (index) => {
-                    if (!hasAnsweredCurrent.value) return 'bg-white/5 border-white/10 hover:bg-white/10 cursor-pointer';
-                    const correctIndex = quizQuestions.value[currentQuestionIndex.value].correctIndex;
-                    if (index === correctIndex) return 'bg-green-500/20 border-green-500 text-green-300';
-                    if (index === selectedOptionIndex.value && index !== correctIndex) return 'bg-red-500/20 border-red-500 text-red-300';
-                    return 'bg-white/5 border-white/10 opacity-50';
-                };
-
-                // Chat Logic (kept same)
-                // Chat Logic
-                const scrollToBottom = () => { nextTick(() => { if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight; }); };
-
-                const saveApiKey = () => {
-                    apiKey.value = tempApiKey.value.trim();
-                    localStorage.setItem('deepseek_api_key', apiKey.value);
-                    showSettings.value = false;
-                };
-
-                const sendMessage = async () => {
-                    const content = newMessage.value.trim();
-                    if (!content) return;
-
-                    if (!apiKey.value) {
-                        chatMessages.value.push({ role: 'assistant', content: '请先点击右上角设置图标，配置 DeepSeek API Key。' });
-                        showSettings.value = true;
-                        return;
-                    }
-
-                    chatMessages.value.push({ role: 'user', content });
-                    newMessage.value = '';
-                    scrollToBottom();
-                    isAiTyping.value = true;
-
-                    try {
-                        const response = await fetch('https://api.deepseek.com/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${apiKey.value}`
                             },
-                            body: JSON.stringify({
-                                model: "deepseek-chat",
-                                messages: [
-                                    { "role": "system", "content": "You are a helpful AI programming tutor for beginners. Keep answers concise, encouraging, and use emojis." },
-                                    ...chatMessages.value.map(msg => ({ role: msg.role, content: msg.content }))
-                                ],
-                                stream: false
-                            })
-                        });
+                            '2': {
+                                id: '2',
+                                title: '深度学习与神经网络',
+                                description: '使用 TensorFlow 和 PyTorch 构建深度神经网络,掌握 AI 核心技术',
+                                lessons: [
+                                    { id: 1, title: '第1课:深度学习概述', type: 'video', duration_seconds: 960, content_url: '', completed: false },
+                                    { id: 2, title: '第2课:神经网络基础', type: 'reading', duration_seconds: 0, content: '神经网络是深度学习的核心。一个神经网络由输入层、隐藏层和输出层组成。每个神经元接收输入,通过激活函数处理后传递给下一层。常见的激活函数包括 ReLU、Sigmoid 和 Tanh。反向传播算法用于训练网络,通过梯度下降优化权重参数。在实际应用中,深度学习已经在图像识别、自然语言处理、语音识别等领域取得了突破性进展。', completed: false },
+                                    { id: 3, title: '第3课:TensorFlow 实战', type: 'video', duration_seconds: 1200, content_url: '', completed: false },
+                                    {
+                                        id: 4,
+                                        title: '测验:神经网络理论',
+                                        type: 'quiz',
+                                        duration_seconds: 400,
+                                        completed: false,
+                                        content: JSON.stringify({
+                                            questions: [
+                                                { id: 1, text: "以下哪个不是常见的激活函数?", options: ["ReLU", "Sigmoid", "Linear", "Softmax"], correctIndex: 2 },
+                                                { id: 2, text: "反向传播算法的主要作用是?", options: ["前向计算", "优化权重", "数据预处理", "模型评估"], correctIndex: 1 },
+                                                { id: 3, text: "卷积神经网络(CNN)主要用于?", options: ["文本处理", "图像识别", "时间序列", "强化学习"], correctIndex: 1 }
+                                            ]
+                                        })
+                                    },
+                                    { id: 5, title: '第4课:PyTorch 框架入门', type: 'video', duration_seconds: 1080, content_url: '', completed: false }
+                                ]
+                            },
+                            '3': {
+                                id: '3',
+                                title: 'VEX 机器人竞赛实战',
+                                description: '学习机器人设计、编程与调试,备战 VEX IQ/V5 竞赛',
+                                lessons: [
+                                    { id: 1, title: '第1课:VEX 机器人系统介绍', type: 'video', duration_seconds: 780, content_url: '', completed: false },
+                                    { id: 2, title: '第2课:机械结构设计原理', type: 'reading', duration_seconds: 0, content: 'VEX 机器人的机械结构设计需要考虑稳定性、灵活性和效率。常见的传动方式包括齿轮传动、链条传动和皮带传动。设计时要注意重心位置,确保机器人在运动时保持平衡。使用 CAD 软件可以帮助你在搭建前进行虚拟测试。在 VEX IQ 阶段,学生将学习底盘结构与 Blockly 图形化编程,完成自动巡线任务。进阶到 VEX V5 后,将过渡到金属平台,掌握 C++ 面向对象编程与气动系统,具备全流程工程设计能力。', completed: false },
+                                    { id: 3, title: '第3课:VEXcode 编程基础', type: 'video', duration_seconds: 900, content_url: '', completed: false },
+                                    { id: 4, title: '第4课:自动化程序设计', type: 'video', duration_seconds: 1020, content_url: '', completed: false }
+                                ]
+                            },
+                            '4': {
+                                id: '4',
+                                title: 'UI/UX 设计进阶',
+                                description: '掌握 Figma 设计工具,学习用户体验设计原则与实战技巧',
+                                lessons: [
+                                    { id: 1, title: '第1课:UI/UX 设计原则', type: 'video', duration_seconds: 840, content_url: '', completed: false },
+                                    { id: 2, title: '第2课:Figma 工具入门', type: 'video', duration_seconds: 960, content_url: '', completed: false },
+                                    { id: 3, title: '第3课:色彩理论与应用', type: 'reading', duration_seconds: 0, content: '色彩是设计中最重要的元素之一。色彩理论包括色相、饱和度和明度三个维度。常用的配色方案有互补色、类似色和三角色。在 UI 设计中,要注意色彩的对比度,确保文字可读性。使用 60-30-10 法则可以创建和谐的配色方案:60% 主色调、30% 辅助色、10% 强调色。设计思维强调以人为本,从"我想要"转变为"用户需要"。', completed: false },
+                                    { id: 4, title: '第4课:交互设计实战', type: 'video', duration_seconds: 1080, content_url: '', completed: false }
+                                ]
+                            },
+                            '5': {
+                                id: '5',
+                                title: 'Unity 游戏开发基础',
+                                description: '使用 Unity 引擎创建 2D/3D 游戏,从零到发布完整流程',
+                                lessons: [
+                                    { id: 1, title: '第1课:Unity 引擎介绍', type: 'video', duration_seconds: 720, content_url: '', completed: false },
+                                    { id: 2, title: '第2课:场景搭建与资源管理', type: 'video', duration_seconds: 900, content_url: '', completed: false },
+                                    { id: 3, title: '第3课:C# 脚本编程基础', type: 'video', duration_seconds: 1020, content_url: '', completed: false },
+                                    {
+                                        id: 4,
+                                        title: '编程练习:角色移动控制',
+                                        type: 'code',
+                                        description: '编写 C# 脚本控制游戏角色的移动',
+                                        tasks: ['创建角色移动脚本', '实现 WASD 键盘控制', '添加跳跃功能'],
+                                        initialCode: '// Unity C# 脚本示例\nvoid Update() {\n    // 在这里添加移动逻辑\n}\n',
+                                        hint: '使用 Input.GetAxis() 获取键盘输入',
+                                        completed: false
+                                    },
+                                    { id: 5, title: '第4课:物理系统与碰撞检测', type: 'video', duration_seconds: 960, content_url: '', completed: false }
+                                ]
+                            },
+                            '6': {
+                                id: '6',
+                                title: '物理学趣味实验',
+                                description: '通过动手实验理解物理原理,培养科学思维',
+                                lessons: [
+                                    { id: 1, title: '第1课:力学基础 - 运动与力', type: 'video', duration_seconds: 720, content_url: '', completed: false },
+                                    { id: 2, title: '第2课:电磁学入门', type: 'reading', duration_seconds: 0, content: '电磁学是物理学的重要分支。静电场研究电荷之间的相互作用,库仑定律描述了点电荷间的作用力。电场强度是描述电场性质的物理量。在高中阶段,学生将系统学习电场与磁场性质,掌握闭合电路欧姆定律,深入理解电磁感应现象及其应用(如发电机、变压器)。电磁学的学习不仅培养物质观念和能量观念,更是理解现代科技的基础。', completed: false },
+                                    {
+                                        id: 3,
+                                        title: '测验:物理知识检测',
+                                        type: 'quiz',
+                                        duration_seconds: 300,
+                                        completed: false,
+                                        content: JSON.stringify({
+                                            questions: [
+                                                { id: 1, text: "牛顿第一定律又称为?", options: ["惯性定律", "加速度定律", "作用力定律", "万有引力定律"], correctIndex: 0 },
+                                                { id: 2, text: "光在真空中的速度约为?", options: ["30万公里/秒", "3万公里/秒", "300公里/秒", "3000公里/秒"], correctIndex: 0 },
+                                                { id: 3, text: "以下哪个不是能量的形式?", options: ["动能", "势能", "热能", "质量"], correctIndex: 3 }
+                                            ]
+                                        })
+                                    }
+                                ]
+                            }
+                        };
 
-                        if (!response.ok) {
-                            const errData = await response.json();
-                            throw new Error(errData.error?.message || 'API request failed');
+                        // 获取对应课程的数据,如果没有则使用课程1作为默认
+                        const selectedCourse = allCourses[courseId] || allCourses['1'];
+                        course.value = {
+                            id: selectedCourse.id,
+                            title: selectedCourse.title,
+                            description: selectedCourse.description
+                        };
+                        lessons.value = selectedCourse.lessons;
+                        currentLesson.value = lessons.value[0];
+                    };
+
+                    const fetchCourse = async () => {
+                        loading.value = false;
+                        return;
+                        if (!supabase) {
+                            loadMockData();
+                            loading.value = false;
+                            return;
                         }
 
-                        const data = await response.json();
-                        const aiContent = data.choices[0].message.content;
+                        try {
+                            const { data: courseData, error: courseError } = await supabase.from('courses').select('*').eq('id', courseId).single();
+                            if (courseError || !courseData) throw new Error('Course fetch failed');
 
-                        chatMessages.value.push({ role: 'assistant', content: aiContent });
+                            course.value = courseData;
 
-                    } catch (error) {
-                        console.error('AI Error:', error);
-                        chatMessages.value.push({ role: 'assistant', content: `⚠️ Error: ${error.message}` });
-                    } finally {
-                        isAiTyping.value = false;
+                            const { data: lessonsData, error: lessonsError } = await supabase.from('lessons').select('*').eq('course_id', courseId).order('order_index');
+
+                            if (lessonsError || !lessonsData || lessonsData.length === 0) throw new Error('Lessons fetch failed');
+
+                            lessons.value = lessonsData;
+                            currentLesson.value = lessons.value[0];
+                        } catch (e) {
+                            console.warn("Falling back to demo data due to:", e);
+                            loadMockData();
+                        } finally {
+                            loading.value = false;
+                        }
+                    };
+
+                    const selectLesson = (lesson) => {
+                        currentLesson.value = lesson;
+                        // Note loading handled by watcher
+
+                        // Reset Quiz State
+                        quizStarted.value = false;
+                        quizCompleted.value = false;
+                        currentQuestionIndex.value = 0;
+                        selectedOptionIndex.value = null;
+                        hasAnsweredCurrent.value = false;
+                        correctAnswersCount.value = 0;
+
+                        // Initialize HLS player if video
+                        if (lesson.type === 'video' && lesson.content_url) {
+                            setTimeout(() => initVideoPlayer(lesson.content_url), 100);
+                        }
+                    };
+
+                    // Quiz Logic (kept same)
+                    const startQuiz = () => {
+                        if (currentLesson.value.type !== 'quiz') return;
+                        try {
+                            let content = currentLesson.value.content;
+                            if (typeof content === 'string') content = JSON.parse(content);
+                            if (content && content.questions) {
+                                quizQuestions.value = content.questions;
+                                quizStarted.value = true;
+                            } else { alert('测验数据格式错误'); }
+                        } catch (e) {
+                            console.error('Failed to parse quiz content', e);
+                            quizQuestions.value = [{ text: "测试问题 1", options: ["A", "B", "C", "D"], correctIndex: 0 }];
+                            quizStarted.value = true;
+                        }
+                    };
+                    const selectOption = (index) => { if (hasAnsweredCurrent.value) return; selectedOptionIndex.value = index; hasAnsweredCurrent.value = true; if (index === quizQuestions.value[currentQuestionIndex.value].correctIndex) correctAnswersCount.value++; };
+                    const nextQuestion = () => { if (currentQuestionIndex.value < quizQuestions.value.length - 1) { currentQuestionIndex.value++; selectedOptionIndex.value = null; hasAnsweredCurrent.value = false; } else { quizScore.value = Math.round((correctAnswersCount.value / quizQuestions.value.length) * 100); quizCompleted.value = true; } };
+                    const resetQuiz = () => { currentQuestionIndex.value = 0; selectedOptionIndex.value = null; hasAnsweredCurrent.value = false; quizCompleted.value = false; correctAnswersCount.value = 0; };
+                    const finishQuiz = () => { markAsCompleted(); };
+                    const getOptionClass = (index) => {
+                        if (!hasAnsweredCurrent.value) return 'bg-white/5 border-white/10 hover:bg-white/10 cursor-pointer';
+                        const correctIndex = quizQuestions.value[currentQuestionIndex.value].correctIndex;
+                        if (index === correctIndex) return 'bg-green-500/20 border-green-500 text-green-300';
+                        if (index === selectedOptionIndex.value && index !== correctIndex) return 'bg-red-500/20 border-red-500 text-red-300';
+                        return 'bg-white/5 border-white/10 opacity-50';
+                    };
+
+                    // Chat Logic (kept same)
+                    // Chat Logic
+                    const scrollToBottom = () => { nextTick(() => { if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight; }); };
+
+                    const saveApiKey = () => {
+                        apiKey.value = tempApiKey.value.trim();
+                        localStorage.setItem('deepseek_api_key', apiKey.value);
+                        showSettings.value = false;
+                    };
+
+                    const sendMessage = async () => {
+                        const content = newMessage.value.trim();
+                        if (!content) return;
+
+                        if (!apiKey.value) {
+                            chatMessages.value.push({ role: 'assistant', content: '请先点击右上角设置图标，配置 DeepSeek API Key。' });
+                            showSettings.value = true;
+                            return;
+                        }
+
+                        chatMessages.value.push({ role: 'user', content });
+                        newMessage.value = '';
                         scrollToBottom();
-                    }
-                };
+                        isAiTyping.value = true;
 
-                const sendQuery = (query) => { newMessage.value = query; sendMessage(); };
-                const clearChat = () => { chatMessages.value = []; };
+                        try {
+                            const response = await fetch('https://api.deepseek.com/chat/completions', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${apiKey.value}`
+                                },
+                                body: JSON.stringify({
+                                    model: "deepseek-chat",
+                                    messages: [
+                                        { "role": "system", "content": "You are a helpful AI programming tutor for beginners. Keep answers concise, encouraging, and use emojis." },
+                                        ...chatMessages.value.map(msg => ({ role: msg.role, content: msg.content }))
+                                    ],
+                                    stream: false
+                                })
+                            });
 
-                // Video & Common Logic (kept same)
-                const initVideoPlayer = (url) => { if (!videoPlayer.value) return; if (Hls.isSupported()) { const hls = new Hls(); hls.loadSource(url); hls.attachMedia(videoPlayer.value); } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) { videoPlayer.value.src = url; } };
-                const markAsCompleted = async () => { if (!currentLesson.value) return; currentLesson.value.completed = true; if (supabase && user.value) { await supabase.from('progress').upsert({ user_id: user.value.id, lesson_id: currentLesson.value.id, completed: true }); } if (nextLesson.value) setTimeout(() => selectLesson(nextLesson.value), 1000); };
-                const handleTimeUpdate = () => { };
-                const handleVideoEnded = () => markAsCompleted();
-                const formatDuration = (seconds) => { if (!seconds) return '0:00'; const mins = Math.floor(seconds / 60); const secs = seconds % 60; return `${mins}:${secs.toString().padStart(2, '0')}`; };
+                            if (!response.ok) {
+                                const errData = await response.json();
+                                throw new Error(errData.error?.message || 'API request failed');
+                            }
 
-                onMounted(async () => {
-                    if (supabase) { const { data } = await supabase.auth.getUser(); user.value = data.user; }
-                    await fetchCourse();
-                });
+                            const data = await response.json();
+                            const aiContent = data.choices[0].message.content;
 
-                return {
-                    user, loading, course, lessons, currentLesson, videoPlayer, totalLessons, completedLessons, progressPercentage,
-                    activeTab, currentNote, noteSavedStatus, handleNoteInput, downloadNote, isPreviewMode, renderedNote,
-                    comments, newComment, commentSavedStatus, postComment,
-                    quizStarted, quizCompleted, quizQuestions, currentQuestionIndex, selectedOptionIndex, hasAnsweredCurrent, quizScore, startQuiz, selectOption, nextQuestion, resetQuiz, finishQuiz, getOptionClass,
-                    chatContainer, chatMessages, newMessage, isAiTyping, sendMessage, sendQuery, clearChat,
-                    selectLesson, markAsCompleted, handleTimeUpdate, handleVideoEnded, formatDuration,
-                    selectLesson, markAsCompleted, handleTimeUpdate, handleVideoEnded, formatDuration,
-                    consoleLogs, runCode,
-                    showSettings, tempApiKey, saveApiKey, apiKey
-                };
-            }
-        }).mount('#app');
+                            chatMessages.value.push({ role: 'assistant', content: aiContent });
+
+                        } catch (error) {
+                            console.error('AI Error:', error);
+                            chatMessages.value.push({ role: 'assistant', content: `⚠️ Error: ${error.message}` });
+                        } finally {
+                            isAiTyping.value = false;
+                            scrollToBottom();
+                        }
+                    };
+
+                    const sendQuery = (query) => { newMessage.value = query; sendMessage(); };
+                    const clearChat = () => { chatMessages.value = []; };
+
+                    // Video & Common Logic (kept same)
+                    const initVideoPlayer = (url) => { if (!videoPlayer.value) return; if (Hls.isSupported()) { const hls = new Hls(); hls.loadSource(url); hls.attachMedia(videoPlayer.value); } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) { videoPlayer.value.src = url; } };
+                    const markAsCompleted = async () => { if (!currentLesson.value) return; currentLesson.value.completed = true; if (supabase && user.value) { await supabase.from('progress').upsert({ user_id: user.value.id, lesson_id: currentLesson.value.id, completed: true }); } if (nextLesson.value) setTimeout(() => selectLesson(nextLesson.value), 1000); };
+                    const handleTimeUpdate = () => { };
+                    const handleVideoEnded = () => markAsCompleted();
+                    const formatDuration = (seconds) => { if (!seconds) return '0:00'; const mins = Math.floor(seconds / 60); const secs = seconds % 60; return `${mins}:${secs.toString().padStart(2, '0')}`; };
+
+                    onMounted(async () => {
+                        if (supabase) { const { data } = await supabase.auth.getUser(); user.value = data.user; }
+                        await fetchCourse();
+                    });
+
+                    return {
+                        user, loading, course, lessons, currentLesson, videoPlayer, totalLessons, completedLessons, progressPercentage,
+                        activeTab, currentNote, noteSavedStatus, handleNoteInput, downloadNote, isPreviewMode, renderedNote,
+                        comments, newComment, commentSavedStatus, postComment,
+                        quizStarted, quizCompleted, quizQuestions, currentQuestionIndex, selectedOptionIndex, hasAnsweredCurrent, quizScore, startQuiz, selectOption, nextQuestion, resetQuiz, finishQuiz, getOptionClass,
+                        chatContainer, chatMessages, newMessage, isAiTyping, sendMessage, sendQuery, clearChat,
+                        selectLesson, markAsCompleted, handleTimeUpdate, handleVideoEnded, formatDuration,
+                        selectLesson, markAsCompleted, handleTimeUpdate, handleVideoEnded, formatDuration,
+                        consoleLogs, runCode,
+                        showSettings, tempApiKey, saveApiKey, apiKey
+                    };
+                }
+            }).mount('#app');
     </script>
 </body>
 
