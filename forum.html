@@ -405,16 +405,63 @@
                             <div class="markdown-body" v-html="renderMarkdown(selectedThread.content)"></div>
                         </div>
 
-                        <!-- Placeholder for comments (Stage 2) -->
                         <div class="border-t border-slate-800/50 p-6 md:p-8 bg-slate-900/30">
-                            <h3 class="font-bold text-slate-400 text-sm uppercase tracking-wider mb-4">Comments</h3>
-                            <div
-                                class="text-center py-10 border border-dashed border-slate-700 rounded-xl bg-slate-800/20">
-                                <span class="text-4xl block mb-2">💬</span>
-                                <p class="text-slate-400">评论系统正在搭建中...</p>
-                                <button
-                                    class="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-bold transition-colors">
-                                    Coming Soon</button>
+                            <h3 class="font-bold text-slate-400 text-sm uppercase tracking-wider mb-6">
+                                Comments ({{ comments.length }})
+                            </h3>
+
+                            <!-- Comment List -->
+                            <div v-if="comments.length > 0" class="space-y-6 mb-8">
+                                <div v-for="comment in comments" :key="comment.id" class="flex gap-4 group">
+                                    <div class="w-8 h-8 rounded-full bg-slate-800 shrink-0 overflow-hidden mt-1">
+                                        <img v-if="comment.author?.avatar_url" :src="comment.author.avatar_url"
+                                            class="w-full h-full object-cover">
+                                        <span v-else
+                                            class="w-full h-full flex items-center justify-center text-xs font-bold text-slate-500">
+                                            {{ comment.author?.username?.[0]?.toUpperCase() || '?' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="font-bold text-slate-300 text-sm">{{ comment.author?.username
+                                                || 'Anonymous' }}</span>
+                                            <span class="text-xs text-slate-500">{{ dayjs(comment.created_at).fromNow()
+                                                }}</span>
+                                        </div>
+                                        <div class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap">{{
+                                            comment.content }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="text-center py-8 text-slate-500 text-sm italic mb-8">
+                                No comments yet. Be the first to share your thoughts.
+                            </div>
+
+                            <!-- Comment Input -->
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-slate-800 shrink-0 overflow-hidden mt-1">
+                                    <img v-if="user?.avatar_url" :src="user.avatar_url"
+                                        class="w-full h-full object-cover">
+                                </div>
+                                <div class="flex-1">
+                                    <div v-if="user" class="relative">
+                                        <textarea v-model="newCommentContent" rows="3" placeholder="Write a comment..."
+                                            class="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 text-slate-300 text-sm focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800 transition-all resize-none"
+                                            @keydown.ctrl.enter="submitComment"></textarea>
+                                        <div class="flex justify-end mt-2">
+                                            <button @click="submitComment" :disabled="!newCommentContent.trim()"
+                                                class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                                Post Comment
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-else @click="showLogin = true"
+                                        class="bg-slate-800/30 border border-slate-700/30 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-800/50 transition-colors">
+                                        <span class="text-slate-500 text-sm">Please <span
+                                                class="text-cyan-400 font-bold hover:underline">login</span> to join the
+                                            discussion.</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
