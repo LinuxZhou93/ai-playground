@@ -1991,7 +1991,7 @@
                 });
             }
 
-            // Send Message
+            // Send Message (Streaming Support for Agent)
             const sendMessage = async () => {
                 const text = inputField.value.trim();
                 if (!text) return;
@@ -2000,8 +2000,22 @@
                 appendMessage('USER', text, 'user');
                 inputField.value = '';
 
-                // Show Loading
-                const loadingId = appendMessage('ZHOU_XIAOMAI', 'Thinking...', 'ai');
+                // Create AI Message Placeholder
+                const aiMsgId = 'ai-' + Date.now();
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'chat-msg ai';
+                msgDiv.id = aiMsgId;
+                msgDiv.innerHTML = `
+                    <div class="avatar">
+                        <img src="https://api.dicebear.com/9.x/dylan/svg?seed=ZhouLin" alt="AI">
+                    </div>
+                    <div class="content"><span class="typing-cursor">|</span></div>
+                `;
+                historyDiv.appendChild(msgDiv);
+                historyDiv.scrollTop = historyDiv.scrollHeight;
+
+                const contentSpan = msgDiv.querySelector('.content');
+                let fullAnswer = '';
 
                 try {
                     const response = await fetch(API_URL, {
@@ -2013,41 +2027,72 @@
                         body: JSON.stringify({
                             inputs: {},
                             query: text,
-                            response_mode: "blocking",
+                            response_mode: "streaming", // Agent requires streaming
                             conversation_id: conversationId,
                             user: "commander-zhou"
                         })
                     });
 
-                    const data = await response.json();
-
-                    // Remove Loading
-                    removeMessage(loadingId);
-
-                    if (response.ok) {
-                        conversationId = data.conversation_id;
-                        localStorage.setItem('dify_conversation_id', conversationId); // Save for persistence
-                        appendMessage('ZHOU_XIAOMAI', data.answer, 'ai');
-                    } else {
-                        // Handle Error (e.g., Invalid Conversation ID due to App Switch)
+                    if (!response.ok) {
                         if (response.status === 404 || response.status === 400) {
-                            console.warn('Session mismatch detected. Resetting conversation.');
+                            console.warn('Session mismatch. Resetting.');
                             localStorage.removeItem('dify_conversation_id');
                             conversationId = '';
-                            appendMessage('SYSTEM', '⚠️ Session expired due to system upgrade. Please ask your question again.', 'system');
-                        } else {
-                            console.error('API Error:', data);
-                            appendMessage('SYSTEM', `Error: ${data.message || response.statusText}`, 'error');
-                            if (data.code === 'invalid_param') {
-                                appendMessage('SYSTEM', 'HINT: Backend model configuration missing. Please check Dify settings.', 'system');
+                            contentSpan.innerHTML = '⚠️ Session expired. Please retry.';
+                            return;
+                        }
+                        throw new Error(`API Error: ${response.statusText}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const jsonStr = line.slice(6);
+                                if (jsonStr === '[DONE]') break;
+                                try {
+                                    const data = JSON.parse(jsonStr);
+
+                                    // Handle Conversation ID
+                                    if (data.conversation_id && !conversationId) {
+                                        conversationId = data.conversation_id;
+                                        localStorage.setItem('dify_conversation_id', conversationId);
+                                    }
+
+                                    // Handle Answer Chunk
+                                    if (data.event === 'message' || data.event === 'agent_message') {
+                                        const delta = data.answer;
+                                        if (delta) {
+                                            fullAnswer += delta;
+                                            // Simple Markdown to HTML (Basic)
+                                            contentSpan.innerHTML = fullAnswer
+                                                .replace(/\n/g, '<br>')
+                                                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                                        }
+                                    }
+
+                                    // Handle Agent Thought (Optional: Show tool use)
+                                    if (data.event === 'agent_thought') {
+                                        // You could visualize reasoning here
+                                    }
+
+                                } catch (e) {
+                                    console.error('JSON Parse Error', e);
+                                }
                             }
                         }
                     }
 
                 } catch (error) {
-                    removeMessage(loadingId);
-                    appendMessage('SYSTEM', 'Connection Error: ' + error.message, 'error');
-                    console.error('Network Error:', error);
+                    contentSpan.innerHTML += `<br><span style="color:red">[Error: ${error.message}]</span>`;
                 }
             };
 
