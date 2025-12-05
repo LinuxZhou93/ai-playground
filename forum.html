@@ -324,7 +324,22 @@
                             No signals detected. Be the first to transmit.
                         </div>
                     </div>
+
+                    <!-- Load More / Pagination -->
+                    <!-- Only show if no active search/filter to keep logic simple for now -->
+                    <div class="mt-8 text-center"
+                        v-if="!loading && threads.length > 0 && !searchQuery.value && !currentTag.value">
+                        <button v-if="hasMore" @click="fetchThreads(true)" :disabled="loadingMore"
+                            class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto">
+                            <span v-if="loadingMore"
+                                class="animate-spin h-4 w-4 border-2 border-slate-400 border-t-transparent rounded-full"></span>
+                            {{ loadingMore ? 'Loading more...' : 'Load More Threads' }}
+                        </button>
+                        <p v-else class="text-slate-500 italic text-sm">You have reached the end of the digital
+                            frontier.</p>
+                    </div>
                 </div>
+
             </main>
 
             <!-- Create Thread Modal -->
@@ -582,6 +597,12 @@
                 const searchQuery = ref('');
                 const currentTag = ref(null);
 
+                // Pagination State
+                const page = ref(1);
+                const pageSize = 5;
+                const hasMore = ref(true);
+                const loadingMore = ref(false);
+
                 // Detail View State
                 const selectedThread = ref(null);
                 const showThreadDetail = ref(false);
@@ -659,38 +680,47 @@
                     }
                 };
 
-                // --- Data Logic ---
-                const fetchThreads = async () => {
-                    loading.value = true;
+                // --- Data Fetching ---
+                const fetchThreads = async (isLoadMore = false) => {
+                    if (isLoadMore) {
+                        loadingMore.value = true;
+                        page.value++;
+                    } else {
+                        loading.value = true;
+                        page.value = 1;
+                        threads.value = [];
+                        hasMore.value = true;
+                    }
+
+                    const from = (page.value - 1) * pageSize;
+                    const to = from + pageSize - 1;
 
                     if (!supabase) {
-                        console.warn("Supabase not connected. Using mock data.");
-                        // Mock Data Fallback
-                        threads.value = [
-                            {
-                                id: 'mock-1',
-                                title: 'Welcome to Neural Nexus (Mock Thread)',
-                                content: '# Hello World\\nThis is a mock thread generated because Supabase connection failed. \\n\\n### Features:\\n- Markdown support\\n- Thread details\\n- Comments (Coming Soon)',
-                                upvote_count: 42,
-                                comment_count: 5,
-                                created_at: new Date().toISOString(),
-                                tags: ['System', 'Announcement'],
-                                profiles: { username: 'System_Admin', avatar_url: null, reputation: 999 }
-                            },
-                            {
-                                id: 'mock-2',
-                                title: 'Why AI Agents are the future',
-                                content: 'Just thinking about how agents are changing the coding landscape. It is truly fascinating.',
-                                upvote_count: 15,
-                                comment_count: 2,
-                                created_at: dayjs().subtract(2, 'hour').toISOString(),
-                                tags: ['AI', 'Future'],
-                                profiles: { username: 'Dev_User', avatar_url: null, reputation: 10 }
-                            }
-                        ];
+                        // Mock Data Generation (Simulate Pagination)
+                        await new Promise(r => setTimeout(r, 800)); // Fake value delay
+                        const allMockThreads = Array.from({ length: 25 }, (_, i) => ({
+                            id: `mock-${i + 1}`,
+                            title: `Mock Thread #${i + 1} - ${['AI', 'System', 'WebDev'][i % 3]}`,
+                            content: 'This is a paginated mock thread content...',
+                            upvote_count: Math.floor(Math.random() * 50),
+                            comment_count: Math.floor(Math.random() * 10),
+                            created_at: dayjs().subtract(i, 'day').toISOString(),
+                            tags: [['AI'], ['System'], ['WebDev']][i % 3],
+                            profiles: { username: `User_${i + 1}`, avatar_url: null, reputation: 10 + i }
+                        }));
+
+                        const newBatch = allMockThreads.slice(from, to + 1);
+
+                        if (isLoadMore) {
+                            threads.value.push(...newBatch);
+                        } else {
+                            threads.value = newBatch;
+                        }
+
+                        if (newBatch.length < pageSize) hasMore.value = false;
+
                         loading.value = false;
-                        return;
-                        loading.value = false;
+                        loadingMore.value = false;
                         return;
                     }
 
@@ -700,47 +730,36 @@
                             *,
                             profiles:author_id ( username, avatar_url, reputation )
                         `)
-                        .order('created_at', { ascending: false });
+                        .order('created_at', { ascending: false })
+                        .range(from, to);
 
                     if (error) {
                         console.error('Error fetching threads:', error);
-                        console.warn("Falling back to mock data due to error.");
-                        threads.value = [
-                            {
-                                id: 'mock-1',
-                                title: 'Welcome to Neural Nexus (Mock Thread)',
-                                content: '# Hello World\\nThis is a mock thread generated because Supabase connection failed. \\n\\n### Features:\\n- Markdown support\\n- Thread details\\n- Comments (Coming Soon)',
-                                upvote_count: 42,
-                                comment_count: 5,
-                                created_at: new Date().toISOString(),
-                                tags: ['System', 'Announcement'],
-                                profiles: { username: 'System_Admin', avatar_url: null, reputation: 999 }
-                            },
-                            {
-                                id: 'mock-2',
-                                title: 'Why AI Agents are the future',
-                                content: 'Just thinking about how agents are changing the coding landscape. It is truly fascinating.',
-                                upvote_count: 15,
-                                comment_count: 2,
-                                created_at: dayjs().subtract(2, 'hour').toISOString(),
-                                tags: ['AI', 'Future'],
-                                profiles: { username: 'Dev_User', avatar_url: null, reputation: 10 }
-                            }
-                        ];
+                        // Fallback logic could be added here
                     } else {
-                        threads.value = data || [];
-                        // Check User Votes
-                        if (user.value) {
+                        if (isLoadMore) {
+                            threads.value.push(...(data || []));
+                        } else {
+                            threads.value = data || [];
+                        }
+
+                        if ((data || []).length < pageSize) hasMore.value = false;
+
+                        // Check User Votes for new batch
+                        if (user.value && data && data.length > 0) {
+                            const threadIds = data.map(t => t.id);
                             const { data: votes } = await supabase
                                 .from('votes')
                                 .select('thread_id')
-                                .eq('user_id', user.value.id);
+                                .eq('user_id', user.value.id)
+                                .in('thread_id', threadIds);
                             if (votes) {
                                 votes.forEach(v => userVotes.value.add(v.thread_id));
                             }
                         }
                     }
                     loading.value = false;
+                    loadingMore.value = false;
                 };
 
                 // --- Comment Logic ---
@@ -969,6 +988,9 @@
                         .subscribe();
                 };
 
+
+
+
                 onMounted(async () => {
                     // Check User Session
                     if (supabase) {
@@ -1020,7 +1042,9 @@
                     comments,
                     newCommentContent,
                     fetchComments,
-                    submitComment
+                    submitComment,
+                    hasMore,
+                    loadingMore
                 };
             }
         }).mount('#app');
