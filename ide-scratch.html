@@ -130,19 +130,30 @@
                 </div>
             </nav>
 
-            <!-- Editor Area -->
-            <div id="scratch-container" class="flex-1 relative">
-                <!-- Loading State -->
-                <div id="loading" class="flex flex-col items-center justify-center h-full bg-slate-900"
-                    v-show="isLoading" style="display: none;"> <!-- Controlled by Vue -->
+            <div id="scratch-container"
+                class="flex-1 relative bg-slate-900 flex flex-col items-center justify-center p-8 text-center">
+                <!-- Launch UI -->
+                <div class="max-w-md">
                     <div
-                        class="loading-spinner w-16 h-16 border-4 border-slate-700 border-t-scratch-purple rounded-full mb-4">
+                        class="w-24 h-24 bg-scratch-purple/20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-purple-900/20 border border-scratch-purple/20">
+                        <span class="text-6xl">🚀</span>
                     </div>
-                    <p class="text-slate-400 text-lg" data-i18n="loading_editor">正在加载 Scratch 编辑器...</p>
-                    <p class="text-slate-600 text-sm mt-2" data-i18n="first_load">首次加载可能需要几秒钟</p>
+                    <h2 class="text-3xl font-black text-white mb-4" data-i18n="launch_title">准备好开始创作了吗？</h2>
+                    <p class="text-slate-400 mb-8 leading-relaxed" data-i18n="launch_desc">为了提供最流畅的编程体验，编辑器将在新窗口中全屏打开。
+                    </p>
+
+                    <a :href="editorUrl" target="_blank"
+                        class="inline-flex items-center gap-3 bg-gradient-to-r from-scratch-purple to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white text-lg font-bold px-8 py-4 rounded-xl transition-all hover:scale-105 shadow-xl shadow-purple-900/30 group">
+                        <span data-i18n="launch_btn">启动 Scratch 编辑器</span>
+                        <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+
+                    <p class="mt-6 text-xs text-slate-600">Powered by TurboWarp</p>
                 </div>
-                <!-- Scratch Editor Iframe -->
-                <iframe id="scratch-iframe" class="w-full h-full" style="display: none;"></iframe>
             </div>
         </main>
     </div>
@@ -205,53 +216,37 @@
                     { id: 4, title: '互动故事大挑战', type: 'tutorial', projectId: '' }
                 ]);
 
+                const editorUrl = ref('https://turbowarp.org/editor');
                 const currentLesson = ref(null);
-                const isLoading = ref(true);
-                const BASE_EDITOR_URL = 'https://turbowarp.org/editor?fps=60&interpolation&hq&offscreen';
 
                 const loadLesson = (lesson) => {
                     currentLesson.value = lesson;
-                    isLoading.value = true;
-                    const iframe = document.getElementById('scratch-iframe');
-                    iframe.style.display = 'none';
-                    iframe.src = BASE_EDITOR_URL;
-                    iframe.onload = () => {
-                        isLoading.value = false;
-                        iframe.style.display = 'block';
-                    };
+                    // Logic to maybe pass lesson ID to external URL if supported, 
+                    // or just show instructions in sidebar.
                 };
 
                 const resetEditor = () => {
-                    loadLesson({ id: 0, title: 'New Project', projectId: '' });
                     currentLesson.value = null;
                 };
 
                 onMounted(() => {
-                    const iframe = document.getElementById('scratch-iframe');
-
-                    // Check for project_url in query params
+                    // Check for project_url in query params to construct dynamic URL
                     const urlParams = new URLSearchParams(window.location.search);
                     const projectUrl = urlParams.get('project_url');
+                    const remix = urlParams.get('remix');
 
-                    if (projectUrl) {
-                        // Load specific project
-                        iframe.src = `${BASE_EDITOR_URL}#${projectUrl}`;
-                        // TurboWarp supports #url or project_url param. 
-                        // The reliable way is `?project_url=` param to TurboWarp itself? 
-                        // Actually TurboWarp uses `?project_url=` query param.
-                        iframe.src = `https://turbowarp.org/editor?project_url=${projectUrl}&fps=60&interpolation&hq&offscreen`;
-                    } else {
-                        // Default blank
-                        iframe.src = BASE_EDITOR_URL;
-                    }
+                    let target = 'https://turbowarp.org/editor';
 
-                    iframe.onload = () => {
-                        isLoading.value = false;
-                        iframe.style.display = 'block';
-                    };
+                    // Simple logic: if project URL exists, we might want to suggest user to load it 
+                    // But TurboWarp doesn't have a simple ?load_url= param universal for all cases without CORS.
+                    // However, we can use #url logic if supported or just open editor.
+                    // For now, simple open.
+
+                    // Specific TurboWarp param for loading from URL (if supported by them):
+                    // target += '#https://example.com/project.sb3'; 
                 });
 
-                return { lessons, currentLesson, loadLesson, resetEditor, isLoading };
+                return { lessons, currentLesson, loadLesson, resetEditor, editorUrl };
             }
         }).mount('#app');
 
@@ -330,7 +325,10 @@
                 project_title: '项目标题',
                 project_desc: '项目描述',
                 cancel: '取消',
-                publish: '发布到社区'
+                publish: '发布到社区',
+                launch_title: '准备好开始创作了吗？',
+                launch_desc: '为了提供最流畅的编程体验，编辑器将在新窗口中全屏打开。',
+                launch_btn: '启动 Scratch 编辑器'
             },
             en: {
                 ide_title: 'Scratch IDE',
@@ -345,7 +343,10 @@
                 project_title: 'Project Title',
                 project_desc: 'Project Description',
                 cancel: 'Cancel',
-                publish: 'Publish'
+                publish: 'Publish',
+                launch_title: 'Ready to Create?',
+                launch_desc: 'To provide the smoothest experience, the editor will open in a new window.',
+                launch_btn: 'Launch Scratch Editor'
             }
         };
 
