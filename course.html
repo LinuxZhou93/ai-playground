@@ -342,19 +342,91 @@
                 </div>
             </main>
 
-            <!-- Right Sidebar: Notes & AI Assistant (Placeholder) -->
-            <aside class="w-80 glass border-l border-white/10 overflow-y-auto hidden lg:block">
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="font-bold text-lg">AI 助教</h3>
-                        <span
-                            class="px-2 py-1 rounded-full bg-odyssey-cyan/20 text-odyssey-cyan text-xs font-bold">即将推出</span>
+            <!-- Right Sidebar: AI Assistant -->
+            <aside class="w-80 glass border-l border-white/10 flex flex-col hidden lg:flex">
+                <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <div
+                                class="w-2 h-2 rounded-full bg-green-500 absolute bottom-0 right-0 border-2 border-black">
+                            </div>
+                            <span class="text-2xl">🤖</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm">AI 助教</h3>
+                            <p class="text-xs text-gray-400">在线 - 随时提问</p>
+                        </div>
+                    </div>
+                    <button class="text-gray-400 hover:text-white" title="清除历史" @click="clearChat">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Chat Messages -->
+                <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div v-if="chatMessages.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                        <p class="mb-2">👋 你好！我是你的 AI 学习助手。</p>
+                        <p>关于本节课有任何疑问，都可以问我哦！</p>
+                        <p class="mt-4 text-xs">试着问：</p>
+                        <div class="mt-2 text-left space-y-2">
+                            <button @click="sendQuery('这一节的核心概念是什么？')"
+                                class="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors">
+                                "这一节的核心概念是什么？"
+                            </button>
+                            <button @click="sendQuery('能举个实际应用的例子吗？')"
+                                class="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors">
+                                "能举个实际应用的例子吗？"
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="text-center py-12">
-                        <div class="text-5xl mb-4">🤖</div>
-                        <p class="text-sm text-gray-400">AI 助教功能正在开发中</p>
+                    <div v-for="(msg, index) in chatMessages" :key="index" class="flex gap-3"
+                        :class="msg.role === 'user' ? 'flex-row-reverse' : ''">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                            :class="msg.role === 'user' ? 'bg-odyssey-purple' : 'bg-odyssey-cyan/20'">
+                            <span v-if="msg.role === 'user'">👤</span>
+                            <span v-else>🤖</span>
+                        </div>
+                        <div class="max-w-[80%] rounded-2xl p-3 text-sm leading-relaxed"
+                            :class="msg.role === 'user' ? 'bg-odyssey-purple/20 text-white rounded-tr-none' : 'bg-white/5 text-gray-200 rounded-tl-none'">
+                            {{ msg.content }}
+                        </div>
                     </div>
+
+                    <div v-if="isAiTyping" class="flex gap-3">
+                        <div
+                            class="w-8 h-8 rounded-full bg-odyssey-cyan/20 flex items-center justify-center flex-shrink-0">
+                            🤖</div>
+                        <div class="bg-white/5 rounded-2xl rounded-tl-none p-3 flex items-center gap-1">
+                            <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                            <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                                style="animation-delay: 0.1s"></div>
+                            <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                                style="animation-delay: 0.2s"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="p-4 border-t border-white/10 bg-black/20">
+                    <form @submit.prevent="sendMessage">
+                        <div class="relative">
+                            <input v-model="newMessage" type="text" placeholder="输入问题..."
+                                class="w-full pl-4 pr-10 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-odyssey-cyan focus:bg-white/10 focus:outline-none transition-colors text-sm text-white">
+                            <button type="submit"
+                                class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 text-odyssey-cyan hover:text-white transition-colors disabled:opacity-50"
+                                :disabled="!newMessage.trim() || isAiTyping">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </aside>
 
