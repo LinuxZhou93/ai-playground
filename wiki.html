@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="//unpkg.com/3d-force-graph"></script>
     <style>
         :root {
             --primary-color: #00f3ff;
@@ -319,6 +320,147 @@
             background: linear-gradient(135deg, transparent 50%, var(--glass-border) 50%);
         }
 
+        /* View Switcher */
+        .view-switcher {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+            padding: 2px;
+        }
+
+        .view-btn {
+            padding: 8px 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            font-size: 14px;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        .view-btn.active {
+            background: rgba(0, 243, 255, 0.1);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+        }
+
+        /* Galaxy Container */
+        #galaxy-container {
+            width: 100%;
+            height: calc(100vh - 200px);
+            display: none;
+            /* Hidden by default */
+            border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #galaxy-container canvas {
+            outline: none;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            width: 800px;
+            max-width: 90%;
+            max-height: 85vh;
+            background: rgba(10, 15, 30, 0.95);
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+            padding: 0;
+            border-radius: 4px;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .modal-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: #fff;
+            margin: 0;
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--secondary-color);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .modal-close:hover {
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            color: #ddd;
+            font-size: 16px;
+            line-height: 1.8;
+            flex: 1;
+        }
+
+        .modal-tags {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--glass-border);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .modal-tag {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--primary-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             body {
@@ -467,11 +609,40 @@
                 <input type="text" class="search-input" placeholder="检索数据库... (关键词: Python, AI, 物理)"
                     onkeyup="searchWiki()">
             </div>
+
+            <!-- View Switcher -->
+            <div class="view-switcher">
+                <div class="view-btn active" onclick="switchView('grid')" id="btn-grid">
+                    <i data-lucide="layout-grid"></i> 矩阵视图
+                </div>
+                <div class="view-btn" onclick="switchView('galaxy')" id="btn-galaxy">
+                    <i data-lucide="network"></i> 知识星系
+                </div>
+            </div>
         </div>
 
         <!-- Content Grid -->
         <div id="wiki-container">
             <!-- Content injected by JS -->
+        </div>
+
+        <!-- Galaxy Container -->
+        <div id="galaxy-container"></div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal-overlay" id="detail-modal" onclick="if(event.target === this) closeModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Title Here</h2>
+                <button class="modal-close" onclick="closeModal()">
+                    <i data-lucide="x-circle" width="32" height="32"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-content-text">Content goes here...</div>
+                <div class="modal-tags" id="modal-tags"></div>
+            </div>
         </div>
     </div>
 
@@ -550,15 +721,16 @@
             }
         }
 
+
         function appendCards(items, container) {
             items.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.className = 'wiki-card';
-                // Staggered animation delay for new items
                 card.style.animation = `fadeIn 0.5s ease forwards ${index * 0.05}s`;
-                card.style.opacity = '0'; // Start hidden for animation
+                card.style.opacity = '0';
+                card.onclick = () => openModal(item);
+                card.style.cursor = 'pointer';
 
-                // Translate labels
                 const categoryLabel = categoryMap[item.category] || item.category;
                 const stageLabel = stageMap[item.stage] || item.stage;
 
@@ -579,8 +751,6 @@
                 `;
                 container.appendChild(card);
             });
-
-            // Re-init icons for new elements
             lucide.createIcons();
         }
 
@@ -646,6 +816,133 @@
                 }
             };
             window.requestAnimationFrame(step);
+        }
+
+        // View Switcher Logic
+        function switchView(mode) {
+            const gridContainer = document.getElementById('wiki-container');
+            const galaxyContainer = document.getElementById('galaxy-container');
+            const btnGrid = document.getElementById('btn-grid');
+            const btnGalaxy = document.getElementById('btn-galaxy');
+
+            if (mode === 'galaxy') {
+                gridContainer.style.display = 'none';
+                galaxyContainer.style.display = 'block';
+                btnGrid.classList.remove('active');
+                btnGalaxy.classList.add('active');
+
+                if (!galaxyInitialized) {
+                    initGalaxy();
+                }
+            } else {
+                gridContainer.style.display = 'grid';
+                galaxyContainer.style.display = 'none';
+                btnGrid.classList.add('active');
+                btnGalaxy.classList.remove('active');
+            }
+        }
+
+        // Modal Logic
+        function openModal(item) {
+            const modal = document.getElementById('detail-modal');
+            const title = document.getElementById('modal-title');
+            const content = document.getElementById('modal-content-text');
+            const tags = document.getElementById('modal-tags');
+
+            title.innerText = item.title;
+            content.innerText = item.content; // In prod, use markdown parser if available
+            tags.innerHTML = item.tags.map(t => `<span class="modal-tag">#${t}</span>`).join('');
+
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('detail-modal');
+            modal.classList.remove('active');
+        }
+
+        // 3D Galaxy Logic
+        let galaxyInitialized = false;
+        let Graph = null;
+
+        function initGalaxy() {
+            const elem = document.getElementById('galaxy-container');
+
+            // Transform Data for Graph
+            // Nodes: All wiki items
+            // Links: Connect items that share at least 1 common tag
+            const nodes = wikiData.map(item => ({
+                id: item.title,
+                group: item.category,
+                val: 1, // Size
+                data: item
+            }));
+
+            const links = [];
+            // Simple linking strategy: if share tags, link. 
+            // Warning: O(N^2) complexity. For 300 items ~90k checks, fine.
+            for (let i = 0; i < wikiData.length; i++) {
+                for (let j = i + 1; j < wikiData.length; j++) {
+                    const itemA = wikiData[i];
+                    const itemB = wikiData[j];
+
+                    // Count shared tags
+                    const sharedTags = itemA.tags.filter(tag => itemB.tags.includes(tag));
+                    if (sharedTags.length > 0) {
+                        links.push({
+                            source: itemA.title,
+                            target: itemB.title,
+                            value: sharedTags.length // Thickness
+                        });
+                    }
+                }
+            }
+
+            const graphData = { nodes, links };
+
+            Graph = ForceGraph3D()
+                (elem)
+                .graphData(graphData)
+                .nodeAutoColorBy('group')
+                .nodeLabel('id')
+                .nodeVal(node => 5 + (node.data.content.length / 50)) // Size based on content length
+                .linkWidth(link => Math.sqrt(link.value))
+                .linkOpacity(0.3)
+                .backgroundColor('rgba(0,0,0,0)') // Transparent to see cyberpunk bg
+                .onNodeClick(node => {
+                    // Aim at node from outside it
+                    const distance = 40;
+                    const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+
+                    Graph.cameraPosition(
+                        { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
+                        node, // lookAt ({ x, y, z })
+                        3000  // ms transition duration
+                    );
+
+                    setTimeout(() => {
+                        openModal(node.data);
+                    }, 1000);
+                });
+
+            wikiData.forEach(item => {
+                // Pre-calculate something if needed? No.
+            });
+
+            galaxyInitialized = true;
+
+            // Adjust canvas size
+            setTimeout(() => {
+                Graph.width(elem.clientWidth);
+                Graph.height(elem.clientHeight);
+            }, 100);
+
+            window.addEventListener('resize', () => {
+                if (Graph) {
+                    Graph.width(elem.clientWidth);
+                    Graph.height(elem.clientHeight);
+                }
+            });
         }
 
         // Initial render

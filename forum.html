@@ -225,9 +225,16 @@
                     <div
                         class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-[40px] rounded-full pointer-events-none group-hover:bg-cyan-500/20 transition-all">
                     </div>
-                    <h3 class="font-bold text-white mb-2">关于社群</h3>
+                    <h3 class="font-bold text-white mb-2">关于科技特长生社群</h3>
                     <p class="text-xs text-slate-400 leading-relaxed mb-4">
-                        这是一个面向开发者、设计师和思想家的协作空间，共同探讨科技的未来。
+                        专注青少年科技升学路径规划与交流。
+                        <br><br>
+                        🎯 <b>核心议题：</b><br>
+                        • <b>白名单赛事</b> (CSP-J/S, NOI, VEX)<br>
+                        • <b>升学政策</b> (强基计划, 综合评价)<br>
+                        • <b>也是资源</b> (真题解析, 备考资料)<br>
+                        <br>
+                        汇聚全国金牌教练与牛娃家长，助力名校梦想。
                     </p>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -572,29 +579,28 @@
                 });
             }
 
-            // --- 1. Mock Data Integration ---
-            // --- Search & Filter Logic ---
-            let currentSearchTerm = '';
-
-            // Search Input Event
+            const threadListEl = document.getElementById('thread-list');
+            const loadingEl = document.getElementById('app-loading');
             const searchInput = document.querySelector('input[placeholder="搜索话题..."]');
-            searchInput.addEventListener('input', (e) => {
-                currentSearchTerm = e.target.value.toLowerCase();
-                render();
-            });
 
-            const generateThreads = () => {
-                const topics = [
+            // --- 1. State Management ---
+            const state = {
+                items: [],
+                filter: '',
+                topics: [
                     { title: "【信奥】CSP-J/S 2025 备考路线图分享", tag: "算法竞赛", color: "text-red-400" },
                     { title: "VEX 机器人世锦赛夺冠经验回顾", tag: "机器人", color: "text-purple-400" },
                     { title: "高中生如何发表第一篇 AI 顶会论文？", tag: "学术科研", color: "text-cyan-400" },
                     { title: "科技特长生申请清北/常春藤的策略", tag: "升学规划", color: "text-emerald-400" },
                     { title: "C++ 指针与内存管理核心难点解析", tag: "编程基础", color: "text-slate-300" },
                     { title: "我的第一个开源项目：基于 Python 的温湿度监控", tag: "项目实战", color: "text-pink-400" }
-                ];
+                ]
+            };
 
-                const allThreads = Array.from({ length: 8 }, (_, i) => {
-                    const topic = topics[i % topics.length];
+            // Initialize Data
+            const initData = () => {
+                state.items = Array.from({ length: 8 }, (_, i) => {
+                    const topic = state.topics[i % state.topics.length];
                     return {
                         id: i,
                         title: topic.title,
@@ -604,99 +610,148 @@
                         author: `家长_${i + 1}`,
                         avatar: null,
                         upvotes: 42 + (i * 12),
+                        hasUpvoted: false, // Track local vote state
                         comments: 5 + (i * 3),
                         time: new Date(Date.now() - (i * 3600000)) // Hours ago
                     };
                 });
-
-                if (!currentSearchTerm) return allThreads;
-
-                return allThreads.filter(thread =>
-                    thread.title.toLowerCase().includes(currentSearchTerm) ||
-                    thread.tag.toLowerCase().includes(currentSearchTerm)
-                );
             };
 
-            // --- 2. Render Function ---
+            // --- 2. Action Handlers ---
+            const actions = {
+                upvote: (id) => {
+                    const item = state.items.find(i => i.id === id);
+                    if (item) {
+                        item.hasUpvoted = !item.hasUpvoted;
+                        item.upvotes += item.hasUpvoted ? 1 : -1;
+                        render(); // Re-render to show new state
+                    }
+                },
+                downvote: (id) => {
+                    // For now just toggle logic, maybe visual only
+                    console.log("Downvoted", id);
+                },
+                filterTag: (tag) => {
+                    state.filter = tag;
+                    searchInput.value = tag; // visual feedback
+                    render();
+                },
+                clearFilter: () => {
+                    state.filter = '';
+                    searchInput.value = '';
+                    render();
+                }
+            };
+
+            // --- 3. Render Function ---
             const render = () => {
-                const threads = generateThreads();
+                const filtered = state.items.filter(thread =>
+                    state.filter === '' ||
+                    thread.title.toLowerCase().includes(state.filter.toLowerCase()) ||
+                    thread.tag.toLowerCase().includes(state.filter.toLowerCase())
+                );
+
                 let html = '';
 
-                threads.forEach((thread, index) => {
-                    // Try to use Day.js if loaded, else fallback
-                    let timeDisplay = "刚刚";
-                    if (window.dayjs && window.dayjs_plugin_relativeTime) {
-                        dayjs.extend(window.dayjs_plugin_relativeTime);
-                        dayjs.locale('zh-cn'); // Force Chinese locale
-                        timeDisplay = dayjs(thread.time).fromNow();
-                    } else {
-                        // Simple fallback
-                        timeDisplay = `${index + 1}小时前`;
-                    }
+                if (filtered.length === 0) {
+                    html = `<div class="text-center text-slate-500 py-10">没有找到相关内容</div>`;
+                } else {
+                    filtered.forEach((thread) => {
+                        // Date formatting
+                        let timeDisplay = "刚刚";
+                        if (window.dayjs && window.dayjs_plugin_relativeTime) {
+                            dayjs.extend(window.dayjs_plugin_relativeTime);
+                            dayjs.locale('zh-cn');
+                            timeDisplay = dayjs(thread.time).fromNow();
+                        } else {
+                            timeDisplay = "近期";
+                        }
 
-                    html += `
-                        <article class="glass-panel group cursor-pointer hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden">
-                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
-                            
-                            <div class="flex gap-4">
-                                <!-- Vote -->
-                                <div class="flex flex-col items-center gap-1 w-10 shrink-0 pt-1 text-slate-500">
-                                    <button class="hover:text-cyan-400 transition-colors">▲</button>
-                                    <span class="font-mono font-bold text-sm text-slate-400">${thread.upvotes}</span>
-                                    <button class="hover:text-red-400 transition-colors">▼</button>
-                                </div>
+                        const activeClass = thread.hasUpvoted ? 'text-cyan-400' : 'text-slate-400';
 
-                                <!-- Body -->
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-1 text-xs text-slate-500">
-                                        <div class="flex items-center gap-1 hover:text-cyan-400 cursor-pointer transition-colors">
-                                            <div class="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold">
-                                                ${thread.author[0]}
+                        html += `
+                            <article class="glass-panel group cursor-pointer hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden" data-id="${thread.id}">
+                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
+                                
+                                <div class="flex gap-4">
+                                    <!-- Vote -->
+                                    <div class="flex flex-col items-center gap-1 w-10 shrink-0 pt-1 text-slate-500">
+                                        <button class="hover:text-cyan-400 transition-colors ${activeClass}" onclick="window.forumActions.upvote(${thread.id}, event)">▲</button>
+                                        <span class="font-mono font-bold text-sm ${thread.hasUpvoted ? 'text-cyan-400' : 'text-slate-400'}">${thread.upvotes}</span>
+                                        <button class="hover:text-red-400 transition-colors" onclick="event.stopPropagation()">▼</button>
+                                    </div>
+
+                                    <!-- Body -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 mb-1 text-xs text-slate-500">
+                                            <div class="flex items-center gap-1 hover:text-cyan-400 cursor-pointer transition-colors">
+                                                <div class="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold">
+                                                    ${thread.author[0]}
+                                                </div>
+                                                <span class="font-bold text-slate-300">${thread.author}</span>
                                             </div>
-                                            <span class="font-bold text-slate-300">${thread.author}</span>
+                                            <span>•</span>
+                                            <span>${timeDisplay}</span>
+                                            <span class="px-1.5 py-0.5 rounded bg-slate-800 ${thread.tagColor} border border-slate-700 ml-2 cursor-pointer hover:bg-slate-700" onclick="window.forumActions.filterTag('${thread.tag}', event)">${thread.tag}</span>
                                         </div>
-                                        <span>•</span>
-                                        <span>${timeDisplay}</span>
-                                        <span class="px-1.5 py-0.5 rounded bg-slate-800 ${thread.tagColor} border border-slate-700 ml-2">${thread.tag}</span>
-                                    </div>
-                                    
-                                    <h3 class="font-bold text-lg text-slate-200 mb-2 group-hover:text-cyan-400 transition-colors leading-snug">
-                                        ${thread.title}
-                                    </h3>
-                                    
-                                    <p class="text-slate-400 text-sm line-clamp-2 mb-3 leading-relaxed">
-                                        ${thread.content}
-                                    </p>
-                                    
-                                    <div class="flex items-center gap-4 text-xs text-slate-500">
-                                        <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
-                                            <span>💬</span> ${thread.comments} 评论
-                                        </button>
-                                        <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
-                                            <span>🔁</span> 分享
-                                        </button>
+                                        
+                                        <h3 class="font-bold text-lg text-slate-200 mb-2 group-hover:text-cyan-400 transition-colors leading-snug">
+                                            ${thread.title}
+                                        </h3>
+                                        
+                                        <p class="text-slate-400 text-sm line-clamp-2 mb-3 leading-relaxed">
+                                            ${thread.content}
+                                        </p>
+                                        
+                                        <div class="flex items-center gap-4 text-xs text-slate-500">
+                                            <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
+                                                <span>💬</span> ${thread.comments} 评论
+                                            </button>
+                                            <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
+                                                <span>🔁</span> 分享
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </article>
-                    `;
-                });
+                            </article>
+                        `;
+                    });
+                }
 
                 threadListEl.innerHTML = html;
-
-                // --- 3. Reveal UI ---
-                // Immediate reveal since local Tailwind is fast
-                requestAnimationFrame(() => {
-                    loadingEl.style.opacity = '0';
-                    setTimeout(() => loadingEl.remove(), 300);
-                });
             };
 
-            // Init immediately
+            // --- 4. Event Binding ---
+            // Expose actions to global scope for inline onclicks (simple approach for this scale)
+            window.forumActions = {
+                upvote: (id, e) => {
+                    e.stopPropagation(); // prevent card click
+                    actions.upvote(id);
+                },
+                filterTag: (tag, e) => {
+                    if (e) e.stopPropagation();
+                    actions.filterTag(tag);
+                }
+            };
+
+            // Search Input Binding
+            searchInput.addEventListener('input', (e) => {
+                state.filter = e.target.value.toLowerCase();
+                render();
+            });
+
+            // Initialize
+            initData();
             render();
-            // Init 3D Background moved to end
+
+            // Reveal UI
+            requestAnimationFrame(() => {
+                loadingEl.style.opacity = '0';
+                setTimeout(() => loadingEl.remove(), 300);
+            });
         });
     </script>
 </body>
 
 </html>
+```

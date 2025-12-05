@@ -1,15 +1,15 @@
 const wikiData = [
     // --- 小学阶段 (Elementary) ---
     // 编程与逻辑
-    { title: "Scratch", category: "course", stage: "elementary", tags: ["Coding", "Block-based"], content: "MIT开发的图形化编程工具，通过积木拼接学习编程逻辑，适合零基础入门。" },
-    { title: "Code.org", category: "course", stage: "elementary", tags: ["Coding", "CS"], content: "全球知名的少儿编程公益平台，提供《我的世界》、《冰雪奇缘》等主题的编程一小时课程。" },
-    { title: "Python Turtle", category: "tool", stage: "elementary", tags: ["Coding", "Art"], content: "Python内置的海龟绘图库，通过简单的指令控制小海龟画图，直观理解代码执行顺序。" },
+    { title: "Scratch", category: "course", stage: "elementary", tags: ["Coding", "Block-based"], url: "ide-scratch.html", content: "MIT开发的图形化编程工具，通过积木拼接学习编程逻辑，适合零基础入门。" },
+    { title: "Code.org", category: "course", stage: "elementary", tags: ["Coding", "CS"], url: "https://code.org", content: "全球知名的少儿编程公益平台，提供《我的世界》、《冰雪奇缘》等主题的编程一小时课程。" },
+    { title: "Python Turtle", category: "tool", stage: "elementary", tags: ["Coding", "Art"], url: "coding.html", content: "Python内置的海龟绘图库，通过简单的指令控制小海龟画图，直观理解代码执行顺序。" },
     { title: "流程图", category: "concept", stage: "elementary", tags: ["Logic", "Thinking"], content: "用图形符号表示算法思路的图表，包括开始、结束、判断、循环等基本结构。" },
     { title: "二进制", category: "concept", stage: "elementary", tags: ["CS", "Math"], content: "计算机的基础语言，只用0和1表示数字。理解开关的通断与数据的关系。" },
 
     // 机器人与硬件
-    { title: "LEGO WeDo", category: "tool", stage: "elementary", tags: ["Robotics", "LEGO"], content: "乐高教育推出的入门级机器人套装，结合积木搭建和简单编程，学习机械传动。" },
-    { title: "Micro:bit", category: "tool", stage: "elementary", tags: ["Hardware", "BBC"], content: "BBC推出的微型电脑开发板，集成了LED阵列、按钮、蓝牙和传感器，适合创意制作。" },
+    { title: "LEGO WeDo", category: "tool", stage: "elementary", tags: ["Robotics", "LEGO"], url: "https://education.lego.com/en-us/product/wedo-2", content: "乐高教育推出的入门级机器人套装，结合积木搭建和简单编程，学习机械传动。" },
+    { title: "Micro:bit", category: "tool", stage: "elementary", tags: ["Hardware", "BBC"], url: "https://microbit.org", content: "BBC推出的微型电脑开发板，集成了LED阵列、按钮、蓝牙和传感器，适合创意制作。" },
     { title: "Makey Makey", category: "tool", stage: "elementary", tags: ["Hardware", "Creative"], content: "创意电路板，可以将水果、橡皮泥等导电物体变成键盘按键，制作香蕉钢琴。" },
     { title: "齿轮传动", category: "concept", stage: "elementary", tags: ["Mechanics", "Physics"], content: "理解齿轮比、加速、减速和改变力的方向。常见于赛车和机械臂制作。" },
     { title: "杠杆原理", category: "concept", stage: "elementary", tags: ["Mechanics", "Physics"], content: "阿基米德的名言“给我一个支点，我可以撬动地球”。理解省力杠杆和费力杠杆。" },
@@ -35,14 +35,14 @@ const wikiData = [
 
     // --- 初中阶段 (Middle) ---
     // 编程进阶
-    { title: "Python 基础", category: "course", stage: "middle", tags: ["Coding", "Text-based"], content: "从图形化转向代码，学习变量、循环、函数、列表等核心语法。" },
-    { title: "C++ 入门", category: "course", stage: "middle", tags: ["Coding", "CSP"], content: "信息学奥赛（CSP-J）指定语言，学习强类型语言特性和基本算法。" },
-    { title: "App Inventor", category: "tool", stage: "middle", tags: ["Coding", "Mobile"], content: "MIT开发的安卓应用开发工具，通过积木块制作手机APP。" },
+    { title: "Python 基础", category: "course", stage: "middle", tags: ["Coding", "Text-based"], url: "coding.html", content: "从图形化转向代码，学习变量、循环、函数、列表等核心语法。" },
+    { title: "C++ 入门", category: "course", stage: "middle", tags: ["Coding", "CSP"], url: "coding.html", content: "信息学奥赛（CSP-J）指定语言，学习强类型语言特性和基本算法。" },
+    { title: "App Inventor", category: "tool", stage: "middle", tags: ["Coding", "Mobile"], url: "http://appinventor.mit.edu", content: "MIT开发的安卓应用开发工具，通过积木块制作手机APP。" },
     { title: "HTML/CSS", category: "course", stage: "middle", tags: ["Web", "Design"], content: "网页开发基础，学习构建网页结构和美化页面样式。" },
     { title: "算法复杂度", category: "concept", stage: "middle", tags: ["CS", "Algorithm"], content: "理解时间复杂度和空间复杂度，学会评估程序的效率（Big O表示法）。" },
 
     // 电子与硬件
-    { title: "Arduino", category: "tool", stage: "middle", tags: ["Hardware", "C++"], content: "全球最流行的开源硬件平台，学习C语言控制传感器和执行器。" },
+    { title: "Arduino", category: "tool", stage: "middle", tags: ["Hardware", "C++"], url: "https://www.arduino.cc", content: "全球最流行的开源硬件平台，学习C语言控制传感器和执行器。" },
     { title: "面包板", category: "tool", stage: "middle", tags: ["Electronics"], content: "无需焊接即可搭建电路的实验工具，电子制作必备。" },
     { title: "万用表", category: "tool", stage: "middle", tags: ["Electronics", "Tool"], content: "测量电压、电流、电阻的仪表，排查电路故障的神器。" },
     { title: "传感器", category: "concept", stage: "middle", tags: ["Hardware", "IoT"], content: "将物理量（光、热、声）转换为电信号的元件，如超声波测距、温湿度传感器。" },
@@ -63,8 +63,8 @@ const wikiData = [
     { title: "博弈论入门", category: "concept", stage: "middle", tags: ["Math", "Strategy"], content: "研究决策主体在相互影响作用下的决策和均衡问题，如囚徒困境。" },
 
     // 竞赛相关
-    { title: "CSP-J/S", category: "course", stage: "middle", tags: ["Competition", "NOI"], content: "CCF非专业级软件能力认证，信息学奥赛的入门级和提高级。" },
-    { title: "VEX 机器人", category: "course", stage: "middle", tags: ["Competition", "Robotics"], content: "全球规模最大的机器人竞赛之一，考验机械设计、编程和团队合作。" },
+    { title: "CSP-J/S", category: "course", stage: "middle", tags: ["Competition", "NOI"], url: "https://www.noi.cn/", content: "CCF非专业级软件能力认证，信息学奥赛的入门级和提高级。" },
+    { title: "VEX 机器人", category: "course", stage: "middle", tags: ["Competition", "Robotics"], url: "https://www.vexrobotics.com", content: "全球规模最大的机器人竞赛之一，考验机械设计、编程和团队合作。" },
     { title: "FLL", category: "course", stage: "middle", tags: ["Competition", "LEGO"], content: "FIRST LEGO League，乐高机器人工程挑战赛。" },
     { title: "蓝桥杯", category: "course", stage: "middle", tags: ["Competition", "Coding"], content: "国内知名的IT类学科竞赛，涵盖Python、C++、单片机等。" },
     { title: "科技创新大赛", category: "course", stage: "middle", tags: ["Competition", "Innovation"], content: "青少年科技创新成果竞赛，鼓励发明创造和科学研究。" },
@@ -99,7 +99,7 @@ const wikiData = [
     { title: "Kaggle", category: "course", stage: "high", tags: ["AI", "Competition"], content: "全球最大的数据科学竞赛平台，提供真实数据集和实战项目。" },
 
     // 综合素养
-    { title: "GitHub", category: "tool", stage: "high", tags: ["CS", "Git"], content: "全球最大的代码托管平台，学习版本控制和开源协作。" },
+    { title: "GitHub", category: "tool", stage: "high", tags: ["CS", "Git"], url: "https://github.com", content: "全球最大的代码托管平台，学习版本控制和开源协作。" },
     { title: "ISEF", category: "course", stage: "high", tags: ["Competition", "Research"], content: "英特尔国际科学与工程大奖赛，全球最高等级的中学生科研竞赛。" },
     { title: "第一性原理", category: "concept", stage: "high", tags: ["Thinking"], content: "回归事物最基本的条件，将其拆分成要素进行解构分析。" },
     { title: "项目管理", category: "concept", stage: "high", tags: ["Management"], content: "甘特图、敏捷开发（Agile），规划和控制项目进度。" },
@@ -171,7 +171,7 @@ const wikiData = [
     { title: "5G", category: "concept", stage: "middle", tags: ["Tech"], content: "第五代移动通信技术，高速度、低延迟。" },
     { title: "边缘计算", category: "concept", stage: "university", tags: ["Tech"], content: "在靠近数据源头的地方进行计算，减少延迟。" },
 
-    { title: "React", category: "tool", stage: "university", tags: ["Web"], content: "Facebook开源的前端框架，组件化开发。" },
+    { title: "React", category: "tool", stage: "university", tags: ["Web"], url: "https://react.dev", content: "Facebook开源的前端框架，组件化开发。" },
     { title: "Vue", category: "tool", stage: "high", tags: ["Web"], content: "尤雨溪开发的渐进式前端框架，易学易用。" },
     { title: "Node.js", category: "tool", stage: "high", tags: ["Web"], content: "让JavaScript运行在服务端的环境。" },
     { title: "SQL", category: "tool", stage: "high", tags: ["Data"], content: "结构化查询语言，操作数据库的标准。" },
@@ -192,7 +192,7 @@ const wikiData = [
     // --- 补充词条 (Additional Entries) ---
     // 编程库与框架
     { title: "NumPy", category: "tool", stage: "university", tags: ["Python", "Data"], content: "Python科学计算的基础库，提供高性能的多维数组对象。" },
-    { title: "Matplotlib", category: "tool", stage: "university", tags: ["Python", "Data"], content: "Python绘图库，可以生成各种静态、动态、交互式的图表。" },
+    { title: "Matplotlib", category: "tool", stage: "university", tags: ["Python", "Data"], url: "https://matplotlib.org", content: "Python绘图库，可以生成各种静态、动态、交互式的图表。" },
     { title: "Scikit-learn", category: "tool", stage: "university", tags: ["AI", "ML"], content: "简单高效的数据挖掘和数据分析工具，基于NumPy, SciPy和matplotlib。" },
     { title: "Spring Boot", category: "tool", stage: "university", tags: ["Java", "Web"], content: "基于Spring框架的快速开发脚手架，简化了配置。" },
     { title: "Django", category: "tool", stage: "university", tags: ["Python", "Web"], content: "高层次的Python Web框架，鼓励快速开发和干净、实用的设计。" },
@@ -263,7 +263,7 @@ const wikiData = [
     { title: "钱学森", category: "concept", stage: "middle", tags: ["Figure", "Space"], content: "中国航天之父，空气动力学家。" },
 
     // 更多工具与软件
-    { title: "VS Code", category: "tool", stage: "middle", tags: ["Editor", "MS"], content: "微软开发的免费开源代码编辑器，插件生态极其丰富。" },
+    { title: "VS Code", category: "tool", stage: "middle", tags: ["Editor", "MS"], url: "https://code.visualstudio.com", content: "微软开发的免费开源代码编辑器，插件生态极其丰富。" },
     { title: "PyCharm", category: "tool", stage: "high", tags: ["IDE", "Python"], content: "JetBrains开发的Python IDE，智能代码补全功能强大。" },
     { title: "IntelliJ IDEA", category: "tool", stage: "university", tags: ["IDE", "Java"], content: "最好的Java开发工具之一。" },
     { title: "Eclipse", category: "tool", stage: "university", tags: ["IDE", "Java"], content: "老牌的开源集成开发环境。" },
