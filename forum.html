@@ -515,6 +515,70 @@
                     </div>
                 </div>
             </div>
+            <!-- Profile Modal -->
+            <div v-if="showProfileModal && selectedProfile"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div @click="closeProfile"
+                    class="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"></div>
+
+                <!-- Content -->
+                <div
+                    class="relative w-full max-w-2xl bg-cyber-dark border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+
+                    <!-- Header -->
+                    <div class="p-6 border-b border-slate-700 bg-slate-900/50 flex flex-col items-center">
+                        <div
+                            class="w-20 h-20 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-3xl mb-4 ring-4 ring-slate-800">
+                            {{ selectedProfile.username?.[0]?.toUpperCase() || '?' }}
+                        </div>
+                        <h2 class="font-bold text-white text-2xl mb-1">
+                            {{ selectedProfile.username || 'Anonymous' }}
+                        </h2>
+                        <div class="flex gap-4 text-xs text-slate-400">
+                            <span class="flex items-center gap-1">
+                                <span>🏆</span> {{ selectedProfile.reputation || 0 }} Reputation
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <span>📅</span> Joined {{ dayjs(selectedProfile.created_at).format('MMM YYYY') }}
+                            </span>
+                        </div>
+                        <button @click="closeProfile" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- Tabs/List -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                        <h3 class="font-bold text-slate-400 text-sm uppercase tracking-wider mb-4">
+                            Recent Threads
+                        </h3>
+
+                        <div v-if="loadingProfile" class="flex justify-center py-8">
+                            <span class="animate-spin text-2xl">⏳</span>
+                        </div>
+                        <div v-else-if="profileThreads.length > 0" class="space-y-3">
+                            <div v-for="thread in profileThreads" :key="thread.id"
+                                @click="openThreadDetail(thread); closeProfile()"
+                                class="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 rounded-xl cursor-pointer transition-all group">
+                                <div class="font-bold text-slate-200 group-hover:text-cyan-400 mb-1 line-clamp-1">
+                                    {{ thread.title }}
+                                </div>
+                                <div class="flex justify-between items-center text-xs text-slate-500">
+                                    <span>{{ dayjs(thread.created_at).fromNow() }}</span>
+                                    <span class="flex items-center gap-1">
+                                        <span>▲</span> {{ thread.upvote_count }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="text-center py-8 text-slate-500 italic">
+                            No threads started yet.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             <!-- Right Sidebar (Metadata) - 25% -->
             <aside class="w-80 border-l border-slate-700/30 hidden lg:flex flex-col bg-cyber-dark/30 p-6 space-y-6">
@@ -571,354 +635,436 @@
         </div>
     </div>
 
+    <!-- Centralized Client -->
+    <script src="assets/js/supabase-client.js"></script>
+
     <script>
         const { createApp, ref, onMounted, computed } = Vue;
+
         // Mock Supabase Config for UI Dev
         const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
 
-        <script src="assets/js/supabase-client.js"></script> <!-- Centralized Client -->
-
-    <script>
-            const {createApp, ref, onMounted, computed} = Vue;
-
-            createApp({
-                setup() {
+        createApp({
+            setup() {
                 // Supabase instance from global client
                 const supabase = window.SupabaseClient ? window.SupabaseClient.client : null;
-            console.log("Supabase initialized in Forum:", !!supabase);
-            const showMobileMenu = ref(false);
-            const user = ref(null);
-            const showLogin = ref(false);
-            const threads = ref([]);
-            const loading = ref(true);
-            const newThreadContent = ref('');
-            const newThreadTitle = ref('');
-            const showCreateModal = ref(false);
-            const searchQuery = ref('');
-            const currentTag = ref(null);
+                console.log("Supabase initialized in Forum:", !!supabase);
+                const showMobileMenu = ref(false);
+                const user = ref(null);
+                const showLogin = ref(false);
+                const threads = ref([]);
+                const loading = ref(true);
+                const newThreadContent = ref('');
+                const newThreadTitle = ref('');
+                const showCreateModal = ref(false);
+                const searchQuery = ref('');
+                const currentTag = ref(null);
 
-            // Pagination State
-            const page = ref(1);
-            const pageSize = 5;
-            const hasMore = ref(true);
-            const loadingMore = ref(false);
+                // Pagination State
+                const page = ref(1);
+                const pageSize = 5;
+                const hasMore = ref(true);
+                const loadingMore = ref(false);
 
-            // Profile Modal State
-            const showProfileModal = ref(false);
-            const selectedProfile = ref(null);
-            const profileThreads = ref([]);
-            const loadingProfile = ref(false);
+                // Profile Modal State
+                const showProfileModal = ref(false);
+                const selectedProfile = ref(null);
+                const profileThreads = ref([]);
+                const loadingProfile = ref(false);
 
-            // Detail View State
-            const selectedThread = ref(null);
-            const showThreadDetail = ref(false);
-            const comments = ref([]);
-            const newCommentContent = ref('');
-            const userVotes = ref(new Set());
+                // Detail View State
+                const selectedThread = ref(null);
+                const showThreadDetail = ref(false);
+                const comments = ref([]);
+                const newCommentContent = ref('');
+                const userVotes = ref(new Set());
 
                 const toggleMobileMenu = () => {
-                showMobileMenu.value = !showMobileMenu.value;
+                    showMobileMenu.value = !showMobileMenu.value;
                 };
 
                 const openThreadDetail = async (thread) => {
-                selectedThread.value = thread;
-            showThreadDetail.value = true;
-            // Fetch comments when opening details
-            await fetchComments(thread.id);
+                    selectedThread.value = thread;
+                    showThreadDetail.value = true;
+                    // Fetch comments when opening details
+                    await fetchComments(thread.id);
                 };
 
                 const closeThreadDetail = () => {
-                showThreadDetail.value = false;
+                    showThreadDetail.value = false;
                     setTimeout(() => {
-                selectedThread.value = null;
-            comments.value = []; // Clear comments on close
+                        selectedThread.value = null;
+                        comments.value = []; // Clear comments on close
                     }, 300);
                 };
 
                 // --- Profile Logic ---
                 const openProfile = async (profileData, userId) => {
-                selectedProfile.value = { ...profileData, id: userId };
-            showProfileModal.value = true;
-            loadingProfile.value = true;
-            profileThreads.value = [];
+                    selectedProfile.value = { ...profileData, id: userId };
+                    showProfileModal.value = true;
+                    loadingProfile.value = true;
+                    profileThreads.value = [];
 
-            // Fetch user threads
-            if (!supabase) {
-                // Mock Profile Threads
-                await new Promise(r => setTimeout(r, 600));
-            // Generate consistent mock data to filter from
-            const allMockThreads = Array.from({length: 25 }, (_, i) => ({
-                id: `mock-${i + 1}`,
-            author_id: `mock-user-${(i % 5) + 1}`,
-            title: `Mock Thread #${i + 1} - ${['AI', 'System', 'WebDev'][i % 3]}`,
-            content: 'This is a paginated mock thread content...',
-            upvote_count: Math.floor(Math.random() * 50),
-            comment_count: Math.floor(Math.random() * 10),
-            created_at: dayjs().subtract(i, 'day').toISOString(),
-            tags: [['AI'], ['System'], ['WebDev']][i % 3],
-            profiles: {username: `User_${(i % 5) + 1}`, avatar_url: null, reputation: 10 + (i * 2) }
+                    // Fetch user threads
+                    if (!supabase) {
+                        // Mock Profile Threads
+                        await new Promise(r => setTimeout(r, 600));
+                        // Generate consistent mock data to filter from
+                        const allMockThreads = Array.from({ length: 25 }, (_, i) => ({
+                            id: `mock-${i + 1}`,
+                            author_id: `mock-user-${(i % 5) + 1}`,
+                            title: `Mock Thread #${i + 1} - ${['AI', 'System', 'WebDev'][i % 3]}`,
+                            content: 'This is a paginated mock thread content...',
+                            upvote_count: Math.floor(Math.random() * 50),
+                            comment_count: Math.floor(Math.random() * 10),
+                            created_at: dayjs().subtract(i, 'day').toISOString(),
+                            tags: [['AI'], ['System'], ['WebDev']][i % 3],
+                            profiles: { username: `User_${(i % 5) + 1}`, avatar_url: null, reputation: 10 + (i * 2) }
                         }));
                         profileThreads.value = allMockThreads.filter(t => t.author_id === userId);
                     } else {
-                        const {data, error} = await supabase
-            .from('threads')
-            .select('*')
-            .eq('author_id', userId)
-            .order('created_at', {ascending: false });
+                        const { data, error } = await supabase
+                            .from('threads')
+                            .select('*')
+                            .eq('author_id', userId)
+                            .order('created_at', { ascending: false });
 
-            if (!error) {
-                profileThreads.value = data;
+                        if (!error) {
+                            profileThreads.value = data;
                         }
                     }
-            loadingProfile.value = false;
+                    loadingProfile.value = false;
                 };
 
                 const closeProfile = () => {
-                showProfileModal.value = false;
+                    showProfileModal.value = false;
                     setTimeout(() => {
-                selectedProfile.value = null;
-            profileThreads.value = [];
+                        selectedProfile.value = null;
+                        profileThreads.value = [];
                     }, 300);
                 };
 
                 const filteredThreads = computed(() => {
-                let result = threads.value;
+                    let result = threads.value;
 
-            // 1. Tag Filter
-            if (currentTag.value) {
-                result = result.filter(t => t.tags && t.tags.includes(currentTag.value));
+                    // 1. Tag Filter
+                    if (currentTag.value) {
+                        result = result.filter(t => t.tags && t.tags.includes(currentTag.value));
                     }
 
-            // 2. Search Filter
-            if (searchQuery.value) {
+                    // 2. Search Filter
+                    if (searchQuery.value) {
                         const lowerQ = searchQuery.value.toLowerCase();
                         result = result.filter(t =>
-            t.title.toLowerCase().includes(lowerQ) ||
-            t.content.toLowerCase().includes(lowerQ) ||
+                            t.title.toLowerCase().includes(lowerQ) ||
+                            t.content.toLowerCase().includes(lowerQ) ||
                             t.tags?.some(tag => tag.toLowerCase().includes(lowerQ))
-            );
+                        );
                     }
-            return result;
+                    return result;
                 });
 
                 const selectTag = (tag) => {
                     if (currentTag.value === tag) {
-                currentTag.value = null; // Toggle off
+                        currentTag.value = null; // Toggle off
                     } else {
-                currentTag.value = tag;
+                        currentTag.value = tag;
                     }
                 };
 
                 const renderMarkdown = (content) => {
                     if (!content) return '';
-            return marked.parse(content);
+                    return marked.parse(content);
                 };
 
                 // --- Auth Logic ---
                 const login = async () => {
                     // Simple OAuth login for demo or magic link
                     if (!supabase) return;
-            // For this environment, we might rely on the main site's auth state
-            // or implement a simple sign-in here.
-            // Let's check session first.
-            alert("请通过主页或其他方式登录 Supabase (当前仅支持检测现有会话)");
+                    // For this environment, we might rely on the main site's auth state
+                    // or implement a simple sign-in here.
+                    // Let's check session first.
+                    alert("请通过主页或其他方式登录 Supabase (当前仅支持检测现有会话)");
                 };
 
                 const logout = async () => {
                     if (supabase) {
-                await supabase.auth.signOut();
-            user.value = null;
-            window.location.reload();
+                        await supabase.auth.signOut();
+                        user.value = null;
+                        window.location.reload();
                     }
                 };
 
                 // --- Data Fetching ---
+                // --- Data Fetching ---
+                const fetchThreads = async (isLoadMore = false) => {
+                    if (isLoadMore) {
+                        loadingMore.value = true;
+                        page.value++;
+                    } else {
+                        loading.value = true;
+                        page.value = 1;
+                        threads.value = [];
+                        hasMore.value = true;
+                    }
+
+                    const from = (page.value - 1) * pageSize;
+                    const to = from + pageSize - 1;
+
+                    if (!supabase) {
+                        // Mock Data Generation (Simulate Pagination)
+                        await new Promise(r => setTimeout(r, 800)); // Fake value delay
+
+                        const allMockThreads = Array.from({ length: 25 }, (_, i) => ({
+                            id: `mock-${i + 1}`,
+                            author_id: `mock-user-${(i % 5) + 1}`, // Simulate 5 distinct users
+                            title: `Mock Thread #${i + 1} - ${['AI', 'System', 'WebDev'][i % 3]}`,
+                            content: 'This is a paginated mock thread content...',
+                            upvote_count: Math.floor(Math.random() * 50),
+                            comment_count: Math.floor(Math.random() * 10),
+                            created_at: dayjs().subtract(i, 'day').toISOString(),
+                            tags: [['AI'], ['System'], ['WebDev']][i % 3],
+                            profiles: { username: `User_${(i % 5) + 1}`, avatar_url: null, reputation: 10 + (i * 2) }
+                        }));
+
+                        const newBatch = allMockThreads.slice(from, to + 1);
+
+                        if (isLoadMore) {
+                            threads.value.push(...newBatch);
+                        } else {
+                            threads.value = newBatch;
+                        }
+
+                        if (newBatch.length < pageSize) hasMore.value = false;
+
+                        loading.value = false;
+                        loadingMore.value = false;
+                        return;
+                    }
+
+                    const { data, error } = await supabase
+                        .from('threads')
+                        .select(`
+            *,
+            profiles:author_id ( username, avatar_url, reputation )
+            `)
+                        .order('created_at', { ascending: false })
+                        .range(from, to);
+
+                    if (error) {
+                        console.error('Error fetching threads:', error);
+                        // Fallback logic could be added here
+                    } else {
+                        if (isLoadMore) {
+                            threads.value.push(...(data || []));
+                        } else {
+                            threads.value = data || [];
+                        }
+
+                        if ((data || []).length < pageSize) hasMore.value = false;
+
+                        // Check User Votes for new batch
+                        if (user.value && data && data.length > 0) {
+                            const threadIds = data.map(t => t.id);
+                            const { data: votes } = await supabase
+                                .from('votes')
+                                .select('thread_id')
+                                .eq('user_id', user.value.id)
+                                .in('thread_id', threadIds);
+                            if (votes) {
+                                votes.forEach(v => userVotes.value.add(v.thread_id));
+                            }
+                        }
+                    }
+                    loading.value = false;
+                    loadingMore.value = false;
+                };
 
                 // --- Comment Logic ---
                 const fetchComments = async (threadId) => {
-                comments.value = []; // Reset
+                    comments.value = []; // Reset
 
-            if (!supabase) {
-                // Mock Comments
-                comments.value = [
-                    {
-                        id: 101,
-                        content: "Great post! Really looking forward to more updates on this agentic future.",
-                        author: { username: "Alice_Dev", avatar_url: null },
-                        created_at: dayjs().subtract(10, 'minute').toISOString()
-                    },
-                    {
-                        id: 102,
-                        content: "Does this support multi-turn conversations yet?",
-                        author: { username: "Bob_Builder", avatar_url: null },
-                        created_at: dayjs().subtract(5, 'minute').toISOString()
-                    }
-                ];
-            return;
+                    if (!supabase) {
+                        // Mock Comments
+                        comments.value = [
+                            {
+                                id: 101,
+                                content: "Great post! Really looking forward to more updates on this agentic future.",
+                                author: { username: "Alice_Dev", avatar_url: null },
+                                created_at: dayjs().subtract(10, 'minute').toISOString()
+                            },
+                            {
+                                id: 102,
+                                content: "Does this support multi-turn conversations yet?",
+                                author: { username: "Bob_Builder", avatar_url: null },
+                                created_at: dayjs().subtract(5, 'minute').toISOString()
+                            }
+                        ];
+                        return;
                     }
 
-            const {data, error} = await supabase
-            .from('comments')
-            .select(`
+                    const { data, error } = await supabase
+                        .from('comments')
+                        .select(`
             id, content, created_at,
             author:author_id ( username, avatar_url )
             `)
-            .eq('thread_id', threadId)
-            .order('created_at', {ascending: true });
+                        .eq('thread_id', threadId)
+                        .order('created_at', { ascending: true });
 
-            if (error) {
-                console.error('Error fetching comments:', error);
-            // Fallback logic could go here, for now just empty or mock
-            comments.value = [];
+                    if (error) {
+                        console.error('Error fetching comments:', error);
+                        // Fallback logic could go here, for now just empty or mock
+                        comments.value = [];
                     } else {
-                comments.value = data || [];
-            setupCommentRealtime(threadId);
+                        comments.value = data || [];
+                        setupCommentRealtime(threadId);
                     }
                 };
 
                 const submitComment = async () => {
                     if (!user.value) {
-                alert("Please login to comment.");
-            return;
+                        alert("Please login to comment.");
+                        return;
                     }
-            if (!newCommentContent.value.trim()) return;
+                    if (!newCommentContent.value.trim()) return;
 
-            // Optimistic update for UI responsiveness
-            const tempComment = {
-                id: Date.now(),
-            content: newCommentContent.value,
-            author: {
-                username: user.value.username || user.value.email,
-            avatar_url: user.value.avatar_url
+                    // Optimistic update for UI responsiveness
+                    const tempComment = {
+                        id: Date.now(),
+                        content: newCommentContent.value,
+                        author: {
+                            username: user.value.username || user.value.email,
+                            avatar_url: user.value.avatar_url
                         },
-            created_at: new Date().toISOString()
+                        created_at: new Date().toISOString()
                     };
 
-            if (!supabase) {
-                comments.value.push(tempComment);
-            newCommentContent.value = '';
-            return;
+                    if (!supabase) {
+                        comments.value.push(tempComment);
+                        newCommentContent.value = '';
+                        return;
                     }
 
-            const {data, error} = await supabase
-            .from('comments')
-            .insert([
-            {
-                content: newCommentContent.value,
-            thread_id: selectedThread.value.id,
-            author_id: user.value.id
+                    const { data, error } = await supabase
+                        .from('comments')
+                        .insert([
+                            {
+                                content: newCommentContent.value,
+                                thread_id: selectedThread.value.id,
+                                author_id: user.value.id
                             }
-            ])
-            .select(`
+                        ])
+                        .select(`
             id, content, created_at,
             author:author_id ( username, avatar_url )
             `)
-            .single();
+                        .single();
 
-            if (error) {
-                alert("Error posting comment: " + error.message);
+                    if (error) {
+                        alert("Error posting comment: " + error.message);
                     } else {
-                // Replace temp comment or refresh
-                comments.value.push(data); // Add real data
-            newCommentContent.value = '';
+                        // Replace temp comment or refresh
+                        comments.value.push(data); // Add real data
+                        newCommentContent.value = '';
 
-            // Update comment count on thread (local only for now)
-            if (selectedThread.value) {
-                selectedThread.value.comment_count = (selectedThread.value.comment_count || 0) + 1;
+                        // Update comment count on thread (local only for now)
+                        if (selectedThread.value) {
+                            selectedThread.value.comment_count = (selectedThread.value.comment_count || 0) + 1;
                         }
                     }
                 };
 
                 const createThread = async () => {
                     if (!user.value) {
-                alert("请先登录");
-            return;
+                        alert("请先登录");
+                        return;
                     }
-            if (!newThreadTitle.value || !newThreadContent.value) return;
+                    if (!newThreadTitle.value || !newThreadContent.value) return;
 
-            const {data, error} = await supabase
-            .from('threads')
-            .insert([
-            {
-                title: newThreadTitle.value,
-            content: newThreadContent.value,
-            author_id: user.value.id,
-            tags: ['General'] // Default tag for now
+                    const { data, error } = await supabase
+                        .from('threads')
+                        .insert([
+                            {
+                                title: newThreadTitle.value,
+                                content: newThreadContent.value,
+                                author_id: user.value.id,
+                                tags: ['General'] // Default tag for now
                             }
-            ])
-            .select();
+                        ])
+                        .select();
 
-            if (error) {
-                alert("发帖失败: " + error.message);
+                    if (error) {
+                        alert("发帖失败: " + error.message);
                     } else {
-                // Refresh
-                fetchThreads();
-            showCreateModal.value = false;
-            newThreadTitle.value = '';
-            newThreadContent.value = '';
+                        // Refresh
+                        fetchThreads();
+                        showCreateModal.value = false;
+                        newThreadTitle.value = '';
+                        newThreadContent.value = '';
                     }
                 };
 
                 // --- Vote Logic ---
                 const vote = async (id, type) => {
                     if (!user.value) {
-                alert("请先登录");
-            return;
+                        alert("请先登录");
+                        return;
                     }
 
                     // Optimistic Update
                     const threadIndex = threads.value.findIndex(t => t.id === id);
-            if (threadIndex === -1 && selectedThread.value?.id !== id) return;
+                    if (threadIndex === -1 && selectedThread.value?.id !== id) return;
 
-            const thread = threadIndex !== -1 ? threads.value[threadIndex] : selectedThread.value;
-            const isVoted = userVotes.value.has(id);
+                    const thread = threadIndex !== -1 ? threads.value[threadIndex] : selectedThread.value;
+                    const isVoted = userVotes.value.has(id);
 
-            // Update Local State
-            if (isVoted) {
-                thread.upvote_count--;
-            userVotes.value.delete(id);
+                    // Update Local State
+                    if (isVoted) {
+                        thread.upvote_count--;
+                        userVotes.value.delete(id);
                     } else {
-                thread.upvote_count++;
-            userVotes.value.add(id);
+                        thread.upvote_count++;
+                        userVotes.value.add(id);
                     }
 
-            // Sync with selectedThread if same
-            if (selectedThread.value && selectedThread.value.id === id) {
-                selectedThread.value.upvote_count = thread.upvote_count;
+                    // Sync with selectedThread if same
+                    if (selectedThread.value && selectedThread.value.id === id) {
+                        selectedThread.value.upvote_count = thread.upvote_count;
                     }
 
-            if (!supabase) return; // Mock Mode stop here
+                    if (!supabase) return; // Mock Mode stop here
 
-            if (!isVoted) {
+                    if (!isVoted) {
                         // Add Vote
-                        const {error} = await supabase.from('votes').insert([{
-                user_id: user.value.id,
-            thread_id: id,
-            type: 'up'
+                        const { error } = await supabase.from('votes').insert([{
+                            user_id: user.value.id,
+                            thread_id: id,
+                            type: 'up'
                         }]);
-            if (error) {
-                console.error('Vote failed', error);
-            // Rollback
-            thread.upvote_count--;
-            userVotes.value.delete(id);
+                        if (error) {
+                            console.error('Vote failed', error);
+                            // Rollback
+                            thread.upvote_count--;
+                            userVotes.value.delete(id);
                         } else {
-                // Increment counter on server (RPC or let client update do it later)
-                // For now, client logic is enough for visualization.
-                await supabase.rpc('increment_vote', { row_id: id });
+                            // Increment counter on server (RPC or let client update do it later)
+                            // For now, client logic is enough for visualization.
+                            await supabase.rpc('increment_vote', { row_id: id });
                         }
                     } else {
                         // Remove Vote
-                        const {error} = await supabase.from('votes').delete()
-            .eq('user_id', user.value.id)
-            .eq('thread_id', id);
-            if (error) {
-                console.error('Unvote failed', error);
-            // Rollback
-            thread.upvote_count++;
-            userVotes.value.add(id);
+                        const { error } = await supabase.from('votes').delete()
+                            .eq('user_id', user.value.id)
+                            .eq('thread_id', id);
+                        if (error) {
+                            console.error('Unvote failed', error);
+                            // Rollback
+                            thread.upvote_count++;
+                            userVotes.value.add(id);
                         } else {
-                await supabase.rpc('decrement_vote', { row_id: id });
+                            await supabase.rpc('decrement_vote', { row_id: id });
                         }
                     }
                 };
@@ -927,25 +1073,25 @@
                 const setupRealtime = () => {
                     if (!supabase) return;
 
-            // Global Thread Updates
-            supabase.channel('public:threads')
-            .on('postgres_changes', {event: 'INSERT', schema: 'public', table: 'threads' }, async (payload) => {
+                    // Global Thread Updates
+                    supabase.channel('public:threads')
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'threads' }, async (payload) => {
                             // Fetch profile for the new thread
-                            const {data: profile } = await supabase.from('profiles').select('username, avatar_url, reputation').eq('id', payload.new.author_id).single();
-            const newThread = {...payload.new, profiles: profile || {username: 'NewUser' } };
-            threads.value.unshift(newThread);
+                            const { data: profile } = await supabase.from('profiles').select('username, avatar_url, reputation').eq('id', payload.new.author_id).single();
+                            const newThread = { ...payload.new, profiles: profile || { username: 'NewUser' } };
+                            threads.value.unshift(newThread);
                         })
-            .subscribe();
+                        .subscribe();
                 };
 
-            // Subscription for Comments (Dynamic based on selected thread)
-            let commentChannel = null;
+                // Subscription for Comments (Dynamic based on selected thread)
+                let commentChannel = null;
                 const setupCommentRealtime = (threadId) => {
                     if (!supabase) return;
-            if (commentChannel) supabase.removeChannel(commentChannel);
+                    if (commentChannel) supabase.removeChannel(commentChannel);
 
-            commentChannel = supabase.channel(`public:comments:${threadId}`)
-            .on('postgres_changes', {event: 'INSERT', schema: 'public', table: 'comments', filter: `thread_id=eq.${threadId}` }, async (payload) => {
+                    commentChannel = supabase.channel(`public:comments:${threadId}`)
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments', filter: `thread_id=eq.${threadId}` }, async (payload) => {
                             // Ignore my own insert (handled optimistically)
                             if (payload.new.author_id === user.value?.id) return;
 
@@ -967,10 +1113,10 @@
                 onMounted(async () => {
                     // Check User Session via Centralized Client
                     if (window.SupabaseClient) {
-                         const currentUser = await window.SupabaseClient.getCurrentUser();
-                         if (currentUser) {
-                             user.value = currentUser;
-                         }
+                        const currentUser = await window.SupabaseClient.getCurrentUser();
+                        if (currentUser) {
+                            user.value = currentUser;
+                        }
                     }
 
                     await fetchThreads();

@@ -285,7 +285,7 @@
                                 <button @click="playProject(project)"
                                     class="flex-1 py-1.5 bg-white text-slate-900 rounded font-bold text-xs hover:bg-slate-200"
                                     data-i18n="play">Play</button>
-                                <button @click="playProject(project)"
+                                <button @click="playProject(project, 'remix')"
                                     class="flex-1 py-1.5 bg-slate-700 text-white rounded font-bold text-xs hover:bg-slate-600"
                                     data-i18n="remix">Remix</button>
                             </div>
@@ -313,16 +313,33 @@
                 const projects = ref([]);
                 const filter = ref('all');
 
-                const playProject = (project) => {
+                const playProject = (project, mode = 'play') => {
                     if (project.type === 'scratch-jr') {
                         // Scratch Jr doesn't support direct linking yet without complex setup, just go to page
                         window.location.href = 'ide-jr.html';
-                    } else if (project.project_url) {
-                        // Official/Hosted project
-                        window.location.href = `ide-scratch.html?project_url=${encodeURIComponent(project.project_url)}`;
                     } else {
-                        // Local or empty project
-                        window.location.href = `ide-scratch.html`;
+                        let targetUrl = 'ide-scratch.html';
+                        const params = new URLSearchParams();
+
+                        // Handle External/Hosted Project
+                        if (project.project_url) {
+                            params.append('project_url', project.project_url);
+                        }
+                        // Handle Local Project (if we support loading by ID later)
+                        // params.append('project_id', project.id);
+
+                        if (mode === 'remix') {
+                            params.append('remix', 'true');
+                            params.append('original_title', project.title);
+                        }
+
+                        // Construct final URL
+                        const queryString = params.toString();
+                        if (queryString) {
+                            targetUrl += `?${queryString}`;
+                        }
+
+                        window.location.href = targetUrl;
                     }
                 };
 
