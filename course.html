@@ -217,14 +217,104 @@
 
                     <!-- Quiz Content -->
                     <div v-else-if="currentLesson && currentLesson.type === 'quiz'" class="glass rounded-2xl p-8">
-                        <h1 class="text-3xl font-black mb-6">{{ currentLesson.title }}</h1>
-                        <div class="text-center py-12">
-                            <div class="text-6xl mb-4">📝</div>
-                            <p class="text-gray-400 mb-6">测验功能即将推出</p>
-                            <button @click="markAsCompleted"
-                                class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold">
-                                标记为完成
+                        <div v-if="!quizStarted">
+                            <h1 class="text-3xl font-black mb-4">{{ currentLesson.title }}</h1>
+                            <p class="text-gray-400 mb-8">{{ currentLesson.description || '完成本测验以测试您的学习成果。' }}</p>
+
+                            <div class="flex items-center gap-6 mb-8">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl">📝</span>
+                                    <span>{{ quizQuestions.length }} 个问题</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl">⏱️</span>
+                                    <span>{{ formatDuration(currentLesson.duration_seconds) }}</span>
+                                </div>
+                            </div>
+
+                            <button @click="startQuiz"
+                                class="px-8 py-4 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold text-lg hover:scale-105 transition-transform">
+                                开始测验
                             </button>
+                        </div>
+
+                        <div v-else-if="!quizCompleted">
+                            <!-- Progress Bar -->
+                            <div class="mb-6">
+                                <div class="flex justify-between text-sm text-gray-400 mb-2">
+                                    <span>问题 {{ currentQuestionIndex + 1 }} / {{ quizQuestions.length }}</span>
+                                    <span>{{ Math.round(((currentQuestionIndex + 1) / quizQuestions.length) * 100)
+                                        }}%</span>
+                                </div>
+                                <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                                    <div class="h-full bg-odyssey-cyan transition-all duration-300"
+                                        :style="{width: ((currentQuestionIndex + 1) / quizQuestions.length) * 100 + '%'}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Question -->
+                            <h2 class="text-2xl font-bold mb-6 leading-relaxed">
+                                {{ quizQuestions[currentQuestionIndex].text }}
+                            </h2>
+
+                            <!-- Options -->
+                            <div class="space-y-4 mb-8">
+                                <button v-for="(option, index) in quizQuestions[currentQuestionIndex].options"
+                                    :key="index" @click="selectOption(index)"
+                                    class="w-full p-4 rounded-xl text-left border transition-all text-lg flex items-center justify-between group"
+                                    :class="getOptionClass(index)" :disabled="hasAnsweredCurrent">
+                                    <span>{{ ['A', 'B', 'C', 'D'][index] }}. {{ option }}</span>
+
+                                    <!-- Feedback Icons -->
+                                    <span
+                                        v-if="hasAnsweredCurrent && index === quizQuestions[currentQuestionIndex].correctIndex"
+                                        class="text-green-400">
+                                        ✓ 正确
+                                    </span>
+                                    <span
+                                        v-if="hasAnsweredCurrent && selectedOptionIndex === index && index !== quizQuestions[currentQuestionIndex].correctIndex"
+                                        class="text-red-400">
+                                        ✗ 错误
+                                    </span>
+                                </button>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex justify-end">
+                                <button v-if="hasAnsweredCurrent" @click="nextQuestion"
+                                    class="px-8 py-3 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform">
+                                    {{ currentQuestionIndex < quizQuestions.length - 1 ? '下一题' : '查看结果' }} ->
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quiz Result -->
+                        <div v-else class="text-center py-8">
+                            <div class="mb-6">
+                                <div class="text-6xl font-black mb-2 gradient-text inline-block">
+                                    {{ quizScore }}%
+                                </div>
+                                <p class="text-gray-400">最终得分</p>
+                            </div>
+
+                            <div class="mb-8">
+                                <p v-if="quizScore >= 80" class="text-2xl font-bold text-green-400">🎉 太棒了！您已掌握本课内容。</p>
+                                <p v-else-if="quizScore >= 60" class="text-2xl font-bold text-yellow-400">👍 不错，继续加油！
+                                </p>
+                                <p v-else class="text-2xl font-bold text-red-400">💪 再试一次，巩固一下知识点吧。</p>
+                            </div>
+
+                            <div class="flex justify-center gap-4">
+                                <button @click="resetQuiz"
+                                    class="px-6 py-3 rounded-xl glass hover:bg-white/10 font-semibold">
+                                    重新测验
+                                </button>
+                                <button @click="finishQuiz"
+                                    class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold">
+                                    完成并继续
+                                </button>
+                            </div>
                         </div>
                     </div>
 
