@@ -566,6 +566,7 @@
                 const newThreadContent = ref('');
                 const newThreadTitle = ref('');
                 const showCreateModal = ref(false);
+                const searchQuery = ref('');
 
                 // Detail View State
                 const selectedThread = ref(null);
@@ -589,8 +590,19 @@
                     showThreadDetail.value = false;
                     setTimeout(() => {
                         selectedThread.value = null;
+                        comments.value = []; // Clear comments on close
                     }, 300);
                 };
+
+                const filteredThreads = computed(() => {
+                    if (!searchQuery.value) return threads.value;
+                    const lowerQ = searchQuery.value.toLowerCase();
+                    return threads.value.filter(t =>
+                        t.title.toLowerCase().includes(lowerQ) ||
+                        t.content.toLowerCase().includes(lowerQ) ||
+                        t.tags?.some(tag => tag.toLowerCase().includes(lowerQ))
+                    );
+                });
 
                 const renderMarkdown = (content) => {
                     if (!content) return '';
@@ -929,6 +941,8 @@
                     showThreadDetail,
                     openThreadDetail,
                     closeThreadDetail,
+                    searchQuery,
+                    filteredThreads
                     renderMarkdown,
                     comments,
                     newCommentContent,

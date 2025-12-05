@@ -697,10 +697,95 @@
                     a.click();
                 };
 
-                // Watch currentLesson change
+                // --- Discussion Logic ---
+                const loadComments = async () => {
+                    if (!currentLesson.value) return;
+                    comments.value = [];
+                    commentSavedStatus.value = '加载中...';
+
+                    // Supabase
+                    if (supabase && user.value) {
+                        try {
+                            const { data, error } = await supabase
+                                .from('lesson_comments')
+                                .select('*, profiles(username, avatar_url)')
+                                .eq('lesson_id', currentLesson.value.id)
+                                .order('created_at', { ascending: false });
+
+                            if (error) throw error;
+
+                            comments.value = data.map(c => ({
+                                id: c.id,
+                                content: c.content,
+                                created_at: c.created_at,
+                                username: c.profiles?.username || 'User',
+                                avatar_url: c.profiles?.avatar_url || null
+                            }));
+
+                        } catch (err) {
+                            console.error("Error loading comments:", err);
+                            // Fallback to local
+                        }
+                    }
+
+                    // LocalStorage / Mock Fallback if empty or no auth
+                    if (comments.value.length === 0) {
+                        const key = `odyssey_comments_${courseId || 'demo'}_${currentLesson.value.id}`;
+                        const saved = localStorage.getItem(key);
+                        if (saved) {
+                            comments.value = JSON.parse(saved);
+                        } else {
+                            // Seed some fake comments for demo only
+                            comments.value = [
+                                { id: 999, content: '这节课太棒了！非常有帮助。', created_at: new Date(Date.now() - 86400000).toISOString(), username: 'CodingStar', avatar_url: null },
+                                { id: 998, content: '这里讲的循环逻辑很清晰。', created_at: new Date(Date.now() - 172800000).toISOString(), username: 'PythonLearner', avatar_url: null }
+                            ];
+                        }
+                    }
+                    commentSavedStatus.value = `${comments.value.length} 条评论`;
+                };
+
+                const postComment = async () => {
+                    if (!newComment.value.trim() || !currentLesson.value) return;
+
+                    const commentData = {
+                        id: 'local_' + Date.now(),
+                        content: newComment.value.trim(),
+                        created_at: new Date().toISOString(),
+                        username: user.value?.username || '我', // Self username
+                        avatar_url: user.value?.avatar_url || null,
+                        lesson_id: currentLesson.value.id,
+                        user_id: user.value?.id || 'local_user'
+                    };
+
+                    // Optimistic Update
+                    comments.value.unshift(commentData);
+                    newComment.value = '';
+
+                    // Save to LocalStorage
+                    const key = `odyssey_comments_${courseId || 'demo'}_${currentLesson.value.id}`;
+                    localStorage.setItem(key, JSON.stringify(comments.value));
+
+                    // Supabase
+                    if (supabase && user.value) {
+                        try {
+                            const { error } = await supabase.from('lesson_comments').insert({
+                                lesson_id: currentLesson.value.id,
+                                user_id: user.value.id,
+                                content: commentData.content
+                            });
+                            if (error) throw error;
+                        } catch (err) {
+                            console.error("Failed to post comment to cloud:", err);
+                        }
+                    }
+                };
+
+                // Watch currentLesson change to load notes AND comments
                 watch(currentLesson, (newVal) => {
                     if (newVal) {
                         loadNote();
+                        loadComments();
                         // Init editor if code lesson
                         if (newVal.type === 'code') {
                             nextTick(() => {
@@ -903,7 +988,7 @@
                 return {
                     user, loading, course, lessons, currentLesson, videoPlayer, totalLessons, completedLessons, progressPercentage,
                     activeTab, currentNote, noteSavedStatus, handleNoteInput, downloadNote, isPreviewMode, renderedNote,
-                    comments, newComment, commentSavedStatus, // postComment is not defined in the original snippet, keeping it out
+                    comments, newComment, commentSavedStatus, postComment,
                     quizStarted, quizCompleted, quizQuestions, currentQuestionIndex, selectedOptionIndex, hasAnsweredCurrent, quizScore, startQuiz, selectOption, nextQuestion, resetQuiz, finishQuiz, getOptionClass,
                     chatContainer, chatMessages, newMessage, isAiTyping, sendMessage, sendQuery, clearChat,
                     selectLesson, markAsCompleted, handleTimeUpdate, handleVideoEnded, formatDuration,
