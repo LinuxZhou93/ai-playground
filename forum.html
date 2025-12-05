@@ -523,14 +523,18 @@
                 // Detail View State
                 const selectedThread = ref(null);
                 const showThreadDetail = ref(false);
+                const comments = ref([]);
+                const newCommentContent = ref('');
 
                 const toggleMobileMenu = () => {
                     showMobileMenu.value = !showMobileMenu.value;
                 };
 
-                const openThreadDetail = (thread) => {
+                const openThreadDetail = async (thread) => {
                     selectedThread.value = thread;
                     showThreadDetail.value = true;
+                    // Fetch comments when opening details
+                    await fetchComments(thread.id);
                 };
 
                 const closeThreadDetail = () => {
@@ -635,6 +639,100 @@
                     loading.value = false;
                 };
 
+                // --- Comment Logic ---
+                const fetchComments = async (threadId) => {
+                    comments.value = []; // Reset
+
+                    if (!supabase) {
+                        // Mock Comments
+                        comments.value = [
+                            {
+                                id: 101,
+                                content: "Great post! Really looking forward to more updates on this agentic future.",
+                                author: { username: "Alice_Dev", avatar_url: null },
+                                created_at: dayjs().subtract(10, 'minute').toISOString()
+                            },
+                            {
+                                id: 102,
+                                content: "Does this support multi-turn conversations yet?",
+                                author: { username: "Bob_Builder", avatar_url: null },
+                                created_at: dayjs().subtract(5, 'minute').toISOString()
+                            }
+                        ];
+                        return;
+                    }
+
+                    const { data, error } = await supabase
+                        .from('comments')
+                        .select(`
+                            id, content, created_at,
+                            author:author_id ( username, avatar_url )
+                        `)
+                        .eq('thread_id', threadId)
+                        .order('created_at', { ascending: true });
+
+                    if (error) {
+                        console.error('Error fetching comments:', error);
+                        // Fallback logic could go here, for now just empty or mock
+                        comments.value = [];
+                    } else {
+                        comments.value = data || [];
+                    }
+                };
+
+                const submitComment = async () => {
+                    if (!user.value) {
+                        alert("Please login to comment.");
+                        return;
+                    }
+                    if (!newCommentContent.value.trim()) return;
+
+                    // Optimistic update for UI responsiveness
+                    const tempComment = {
+                        id: Date.now(),
+                        content: newCommentContent.value,
+                        author: {
+                            username: user.value.username || user.value.email,
+                            avatar_url: user.value.avatar_url
+                        },
+                        created_at: new Date().toISOString()
+                    };
+
+                    if (!supabase) {
+                        comments.value.push(tempComment);
+                        newCommentContent.value = '';
+                        return;
+                    }
+
+                    const { data, error } = await supabase
+                        .from('comments')
+                        .insert([
+                            {
+                                content: newCommentContent.value,
+                                thread_id: selectedThread.value.id,
+                                author_id: user.value.id
+                            }
+                        ])
+                        .select(`
+                            id, content, created_at,
+                            author:author_id ( username, avatar_url )
+                       `)
+                        .single();
+
+                    if (error) {
+                        alert("Error posting comment: " + error.message);
+                    } else {
+                        // Replace temp comment or refresh
+                        comments.value.push(data); // Add real data
+                        newCommentContent.value = '';
+
+                        // Update comment count on thread (local only for now)
+                        if (selectedThread.value) {
+                            selectedThread.value.comment_count = (selectedThread.value.comment_count || 0) + 1;
+                        }
+                    }
+                };
+
                 const createThread = async () => {
                     if (!user.value) {
                         alert("请先登录");
@@ -717,7 +815,11 @@
                     showThreadDetail,
                     openThreadDetail,
                     closeThreadDetail,
-                    renderMarkdown
+                    renderMarkdown,
+                    comments,
+                    newCommentContent,
+                    fetchComments,
+                    submitComment
                 };
             }
         }).mount('#app');
