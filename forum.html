@@ -38,7 +38,7 @@
         }
     </script>
 
-    <style>
+    <style type="text/tailwindcss">
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
@@ -61,6 +61,59 @@
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        /* Markdown Styles for Detail View */
+        .markdown-body h1 {
+            @apply text-2xl font-bold mb-4 mt-6 text-white;
+        }
+
+        .markdown-body h2 {
+            @apply text-xl font-bold mb-3 mt-5 text-white;
+        }
+
+        .markdown-body h3 {
+            @apply text-lg font-bold mb-2 mt-4 text-white;
+        }
+
+        .markdown-body p {
+            @apply mb-4 leading-relaxed text-slate-300;
+        }
+
+        .markdown-body ul {
+            @apply list-disc list-inside mb-4 ml-4 text-slate-300;
+        }
+
+        .markdown-body ol {
+            @apply list-decimal list-inside mb-4 ml-4 text-slate-300;
+        }
+
+        .markdown-body a {
+            @apply text-cyan-400 hover:underline;
+        }
+
+        .markdown-body blockquote {
+            @apply border-l-4 border-slate-600 pl-4 py-1 my-4 bg-slate-800/50 rounded-r text-slate-400 italic;
+        }
+
+        .markdown-body code {
+            @apply bg-slate-800 px-1 py-0.5 rounded text-cyan-300 font-mono text-sm;
+        }
+
+        .markdown-body pre {
+            @apply bg-slate-900 p-4 rounded-lg overflow-x-auto mb-4 border border-slate-700;
+        }
+
+        .markdown-body pre code {
+            @apply bg-transparent p-0 text-slate-200;
+        }
+
+        .markdown-body img {
+            @apply max-w-full rounded-lg my-4 border border-slate-700;
+        }
+
+        .markdown-body hr {
+            @apply my-8 border-slate-700;
         }
     </style>
 </head>
@@ -189,7 +242,8 @@
                             <div class="flex-1">
                                 <div @click="user ? showCreateModal = true : login()"
                                     class="bg-slate-800/50 rounded-xl p-3 text-slate-500 text-sm cursor-text hover:bg-slate-800 transition-colors">
-                                    {{ user ? "What's on your mind? Share with the community..." : "Login to share your thoughts..." }}
+                                    {{ user ? "What's on your mind? Share with the community..." : "Login to share your
+                                    thoughts..." }}
                                 </div>
                             </div>
                         </div>
@@ -205,7 +259,7 @@
 
                     <!-- Thread List -->
                     <div v-else class="divide-y divide-slate-800/50">
-                        <article v-for="thread in threads" :key="thread.id"
+                        <article v-for="thread in threads" :key="thread.id" @click="openThreadDetail(thread)"
                             class="p-5 hover:bg-slate-800/20 transition-colors cursor-pointer group">
                             <div class="flex gap-4">
                                 <!-- Upvote Column -->
@@ -295,6 +349,102 @@
                 </div>
             </div>
 
+
+            <!-- Thread Detail Modal -->
+            <div v-if="showThreadDetail && selectedThread"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div @click="closeThreadDetail"
+                    class="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"></div>
+
+                <!-- Content -->
+                <div
+                    class="relative w-full max-w-4xl h-[90vh] bg-cyber-dark border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+
+                    <!-- Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-900/50">
+                        <div class="flex items-center gap-3">
+                            <button @click="closeThreadDetail"
+                                class="p-2 -ml-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors md:hidden">
+                                ←
+                            </button>
+                            <div
+                                class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-lg">
+                                {{ selectedThread.profiles?.username?.[0]?.toUpperCase() || 'A' }}
+                            </div>
+                            <div>
+                                <h2 class="font-bold text-white text-lg leading-tight line-clamp-1">{{
+                                    selectedThread.title }}</h2>
+                                <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                                    <span class="text-cyan-400 font-bold">@{{ selectedThread.profiles?.username ||
+                                        'Anonymous' }}</span>
+                                    <span>•</span>
+                                    <span>{{ dayjs(selectedThread.created_at).format('YYYY年MM月DD日 HH:mm') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button @click="closeThreadDetail"
+                                class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Content -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar">
+                        <div class="p-6 md:p-8 max-w-none">
+                            <!-- Tags -->
+                            <div class="flex flex-wrap gap-2 mb-6"
+                                v-if="selectedThread.tags && selectedThread.tags.length">
+                                <span v-for="tag in selectedThread.tags" :key="tag"
+                                    class="px-2.5 py-1 rounded-md bg-slate-800 text-cyan-400 border border-slate-700 text-xs font-bold tracking-wide">
+                                    {{ tag }}
+                                </span>
+                            </div>
+
+                            <!-- Markdown Body -->
+                            <div class="markdown-body" v-html="renderMarkdown(selectedThread.content)"></div>
+                        </div>
+
+                        <!-- Placeholder for comments (Stage 2) -->
+                        <div class="border-t border-slate-800/50 p-6 md:p-8 bg-slate-900/30">
+                            <h3 class="font-bold text-slate-400 text-sm uppercase tracking-wider mb-4">Comments</h3>
+                            <div
+                                class="text-center py-10 border border-dashed border-slate-700 rounded-xl bg-slate-800/20">
+                                <span class="text-4xl block mb-2">💬</span>
+                                <p class="text-slate-400">评论系统正在搭建中...</p>
+                                <button
+                                    class="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-bold transition-colors">
+                                    Coming Soon
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div
+                        class="p-4 border-t border-slate-700 bg-slate-900/80 backdrop-blur flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <button @click="vote(selectedThread.id, 'up')"
+                                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
+                                <span>▲</span>
+                                <span class="font-bold">{{ selectedThread.upvote_count || 0 }}</span>
+                            </button>
+                            <button
+                                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
+                                <span>💬</span>
+                                <span class="font-bold">Comment</span>
+                            </button>
+                        </div>
+                        <button
+                            class="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                            <span>🔁</span> Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Right Sidebar (Metadata) - 25% -->
             <aside class="w-80 border-l border-slate-700/30 hidden lg:flex flex-col bg-cyber-dark/30 p-6 space-y-6">
 
@@ -374,8 +524,29 @@
                 const newThreadTitle = ref('');
                 const showCreateModal = ref(false);
 
+                // Detail View State
+                const selectedThread = ref(null);
+                const showThreadDetail = ref(false);
+
                 const toggleMobileMenu = () => {
                     showMobileMenu.value = !showMobileMenu.value;
+                };
+
+                const openThreadDetail = (thread) => {
+                    selectedThread.value = thread;
+                    showThreadDetail.value = true;
+                };
+
+                const closeThreadDetail = () => {
+                    showThreadDetail.value = false;
+                    setTimeout(() => {
+                        selectedThread.value = null;
+                    }, 300);
+                };
+
+                const renderMarkdown = (content) => {
+                    if (!content) return '';
+                    return marked.parse(content);
                 };
 
                 // --- Auth Logic ---
@@ -494,7 +665,12 @@
                     showCreateModal,
                     createThread,
                     vote,
-                    dayjs
+                    dayjs,
+                    selectedThread,
+                    showThreadDetail,
+                    openThreadDetail,
+                    closeThreadDetail,
+                    renderMarkdown
                 };
             }
         }).mount('#app');
