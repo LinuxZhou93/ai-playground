@@ -6,16 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neural Nexus | 神经中枢</title>
 
-    <!-- Dependencies -->
-    <!-- Dependencies (Switched to BootCDN with Defer) -->
-    <script src="https://cdn.tailwindcss.com" defer></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/vue/3.3.4/vue.global.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/marked/9.1.2/marked.min.js" defer></script>
+    <!-- Dependencies: Local for Speed -->
+    <script src="libs/tailwindcss.js"></script>
+
+    <!-- Optional: Defer heavy externals so they don't block the UI -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script> -->
+    <!-- <script src="https://cdn.bootcdn.net/ajax/libs/marked/9.1.2/marked.min.js" defer></script> -->
     <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/dayjs.min.js" defer></script>
     <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/plugin/relativeTime.min.js" defer></script>
     <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/locale/zh-cn.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
     <!-- Configure Tailwind -->
     <script>
@@ -34,20 +33,6 @@
                     },
                     fontFamily: {
                         mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
-                    },
-                    animation: {
-                        'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
-                        'bounce-small': 'bounceSmall 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                    },
-                    keyframes: {
-                        fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        bounceSmall: {
-                            '0%, 100%': { transform: 'scale(1)' },
-                            '50%': { transform: 'scale(1.2)' },
-                        }
                     }
                 }
             }
@@ -55,24 +40,33 @@
     </script>
 
     <style>
-        /* Fallback styles for loading screen in case Tailwind blocks/fails */
-        #app-loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+        /* CSS Reset & Critical Styles */
+        body {
             background-color: #0f172a;
-            /* cyber-dark */
-            color: white;
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 1rem;
+            padding: 1.25rem;
+        }
+
+        #app-loading {
+            position: absolute;
+            inset: 0;
+            background: #0f172a;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            z-index: 100;
+            transition: opacity 0.3s;
         }
-    </style>
 
-    <style type="text/tailwindcss">
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
@@ -90,578 +84,127 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #475569;
         }
-
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-
-        /* Markdown Styles for Detail View */
-        .markdown-body h1 {
-            @apply text-2xl font-bold mb-4 mt-6 text-white;
-        }
-
-        .markdown-body h2 {
-            @apply text-xl font-bold mb-3 mt-5 text-white;
-        }
-
-        .markdown-body h3 {
-            @apply text-lg font-bold mb-2 mt-4 text-white;
-        }
-
-        .markdown-body p {
-            @apply mb-4 leading-relaxed text-slate-300;
-        }
-
-        .markdown-body ul {
-            @apply list-disc list-inside mb-4 ml-4 text-slate-300;
-        }
-
-        .markdown-body ol {
-            @apply list-decimal list-inside mb-4 ml-4 text-slate-300;
-        }
-
-        .markdown-body a {
-            @apply text-cyan-400 hover:underline;
-        }
-
-        .markdown-body blockquote {
-            @apply border-l-4 border-slate-600 pl-4 py-1 my-4 bg-slate-800/50 rounded-r text-slate-400 italic;
-        }
-
-        .markdown-body code {
-            @apply bg-slate-800 px-1 py-0.5 rounded text-cyan-300 font-mono text-sm;
-        }
-
-        .markdown-body pre {
-            @apply bg-slate-900 p-4 rounded-lg overflow-x-auto mb-4 border border-slate-700;
-        }
-
-        .markdown-body pre code {
-            @apply bg-transparent p-0 text-slate-200;
-        }
-
-        .markdown-body img {
-            @apply max-w-full rounded-lg my-4 border border-slate-700;
-        }
-
-        .markdown-body hr {
-            @apply my-8 border-slate-700;
-        }
-
-        /* Critical Fallback CSS */
-        body {
-            background-color: #0f172a;
-            color: #e2e8f0;
-            font-family: sans-serif;
-        }
     </style>
 </head>
 
-<body
-    class="bg-cyber-dark text-slate-200 min-h-screen overflow-hidden selection:bg-cyber-accent selection:text-white relative">
+<body class="bg-cyber-dark text-slate-200 selection:bg-cyber-accent selection:text-white">
 
-    <!-- 3D Background Canvas -->
-    <canvas id="bg-canvas"
-        style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 0; pointer-events: none; opacity: 0.6;"></canvas>
+    <div id="app" class="h-screen flex flex-col">
 
-    <div id="app" class="h-screen flex flex-col relative z-10">
-        <!-- Loading Screen (Removed by Vue when mounted) -->
+        <!-- Loading Screen -->
         <div id="app-loading">
-            <div class="text-center animate-pulse">
-                <div class="text-4xl mb-4">🔮</div>
-                <div class="text-xl font-bold text-cyan-400 mb-2">Neural Nexus</div>
-                <div class="text-xs text-slate-500 uppercase tracking-widest">System Initializing...</div>
+            <div class="text-center">
+                <div class="text-6xl mb-4 animate-bounce">🔮</div>
+                <div class="text-2xl font-bold text-cyan-400 mb-2">Neural Nexus</div>
+                <div class="text-xs text-slate-500 uppercase tracking-widest">Loading Modules locally...</div>
             </div>
         </div>
 
-        <!-- Top Mobile Bar (Visible only on small screens) -->
+        <!-- Mobile Header (Visible on small screens) -->
         <header
             class="md:hidden h-16 border-b border-slate-700/50 flex items-center justify-between px-4 bg-cyber-dark z-50">
-            <h1
-                class="font-bold text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+            <h1 class="font-bold text-xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
                 Neural Nexus</h1>
-            <button @click="toggleMobileMenu" class="text-slate-400">
-                <svg width="24" height="24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
+            <button class="text-slate-400 hover:text-white">☰</button>
         </header>
 
         <!-- Main Layout -->
         <div class="flex-1 flex overflow-hidden">
 
-            <!-- Left Sidebar (Navigation) - 20% -->
-            <aside :class="['w-64 border-r border-slate-700/30 flex flex-col bg-cyber-dark/50 backdrop-blur md:flex', 
-                            showMobileMenu ? 'fixed inset-0 z-40 w-full' : 'hidden']">
-
-                <!-- Logo Area -->
-                <div class="p-6 hidden md:block">
+            <!-- LEFT SIDEBAR: Navigation -->
+            <aside
+                class="w-64 border-r border-slate-700/30 flex flex-col bg-cyber-dark/50 hidden md:flex backdrop-blur-sm">
+                <div class="p-6">
                     <div class="flex items-center gap-3 mb-1">
                         <div
                             class="w-8 h-8 rounded bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold">
                             N</div>
-                        <h1 class="font-bold text-xl tracking-tighter text-white">Neural Nexus</h1>
+                        <h1 class="font-bold text-xl text-white">Neural Nexus</h1>
                     </div>
                     <div class="text-[10px] text-slate-500 font-mono tracking-widest pl-11">EST. 2025</div>
                 </div>
 
-                <!-- Nav Links -->
-                <nav class="flex-1 px-4 space-y-2 mt-4">
-                    <a href="#" @click.prevent="setFilter('home')"
-                        :class="['flex items-center gap-3 px-4 py-3 rounded-xl transition-colors group', currentFilter === 'home' ? 'bg-slate-800 text-cyan-400' : 'text-slate-300 hover:bg-slate-800 hover:text-cyan-400']">
+                <nav class="flex-1 px-4 mt-4 space-y-2">
+                    <a href="index.html"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-cyan-400 transition-colors group">
                         <span class="text-xl group-hover:scale-110 transition-transform">🏠</span>
-                        <span class="font-bold">Home Recommendation</span>
+                        <span class="font-bold">Home</span>
                     </a>
-                    <a href="#" @click.prevent="setFilter('trending')"
-                        :class="['flex items-center gap-3 px-4 py-3 rounded-xl transition-colors group', currentFilter === 'trending' ? 'bg-slate-800 text-purple-400' : 'text-slate-300 hover:bg-slate-800 hover:text-purple-400']">
-                        <span class="text-xl group-hover:scale-110 transition-transform">🔥</span>
-                        <span class="font-bold">Trending Topics</span>
+                    <a href="forum.html"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800 text-cyan-400 transition-colors">
+                        <span class="text-xl">💬</span>
+                        <span class="font-bold">Forum</span>
                     </a>
-                    <a href="#" @click.prevent="setFilter('tags')"
-                        :class="['flex items-center gap-3 px-4 py-3 rounded-xl transition-colors group', currentFilter === 'tags' ? 'bg-slate-800 text-emerald-400' : 'text-slate-300 hover:bg-slate-800 hover:text-emerald-400']">
-                        <span class="text-xl group-hover:scale-110 transition-transform">🏷️</span>
-                        <span class="font-bold">Tags & Topics</span>
+                    <a href="learn.html"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-purple-400 transition-colors group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">�</span>
+                        <span class="font-bold">Learn</span>
                     </a>
-
-                    <div class="my-6 border-t border-slate-700/50"></div>
-
-                    <div class="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">My Community</div>
-                    <a href="#"
-                        class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">
-                        <span class="w-2 h-2 rounded-full bg-cyan-500"></span> Public Lounge
-                    </a>
-                    <a href="#"
-                        class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">
-                        <span class="w-2 h-2 rounded-full bg-purple-500"></span> Dev Talk
+                    <a href="coding.html"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">�</span>
+                        <span class="font-bold">Playground</span>
                     </a>
                 </nav>
 
-                <!-- User Profile / Auth -->
                 <div class="p-4 border-t border-slate-700/30">
-                    <button v-if="!user" @click="showLogin = true"
+                    <button
                         class="w-full py-3 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 font-bold hover:bg-cyan-600 hover:text-white transition-all">
                         Login / Join
                     </button>
-                    <div v-else
-                        class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition-colors group relative">
-                        <!-- Logout Tooltip inside group -->
-                        <div @click="logout"
-                            class="absolute inset-0 bg-red-500/80 backdrop-blur rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center font-bold text-white transition-all z-10">
-                            Log Out
-                        </div>
-
-                        <div
-                            class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
-                            <img v-if="user.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
-                            <span v-else class="text-lg">👤</span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-bold text-sm truncate">{{ user.username || user.email }}</div>
-                            <div class="text-xs text-slate-500 font-mono">REP: {{ user.reputation || 0 }}</div>
-                        </div>
-                    </div>
                 </div>
             </aside>
 
-            <!-- Main Feed - 55% -->
+            <!-- MIDDLE CONTENT: Feed -->
             <main class="flex-1 flex flex-col min-w-0 border-r border-slate-700/30 relative">
-
                 <!-- Sticky Header -->
                 <header
-                    class="h-16 border-b border-slate-700/50 backdrop-blur-md bg-cyber-dark/80 sticky top-0 z-30 flex items-center justify-between px-6">
+                    class="h-16 border-b border-slate-700/50 bg-cyber-dark/80 backdrop-blur sticky top-0 z-30 flex items-center justify-between px-6">
                     <h2 class="text-lg font-bold text-white">Latest Discussions</h2>
                     <div class="flex items-center gap-4">
                         <div class="relative hidden sm:block">
-                            <input type="text" placeholder="Search..."
-                                class="bg-slate-800/50 border border-slate-700 rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:border-cyan-500 transition-colors w-48">
+                            <input type="text" placeholder="Search topics..."
+                                class="bg-slate-800/50 border border-slate-700 rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:border-cyan-500 w-48 transition-all">
                             <span class="absolute left-3 top-2 text-slate-500 text-xs">🔍</span>
                         </div>
                         <button
-                            class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
-                            🔔
-                        </button>
+                            class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 transition-colors">🔔</button>
                     </div>
                 </header>
 
-                <!-- Scrollable Content -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-0">
-
-                    <!-- Create Post input trigger -->
+                <!-- Scrollable Thread List -->
+                <div id="thread-container" class="flex-1 overflow-y-auto p-0 scroll-smooth">
+                    <!-- Create Post Trigger -->
                     <div class="p-4 border-b border-slate-800/50">
                         <div class="flex gap-4">
-                            <div class="w-10 h-10 rounded-full bg-slate-800 shrink-0 overflow-hidden">
-                                <img v-if="user?.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
-                            </div>
-                            <div class="flex-1">
-                                <div @click="user ? showCreateModal = true : login()"
-                                    class="bg-slate-800/50 rounded-xl p-3 text-slate-500 text-sm cursor-text hover:bg-slate-800 transition-colors">
-                                    {{ user ? "What's on your mind? Share with the community..." : "Login to share your
-                                    thoughts..." }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Loading State -->
-                    <div v-if="loading" class="p-10 text-center text-slate-500">
-                        <div
-                            class="animate-spin w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full mx-auto mb-4">
-                        </div>
-                        <p>Loading neural streams...</p>
-                    </div>
-
-                    <!-- Thread List Header with Active Filter -->
-                    <div v-if="currentTag"
-                        class="flex items-center gap-2 mb-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg py-2 px-4 shadow-sm shadow-cyan-500/5">
-                        <span class="text-cyan-400 text-sm">Filtering by tag:</span>
-                        <span class="font-bold text-white text-sm">#{{ currentTag }}</span>
-                        <button @click="currentTag = null" class="ml-auto text-slate-400 hover:text-white text-sm">
-                            ✕ Clear
-                        </button>
-                    </div>
-
-                    <!-- Thread List -->
-                    <div class="space-y-4">
-                        <article v-for="(thread, index) in filteredThreads" :key="thread.id"
-                            @click="openThreadDetail(thread)"
-                            class="glass-panel p-5 rounded-2xl hover:border-cyan-500/30 transition-all cursor-pointer group relative overflow-hidden opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
-                            :style="{ animationDelay: `${index * 100}ms` }">
                             <div
-                                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000">
-                            </div>
-                            <div class="flex gap-4">
-                                <!-- Upvote Column -->
-                                <div class="flex flex-col items-center gap-1 w-10 shrink-0 pt-1">
-                                    <button @click.stop="vote(thread.id, 'up')"
-                                        class="p-1 rounded hover:bg-slate-700/50 text-slate-500 hover:text-cyan-400 transition-all active:scale-95"
-                                        :class="{ 'text-cyan-400 animate-bounce-small': userVotes.has(thread.id) }">▲</button>
-                                    <span class="font-mono font-bold text-sm text-slate-400"
-                                        :class="{ 'text-cyan-400': userVotes.has(thread.id) }">
-                                        {{ thread.upvote_count || 0 }}</span>
-                                    <button
-                                        class="p-1 rounded hover:bg-slate-700/50 text-slate-500 hover:text-red-400 transition-colors">▼</button>
-                                </div>
-
-                                <!-- Content -->
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-1 text-xs text-slate-500">
-                                        <div @click.stop="openProfile(thread.profiles, thread.author_id)"
-                                            class="flex items-center gap-1.5 hover:text-cyan-400 cursor-pointer transition-colors z-10 relative">
-                                            <div class="w-4 h-4 rounded-full bg-indigo-500 overflow-hidden">
-                                                <img v-if="thread.profiles?.avatar_url"
-                                                    :src="thread.profiles.avatar_url"
-                                                    class="w-full h-full object-cover">
-                                                <span v-else
-                                                    class="w-full h-full flex items-center justify-center text-[8px] font-bold text-white">
-                                                    {{ thread.profiles?.username?.[0]?.toUpperCase() || '?' }}
-                                                </span>
-                                            </div>
-                                            <span class="font-bold">{{ thread.profiles?.username || 'Anonymous'
-                                                }}</span>
-                                        </div>
-                                        <span>•</span>
-                                        <span>{{ dayjs(thread.created_at).fromNow() }}</span>
-                                        <span v-if="thread.tags && thread.tags.length">•</span>
-                                        <span v-for="tag in thread.tags" :key="tag"
-                                            class="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-500 border border-slate-700">{{
-                                            tag }}</span>
-                                    </div>
-                                    <h3
-                                        class="font-bold text-lg text-slate-200 mb-2 group-hover:text-cyan-400 transition-colors leading-snug">
-                                        {{ thread.title }}</h3>
-                                    <p class="text-slate-400 text-sm line-clamp-3 leading-relaxed mb-3">
-                                        {{ thread.content.substring(0, 150) }}...</p>
-                                    <div class="flex items-center gap-4 text-xs text-slate-500">
-                                        <button
-                                            class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
-                                            <span>💬</span> {{ thread.comment_count || 0 }} Comments
-                                        </button>
-                                        <button
-                                            class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
-                                            <span>🔁</span> Share
-                                        </button>
-                                    </div>
+                                class="w-10 h-10 rounded-full bg-slate-800 shrink-0 flex items-center justify-center text-lg">
+                                👤</div>
+                            <div class="flex-1">
+                                <div
+                                    class="bg-slate-800/50 rounded-xl p-3 text-slate-500 text-sm cursor-text hover:bg-slate-800 transition-colors">
+                                    Start a new discussion...
                                 </div>
                             </div>
-                        </article>
-
-                        <!-- Empty State -->
-                        <div v-if="threads.length === 0" class="p-10 text-center text-slate-500">
-                            No signals detected. Be the first to transmit.
                         </div>
                     </div>
 
-                    <!-- Load More / Pagination -->
-                    <!-- Only show if no active search/filter to keep logic simple for now -->
-                    <div class="mt-8 text-center"
-                        v-if="!loading && threads.length > 0 && !searchQuery.value && !currentTag.value">
-                        <button v-if="hasMore" @click="fetchThreads(true)" :disabled="loadingMore"
-                            class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto">
-                            <span v-if="loadingMore"
-                                class="animate-spin h-4 w-4 border-2 border-slate-400 border-t-transparent rounded-full"></span>
-                            {{ loadingMore ? 'Loading more...' : 'Load More Threads' }}
-                        </button>
-                        <p v-else class="text-slate-500 italic text-sm">You have reached the end of the digital
-                            frontier.</p>
+                    <!-- Threads will be injected here -->
+                    <div id="thread-list" class="p-4 space-y-4"></div>
+
+                    <!-- Load More Helper -->
+                    <div class="p-8 text-center text-slate-500 text-sm italic">
+                        End of stream.
                     </div>
                 </div>
-
             </main>
 
-            <!-- Create Thread Modal -->
-            <div v-if="showCreateModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                <div
-                    class="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                    <div class="flex justify-between items-center p-4 border-b border-slate-800">
-                        <h3 class="font-bold text-white">Create New Transmission</h3>
-                        <button @click="showCreateModal = false" class="text-slate-400 hover:text-white">✕</button>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
-                            <input v-model="newThreadTitle" type="text"
-                                class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
-                                placeholder="Enter a descriptive title...">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Content (Markdown
-                                supported)</label>
-                            <textarea v-model="newThreadContent" rows="8"
-                                class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none font-mono text-sm"
-                                placeholder="Type your message here..."></textarea>
-                        </div>
-                    </div>
-                    <div class="p-4 border-t border-slate-800 bg-slate-800/30 flex justify-end gap-3">
-                        <button @click="showCreateModal = false"
-                            class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">Cancel</button>
-                        <button @click="createThread"
-                            class="px-6 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold shadow-lg shadow-cyan-500/20 transition-all">
-                            Publish</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Thread Detail Modal -->
-            <div v-if="showThreadDetail && selectedThread"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <!-- Backdrop -->
-                <div @click="closeThreadDetail"
-                    class="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"></div>
-
-                <!-- Content -->
-                <div
-                    class="relative w-full max-w-4xl h-[90vh] bg-cyber-dark border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
-
-                    <!-- Header -->
-                    <div class="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-900/50">
-                        <div class="flex items-center gap-3">
-                            <button @click="closeThreadDetail"
-                                class="p-2 -ml-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors md:hidden">
-                                ←
-                            </button>
-                            <div @click="openProfile(selectedThread.profiles, selectedThread.author_id)"
-                                class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:ring-2 hover:ring-cyan-400 transition-all overflow-hidden">
-                                <img v-if="selectedThread.profiles?.avatar_url"
-                                    :src="selectedThread.profiles.avatar_url" class="w-full h-full object-cover">
-                                <span v-else>{{ selectedThread.profiles?.username?.[0]?.toUpperCase() || 'A' }}</span>
-                            </div>
-                            <div>
-                                <h2 class="font-bold text-white text-lg leading-tight line-clamp-1">
-                                    {{ selectedThread.title }}</h2>
-                                <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                                    <span @click="openProfile(selectedThread.profiles, selectedThread.author_id)"
-                                        class="text-cyan-400 font-bold hover:underline cursor-pointer">
-                                        @{{ selectedThread.profiles?.username || 'Anonymous' }}
-                                    </span>
-                                    <span>•</span>
-                                    <span>{{ dayjs(selectedThread.created_at).format('YYYY年MM月DD日 HH:mm') }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button @click="closeThreadDetail"
-                                class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Scrollable Content -->
-                    <div class="flex-1 overflow-y-auto custom-scrollbar">
-                        <div class="p-6 md:p-8 max-w-none">
-                            <!-- Tags -->
-                            <div class="flex flex-wrap gap-2 mb-6"
-                                v-if="selectedThread.tags && selectedThread.tags.length">
-                                <span v-for="tag in selectedThread.tags" :key="tag"
-                                    class="px-2.5 py-1 rounded-md bg-slate-800 text-cyan-400 border border-slate-700 text-xs font-bold tracking-wide">
-                                    {{ tag }}
-                                </span>
-                            </div>
-
-                            <!-- Markdown Body -->
-                            <div class="markdown-body" v-html="renderMarkdown(selectedThread.content)"></div>
-                        </div>
-
-                        <div class="border-t border-slate-800/50 p-6 md:p-8 bg-slate-900/30">
-                            <h3 class="font-bold text-slate-400 text-sm uppercase tracking-wider mb-6">
-                                Comments ({{ comments.length }})
-                            </h3>
-
-                            <!-- Comment List -->
-                            <div v-if="comments.length > 0" class="space-y-6 mb-8">
-                                <div v-for="comment in comments" :key="comment.id" class="flex gap-4 group">
-                                    <div @click="openProfile(comment.author, comment.author_id)"
-                                        class="w-8 h-8 rounded-full bg-indigo-500 shrink-0 overflow-hidden mt-1 cursor-pointer hover:ring-2 hover:ring-cyan-400 transition-all">
-                                        <img v-if="comment.author?.avatar_url" :src="comment.author.avatar_url"
-                                            class="w-full h-full object-cover">
-                                        <span v-else
-                                            class="w-full h-full flex items-center justify-center text-xs font-bold text-white">
-                                            {{ comment.author?.username?.[0]?.toUpperCase() || '?' }}
-                                        </span>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <span @click="openProfile(comment.author, comment.author_id)"
-                                                class="font-bold text-slate-300 text-sm hover:text-cyan-400 cursor-pointer transition-colors">
-                                                {{ comment.author?.username || 'Anonymous' }}
-                                            </span>
-                                            <span class="text-xs text-slate-500">{{ dayjs(comment.created_at).fromNow()
-                                                }}</span>
-                                        </div>
-                                        <div class="text-slate-400 text-sm leading-relaxed whitespace-pre-wrap">{{
-                                            comment.content }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-else class="text-center py-8 text-slate-500 text-sm italic mb-8">
-                                No comments yet. Be the first to share your thoughts.
-                            </div>
-
-                            <!-- Comment Input -->
-                            <div class="flex gap-4">
-                                <div class="w-8 h-8 rounded-full bg-slate-800 shrink-0 overflow-hidden mt-1">
-                                    <img v-if="user?.avatar_url" :src="user.avatar_url"
-                                        class="w-full h-full object-cover">
-                                </div>
-                                <div class="flex-1">
-                                    <div v-if="user" class="relative">
-                                        <textarea v-model="newCommentContent" rows="3" placeholder="Write a comment..."
-                                            class="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 text-slate-300 text-sm focus:outline-none focus:border-cyan-500/50 focus:bg-slate-800 transition-all resize-none"
-                                            @keydown.ctrl.enter="submitComment"></textarea>
-                                        <div class="flex justify-end mt-2">
-                                            <button @click="submitComment" :disabled="!newCommentContent.trim()"
-                                                class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                                                Post Comment
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div v-else @click="showLogin = true"
-                                        class="bg-slate-800/30 border border-slate-700/30 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-800/50 transition-colors">
-                                        <span class="text-slate-500 text-sm">Please <span
-                                                class="text-cyan-400 font-bold hover:underline">login</span> to join the
-                                            discussion.</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Footer Actions -->
-                    <div
-                        class="p-4 border-t border-slate-700 bg-slate-900/80 backdrop-blur flex justify-between items-center">
-                        <div class="flex gap-2">
-                            <button @click="vote(selectedThread.id, 'up')"
-                                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                                :class="{ '!text-cyan-400 !bg-slate-800 border border-cyan-500/50': userVotes.has(selectedThread.id) }">
-                                <span>▲</span>
-                                <span class="font-bold">{{ selectedThread.upvote_count || 0 }}</span>
-                            </button>
-                            <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-slate-300">
-                                <span>💬</span> Comment
-                            </div>
-                        </div>
-                        <button
-                            class="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
-                            <span>🔁</span> Share
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <!-- Profile Modal -->
-            <div v-if="showProfileModal && selectedProfile"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <!-- Backdrop -->
-                <div @click="closeProfile"
-                    class="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"></div>
-
-                <!-- Content -->
-                <div
-                    class="relative w-full max-w-2xl bg-cyber-dark border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
-
-                    <!-- Header -->
-                    <div class="p-6 border-b border-slate-700 bg-slate-900/50 flex flex-col items-center">
-                        <div
-                            class="w-20 h-20 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-3xl mb-4 ring-4 ring-slate-800">
-                            {{ selectedProfile.username?.[0]?.toUpperCase() || '?' }}
-                        </div>
-                        <h2 class="font-bold text-white text-2xl mb-1">
-                            {{ selectedProfile.username || 'Anonymous' }}
-                        </h2>
-                        <div class="flex gap-4 text-xs text-slate-400">
-                            <span class="flex items-center gap-1">
-                                <span>🏆</span> {{ selectedProfile.reputation || 0 }} Reputation
-                            </span>
-                            <span class="flex items-center gap-1">
-                                <span>📅</span> Joined {{ dayjs(selectedProfile.created_at).format('MMM YYYY') }}
-                            </span>
-                        </div>
-                        <button @click="closeProfile" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                            ✕
-                        </button>
-                    </div>
-
-                    <!-- Tabs/List -->
-                    <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
-                        <h3 class="font-bold text-slate-400 text-sm uppercase tracking-wider mb-4">
-                            Recent Threads
-                        </h3>
-
-                        <div v-if="loadingProfile" class="flex justify-center py-8">
-                            <span class="animate-spin text-2xl">⏳</span>
-                        </div>
-                        <div v-else-if="profileThreads.length > 0" class="space-y-3">
-                            <div v-for="thread in profileThreads" :key="thread.id"
-                                @click="openThreadDetail(thread); closeProfile()"
-                                class="p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 rounded-xl cursor-pointer transition-all group">
-                                <div class="font-bold text-slate-200 group-hover:text-cyan-400 mb-1 line-clamp-1">
-                                    {{ thread.title }}
-                                </div>
-                                <div class="flex justify-between items-center text-xs text-slate-500">
-                                    <span>{{ dayjs(thread.created_at).fromNow() }}</span>
-                                    <span class="flex items-center gap-1">
-                                        <span>▲</span> {{ thread.upvote_count }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-else class="text-center py-8 text-slate-500 italic">
-                            No threads started yet.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Right Sidebar (Metadata) - 25% -->
+            <!-- RIGHT SIDEBAR: Stats (Hidden on tablet/mobile) -->
             <aside class="w-80 border-l border-slate-700/30 hidden lg:flex flex-col bg-cyber-dark/30 p-6 space-y-6">
-
                 <!-- Community Card -->
-                <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+                <div class="glass-panel relative overflow-hidden group">
                     <div
-                        class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-[40px] rounded-full pointer-events-none">
+                        class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-[40px] rounded-full pointer-events-none group-hover:bg-cyan-500/20 transition-all">
                     </div>
                     <h3 class="font-bold text-white mb-2">About Neural Nexus</h3>
                     <p class="text-xs text-slate-400 leading-relaxed mb-4">
@@ -670,18 +213,14 @@
                     </p>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <div class="text-xl font-bold text-white">1.2k</div>
+                            <div class="text-xl font-bold text-white">1,242</div>
                             <div class="text-[10px] text-slate-500 uppercase tracking-wider">Members</div>
                         </div>
                         <div>
-                            <div class="text-xl font-bold text-white">Green</div>
+                            <div class="text-xl font-bold text-emerald-400">Online</div>
                             <div class="text-[10px] text-slate-500 uppercase tracking-wider">Status</div>
                         </div>
                     </div>
-                    <button
-                        class="w-full py-2 bg-slate-100 text-slate-900 rounded-lg font-bold text-sm hover:bg-white transition-colors">
-                        Create Post
-                    </button>
                 </div>
 
                 <!-- Trending Tags -->
@@ -691,697 +230,129 @@
                         <span
                             class="px-2 py-1 bg-slate-800 text-cyan-400 text-xs rounded border border-slate-700 hover:border-cyan-500/50 cursor-pointer transition-colors">#GenerativeAI</span>
                         <span
-                            class="px-2 py-1 bg-slate-800 text-purple-400 text-xs rounded border border-slate-700 hover:border-purple-500/50 cursor-pointer transition-colors">#WebDesisn</span>
+                            class="px-2 py-1 bg-slate-800 text-purple-400 text-xs rounded border border-slate-700 hover:border-purple-500/50 cursor-pointer transition-colors">#WebDesign</span>
                         <span
                             class="px-2 py-1 bg-slate-800 text-emerald-400 text-xs rounded border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition-colors">#Robotics</span>
                         <span
                             class="px-2 py-1 bg-slate-800 text-slate-300 text-xs rounded border border-slate-700 hover:border-slate-500 cursor-pointer transition-colors">#Career</span>
                     </div>
                 </div>
-
-                <!-- Footer -->
-                <footer class="mt-auto text-[10px] text-slate-600">
-                    &copy; 2025 Neural Nexus. All rights reserved. <br>
-                    <span class="hover:text-slate-400 cursor-pointer">Privacy</span> • <span
-                        class="hover:text-slate-400 cursor-pointer">Terms</span>
-                </footer>
             </aside>
 
         </div>
     </div>
 
-    <!-- Centralized Client -->
-    <script src="assets/js/supabase-client.js"></script>
-
+    <!-- Core Logic -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Config Day.js
-            dayjs.extend(window.dayjs_plugin_relativeTime);
-            dayjs.locale('zh-cn');
-
-            const { createApp, ref, onMounted, computed } = Vue;
-
-            // Mock Supabase Config for UI Dev
-            const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
-
-            createApp({
-                setup() {
-                    // Supabase instance from global client
-                    const supabase = window.SupabaseClient ? window.SupabaseClient.client : null;
-                    console.log("Supabase initialized in Forum:", !!supabase);
-                    const showMobileMenu = ref(false);
-                    const user = ref(null);
-                    const showLogin = ref(false);
-                    const threads = ref([]);
-                    const loading = ref(true);
-                    const newThreadContent = ref('');
-                    const newThreadTitle = ref('');
-                    const showCreateModal = ref(false);
-                    const searchQuery = ref('');
-                    const currentTag = ref(null);
-
-                    // Pagination State
-                    const page = ref(1);
-                    const pageSize = 5;
-                    const hasMore = ref(true);
-                    const loadingMore = ref(false);
-
-                    // Profile Modal State
-                    const showProfileModal = ref(false);
-                    const selectedProfile = ref(null);
-                    const profileThreads = ref([]);
-                    const loadingProfile = ref(false);
-
-                    // Detail View State
-                    const selectedThread = ref(null);
-                    const showThreadDetail = ref(false);
-                    const comments = ref([]);
-                    const newCommentContent = ref('');
-                    const userVotes = ref(new Set());
-                    const currentFilter = ref('home');
-
-                    const setFilter = (filter) => {
-                        currentFilter.value = filter;
-                        // Reset other filters
-                        if (filter === 'home') {
-                            currentTag.value = null;
-                            searchQuery.value = '';
-                        }
-                    };
-
-                    const toggleMobileMenu = () => {
-                        showMobileMenu.value = !showMobileMenu.value;
-                    };
-
-                    const openThreadDetail = async (thread) => {
-                        selectedThread.value = thread;
-                        showThreadDetail.value = true;
-                        // Fetch comments when opening details
-                        await fetchComments(thread.id);
-                    };
-
-                    const closeThreadDetail = () => {
-                        showThreadDetail.value = false;
-                        setTimeout(() => {
-                            selectedThread.value = null;
-                            comments.value = []; // Clear comments on close
-                        }, 300);
-                    };
-
-                    // --- Profile Logic ---
-                    const openProfile = async (profileData, userId) => {
-                        selectedProfile.value = { ...profileData, id: userId };
-                        showProfileModal.value = true;
-                        loadingProfile.value = true;
-                        profileThreads.value = [];
-
-                        // Fetch user threads
-                        if (!supabase) {
-                            // Mock Profile Threads
-                            await new Promise(r => setTimeout(r, 600));
-                            // Generate consistent mock data to filter from
-                            const allMockThreads = Array.from({ length: 25 }, (_, i) => ({
-                                id: `mock-${i + 1}`,
-                                author_id: `mock-user-${(i % 5) + 1}`,
-                                title: `Mock Thread #${i + 1} - ${['AI', 'System', 'WebDev'][i % 3]}`,
-                                content: 'This is a paginated mock thread content...',
-                                upvote_count: Math.floor(Math.random() * 50),
-                                comment_count: Math.floor(Math.random() * 10),
-                                created_at: dayjs().subtract(i, 'day').toISOString(),
-                                tags: [['AI'], ['System'], ['WebDev']][i % 3],
-                                profiles: { username: `User_${(i % 5) + 1}`, avatar_url: null, reputation: 10 + (i * 2) }
-                            }));
-                            profileThreads.value = allMockThreads.filter(t => t.author_id === userId);
-                        } else {
-                            const { data, error } = await supabase
-                                .from('threads')
-                                .select('*')
-                                .eq('author_id', userId)
-                                .order('created_at', { ascending: false });
-
-                            if (!error) {
-                                profileThreads.value = data;
-                            }
-                        }
-                        loadingProfile.value = false;
-                    };
-
-                    const closeProfile = () => {
-                        showProfileModal.value = false;
-                        setTimeout(() => {
-                            selectedProfile.value = null;
-                            profileThreads.value = [];
-                        }, 300);
-                    };
-
-                    const filteredThreads = computed(() => {
-                        let result = threads.value;
-
-                        // 0. Sidebar Filter
-                        if (currentFilter.value === 'trending') {
-                            // Sort by upvotes
-                            result = [...result].sort((a, b) => (b.upvote_count || 0) - (a.upvote_count || 0));
-                        } else if (currentFilter.value === 'tags') {
-                            // Show all tags summary? Or just simulate a topic list? 
-                            // For now, let's just show threads with tags
-                            result = result.filter(t => t.tags && t.tags.length > 0);
-                        }
-
-                        // 1. Tag Filter
-                        if (currentTag.value) {
-                            result = result.filter(t => t.tags && t.tags.includes(currentTag.value));
-                        }
-                        if (currentTag.value) {
-                            result = result.filter(t => t.tags && t.tags.includes(currentTag.value));
-                        }
-
-                        // 2. Search Filter
-                        if (searchQuery.value) {
-                            const lowerQ = searchQuery.value.toLowerCase();
-                            result = result.filter(t =>
-                                t.title.toLowerCase().includes(lowerQ) ||
-                                t.content.toLowerCase().includes(lowerQ) ||
-                                t.tags?.some(tag => tag.toLowerCase().includes(lowerQ))
-                            );
-                        }
-                        return result;
-                    });
-
-                    const selectTag = (tag) => {
-                        window.scrollTo(0, 0);
-                        if (currentTag.value === tag) {
-                            currentTag.value = null; // Toggle off
-                        } else {
-                            currentTag.value = tag;
-                        }
-                    };
-
-                    const renderMarkdown = (content) => {
-                        if (!content) return '';
-                        return marked.parse(content);
-                    };
-
-                    // --- Auth Logic ---
-                    const login = async () => {
-                        // Simple OAuth login for demo or magic link
-                        if (!supabase) return;
-                        // For this environment, we might rely on the main site's auth state
-                        // or implement a simple sign-in here.
-                        // Let's check session first.
-                        alert("请通过主页或其他方式登录 Supabase (当前仅支持检测现有会话)");
-                    };
-
-                    const logout = async () => {
-                        if (supabase) {
-                            await supabase.auth.signOut();
-                            user.value = null;
-                            window.location.reload();
-                        }
-                    };
-
-                    // --- Data Fetching ---
-                    const fetchThreads = async (isLoadMore = false) => {
-                        if (isLoadMore) {
-                            loadingMore.value = true;
-                            page.value++;
-                        } else {
-                            loading.value = true;
-                            page.value = 1;
-                            threads.value = [];
-                            hasMore.value = true;
-                        }
-
-                        const from = (page.value - 1) * pageSize;
-                        const to = from + pageSize - 1;
-
-                        if (!supabase) {
-                            // Mock Data Generation (Simulate Pagination)
-                            await new Promise(r => setTimeout(r, 800)); // Fake value delay
-
-                            const allMockThreads = Array.from({ length: 25 }, (_, i) => ({
-                                id: `mock-${i + 1}`,
-                                author_id: `mock-user-${(i % 5) + 1}`,
-                                title: `Mock Thread #${i + 1} - ${['AI', 'System', 'WebDev'][i % 3]}`,
-                                content: 'This is a paginated mock thread content...',
-                                upvote_count: Math.floor(Math.random() * 50),
-                                comment_count: Math.floor(Math.random() * 10),
-                                created_at: dayjs().subtract(i, 'day').toISOString(),
-                                tags: [['AI'], ['System'], ['WebDev']][i % 3],
-                                profiles: { username: `User_${(i % 5) + 1}`, avatar_url: null, reputation: 10 + (i * 2) }
-                            }));
-
-                            // Fix for mock data filtering in profile view if used there, 
-                            // but here we just need pagination for main list
-                            const newBatch = allMockThreads.slice(from, to + 1);
-
-                            if (isLoadMore) {
-                                threads.value.push(...newBatch);
-                            } else {
-                                threads.value = newBatch;
-                            }
-
-                            if (newBatch.length < pageSize) hasMore.value = false;
-
-                            loading.value = false;
-                            loadingMore.value = false;
-                            return;
-                        }
-
-                        const { data, error } = await supabase
-                            .from('threads')
-                            .select(`
-                            *,
-                            profiles:author_id ( username, avatar_url, reputation )
-                        `)
-                            .order('created_at', { ascending: false })
-                            .range(from, to);
-
-                        if (error) {
-                            console.error('Error fetching threads:', error);
-                            // Fallback logic could be added here
-                        } else {
-                            if (isLoadMore) {
-                                threads.value.push(...(data || []));
-                            } else {
-                                threads.value = data || [];
-                            }
-
-                            if ((data || []).length < pageSize) hasMore.value = false;
-
-                            // Check User Votes for new batch
-                            if (user.value && data && data.length > 0) {
-                                const threadIds = data.map(t => t.id);
-                                const { data: votes } = await supabase
-                                    .from('votes')
-                                    .select('thread_id')
-                                    .eq('user_id', user.value.id)
-                                    .in('thread_id', threadIds);
-                                if (votes) {
-                                    votes.forEach(v => userVotes.value.add(v.thread_id));
-                                }
-                            }
-                        }
-                        loading.value = false;
-                        loadingMore.value = false;
-                    };
-
-                    // --- Comment Logic ---
-                    const fetchComments = async (threadId) => {
-                        comments.value = []; // Reset
-
-                        if (!supabase) {
-                            // Mock Comments
-                            comments.value = [
-                                {
-                                    id: 101,
-                                    content: "Great post! Really looking forward to more updates on this agentic future.",
-                                    author: { username: "Alice_Dev", avatar_url: null },
-                                    created_at: dayjs().subtract(10, 'minute').toISOString()
-                                },
-                                {
-                                    id: 102,
-                                    content: "Does this support multi-turn conversations yet?",
-                                    author: { username: "Bob_Builder", avatar_url: null },
-                                    created_at: dayjs().subtract(5, 'minute').toISOString()
-                                }
-                            ];
-                            return;
-                        }
-
-                        const { data, error } = await supabase
-                            .from('comments')
-                            .select(`
-            id, content, created_at, author_id,
-            author:author_id ( username, avatar_url )
-            `)
-                            .eq('thread_id', threadId)
-                            .order('created_at', { ascending: true });
-
-                        if (error) {
-                            console.error('Error fetching comments:', error);
-                            // Fallback logic could go here, for now just empty or mock
-                            comments.value = [];
-                        } else {
-                            comments.value = data || [];
-                            setupCommentRealtime(threadId);
-                        }
-                    };
-
-                    const submitComment = async () => {
-                        if (!user.value) {
-                            alert("Please login to comment.");
-                            return;
-                        }
-                        if (!newCommentContent.value.trim()) return;
-
-                        // Optimistic update for UI responsiveness
-                        const tempComment = {
-                            id: Date.now(),
-                            content: newCommentContent.value,
-                            author: {
-                                username: user.value.username || user.value.email,
-                                avatar_url: user.value.avatar_url
-                            },
-                            created_at: new Date().toISOString()
-                        };
-
-                        if (!supabase) {
-                            comments.value.push(tempComment);
-                            newCommentContent.value = '';
-                            return;
-                        }
-
-                        const { data, error } = await supabase
-                            .from('comments')
-                            .insert([
-                                {
-                                    content: newCommentContent.value,
-                                    thread_id: selectedThread.value.id,
-                                    author_id: user.value.id
-                                }
-                            ])
-                            .select(`
-            id, content, created_at,
-            author:author_id ( username, avatar_url )
-            `)
-                            .single();
-
-                        if (error) {
-                            alert("Error posting comment: " + error.message);
-                        } else {
-                            // Replace temp comment or refresh
-                            comments.value.push(data); // Add real data
-                            newCommentContent.value = '';
-
-                            // Update comment count on thread (local only for now)
-                            if (selectedThread.value) {
-                                selectedThread.value.comment_count = (selectedThread.value.comment_count || 0) + 1;
-                            }
-                        }
-                    };
-
-                    const createThread = async () => {
-                        if (!user.value) {
-                            alert("请先登录");
-                            return;
-                        }
-                        if (!newThreadTitle.value || !newThreadContent.value) return;
-
-                        const { data, error } = await supabase
-                            .from('threads')
-                            .insert([
-                                {
-                                    title: newThreadTitle.value,
-                                    content: newThreadContent.value,
-                                    author_id: user.value.id,
-                                    tags: ['General'] // Default tag for now
-                                }
-                            ])
-                            .select();
-
-                        if (error) {
-                            alert("发帖失败: " + error.message);
-                        } else {
-                            // Refresh
-                            fetchThreads();
-                            showCreateModal.value = false;
-                            newThreadTitle.value = '';
-                            newThreadContent.value = '';
-                        }
-                    };
-
-                    // --- Vote Logic ---
-                    const vote = async (id, type) => {
-                        if (!user.value) {
-                            alert("请先登录");
-                            return;
-                        }
-
-                        // Optimistic Update
-                        const threadIndex = threads.value.findIndex(t => t.id === id);
-                        if (threadIndex === -1 && selectedThread.value?.id !== id) return;
-
-                        const thread = threadIndex !== -1 ? threads.value[threadIndex] : selectedThread.value;
-                        const isVoted = userVotes.value.has(id);
-
-                        // Update Local State
-                        if (isVoted) {
-                            thread.upvote_count--;
-                            userVotes.value.delete(id);
-                        } else {
-                            thread.upvote_count++;
-                            userVotes.value.add(id);
-                        }
-
-                        // Sync with selectedThread if same
-                        if (selectedThread.value && selectedThread.value.id === id) {
-                            selectedThread.value.upvote_count = thread.upvote_count;
-                        }
-
-                        if (!supabase) return; // Mock Mode stop here
-
-                        if (!isVoted) {
-                            // Add Vote
-                            const { error } = await supabase.from('votes').insert([{
-                                user_id: user.value.id,
-                                thread_id: id,
-                                type: 'up'
-                            }]);
-                            if (error) {
-                                console.error('Vote failed', error);
-                                // Rollback
-                                thread.upvote_count--;
-                                userVotes.value.delete(id);
-                            } else {
-                                // Increment counter on server (RPC or let client update do it later)
-                                // For now, client logic is enough for visualization.
-                                await supabase.rpc('increment_vote', { row_id: id });
-                            }
-                        } else {
-                            // Remove Vote
-                            const { error } = await supabase.from('votes').delete()
-                                .eq('user_id', user.value.id)
-                                .eq('thread_id', id);
-                            if (error) {
-                                console.error('Unvote failed', error);
-                                // Rollback
-                                thread.upvote_count++;
-                                userVotes.value.add(id);
-                            } else {
-                                await supabase.rpc('decrement_vote', { row_id: id });
-                            }
-                        }
-                    };
-
-                    // --- Realtime Subscriptions ---
-                    const setupRealtime = () => {
-                        if (!supabase) return;
-
-                        // Global Thread Updates
-                        supabase.channel('public:threads')
-                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'threads' }, async (payload) => {
-                                // Fetch profile for the new thread
-                                const { data: profile } = await supabase.from('profiles').select('username, avatar_url, reputation').eq('id', payload.new.author_id).single();
-                                const newThread = { ...payload.new, profiles: profile || { username: 'NewUser' } };
-                                threads.value.unshift(newThread);
-                            })
-                            .subscribe();
-                    };
-
-                    // Subscription for Comments (Dynamic based on selected thread)
-                    let commentChannel = null;
-                    const setupCommentRealtime = (threadId) => {
-                        if (!supabase) return;
-                        if (commentChannel) supabase.removeChannel(commentChannel);
-
-                        commentChannel = supabase.channel(`public:comments:${threadId}`)
-                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments', filter: `thread_id=eq.${threadId}` }, async (payload) => {
-                                // Ignore my own insert (handled optimistically)
-                                if (payload.new.author_id === user.value?.id) return;
-
-                                const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', payload.new.author_id).single();
-                                const newComment = {
-                                    id: payload.new.id,
-                                    content: payload.new.content,
-                                    created_at: payload.new.created_at,
-                                    author: profile || { username: 'User' }
-                                };
-                                comments.value.push(newComment);
-                            })
-                            .subscribe();
-                    };
-
-
-
-
-                    onMounted(async () => {
-                        // init Supabase
-                        const appLoading = document.getElementById('app-loading');
-                        if (appLoading) appLoading.style.display = 'none';
-
-                        // 3D Scene
-                        init3DScene();
-
-                        // Session check
-                        if (supabase) {
-                            const { data: { session } } = await supabase.auth.getSession();
-                            user.value = session?.user || null;
-
-                            // Load votes from local storage for demo persistence
-                            const storedVotes = localStorage.getItem('forum_votes');
-                            if (storedVotes) {
-                                userVotes.value = new Set(JSON.parse(storedVotes));
-                            }
-                        }
-
-                        fetchThreads();
-                        setupRealtime(); // Re-add this if realtime is desired for threads
-                    });
-
-                    // Persist votes (demo)
-                    const saveVotes = () => {
-                        localStorage.setItem('forum_votes', JSON.stringify([...userVotes.value]));
-                    };
-
-                    return {
-                        showMobileMenu,
-                        toggleMobileMenu,
-                        user,
-                        showLogin,
-                        login,
-                        logout,
-                        threads,
-                        filteredThreads,
-                        loading,
-                        currentTag,
-                        showCreateModal,
-                        newThreadTitle,
-                        newThreadContent,
-                        createThread,
-                        selectedThread,
-                        showThreadDetail,
-                        openThreadDetail,
-                        closeThreadDetail,
-                        renderMarkdown,
-                        comments,
-                        newCommentContent,
-                        submitComment,
-                        userVotes,
-                        vote,
-                        dayjs,
-                        hasMore,
-                        loadingMore,
-                        fetchThreads,
-                        showProfileModal,
-                        selectedProfile,
-                        profileThreads,
-                        loadingProfile,
-                        openProfile,
-                        closeProfile,
-                        currentFilter,
-                        setFilter
-                    };
-                }
-            }).mount('#app');
-
-            // --- 3D Scene Logic (Ported from learn.html) ---
-            function init3DScene() {
-                const canvas = document.getElementById('bg-canvas');
-                if (!canvas) return;
-
-                const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                camera.position.z = 50;
-
-                // Particle System
-                const particlesGeometry = new THREE.BufferGeometry();
-                const particleCount = 2000; // Match learn.html count
-                const positions = new Float32Array(particleCount * 3);
-                const colors = new Float32Array(particleCount * 3);
-
-                const colorPalette = [
-                    new THREE.Color(0x8B5CF6), // Purple
-                    new THREE.Color(0x06B6D4), // Cyan
-                    new THREE.Color(0xEC4899), // Pink
-                    new THREE.Color(0xF59E0B), // Amber
+            const threadListEl = document.getElementById('thread-list');
+            const loadingEl = document.getElementById('app-loading');
+
+            // --- 1. Mock Data Integration ---
+            const generateThreads = () => {
+                const topics = [
+                    { title: "Best practices for React 19 vs Vue 3.3?", tag: "WebDev", color: "text-cyan-400" },
+                    { title: "How are you using AI Agents in production?", tag: "AI", color: "text-purple-400" },
+                    { title: "The state of WebAssembly in 2025", tag: "System", color: "text-emerald-400" },
+                    { title: "Career advice for Junior Devs entering the market", tag: "Career", color: "text-slate-300" },
+                    { title: "Showcase: I built a neural network in pure JS", tag: "Showcase", color: "text-pink-400" }
                 ];
 
-                for (let i = 0; i < particleCount; i++) {
-                    positions[i * 3] = (Math.random() - 0.5) * 200;
-                    positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
-                    positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
-
-                    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-                    colors[i * 3] = color.r;
-                    colors[i * 3 + 1] = color.g;
-                    colors[i * 3 + 2] = color.b;
-                }
-
-                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-                const particlesMaterial = new THREE.PointsMaterial({
-                    size: 0.8,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 0.6,
-                    blending: THREE.AdditiveBlending,
+                return Array.from({ length: 8 }, (_, i) => {
+                    const topic = topics[i % topics.length];
+                    return {
+                        id: i,
+                        title: topic.title,
+                        tag: topic.tag,
+                        tagColor: topic.color,
+                        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam...",
+                        author: `DevUser_${i + 1}`,
+                        avatar: null,
+                        upvotes: 42 + (i * 12),
+                        comments: 5 + (i * 3),
+                        time: new Date(Date.now() - (i * 3600000)) // Hours ago
+                    };
                 });
+            };
 
-                const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-                scene.add(particles);
+            // --- 2. Render Function ---
+            const render = () => {
+                const threads = generateThreads();
+                let html = '';
 
-                // Animation
-                let mouseX = 0, mouseY = 0;
-
-                document.addEventListener('mousemove', (e) => {
-                    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-                    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-                });
-
-                function animate() {
-                    requestAnimationFrame(animate);
-
-                    particles.rotation.y += 0.0005;
-                    particles.rotation.x += 0.0002;
-
-                    // Mouse parallax (gentle)
-                    camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
-                    camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
-                    camera.lookAt(scene.position);
-
-                    renderer.render(scene, camera);
-                }
-
-                animate();
-
-                window.addEventListener('resize', () => {
-                    camera.aspect = window.innerWidth / window.innerHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-            }
-        });
-    </script>
-    <script>
-        // Safety Check
-        window.onload = function () {
-            setTimeout(() => {
-                if (typeof Vue === 'undefined') {
-                    const failMsg = "Error: Vue.js failed to load. Please check your network connection.";
-                    console.error(failMsg);
-                    const loadingEl = document.getElementById('app-loading');
-                    if (loadingEl) {
-                        loadingEl.innerHTML = `<div class='text-red-500 font-bold p-6 bg-slate-900 rounded-xl border border-red-500'>${failMsg}<br><br>请检查网络或尝试刷新页面。<br>(CDN Failure)</div>`;
+                threads.forEach((thread, index) => {
+                    // Try to use Day.js if loaded, else fallback
+                    let timeDisplay = "Just now";
+                    if (window.dayjs && window.dayjs_plugin_relativeTime) {
+                        dayjs.extend(window.dayjs_plugin_relativeTime);
+                        timeDisplay = dayjs(thread.time).fromNow();
+                    } else {
+                        // Simple fallback
+                        timeDisplay = `${index + 1}h ago`;
                     }
-                }
-            }, 3000); // Check after 3 seconds
-        };
+
+                    html += `
+                        <article class="glass-panel group cursor-pointer hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
+                            
+                            <div class="flex gap-4">
+                                <!-- Vote -->
+                                <div class="flex flex-col items-center gap-1 w-10 shrink-0 pt-1 text-slate-500">
+                                    <button class="hover:text-cyan-400 transition-colors">▲</button>
+                                    <span class="font-mono font-bold text-sm text-slate-400">${thread.upvotes}</span>
+                                    <button class="hover:text-red-400 transition-colors">▼</button>
+                                </div>
+
+                                <!-- Body -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-1 text-xs text-slate-500">
+                                        <div class="flex items-center gap-1 hover:text-cyan-400 cursor-pointer transition-colors">
+                                            <div class="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold">
+                                                ${thread.author[0]}
+                                            </div>
+                                            <span class="font-bold text-slate-300">${thread.author}</span>
+                                        </div>
+                                        <span>•</span>
+                                        <span>${timeDisplay}</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-slate-800 ${thread.tagColor} border border-slate-700 ml-2">${thread.tag}</span>
+                                    </div>
+                                    
+                                    <h3 class="font-bold text-lg text-slate-200 mb-2 group-hover:text-cyan-400 transition-colors leading-snug">
+                                        ${thread.title}
+                                    </h3>
+                                    
+                                    <p class="text-slate-400 text-sm line-clamp-2 mb-3 leading-relaxed">
+                                        ${thread.content}
+                                    </p>
+                                    
+                                    <div class="flex items-center gap-4 text-xs text-slate-500">
+                                        <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
+                                            <span>💬</span> ${thread.comments} Comments
+                                        </button>
+                                        <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
+                                            <span>🔁</span> Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    `;
+                });
+
+                threadListEl.innerHTML = html;
+
+                // --- 3. Reveal UI ---
+                // Immediate reveal since local Tailwind is fast
+                requestAnimationFrame(() => {
+                    loadingEl.style.opacity = '0';
+                    setTimeout(() => loadingEl.remove(), 300);
+                });
+            };
+
+            // Init immediately
+            render();
+
+        });
     </script>
 </body>
 
