@@ -535,21 +535,20 @@
         </div>
     </div>
 
+    <script src="assets/js/supabase-client.js"></script> <!-- Centralized Client -->
+
     <script>
-        const { createApp, ref, onMounted, computed, nextTick, watch } = Vue;
-
-        const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_GMrzokSh5g';
-
-        let supabase = null;
-        if (window.supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        }
+        const { createApp, ref, computed, watch, nextTick, onMounted, onUnmounted } = Vue;
 
         createApp({
             setup() {
+                // State
                 const user = ref(null);
                 const loading = ref(true);
+
+                // Supabase instance from global client
+                const supabase = window.SupabaseClient ? window.SupabaseClient.client : null;
+
                 const course = ref({});
                 const lessons = ref([]);
                 const currentLesson = ref(null);
@@ -595,8 +594,7 @@
                 const isAiTyping = ref(false);
 
                 // Get course ID from URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const courseId = urlParams.get('id');
+                let courseId = null; // Changed to let as it's set in onMounted
 
                 // Computed
                 const totalLessons = computed(() => lessons.value.length);
