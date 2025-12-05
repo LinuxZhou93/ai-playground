@@ -572,6 +572,7 @@
                 const showThreadDetail = ref(false);
                 const comments = ref([]);
                 const newCommentContent = ref('');
+                const userVotes = ref(new Set());
 
                 const toggleMobileMenu = () => {
                     showMobileMenu.value = !showMobileMenu.value;
@@ -645,6 +646,8 @@
                         ];
                         loading.value = false;
                         return;
+                        loading.value = false;
+                        return;
                     }
 
                     const { data, error } = await supabase
@@ -682,6 +685,16 @@
                         ];
                     } else {
                         threads.value = data || [];
+                        // Check User Votes
+                        if (user.value) {
+                            const { data: votes } = await supabase
+                                .from('votes')
+                                .select('thread_id')
+                                .eq('user_id', user.value.id);
+                            if (votes) {
+                                votes.forEach(v => userVotes.value.add(v.thread_id));
+                            }
+                        }
                     }
                     loading.value = false;
                 };
@@ -811,12 +824,65 @@
                 };
 
                 // --- Vote Logic ---
-                const vote = (id, type) => {
-                    // Optimistic update
-                    const thread = threads.value.find(t => t.id === id);
-                    if (thread) {
-                        if (type === 'up') thread.upvote_count++;
-                        // Actual DB call would go here
+                const vote = async (id, type) => {
+                    if (!user.value) {
+                        alert("请先登录");
+                        return;
+                    }
+
+                    // Optimistic Update
+                    const threadIndex = threads.value.findIndex(t => t.id === id);
+                    if (threadIndex === -1 && selectedThread.value?.id !== id) return;
+
+                    const thread = threadIndex !== -1 ? threads.value[threadIndex] : selectedThread.value;
+                    const isVoted = userVotes.value.has(id);
+
+                    // Update Local State
+                    if (isVoted) {
+                        thread.upvote_count--;
+                        userVotes.value.delete(id);
+                    } else {
+                        thread.upvote_count++;
+                        userVotes.value.add(id);
+                    }
+
+                    // Sync with selectedThread if same
+                    if (selectedThread.value && selectedThread.value.id === id) {
+                        selectedThread.value.upvote_count = thread.upvote_count;
+                    }
+
+                    if (!supabase) return; // Mock Mode stop here
+
+                    if (!isVoted) {
+                        // Add Vote
+                        const { error } = await supabase.from('votes').insert([{
+                            user_id: user.value.id,
+                            thread_id: id,
+                            type: 'up'
+                        }]);
+                        if (error) {
+                            console.error('Vote failed', error);
+                            // Rollback
+                            thread.upvote_count--;
+                            userVotes.value.delete(id);
+                        } else {
+                            // Increment counter on server (RPC or let client update do it later)
+                            // For now, client logic is enough for visualization.
+                            await supabase.rpc('increment_vote', { row_id: id });
+                        }
+                    } else {
+                        // Remove Vote
+                        const { error } = await supabase.from('votes').delete()
+                            .eq('user_id', user.value.id)
+                            .eq('thread_id', id);
+                        if (error) {
+                            console.error('Unvote failed', error);
+                            // Rollback
+                            thread.upvote_count++;
+                            userVotes.value.add(id);
+                        } else {
+                            await supabase.rpc('decrement_vote', { row_id: id });
+                        }
                     }
                 };
 
@@ -857,7 +923,8 @@
                     showCreateModal,
                     createThread,
                     vote,
-                    dayjs,
+                    dayjs, // Expose dayjs to template
+                    userVotes,
                     selectedThread,
                     showThreadDetail,
                     openThreadDetail,
