@@ -433,6 +433,57 @@
         </div>
     </div>
 
+    <!-- AI INSIGHT MODAL -->
+    <div id="ai-modal"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-lg transform scale-95 transition-transform duration-300 relative border-indigo-500/30 shadow-[0_0_50px_-12px_rgba(99,102,241,0.3)]"
+            id="ai-panel">
+            <button id="close-ai-modal"
+                class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">✕</button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <div
+                    class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl border border-indigo-500/30">
+                    ✨</div>
+                <div>
+                    <h2 class="text-xl font-bold text-white">AI 深度分析</h2>
+                    <div class="text-[10px] text-indigo-400 font-mono tracking-widest uppercase">Powered by Gemini Pro
+                    </div>
+                </div>
+            </div>
+
+            <div id="ai-loading" class="py-8 text-center hidden">
+                <div
+                    class="inline-block w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2">
+                </div>
+                <p class="text-indigo-300 text-xs animate-pulse">正在阅读帖子内容...</p>
+            </div>
+
+            <div id="ai-content" class="space-y-4 hidden">
+                <div class="bg-indigo-900/20 rounded-lg p-4 border border-indigo-500/20">
+                    <h3 class="text-xs font-bold text-indigo-300 mb-2 uppercase">核心观点提炼</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed" id="ai-summary"></p>
+                </div>
+
+                <div class="bg-emerald-900/20 rounded-lg p-4 border border-emerald-500/20">
+                    <h3 class="text-xs font-bold text-emerald-300 mb-2 uppercase">行动建议</h3>
+                    <ul class="text-slate-300 text-sm leading-relaxed list-disc list-inside space-y-1"
+                        id="ai-suggestion">
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-700/50 flex justify-end gap-3">
+                <button class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm"
+                    onclick="document.getElementById('close-ai-modal').click()">关闭</button>
+                <button
+                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-500/20 flex items-center gap-2">
+                    <span>💡</span> 追问 AI
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Core Logic -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -441,117 +492,51 @@
             const loadingEl = document.getElementById('app-loading');
             const searchInput = document.querySelector('input[placeholder="搜索话题..."]');
 
-            // Auth UI Refs
+            // UI Refs
             const authModal = document.getElementById('auth-modal');
             const authPanel = document.getElementById('auth-panel');
-            const closeAuthBtn = document.getElementById('close-auth');
-            const tabLogin = document.getElementById('tab-login');
-            const tabRegister = document.getElementById('tab-register');
-            const formLogin = document.getElementById('form-login');
-            const formRegister = document.getElementById('form-register');
+            const aiModal = document.getElementById('ai-modal');
+            const aiPanel = document.getElementById('ai-panel');
             const sidebarLoginBtn = document.querySelector('aside .p-4 button');
 
-            // Create Post UI Refs
+            // Post Modal Refs
             const createPostModal = document.getElementById('create-post-modal');
             const createPostPanel = document.getElementById('create-post-panel');
             const closeCreatePostBtn = document.getElementById('close-post-modal');
             const formCreatePost = document.getElementById('form-create-post');
 
-            // --- 1. 3D Background Logic ---
-            function init3DScene() {
-                const canvas = document.getElementById('bg-canvas');
-                if (!canvas) return;
-
-                const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                camera.position.z = 50;
-
-                const particlesGeometry = new THREE.BufferGeometry();
-                const particleCount = 2000;
-                const positions = new Float32Array(particleCount * 3);
-                const colors = new Float32Array(particleCount * 3);
-                const colorPalette = [
-                    new THREE.Color(0x8B5CF6), new THREE.Color(0x06B6D4),
-                    new THREE.Color(0xEC4899), new THREE.Color(0xF59E0B),
-                ];
-
-                for (let i = 0; i < particleCount; i++) {
-                    positions[i * 3] = (Math.random() - 0.5) * 200;
-                    positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
-                    positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
-                    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-                    colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
-                }
-                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-                const particles = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({
-                    size: 0.8, vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending
-                }));
-                scene.add(particles);
-
-                let mouseX = 0, mouseY = 0;
-                document.addEventListener('mousemove', (e) => {
-                    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-                    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-                });
-
-                function animate() {
-                    requestAnimationFrame(animate);
-                    particles.rotation.y += 0.0005;
-                    particles.rotation.x += 0.0002;
-                    camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
-                    camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
-                    camera.lookAt(scene.position);
-                    renderer.render(scene, camera);
-                }
-                animate();
-                window.addEventListener('resize', () => {
-                    camera.aspect = window.innerWidth / window.innerHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-            }
-
-            // --- 2. Auth Logic ---
-            let currentUser = null;
-
-            const toggleCreatePostModal = (show) => {
+            // Helpers for Modals
+            const toggleModal = (modal, panel, show) => {
                 if (show) {
-                    createPostModal.classList.remove('hidden');
+                    modal.classList.remove('hidden');
                     setTimeout(() => {
-                        createPostModal.classList.remove('opacity-0');
-                        createPostPanel.classList.remove('scale-95');
-                        createPostPanel.classList.add('scale-100');
+                        modal.classList.remove('opacity-0');
+                        panel.classList.remove('scale-95');
+                        panel.classList.add('scale-100');
                     }, 10);
                 } else {
-                    createPostModal.classList.add('opacity-0');
-                    createPostPanel.classList.remove('scale-100');
-                    createPostPanel.classList.add('scale-95');
-                    setTimeout(() => createPostModal.classList.add('hidden'), 300);
+                    modal.classList.add('opacity-0');
+                    panel.classList.remove('scale-100');
+                    panel.classList.add('scale-95');
+                    setTimeout(() => modal.classList.add('hidden'), 300);
                 }
             };
+
+            // Close buttons
+            document.getElementById('close-auth').onclick = () => toggleModal(authModal, authPanel, false);
+            if (document.getElementById('close-ai-modal'))
+                document.getElementById('close-ai-modal').onclick = () => toggleModal(aiModal, aiPanel, false);
+
+            const toggleCreatePostModal = (show) => toggleModal(createPostModal, createPostPanel, show);
             if (closeCreatePostBtn) closeCreatePostBtn.addEventListener('click', () => toggleCreatePostModal(false));
 
-            const toggleAuthModal = (show) => {
-                if (show) {
-                    authModal.classList.remove('hidden');
-                    setTimeout(() => {
-                        authModal.classList.remove('opacity-0');
-                        authPanel.classList.remove('scale-95');
-                        authPanel.classList.add('scale-100');
-                    }, 10);
-                } else {
-                    authModal.classList.add('opacity-0');
-                    authPanel.classList.remove('scale-100');
-                    authPanel.classList.add('scale-95');
-                    setTimeout(() => authModal.classList.add('hidden'), 300);
-                }
-            };
+            const toggleAuthModal = (show) => toggleModal(authModal, authPanel, show);
+
+            // Refactored switchTab, same logic...
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const formLogin = document.getElementById('form-login');
+            const formRegister = document.getElementById('form-register');
 
             const switchTab = (mode) => {
                 if (mode === 'login') {
@@ -566,19 +551,49 @@
                     formRegister.classList.remove('hidden');
                 }
             };
+            tabLogin.onclick = () => switchTab('login');
+            tabRegister.onclick = () => switchTab('register');
 
-            sidebarLoginBtn.addEventListener('click', () => {
-                if (currentUser) {
-                    alert(`你好，${currentUser.name}！`);
-                } else {
-                    toggleAuthModal(true);
-                    switchTab('login');
+            // --- 1. 3D Background Logic (Kept Same) ---
+            function init3DScene() {
+                const canvas = document.getElementById('bg-canvas');
+                if (!canvas) return;
+                // ... (Original 3D Logic is fine, abbreviated for replacement matching safety)
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                camera.position.z = 50;
+
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particleCount = 2000;
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+                const colorPalette = [new THREE.Color(0x8B5CF6), new THREE.Color(0x06B6D4), new THREE.Color(0xEC4899), new THREE.Color(0xF59E0B)];
+
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = (Math.random() - 0.5) * 200;
+                    positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
+                    positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+                    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                    colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
                 }
-            });
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                const particles = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({ size: 0.8, vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending }));
+                scene.add(particles);
 
-            closeAuthBtn.addEventListener('click', () => toggleAuthModal(false));
-            tabLogin.addEventListener('click', () => switchTab('login'));
-            tabRegister.addEventListener('click', () => switchTab('register'));
+                let mouseX = 0, mouseY = 0;
+                document.addEventListener('mousemove', (e) => { mouseX = (e.clientX / window.innerWidth) * 2 - 1; mouseY = -(e.clientY / window.innerHeight) * 2 + 1; });
+                function animate() { requestAnimationFrame(animate); particles.rotation.y += 0.0005; particles.rotation.x += 0.0002; camera.position.x += (mouseX * 5 - camera.position.x) * 0.05; camera.position.y += (mouseY * 5 - camera.position.y) * 0.05; camera.lookAt(scene.position); renderer.render(scene, camera); }
+                animate();
+                window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+            }
+
+            // --- 2. Auth Logic & Events ---
+            let currentUser = null;
+            sidebarLoginBtn.onclick = () => { if (currentUser) alert(`你好，${currentUser.name}！`); else { toggleAuthModal(true); switchTab('login'); } };
 
             formLogin.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -586,7 +601,6 @@
                 const originalContent = btn.innerHTML;
                 btn.innerHTML = `<span>登录中...</span><div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>`;
                 btn.disabled = true;
-
                 setTimeout(() => {
                     currentUser = { name: "家长_User", role: "Parent" };
                     updateUIForLogin();
@@ -598,23 +612,16 @@
 
             const updateUIForLogin = () => {
                 if (!currentUser) return;
-                sidebarLoginBtn.innerHTML = `
-                    <div class="flex items-center gap-3 justify-center">
-                        <div class="w-6 h-6 rounded-full bg-cyan-500 text-white flex items-center justify-center text-xs font-bold">${currentUser.name[0]}</div>
-                        <span class="text-white">${currentUser.name}</span>
-                    </div>
-                `;
-                sidebarLoginBtn.classList.remove('bg-cyan-600/20', 'text-cyan-400', 'border-cyan-500/30');
-                sidebarLoginBtn.classList.add('bg-slate-800', 'text-white', 'border-slate-700');
+                sidebarLoginBtn.innerHTML = `<div class="flex items-center gap-3 justify-center"><div class="w-6 h-6 rounded-full bg-cyan-500 text-white flex items-center justify-center text-xs font-bold">${currentUser.name[0]}</div><span class="text-white">${currentUser.name}</span></div>`;
+                sidebarLoginBtn.classList.replace('bg-cyan-600/20', 'bg-slate-800');
+                sidebarLoginBtn.classList.replace('text-cyan-400', 'text-white');
+                sidebarLoginBtn.classList.replace('border-cyan-500/30', 'border-slate-700');
 
-                // Enable Post Input
                 const postInputDiv = document.querySelector('#thread-container .p-4.border-b.border-slate-800\\/50 .flex-1 > div');
                 if (postInputDiv) {
                     postInputDiv.textContent = "点击发布新话题...";
                     postInputDiv.className = 'bg-slate-800/50 rounded-xl p-3 text-slate-300 text-sm cursor-pointer hover:bg-slate-700 transition-colors';
-                    postInputDiv.onclick = () => {
-                        toggleCreatePostModal(true);
-                    };
+                    postInputDiv.onclick = () => toggleCreatePostModal(true);
                 }
             };
 
@@ -622,30 +629,45 @@
                 e.preventDefault();
                 const title = document.getElementById('post-title').value;
                 const content = document.getElementById('post-content').value;
-                const tagEl = document.querySelector('input[name="post-tag"]:checked');
-                const tag = tagEl ? tagEl.value : "综合";
-
-                // Add to state
-                const newId = Date.now();
-                state.items.unshift({
-                    id: newId,
-                    title: title,
-                    tag: tag,
-                    tagColor: "text-blue-400",
-                    content: content,
-                    author: currentUser.name,
-                    avatar: null,
-                    upvotes: 0,
-                    hasUpvoted: false,
-                    comments: 0,
-                    time: new Date(),
-                    replies: [] // Init empty replies
-                });
-
+                const tag = document.querySelector('input[name="post-tag"]:checked')?.value || "综合";
+                state.items.unshift({ id: Date.now(), title, tag, tagColor: "text-blue-400", content, author: currentUser.name, avatar: null, upvotes: 0, hasUpvoted: false, comments: 0, time: new Date(), replies: [] });
                 render();
                 toggleCreatePostModal(false);
                 formCreatePost.reset();
             });
+
+            // --- AI Logic ---
+            const performAIAnalysis = (threadId) => {
+                const thread = state.items.find(i => i.id === threadId);
+                if (!thread) return;
+
+                toggleModal(aiModal, aiPanel, true);
+
+                // Show Loading
+                const loading = document.getElementById('ai-loading');
+                const content = document.getElementById('ai-content');
+                loading.classList.remove('hidden');
+                content.classList.add('hidden');
+
+                setTimeout(() => {
+                    loading.classList.add('hidden');
+                    content.classList.remove('hidden');
+
+                    document.getElementById('ai-summary').innerHTML = `
+                        该帖核心讨论了 <b>${thread.title}</b>。
+                        <br>根据当前科技特长生培养趋势，${thread.tag} 赛道竞争日益激烈。帖子中提到的问题非常典型，反映了${thread.tag === '升学规划' ? '家长对于政策不确定性' : '学生在技术选型上'}的普遍焦虑。
+                    `;
+
+                    const suggestions = [
+                        "建议结合孩子当前年级制定 3 年规划",
+                        thread.tag === '算法竞赛' ? "CSP-J/S 是必经之路，建议重点刷题（洛谷/Codeforces）" : "VEX 比赛更看重团队协作和工程文档",
+                        "推荐关注教育部最新的《白名单赛事》列表"
+                    ];
+
+                    document.getElementById('ai-suggestion').innerHTML = suggestions.map(s => `<li>${s}</li>`).join('');
+
+                }, 1500); // Simulate API delay
+            };
 
             // --- 3. Forum State & Rendering ---
             const state = {
@@ -677,7 +699,8 @@
                         upvotes: 42 + (i * 12),
                         hasUpvoted: false,
                         comments: 5 + (i * 3),
-                        time: new Date(Date.now() - (i * 3600000))
+                        time: new Date(Date.now() - (i * 3600000)),
+                        replies: []
                     };
                 });
             };
@@ -688,40 +711,21 @@
                     if (item) {
                         item.hasUpvoted = !item.hasUpvoted;
                         item.upvotes += item.hasUpvoted ? 1 : -1;
-                        render();
+                        if (state.view === 'detail') renderDetailView(); else renderListView();
                     }
                 },
-                filterTag: (tag) => {
-                    state.filter = tag;
-                    searchInput.value = tag;
-                    render();
-                },
-                clearFilter: () => {
-                    state.filter = '';
-                    searchInput.value = '';
-                    render();
-                },
+                filterTag: (tag) => { state.filter = tag; searchInput.value = tag; render(); },
+                clearFilter: () => { state.filter = ''; searchInput.value = ''; render(); },
                 viewThread: (id) => {
                     const thread = state.items.find(i => i.id === id);
-                    if (thread) {
-                        state.activeThread = thread;
-                        state.view = 'detail';
-                        render();
-                        document.getElementById('thread-container').scrollTop = 0;
-                    }
+                    if (thread) { state.activeThread = thread; state.view = 'detail'; render(); document.getElementById('thread-container').scrollTop = 0; }
                 },
-                backToList: () => {
-                    state.activeThread = null;
-                    state.view = 'list';
-                    render();
-                }
+                backToList: () => { state.activeThread = null; state.view = 'list'; render(); },
+                aiAnalyze: (id) => { performAIAnalysis(id); }
             };
 
-            // --- 3. Render Function ---
             const render = () => {
-                // CLEAR CONTENT
                 threadListEl.innerHTML = '';
-                // Remove grid classes if switching to detail, add if list
                 if (state.view === 'detail') {
                     threadListEl.className = 'p-4 max-w-4xl mx-auto animate-fade-in-up';
                     renderDetailView();
@@ -878,32 +882,18 @@
             window.forumActions = {
                 upvote: (id, e) => { e.stopPropagation(); actions.upvote(id); },
                 filterTag: (tag, e) => { if (e) e.stopPropagation(); actions.filterTag(tag); },
-                viewDetails: (id) => { actions.viewThread(id); }, // Correctly mapped
-                viewThread: (id) => { actions.viewThread(id); }, // Alias
-                backToList: () => { actions.backToList(); }     // Exposed
+                viewDetails: (id) => { actions.viewThread(id); },
+                viewThread: (id) => { actions.viewThread(id); },
+                backToList: () => { actions.backToList(); },
+                aiAnalyze: (id, e) => { if (e) e.stopPropagation(); actions.aiAnalyze(id); }
             };
 
-            searchInput.addEventListener('input', (e) => {
-                state.filter = e.target.value.toLowerCase();
-                render();
-            });
+            searchInput.addEventListener('input', (e) => { state.filter = e.target.value.toLowerCase(); render(); });
 
-            // Start everything
             initData();
             render();
-
-            // Init 3D safely
-            if (typeof THREE !== 'undefined') {
-                init3DScene();
-            } else {
-                window.addEventListener('load', () => { if (typeof THREE !== 'undefined') init3DScene(); });
-            }
-
-            // Remove Loading
-            requestAnimationFrame(() => {
-                loadingEl.style.opacity = '0';
-                setTimeout(() => loadingEl.remove(), 300);
-            });
+            if (typeof THREE !== 'undefined') init3DScene(); else window.addEventListener('load', () => { if (typeof THREE !== 'undefined') init3DScene(); });
+            requestAnimationFrame(() => { loadingEl.style.opacity = '0'; setTimeout(() => loadingEl.remove(), 300); });
         });
     </script>
 </body>
