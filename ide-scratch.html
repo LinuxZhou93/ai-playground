@@ -130,7 +130,7 @@
                 </div>
             </nav>
 
-            <div id="scratch-container"
+            <div id="scratch-container" v-if="!isEditorActive"
                 class="flex-1 relative bg-slate-900 flex flex-col items-center justify-center p-8 text-center">
                 <!-- Launch UI -->
                 <div class="max-w-md">
@@ -141,10 +141,10 @@
                     <h2 class="text-3xl font-black text-white mb-4" data-i18n="launch_title">{{ currentLesson ?
                         currentLesson.title : '准备好开始创作了吗？' }}</h2>
                     <p class="text-slate-400 mb-8 leading-relaxed" data-i18n="launch_desc">
-                        {{ currentLesson ? '即将启动编辑器并开始本课程的学习。虽然在新窗口打开，但您的进度会被自动记录。' : '为了提供最流畅的编程体验，编辑器将在新窗口中全屏打开。' }}
+                        {{ currentLesson ? '即将启动编辑器并开始本课程的学习。您的进度会自动记录。' : '全屏编辑器加载中...' }}
                     </p>
 
-                    <a :href="editorUrl" target="_blank"
+                    <button @click="launchEditor"
                         class="inline-flex items-center gap-3 bg-gradient-to-r from-scratch-purple to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white text-lg font-bold px-8 py-4 rounded-xl transition-all hover:scale-105 shadow-xl shadow-purple-900/30 group">
                         <span data-i18n="launch_btn">启动 Scratch 编辑器</span>
                         <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none"
@@ -152,11 +152,23 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
-                    </a>
+                    </button>
 
                     <p class="mt-6 text-xs text-slate-600">Powered by TurboWarp</p>
                 </div>
-            </div>
+                <!-- Active Editor Iframe -->
+                <div v-else class="flex-1 w-full h-full bg-black relative">
+                    <div v-if="loading"
+                        class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10">
+                        <div
+                            class="w-12 h-12 border-4 border-scratch-purple border-t-white rounded-full loading-spinner mb-4">
+                        </div>
+                        <p class="text-white font-bold" data-i18n="loading_editor">正在加载 Scratch 编辑器...</p>
+                    </div>
+                    <iframe :src="editorUrl" class="w-full h-full border-0" allowtransparency="true"
+                        allowfullscreen="true" allow="geolocation; microphone; camera; midi"
+                        @load="loading = false"></iframe>
+                </div>
         </main>
     </div>
 
@@ -248,7 +260,20 @@
                     // target += '#https://example.com/project.sb3'; 
                 });
 
-                return { lessons, currentLesson, loadLesson, resetEditor, editorUrl };
+                const isEditorActive = ref(false);
+                const loading = ref(true);
+
+                const launchEditor = () => {
+                    isEditorActive.value = true;
+                    loading.value = true;
+                };
+
+                const resetEditor = () => {
+                    currentLesson.value = null;
+                    isEditorActive.value = false;
+                };
+
+                return { lessons, currentLesson, loadLesson, resetEditor, editorUrl, isEditorActive, launchEditor, loading };
             }
         }).mount('#app');
 

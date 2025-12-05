@@ -13,6 +13,43 @@
 
 	<script>
 		window.scratchJrPage = 'home';
+
+		// POLYFILL: Mouse -> Touch
+		(function () {
+			if ('ontouchstart' in window) return;
+
+			function createTouch(target, e) {
+				return new Touch({
+					identifier: Date.now(),
+					target: target,
+					clientX: e.clientX,
+					clientY: e.clientY,
+					screenX: e.screenX,
+					screenY: e.screenY,
+					pageX: e.pageX,
+					pageY: e.pageY
+				});
+			}
+
+			function dispatch(type, e) {
+				if (e.button !== 0) return;
+				const touch = createTouch(e.target, e);
+				const event = new TouchEvent(type, {
+					cancelable: true,
+					bubbles: true,
+					touches: (type === 'touchend') ? [] : [touch],
+					targetTouches: (type === 'touchend') ? [] : [touch],
+					changedTouches: [touch],
+					view: window
+				});
+				e.target.dispatchEvent(event);
+			}
+
+			let isDown = false;
+			document.addEventListener('mousedown', (e) => { isDown = true; dispatch('touchstart', e); }, true);
+			document.addEventListener('mousemove', (e) => { if (isDown) dispatch('touchmove', e); }, true);
+			document.addEventListener('mouseup', (e) => { isDown = false; dispatch('touchend', e); }, true);
+		})();
 	</script>
 	<script type="text/javascript" src="app.bundle.js"></script>
 

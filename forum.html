@@ -225,16 +225,9 @@
                     <div
                         class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-[40px] rounded-full pointer-events-none group-hover:bg-cyan-500/20 transition-all">
                     </div>
-                    <h3 class="font-bold text-white mb-2">关于科技特长生社群</h3>
+                    <h3 class="font-bold text-white mb-2">关于社群</h3>
                     <p class="text-xs text-slate-400 leading-relaxed mb-4">
-                        专注青少年科技升学路径规划与交流。
-                        <br><br>
-                        🎯 <b>核心议题：</b><br>
-                        • <b>白名单赛事</b> (CSP-J/S, NOI, VEX)<br>
-                        • <b>升学政策</b> (强基计划, 综合评价)<br>
-                        • <b>也是资源</b> (真题解析, 备考资料)<br>
-                        <br>
-                        汇聚全国金牌教练与牛娃家长，助力名校梦想。
+                        这是一个面向开发者、设计师和思想家的协作空间，共同探讨科技的未来。
                     </p>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -340,10 +333,12 @@
     <!-- Core Logic -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- Shared References ---
             const threadListEl = document.getElementById('thread-list');
             const loadingEl = document.getElementById('app-loading');
+            const searchInput = document.querySelector('input[placeholder="搜索话题..."]');
 
-            // --- UI Elements ---
+            // Auth UI Refs
             const authModal = document.getElementById('auth-modal');
             const authPanel = document.getElementById('auth-panel');
             const closeAuthBtn = document.getElementById('close-auth');
@@ -351,19 +346,74 @@
             const tabRegister = document.getElementById('tab-register');
             const formLogin = document.getElementById('form-login');
             const formRegister = document.getElementById('form-register');
-            const loginBtn = formLogin.querySelector('button[type="submit"] span'); // Corrected selector
-            const loginSpinner = document.getElementById('login-spinner');
-
-            // Main "Login/Join" button in Sidebar
             const sidebarLoginBtn = document.querySelector('aside .p-4 button');
 
-            // --- 0. Auth Logic & UI State ---
+            // --- 1. 3D Background Logic ---
+            function init3DScene() {
+                const canvas = document.getElementById('bg-canvas');
+                if (!canvas) return;
+
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                camera.position.z = 50;
+
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particleCount = 2000;
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+                const colorPalette = [
+                    new THREE.Color(0x8B5CF6), new THREE.Color(0x06B6D4),
+                    new THREE.Color(0xEC4899), new THREE.Color(0xF59E0B),
+                ];
+
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = (Math.random() - 0.5) * 200;
+                    positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
+                    positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+                    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                    colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
+                }
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                const particles = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({
+                    size: 0.8, vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending
+                }));
+                scene.add(particles);
+
+                let mouseX = 0, mouseY = 0;
+                document.addEventListener('mousemove', (e) => {
+                    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+                });
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    particles.rotation.y += 0.0005;
+                    particles.rotation.x += 0.0002;
+                    camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
+                    camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
+                    camera.lookAt(scene.position);
+                    renderer.render(scene, camera);
+                }
+                animate();
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+
+            // --- 2. Auth Logic ---
             let currentUser = null;
 
             const toggleAuthModal = (show) => {
                 if (show) {
                     authModal.classList.remove('hidden');
-                    // Small delay for CSS transition
                     setTimeout(() => {
                         authModal.classList.remove('opacity-0');
                         authPanel.classList.remove('scale-95');
@@ -379,211 +429,71 @@
 
             const switchTab = (mode) => {
                 if (mode === 'login') {
-                    tabLogin.classList.add('text-cyan-400', 'border-b-2', 'border-cyan-400');
-                    tabLogin.classList.remove('text-slate-500', 'hover:text-slate-300'); // Remove hover class from inactive
-                    tabRegister.classList.remove('text-purple-400', 'border-b-2', 'border-purple-400');
-                    tabRegister.classList.add('text-slate-500', 'hover:text-slate-300');
+                    tabLogin.className = 'text-lg font-bold text-cyan-400 border-b-2 border-cyan-400 pb-2 transition-colors';
+                    tabRegister.className = 'text-lg font-bold text-slate-500 hover:text-slate-300 pb-2 transition-colors';
                     formLogin.classList.remove('hidden');
                     formRegister.classList.add('hidden');
                 } else {
-                    tabRegister.classList.add('text-purple-400', 'border-b-2', 'border-purple-400');
-                    tabRegister.classList.remove('text-slate-500', 'hover:text-slate-300');
-                    tabLogin.classList.remove('text-cyan-400', 'border-b-2', 'border-cyan-400');
-                    tabLogin.classList.add('text-slate-500', 'hover:text-slate-300');
+                    tabRegister.className = 'text-lg font-bold text-purple-400 border-b-2 border-purple-400 pb-2 transition-colors';
+                    tabLogin.className = 'text-lg font-bold text-slate-500 hover:text-slate-300 pb-2 transition-colors';
                     formLogin.classList.add('hidden');
                     formRegister.classList.remove('hidden');
                 }
             };
 
-            // Event Listeners
             sidebarLoginBtn.addEventListener('click', () => {
                 if (currentUser) {
-                    // Profile Logic could go here
-                    alert(`你好, ${currentUser.name}！个人中心正在开发中...`);
+                    alert(`你好，${currentUser.name}！`);
                 } else {
                     toggleAuthModal(true);
-                    switchTab('login'); // Ensure login tab is active when opening
+                    switchTab('login');
                 }
             });
 
             closeAuthBtn.addEventListener('click', () => toggleAuthModal(false));
-
             tabLogin.addEventListener('click', () => switchTab('login'));
             tabRegister.addEventListener('click', () => switchTab('register'));
 
-            // Mock Login Submit
             formLogin.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const btn = formLogin.querySelector('button[type="submit"]');
                 const originalContent = btn.innerHTML;
-
-                // Loading State
-                btn.innerHTML = `
-                    <span>登录中...</span>
-                    <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                `;
-                btn.disabled = true; // Disable button during submission
-
-                setTimeout(() => {
-                    // Success!
-                    currentUser = { name: "家长_User", role: "Parent" };
-                    updateUIForLogin();
-                    toggleAuthModal(false);
-                    btn.innerHTML = originalContent; // Restore original content
-                    btn.disabled = false; // Re-enable button
-                }, 1500);
-            });
-
-            // Mock Register Submit
-            formRegister.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const btn = formRegister.querySelector('button[type="submit"]');
-                const originalContent = btn.innerHTML;
-                btn.innerHTML = `
-                    <span>注册中...</span>
-                    <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                `;
+                btn.innerHTML = `<span>登录中...</span><div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>`;
                 btn.disabled = true;
 
                 setTimeout(() => {
-                    alert("注册申请已提交！请查收邮件验证（模拟）");
-                    switchTab('login');
+                    currentUser = { name: "家长_User", role: "Parent" };
+                    updateUIForLogin();
+                    toggleAuthModal(false);
                     btn.innerHTML = originalContent;
                     btn.disabled = false;
-                }, 1500);
+                }, 1000);
             });
 
             const updateUIForLogin = () => {
                 if (!currentUser) return;
-
-                // Update Sidebar
                 sidebarLoginBtn.innerHTML = `
                     <div class="flex items-center gap-3 justify-center">
                         <div class="w-6 h-6 rounded-full bg-cyan-500 text-white flex items-center justify-center text-xs font-bold">${currentUser.name[0]}</div>
                         <span class="text-white">${currentUser.name}</span>
                     </div>
                 `;
-                sidebarLoginBtn.classList.remove('bg-cyan-600/20', 'text-cyan-400', 'border-cyan-500/30', 'hover:bg-cyan-600', 'hover:text-white');
-                sidebarLoginBtn.classList.add('bg-slate-800', 'text-white', 'border-slate-700', 'hover:bg-slate-700');
+                sidebarLoginBtn.classList.remove('bg-cyan-600/20', 'text-cyan-400', 'border-cyan-500/30');
+                sidebarLoginBtn.classList.add('bg-slate-800', 'text-white', 'border-slate-700');
 
-                // Unlock Post Button
+                // Enable Post Input
                 const postInputDiv = document.querySelector('#thread-container .p-4.border-b.border-slate-800\\/50 .flex-1 > div');
                 if (postInputDiv) {
-                    postInputDiv.innerHTML = "点击发布新话题...";
-                    postInputDiv.classList.remove('cursor-text', 'text-slate-500');
-                    postInputDiv.classList.add('cursor-pointer', 'text-slate-300', 'hover:bg-slate-700');
-
-                    // Remove existing event listener if any, then add new one
-                    // For simplicity, we'll just add it, assuming it's only added once after login
-                    postInputDiv.addEventListener('click', () => {
+                    postInputDiv.textContent = "点击发布新话题...";
+                    postInputDiv.className = 'bg-slate-800/50 rounded-xl p-3 text-slate-300 text-sm cursor-pointer hover:bg-slate-700 transition-colors';
+                    postInputDiv.onclick = () => {
                         const content = prompt("发布新话题 (模拟):");
-                        if (content) {
-                            alert("发布成功！(数据已同步至 Mock Server)");
-                            // Optionally, re-render threads or add the new thread to the list
-                        }
-                    });
+                        if (content) alert("发布成功！");
+                    };
                 }
             };
 
-            // --- 3D Scene Initialization ---
-            function init3DScene() {
-                const canvas = document.getElementById('bg-canvas');
-                if (!canvas) return;
-
-                const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                camera.position.z = 50;
-
-                // Particle System
-                const particlesGeometry = new THREE.BufferGeometry();
-                const particleCount = 2000;
-                const positions = new Float32Array(particleCount * 3);
-                const colors = new Float32Array(particleCount * 3);
-
-                const colorPalette = [
-                    new THREE.Color(0x8B5CF6),
-                    new THREE.Color(0x06B6D4),
-                    new THREE.Color(0xEC4899),
-                    new THREE.Color(0xF59E0B),
-                ];
-
-                for (let i = 0; i < particleCount; i++) {
-                    positions[i * 3] = (Math.random() - 0.5) * 200;
-                    positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
-                    positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
-
-                    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-                    colors[i * 3] = color.r;
-                    colors[i * 3 + 1] = color.g;
-                    colors[i * 3 + 2] = color.b;
-                }
-
-                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-                const particlesMaterial = new THREE.PointsMaterial({
-                    size: 0.8,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 0.6,
-                    blending: THREE.AdditiveBlending,
-                });
-
-                const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-                scene.add(particles);
-
-                // Animation
-                let mouseX = 0, mouseY = 0;
-
-                document.addEventListener('mousemove', (e) => {
-                    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-                    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-                });
-
-                function animate() {
-                    requestAnimationFrame(animate);
-
-                    particles.rotation.y += 0.0005;
-                    particles.rotation.x += 0.0002;
-
-                    // Mouse parallax
-                    camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
-                    camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
-                    camera.lookAt(scene.position);
-
-                    renderer.render(scene, camera);
-                }
-
-                animate();
-
-                window.addEventListener('resize', () => {
-                    camera.aspect = window.innerWidth / window.innerHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-            }
-
-            // Call it
-
-            console.log("Initializing 3D Scene...");
-            if (typeof THREE !== 'undefined') {
-                init3DScene();
-            } else {
-                console.error("THREE is not defined! Waiting for script load...");
-                window.addEventListener('load', () => {
-                    if (typeof THREE !== 'undefined') init3DScene();
-                });
-            }
-
-            const threadListEl = document.getElementById('thread-list');
-            const loadingEl = document.getElementById('app-loading');
-            const searchInput = document.querySelector('input[placeholder="搜索话题..."]');
-
-            // --- 1. State Management ---
+            // --- 3. Forum State & Rendering ---
             const state = {
                 items: [],
                 filter: '',
@@ -597,7 +507,6 @@
                 ]
             };
 
-            // Initialize Data
             const initData = () => {
                 state.items = Array.from({ length: 8 }, (_, i) => {
                     const topic = state.topics[i % state.topics.length];
@@ -610,40 +519,29 @@
                         author: `家长_${i + 1}`,
                         avatar: null,
                         upvotes: 42 + (i * 12),
-                        hasUpvoted: false, // Track local vote state
+                        hasUpvoted: false,
                         comments: 5 + (i * 3),
-                        time: new Date(Date.now() - (i * 3600000)) // Hours ago
+                        time: new Date(Date.now() - (i * 3600000))
                     };
                 });
             };
 
-            // --- 2. Action Handlers ---
             const actions = {
                 upvote: (id) => {
                     const item = state.items.find(i => i.id === id);
                     if (item) {
                         item.hasUpvoted = !item.hasUpvoted;
                         item.upvotes += item.hasUpvoted ? 1 : -1;
-                        render(); // Re-render to show new state
+                        render();
                     }
-                },
-                downvote: (id) => {
-                    // For now just toggle logic, maybe visual only
-                    console.log("Downvoted", id);
                 },
                 filterTag: (tag) => {
                     state.filter = tag;
-                    searchInput.value = tag; // visual feedback
-                    render();
-                },
-                clearFilter: () => {
-                    state.filter = '';
-                    searchInput.value = '';
+                    searchInput.value = tag;
                     render();
                 }
             };
 
-            // --- 3. Render Function ---
             const render = () => {
                 const filtered = state.items.filter(thread =>
                     state.filter === '' ||
@@ -652,12 +550,10 @@
                 );
 
                 let html = '';
-
                 if (filtered.length === 0) {
                     html = `<div class="text-center text-slate-500 py-10">没有找到相关内容</div>`;
                 } else {
                     filtered.forEach((thread) => {
-                        // Date formatting
                         let timeDisplay = "刚刚";
                         if (window.dayjs && window.dayjs_plugin_relativeTime) {
                             dayjs.extend(window.dayjs_plugin_relativeTime);
@@ -666,50 +562,32 @@
                         } else {
                             timeDisplay = "近期";
                         }
-
                         const activeClass = thread.hasUpvoted ? 'text-cyan-400' : 'text-slate-400';
 
                         html += `
-                            <article class="glass-panel group cursor-pointer hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden" data-id="${thread.id}">
+                            <article class="glass-panel group cursor-pointer hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden" onclick="window.forumActions.viewDetails(${thread.id})">
                                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
-                                
                                 <div class="flex gap-4">
-                                    <!-- Vote -->
                                     <div class="flex flex-col items-center gap-1 w-10 shrink-0 pt-1 text-slate-500">
                                         <button class="hover:text-cyan-400 transition-colors ${activeClass}" onclick="window.forumActions.upvote(${thread.id}, event)">▲</button>
                                         <span class="font-mono font-bold text-sm ${thread.hasUpvoted ? 'text-cyan-400' : 'text-slate-400'}">${thread.upvotes}</span>
                                         <button class="hover:text-red-400 transition-colors" onclick="event.stopPropagation()">▼</button>
                                     </div>
-
-                                    <!-- Body -->
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-2 mb-1 text-xs text-slate-500">
                                             <div class="flex items-center gap-1 hover:text-cyan-400 cursor-pointer transition-colors">
-                                                <div class="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold">
-                                                    ${thread.author[0]}
-                                                </div>
+                                                <div class="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold">${thread.author[0]}</div>
                                                 <span class="font-bold text-slate-300">${thread.author}</span>
                                             </div>
                                             <span>•</span>
                                             <span>${timeDisplay}</span>
                                             <span class="px-1.5 py-0.5 rounded bg-slate-800 ${thread.tagColor} border border-slate-700 ml-2 cursor-pointer hover:bg-slate-700" onclick="window.forumActions.filterTag('${thread.tag}', event)">${thread.tag}</span>
                                         </div>
-                                        
-                                        <h3 class="font-bold text-lg text-slate-200 mb-2 group-hover:text-cyan-400 transition-colors leading-snug">
-                                            ${thread.title}
-                                        </h3>
-                                        
-                                        <p class="text-slate-400 text-sm line-clamp-2 mb-3 leading-relaxed">
-                                            ${thread.content}
-                                        </p>
-                                        
+                                        <h3 class="font-bold text-lg text-slate-200 mb-2 group-hover:text-cyan-400 transition-colors leading-snug">${thread.title}</h3>
+                                        <p class="text-slate-400 text-sm line-clamp-2 mb-3 leading-relaxed">${thread.content}</p>
                                         <div class="flex items-center gap-4 text-xs text-slate-500">
-                                            <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
-                                                <span>💬</span> ${thread.comments} 评论
-                                            </button>
-                                            <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
-                                                <span>🔁</span> 分享
-                                            </button>
+                                            <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors"><span>💬</span> ${thread.comments} 评论</button>
+                                            <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors"><span>🔁</span> 分享</button>
                                         </div>
                                     </div>
                                 </div>
@@ -717,34 +595,33 @@
                         `;
                     });
                 }
-
                 threadListEl.innerHTML = html;
             };
 
-            // --- 4. Event Binding ---
-            // Expose actions to global scope for inline onclicks (simple approach for this scale)
+            // Expose Global Actions
             window.forumActions = {
-                upvote: (id, e) => {
-                    e.stopPropagation(); // prevent card click
-                    actions.upvote(id);
-                },
-                filterTag: (tag, e) => {
-                    if (e) e.stopPropagation();
-                    actions.filterTag(tag);
-                }
+                upvote: (id, e) => { e.stopPropagation(); actions.upvote(id); },
+                filterTag: (tag, e) => { if (e) e.stopPropagation(); actions.filterTag(tag); },
+                viewDetails: (id) => { console.log("View thread", id); }
             };
 
-            // Search Input Binding
             searchInput.addEventListener('input', (e) => {
                 state.filter = e.target.value.toLowerCase();
                 render();
             });
 
-            // Initialize
+            // Start everything
             initData();
             render();
 
-            // Reveal UI
+            // Init 3D safely
+            if (typeof THREE !== 'undefined') {
+                init3DScene();
+            } else {
+                window.addEventListener('load', () => { if (typeof THREE !== 'undefined') init3DScene(); });
+            }
+
+            // Remove Loading
             requestAnimationFrame(() => {
                 loadingEl.style.opacity = '0';
                 setTimeout(() => loadingEl.remove(), 300);
@@ -754,4 +631,3 @@
 </body>
 
 </html>
-```
