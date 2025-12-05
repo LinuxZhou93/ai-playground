@@ -328,6 +328,17 @@
     </div>
 
     </main>
+
+    <!-- Footer / Debug Tools -->
+    <footer class="text-center p-6 text-slate-600 text-xs">
+        <p>&copy; 2024 Creative Coding Lab</p>
+        <div class="mt-2">
+            <button onclick="localStorage.clear(); window.location.reload();"
+                class="text-slate-700 hover:text-red-400 underline transition-colors">
+                [Debug] Reset Data
+            </button>
+        </div>
+    </footer>
     </div>
 
     <!-- Shared Storage Logic with Cache Busting -->
@@ -383,21 +394,63 @@
                     try {
                         let allProjects = [];
 
-                        // 1. Fetch from LocalStorage ProjectStorage
-                        if (window.ProjectStorage) {
-                            allProjects = ProjectStorage.getAllProjects();
-                        }
+                        // --- NUCLEAR OPTION: HARD RESET DATA V5 ---
+                        // Force write correct data if v5 flag is missing, bypassing external script logic
+                        if (!localStorage.getItem('seeded_v5')) {
+                            console.log("Applying Hard Reset v5...");
+                            const demoProjects = [
+                                {
+                                    id: 'feat_1',
+                                    title: 'Witch Magic (Demo)',
+                                    description: '体验魔法世界的奇妙冒险！点击绿旗开始。',
+                                    author: 'ScratchTeam',
+                                    type: 'scratch',
+                                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/10128431_480x360.png',
+                                    project_url: 'https://scratch.mit.edu/projects/10128431/',
+                                    view_count: 520,
+                                    likes: 128,
+                                    created_at: new Date().toISOString(),
+                                    isLocal: false
+                                },
+                                {
+                                    id: 'feat_2',
+                                    title: 'Geometry Dash',
+                                    description: '经典的几何冲刺游戏复刻版。',
+                                    author: 'Griffpatch',
+                                    type: 'scratch',
+                                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/105500895_480x360.png',
+                                    project_url: 'https://scratch.mit.edu/projects/105500895/',
+                                    view_count: 8900,
+                                    likes: 4500,
+                                    created_at: new Date().toISOString(),
+                                    isLocal: false
+                                },
+                                {
+                                    id: 'feat_3',
+                                    title: '3D Maze',
+                                    description: '惊人的 3D 迷宫探索引擎。',
+                                    author: 'GenericUser',
+                                    type: 'scratch',
+                                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/21264366_480x360.png',
+                                    project_url: 'https://scratch.mit.edu/projects/21264366/',
+                                    view_count: 345,
+                                    likes: 77,
+                                    created_at: new Date().toISOString(),
+                                    isLocal: false
+                                }
+                            ];
+                            localStorage.setItem('scratch_community_projects', JSON.stringify(demoProjects));
+                            localStorage.setItem('seeded_v5', 'true');
 
-                        // Check if we need to re-seed for new featured items?
-                        // ProjectStorage.seedDemoData checks if KEY exists.
-                        // If user visited before, they might have old seed.
-                        // Force update seed for demo purposes if "feat_1" not found?
-                        if (!allProjects.find(p => p.id === 'feat_1') || !localStorage.getItem('seeded_v4')) {
-                            console.log("Re-seeding demo projects v4...");
-                            localStorage.removeItem('scratch_community_projects'); // Clear old
-                            ProjectStorage.seedDemoData();
-                            allProjects = ProjectStorage.getAllProjects();
-                            localStorage.setItem('seeded_v4', 'true');
+                            // Immediately update local var in case ProjectStorage read old data before this write
+                            allProjects = demoProjects;
+                        } else {
+                            // If seeded, ensure we read the latest (handled by ProjectStorage or Fallback)
+                            if (window.ProjectStorage) {
+                                allProjects = ProjectStorage.getAllProjects();
+                            } else {
+                                allProjects = JSON.parse(localStorage.getItem('scratch_community_projects') || '[]');
+                            }
                         }
 
                         // 2. Filter Logic
