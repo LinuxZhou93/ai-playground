@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Nexus | 神经中枢</title>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/locale/zh-cn.js"></script>
+
+    <!-- Configure Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            dark: '#0f172a',
+                            panel: '#1e293b',
+                            accent: '#06b6d4', // cyan-500
+                            danger: '#ef4444',
+                            success: '#10b981'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-cyber-dark text-slate-200 min-h-screen overflow-hidden selection:bg-cyber-accent selection:text-white">
+
+    <div id="app" class="h-screen flex flex-col">
+        <!-- Top Mobile Bar (Visible only on small screens) -->
+        <header
+            class="md:hidden h-16 border-b border-slate-700/50 flex items-center justify-between px-4 bg-cyber-dark z-50">
+            <h1
+                class="font-bold text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                Neural Nexus</h1>
+            <button @click="toggleMobileMenu" class="text-slate-400">
+                <svg width="24" height="24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="flex-1 flex overflow-hidden">
+
+            <!-- Left Sidebar (Navigation) - 20% -->
+            <aside :class="['w-64 border-r border-slate-700/30 flex flex-col bg-cyber-dark/50 backdrop-blur md:flex', 
+                            showMobileMenu ? 'fixed inset-0 z-40 w-full' : 'hidden']">
+
+                <!-- Logo Area -->
+                <div class="p-6 hidden md:block">
+                    <div class="flex items-center gap-3 mb-1">
+                        <div
+                            class="w-8 h-8 rounded bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold">
+                            N</div>
+                        <h1 class="font-bold text-xl tracking-tighter text-white">Neural Nexus</h1>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono tracking-widest pl-11">EST. 2025</div>
+                </div>
+
+                <!-- Nav Links -->
+                <nav class="flex-1 px-4 space-y-2 mt-4">
+                    <a href="#"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-cyan-400 transition-colors group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">🏠</span>
+                        <span class="font-bold">Home Recommendation</span>
+                    </a>
+                    <a href="#"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-purple-400 transition-colors group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">🔥</span>
+                        <span class="font-bold">Trending Topics</span>
+                    </a>
+                    <a href="#"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">🏷️</span>
+                        <span class="font-bold">Tags & Topics</span>
+                    </a>
+
+                    <div class="my-6 border-t border-slate-700/50"></div>
+
+                    <div class="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">My Community</div>
+                    <a href="#"
+                        class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">
+                        <span class="w-2 h-2 rounded-full bg-cyan-500"></span> Public Lounge
+                    </a>
+                    <a href="#"
+                        class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">
+                        <span class="w-2 h-2 rounded-full bg-purple-500"></span> Dev Talk
+                    </a>
+                </nav>
+
+                <!-- User Profile / Auth -->
+                <div class="p-4 border-t border-slate-700/30">
+                    <button v-if="!user" @click="showLogin = true"
+                        class="w-full py-3 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 font-bold hover:bg-cyan-600 hover:text-white transition-all">
+                        Login / Join
+                    </button>
+                    <div v-else
+                        class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 cursor-pointer transition-colors group relative">
+                        <!-- Logout Tooltip inside group -->
+                        <div @click="logout"
+                            class="absolute inset-0 bg-red-500/80 backdrop-blur rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center font-bold text-white transition-all z-10">
+                            Log Out
+                        </div>
+
+                        <div
+                            class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
+                            <img v-if="user.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
+                            <span v-else class="text-lg">👤</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-sm truncate">{{ user.username || user.email }}</div>
+                            <div class="text-xs text-slate-500 font-mono">REP: {{ user.reputation || 0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Feed - 55% -->
+            <main class="flex-1 flex flex-col min-w-0 border-r border-slate-700/30 relative">
+
+                <!-- Sticky Header -->
+                <header
+                    class="h-16 border-b border-slate-700/50 backdrop-blur-md bg-cyber-dark/80 sticky top-0 z-30 flex items-center justify-between px-6">
+                    <h2 class="text-lg font-bold text-white">Latest Discussions</h2>
+                    <div class="flex items-center gap-4">
+                        <div class="relative hidden sm:block">
+                            <input type="text" placeholder="Search..."
+                                class="bg-slate-800/50 border border-slate-700 rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:border-cyan-500 transition-colors w-48">
+                            <span class="absolute left-3 top-2 text-slate-500 text-xs">🔍</span>
+                        </div>
+                        <button
+                            class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
+                            🔔
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Scrollable Content -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-0">
+
+                    <!-- Create Post input trigger -->
+                    <div class="p-4 border-b border-slate-800/50">
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-full bg-slate-800 shrink-0 overflow-hidden">
+                                <img v-if="user?.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex-1">
+                                <div @click="user ? showCreateModal = true : login()"
+                                    class="bg-slate-800/50 rounded-xl p-3 text-slate-500 text-sm cursor-text hover:bg-slate-800 transition-colors">
+                                    {{ user ? "What's on your mind? Share with the community..." : "Login to share your
+                                    thoughts..." }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div v-if="loading" class="p-10 text-center text-slate-500">
+                        <div
+                            class="animate-spin w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full mx-auto mb-4">
+                        </div>
+                        <p>Loading neural streams...</p>
+                    </div>
+
+                    <!-- Thread List -->
+                    <div v-else class="divide-y divide-slate-800/50">
+                        <article v-for="thread in threads" :key="thread.id"
+                            class="p-5 hover:bg-slate-800/20 transition-colors cursor-pointer group">
+                            <div class="flex gap-4">
+                                <!-- Upvote Column -->
+                                <div class="flex flex-col items-center gap-1 w-10 shrink-0 pt-1">
+                                    <button @click.stop="vote(thread.id, 'up')"
+                                        class="p-1 rounded hover:bg-slate-700/50 text-slate-500 hover:text-cyan-400 transition-colors">▲</button>
+                                    <span class="font-mono font-bold text-sm text-slate-400">{{ thread.upvote_count || 0
+                                        }}</span>
+                                    <button
+                                        class="p-1 rounded hover:bg-slate-700/50 text-slate-500 hover:text-red-400 transition-colors">▼</button>
+                                </div>
+
+                                <!-- Content -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-1 text-xs text-slate-500">
+                                        <div class="flex items-center gap-1.5 hover:text-slate-300">
+                                            <div class="w-4 h-4 rounded-full bg-indigo-500"></div>
+                                            <span class="font-bold">{{ thread.profiles?.username || 'Anonymous'
+                                                }}</span>
+                                        </div>
+                                        <span>•</span>
+                                        <span>{{ dayjs(thread.created_at).fromNow() }}</span>
+                                        <span v-if="thread.tags && thread.tags.length">•</span>
+                                        <span v-for="tag in thread.tags" :key="tag"
+                                            class="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-500 border border-slate-700">{{
+                                            tag }}</span>
+                                    </div>
+                                    <h3
+                                        class="font-bold text-lg text-slate-200 mb-2 group-hover:text-cyan-400 transition-colors leading-snug">
+                                        {{ thread.title }}
+                                    </h3>
+                                    <p class="text-slate-400 text-sm line-clamp-3 leading-relaxed mb-3">
+                                        {{ thread.content.substring(0, 150) }}...
+                                    </p>
+                                    <div class="flex items-center gap-4 text-xs text-slate-500">
+                                        <button
+                                            class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
+                                            <span>💬</span> {{ thread.comment_count || 0 }} Comments
+                                        </button>
+                                        <button
+                                            class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
+                                            <span>🔁</span> Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Empty State -->
+                        <div v-if="threads.length === 0" class="p-10 text-center text-slate-500">
+                            No signals detected. Be the first to transmit.
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Create Thread Modal -->
+            <div v-if="showCreateModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                <div
+                    class="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div class="flex justify-between items-center p-4 border-b border-slate-800">
+                        <h3 class="font-bold text-white">Create New Transmission</h3>
+                        <button @click="showCreateModal = false" class="text-slate-400 hover:text-white">✕</button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
+                            <input v-model="newThreadTitle" type="text"
+                                class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none"
+                                placeholder="Enter a descriptive title...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Content (Markdown
+                                supported)</label>
+                            <textarea v-model="newThreadContent" rows="8"
+                                class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none font-mono text-sm"
+                                placeholder="Type your message here..."></textarea>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-slate-800 bg-slate-800/30 flex justify-end gap-3">
+                        <button @click="showCreateModal = false"
+                            class="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">Cancel</button>
+                        <button @click="createThread"
+                            class="px-6 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold shadow-lg shadow-cyan-500/20 transition-all">Publish</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar (Metadata) - 25% -->
+            <aside class="w-80 border-l border-slate-700/30 hidden lg:flex flex-col bg-cyber-dark/30 p-6 space-y-6">
+
+                <!-- Community Card -->
+                <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+                    <div
+                        class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-[40px] rounded-full pointer-events-none">
+                    </div>
+                    <h3 class="font-bold text-white mb-2">About Neural Nexus</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                        A collaborative space for developers, designers, and thinkers to share ideas about the future of
+                        tech.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <div class="text-xl font-bold text-white">1.2k</div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-wider">Members</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-white">Green</div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-wider">Status</div>
+                        </div>
+                    </div>
+                    <button
+                        class="w-full py-2 bg-slate-100 text-slate-900 rounded-lg font-bold text-sm hover:bg-white transition-colors">
+                        Create Post
+                    </button>
+                </div>
+
+                <!-- Trending Tags -->
+                <div>
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Trending Tags</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <span
+                            class="px-2 py-1 bg-slate-800 text-cyan-400 text-xs rounded border border-slate-700 hover:border-cyan-500/50 cursor-pointer transition-colors">#GenerativeAI</span>
+                        <span
+                            class="px-2 py-1 bg-slate-800 text-purple-400 text-xs rounded border border-slate-700 hover:border-purple-500/50 cursor-pointer transition-colors">#WebDesisn</span>
+                        <span
+                            class="px-2 py-1 bg-slate-800 text-emerald-400 text-xs rounded border border-slate-700 hover:border-emerald-500/50 cursor-pointer transition-colors">#Robotics</span>
+                        <span
+                            class="px-2 py-1 bg-slate-800 text-slate-300 text-xs rounded border border-slate-700 hover:border-slate-500 cursor-pointer transition-colors">#Career</span>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <footer class="mt-auto text-[10px] text-slate-600">
+                    &copy; 2025 Neural Nexus. All rights reserved. <br>
+                    <span class="hover:text-slate-400 cursor-pointer">Privacy</span> • <span
+                        class="hover:text-slate-400 cursor-pointer">Terms</span>
+                </footer>
+            </aside>
+
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, computed } = Vue;
+        // Mock Supabase Config for UI Dev
+        const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
+
+        // Init Supabase
+        let supabase = null;
+        if (window.supabase && window.supabase.createClient) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log("Supabase initialized in Forum");
+        }
+
+        createApp({
+            setup() {
+                const showMobileMenu = ref(false);
+                const user = ref(null);
+                const showLogin = ref(false);
+                const threads = ref([]);
+                const loading = ref(true);
+                const newThreadContent = ref('');
+                const newThreadTitle = ref('');
+                const showCreateModal = ref(false);
+
+                const toggleMobileMenu = () => {
+                    showMobileMenu.value = !showMobileMenu.value;
+                };
+
+                // --- Auth Logic ---
+                const login = async () => {
+                    // Simple OAuth login for demo or magic link
+                    if (!supabase) return;
+                    // For this environment, we might rely on the main site's auth state
+                    // or implement a simple sign-in here.
+                    // Let's check session first.
+                    alert("请通过主页或其他方式登录 Supabase (当前仅支持检测现有会话)");
+                };
+
+                const logout = async () => {
+                    if (supabase) {
+                        await supabase.auth.signOut();
+                        user.value = null;
+                        window.location.reload();
+                    }
+                }
+
+                // --- Data Logic ---
+                const fetchThreads = async () => {
+                    if (!supabase) return;
+                    loading.value = true;
+
+                    const { data, error } = await supabase
+                        .from('threads')
+                        .select(`
+                            *,
+                            profiles:author_id ( username, avatar_url, reputation )
+                        `)
+                        .order('created_at', { ascending: false });
+
+                    if (error) {
+                        console.error('Error fetching threads:', error);
+                    } else {
+                        threads.value = data || [];
+                    }
+                    loading.value = false;
+                };
+
+                const createThread = async () => {
+                    if (!user.value) {
+                        alert("请先登录");
+                        return;
+                    }
+                    if (!newThreadTitle.value || !newThreadContent.value) return;
+
+                    const { data, error } = await supabase
+                        .from('threads')
+                        .insert([
+                            {
+                                title: newThreadTitle.value,
+                                content: newThreadContent.value,
+                                author_id: user.value.id,
+                                tags: ['General'] // Default tag for now
+                            }
+                        ])
+                        .select();
+
+                    if (error) {
+                        alert("发帖失败: " + error.message);
+                    } else {
+                        // Refresh
+                        fetchThreads();
+                        showCreateModal.value = false;
+                        newThreadTitle.value = '';
+                        newThreadContent.value = '';
+                    }
+                };
+
+                // --- Vote Logic ---
+                const vote = (id, type) => {
+                    // Optimistic update
+                    const thread = threads.value.find(t => t.id === id);
+                    if (thread) {
+                        if (type === 'up') thread.upvote_count++;
+                        // Actual DB call would go here
+                    }
+                };
+
+                onMounted(async () => {
+                    // Check auth
+                    if (supabase) {
+                        const { data } = await supabase.auth.getUser();
+                        user.value = data.user;
+
+                        // If logged in, fetch extended profile
+                        if (user.value) {
+                            const { data: profile } = await supabase
+                                .from('profiles')
+                                .select('*')
+                                .eq('id', user.value.id)
+                                .single();
+                            if (profile) {
+                                user.value = { ...user.value, ...profile };
+                            }
+                        }
+                    }
+
+                    // Fetch Data
+                    fetchThreads();
+                });
+
+                return {
+                    showMobileMenu,
+                    toggleMobileMenu,
+                    user,
+                    showLogin,
+                    login,
+                    logout,
+                    threads,
+                    loading,
+                    newThreadTitle,
+                    newThreadContent,
+                    showCreateModal,
+                    createThread,
+                    vote
+                };
+            }
+        }).mount('#app');
+
+        // Config Day.js
+        dayjs.extend(window.dayjs_plugin_relativeTime);
+        dayjs.locale('zh-cn');
+    </script>
+</body>
+
+</html>
