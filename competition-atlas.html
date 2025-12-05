@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>竞赛地图 - 通往卓越的路径 | 周小麦</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background-color: #0f172a;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        @keyframes glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+            }
+        }
+
+        .glow-effect {
+            animation: glow 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#0f172a] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-blue-900/30 border-t-blue-500 rounded-full animate-spin"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-center text-xs text-blue-500 font-bold animate-pulse">
+                LOADING</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Trophy = (props) => <IconBase {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></IconBase>;
+        const Robot = (props) => <IconBase {...props}><rect width="18" height="10" x="3" y="11" rx="2" /><circle cx="12" cy="5" r="2" /><path d="M12 7v4" /><line x1="8" x2="8" y1="16" y2="16" /><line x1="16" x2="16" y1="16" y2="16" /></IconBase>;
+        const Lightbulb = (props) => <IconBase {...props}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Award = (props) => <IconBase {...props}><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></IconBase>;
+        const Calendar = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></IconBase>;
+        const Users = (props) => <IconBase {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></IconBase>;
+        const Star = (props) => <IconBase {...props}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></IconBase>;
+
+        // 竞赛数据
+        const competitionData = {
+            robotics: {
+                "primary-low": [
+                    {
+                        id: "vex-go",
+                        name: "VEX GO",
+                        subtitle: "启蒙机器人竞赛",
+                        ageRange: "6-8岁 (G1-G3)",
+                        difficulty: "⭐",
+                        timeline: "每年9月-次年4月",
+                        format: "团队协作赛",
+                        awards: "区域赛 / 全国赛",
+                        description: "VEX GO是专为小学低年级学生设计的机器人竞赛平台。使用ABS塑料套件，易于拆装，配合简单的图形化编程，让孩子在游戏中学习STEM知识。",
+                        skills: ["基础搭建", "图形化编程", "团队协作", "问题解决"],
+                        requirements: "无需编程基础，适合机器人入门",
+                        ourAchievements: "2024年成都赛区一等奖 x2",
+                        registrationPeriod: "每年8-9月",
+                        competitionPeriod: "每年10月-次年4月"
+                    }
+                ],
+                "primary-high": [
+                    {
+                        id: "vex-iq",
+                        name: "VEX IQ",
+                        subtitle: "青少年机器人竞赛",
+                        ageRange: "8-14岁 (G4-G8)",
+                        difficulty: "⭐⭐⭐",
+                        timeline: "每年9月-次年5月",
+                        format: "团队协作 + 技能挑战",
+                        awards: "市赛 / 省赛 / 全国赛 / 世锦赛",
+                        description: "VEX IQ是全球最受欢迎的小学高年级和初中生机器人竞赛。使用智能传感器和模块化结构，培养学生的工程思维和编程能力。每年都有全新的挑战主题。",
+                        skills: ["机械搭建", "传感器应用", "Python/C++编程", "策略规划"],
+                        requirements: "建议有1年以上机器人学习经验",
+                        ourAchievements: "2024年四川省一等奖 x5, 全国赛二等奖 x2",
+                        registrationPeriod: "每年8-9月",
+                        competitionPeriod: "每年10月-次年5月"
+                    }
+                ],
+                "junior": [
+                    {
+                        id: "vex-v5-junior",
+                        name: "VEX V5 (初中组)",
+                        subtitle: "高级机器人竞赛",
+                        ageRange: "11-15岁 (G7-G9)",
+                        difficulty: "⭐⭐⭐⭐",
+                        timeline: "每年9月-次年5月",
+                        format: "联盟赛 + 技能赛",
+                        awards: "市赛 / 省赛 / 全国赛 / 亚锦赛 / 世锦赛",
+                        description: "VEX V5是全球最大的高中生机器人竞赛，也接受初中高年级学生参赛。使用全金属机器人套件，对机械设计、编程算法、团队协作要求极高。每年有超过20,000支队伍参赛。",
+                        skills: ["高级机械设计", "C++编程", "PID控制", "团队管理"],
+                        requirements: "需要扎实的机器人基础和编程能力",
+                        ourAchievements: "2024年四川省二等奖 x3",
+                        registrationPeriod: "每年8-9月",
+                        competitionPeriod: "每年9月-次年5月（含世锦赛）"
+                    },
+                    {
+                        id: "chuangwujie-junior",
+                        name: "创无界·AI挑战赛",
+                        subtitle: "人工智能创新赛道",
+                        ageRange: "12-15岁 (G7-G9)",
+                        difficulty: "⭐⭐⭐⭐",
+                        timeline: "每年6-10月",
+                        format: "任务挑战 + 创意展示",
+                        awards: "区域赛 / 全国赛",
+                        description: "创无界是青少年人工智能创新大赛的特色赛道,强调将AI技术应用于解决实际问题。比赛要求团队设计智能系统，如智能家居、无人驾驶等场景。",
+                        skills: ["AI编程", "创新设计", "应变能力", "演讲展示"],
+                        requirements: "对人工智能和编程有一定了解",
+                        ourAchievements: "2024年西南赛区一等奖 x1",
+                        registrationPeriod: "每年5-6月",
+                        competitionPeriod: "每年7-10月"
+                    }
+                ],
+                "senior": [
+                    {
+                        id: "vex-v5-senior",
+                        name: "VEX V5 (高中组)",
+                        subtitle: "世界级机器人竞赛",
+                        ageRange: "15-18岁 (G10-G12)",
+                        difficulty: "⭐⭐⭐⭐⭐",
+                        timeline: "每年9月-次年5月",
+                        format: "联盟赛 + 技能赛",
+                        awards: "市赛 / 省赛 / 全国赛 / 亚锦赛 / 世锦赛",
+                        description: "VEX V5高中组是通往顶尖理工科大学的重要敲门砖。优秀成绩可直接用于强基计划、综合评价等升学路径。世锦赛在美国举行，吸引全球60+国家参赛。",
+                        skills: ["专业机械设计", "算法优化", "自动化控制", "项目管理"],
+                        requirements: "需要2年以上VEX经验，目标冲刺世锦赛",
+                        ourAchievements: "2023年全国赛三等奖 x1, 2024年四川省一等奖 x2",
+                        registrationPeriod: "每年8-9月",
+                        competitionPeriod: "每年9月-次年5月（世锦赛4月）"
+                    },
+                    {
+                        id: "chuangwujie-senior",
+                        name: "创无界·AI挑战赛",
+                        subtitle: "人工智能创新赛道",
+                        ageRange: "15-18岁 (G10-G12)",
+                        difficulty: "⭐⭐⭐⭐⭐",
+                        timeline: "每年6-10月",
+                        format: "任务挑战 + 答辩展示",
+                        awards: "区域赛 / 全国赛",
+                        description: "高中组的创无界挑战赛要求更高的技术深度和创新性。项目需要融合机器学习、计算机视觉、自然语言处理等前沿AI技术，并能解决真实世界的问题。",
+                        skills: ["深度学习", "系统架构", "商业思维", "演讲答辩"],
+                        requirements: "对AI有深入理解，最好有项目经验",
+                        ourAchievements: "2024年全国赛二等奖 x1",
+                        registrationPeriod: "每年5-6月",
+                        competitionPeriod: "每年7-10月"
+                    }
+                ]
+            },
+            maker: {
+                "primary-high": [
+                    {
+                        id: "soong-primary",
+                        name: "宋庆龄少年儿童发明奖",
+                        subtitle: "国家级发明创新赛事",
+                        ageRange: "小学四年级及以上",
+                        difficulty: "⭐⭐⭐",
+                        timeline: "每年3-10月",
+                        format: "发明作品 / AI编程 / 创意设计",
+                        awards: "金奖 / 银奖 / 铜奖",
+                        description: "宋庆龄少年儿童发明奖是由中国宋庆龄基金会主办的国家级青少年科技创新赛事,旨在培养少年儿童的创新精神和实践能力。",
+                        skills: ["创新思维", "动手实践", "作品展示", "答辩能力"],
+                        requirements: "需提交完整的发明作品或编程项目",
+                        ourAchievements: "2024年四川赛区银奖 x3, 铜奖 x5",
+                        registrationPeriod: "每年3-5月",
+                        competitionPeriod: "每年6-10月"
+                    },
+                    {
+                        id: "icc-p",
+                        name: "全球发明大会 (P组)",
+                        subtitle: "国际青少年发明展示平台",
+                        ageRange: "小学三至五年级",
+                        difficulty: "⭐⭐⭐",
+                        timeline: "每年4-11月",
+                        format: "发明作品展示 + 现场答辩",
+                        awards: "金奖 / 银奖 / 铜奖 / 特别奖",
+                        description: "全球发明大会中国区(ICC)是面向全球青少年的发明创新赛事。参赛者需要针对生活中的实际问题,设计并制作发明作品,现场展示并答辩。",
+                        skills: ["问题发现", "发明设计", "制作能力", "英语表达"],
+                        requirements: "作品需具有创新性和实用性",
+                        ourAchievements: "2024年中国区金奖 x1, 银奖 x2",
+                        registrationPeriod: "每年4-6月",
+                        competitionPeriod: "每年7-11月"
+                    }
+                ],
+                "junior": [
+                    {
+                        id: "soong-junior",
+                        name: "宋庆龄少年儿童发明奖",
+                        subtitle: "国家级发明创新赛事",
+                        ageRange: "初中全学段",
+                        difficulty: "⭐⭐⭐⭐",
+                        timeline: "每年3-10月",
+                        format: "发明作品 / AI编程 / 创意设计",
+                        awards: "金奖 / 银奖 / 铜奖",
+                        description: "初中组的宋庆龄发明奖要求更高的技术含量和创新深度。作品需要体现跨学科知识的综合运用,并具有一定的社会价值。",
+                        skills: ["科学探究", "工程设计", "编程开发", "项目管理"],
+                        requirements: "作品需融合多学科知识,具有创新性",
+                        ourAchievements: "2024年全国金奖 x1, 四川赛区银奖 x4",
+                        registrationPeriod: "每年3-5月",
+                        competitionPeriod: "每年6-10月"
+                    },
+                    {
+                        id: "icc-j",
+                        name: "全球发明大会 (J组)",
+                        subtitle: "国际青少年发明展示平台",
+                        ageRange: "小学六年级至初中九年级",
+                        difficulty: "⭐⭐⭐⭐",
+                        timeline: "每年4-11月",
+                        format: "发明作品展示 + 现场答辩",
+                        awards: "金奖 / 银奖 / 铜奖 / 特别奖",
+                        description: "ICC J组是全球发明大会的核心竞争组别,涵盖小学高年级至初中学段。要求作品具有较高的技术含量和创新性,答辩需要使用英语。",
+                        skills: ["发明创新", "技术实现", "双语答辩", "团队协作"],
+                        requirements: "作品需具备技术可行性和市场潜力",
+                        ourAchievements: "2024年中国区金奖 x2, 银奖 x3",
+                        registrationPeriod: "每年4-6月",
+                        competitionPeriod: "每年7-11月"
+                    },
+                    {
+                        id: "youth-sci-junior",
+                        name: "青少年科技创意大赛",
+                        subtitle: "创新思维实践赛事",
+                        ageRange: "12-15岁",
+                        difficulty: "⭐⭐⭐⭐",
+                        timeline: "每年5-11月",
+                        format: "创意方案 + 原型展示",
+                        awards: "一等奖 / 二等奖 / 三等奖",
+                        description: "青少年科技创意大赛鼓励学生发现生活中的问题,并用科技手段提出创新解决方案。注重创意性、可行性和社会价值。",
+                        skills: ["创意思维", "原型制作", "方案设计", "演讲展示"],
+                        requirements: "需提交完整的创意方案和原型作品",
+                        ourAchievements: "2024年省级一等奖 x2",
+                        registrationPeriod: "每年5-7月",
+                        competitionPeriod: "每年8-11月"
+                    }
+                ],
+                "senior": [
+                    {
+                        id: "soong-senior",
+                        name: "宋庆龄少年儿童发明奖",
+                        subtitle: "国家级发明创新赛事",
+                        ageRange: "高中全学段(含中专、职高)",
+                        difficulty: "⭐⭐⭐⭐⭐",
+                        timeline: "每年3-10月",
+                        format: "发明作品 / AI编程 / 创意设计",
+                        awards: "金奖 / 银奖 / 铜奖",
+                        description: "高中组的宋庆龄发明奖是通往大学强基计划、综合评价的重要荣誉。要求作品具有专业水准,可申请专利,并能产生实际应用价值。",
+                        skills: ["专利撰写", "工程实现", "商业分析", "答辩演讲"],
+                        requirements: "作品需达到专利申请标准",
+                        ourAchievements: "2023年全国金奖 x1, 2024年四川赛区金奖 x2",
+                        registrationPeriod: "每年3-5月",
+                        competitionPeriod: "每年6-10月"
+                    },
+                    {
+                        id: "icc-s",
+                        name: "全球发明大会 (S组)",
+                        subtitle: "国际青少年发明展示平台",
+                        ageRange: "高中十至十二年级",
+                        difficulty: "⭐⭐⭐⭐⭐",
+                        timeline: "每年4-11月",
+                        format: "发明作品展示 + 现场答辩",
+                        awards: "金奖 / 银奖 / 铜奖 / 特别奖",
+                        description: "ICC S组是全球发明大会的最高组别,面向高中生开放。优秀作品将推荐参加国际发明展,并有机会获得大学推荐信和奖学金。",
+                        skills: ["专业发明", "国际视野", "英语答辩", "商业规划"],
+                        requirements: "作品需具备国际竞争力和商业价值",
+                        ourAchievements: "2024年中国区金奖 x1, 国际展银奖 x1",
+                        registrationPeriod: "每年4-6月",
+                        competitionPeriod: "每年7-11月(国际展12月)"
+                    },
+                    {
+                        id: "youth-sci-senior",
+                        name: "青少年科技创新大赛",
+                        subtitle: "高水平科技竞赛(15岁以上)",
+                        ageRange: "15-17岁",
+                        difficulty: "⭐⭐⭐⭐⭐",
+                        timeline: "每年9月-次年8月",
+                        format: "科研项目 + 论文答辩",
+                        awards: "一等奖 / 二等奖 / 三等奖",
+                        description: "全国青少年科技创新大赛(2024年改革后仅接受15岁以上学生)是中国最高级别的青少年科技竞赛。要求严谨的科研方法和学术规范,优秀项目可直通顶尖大学。",
+                        skills: ["科研方法", "数据分析", "论文撰写", "学术答辩"],
+                        requirements: "需完成完整的科研项目,符合学术规范",
+                        ourAchievements: "2024年省一等奖 x1",
+                        registrationPeriod: "每年9-11月",
+                        competitionPeriod: "次年3-8月"
+                    }
+                ]
+            }
+        };
+
+        // 年龄分段配置
+        const ageGroups = [
+            { id: "primary-low", label: "小学低年级", subtitle: "G1-G3", color: "blue" },
+            { id: "primary-high", label: "小学高年级", subtitle: "G4-G6", color: "purple" },
+            { id: "junior", label: "初中", subtitle: "G7-G9", color: "cyan" },
+            { id: "senior", label: "高中", subtitle: "G10-G12", color: "emerald" }
+        ];
+
+        // 详情Modal组件
+        const DetailModal = ({ isOpen, onClose, competition }) => {
+            if (!isOpen || !competition) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="p-6 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-b border-slate-700 sticky top-0 backdrop-blur-md z-10">
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">{competition.name}</h3>
+                                    <p className="text-slate-300 text-sm md:text-base">{competition.subtitle}</p>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                            {competition.ageRange}
+                                        </span>
+                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                            难度: {competition.difficulty}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors ml-4">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-6">
+                            {/* Description */}
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                <h4 className="text-slate-300 font-bold mb-2 flex items-center gap-2">
+                                    📖 赛事简介
+                                </h4>
+                                <p className="text-slate-400 text-sm leading-relaxed">{competition.description}</p>
+                            </div>
+
+                            {/* Key Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
+                                    <div className="flex items-center gap-2 text-blue-300 font-bold mb-2">
+                                        <Calendar className="w-4 h-4" />
+                                        时间安排
+                                    </div>
+                                    <p className="text-blue-200/80 text-sm">报名: {competition.registrationPeriod}</p>
+                                    <p className="text-blue-200/80 text-sm">比赛: {competition.competitionPeriod}</p>
+                                </div>
+
+                                <div className="bg-purple-900/10 p-4 rounded-xl border border-purple-500/20">
+                                    <div className="flex items-center gap-2 text-purple-300 font-bold mb-2">
+                                        <Users className="w-4 h-4" />
+                                        比赛形式
+                                    </div>
+                                    <p className="text-purple-200/80 text-sm">{competition.format}</p>
+                                </div>
+
+                                <div className="bg-amber-900/10 p-4 rounded-xl border border-amber-500/20">
+                                    <div className="flex items-center gap-2 text-amber-300 font-bold mb-2">
+                                        <Award className="w-4 h-4" />
+                                        奖项设置
+                                    </div>
+                                    <p className="text-amber-200/80 text-sm">{competition.awards}</p>
+                                </div>
+
+                                <div className="bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20">
+                                    <div className="flex items-center gap-2 text-emerald-300 font-bold mb-2">
+                                        <Trophy className="w-4 h-4" />
+                                        我们的成绩
+                                    </div>
+                                    <p className="text-emerald-200/80 text-sm font-bold">{competition.ourAchievements}</p>
+                                </div>
+                            </div>
+
+                            {/* Skills */}
+                            <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                <h4 className="text-slate-300 font-bold mb-3">🎯 核心能力</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {competition.skills.map((skill, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg">
+                                            <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
+                                            <span className="text-slate-300 text-sm">{skill}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Requirements */}
+                            <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                <h4 className="text-slate-300 font-bold mb-2">✅ 参赛要求</h4>
+                                <p className="text-slate-400 text-sm">{competition.requirements}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 竞赛卡片组件
+        const CompetitionCard = ({ competition, onClick }) => {
+            const getDifficultyColor = (difficulty) => {
+                const count = (difficulty.match(/⭐/g) || []).length;
+                if (count <= 2) return "text-green-400";
+                if (count <= 3) return "text-yellow-400";
+                return "text-red-400";
+            };
+
+            return (
+                <div
+                    onClick={() => onClick(competition)}
+                    className="group relative bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 cursor-pointer hover:bg-slate-800 hover:border-cyan-500/50 hover:-translate-y-2 transition-all duration-300 overflow-hidden"
+                >
+                    {/* Glow Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br from-cyan-500/20 to-blue-900/5"></div>
+
+                    <div className="relative z-10">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                                <h3 className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors mb-1">
+                                    {competition.name}
+                                </h3>
+                                <p className="text-xs text-slate-400">{competition.subtitle}</p>
+                            </div>
+                            <span className={`text-xl ${getDifficultyColor(competition.difficulty)}`}>
+                                {competition.difficulty}
+                            </span>
+                        </div>
+
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            <span className="px-2 py-1 rounded text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                {competition.ageRange}
+                            </span>
+                            <span className="px-2 py-1 rounded text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                {competition.timeline}
+                            </span>
+                        </div>
+
+                        {/* Achievements */}
+                        <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-3 mb-3">
+                            <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold mb-1">
+                                <Trophy className="w-3 h-3" />
+                                我们的战绩
+                            </div>
+                            <p className="text-emerald-200/90 text-xs">{competition.ourAchievements}</p>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between text-xs text-slate-500 group-hover:text-cyan-400 transition-colors">
+                            <span>点击查看详情</span>
+                            <span>→</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 主应用组件
+        const App = () => {
+            const [activeTab, setActiveTab] = useState("robotics");
+            const [selectedAgeGroup, setSelectedAgeGroup] = useState("primary-low");
+            const [selectedCompetition, setSelectedCompetition] = useState(null);
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            const currentData = competitionData[activeTab][selectedAgeGroup] || [];
+
+            return (
+                <div className="min-h-screen bg-[#0f172a] text-slate-100 pb-20">
+                    {/* Home Button */}
+                    <a href="index.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-cyan-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回主页</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-16 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-cyan-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+
+                        <div className="relative z-10">
+                            <h1 className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 mb-4">
+                                竞赛地图 - 通往卓越的路径
+                            </h1>
+                            <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-lg">
+                                机器人竞赛 · 创客发明 · 科技创新
+                            </p>
+                        </div>
+                    </header>
+
+                    {/* Tab Switcher */}
+                    <div className="max-w-6xl mx-auto px-4 mb-8">
+                        <div className="flex gap-4 justify-center">
+                            <button
+                                onClick={() => setActiveTab("robotics")}
+                                className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === "robotics"
+                                        ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50"
+                                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                    }`}
+                            >
+                                <Robot className="w-5 h-5" />
+                                <span>机器人类</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("maker")}
+                                className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === "maker"
+                                        ? "bg-purple-500 text-white shadow-lg shadow-purple-500/50"
+                                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                    }`}
+                            >
+                                <Lightbulb className="w-5 h-5" />
+                                <span>创客类</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Age Group Filter */}
+                    <div className="max-w-6xl mx-auto px-4 mb-8">
+                        <div className="flex gap-2 md:gap-4 justify-center flex-wrap">
+                            {ageGroups.map(group => {
+                                const hasData = competitionData[activeTab][group.id] && competitionData[activeTab][group.id].length > 0;
+                                if (!hasData) return null;
+
+                                return (
+                                    <button
+                                        key={group.id}
+                                        onClick={() => setSelectedAgeGroup(group.id)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 ${selectedAgeGroup === group.id
+                                                ? `bg-${group.color}-500 text-white shadow-lg`
+                                                : "bg-slate-800/50 text-slate-400 hover:bg-slate-700"
+                                            }`}
+                                    >
+                                        <div>{group.label}</div>
+                                        <div className="text-xs opacity-80">{group.subtitle}</div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Competition Cards */}
+                    <main className="max-w-6xl mx-auto px-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {currentData.map(competition => (
+                                <CompetitionCard
+                                    key={competition.id}
+                                    competition={competition}
+                                    onClick={setSelectedCompetition}
+                                />
+                            ))}
+                        </div>
+
+                        {currentData.length === 0 && (
+                            <div className="text-center py-20">
+                                <p className="text-slate-500 text-lg">该年龄段暂无比赛项目</p>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Detail Modal */}
+                    <DetailModal
+                        isOpen={!!selectedCompetition}
+                        onClose={() => setSelectedCompetition(null)}
+                        competition={selectedCompetition}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
