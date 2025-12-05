@@ -117,18 +117,88 @@
         </div>
     </nav>
 
-    <!-- Scratch Container -->
-    <div id="scratch-container">
-        <!-- Loading State -->
-        <div id="loading" class="flex flex-col items-center justify-center h-full bg-slate-900">
-            <div class="loading-spinner w-16 h-16 border-4 border-slate-700 border-t-scratch-purple rounded-full mb-4">
-            </div>
-            <p class="text-slate-400 text-lg" data-i18n="loading_editor">正在加载 Scratch 编辑器...</p>
-            <p class="text-slate-600 text-sm mt-2" data-i18n="first_load">首次加载可能需要几秒钟</p>
-        </div>
+    <!-- Scratch Layout with Sidebar -->
+    <div class="flex h-screen bg-slate-900 text-white">
+        <!-- Left Sidebar: Lessons -->
+        <aside class="w-64 bg-slate-800 border-r border-slate-700 p-4 overflow-y-auto">
+            <h2 class="text-lg font-bold mb-4" data-i18n="lessons">教学课程</h2>
+            <ul class="space-y-2">
+                <li v-for="lesson in lessons" :key="lesson.id" class="cursor-pointer p-2 rounded hover:bg-slate-700"
+                    @click="loadLesson(lesson)">
+                    {{ lesson.title }}
+                </li>
+            </ul>
+            <button @click="resetEditor"
+                class="mt-6 w-full px-3 py-2 bg-scratch-purple hover:bg-purple-600 rounded text-center font-semibold">
+                重置编辑器
+            </button>
+        </aside>
 
-        <!-- Scratch Editor Iframe -->
-        <iframe id="scratch-iframe" style="display: none;"></iframe>
+        <!-- Main Area: Editor -->
+        <main class="flex-1 flex flex-col">
+            <!-- Top Bar (same as before) -->
+            <nav
+                class="h-16 border-b border-slate-700 bg-slate-900/95 backdrop-blur flex items-center justify-between px-6">
+                <div class="flex items-center gap-4">
+                    <a href="coding.html" class="p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                        <svg width="24" height="24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </a>
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-scratch-purple to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg">
+                            S</div>
+                        <div>
+                            <h1 class="font-bold text-white text-lg leading-tight" data-i18n="ide_title">Scratch IDE
+                            </h1>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+                                data-i18n="ide_subtitle">在线编程环境</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleLanguage()"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"><svg
+                            width="16" height="16" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg><span id="lang-text">EN</span></button>
+                    <button onclick="saveProject()"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"><svg
+                            width="16" height="16" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h8a2 2 0 002-2V9a2 2 0 00-2-2h-1M8 7V5a2 2 0 012-2h2a2 2 0 012 2v2M8 7v5" />
+                        </svg><span data-i18n="save">保存</span></button>
+                    <button onclick="shareProject()"
+                        class="px-4 py-2 bg-scratch-purple hover:bg-purple-600 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"><svg
+                            width="16" height="16" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm-1.316 6.632a3 3 0 11-5.367-2.684 3 3 0 015.367 2.684z" />
+                        </svg><span data-i18n="share">分享</span></button>
+                    <button onclick="toggleFullscreen()" class="p-2 rounded-lg hover:bg-slate-800 transition-colors"
+                        title="全屏"><svg width="20" height="20" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg></button>
+                </div>
+            </nav>
+
+            <!-- Editor Area -->
+            <div id="scratch-container" class="flex-1 relative">
+                <!-- Loading State -->
+                <div id="loading" class="flex flex-col items-center justify-center h-full bg-slate-900">
+                    <div
+                        class="loading-spinner w-16 h-16 border-4 border-slate-700 border-t-scratch-purple rounded-full mb-4">
+                    </div>
+                    <p class="text-slate-400 text-lg" data-i18n="loading_editor">正在加载 Scratch 编辑器...</p>
+                    <p class="text-slate-600 text-sm mt-2" data-i18n="first_load">首次加载可能需要几秒钟</p>
+                </div>
+                <!-- Scratch Editor Iframe -->
+                <iframe id="scratch-iframe" style="display: none;" class="w-full h-full"></iframe>
+            </div>
+        </main>
     </div>
 
     <script>
