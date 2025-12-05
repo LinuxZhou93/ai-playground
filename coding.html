@@ -159,193 +159,7 @@
 </head>
 <script src="assets/js/supabase-client.js"></script>
 
-<script>
-    /**
-     * Simple Project Storage System using LocalStorage (Inlined for reliability)
-     */
-    const STORAGE_KEY = 'scratch_community_projects';
-
-    const ProjectStorage = {
-        getAllProjects: () => {
-            try {
-                const stored = localStorage.getItem(STORAGE_KEY);
-                return stored ? JSON.parse(stored) : [];
-            } catch (e) {
-                console.error("Storage error:", e);
-                return [];
-            }
-        },
-        saveProject: (projectData) => {
-            const projects = ProjectStorage.getAllProjects();
-            const newProject = {
-                id: 'proj_' + Date.now(),
-                created_at: new Date().toISOString(),
-                likes: 0,
-                view_count: 0,
-                ...projectData
-            };
-            projects.unshift(newProject);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-            return newProject;
-        },
-        getMyProjects: () => {
-            const projects = ProjectStorage.getAllProjects();
-            return projects.filter(p => p.isLocal === true);
-        },
-        getCommunityProjects: () => {
-            return ProjectStorage.getAllProjects();
-        },
-        seedDemoData: () => {
-            // Always check if we need to migrate/update data schema
-            const stored = localStorage.getItem(STORAGE_KEY);
-            let needsUpdate = !stored;
-
-            // Force update if data looks old (simple check)
-            // Force update if data looks old (simple check)
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                // Check if new VEX projects exist
-                if (parsed.length > 0 && (!parsed[0].difficulty || !parsed.find(p => p.id === 'vex_demo_1'))) {
-                    needsUpdate = true;
-                    localStorage.removeItem(STORAGE_KEY); // Clear old data to re-seed
-                }
-            }
-
-            if (needsUpdate) {
-                const demoProjects = [
-                    {
-                        id: 'feat_1',
-                        title: 'Witch Magic (Demo)',
-                        description: '体验魔法世界的奇妙冒险！点击绿旗开始。',
-                        author: 'ScratchTeam',
-                        type: 'scratch',
-                        difficulty: 'beginner',
-                        competition: null,
-                        tags: ['游戏', '冒险', '魔法'],
-                        thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/10128431_480x360.png',
-                        project_url: 'https://scratch.mit.edu/projects/10128431/',
-                        view_count: 520,
-                        likes: 128,
-                        created_at: new Date().toISOString(),
-                        isLocal: false,
-                        isLiked: false
-                    },
-                    {
-                        id: 'feat_2',
-                        title: 'Geometry Dash',
-                        description: '经典的几何冲刺游戏复刻版。',
-                        author: 'Griffpatch',
-                        type: 'scratch',
-                        difficulty: 'advanced',
-                        competition: null,
-                        tags: ['游戏', '平台', '音乐'],
-                        thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/105500895_480x360.png',
-                        project_url: 'https://scratch.mit.edu/projects/105500895/',
-                        view_count: 8900,
-                        likes: 4500,
-                        created_at: new Date().toISOString(),
-                        isLocal: false,
-                        isLiked: true
-                    },
-                    {
-                        id: 'feat_3',
-                        title: '3D Maze Engine',
-                        description: '惊人的 3D 迷宫探索引擎，展示光线投射算法。',
-                        author: 'GenericUser',
-                        type: 'scratch',
-                        difficulty: 'advanced',
-                        competition: 'CSP-J',
-                        tags: ['算法', '3D', '数学'],
-                        thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/21264366_480x360.png',
-                        project_url: 'https://scratch.mit.edu/projects/21264366/',
-                        view_count: 345,
-                        likes: 77,
-                        created_at: new Date().toISOString(),
-                        isLocal: false,
-                        isLiked: false
-                    },
-                    {
-                        id: 'vex_demo_1',
-                        title: 'VEX IQ: 自动驾驶挑战',
-                        description: 'VEX IQ 机器人自动驾驶程序，包含巡线和避障逻辑，适用于 2025 赛季规则。',
-                        author: 'RoboticsCoach',
-                        type: 'scratch',
-                        difficulty: 'advanced',
-                        competition: 'VEX',
-                        tags: ['机器人', 'PID控制', '传感器'],
-                        thumbnail_url: 'https://via.placeholder.com/480x360/4CBF56/FFFFFF?text=VEX+Auto+Pilot',
-                        project_url: null,
-                        view_count: 1250,
-                        likes: 340,
-                        created_at: new Date().toISOString(),
-                        isLocal: false,
-                        isLiked: true
-                    },
-                    {
-                        id: 'maker_demo_1',
-                        title: 'Arduino 智能家居中控',
-                        description: '基于 ESP32 的物联网控制中心，支持语音指令控制灯光和温度监测。',
-                        author: 'MakerLab',
-                        type: 'scratch',
-                        difficulty: 'intermediate',
-                        competition: '创意编程',
-                        tags: ['硬件', '物联网', '创客'],
-                        thumbnail_url: 'https://via.placeholder.com/480x360/F5A623/FFFFFF?text=Smart+Home+IoT',
-                        project_url: null,
-                        view_count: 890,
-                        likes: 156,
-                        created_at: new Date().toISOString(),
-                        isLocal: false,
-                        isLiked: false
-                    },
-                    {
-                        id: 'vex_demo_2',
-                        title: 'VEX V5: 机械臂运动学',
-                        description: '三轴机械臂逆运动学解算演示，精准抓取目标物体。',
-                        author: 'EngUser_01',
-                        type: 'scratch',
-                        difficulty: 'advanced',
-                        competition: 'VEX',
-                        tags: ['工程', '数学', '机械臂'],
-                        thumbnail_url: 'https://via.placeholder.com/480x360/E11D48/FFFFFF?text=Robotic+Arm',
-                        project_url: null,
-                        view_count: 567,
-                        likes: 210,
-                        created_at: new Date().toISOString(),
-                        isLocal: false,
-                        isLiked: true
-                    },
-                    {
-                        id: 'feat_5',
-                        title: '冒泡排序可视化',
-                        description: 'CSP-J 考点：直观展示冒泡排序算法的交换过程。',
-                        author: 'AlgoMaster',
-                        type: 'scratch',
-                        difficulty: 'intermediate',
-                        competition: 'CSP-J',
-                        tags: ['算法', 'CSP-J'],
-                        thumbnail_url: 'https://via.placeholder.com/480x360/8B5CF6/FFFFFF?text=Bubble+Sort',
-                        project_url: null,
-                        view_count: 234,
-                        likes: 89,
-                        created_at: new Date().toISOString(),
-                        isLocal: false
-                    }
-                ];
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(demoProjects));
-            }
-        }
-    };
-
-    // Initialize immediately
-    try {
-        ProjectStorage.seedDemoData();
-        window.ProjectStorage = ProjectStorage;
-        console.log("ProjectStorage initialized successfully");
-    } catch (e) {
-        console.error("ProjectStorage init failed:", e);
-    }
-</script>
+<script src="assets/js/project-storage.js"></script>
 
 <body class="bg-slate-900 text-white">
     <canvas id="bg-canvas"></canvas>
@@ -767,17 +581,17 @@
     </main>
 
     <!-- AI Assistant Floating Button -->
-    <button id="ai-assistant-btn"
+    <button id="ai-assistant-btn" @click="toggleAIAssistant"
         class="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-2xl shadow-indigo-500/50 flex items-center justify-center text-2xl hover:scale-110 transition-all z-50 animate-pulse hover:animate-none group">
         <span class="group-hover:scale-125 transition-transform">🤖</span>
     </button>
 
     <!-- AI Assistant Modal -->
-    <div id="ai-assistant-modal"
-        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-        <div class="glass-panel w-full max-w-2xl max-h-[80vh] transform scale-95 transition-transform duration-300 relative border-indigo-500/30 shadow-[0_0_60px_-12px_rgba(99,102,241,0.5)] flex flex-col"
-            id="ai-assistant-panel">
-            <button id="close-ai-assistant"
+    <div id="ai-assistant-modal" :class="{'hidden': !isAIAssistantOpen, 'opacity-0': !isAIAssistantOpen}"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-2xl max-h-[80vh] transform transition-transform duration-300 relative border-indigo-500/30 shadow-[0_0_60px_-12px_rgba(99,102,241,0.5)] flex flex-col"
+            :class="{'scale-95': !isAIAssistantOpen, 'scale-100': isAIAssistantOpen}" id="ai-assistant-panel">
+            <button @click="toggleAIAssistant"
                 class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl z-10">✕</button>
 
             <!-- Header -->
@@ -849,10 +663,10 @@
             <!-- Input Area -->
             <div class="p-4 border-t border-slate-700/50">
                 <div class="flex gap-2">
-                    <input id="ai-input" type="text" placeholder="输入你的问题..."
+                    <input id="ai-input" v-model="aiInputQuery" type="text" placeholder="输入你的问题..."
                         class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                        onkeypress="if(event.key==='Enter') window.sendAIMessage()">
-                    <button onclick="window.sendAIMessage()"
+                        @keypress.enter="sendAIMessage">
+                    <button @click="sendAIMessage"
                         class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all">
                         发送
                     </button>
@@ -974,123 +788,7 @@
 
     <script>
         // ===== AI Assistant Logic =====
-        (function () {
-            const modal = document.getElementById('ai-assistant-modal');
-            const panel = document.getElementById('ai-assistant-panel');
-            const btn = document.getElementById('ai-assistant-btn');
-            const closeBtn = document.getElementById('close-ai-assistant');
-            const chatArea = document.getElementById('ai-chat-area');
-            const input = document.getElementById('ai-input');
 
-            const toggleModal = (show) => {
-                if (show) {
-                    modal.classList.remove('hidden');
-                    setTimeout(() => {
-                        modal.classList.remove('opacity-0');
-                        panel.classList.remove('scale-95');
-                        panel.classList.add('scale-100');
-                    }, 10);
-                } else {
-                    modal.classList.add('opacity-0');
-                    panel.classList.remove('scale-100');
-                    panel.classList.add('scale-95');
-                    setTimeout(() => modal.classList.add('hidden'), 300);
-                }
-            };
-
-            btn.onclick = () => toggleModal(true);
-            closeBtn.onclick = () => toggleModal(false);
-            modal.onclick = (e) => { if (e.target === modal) toggleModal(false); };
-
-            // AI Response Database
-            const aiResponses = {
-                '如何在 Scratch 中实现重力效果?': {
-                    answer: '实现重力效果的核心是使用 **变量** 来模拟加速度。创建一个名为 `速度Y` 的变量,每帧减少一个固定值(如 -0.5),然后让角色的 Y 坐标增加 `速度Y`。当角色碰到地面时,将 `速度Y` 重置为 0。',
-                    code: '当绿旗被点击\n重复执行\n  将 [速度Y] 增加 (-0.5)  // 重力加速度\n  将 y 坐标增加 (速度Y)\n  如果 <碰到 [地面]?> 那么\n    将 [速度Y] 设为 (0)\n  结束'
-                },
-                '推荐适合 CSP-J 初学者的项目': {
-                    answer: '对于 CSP-J 初学者,我推荐从 **排序算法可视化** 开始。这类项目能帮助你理解冒泡排序、选择排序等基础算法,同时锻炼数组操作能力。',
-                    projects: ['冒泡排序动画', '二分查找演示', '递归斐波那契数列']
-                },
-                '角色移动不流畅怎么办?': {
-                    answer: '移动不流畅通常有两个原因:\n1. **帧率问题**: 确保使用 `重复执行` 而不是 `重复执行 10 次`\n2. **步长太大**: 将移动步数从 10 改为 3-5,会更平滑',
-                    tip: '💡 专业技巧: 使用 `滑行 0.1 秒到 x: () y: ()` 积木可以实现自动平滑过渡!'
-                },
-                'VEX 机器人编程入门': {
-                    answer: 'VEX 机器人使用 **VEXcode** 编程,支持积木和 C++。初学者建议:\n1. 先学习基础移动(前进/后退/转向)\n2. 理解传感器读取(超声波/颜色)\n3. 实践自动任务编程',
-                    resource: '推荐从官方教程 "Clawbot" 开始,大约需要 2-3 小时完成基础训练。'
-                }
-            };
-
-            // Add User Message
-            const addMessage = (text, isUser = false) => {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'flex gap-3 animate-fade-in-up';
-                if (isUser) msgDiv.classList.add('justify-end');
-
-                msgDiv.innerHTML = `
-                    ${!isUser ? '<div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm shrink-0">🤖</div>' : ''}
-                    <div class="flex-1 ${isUser ? 'max-w-[80%]' : ''}">
-                        <div class="bg-${isUser ? 'slate-700' : 'indigo-900/30'} rounded-2xl ${isUser ? 'rounded-tr-none' : 'rounded-tl-none'} p-4 border border-${isUser ? 'slate-600' : 'indigo-500/20'}">
-                            <p class="text-slate-${isUser ? '100' : '200'} text-sm leading-relaxed whitespace-pre-line">${text}</p>
-                        </div>
-                    </div>
-                    ${isUser ? '<div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm shrink-0">👤</div>' : ''}
-                `;
-                chatArea.appendChild(msgDiv);
-                chatArea.scrollTop = chatArea.scrollHeight;
-            };
-
-            // AI Response Logic
-            const getAIResponse = (question) => {
-                // Exact match
-                if (aiResponses[question]) {
-                    const resp = aiResponses[question];
-                    let fullAnswer = resp.answer;
-                    if (resp.code) fullAnswer += `\n\n📝 示例代码:\n${resp.code}`;
-                    if (resp.tip) fullAnswer += `\n\n${resp.tip}`;
-                    if (resp.projects) fullAnswer += `\n\n推荐项目:\n${resp.projects.map(p => `• ${p}`).join('\n')}`;
-                    if (resp.resource) fullAnswer += `\n\n📚 ${resp.resource}`;
-                    return fullAnswer;
-                }
-
-                // Fuzzy match
-                const lowerQ = question.toLowerCase();
-                if (lowerQ.includes('重力') || lowerQ.includes('跳跃')) {
-                    return aiResponses['如何在 Scratch 中实现重力效果?'].answer;
-                } else if (lowerQ.includes('csp') || lowerQ.includes('算法') || lowerQ.includes('竞赛')) {
-                    return aiResponses['推荐适合 CSP-J 初学者的项目'].answer;
-                } else if (lowerQ.includes('卡') || lowerQ.includes('慢') || lowerQ.includes('流畅')) {
-                    return aiResponses['角色移动不流畅怎么办?'].answer;
-                } else if (lowerQ.includes('vex') || lowerQ.includes('机器人')) {
-                    return aiResponses['VEX 机器人编程入门'].answer;
-                }
-
-                // Default
-                return `这是一个很好的问题!关于 "${question}",我建议:\n\n1. 先在 Scratch 社区搜索相关项目\n2. 查看官方教程中的类似案例\n3. 在论坛发帖向其他开发者请教\n\n💡 你也可以尝试将问题拆解成更小的步骤,逐个解决!`;
-            };
-
-            // Send Message
-            window.sendAIMessage = () => {
-                const text = input.value.trim();
-                if (!text) return;
-
-                addMessage(text, true);
-                input.value = '';
-
-                // Simulate AI thinking
-                setTimeout(() => {
-                    const response = getAIResponse(text);
-                    addMessage(response, false);
-                }, 800);
-            };
-
-            // Quick Ask
-            window.askAI = (question) => {
-                input.value = question;
-                window.sendAIMessage();
-            };
-        })();
 
         const { createApp, ref, onMounted, watch } = Vue;
 
@@ -1489,7 +1187,12 @@
                     selectedProject,
                     openProjectDetail,
                     selectedPath,
-                    selectPath
+                    selectPath,
+                    // AI Assistant exports
+                    isAIAssistantOpen,
+                    toggleAIAssistant,
+                    aiInputQuery,
+                    sendAIMessage
                 };
             }
         }).mount('#app');
