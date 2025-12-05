@@ -581,17 +581,18 @@
     </main>
 
     <!-- AI Assistant Floating Button -->
-    <button id="ai-assistant-btn" @click="toggleAIAssistant"
+    <button @click="toggleAI"
         class="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-2xl shadow-indigo-500/50 flex items-center justify-center text-2xl hover:scale-110 transition-all z-50 animate-pulse hover:animate-none group">
         <span class="group-hover:scale-125 transition-transform">🤖</span>
     </button>
 
     <!-- AI Assistant Modal -->
-    <div id="ai-assistant-modal" :class="{'hidden': !isAIAssistantOpen, 'opacity-0': !isAIAssistantOpen}"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300">
+    <div v-if="aiState.isOpen" v-cloak
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300"
+        :class="aiState.isVisible ? 'opacity-100' : 'opacity-0'" @click.self="toggleAI">
         <div class="glass-panel w-full max-w-2xl max-h-[80vh] transform transition-transform duration-300 relative border-indigo-500/30 shadow-[0_0_60px_-12px_rgba(99,102,241,0.5)] flex flex-col"
-            :class="{'scale-95': !isAIAssistantOpen, 'scale-100': isAIAssistantOpen}" id="ai-assistant-panel">
-            <button @click="toggleAIAssistant"
+            :class="aiState.isVisible ? 'scale-100' : 'scale-95'">
+            <button @click="toggleAI"
                 class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl z-10">✕</button>
 
             <!-- Header -->
@@ -611,27 +612,33 @@
             </div>
 
             <!-- Chat Area -->
-            <div id="ai-chat-area" class="flex-1 overflow-y-auto p-6 space-y-4">
-                <!-- Welcome Message -->
-                <div class="flex gap-3">
-                    <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm shrink-0">
-                        🤖
+            <div id="ai-chat-scroller" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <div v-for="(msg, index) in aiState.messages" :key="index" class="flex gap-3"
+                    :class="{'flex-row-reverse': msg.isUser}">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
+                        :class="msg.isUser ? 'bg-slate-600' : 'bg-indigo-500'">
+                        {{ msg.isUser ? '👤' : '🤖' }}
                     </div>
+                    <div class="flex-1" :class="{'text-right': msg.isUser}">
+                        <div class="inline-block text-left p-4 rounded-2xl border text-sm leading-relaxed"
+                            :class="msg.isUser ? 'bg-slate-700 rounded-tr-none border-slate-600 text-white' : 'bg-indigo-900/30 rounded-tl-none border-indigo-500/20 text-slate-200'">
+                            <span v-html="msg.text"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div v-if="aiState.isTyping" class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm shrink-0">
+                        🤖</div>
                     <div class="flex-1">
-                        <div class="bg-indigo-900/30 rounded-2xl rounded-tl-none p-4 border border-indigo-500/20">
-                            <p class="text-slate-200 text-sm leading-relaxed">你好!我是你的 AI 编程助手。我可以帮你:</p>
-                            <ul class="mt-3 space-y-2 text-sm text-slate-300">
-                                <li class="flex items-start gap-2"><span class="text-indigo-400">💡</span> 解答
-                                    Scratch
-                                    编程问题</li>
-                                <li class="flex items-start gap-2"><span class="text-purple-400">🎯</span>
-                                    推荐适合你的学习项目
-                                </li>
-                                <li class="flex items-start gap-2"><span class="text-cyan-400">🐛</span> 诊断代码 Bug
-                                </li>
-                                <li class="flex items-start gap-2"><span class="text-orange-400">🏆</span> 提供竞赛备考建议
-                                </li>
-                            </ul>
+                        <div
+                            class="bg-indigo-900/30 rounded-2xl rounded-tl-none p-4 border border-indigo-500/20 w-16 h-10 flex items-center justify-center gap-1">
+                            <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                            <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                                style="animation-delay: 0.1s"></div>
+                            <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                                style="animation-delay: 0.2s"></div>
                         </div>
                     </div>
                 </div>
@@ -641,19 +648,19 @@
             <div class="p-4 border-t border-slate-700/50">
                 <div class="text-xs text-slate-500 mb-3 font-bold">快捷问题:</div>
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="window.askAI('如何在 Scratch 中实现重力效果?')"
+                    <button @click="askAI('如何在 Scratch 中实现重力效果?')"
                         class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-left text-slate-300 border border-slate-700 hover:border-indigo-500/50 transition-all">
                         💡 如何实现重力效果?
                     </button>
-                    <button onclick="window.askAI('推荐适合 CSP-J 初学者的项目')"
+                    <button @click="askAI('推荐适合 CSP-J 初学者的项目')"
                         class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-left text-slate-300 border border-slate-700 hover:border-purple-500/50 transition-all">
                         🎯 CSP-J 入门项目推荐
                     </button>
-                    <button onclick="window.askAI('角色移动不流畅怎么办?')"
+                    <button @click="askAI('角色移动不流畅怎么办?')"
                         class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-left text-slate-300 border border-slate-700 hover:border-cyan-500/50 transition-all">
                         🐛 角色移动问题
                     </button>
-                    <button onclick="window.askAI('VEX 机器人编程入门')"
+                    <button @click="askAI('VEX 机器人编程入门')"
                         class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-left text-slate-300 border border-slate-700 hover:border-green-500/50 transition-all">
                         🤖 VEX 入门指南
                     </button>
@@ -663,9 +670,8 @@
             <!-- Input Area -->
             <div class="p-4 border-t border-slate-700/50">
                 <div class="flex gap-2">
-                    <input id="ai-input" v-model="aiInputQuery" type="text" placeholder="输入你的问题..."
-                        class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                        @keypress.enter="sendAIMessage">
+                    <input v-model="aiState.input" @keyup.enter="sendAIMessage" type="text" placeholder="输入你的问题..."
+                        class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors">
                     <button @click="sendAIMessage"
                         class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all">
                         发送
@@ -806,7 +812,7 @@
                 if (typeof SupabaseClient !== 'undefined') {
                     try {
                         // We don't have the key here in the file usually, it might be in the client js or environment.
-                        // But looking at previous code, it seems SupabaseClient was used globally or we need to check how it was initialized.
+                        // But looking at the code, it seems SupabaseClient was used globally or we need to check how it was initialized.
                         // Actually, looking at the code, it expects SupabaseClient.createClient.
                         // Let's just make it safe.
                         // supabase = SupabaseClient.createClient(supabaseUrl, supabaseKey);
@@ -1046,127 +1052,96 @@
                     setLanguage(currentLang.value === 'zh' ? 'en' : 'zh');
                 };
 
-                // --- AI Assistant Logic (Integrated) ---
-                const toggleAIAssistant = () => {
-                    const aiModal = document.getElementById('ai-assistant-modal');
-                    const aiInput = document.getElementById('ai-input');
-                    if (!aiModal) return;
+                // --- AI Assistant Logic (Vue Integrated) ---
+                const aiState = Vue.reactive({
+                    isOpen: false,
+                    isVisible: false,
+                    isTyping: false,
+                    input: '',
+                    messages: [
+                        {
+                            isUser: false,
+                            text: "你好!我是你的 AI 编程助手。我可以帮你:<br><br>💡 解答 Scratch 编程问题<br>🎯 推荐适合你的学习项目<br>🐛 诊断代码 Bug<br>🏆 提供竞赛备考建议"
+                        }
+                    ]
+                });
 
-                    if (aiModal.classList.contains('hidden')) {
-                        aiModal.classList.remove('hidden');
-                        setTimeout(() => {
-                            aiModal.classList.remove('opacity-0');
-                            document.getElementById('ai-assistant-panel').classList.remove('scale-95');
-                        }, 10);
-                        setTimeout(() => aiInput && aiInput.focus(), 100);
+                const scrollChat = () => {
+                    setTimeout(() => {
+                        const div = document.getElementById('ai-chat-scroller');
+                        if (div) div.scrollTop = div.scrollHeight;
+                    }, 50);
+                };
+
+                const toggleAI = () => {
+                    if (!aiState.isOpen) {
+                        aiState.isOpen = true;
+                        setTimeout(() => aiState.isVisible = true, 10);
 
                         // Intelligent Greeting
-                        if (selectedProject.value) {
-                            // Only add greeting if chat is empty or last message wasn't this
-                            const chatArea = document.getElementById('ai-chat-area');
-                            if (chatArea && chatArea.children.length === 0) {
-                                addMessage(`你好！我看你正在浏览 <b>${selectedProject.value.title}</b>。有什么我可以帮你的吗？比如问问"如何复刻这个项目"？`, false);
-                            }
+                        if (selectedProject.value && aiState.messages.length <= 1) {
+                            aiState.messages.push({
+                                isUser: false,
+                                text: `你好！我看你正在浏览 <b>${selectedProject.value.title}</b>。有什么我可以帮你的吗？`
+                            });
                         }
+                        scrollChat();
                     } else {
-                        aiModal.classList.add('opacity-0');
-                        document.getElementById('ai-assistant-panel').classList.add('scale-95');
-                        setTimeout(() => {
-                            aiModal.classList.add('hidden');
-                        }, 300);
+                        aiState.isVisible = false;
+                        setTimeout(() => aiState.isOpen = false, 300);
                     }
                 };
 
-                function addMessage(text, isUser = false) {
-                    const chatArea = document.getElementById('ai-chat-area');
-                    if (!chatArea) return;
+                const askAI = (question) => {
+                    if (!aiState.isOpen) toggleAI();
+                    handleMessage(question);
+                };
 
-                    const div = document.createElement('div');
-                    div.className = 'flex gap-3 ' + (isUser ? 'flex-row-reverse' : '');
+                const sendAIMessage = () => {
+                    const text = aiState.input.trim();
+                    if (!text) return;
+                    handleMessage(text);
+                    aiState.input = '';
+                };
 
-                    const avatar = document.createElement('div');
-                    avatar.className = `w-8 h-8 rounded-full ${isUser ? 'bg-slate-600' : 'bg-indigo-500'} flex items-center justify-center text-sm shrink-0`;
-                    avatar.textContent = isUser ? '👤' : '🤖';
+                const handleMessage = (text) => {
+                    // Add User Message
+                    aiState.messages.push({ isUser: true, text });
+                    scrollChat();
 
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = 'flex-1';
-
-                    const bubble = document.createElement('div');
-                    bubble.className = isUser
-                        ? 'bg-slate-700 rounded-2xl rounded-tr-none p-4 border border-slate-600 text-white text-sm'
-                        : 'bg-indigo-900/30 rounded-2xl rounded-tl-none p-4 border border-indigo-500/20 text-slate-200 text-sm leading-relaxed';
-                    bubble.innerHTML = text;
-
-                    contentDiv.appendChild(bubble);
-                    div.appendChild(avatar);
-                    div.appendChild(contentDiv);
-
-                    chatArea.appendChild(div);
-                    chatArea.scrollTop = chatArea.scrollHeight;
-                }
-
-                function simulateAIResponse(query) {
-                    const chatArea = document.getElementById('ai-chat-area');
-                    if (!chatArea) return;
-
-                    const typingId = 'typing-' + Date.now();
-                    const typingDiv = document.createElement('div');
-                    typingDiv.id = typingId;
-                    typingDiv.className = 'flex gap-3';
-                    typingDiv.innerHTML = `
-                        <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm shrink-0">🤖</div>
-                            <div class="flex-1">
-                            <div class="bg-indigo-900/30 rounded-2xl rounded-tl-none p-4 border border-indigo-500/20 w-16 h-10 flex items-center justify-center gap-1">
-                                <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
-                                <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                                <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                            </div>
-                        </div>
-                    `;
-                    chatArea.appendChild(typingDiv);
-                    chatArea.scrollTop = chatArea.scrollHeight;
-
-                    let response = "这个问题很有趣！作为一个 AI 编程助手，我建议你可以尝试分解问题，一步步解决。";
-
-                    // Context Aware Response
-                    if (selectedProject.value) {
-                        const p = selectedProject.value;
-                        if (query.includes('这个项目') || query.includes('复刻') || query.includes('怎么做')) {
-                            response = `关于 <b>${p.title}</b>: <br>这是一个适合 <b>${p.difficulty}</b> 的项目。<br>核心知识点包含: ${p.tags ? p.tags.join(', ') : '基础编程'}。<br>你可以点击模态框底部的 '查看源码' 来研究它的内部逻辑！`;
-                        }
-                    }
-
-                    const q = query.toLowerCase();
-                    if (q.includes('重力')) {
-                        response = "在 Scratch 中实现<b>重力</b>其实很简单！<br><br>1. 创建一个变量 <code class='bg-black/30 px-1 rounded'>速度y</code><br>2. 在循环中，将 <code class='bg-black/30 px-1 rounded'>速度y</code> 减少 1<br>3. 将 y 坐标增加 <code class='bg-black/30 px-1 rounded'>速度y</code><br>4. 碰到地面时速度归零。";
-                    } else if (q.includes('csp') || q.includes('竞赛')) {
-                        response = "备战 <b>CSP-J/S</b> 推荐路径：<br>1. <b>模拟算法</b><br>2. <b>枚举与排序</b><br>3. <b>基本数据结构</b> (栈、队列)。";
-                    } else if (q.includes('vex') || q.includes('机器人')) {
-                        response = "VEX 编程核心是 <b>PID 控制</b>。<br>通过传感器反馈不断调整电机输出。";
-                    }
+                    // Simulate Response
+                    aiState.isTyping = true;
+                    scrollChat();
 
                     setTimeout(() => {
-                        const loading = document.getElementById(typingId);
-                        if (loading) loading.remove();
-                        addMessage(response, false);
+                        aiState.isTyping = false;
+                        let response = "这个问题很有趣！作为一个 AI 编程助手，我建议你可以尝试分解问题，一步步解决。";
+
+                        // Context Aware
+                        if (selectedProject.value) {
+                            const p = selectedProject.value;
+                            if (text.includes('这个项目') || text.includes('复刻')) {
+                                response = `关于 <b>${p.title}</b>: <br>这是一个适合 <b>${p.difficulty}</b> 的项目。<br>核心知识点包含: ${p.tags ? p.tags.join(', ') : '基础编程'}。<br>你可以点击'查看源码'来学习其逻辑！`;
+                            }
+                        }
+
+                        const q = text.toLowerCase();
+                        if (q.includes('重力')) {
+                            response = "在 Scratch 中实现<b>重力</b>：<br>1. 建立变量 [速度Y]<br>2. 循环中将 [速度Y] -1<br>3. Y 坐标增加 [速度Y]<br>4. 碰到地面时，[速度Y] 设为 0。";
+                        } else if (q.includes('csp') || q.includes('竞赛')) {
+                            response = "备战 <b>CSP-J/S</b> 重点：<br>1. 模拟算法<br>2. 排序与枚举<br>3. 栈与队列等基础结构。";
+                        } else if (q.includes('vex') || q.includes('机器人')) {
+                            response = "VEX 机器人核心是 <b>PID 控制</b>。<br>利用传感器反馈，实时调整电机输出，实现精确走直线或转弯。";
+                        }
+
+                        aiState.messages.push({ isUser: false, text: response });
+                        scrollChat();
                     }, 1500);
-                }
-
-                // Expose to window for HTML compatibility
-                window.askAI = function (question) {
-                    toggleAIAssistant(); // Ensure open
-                    addMessage(question, true);
-                    simulateAIResponse(question);
                 };
 
-                window.sendAIMessage = function () {
-                    const aiInput = document.getElementById('ai-input');
-                    const text = aiInput.value.trim();
-                    if (!text) return;
-                    addMessage(text, true);
-                    aiInput.value = '';
-                    simulateAIResponse(text);
-                };
+                // Bind to window for backup access
+                window.askAI = askAI;
+                window.sendAIMessage = sendAIMessage;
 
                 // Also bind the top-right button manually if needed, or rely on existing onclick
                 // Ideally we use checking onMounted to bind events if not using Vue @click
@@ -1188,6 +1163,10 @@
                     openProjectDetail,
                     selectedPath,
                     selectPath,
+                    aiState,
+                    toggleAI,
+                    askAI,
+                    sendAIMessage,
                     // AI Assistant exports
                     isAIAssistantOpen,
                     toggleAIAssistant,
