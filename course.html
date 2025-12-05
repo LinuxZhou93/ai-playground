@@ -742,6 +742,39 @@
                             ];
                         }
                     }
+                    // Subscribe to Realtime changes
+                    if (supabase && currentLesson.value) {
+                        // Unsubscribe previous
+                        if (window.commentSubscription) supabase.removeChannel(window.commentSubscription);
+
+                        window.commentSubscription = supabase
+                            .channel('public:lesson_comments')
+                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lesson_comments', filter: `lesson_id=eq.${currentLesson.value.id}` }, async (payload) => {
+                                // Fetch profile for the new comment
+                                const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', payload.new.user_id).single();
+
+                                const newComment = {
+                                    id: payload.new.id,
+                                    content: payload.new.content,
+                                    created_at: payload.new.created_at,
+                                    username: profile?.username || 'User',
+                                    avatar_url: profile?.avatar_url || null
+                                };
+
+                                // Prevent duplicate if it was my own optimistic update (simple check by content/time or just unshift and let vue key handle it if id differs?)
+                                // Actually optimistic update uses 'local_' id. Realtime uses Int id.
+                                // We should ideally replace the local optimistic one or just unshift.
+                                // Simplest for now: unshift if not already present (by ID)
+                                if (!comments.value.find(c => c.id === newComment.id)) {
+                                    comments.value.unshift(newComment);
+                                    // Remove local optimistic one if it matches content (approx)
+                                    const optIndex = comments.value.findIndex(c => c.id.toString().startsWith('local_') && c.content === newComment.content);
+                                    if (optIndex !== -1) comments.value.splice(optIndex, 1);
+                                }
+                            })
+                            .subscribe();
+                    }
+
                     commentSavedStatus.value = `${comments.value.length} 条评论`;
                 };
 
