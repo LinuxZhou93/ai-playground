@@ -847,15 +847,13 @@
 
                 const runCode = () => {
                     consoleLogs.value = [];
+                    if (!editorInstance) return;
                     const code = editorInstance.getValue();
                     try {
-                        // Mock python execution environment
-                        // Intercept print calls
                         const mockPrint = (msg) => {
                             consoleLogs.value.push({ type: 'log', message: msg });
                         };
 
-                        // Simple parser for print statements (This is a mock!)
                         const lines = code.split('\n');
                         lines.forEach(line => {
                             if (line.trim().startsWith('print(')) {
@@ -863,13 +861,11 @@
                                 if (content && content[2]) {
                                     mockPrint(content[2]);
                                 } else {
-                                    // Try to eval basic math or vars (very limited mock)
                                     mockPrint("Output: " + line.trim().replace('print(', '').replace(')', ''));
                                 }
                             }
                         });
 
-                        // If output matches expected, mark complete
                         if (consoleLogs.value.some(l => l.message.includes('Hello'))) {
                             markAsCompleted();
                             consoleLogs.value.push({ type: 'success', message: '🎉 任务完成！' });
@@ -880,61 +876,72 @@
                     }
                 };
 
+                const loadMockData = () => {
+                    course.value = { id: courseId || 'demo', title: 'Python 编程入门 (Demo Mode)', description: '从零开始学习 Python' };
+                    lessons.value = [
+                        { id: 1, title: '第1课：Python 简介', type: 'video', duration_seconds: 600, content_url: '', completed: false },
+                        { id: 2, title: '第2课：变量与数据类型', type: 'video', duration_seconds: 900, content_url: '', completed: false },
+                        { id: 3, title: '第3课：条件语句', type: 'video', duration_seconds: 720, content_url: '', completed: false },
+                        {
+                            id: 4,
+                            title: '测验：基础知识',
+                            type: 'quiz',
+                            duration_seconds: 300,
+                            completed: false,
+                            content: JSON.stringify({
+                                questions: [
+                                    { id: 1, text: "Python 中用于输出内容的函数是？", options: ["echo()", "console.log()", "print()", "write()"], correctIndex: 2 },
+                                    { id: 2, text: "以下哪个不是 Python 的基本数据类型？", options: ["int", "float", "char", "str"], correctIndex: 2 },
+                                    { id: 3, text: "如何开始一个 while 循环？", options: ["while x > y:", "while (x > y)", "while x > y {", "if x > y:"], correctIndex: 0 }
+                                ]
+                            })
+                        },
+                        {
+                            id: 5,
+                            title: '练习：Hello Python',
+                            type: 'code',
+                            description: '使用 print() 函数在控制台输出问候语。',
+                            tasks: ['输出 "Hello, Python!"', '输出你的名字'],
+                            initialCode: '# 在这里写下你的代码\nprint("Hello, Python!")\n',
+                            hint: '使用 print("内容") 来输出文本',
+                            completed: false
+                        },
+                        { id: 6, title: '第4课：循环结构', type: 'video', duration_seconds: 840, content_url: '', completed: false },
+                    ];
+                    currentLesson.value = lessons.value[0];
+                };
+
                 const fetchCourse = async () => {
                     if (!courseId) {
+                        loadMockData();
                         loading.value = false;
                         return;
                     }
 
                     if (!supabase) {
-                        // Mock data setup
-                        course.value = { id: courseId, title: 'Python 编程入门', description: '从零开始学习 Python' };
-                        lessons.value = [
-                            { id: 1, title: '第1课：Python 简介', type: 'video', duration_seconds: 600, content_url: '', completed: false },
-                            { id: 2, title: '第2课：变量与数据类型', type: 'video', duration_seconds: 900, content_url: '', completed: false },
-                            { id: 3, title: '第3课：条件语句', type: 'video', duration_seconds: 720, content_url: '', completed: false },
-                            {
-                                id: 4,
-                                title: '测验：基础知识',
-                                type: 'quiz',
-                                duration_seconds: 300,
-                                completed: false,
-                                content: JSON.stringify({
-                                    questions: [
-                                        { id: 1, text: "Python 中用于输出内容的函数是？", options: ["echo()", "console.log()", "print()", "write()"], correctIndex: 2 },
-                                        { id: 2, text: "以下哪个不是 Python 的基本数据类型？", options: ["int", "float", "char", "str"], correctIndex: 2 },
-                                        { id: 3, text: "如何开始一个 while 循环？", options: ["while x > y:", "while (x > y)", "while x > y {", "if x > y:"], correctIndex: 0 }
-                                    ]
-                                })
-                            },
-                            {
-                                id: 5,
-                                title: '练习：Hello Python',
-                                type: 'code',
-                                description: '使用 print() 函数在控制台输出问候语。',
-                                tasks: ['输出 "Hello, Python!"', '输出你的名字'],
-                                initialCode: '# 在这里写下你的代码\nprint("Hello, Python!")\n',
-                                hint: '使用 print("内容") 来输出文本',
-                                completed: false
-                            },
-                            { id: 6, title: '第4课：循环结构', type: 'video', duration_seconds: 840, content_url: '', completed: false },
-                        ];
-                        currentLesson.value = lessons.value[0];
+                        loadMockData();
                         loading.value = false;
                         return;
                     }
 
                     try {
-                        // Real Supabase Fetch
-                        const { data: courseData } = await supabase.from('courses').select('*').eq('id', courseId).single();
-                        if (courseData) course.value = courseData;
+                        const { data: courseData, error: courseError } = await supabase.from('courses').select('*').eq('id', courseId).single();
+                        if (courseError || !courseData) throw new Error('Course fetch failed');
 
-                        const { data: lessonsData } = await supabase.from('lessons').select('*').eq('course_id', courseId).order('order_index');
-                        if (lessonsData) {
-                            lessons.value = lessonsData;
-                            if (lessons.value.length > 0) currentLesson.value = lessons.value[0];
-                        }
-                    } catch (e) { console.error(e); } finally { loading.value = false; }
+                        course.value = courseData;
+
+                        const { data: lessonsData, error: lessonsError } = await supabase.from('lessons').select('*').eq('course_id', courseId).order('order_index');
+
+                        if (lessonsError || !lessonsData || lessonsData.length === 0) throw new Error('Lessons fetch failed');
+
+                        lessons.value = lessonsData;
+                        currentLesson.value = lessons.value[0];
+                    } catch (e) {
+                        console.warn("Falling back to demo data due to:", e);
+                        loadMockData();
+                    } finally {
+                        loading.value = false;
+                    }
                 };
 
                 const selectLesson = (lesson) => {
