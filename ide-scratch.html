@@ -26,6 +26,7 @@
         }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         body {
@@ -33,6 +34,46 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
+            background-color: #0f172a;
+            /* Match forum */
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        #app {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Glassmorphism overrides */
+        aside,
+        nav {
+            background: rgba(15, 23, 42, 0.6) !important;
+            backdrop-filter: blur(12px);
+            border-color: rgba(148, 163, 184, 0.1) !important;
+        }
+
+        aside {
+            border-right: 1px solid rgba(148, 163, 184, 0.1) !important;
+        }
+
+        nav {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            backdrop-filter: blur(8px);
         }
 
         #scratch-container {
@@ -63,9 +104,10 @@
 </head>
 
 <body class="bg-slate-900 text-white">
-    <div id="app" class="flex h-screen bg-slate-900 text-white">
+    <canvas id="bg-canvas"></canvas>
+    <div id="app" class="flex h-screen text-white">
         <!-- Left Sidebar: Lessons -->
-        <aside class="w-64 bg-slate-800 border-r border-slate-700 p-4 overflow-y-auto">
+        <aside class="w-64 border-r border-slate-700 p-4 overflow-y-auto">
             <h2 class="text-lg font-bold mb-4" data-i18n="lessons">教学课程</h2>
             <ul class="space-y-2">
                 <li v-for="lesson in lessons" :key="lesson.id" class="cursor-pointer p-2 rounded hover:bg-slate-700"
@@ -82,8 +124,7 @@
         <!-- Main Area: Editor -->
         <main class="flex-1 flex flex-col">
             <!-- Top Bar (same as before) -->
-            <nav
-                class="h-16 border-b border-slate-700 bg-slate-900/95 backdrop-blur flex items-center justify-between px-6">
+            <nav class="h-16 border-b border-slate-700 flex items-center justify-between px-6">
                 <div class="flex items-center gap-4">
                     <a href="coding.html" class="p-2 rounded-lg hover:bg-slate-800 transition-colors">
                         <svg width="24" height="24" fill="none" stroke="currentColor">
@@ -131,7 +172,7 @@
             </nav>
 
             <div id="scratch-container" v-if="!isEditorActive"
-                class="flex-1 relative bg-slate-900 flex flex-col items-center justify-center p-8 text-center">
+                class="flex-1 relative flex flex-col items-center justify-center p-8 text-center">
                 <!-- Launch UI -->
                 <div class="max-w-md">
                     <div
@@ -241,6 +282,9 @@
                 };
 
                 onMounted(() => {
+                    // Init 3D Scene
+                    if (typeof THREE !== 'undefined') init3DScene();
+
                     // Check for project_url in query params to construct dynamic URL
                     const urlParams = new URLSearchParams(window.location.search);
                     const projectUrl = urlParams.get('project_url');
@@ -390,6 +434,67 @@
         }
 
         window.addEventListener('load', () => setLanguage(currentLang));
+
+        // --- 1. 3D Background Logic (From Forum) ---
+        function init3DScene() {
+            const canvas = document.getElementById('bg-canvas');
+            if (!canvas) return;
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            camera.position.z = 50;
+
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particleCount = 1500; // Slightly fewer for performance
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const colorPalette = [
+                new THREE.Color(0x8B5CF6), new THREE.Color(0x06B6D4),
+                new THREE.Color(0xEC4899), new THREE.Color(0xF59E0B),
+            ];
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 200;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
+            }
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particles = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({
+                size: 0.8, vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending
+            }));
+            scene.add(particles);
+
+            let mouseX = 0, mouseY = 0;
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                particles.rotation.y += 0.0005;
+                particles.rotation.x += 0.0002;
+                camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
+                camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+                renderer.render(scene, camera);
+            }
+            animate();
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
     </script>
 </body>
 
