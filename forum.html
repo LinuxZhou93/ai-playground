@@ -257,7 +257,16 @@
                         <p>Loading neural streams...</p>
                     </div>
 
-                    <!-- Thread List -->
+                    <!-- Thread List Header with Active Filter -->
+                    <div v-if="currentTag"
+                        class="flex items-center gap-2 mb-4 bg-cyan-500/10 border border-cyan-500/20 rounded-lg py-2 px-4 shadow-sm shadow-cyan-500/5">
+                        <span class="text-cyan-400 text-sm">Filtering by tag:</span>
+                        <span class="font-bold text-white text-sm">#{{ currentTag }}</span>
+                        <button @click="currentTag = null" class="ml-auto text-slate-400 hover:text-white text-sm">
+                            ✕ Clear
+                        </button>
+                    </div>
+
                     <!-- Thread List -->
                     <div class="space-y-4">
                         <article v-for="thread in filteredThreads" :key="thread.id" @click="openThreadDetail(thread)"
@@ -922,6 +931,44 @@
                     }
                 };
 
+                // --- Realtime Subscriptions ---
+                const setupRealtime = () => {
+                    if (!supabase) return;
+
+                    // Global Thread Updates
+                    supabase.channel('public:threads')
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'threads' }, async (payload) => {
+                            // Fetch profile for the new thread
+                            const { data: profile } = await supabase.from('profiles').select('username, avatar_url, reputation').eq('id', payload.new.author_id).single();
+                            const newThread = { ...payload.new, profiles: profile || { username: 'NewUser' } };
+                            threads.value.unshift(newThread);
+                        })
+                        .subscribe();
+                };
+
+                // Subscription for Comments (Dynamic based on selected thread)
+                let commentChannel = null;
+                const setupCommentRealtime = (threadId) => {
+                    if (!supabase) return;
+                    if (commentChannel) supabase.removeChannel(commentChannel);
+
+                    commentChannel = supabase.channel(`public:comments:${threadId}`)
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments', filter: `thread_id=eq.${threadId}` }, async (payload) => {
+                            // Ignore my own insert (handled optimistically)
+                            if (payload.new.author_id === user.value?.id) return;
+
+                            const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', payload.new.author_id).single();
+                            const newComment = {
+                                id: payload.new.id,
+                                content: payload.new.content,
+                                created_at: payload.new.created_at,
+                                author: profile || { username: 'User' }
+                            };
+                            comments.value.push(newComment);
+                        })
+                        .subscribe();
+                };
+
                 onMounted(async () => {
                     // Check User Session
                     if (supabase) {
@@ -945,38 +992,36 @@
                     await fetchThreads();
                     setupRealtime();
                 });
-            });
-
-        return {
-            showMobileMenu,
-            toggleMobileMenu,
-            user,
-            showLogin,
-            login,
-            logout,
-            threads,
-            loading,
-            newThreadTitle,
-            newThreadContent,
-            showCreateModal,
-            createThread,
-            vote,
-            dayjs, // Expose dayjs to template
-            userVotes,
-            selectedThread,
-            showThreadDetail,
-            openThreadDetail,
-            closeThreadDetail,
-            searchQuery,
-            currentTag,
-            selectTag,
-            filteredThreads,
-            renderMarkdown,
-            comments,
-            newCommentContent,
-            fetchComments,
-            submitComment
-        };
+                return {
+                    showMobileMenu,
+                    toggleMobileMenu,
+                    user,
+                    showLogin,
+                    login,
+                    logout,
+                    threads,
+                    loading,
+                    newThreadTitle,
+                    newThreadContent,
+                    showCreateModal,
+                    createThread,
+                    vote,
+                    dayjs, // Expose dayjs to template
+                    userVotes,
+                    selectedThread,
+                    showThreadDetail,
+                    openThreadDetail,
+                    closeThreadDetail,
+                    searchQuery,
+                    currentTag,
+                    selectTag,
+                    filteredThreads,
+                    renderMarkdown,
+                    comments,
+                    newCommentContent,
+                    fetchComments,
+                    submitComment
+                };
             }
         }).mount('#app');
 

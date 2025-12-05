@@ -66,14 +66,41 @@ const ProjectStorage = {
         if (!localStorage.getItem(STORAGE_KEY)) {
             const demoProjects = [
                 {
-                    id: 'seed_1',
-                    title: '跳舞的小猫 (Demo)',
-                    description: '这是一个内置的示例项目。点击绿旗开始！',
+                    id: 'feat_1',
+                    title: 'Witch Magic (Demo)',
+                    description: '体验魔法世界的奇妙冒险！点击绿旗开始。',
                     author: 'ScratchTeam',
                     type: 'scratch',
-                    thumbnail_url: 'https://cdn.pixabay.com/photo/2017/01/31/15/33/scratch-2025124_1280.png', // Placeholder
-                    view_count: 120,
-                    likes: 45,
+                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/10128431_480x360.png',
+                    project_url: 'https://scratch.mit.edu/projects/10128431/', // TurboWarp handles Scratch URLs
+                    view_count: 520,
+                    likes: 128,
+                    created_at: new Date().toISOString(),
+                    isLocal: false
+                },
+                {
+                    id: 'feat_2',
+                    title: 'Geometry Dash',
+                    description: '经典的几何冲刺游戏复刻版。',
+                    author: 'Griffpatch',
+                    type: 'scratch',
+                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/105500895_480x360.png',
+                    project_url: 'https://scratch.mit.edu/projects/105500895/',
+                    view_count: 8900,
+                    likes: 4500,
+                    created_at: new Date().toISOString(),
+                    isLocal: false
+                },
+                {
+                    id: 'feat_3',
+                    title: '3D Maze',
+                    description: '惊人的 3D 迷宫探索引擎。',
+                    author: 'GenericUser',
+                    type: 'scratch',
+                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/21264366_480x360.png',
+                    project_url: 'https://scratch.mit.edu/projects/21264366/',
+                    view_count: 345,
+                    likes: 77,
                     created_at: new Date().toISOString(),
                     isLocal: false
                 }
