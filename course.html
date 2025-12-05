@@ -356,6 +356,11 @@
                         :class="activeTab === 'notes' ? 'border-odyssey-purple text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-gray-300'">
                         <span>📝</span> 学习笔记
                     </button>
+                    <button @click="activeTab = 'discussion'"
+                        class="flex-1 py-3 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2"
+                        :class="activeTab === 'discussion' ? 'border-odyssey-pink text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-gray-300'">
+                        <span>💬</span> 讨论区
+                    </button>
                 </div>
 
                 <!-- AI Chat Tab -->
@@ -454,6 +459,39 @@
 - 代码片段
 - 疑问"></textarea>
                 </div>
+
+                <!-- Discussion Tab -->
+                <div v-show="activeTab === 'discussion'" class="flex-1 flex flex-col min-h-0 bg-[#1a1a1a]">
+                    <div class="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
+                        <span class="text-xs text-gray-400" v-if="commentSavedStatus">{{ commentSavedStatus }}</span>
+                        <span class="text-xs text-gray-500" v-else>加载中...</span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="commentContainer">
+                        <div v-if="comments.length === 0" class="text-center text-gray-400">暂无评论，快来发表第一条吧！</div>
+                        <div v-for="(c, idx) in comments" :key="idx" class="mb-4 p-3 rounded-lg bg-white/5">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 rounded-full bg-gradient-to-br from-odyssey-cyan to-odyssey-purple overflow-hidden">
+                                    <img v-if="c.avatar_url" :src="c.avatar_url" class="w-full h-full object-cover" />
+                                </div>
+                                <span class="font-semibold">{{ c.username || '匿名' }}</span>
+                                <span class="text-xs text-gray-400">{{ new Date(c.created_at).toLocaleString() }}</span>
+                            </div>
+                            <div class="text-sm text-gray-300">{{ c.content }}</div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-white/10 bg-black/20">
+                        <form @submit.prevent="postComment">
+                            <div class="relative">
+                                <input v-model="newComment" type="text" placeholder="输入评论..."
+                                    class="w-full pl-4 pr-10 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-odyssey-cyan focus:bg-white/10 focus:outline-none transition-colors text-sm text-white" />
+                                <button type="submit"
+                                    class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 text-odyssey-cyan hover:text-white transition-colors disabled:opacity-50"
+                                    :disabled="!newComment.trim()">发送</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </aside>
 
         </div>
@@ -480,12 +518,18 @@
                 const videoPlayer = ref(null);
 
                 // Sidebar State
-                const activeTab = ref('ai'); // 'ai' or 'notes'
+                const activeTab = ref('ai'); // 'ai', 'notes', 'discussion'
 
                 // Notes State
                 const currentNote = ref('');
                 const noteSavedStatus = ref('');
                 let noteSaveTimeout = null;
+
+                // Discussion State
+                const comments = ref([]);
+                const newComment = ref('');
+                const commentSavedStatus = ref('');
+                let commentSaveTimeout = null;
 
                 // Quiz State
                 const quizStarted = ref(false);
