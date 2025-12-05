@@ -14,14 +14,55 @@
 	<script>
 		window.scratchJrPage = 'home';
 
-		// POLYFILL: Mouse -> Touch
+		// POLYFILL: Mouse Events -> Touch Events for Desktop Support
 		(function () {
-			if ('ontouchstart' in window) return;
+			if ('ontouchstart' in window) return; // Touch device, do nothing
 
-			function createTouch(target, e) {
-				return new Touch({
+			// Mock Touch if missing (Desktop Chrome/Safari/Firefox)
+			if (typeof window.Touch === 'undefined') {
+				window.Touch = function (t) {
+					this.identifier = t.identifier;
+					this.target = t.target;
+					this.clientX = t.clientX;
+					this.clientY = t.clientY;
+					this.screenX = t.screenX;
+					this.screenY = t.screenY;
+					this.pageX = t.pageX;
+					this.pageY = t.pageY;
+				};
+			}
+
+			// Mock TouchList if missing
+			if (typeof window.TouchList === 'undefined') {
+				window.TouchList = function (touches) {
+					this.length = touches.length;
+					for (let i = 0; i < this.length; i++) {
+						this[i] = touches[i];
+					}
+					this.item = function (index) { return this[index]; };
+				};
+			}
+
+			// Mock TouchEvent if missing
+			if (typeof window.TouchEvent === 'undefined') {
+				window.TouchEvent = function (type, params) {
+					params = params || {};
+					const evt = document.createEvent('CustomEvent');
+					evt.initCustomEvent(type, params.bubbles, params.cancelable, null);
+					evt.touches = new TouchList(params.touches || []);
+					evt.targetTouches = new TouchList(params.targetTouches || []);
+					evt.changedTouches = new TouchList(params.changedTouches || []);
+					evt.view = params.view || window;
+					return evt;
+				};
+			}
+
+			function dispatch(type, e) {
+				if (e.button !== 0) return; // Only left click
+
+				const touch = new Touch({
 					identifier: Date.now(),
-					target: target,
+					target: e.target,
 					clientX: e.clientX,
 					clientY: e.clientY,
 					screenX: e.screenX,
@@ -29,11 +70,7 @@
 					pageX: e.pageX,
 					pageY: e.pageY
 				});
-			}
 
-			function dispatch(type, e) {
-				if (e.button !== 0) return;
-				const touch = createTouch(e.target, e);
 				const event = new TouchEvent(type, {
 					cancelable: true,
 					bubbles: true,
@@ -42,13 +79,24 @@
 					changedTouches: [touch],
 					view: window
 				});
+
 				e.target.dispatchEvent(event);
 			}
 
 			let isDown = false;
 			document.addEventListener('mousedown', (e) => { isDown = true; dispatch('touchstart', e); }, true);
-			document.addEventListener('mousemove', (e) => { if (isDown) dispatch('touchmove', e); }, true);
-			document.addEventListener('mouseup', (e) => { isDown = false; dispatch('touchend', e); }, true);
+			document.addEventListener('mousemove', (e) => {
+				if (isDown) {
+					e.preventDefault();
+					dispatch('touchmove', e);
+				}
+			}, true);
+			document.addEventListener('mouseup', (e) => {
+				if (isDown) {
+					isDown = false;
+					dispatch('touchend', e);
+				}
+			}, true);
 		})();
 	</script>
 	<script type="text/javascript" src="app.bundle.js"></script>
