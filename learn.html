@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Odyssey | 科技奥德赛</title>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        odyssey: {
+                            purple: '#8B5CF6',
+                            cyan: '#06B6D4',
+                            pink: '#EC4899',
+                            amber: '#F59E0B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700;900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        #tech-tree-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .glass-card {
+            background: rgba(15, 15, 25, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white overflow-x-hidden">
+
+    <!-- 3D Background Canvas -->
+    <canvas id="tech-tree-canvas"></canvas>
+
+    <div id="app" class="relative z-10">
+
+        <!-- Navbar -->
+        <nav class="fixed top-0 w-full h-20 glass-card z-50 flex items-center justify-between px-6 lg:px-12">
+            <div class="flex items-center gap-4">
+                <a href="index.html" class="p-2 rounded-lg hover:bg-white/10 transition-colors">
+                    <svg width="24" height="24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-odyssey-purple to-odyssey-pink flex items-center justify-center font-black text-xl">
+                        T</div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight">Tech Odyssey</h1>
+                        <div class="text-[9px] text-gray-500 uppercase tracking-widest font-bold">科技奥德赛</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <a href="#explore"
+                    class="hidden md:block text-sm font-medium hover:text-odyssey-cyan transition-colors">探索课程</a>
+                <a href="#path"
+                    class="hidden md:block text-sm font-medium hover:text-odyssey-purple transition-colors">学习路径</a>
+                <a href="#live"
+                    class="hidden md:block text-sm font-medium hover:text-odyssey-pink transition-colors">直播日历</a>
+
+                <div v-if="user" class="flex items-center gap-3 glass-card rounded-full pl-1 pr-4 py-1">
+                    <div
+                        class="w-8 h-8 rounded-full bg-gradient-to-br from-odyssey-cyan to-odyssey-purple overflow-hidden">
+                        <img v-if="user.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
+                        <span v-else class="flex items-center justify-center w-full h-full text-xs">{{
+                            user.email?.[0]?.toUpperCase() }}</span>
+                    </div>
+                    <span class="text-sm font-bold">{{ user.username || 'Learner' }}</span>
+                </div>
+                <button v-else
+                    class="px-5 py-2 rounded-full bg-gradient-to-r from-odyssey-purple to-odyssey-pink font-bold text-sm hover:scale-105 transition-transform">
+                    开始学习
+                </button>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="min-h-screen flex items-center justify-center px-6 pt-20">
+            <div class="max-w-6xl mx-auto text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-8 floating">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-gray-400">全生命周期学习平台</span>
+                </div>
+
+                <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">
+                    <span
+                        class="bg-gradient-to-r from-odyssey-purple via-odyssey-pink to-odyssey-cyan bg-clip-text text-transparent">
+                        从诞生到永恒
+                    </span>
+                    <br>
+                    <span class="text-white">的科技之旅</span>
+                </h1>
+
+                <p class="text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
+                    在 3D 科技树宇宙中探索知识，通过 AI 导师、实时直播、互动实验室，掌握从计算机诞生到量子计算的全部奥秘
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button @click="scrollToExplore"
+                        class="px-8 py-4 rounded-2xl bg-white text-black font-bold text-lg hover:scale-105 transition-transform shadow-2xl shadow-white/20">
+                        🚀 探索科技树
+                    </button>
+                    <button
+                        class="px-8 py-4 rounded-2xl glass-card font-bold text-lg hover:bg-white/10 transition-colors border border-white/20">
+                        📺 观看演示
+                    </button>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-8 mt-20 max-w-2xl mx-auto">
+                    <div class="glass-card p-6 rounded-2xl">
+                        <div
+                            class="text-3xl font-black bg-gradient-to-r from-odyssey-purple to-odyssey-pink bg-clip-text text-transparent">
+                            {{ stats.courses }}+</div>
+                        <div class="text-sm text-gray-500 mt-1">精品课程</div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl">
+                        <div
+                            class="text-3xl font-black bg-gradient-to-r from-odyssey-cyan to-odyssey-purple bg-clip-text text-transparent">
+                            {{ stats.students }}k+</div>
+                        <div class="text-sm text-gray-500 mt-1">活跃学员</div>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl">
+                        <div
+                            class="text-3xl font-black bg-gradient-to-r from-odyssey-pink to-odyssey-amber bg-clip-text text-transparent">
+                            {{ stats.hours }}h</div>
+                        <div class="text-sm text-gray-500 mt-1">学习时长</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Course Categories -->
+        <section id="explore" class="py-20 px-6">
+            <div class="max-w-7xl mx-auto">
+                <h2 class="text-4xl font-black mb-12 text-center">
+                    <span
+                        class="bg-gradient-to-r from-odyssey-cyan to-odyssey-purple bg-clip-text text-transparent">知识星域</span>
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Category Card -->
+                    <div v-for="category in categories" :key="category.id"
+                        class="group glass-card p-8 rounded-3xl hover:border-odyssey-purple transition-all cursor-pointer hover:-translate-y-2 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 blur-3xl opacity-0 group-hover:opacity-30 transition-opacity"
+                            :style="{background: category.color}"></div>
+
+                        <div class="relative z-10">
+                            <div class="text-5xl mb-4">{{ category.icon }}</div>
+                            <h3 class="text-xl font-bold mb-2">{{ category.name }}</h3>
+                            <p class="text-sm text-gray-500 mb-4">{{ category.description }}</p>
+                            <div class="flex items-center justify-between text-xs text-gray-600">
+                                <span>{{ category.courseCount }} 门课程</span>
+                                <span class="text-odyssey-cyan">→</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Featured Courses -->
+        <section class="py-20 px-6 bg-gradient-to-b from-transparent to-black/50">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex items-center justify-between mb-12">
+                    <h2 class="text-4xl font-black">
+                        <span
+                            class="bg-gradient-to-r from-odyssey-pink to-odyssey-amber bg-clip-text text-transparent">推荐课程</span>
+                    </h2>
+                    <button class="text-sm font-bold text-odyssey-cyan hover:underline">查看全部 →</button>
+                </div>
+
+                <div v-if="loading" class="text-center py-20">
+                    <div
+                        class="animate-spin w-12 h-12 border-4 border-gray-800 border-t-odyssey-cyan rounded-full mx-auto">
+                    </div>
+                </div>
+
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Course Card -->
+                    <div v-for="course in courses" :key="course.id"
+                        class="group glass-card rounded-3xl overflow-hidden hover:border-white/30 transition-all hover:-translate-y-2">
+                        <!-- Thumbnail -->
+                        <div class="aspect-video bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
+                            <img v-if="course.thumbnail_url" :src="course.thumbnail_url"
+                                class="w-full h-full object-cover">
+                            <div v-else class="w-full h-full flex items-center justify-center text-gray-700">
+                                <svg width="60" height="60" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+
+                            <!-- Difficulty Badge -->
+                            <div class="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold" :class="{
+                                     'bg-green-500/80': course.difficulty === 'beginner',
+                                     'bg-yellow-500/80': course.difficulty === 'intermediate',
+                                     'bg-red-500/80': course.difficulty === 'advanced'
+                                 }">
+                                {{ course.difficulty === 'beginner' ? '入门' : course.difficulty === 'intermediate' ? '进阶'
+                                : '高级' }}
+                            </div>
+
+                            <!-- Play Button Overlay -->
+                            <div
+                                class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div
+                                    class="w-16 h-16 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                                    <svg width="24" height="24" fill="white">
+                                        <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info -->
+                        <div class="p-6">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span
+                                    class="px-2 py-1 rounded-full bg-odyssey-purple/20 text-odyssey-purple text-[10px] font-bold uppercase">
+                                    {{ course.category }}
+                                </span>
+                            </div>
+
+                            <h3
+                                class="font-bold text-lg mb-2 line-clamp-2 group-hover:text-odyssey-cyan transition-colors">
+                                {{ course.title }}
+                            </h3>
+
+                            <p class="text-sm text-gray-500 mb-4 line-clamp-2">
+                                {{ course.description }}
+                            </p>
+
+                            <div class="flex items-center justify-between text-xs text-gray-600">
+                                <div class="flex items-center gap-4">
+                                    <span class="flex items-center gap-1">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8v4m0 0v4m0-4h4m-4 0H8" />
+                                        </svg>
+                                        {{ course.lesson_count || 12 }} 课时
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8v13m0-13V6a4 4 0 00-4-4H6a4 4 0 00-4 4v2m0 13h16" />
+                                        </svg>
+                                        {{ course.student_count || 0 }} 人
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
+
+        let supabase = null;
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+
+        createApp({
+            setup() {
+                const user = ref(null);
+                const loading = ref(true);
+                const courses = ref([]);
+                const stats = ref({ courses: 150, students: 12, hours: 5000 });
+                const categories = ref([
+                    { id: 1, name: '编程基础', icon: '💻', description: '从零开始学编程', color: '#8B5CF6', courseCount: 24 },
+                    { id: 2, name: '人工智能', icon: '🤖', description: 'AI与机器学习', color: '#06B6D4', courseCount: 18 },
+                    { id: 3, name: '机器人', icon: '🦾', description: '硬件与控制', color: '#EC4899', courseCount: 15 },
+                    { id: 4, name: '创意设计', icon: '🎨', description: 'UI/UX与交互', color: '#F59E0B', courseCount: 12 },
+                ]);
+
+                const scrollToExplore = () => {
+                    document.getElementById('explore').scrollIntoView({ behavior: 'smooth' });
+                };
+
+                const fetchCourses = async () => {
+                    if (!supabase) {
+                        // Mock data
+                        courses.value = [
+                            { id: 1, title: 'Python 编程入门', description: '从零开始学习 Python，掌握编程基础', category: 'programming', difficulty: 'beginner' },
+                            { id: 2, title: '深度学习实战', description: '使用 TensorFlow 构建神经网络', category: 'ai', difficulty: 'advanced' },
+                            { id: 3, title: 'VEX 机器人竞赛', description: '学习机器人设计与编程', category: 'robotics', difficulty: 'intermediate' },
+                        ];
+                        loading.value = false;
+                        return;
+                    }
+
+                    try {
+                        const { data, error } = await supabase
+                            .from('courses')
+                            .select('*')
+                            .eq('is_published', true)
+                            .limit(6);
+
+                        if (error && error.code !== 'PGRST116') {
+                            console.error(error);
+                        } else {
+                            courses.value = data || [];
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                onMounted(async () => {
+                    if (supabase) {
+                        const { data } = await supabase.auth.getUser();
+                        user.value = data.user;
+                    }
+
+                    fetchCourses();
+                    init3DScene();
+                });
+
+                return { user, loading, courses, stats, categories, scrollToExplore };
+            }
+        }).mount('#app');
+
+        // 3D Tech Tree Scene
+        function init3DScene() {
+            const canvas = document.getElementById('tech-tree-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            camera.position.z = 50;
+
+            // Create particle system (stars)
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particleCount = 1000;
+            const positions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 200;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const particlesMaterial = new THREE.PointsMaterial({
+                color: 0x8B5CF6,
+                size: 0.5,
+                transparent: true,
+                opacity: 0.6
+            });
+            const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particles);
+
+            // Create glowing spheres (knowledge nodes)
+            const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+            const nodes = [];
+
+            for (let i = 0; i < 8; i++) {
+                const material = new THREE.MeshBasicMaterial({
+                    color: [0x8B5CF6, 0x06B6D4, 0xEC4899, 0xF59E0B][i % 4],
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const sphere = new THREE.Mesh(sphereGeometry, material);
+                sphere.position.set(
+                    (Math.random() - 0.5) * 60,
+                    (Math.random() - 0.5) * 40,
+                    (Math.random() - 0.5) * 30
+                );
+                nodes.push(sphere);
+                scene.add(sphere);
+            }
+
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+
+                particles.rotation.y += 0.0005;
+                particles.rotation.x += 0.0002;
+
+                nodes.forEach((node, i) => {
+                    node.rotation.y += 0.01;
+                    node.position.y += Math.sin(Date.now() * 0.001 + i) * 0.01;
+                });
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+    </script>
+</body>
+
+</html>
