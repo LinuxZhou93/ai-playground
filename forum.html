@@ -13,6 +13,7 @@
     <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/dayjs.min.js" defer></script>
     <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/plugin/relativeTime.min.js" defer></script>
     <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/locale/zh-cn.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 
     <!-- Configure Tailwind -->
     <script>
@@ -400,6 +401,12 @@
             const formRegister = document.getElementById('form-register');
             const sidebarLoginBtn = document.querySelector('aside .p-4 button');
 
+            // Create Post UI Refs
+            const createPostModal = document.getElementById('create-post-modal');
+            const createPostPanel = document.getElementById('create-post-panel');
+            const closeCreatePostBtn = document.getElementById('close-post-modal');
+            const formCreatePost = document.getElementById('form-create-post');
+
             // --- 1. 3D Background Logic ---
             function init3DScene() {
                 const canvas = document.getElementById('bg-canvas');
@@ -462,6 +469,23 @@
 
             // --- 2. Auth Logic ---
             let currentUser = null;
+
+            const toggleCreatePostModal = (show) => {
+                if (show) {
+                    createPostModal.classList.remove('hidden');
+                    setTimeout(() => {
+                        createPostModal.classList.remove('opacity-0');
+                        createPostPanel.classList.remove('scale-95');
+                        createPostPanel.classList.add('scale-100');
+                    }, 10);
+                } else {
+                    createPostModal.classList.add('opacity-0');
+                    createPostPanel.classList.remove('scale-100');
+                    createPostPanel.classList.add('scale-95');
+                    setTimeout(() => createPostModal.classList.add('hidden'), 300);
+                }
+            };
+            if (closeCreatePostBtn) closeCreatePostBtn.addEventListener('click', () => toggleCreatePostModal(false));
 
             const toggleAuthModal = (show) => {
                 if (show) {
@@ -539,14 +563,44 @@
                     postInputDiv.textContent = "点击发布新话题...";
                     postInputDiv.className = 'bg-slate-800/50 rounded-xl p-3 text-slate-300 text-sm cursor-pointer hover:bg-slate-700 transition-colors';
                     postInputDiv.onclick = () => {
-                        const content = prompt("发布新话题 (模拟):");
-                        if (content) alert("发布成功！");
+                        toggleCreatePostModal(true);
                     };
                 }
             };
 
+            formCreatePost.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const title = document.getElementById('post-title').value;
+                const content = document.getElementById('post-content').value;
+                const tagEl = document.querySelector('input[name="post-tag"]:checked');
+                const tag = tagEl ? tagEl.value : "综合";
+
+                // Add to state
+                const newId = Date.now();
+                state.items.unshift({
+                    id: newId,
+                    title: title,
+                    tag: tag,
+                    tagColor: "text-blue-400",
+                    content: content,
+                    author: currentUser.name,
+                    avatar: null,
+                    upvotes: 0,
+                    hasUpvoted: false,
+                    comments: 0,
+                    time: new Date(),
+                    replies: [] // Init empty replies
+                });
+
+                render();
+                toggleCreatePostModal(false);
+                formCreatePost.reset();
+            });
+
             // --- 3. Forum State & Rendering ---
             const state = {
+                view: 'list',
+                activeThread: null,
                 items: [],
                 filter: '',
                 topics: [
@@ -591,10 +645,43 @@
                     state.filter = tag;
                     searchInput.value = tag;
                     render();
+                },
+                clearFilter: () => {
+                    state.filter = '';
+                    searchInput.value = '';
+                    render();
+                },
+                viewThread: (id) => {
+                    const thread = state.items.find(i => i.id === id);
+                    if (thread) {
+                        state.activeThread = thread;
+                        state.view = 'detail';
+                        render();
+                        document.getElementById('thread-container').scrollTop = 0;
+                    }
+                },
+                backToList: () => {
+                    state.activeThread = null;
+                    state.view = 'list';
+                    render();
                 }
             };
 
+            // --- 3. Render Function ---
             const render = () => {
+                // CLEAR CONTENT
+                threadListEl.innerHTML = '';
+                // Remove grid classes if switching to detail, add if list
+                if (state.view === 'detail') {
+                    threadListEl.className = 'p-4 max-w-4xl mx-auto animate-fade-in-up';
+                    renderDetailView();
+                } else {
+                    threadListEl.className = 'p-6 grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-max';
+                    renderListView();
+                }
+            };
+
+            const renderListView = () => {
                 const filtered = state.items.filter(thread =>
                     state.filter === '' ||
                     thread.title.toLowerCase().includes(state.filter.toLowerCase()) ||
@@ -616,30 +703,42 @@
                         }
                         const activeClass = thread.hasUpvoted ? 'text-cyan-400' : 'text-slate-400';
 
+                        // Fake Gradient Cover based on ID
+                        const gradients = [
+                            'from-purple-500/20 to-blue-500/10',
+                            'from-cyan-500/20 to-teal-500/10',
+                            'from-pink-500/20 to-rose-500/10',
+                            'from-amber-500/20 to-orange-500/10'
+                        ];
+                        const bgGradient = gradients[thread.id % gradients.length];
+
                         html += `
-                            <article class="glass-panel group cursor-pointer hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden" onclick="window.forumActions.viewDetails(${thread.id})">
-                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
-                                <div class="flex gap-4">
-                                    <div class="flex flex-col items-center gap-1 w-10 shrink-0 pt-1 text-slate-500">
-                                        <button class="hover:text-cyan-400 transition-colors ${activeClass}" onclick="window.forumActions.upvote(${thread.id}, event)">▲</button>
-                                        <span class="font-mono font-bold text-sm ${thread.hasUpvoted ? 'text-cyan-400' : 'text-slate-400'}">${thread.upvotes}</span>
-                                        <button class="hover:text-red-400 transition-colors" onclick="event.stopPropagation()">▼</button>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2 mb-1 text-xs text-slate-500">
-                                            <div class="flex items-center gap-1 hover:text-cyan-400 cursor-pointer transition-colors">
-                                                <div class="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] text-white font-bold">${thread.author[0]}</div>
-                                                <span class="font-bold text-slate-300">${thread.author}</span>
-                                            </div>
-                                            <span>•</span>
-                                            <span>${timeDisplay}</span>
-                                            <span class="px-1.5 py-0.5 rounded bg-slate-800 ${thread.tagColor} border border-slate-700 ml-2 cursor-pointer hover:bg-slate-700" onclick="window.forumActions.filterTag('${thread.tag}', event)">${thread.tag}</span>
+                            <article class="glass-panel group cursor-pointer hover:border-cyan-500/50 transition-all duration-300 relative overflow-hidden flex flex-col h-full !p-0" onclick="window.forumActions.viewDetails(${thread.id})">
+                                <!-- Minimal Cover -->
+                                <div class="h-24 bg-gradient-to-br ${bgGradient} relative">
+                                     <div class="absolute bottom-2 left-4">
+                                         <span class="px-2 py-1 rounded bg-slate-900/80 backdrop-blur ${thread.tagColor} border border-slate-700/50 text-[10px] font-bold tracking-wider uppercase">${thread.tag}</span>
+                                     </div>
+                                </div>
+
+                                <div class="p-5 flex flex-col flex-1">
+                                    <h3 class="font-bold text-lg text-slate-100 mb-3 group-hover:text-cyan-400 transition-colors leading-snug line-clamp-2">
+                                        ${thread.title}
+                                    </h3>
+                                    
+                                    <p class="text-slate-400 text-sm line-clamp-3 mb-4 leading-relaxed flex-1">
+                                        ${thread.content}
+                                    </p>
+                                    
+                                    <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-700/50">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-[10px] text-white font-bold ring-2 ring-slate-800">${thread.author[0]}</div>
+                                            <span class="text-xs font-bold text-slate-400">${thread.author}</span>
                                         </div>
-                                        <h3 class="font-bold text-lg text-slate-200 mb-2 group-hover:text-cyan-400 transition-colors leading-snug">${thread.title}</h3>
-                                        <p class="text-slate-400 text-sm line-clamp-2 mb-3 leading-relaxed">${thread.content}</p>
-                                        <div class="flex items-center gap-4 text-xs text-slate-500">
-                                            <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors"><span>💬</span> ${thread.comments} 评论</button>
-                                            <button class="flex items-center gap-1.5 hover:text-slate-300 transition-colors"><span>🔁</span> 分享</button>
+                                        
+                                        <div class="flex items-center gap-3 text-xs text-slate-500 font-mono">
+                                            <span class="flex items-center gap-1 ${activeClass}"><span class="text-lg leading-none">▲</span> ${thread.upvotes}</span>
+                                            <span class="flex items-center gap-1"><span class="text-lg leading-none">💬</span> ${thread.comments}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -650,11 +749,84 @@
                 threadListEl.innerHTML = html;
             };
 
+            const renderDetailView = () => {
+                const thread = state.activeThread;
+                if (!thread) return;
+
+                const repliesHtml = (thread.replies || []).map(reply => `
+                    <div class="flex gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                        <div class="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-xs font-bold text-white shrink-0">${reply.user[0]}</div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-bold text-slate-300">${reply.user}</span>
+                                <span class="text-xs text-slate-500">${reply.time}</span>
+                            </div>
+                            <p class="text-slate-300 text-sm leading-relaxed">${reply.content}</p>
+                        </div>
+                    </div>
+                 `).join('');
+
+                threadListEl.innerHTML = `
+                        <div class="mb-6">
+                            <button onclick="window.forumActions.backToList()" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+                                <span class="text-xl group-hover:-translate-x-1 transition-transform">←</span>
+                                <span class="font-bold">返回列表</span>
+                            </button>
+                        </div>
+                        
+                        <article class="glass-panel p-8 relative overflow-hidden mb-6">
+                             <div class="absolute top-0 right-0 p-32 bg-cyan-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+                             
+                             <!-- AI Insight Block -->
+                             <div class="mb-8 p-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-xl relative overflow-hidden">
+                                <div class="absolute -right-4 -top-4 text-6xl opacity-10">🤖</div>
+                                <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <span>✨</span> AI 智能提炼
+                                </h4>
+                                <p class="text-indigo-200/80 text-sm leading-relaxed italic">
+                                    "本帖核心探讨了 <b>${thread.title}</b>。社区观点普遍认为，根据孩子的具体兴趣选择赛道最为关键。${thread.tag} 方向目前在 ${thread.tag === '算法竞赛' ? '强基计划' : '海外申请'} 中具有明显优势..."
+                                </p>
+                             </div>
+
+                             <div class="flex gap-3 mb-4">
+                                <span class="px-2 py-1 rounded-md bg-slate-800 ${thread.tagColor} border border-slate-700 text-xs font-bold">${thread.tag}</span>
+                                <span class="text-slate-500 text-xs flex items-center">发布于 近期</span>
+                             </div>
+                             <h1 class="text-3xl font-bold text-white mb-6 leading-tight">${thread.title}</h1>
+                             <div class="flex items-center gap-4 mb-8 pb-6 border-b border-slate-700/50">
+                                <div class="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-lg font-bold text-white">${thread.author[0]}</div>
+                                <div>
+                                    <div class="font-bold text-white text-lg">${thread.author}</div>
+                                    <div class="text-slate-500 text-xs">认证家长 · 活跃贡献者</div>
+                                </div>
+                             </div>
+                             <div class="prose prose-invert max-w-none mb-8 text-slate-200 leading-8 text-lg">
+                                ${thread.content.split('\n').map(p => `<p>${p}</p>`).join('')}
+                             </div>
+                             <div class="flex items-center gap-6 text-slate-400 border-t border-slate-700/50 pt-6">
+                                <button class="flex items-center gap-2 hover:text-cyan-400 hover:scale-105 transition-all text-cyan-400">
+                                    <span class="text-xl">👍</span> ${thread.upvotes} 赞同
+                                </button>
+                                <button class="flex items-center gap-2 hover:text-cyan-400 transition-colors">
+                                    <span class="text-xl">⭐</span> 收藏
+                                </button>
+                             </div>
+                        </article>
+                        
+                        <div class="glass-panel p-6">
+                            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><span>💬</span> 讨论 (${thread.comments})</h3>
+                            <div class="space-y-4">${repliesHtml.length ? repliesHtml : '<div class="text-slate-500 text-center py-4">暂无评论，快来抢沙发吧！</div>'}</div>
+                        </div>
+                `;
+            };
+
             // Expose Global Actions
             window.forumActions = {
                 upvote: (id, e) => { e.stopPropagation(); actions.upvote(id); },
                 filterTag: (tag, e) => { if (e) e.stopPropagation(); actions.filterTag(tag); },
-                viewDetails: (id) => { console.log("View thread", id); }
+                viewDetails: (id) => { actions.viewThread(id); }, // Correctly mapped
+                viewThread: (id) => { actions.viewThread(id); }, // Alias
+                backToList: () => { actions.backToList(); }     // Exposed
             };
 
             searchInput.addEventListener('input', (e) => {
