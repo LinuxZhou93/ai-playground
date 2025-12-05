@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程详情 | Tech Odyssey</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        odyssey: {
+                            purple: '#8B5CF6',
+                            cyan: '#06B6D4',
+                            pink: '#EC4899',
+                            amber: '#F59E0B',
+                            lime: '#84CC16'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: white;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #8B5CF6, #EC4899);
+            border-radius: 10px;
+        }
+
+        .lesson-item {
+            transition: all 0.3s ease;
+        }
+
+        .lesson-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            transform: translateX(4px);
+        }
+
+        .lesson-item.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-left: 3px solid #8B5CF6;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white">
+
+    <div id="app">
+        <!-- Navigation Bar -->
+        <nav class="fixed top-0 w-full h-16 glass z-50">
+            <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
+                <a href="learn.html" class="flex items-center gap-3 group">
+                    <svg class="w-6 h-6 transform group-hover:-translate-x-1 transition-transform" fill="none"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span class="font-semibold">返回课程列表</span>
+                </a>
+
+                <div class="flex items-center gap-4">
+                    <div v-if="user" class="flex items-center gap-2">
+                        <div
+                            class="w-8 h-8 rounded-full bg-gradient-to-br from-odyssey-cyan to-odyssey-purple overflow-hidden">
+                            <img v-if="user.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-sm font-semibold">{{ user.username || 'Learner' }}</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Layout -->
+        <div class="pt-16 flex h-screen">
+
+            <!-- Left Sidebar: Course Outline -->
+            <aside class="w-80 glass border-r border-white/10 overflow-y-auto">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold mb-2">{{ course.title }}</h2>
+                    <div class="flex items-center gap-4 text-sm text-gray-400 mb-6">
+                        <span>{{ completedLessons }}/{{ totalLessons }} 已完成</span>
+                        <div class="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-odyssey-purple to-odyssey-cyan rounded-full transition-all duration-500"
+                                :style="{width: progressPercentage + '%'}"></div>
+                        </div>
+                    </div>
+
+                    <!-- Lesson List -->
+                    <div class="space-y-2">
+                        <div v-for="(lesson, index) in lessons" :key="lesson.id" @click="selectLesson(lesson)"
+                            class="lesson-item p-3 rounded-lg cursor-pointer"
+                            :class="{'active': currentLesson?.id === lesson.id}">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                                    :class="lesson.completed ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'">
+                                    <span v-if="lesson.completed">✓</span>
+                                    <span v-else>{{ index + 1 }}</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-semibold text-sm mb-1 truncate">{{ lesson.title }}</div>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                        <span v-if="lesson.type === 'video'">🎥 {{
+                                            formatDuration(lesson.duration_seconds) }}</span>
+                                        <span v-else-if="lesson.type === 'quiz'">📝 测验</span>
+                                        <span v-else-if="lesson.type === 'reading'">📖 阅读</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center: Video Player / Content Area -->
+            <main class="flex-1 overflow-y-auto">
+                <div class="max-w-5xl mx-auto p-6">
+
+                    <!-- Loading State -->
+                    <div v-if="loading" class="text-center py-20">
+                        <div
+                            class="inline-block animate-spin w-12 h-12 border-4 border-gray-800 border-t-odyssey-cyan rounded-full mb-4">
+                        </div>
+                        <p class="text-gray-400">加载课程中...</p>
+                    </div>
+
+                    <!-- Video Player -->
+                    <div v-else-if="currentLesson && currentLesson.type === 'video'" class="mb-8">
+                        <div class="aspect-video bg-black rounded-2xl overflow-hidden glass">
+                            <video ref="videoPlayer" class="w-full h-full" controls @timeupdate="handleTimeUpdate"
+                                @ended="handleVideoEnded">
+                                <source :src="currentLesson.content_url" type="application/x-mpegURL">
+                                您的浏览器不支持视频播放。
+                            </video>
+                        </div>
+
+                        <!-- Video Controls & Info -->
+                        <div class="mt-6">
+                            <h1 class="text-3xl font-black mb-3">{{ currentLesson.title }}</h1>
+                            <div class="flex items-center gap-4 text-sm text-gray-400 mb-6">
+                                <span>📺 视频课程</span>
+                                <span>⏱️ {{ formatDuration(currentLesson.duration_seconds) }}</span>
+                                <span v-if="currentLesson.completed" class="text-green-400">✓ 已完成</span>
+                            </div>
+
+                            <!-- Navigation Buttons -->
+                            <div class="flex gap-4">
+                                <button v-if="previousLesson" @click="selectLesson(previousLesson)"
+                                    class="px-6 py-3 rounded-xl glass hover:bg-white/10 transition-colors font-semibold flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                    上一课
+                                </button>
+
+                                <button @click="markAsCompleted"
+                                    class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold hover:scale-105 transition-transform flex items-center gap-2"
+                                    :disabled="currentLesson.completed">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    {{ currentLesson.completed ? '已完成' : '标记为完成' }}
+                                </button>
+
+                                <button v-if="nextLesson" @click="selectLesson(nextLesson)"
+                                    class="px-6 py-3 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform flex items-center gap-2">
+                                    下一课
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Content -->
+                    <div v-else-if="currentLesson && currentLesson.type === 'quiz'" class="glass rounded-2xl p-8">
+                        <h1 class="text-3xl font-black mb-6">{{ currentLesson.title }}</h1>
+                        <div class="text-center py-12">
+                            <div class="text-6xl mb-4">📝</div>
+                            <p class="text-gray-400 mb-6">测验功能即将推出</p>
+                            <button @click="markAsCompleted"
+                                class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold">
+                                标记为完成
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reading Content -->
+                    <div v-else-if="currentLesson && currentLesson.type === 'reading'" class="glass rounded-2xl p-8">
+                        <h1 class="text-3xl font-black mb-6">{{ currentLesson.title }}</h1>
+                        <div class="prose prose-invert max-w-none">
+                            <p class="text-gray-300 leading-relaxed">{{ currentLesson.content || '阅读内容加载中...' }}</p>
+                        </div>
+                        <div class="mt-8">
+                            <button @click="markAsCompleted"
+                                class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold">
+                                标记为完成
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-else class="text-center py-20">
+                        <div class="text-6xl mb-4">📚</div>
+                        <h3 class="text-2xl font-bold mb-2">选择一个课时开始学习</h3>
+                        <p class="text-gray-400">从左侧课程大纲中选择课时</p>
+                    </div>
+
+                </div>
+            </main>
+
+            <!-- Right Sidebar: Notes & AI Assistant (Placeholder) -->
+            <aside class="w-80 glass border-l border-white/10 overflow-y-auto hidden lg:block">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-bold text-lg">AI 助教</h3>
+                        <span
+                            class="px-2 py-1 rounded-full bg-odyssey-cyan/20 text-odyssey-cyan text-xs font-bold">即将推出</span>
+                    </div>
+
+                    <div class="text-center py-12">
+                        <div class="text-5xl mb-4">🤖</div>
+                        <p class="text-sm text-gray-400">AI 助教功能正在开发中</p>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, computed } = Vue;
+
+        const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
+
+        let supabase = null;
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+
+        createApp({
+            setup() {
+                const user = ref(null);
+                const loading = ref(true);
+                const course = ref({});
+                const lessons = ref([]);
+                const currentLesson = ref(null);
+                const videoPlayer = ref(null);
+
+                // Get course ID from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const courseId = urlParams.get('id');
+
+                // Computed
+                const totalLessons = computed(() => lessons.value.length);
+                const completedLessons = computed(() => lessons.value.filter(l => l.completed).length);
+                const progressPercentage = computed(() => {
+                    if (totalLessons.value === 0) return 0;
+                    return Math.round((completedLessons.value / totalLessons.value) * 100);
+                });
+
+                const currentLessonIndex = computed(() => {
+                    return lessons.value.findIndex(l => l.id === currentLesson.value?.id);
+                });
+
+                const previousLesson = computed(() => {
+                    const index = currentLessonIndex.value;
+                    return index > 0 ? lessons.value[index - 1] : null;
+                });
+
+                const nextLesson = computed(() => {
+                    const index = currentLessonIndex.value;
+                    return index < lessons.value.length - 1 ? lessons.value[index + 1] : null;
+                });
+
+                // Methods
+                const fetchCourse = async () => {
+                    if (!courseId) {
+                        loading.value = false;
+                        return;
+                    }
+
+                    if (!supabase) {
+                        // Mock data
+                        course.value = {
+                            id: courseId,
+                            title: 'Python 编程入门',
+                            description: '从零开始学习 Python'
+                        };
+
+                        lessons.value = [
+                            { id: 1, title: '第1课：Python 简介', type: 'video', duration_seconds: 600, content_url: '', completed: false },
+                            { id: 2, title: '第2课：变量与数据类型', type: 'video', duration_seconds: 900, content_url: '', completed: false },
+                            { id: 3, title: '第3课：条件语句', type: 'video', duration_seconds: 720, content_url: '', completed: false },
+                            { id: 4, title: '测验：基础知识', type: 'quiz', duration_seconds: 300, completed: false },
+                            { id: 5, title: '第4课：循环结构', type: 'video', duration_seconds: 840, content_url: '', completed: false },
+                        ];
+
+                        currentLesson.value = lessons.value[0];
+                        loading.value = false;
+                        return;
+                    }
+
+                    try {
+                        const { data: courseData, error: courseError } = await supabase
+                            .from('courses')
+                            .select('*')
+                            .eq('id', courseId)
+                            .single();
+
+                        if (courseData) {
+                            course.value = courseData;
+                        }
+
+                        const { data: lessonsData, error: lessonsError } = await supabase
+                            .from('lessons')
+                            .select('*')
+                            .eq('course_id', courseId)
+                            .order('order_index');
+
+                        if (lessonsData) {
+                            lessons.value = lessonsData;
+                            if (lessons.value.length > 0) {
+                                currentLesson.value = lessons.value[0];
+                            }
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const selectLesson = (lesson) => {
+                    currentLesson.value = lesson;
+
+                    // Initialize HLS player if video
+                    if (lesson.type === 'video' && lesson.content_url) {
+                        setTimeout(() => {
+                            initVideoPlayer(lesson.content_url);
+                        }, 100);
+                    }
+                };
+
+                const initVideoPlayer = (url) => {
+                    if (!videoPlayer.value) return;
+
+                    if (Hls.isSupported()) {
+                        const hls = new Hls();
+                        hls.loadSource(url);
+                        hls.attachMedia(videoPlayer.value);
+                    } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
+                        videoPlayer.value.src = url;
+                    }
+                };
+
+                const markAsCompleted = async () => {
+                    if (!currentLesson.value) return;
+
+                    currentLesson.value.completed = true;
+
+                    // Save to database
+                    if (supabase && user.value) {
+                        await supabase.from('progress').upsert({
+                            user_id: user.value.id,
+                            lesson_id: currentLesson.value.id,
+                            completed: true
+                        });
+                    }
+
+                    // Auto-advance to next lesson
+                    if (nextLesson.value) {
+                        setTimeout(() => {
+                            selectLesson(nextLesson.value);
+                        }, 1000);
+                    }
+                };
+
+                const handleTimeUpdate = () => {
+                    // Track video progress
+                };
+
+                const handleVideoEnded = () => {
+                    markAsCompleted();
+                };
+
+                const formatDuration = (seconds) => {
+                    if (!seconds) return '0:00';
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                };
+
+                onMounted(async () => {
+                    if (supabase) {
+                        const { data } = await supabase.auth.getUser();
+                        user.value = data.user;
+                    }
+
+                    await fetchCourse();
+                });
+
+                return {
+                    user,
+                    loading,
+                    course,
+                    lessons,
+                    currentLesson,
+                    videoPlayer,
+                    totalLessons,
+                    completedLessons,
+                    progressPercentage,
+                    previousLesson,
+                    nextLesson,
+                    selectLesson,
+                    markAsCompleted,
+                    handleTimeUpdate,
+                    handleVideoEnded,
+                    formatDuration
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
