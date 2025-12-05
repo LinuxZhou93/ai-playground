@@ -381,6 +381,16 @@
                 const currentLesson = ref(null);
                 const videoPlayer = ref(null);
 
+                // Quiz State
+                const quizStarted = ref(false);
+                const quizCompleted = ref(false);
+                const quizQuestions = ref([]);
+                const currentQuestionIndex = ref(0);
+                const selectedOptionIndex = ref(null);
+                const hasAnsweredCurrent = ref(false);
+                const quizScore = ref(0);
+                const correctAnswersCount = ref(0);
+
                 // Get course ID from URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const courseId = urlParams.get('id');
@@ -426,7 +436,35 @@
                             { id: 1, title: '第1课：Python 简介', type: 'video', duration_seconds: 600, content_url: '', completed: false },
                             { id: 2, title: '第2课：变量与数据类型', type: 'video', duration_seconds: 900, content_url: '', completed: false },
                             { id: 3, title: '第3课：条件语句', type: 'video', duration_seconds: 720, content_url: '', completed: false },
-                            { id: 4, title: '测验：基础知识', type: 'quiz', duration_seconds: 300, completed: false },
+                            {
+                                id: 4,
+                                title: '测验：基础知识',
+                                type: 'quiz',
+                                duration_seconds: 300,
+                                completed: false,
+                                content: JSON.stringify({
+                                    questions: [
+                                        {
+                                            id: 1,
+                                            text: "Python 中用于输出内容的函数是？",
+                                            options: ["echo()", "console.log()", "print()", "write()"],
+                                            correctIndex: 2
+                                        },
+                                        {
+                                            id: 2,
+                                            text: "以下哪个不是 Python 的基本数据类型？",
+                                            options: ["int", "float", "char", "str"],
+                                            correctIndex: 2
+                                        },
+                                        {
+                                            id: 3,
+                                            text: "如何开始一个 while 循环？",
+                                            options: ["while x > y:", "while (x > y)", "while x > y {", "if x > y:"],
+                                            correctIndex: 0
+                                        }
+                                    ]
+                                })
+                            },
                             { id: 5, title: '第4课：循环结构', type: 'video', duration_seconds: 840, content_url: '', completed: false },
                         ];
 
@@ -468,12 +506,100 @@
                 const selectLesson = (lesson) => {
                     currentLesson.value = lesson;
 
+                    // Reset Quiz State
+                    quizStarted.value = false;
+                    quizCompleted.value = false;
+                    currentQuestionIndex.value = 0;
+                    selectedOptionIndex.value = null;
+                    hasAnsweredCurrent.value = false;
+                    correctAnswersCount.value = 0;
+
                     // Initialize HLS player if video
                     if (lesson.type === 'video' && lesson.content_url) {
                         setTimeout(() => {
                             initVideoPlayer(lesson.content_url);
                         }, 100);
                     }
+                };
+
+                // Quiz Logic
+                const startQuiz = () => {
+                    if (currentLesson.value.type !== 'quiz') return;
+
+                    try {
+                        let content = currentLesson.value.content;
+                        if (typeof content === 'string') {
+                            content = JSON.parse(content);
+                        }
+
+                        if (content && content.questions) {
+                            quizQuestions.value = content.questions;
+                            quizStarted.value = true;
+                        } else {
+                            alert('测验数据格式错误');
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse quiz content', e);
+                        // Fallback mock questions if parsing fails
+                        quizQuestions.value = [
+                            { text: "测试问题 1", options: ["A", "B", "C", "D"], correctIndex: 0 }
+                        ];
+                        quizStarted.value = true;
+                    }
+                };
+
+                const selectOption = (index) => {
+                    if (hasAnsweredCurrent.value) return;
+
+                    selectedOptionIndex.value = index;
+                    hasAnsweredCurrent.value = true;
+
+                    if (index === quizQuestions.value[currentQuestionIndex.value].correctIndex) {
+                        correctAnswersCount.value++;
+                    }
+                };
+
+                const nextQuestion = () => {
+                    if (currentQuestionIndex.value < quizQuestions.value.length - 1) {
+                        currentQuestionIndex.value++;
+                        selectedOptionIndex.value = null;
+                        hasAnsweredCurrent.value = false;
+                    } else {
+                        // Finish Quiz
+                        quizScore.value = Math.round((correctAnswersCount.value / quizQuestions.value.length) * 100);
+                        quizCompleted.value = true;
+                    }
+                };
+
+                const resetQuiz = () => {
+                    currentQuestionIndex.value = 0;
+                    selectedOptionIndex.value = null;
+                    hasAnsweredCurrent.value = false;
+                    quizCompleted.value = false;
+                    correctAnswersCount.value = 0;
+                };
+
+                const finishQuiz = () => {
+                    markAsCompleted();
+                };
+
+                const getOptionClass = (index) => {
+                    if (!hasAnsweredCurrent.value) {
+                        // Default state
+                        return 'bg-white/5 border-white/10 hover:bg-white/10 cursor-pointer';
+                    }
+
+                    const correctIndex = quizQuestions.value[currentQuestionIndex.value].correctIndex;
+
+                    if (index === correctIndex) {
+                        return 'bg-green-500/20 border-green-500 text-green-300';
+                    }
+
+                    if (index === selectedOptionIndex.value && index !== correctIndex) {
+                        return 'bg-red-500/20 border-red-500 text-red-300';
+                    }
+
+                    return 'bg-white/5 border-white/10 opacity-50';
                 };
 
                 const initVideoPlayer = (url) => {
@@ -550,7 +676,21 @@
                     markAsCompleted,
                     handleTimeUpdate,
                     handleVideoEnded,
-                    formatDuration
+                    formatDuration,
+                    // Quiz
+                    quizStarted,
+                    quizCompleted,
+                    quizQuestions,
+                    currentQuestionIndex,
+                    selectedOptionIndex,
+                    hasAnsweredCurrent,
+                    quizScore,
+                    startQuiz,
+                    selectOption,
+                    nextQuestion,
+                    resetQuiz,
+                    finishQuiz,
+                    getOptionClass,
                 };
             }
         }).mount('#app');
