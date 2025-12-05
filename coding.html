@@ -298,12 +298,16 @@
 
     <!-- Storage Logic -->
     <script src="assets/js/project-storage.js"></script>
+    <script src="assets/js/supabase-client.js"></script> <!-- Centralized Client -->
 
     <script>
         const { createApp, ref, onMounted, watch } = Vue;
 
         createApp({
             setup() {
+                // Supabase instance from global client
+                const supabase = window.SupabaseClient ? window.SupabaseClient.client : null;
+
                 const user = ref(null);
                 const loading = ref(true);
                 const projects = ref([]);
@@ -372,14 +376,11 @@
                 });
 
                 onMounted(async () => {
-                    if (supabase) {
-                        const { data } = await supabase.auth.getUser();
-                        user.value = data.user;
-
-                        // If logged in, get profile
-                        if (user.value) {
-                            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.value.id).single();
-                            if (profile) user.value = { ...user.value, ...profile };
+                    // Check User Session via Centralized Client
+                    if (window.SupabaseClient) {
+                        const currentUser = await window.SupabaseClient.getCurrentUser();
+                        if (currentUser) {
+                            user.value = currentUser;
                         }
                     }
 
@@ -455,14 +456,11 @@
                 };
 
                 onMounted(async () => {
-                    if (supabase) {
-                        const { data } = await supabase.auth.getUser();
-                        user.value = data.user;
-
-                        // If logged in, get profile
-                        if (user.value) {
-                            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.value.id).single();
-                            if (profile) user.value = { ...user.value, ...profile };
+                    // Check User Session via Centralized Client
+                    if (window.SupabaseClient) {
+                        const currentUser = await window.SupabaseClient.getCurrentUser();
+                        if (currentUser) {
+                            user.value = currentUser;
                         }
                     }
 
