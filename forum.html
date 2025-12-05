@@ -571,6 +571,7 @@
                 const newThreadTitle = ref('');
                 const showCreateModal = ref(false);
                 const searchQuery = ref('');
+                const currentTag = ref(null);
 
                 // Detail View State
                 const selectedThread = ref(null);
@@ -599,14 +600,32 @@
                 };
 
                 const filteredThreads = computed(() => {
-                    if (!searchQuery.value) return threads.value;
-                    const lowerQ = searchQuery.value.toLowerCase();
-                    return threads.value.filter(t =>
-                        t.title.toLowerCase().includes(lowerQ) ||
-                        t.content.toLowerCase().includes(lowerQ) ||
-                        t.tags?.some(tag => tag.toLowerCase().includes(lowerQ))
-                    );
+                    let result = threads.value;
+
+                    // 1. Tag Filter
+                    if (currentTag.value) {
+                        result = result.filter(t => t.tags && t.tags.includes(currentTag.value));
+                    }
+
+                    // 2. Search Filter
+                    if (searchQuery.value) {
+                        const lowerQ = searchQuery.value.toLowerCase();
+                        result = result.filter(t =>
+                            t.title.toLowerCase().includes(lowerQ) ||
+                            t.content.toLowerCase().includes(lowerQ) ||
+                            t.tags?.some(tag => tag.toLowerCase().includes(lowerQ))
+                        );
+                    }
+                    return result;
                 });
+
+                const selectTag = (tag) => {
+                    if (currentTag.value === tag) {
+                        currentTag.value = null; // Toggle off
+                    } else {
+                        currentTag.value = tag;
+                    }
+                };
 
                 const renderMarkdown = (content) => {
                     if (!content) return '';
@@ -753,6 +772,7 @@
                         comments.value = [];
                     } else {
                         comments.value = data || [];
+                        setupCommentRealtime(threadId);
                     }
                 };
 
@@ -903,56 +923,60 @@
                 };
 
                 onMounted(async () => {
-                    // Check auth
+                    // Check User Session
                     if (supabase) {
-                        const { data } = await supabase.auth.getUser();
-                        user.value = data.user;
-
-                        // If logged in, fetch extended profile
-                        if (user.value) {
-                            const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('*')
-                                .eq('id', user.value.id)
-                                .single();
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session) {
+                            user.value = {
+                                id: session.user.id,
+                                email: session.user.email,
+                                // Mock profile fetch or real one
+                                username: session.user.user_metadata?.username || session.user.email.split('@')[0],
+                                avatar_url: session.user.user_metadata?.avatar_url
+                            };
+                            // Also fetch extra profile info if table exists
+                            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.value.id).single();
                             if (profile) {
                                 user.value = { ...user.value, ...profile };
                             }
                         }
                     }
 
-                    // Fetch Data
-                    fetchThreads();
+                    await fetchThreads();
+                    setupRealtime();
                 });
+            });
 
-                return {
-                    showMobileMenu,
-                    toggleMobileMenu,
-                    user,
-                    showLogin,
-                    login,
-                    logout,
-                    threads,
-                    loading,
-                    newThreadTitle,
-                    newThreadContent,
-                    showCreateModal,
-                    createThread,
-                    vote,
-                    dayjs, // Expose dayjs to template
-                    userVotes,
-                    selectedThread,
-                    showThreadDetail,
-                    openThreadDetail,
-                    closeThreadDetail,
-                    searchQuery,
-                    filteredThreads,
-                    renderMarkdown,
-                    comments,
-                    newCommentContent,
-                    fetchComments,
-                    submitComment
-                };
+        return {
+            showMobileMenu,
+            toggleMobileMenu,
+            user,
+            showLogin,
+            login,
+            logout,
+            threads,
+            loading,
+            newThreadTitle,
+            newThreadContent,
+            showCreateModal,
+            createThread,
+            vote,
+            dayjs, // Expose dayjs to template
+            userVotes,
+            selectedThread,
+            showThreadDetail,
+            openThreadDetail,
+            closeThreadDetail,
+            searchQuery,
+            currentTag,
+            selectTag,
+            filteredThreads,
+            renderMarkdown,
+            comments,
+            newCommentContent,
+            fetchComments,
+            submitComment
+        };
             }
         }).mount('#app');
 
