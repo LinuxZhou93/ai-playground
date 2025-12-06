@@ -1119,28 +1119,56 @@
             // 4. Create Links
             const links = [];
 
-            // Structural Links: Each data node connects to its category hub
+            // Structural Links: Each data node connects to its category hub (The "Plane")
             dataNodes.forEach(node => {
                 links.push({
                     source: node.id,
                     target: `hub_${node.group}`,
                     type: 'structure'
                 });
+
+                // Sequential Links: Learning Paths (The "Line")
+                if (node.data.next) {
+                    // Start -> Next
+                    const targets = Array.isArray(node.data.next) ? node.data.next : [node.data.next];
+                    targets.forEach(targetTitle => {
+                        // Only add if target exists in current dataset
+                        if (allNodes.find(n => n.id === targetTitle)) {
+                            links.push({
+                                source: node.id,
+                                target: targetTitle,
+                                type: 'sequence'
+                            });
+                        }
+                    });
+                }
             });
 
-            // Associative Links: Connect nodes with shared tags
+            // Associative Links: Connect nodes with shared tags (The "Volume")
+            // Randomized sampling for performance with 1000+ nodes
+            const maxAssociativeLinks = 2000;
+            let assocCount = 0;
+
             for (let i = 0; i < dataNodes.length; i++) {
-                for (let j = i + 1; j < dataNodes.length; j++) {
+                if (assocCount >= maxAssociativeLinks) break;
+
+                // Only check a subset of neighbors for large datasets to avoid O(N^2) freeze
+                const checkRange = Math.min(dataNodes.length, i + 50);
+
+                for (let j = i + 1; j < checkRange; j++) {
                     const nodeA = dataNodes[i];
                     const nodeB = dataNodes[j];
 
-                    // Check if they share primary tag (first tag)
-                    if (nodeA.data.tags[0] === nodeB.data.tags[0] && nodeA.group !== nodeB.group) {
-                        links.push({
-                            source: nodeA.id,
-                            target: nodeB.id,
-                            type: 'association'
-                        });
+                    if (nodeA.group !== nodeB.group) {
+                        const commonTags = nodeA.data.tags.filter(t => nodeB.data.tags.includes(t));
+                        if (commonTags.length > 0) {
+                            links.push({
+                                source: nodeA.id,
+                                target: nodeB.id,
+                                type: 'association'
+                            });
+                            assocCount++;
+                        }
                     }
                 }
             }

@@ -852,3 +852,101 @@ const wikiData = [
     { title: "AI", category: "concept", stage: "middle", tags: ["CS"], content: "人工智能。" },
     { title: "Robot", category: "concept", stage: "elementary", tags: ["CS"], content: "机器人。" }
 ];
+
+// Galaxy Big Bang: Expansion Protocol
+(function expandGalaxy() {
+    const categories = {
+        'frontier': {
+            label: '前沿科技',
+            topics: [
+                'Quantum Computing', 'Nuclear Fusion', 'Brain-Computer Interface', 'Mars Colonization', 'CRISPR', 'Nanobots', 'Metamaterials', 'Dark Matter', 'Gravitational Waves', 'Swarm Intelligence',
+                'Hyperloop', 'Space Elevator', 'Dyson Sphere', 'Terraforming', 'Exoskeleton', 'Holography', 'Teleportation', 'Antimatter', 'Warp Drive', 'Sentient AI',
+                'Generative AI', 'AGI', 'Neuromorphic Computing', 'DNA Storage', 'Bioprinting', 'Synthetic Life', 'Vertical Farming', 'Wireless Power', 'Smart Dust', 'Claytronics',
+                'Zero Point Energy', 'Cold Fusion', 'Room Temp Superconductor', 'Quantum Internet', 'Time Crystal', 'Metaverse', 'Digital Twin', '6G Network', 'Edge Computing', 'Fog Computing'
+            ], // x 25 variants = 1000
+            tags: ['Future', 'Sci-Fi', 'DeepTech']
+        },
+        'concept': {
+            label: '核心概念',
+            topics: [
+                'Linear Algebra', 'Calculus', 'Differential Equations', 'Topology', 'Chaos Theory', 'Game Theory', 'Information Theory', 'Cybernetics', 'Systems Theory', 'Complexity Theory',
+                'Thermodynamics', 'Quantum Mechanics', 'General Relativity', 'Special Relativity', 'String Theory', 'Standard Model', 'Entropy', 'Heisenberg Principle', 'Schrodinger Cat', 'Double Slit',
+                'Evolution', 'Genetics', 'Neuroscience', 'Cognitive Science', 'Psychology', 'Sociology', 'Economics', 'Linguistics', 'Semiotics', 'Epistemology',
+                'Logic Gates', 'Binary System', 'Data Structures', 'Algorithms', 'Recursion', 'Object-Oriented', 'Functional Programming', 'Distributed Systems', 'Blockchain', 'Cryptography'
+            ],
+            tags: ['Theory', 'Science', 'Academic']
+        },
+        'tool': {
+            label: '开发工具',
+            topics: [
+                'VS Code', 'Git', 'Docker', 'Kubernetes', 'TensorFlow', 'PyTorch', 'Unity', 'Unreal Engine', 'Blender', 'ROS',
+                'Linux', 'Ubuntu', 'Kali', 'Raspberry Pi', 'Arduino', 'ESP32', 'FPGA', 'Jupyter', 'Anaconda', 'Matlab',
+                'React', 'Vue', 'Angular', 'Node.js', 'Django', 'Flask', 'Spring Boot', 'Flutter', 'Swift', 'Kotlin',
+                'Figma', 'Sketch', 'Adobe XD', 'Photoshop', 'Illustrator', 'Premiere', 'After Effects', 'Maya', 'Cinema 4D', 'ZBrush'
+            ],
+            tags: ['Software', 'Dev', 'Productivity']
+        },
+        'project': {
+            label: '项目案例',
+            topics: [
+                'Smart Home System', 'Weather Station', 'Line Follower Robot', 'Drone Autopilot', 'Face Recognition App', 'Chatbot', 'Recommendation Engine', 'Blockchain Wallet', 'Crypto Token', 'NFT Marketplace',
+                '3D Game Engine', 'Physics Simulator', 'Ray Tracer', 'Voice Assistant', 'Text to Speech', 'Image Classifier', 'Stock Predictor', 'Sentiment Analyzer', 'Search Engine', 'Social Network',
+                'Website Builder', 'E-commerce Platform', 'Blog Engine', 'Task Manager', 'Note Taking App', 'Calendar App', 'Music Player', 'Video Player', 'Code Editor', 'Terminal Emulator'
+            ],
+            tags: ['Hands-on', 'Portfolio', 'Engineering']
+        },
+        'pathway': {
+            label: '学习路径',
+            topics: [
+                'Full Stack Developer', 'Data Scientist', 'AI Engineer', 'Game Developer', 'Mobile Developer', 'DevOps Engineer', 'Security Expert', 'Cloud Architect', 'Blockchain Developer', 'Embedded Engineer',
+                'Robotics Engineer', 'Quantum Researcher', 'Bioinformatician', 'Computational Linguist', 'Quantitative Analyst', 'Product Manager', 'UX Designer', 'Technical Writer', 'Solution Architect', 'CTO'
+            ],
+            tags: ['Career', 'Guide', 'Roadmap']
+        }
+    };
+
+    const stages = ['elementary', 'middle', 'high', 'university'];
+    const adjacency = []; // Store potential links
+
+    // 1. Generate core 1000+ Nodes via recombination
+    Object.keys(categories).forEach(cat => {
+        const config = categories[cat];
+
+        // Base topics
+        config.topics.forEach((topic, i) => {
+            // Create main node
+            wikiData.push({
+                title: topic,
+                category: cat,
+                stage: i < 10 ? 'middle' : (i < 25 ? 'high' : 'university'),
+                tags: [...config.tags, 'Core'],
+                content: `Comprehensive knowledge node about ${topic}. Essential for understanding modern ${config.label}.`,
+                next: i < config.topics.length - 1 ? config.topics[i + 1] : null // Sequential link
+            });
+
+            // Create sub-nodes to reach 1000+
+            ['Basics', 'Advanced', 'History', 'Applications', 'Future'].forEach(suffix => {
+                wikiData.push({
+                    title: `${topic}: ${suffix}`,
+                    category: cat,
+                    stage: stages[Math.floor(Math.random() * 4)],
+                    tags: [...config.tags, topic],
+                    content: `Detailed exploration of ${suffix} in the context of ${topic}.`,
+                    // Sub-nodes point back to parent implicitly via tags
+                });
+            });
+        });
+    });
+
+    // 2. Add Cross-Disciplinary Connections (Volume)
+    // We intentionally create "wormholes" between different fields
+    wikiData.push(
+        { title: "AI in Medicine", category: "frontier", stage: "university", tags: ["AI", "Health"], content: "Intersection of Artificial Intelligence and Healthcare." },
+        { title: "Quantum Biology", category: "frontier", stage: "university", tags: ["Quantum", "Biology"], content: "Quantum effects in biological systems." },
+        { title: "Neuromorphic Engineering", category: "frontier", stage: "university", tags: ["AI", "Hardware"], content: "Mimicking neural structures in silicon." },
+        { title: "Computational Finance", category: "tool", stage: "high", tags: ["Math", "Finance"], content: "Algorithms for market analysis." }
+    );
+
+    console.log(`Galaxy Expanded: ${wikiData.length} stars created.`);
+})();
+

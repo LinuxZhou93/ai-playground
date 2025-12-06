@@ -3728,5 +3728,1255 @@ const experiments = [
         "description_zh": "探索太阳系八大行星的大小、距离和运行轨道。",
         "url": "https://www.solarsystemscope.com/",
         "thumbnail": "assets/images/covers/cover_earth.png"
+    },
+    {
+        "title": "Sorting Algorithms Visualizer",
+        "title_zh": "Sorting Algorithms Visualizer",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Interactive visualization of Bubble, Merge, Quick, and Heap sort.",
+        "description_zh": "冒泡、归并、快速、堆排序的交互式可视化演示。",
+        "url": "https://www.toptal.com/developers/sorting-algorithms",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "VisuAlgo - Sorting",
+        "title_zh": "VisuAlgo - Sorting",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Visualising sorting algorithms: Bubble, Selection, Insertion, Merge, Quick, Random Quick, Counting, Radix.",
+        "description_zh": "排序算法可视化：冒泡、选择、插入、归并、快速、基数排序等。",
+        "url": "https://visualgo.net/en/sorting",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "VisuAlgo - Binary Search Tree",
+        "title_zh": "VisuAlgo - Binary Search Tree",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Visualising Binary Search Trees (BST) and AVL Trees.",
+        "description_zh": "二叉搜索树 (BST) 和 AVL 树的可视化演示。",
+        "url": "https://visualgo.net/en/bst",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "VisuAlgo - Graph Traversal",
+        "title_zh": "VisuAlgo - Graph Traversal",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Visualising DFS and BFS graph traversal algorithms.",
+        "description_zh": "图的遍历算法可视化：深度优先 (DFS) 和广度优先 (BFS)。",
+        "url": "https://visualgo.net/en/dfsbfs",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "VisuAlgo - Shortest Path",
+        "title_zh": "VisuAlgo - Shortest Path",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Visualising Shortest Path algorithms: Dijkstra, Bellman Ford, Floyd Warshall.",
+        "description_zh": "最短路径算法可视化：Dijkstra, Bellman Ford, Floyd Warshall。",
+        "url": "https://visualgo.net/en/sssp",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Pathfinding Visualizer",
+        "title_zh": "Pathfinding Visualizer",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Visualize pathfinding algorithms like A*, Dijkstra, and BFS in a grid.",
+        "description_zh": "在网格中可视化 A*、Dijkstra 和 BFS 等寻路算法。",
+        "url": "https://clementmihailescu.github.io/Pathfinding-Visualizer/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Python Tutor",
+        "title_zh": "Python Tutor",
+        "category": "Computer Science",
+        "level": "All",
+        "description": "Visualize code execution step-by-step for Python, Java, C++, and JavaScript.",
+        "description_zh": "逐步可视化 Python, Java, C++, JavaScript 代码的执行过程。",
+        "url": "https://pythontutor.com/visualize.html#mode=edit",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Regex101",
+        "title_zh": "Regex101",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Interactive Regular Expression tester and debugger.",
+        "description_zh": "交互式正则表达式测试和调试工具。",
+        "url": "https://regex101.com/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "RegExr",
+        "title_zh": "RegExr",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Learn, build, and test Regular Expressions.",
+        "description_zh": "学习、构建和测试正则表达式。",
+        "url": "https://regexr.com/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Flexbox Froggy",
+        "title_zh": "Flexbox Froggy",
+        "category": "Computer Science",
+        "level": "All",
+        "description": "A game for learning CSS Flexbox layouts.",
+        "description_zh": "通过游戏学习 CSS Flexbox 布局。",
+        "url": "https://flexboxfroggy.com/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Grid Garden",
+        "title_zh": "Grid Garden",
+        "category": "Computer Science",
+        "level": "All",
+        "description": "A game for learning CSS Grid layouts.",
+        "description_zh": "通过游戏学习 CSS Grid 布局。",
+        "url": "https://cssgridgarden.com/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "NandGame",
+        "title_zh": "NandGame",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Build a computer from scratch using logic gates.",
+        "description_zh": "从零开始使用逻辑门构建一台计算机。",
+        "url": "https://nandgame.com/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Logic.ly Demo",
+        "title_zh": "Logic.ly Demo",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Interactive logic gate simulator.",
+        "description_zh": "交互式逻辑门模拟器。",
+        "url": "https://logic.ly/demo/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Turing Machine Simulator",
+        "title_zh": "Turing Machine Simulator",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Simulate a Turing Machine online.",
+        "description_zh": "在线模拟图灵机运行。",
+        "url": "https://morphett.info/turing/turing.html",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "SQL Murder Mystery",
+        "title_zh": "SQL Murder Mystery",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Learn SQL concepts by solving a murder mystery.",
+        "description_zh": "通过侦破谋杀案来学习 SQL 数据库查询。",
+        "url": "https://mystery.knightlab.com/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Git Branching",
+        "title_zh": "Git Branching",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Interactive visualization to learn Git branching.",
+        "description_zh": "学习 Git 分支管理的交互式可视化工具。",
+        "url": "https://learngitbranching.js.org/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Binary Game",
+        "title_zh": "Binary Game",
+        "category": "Computer Science",
+        "level": "Middle",
+        "description": "Cisco's game to learn binary number conversion.",
+        "description_zh": "思科出品的二进制转换学习游戏。",
+        "url": "https://learningnetwork.cisco.com/s/binary-game",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Crypto Hack",
+        "title_zh": "Crypto Hack",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Learn cryptography through interactive challenges.",
+        "description_zh": "通过互动挑战学习现代密码学。",
+        "url": "https://cryptohack.org/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "ShaderToy",
+        "title_zh": "ShaderToy",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Create and share shaders in WebGL.",
+        "description_zh": "编写和分享 WebGL 着色器代码。",
+        "url": "https://www.shadertoy.com/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Three.js Editor",
+        "title_zh": "Three.js Editor",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Online 3D editor based on Three.js.",
+        "description_zh": "基于 Three.js 的在线 3D 编辑器。",
+        "url": "https://threejs.org/editor/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "JSON Visio",
+        "title_zh": "JSON Visio",
+        "category": "Computer Science",
+        "level": "All",
+        "description": "Visualize JSON data as graphs.",
+        "description_zh": "将 JSON 数据可视化为图形结构。",
+        "url": "https://jsonvisio.com/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "AlgoAnim",
+        "title_zh": "AlgoAnim",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Collection of algorithm animations.",
+        "description_zh": "算法动画集合。",
+        "url": "https://algoanim.ide.sk/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Visual Go (Go Concurrency)",
+        "title_zh": "Visual Go (Go Concurrency)",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Visualize Go concurrency traces.",
+        "description_zh": "Go 语言并发与追踪可视化。",
+        "url": "https://divan.dev/posts/go_concurrency_visualize/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Event Loop",
+        "title_zh": "Event Loop",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Visualize the JavaScript Event Loop.",
+        "description_zh": "可视化 JavaScript 事件循环机制。",
+        "url": "http://latentflip.com/loupe/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "AST Explorer",
+        "title_zh": "AST Explorer",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Visualize Abstract Syntax Trees for various languages.",
+        "description_zh": "查看各种编程语言的抽象语法树(AST)。",
+        "url": "https://astexplorer.net/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Falstad Circuit Simulator",
+        "title_zh": "Falstad Circuit Simulator",
+        "category": "Electronics",
+        "level": "University",
+        "description": "Advanced interactive circuit simulator.",
+        "description_zh": "高级交互式电路模拟器(模拟/数字)。",
+        "url": "https://www.falstad.com/circuit/circuitjs.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "EveryCircuit",
+        "title_zh": "EveryCircuit",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Interactive circuit simulation with real-time animations.",
+        "description_zh": "带有实时动画的交互式电路仿真。",
+        "url": "https://everycircuit.com/app",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Tinkercad Circuits",
+        "title_zh": "Tinkercad Circuits",
+        "category": "Electronics",
+        "level": "Middle/High",
+        "description": "Simulate Arduino and basic electronics.",
+        "description_zh": "模拟 Arduino 和基础电子元件。",
+        "url": "https://www.tinkercad.com/circuits",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Wokwi",
+        "title_zh": "Wokwi",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Online Arduino and ESP32 Simulator.",
+        "description_zh": "在线 Arduino 和 ESP32 模拟器。",
+        "url": "https://wokwi.com/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "CircuitVerse",
+        "title_zh": "CircuitVerse",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Digital logic circuit simulator.",
+        "description_zh": "数字逻辑电路模拟器。",
+        "url": "https://circuitverse.org/simulator",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "PartSim",
+        "title_zh": "PartSim",
+        "category": "Electronics",
+        "level": "High",
+        "description": "SPICE circuit simulator.",
+        "description_zh": "SPICE 电路模拟器。",
+        "url": "https://www.partsim.com/simulator",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "EasyEDA Designer",
+        "title_zh": "EasyEDA Designer",
+        "category": "Electronics",
+        "level": "University",
+        "description": "Online PCB design and circuit simulation.",
+        "description_zh": "在线 PCB 设计和电路仿真。",
+        "url": "https://easyeda.com/editor",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "DoCircuits",
+        "title_zh": "DoCircuits",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Virtual labs for electronics.",
+        "description_zh": "电子学虚拟实验室。",
+        "url": "https://www.docircuits.com/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Lushprojects Circuit Simulator",
+        "title_zh": "Lushprojects Circuit Simulator",
+        "category": "Electronics",
+        "level": "High",
+        "description": "HTML5 version of Falstad simulator.",
+        "description_zh": "Falstad 模拟器的 HTML5 版本。",
+        "url": "http://lushprojects.com/circuitjs/circuitjs.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Micro:bit MakeCode",
+        "title_zh": "Micro:bit MakeCode",
+        "category": "Electronics",
+        "level": "Middle",
+        "description": "Block editor and simulator for micro:bit.",
+        "description_zh": "Micro:bit 的积木编程编辑器和模拟器。",
+        "url": "https://makecode.microbit.org/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Arduino Cloud Editor",
+        "title_zh": "Arduino Cloud Editor",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Official online Arduino IDE.",
+        "description_zh": "官方 Arduino 在线 IDE。",
+        "url": "https://create.arduino.cc/editor",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "123D Circuits",
+        "title_zh": "123D Circuits",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Autodesk's legacy circuit lab.",
+        "description_zh": "Autodesk 的经典电路实验室。",
+        "url": "https://library.io/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Scheme-it",
+        "title_zh": "Scheme-it",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Schematic drawing and block diagram tool.",
+        "description_zh": "原理图绘制和框图设计工具。",
+        "url": "https://www.digikey.com/schemeit/project/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Upverter",
+        "title_zh": "Upverter",
+        "category": "Electronics",
+        "level": "University",
+        "description": "Hardware design in the browser.",
+        "description_zh": "浏览器中的硬件设计工具。",
+        "url": "https://upverter.com/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Flux.ai",
+        "title_zh": "Flux.ai",
+        "category": "Electronics",
+        "level": "University",
+        "description": "Collaborative PCB design tool.",
+        "description_zh": "协作式 PCB 设计工具。",
+        "url": "https://www.flux.ai/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "SimulIDE",
+        "title_zh": "SimulIDE",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Real-time electronic circuit simulator.",
+        "description_zh": "实时电子电路模拟器。",
+        "url": "https://www.simulide.com/p/downloads.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Logic Friday",
+        "title_zh": "Logic Friday",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Free software for boolean logic optimization.",
+        "description_zh": "布尔逻辑优化工具。",
+        "url": "https://sontrak.com/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "QUCS",
+        "title_zh": "QUCS",
+        "category": "Electronics",
+        "level": "University",
+        "description": "Quite Universal Circuit Simulator.",
+        "description_zh": "通用电路模拟器。",
+        "url": "http://qucs.sourceforge.net/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Ngspice",
+        "title_zh": "Ngspice",
+        "category": "Electronics",
+        "level": "University",
+        "description": "Mixed-level/mixed-signal circuit simulator.",
+        "description_zh": "混合信号电路模拟器。",
+        "url": "http://ngspice.sourceforge.net/",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Logisim Evolution",
+        "title_zh": "Logisim Evolution",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Digital logic design tool.",
+        "description_zh": "数字逻辑设计工具。",
+        "url": "https://github.com/logisim-evolution/logisim-evolution",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Algodoo",
+        "title_zh": "Algodoo",
+        "category": "Mechanical",
+        "level": "All",
+        "description": "2D physics sandbox for mechanics.",
+        "description_zh": "2D 物理沙盒，用于机械结构设计。",
+        "url": "http://www.algodoo.com/web",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Mechanisms 101",
+        "title_zh": "Mechanisms 101",
+        "category": "Mechanical",
+        "level": "University",
+        "description": "Database of mechanical mechanisms.",
+        "description_zh": "机械机构数据库。",
+        "url": "http://www.mechanisms101.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Gear Generator",
+        "title_zh": "Gear Generator",
+        "category": "Mechanical",
+        "level": "High",
+        "description": "Tool for creating involute spur gears.",
+        "description_zh": "渐开线直齿轮生成工具。",
+        "url": "https://geargenerator.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Involute Spur Gear",
+        "title_zh": "Involute Spur Gear",
+        "category": "Mechanical",
+        "level": "High",
+        "description": "Another gear design calculator.",
+        "description_zh": "另一个齿轮设计计算器。",
+        "url": "http://www.hessmer.org/gears/InvoluteSpurGearBuilder.html",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Linkage",
+        "title_zh": "Linkage",
+        "category": "Mechanical",
+        "level": "University",
+        "description": "Planar linkage mechanism design.",
+        "description_zh": "平面连杆机构设计。",
+        "url": "https://blog.rectorsquid.com/linkage-mechanism-designer-and-simulator/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "MechAnalyzer",
+        "title_zh": "MechAnalyzer",
+        "category": "Mechanical",
+        "level": "University",
+        "description": "Kinematics of planar mechanisms.",
+        "description_zh": "平面机构运动学分析。",
+        "url": "http://www.roboanalyzer.com/mechanalyzer.html",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Forces in 2D",
+        "title_zh": "Forces in 2D",
+        "category": "Mechanical",
+        "level": "High",
+        "description": "Simulate forces and moments.",
+        "description_zh": "模拟二维中的力和力矩。",
+        "url": "https://phet.colorado.edu/en/simulation/forces-and-motion-basics",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Truss Simulator",
+        "title_zh": "Truss Simulator",
+        "category": "Mechanical",
+        "level": "University",
+        "description": "Analyze forces in trusses.",
+        "description_zh": "桁架受力分析。",
+        "url": "https://ei.jhu.edu/truss-simulator/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "SkyCiv Beam",
+        "title_zh": "SkyCiv Beam",
+        "category": "Mechanical",
+        "level": "University",
+        "description": "Bending moment and shear force calculator.",
+        "description_zh": "弯矩和剪力计算器。",
+        "url": "https://skyciv.com/free-beam-calculator/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Engineering Toolbox",
+        "title_zh": "Engineering Toolbox",
+        "category": "Mechanical",
+        "level": "All",
+        "description": "Resources, tools and basic information.",
+        "description_zh": "工程资源、工具和基础信息库。",
+        "url": "https://www.engineeringtoolbox.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Mechanism Examples",
+        "title_zh": "Mechanism Examples",
+        "category": "Mechanical",
+        "level": "High",
+        "description": "Animated mechanisms.",
+        "description_zh": "机械机构动画演示。",
+        "url": "http://507movements.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "CAD Onshape",
+        "title_zh": "CAD Onshape",
+        "category": "Mechanical",
+        "level": "University",
+        "description": "Cloud-native CAD system.",
+        "description_zh": "云原生 CAD 系统。",
+        "url": "https://www.onshape.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "TinkerCAD 3D",
+        "title_zh": "TinkerCAD 3D",
+        "category": "Mechanical",
+        "level": "Middle",
+        "description": "Simple 3D modeling.",
+        "description_zh": "包含机械零件设计的简单 3D 建模。",
+        "url": "https://www.tinkercad.com/3d-design",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "SelfCAD",
+        "title_zh": "SelfCAD",
+        "category": "Mechanical",
+        "level": "High",
+        "description": "3D Modeling software online.",
+        "description_zh": "在线 3D 建模软件。",
+        "url": "https://www.selfcad.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Vectary",
+        "title_zh": "Vectary",
+        "category": "Mechanical",
+        "level": "High",
+        "description": "Web-based 3D design tool.",
+        "description_zh": "基于 Web 的 3D 设计工具。",
+        "url": "https://www.vectary.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "SketchUp Free",
+        "title_zh": "SketchUp Free",
+        "category": "Mechanical",
+        "level": "Middle/High",
+        "description": "3D modeling for everyone.",
+        "description_zh": "大众化的 3D 建模工具。",
+        "url": "https://www.sketchup.com/plans-and-pricing/sketchup-free",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "SimScale",
+        "title_zh": "SimScale",
+        "category": "Mechanical",
+        "level": "University",
+        "description": "Cloud simulation for FEA/CFD.",
+        "description_zh": "云端 FEA/CFD 仿真平台。",
+        "url": "https://www.simscale.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Consim",
+        "title_zh": "Consim",
+        "category": "Mechanical",
+        "level": "University",
+        "description": "Control systems simulation.",
+        "description_zh": "控制系统仿真。",
+        "url": "http://consim.com/",
+        "thumbnail": "assets/images/covers/cover_mechanical.png"
+    },
+    {
+        "title": "Packet Tracer",
+        "title_zh": "Packet Tracer",
+        "category": "Networking",
+        "level": "University",
+        "description": "Cisco network simulation tool (Web view).",
+        "description_zh": "思科网络模拟工具。",
+        "url": "https://www.netacad.com/courses/packet-tracer",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "NS-3",
+        "title_zh": "NS-3",
+        "category": "Networking",
+        "level": "University",
+        "description": "Discrete-event network simulator.",
+        "description_zh": "离散事件网络模拟器。",
+        "url": "https://www.nsnam.org/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "GNS3",
+        "title_zh": "GNS3",
+        "category": "Networking",
+        "level": "University",
+        "description": "Graphic Network Simulator.",
+        "description_zh": "图形化网络模拟器。",
+        "url": "https://www.gns3.com/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "Subnetting Practice",
+        "title_zh": "Subnetting Practice",
+        "category": "Networking",
+        "level": "High",
+        "description": "Practice subnetting skills.",
+        "description_zh": "练习子网划分技巧。",
+        "url": "https://subnettingpractice.com/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "IP Calc",
+        "title_zh": "IP Calc",
+        "category": "Networking",
+        "level": "High",
+        "description": "Online IP Subnet Calculator.",
+        "description_zh": "在线 IP 子网计算器。",
+        "url": "http://jodies.de/ipcalc",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "Wireshark Sample Captures",
+        "title_zh": "Wireshark Sample Captures",
+        "category": "Networking",
+        "level": "University",
+        "description": "Sample packet captures for analysis.",
+        "description_zh": "供分析的数据包捕获样本。",
+        "url": "https://wiki.wireshark.org/SampleCaptures",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "DNS Viz",
+        "title_zh": "DNS Viz",
+        "category": "Networking",
+        "level": "University",
+        "description": "Visualization of DNS SEC.",
+        "description_zh": "DNS SEC 可视化工具。",
+        "url": "https://dnsviz.net/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "BGP Looking Glass",
+        "title_zh": "BGP Looking Glass",
+        "category": "Networking",
+        "level": "University",
+        "description": "View routing tables.",
+        "description_zh": "查看路由表的 Looking Glass。",
+        "url": "https://looking.house/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "Ping.pe",
+        "title_zh": "Ping.pe",
+        "category": "Networking",
+        "level": "All",
+        "description": "Global ping test.",
+        "description_zh": "全球 Ping 测试。",
+        "url": "http://ping.pe/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "Speedtest CLI",
+        "title_zh": "Speedtest CLI",
+        "category": "Networking",
+        "level": "All",
+        "description": "Test network speed.",
+        "description_zh": "网络速度测试。",
+        "url": "https://www.speedtest.net/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "WebPageTest",
+        "title_zh": "WebPageTest",
+        "category": "Networking",
+        "level": "High",
+        "description": "Website performance and loading speed.",
+        "description_zh": "网站性能和加载速度测试。",
+        "url": "https://www.webpagetest.org/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "Whois Lookup",
+        "title_zh": "Whois Lookup",
+        "category": "Networking",
+        "level": "All",
+        "description": "Domain name registration data.",
+        "description_zh": "域名注册信息查询。",
+        "url": "https://who.is/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "SSL Labs",
+        "title_zh": "SSL Labs",
+        "category": "Networking",
+        "level": "High",
+        "description": "Test SSL/TLS configuration.",
+        "description_zh": "测试服务器 SSL/TLS 配置。",
+        "url": "https://www.ssllabs.com/ssltest/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "Huli",
+        "title_zh": "Huli",
+        "category": "Networking",
+        "level": "University",
+        "description": "Visualizing HTTP headers.",
+        "description_zh": "可视化 HTTP 头部。",
+        "url": "https://huli.io/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "Postman",
+        "title_zh": "Postman",
+        "category": "Networking",
+        "level": "High",
+        "description": "API platform for building and using APIs.",
+        "description_zh": "构建和测试 API 的平台。",
+        "url": "https://www.postman.com/",
+        "thumbnail": "assets/images/covers/cover_networking.png"
+    },
+    {
+        "title": "TensorFlow Playground",
+        "title_zh": "TensorFlow Playground",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Tinker with a neural network in your browser.",
+        "description_zh": "在浏览器中玩转神经网络。",
+        "url": "https://playground.tensorflow.org/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "ConvNetJS CIFAR-10",
+        "title_zh": "ConvNetJS CIFAR-10",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Train a Convolutional Neural Network in your browser.",
+        "description_zh": "在浏览器中训练卷积神经网络。",
+        "url": "https://cs.stanford.edu/people/karpathy/convnetjs/demo/cifar10.html",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Distill.pub",
+        "title_zh": "Distill.pub",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Interactive ML articles.",
+        "description_zh": "交互式机器学习文章。",
+        "url": "https://distill.pub/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Observable",
+        "title_zh": "Observable",
+        "category": "Data Science",
+        "level": "High",
+        "description": "Interactive data visualization notebooks.",
+        "description_zh": "交互式数据可视化笔记本。",
+        "url": "https://observablehq.com/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Kaggle Kernels",
+        "title_zh": "Kaggle Kernels",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Cloud computational environment.",
+        "description_zh": "云端数据科学计算环境。",
+        "url": "https://www.kaggle.com/code",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Google Colab",
+        "title_zh": "Google Colab",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Hosted Jupyter notebook service.",
+        "description_zh": "托管的 Jupyter 笔记本服务。",
+        "url": "https://colab.research.google.com/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Project Jupyter",
+        "title_zh": "Project Jupyter",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Try Jupyter in your browser.",
+        "description_zh": "在线体验 Jupyter。",
+        "url": "https://jupyter.org/try",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Data Wrapper",
+        "title_zh": "Data Wrapper",
+        "category": "Data Science",
+        "level": "Middle",
+        "description": "Create charts and maps.",
+        "description_zh": "创建图表和地图。",
+        "url": "https://www.datawrapper.de/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Flourish",
+        "title_zh": "Flourish",
+        "category": "Data Science",
+        "level": "Middle",
+        "description": "Data visualization and storytelling.",
+        "description_zh": "数据可视化和故事讲述。",
+        "url": "https://flourish.studio/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "RawGraphs",
+        "title_zh": "RawGraphs",
+        "category": "Data Science",
+        "level": "High",
+        "description": "Visualize complex data.",
+        "description_zh": "复杂数据可视化工具。",
+        "url": "https://rawgraphs.io/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Kepler.gl",
+        "title_zh": "Kepler.gl",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Geospatial analysis tool.",
+        "description_zh": "地理空间分析工具。",
+        "url": "https://kepler.gl/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Orange Data Mining",
+        "title_zh": "Orange Data Mining",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Visual programming for data mining.",
+        "description_zh": "数据挖掘的可视化编程。",
+        "url": "https://orangedatamining.com/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Teachable Machine",
+        "title_zh": "Teachable Machine",
+        "category": "Data Science",
+        "level": "All",
+        "description": "Train a computer to recognize your images/sounds.",
+        "description_zh": "训练计算机识别图像/声音。",
+        "url": "https://teachablemachine.withgoogle.com/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Setosa.io",
+        "title_zh": "Setosa.io",
+        "category": "Data Science",
+        "level": "High",
+        "description": "Visual explanations of math/data concepts.",
+        "description_zh": "数学和数据概念的可视化解释。",
+        "url": "https://setosa.io/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Immersive Linear Algebra",
+        "title_zh": "Immersive Linear Algebra",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Interactive linear algebra textbook.",
+        "description_zh": "交互式线性代数教科书。",
+        "url": "http://immersivemath.com/ila/index.html",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Seeing Theory",
+        "title_zh": "Seeing Theory",
+        "category": "Data Science",
+        "level": "University",
+        "description": "A visual introduction to probability and statistics.",
+        "description_zh": "概率论与统计学的可视化入门。",
+        "url": "https://seeing-theory.brown.edu/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Explained.ai",
+        "title_zh": "Explained.ai",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Deep explanations of ML concepts.",
+        "description_zh": "机器学习概念的深度解释。",
+        "url": "https://explained.ai/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Fast.ai",
+        "title_zh": "Fast.ai",
+        "category": "Data Science",
+        "level": "University",
+        "description": "Practical deep learning.",
+        "description_zh": "实用深度学习课程。",
+        "url": "https://www.fast.ai/",
+        "thumbnail": "assets/images/covers/cover_data_science.png"
+    },
+    {
+        "title": "Seascape Shader",
+        "title_zh": "Seascape Shader",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Real-time procedural ocean rendering.",
+        "description_zh": "实时程序化海洋渲染。",
+        "url": "https://www.shadertoy.com/view/Ms2SD1",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Happy Jumping",
+        "title_zh": "Happy Jumping",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Raymarching animation example.",
+        "description_zh": "光线步进动画示例。",
+        "url": "https://www.shadertoy.com/view/3lsSzf",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Protean Clouds",
+        "title_zh": "Protean Clouds",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Volumetric cloud rendering.",
+        "description_zh": "体积云渲染。",
+        "url": "https://www.shadertoy.com/view/3l23Rh",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Snail",
+        "title_zh": "Snail",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Hyper-realistic snail shader.",
+        "description_zh": "超逼真的蜗牛渲染。",
+        "url": "https://www.shadertoy.com/view/ld3Gz2",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Fractal Land",
+        "title_zh": "Fractal Land",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Fly through a fractal landscape.",
+        "description_zh": "飞行穿越分形地貌。",
+        "url": "https://www.shadertoy.com/view/XsBXWt",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Rainforest",
+        "title_zh": "Rainforest",
+        "category": "Computer Science",
+        "level": "University",
+        "description": "Procedural rainforest scene.",
+        "description_zh": "程序化雨林场景。",
+        "url": "https://www.shadertoy.com/view/4ttSWf",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Heartfelt",
+        "title_zh": "Heartfelt",
+        "category": "Computer Science",
+        "level": "Middle",
+        "description": "Rain on glass simulation.",
+        "description_zh": "玻璃上的雨滴模拟。",
+        "url": "https://www.shadertoy.com/view/ltffzl",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Star Nest",
+        "title_zh": "Star Nest",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "3D star field flight.",
+        "description_zh": "3D 星空飞行。",
+        "url": "https://www.shadertoy.com/view/XlfGRj",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Flame",
+        "title_zh": "Flame",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Procedural fire shader.",
+        "description_zh": "程序化火焰渲染。",
+        "url": "https://www.shadertoy.com/view/MdX3zr",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Galaxy",
+        "title_zh": "Galaxy",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "Rotating spiral galaxy.",
+        "description_zh": "旋转的螺旋星系。",
+        "url": "https://www.shadertoy.com/view/mdB3Dw",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Paper Minecraft",
+        "title_zh": "Paper Minecraft",
+        "category": "Computer Science",
+        "level": "All",
+        "description": "2D Minecraft clone in Scratch.",
+        "description_zh": "Scratch 版 2D 我的世界。",
+        "url": "https://scratch.mit.edu/projects/10128407/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Geometry Dash",
+        "title_zh": "Geometry Dash",
+        "category": "Computer Science",
+        "level": "All",
+        "description": "Platformer rhythm game recreation.",
+        "description_zh": "几何冲刺游戏复刻。",
+        "url": "https://scratch.mit.edu/projects/105500895/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Mystic Valley",
+        "title_zh": "Mystic Valley",
+        "category": "Computer Science",
+        "level": "Middle",
+        "description": "Beautiful platformer game.",
+        "description_zh": "精美的平台跳跃游戏。",
+        "url": "https://scratch.mit.edu/projects/294248884/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Appel",
+        "title_zh": "Appel",
+        "category": "Computer Science",
+        "level": "Middle",
+        "description": "Physics-based platformer.",
+        "description_zh": "基于物理的平台游戏。",
+        "url": "https://scratch.mit.edu/projects/60917032/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Epic Ninja",
+        "title_zh": "Epic Ninja",
+        "category": "Computer Science",
+        "level": "Middle",
+        "description": "Ninja fighting game.",
+        "description_zh": "忍者格斗游戏。",
+        "url": "https://scratch.mit.edu/projects/23628393/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "3D Car Simulator",
+        "title_zh": "3D Car Simulator",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "3D driving sim in Scratch.",
+        "description_zh": "Scratch 中的 3D 驾驶模拟。",
+        "url": "https://scratch.mit.edu/projects/60270722/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Portal 2D",
+        "title_zh": "Portal 2D",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "2D version of Portal game.",
+        "description_zh": "传送门游戏的 2D 版本。",
+        "url": "https://scratch.mit.edu/projects/418349002/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Generic Platformer",
+        "title_zh": "Generic Platformer",
+        "category": "Computer Science",
+        "level": "Middle",
+        "description": "Standard platforming engine.",
+        "description_zh": "标准平台跳跃引擎。",
+        "url": "https://scratch.mit.edu/projects/323385699/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Terraria",
+        "title_zh": "Terraria",
+        "category": "Computer Science",
+        "level": "Middle",
+        "description": "Terraria clone.",
+        "description_zh": "泰拉瑞亚复刻版。",
+        "url": "https://scratch.mit.edu/projects/322341152/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "Flight Simulator 3D",
+        "title_zh": "Flight Simulator 3D",
+        "category": "Computer Science",
+        "level": "High",
+        "description": "3D flight simulation.",
+        "description_zh": "3D 飞行模拟。",
+        "url": "https://scratch.mit.edu/projects/17351662/",
+        "thumbnail": "assets/images/covers/cover_computer_science.png"
+    },
+    {
+        "title": "LRC Circuit",
+        "title_zh": "LRC Circuit",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Inductor-Resistor-Capacitor circuit.",
+        "description_zh": "LRC 振荡电路。",
+        "url": "https://www.falstad.com/circuit/circuitjs.html?ctz=CQAgjCAMB0l3BWcMBMcUHYMGZ0A2ATmIxAUgpAQKZhoBqaWEkCNQ7eANwN3r8hUqAmC4sAbM2oIoIGPC4o24mAm4QIALzD4w0bJzV58gO4L5Y0eN0L02XiB1GjYqT19C7d3oA",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Diode Rectifier",
+        "title_zh": "Diode Rectifier",
+        "category": "Electronics",
+        "level": "High",
+        "description": "AC to DC conversion.",
+        "description_zh": "二极管整流电路(交流转直流)。",
+        "url": "https://www.falstad.com/circuit/e-rectifiers.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Transistor Switch",
+        "title_zh": "Transistor Switch",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Using BJT as a switch.",
+        "description_zh": "晶体管开关电路。",
+        "url": "https://www.falstad.com/circuit/e-npn.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "555 Timer",
+        "title_zh": "555 Timer",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Classic 555 timer chip.",
+        "description_zh": "经典的 555 定时器芯片。",
+        "url": "https://www.falstad.com/circuit/e-555square.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Operational Amplifier",
+        "title_zh": "Operational Amplifier",
+        "category": "Electronics",
+        "level": "University",
+        "description": "Op-Amp basics.",
+        "description_zh": "运算放大器基础。",
+        "url": "https://www.falstad.com/circuit/e-opamp.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Logic Gates (CMOS)",
+        "title_zh": "Logic Gates (CMOS)",
+        "category": "Electronics",
+        "level": "University",
+        "description": "CMOS logic gate implementation.",
+        "description_zh": "CMOS 逻辑门实现。",
+        "url": "https://www.falstad.com/circuit/e-cmos.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Flip-Flops",
+        "title_zh": "Flip-Flops",
+        "category": "Electronics",
+        "level": "High",
+        "description": "Memory storage elements.",
+        "description_zh": "触发器(存储单元)。",
+        "url": "https://www.falstad.com/circuit/e-flips.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Phase-Locked Loop",
+        "title_zh": "Phase-Locked Loop",
+        "category": "Electronics",
+        "level": "University",
+        "description": "PLL circuit.",
+        "description_zh": "锁相环(PLL)电路。",
+        "url": "https://www.falstad.com/circuit/e-pll.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
+    },
+    {
+        "title": "Transmission Line",
+        "title_zh": "Transmission Line",
+        "category": "Electronics",
+        "level": "University",
+        "description": "Signal transmission physics.",
+        "description_zh": "传输线物理。",
+        "url": "https://www.falstad.com/circuit/e-tl.html",
+        "thumbnail": "assets/images/covers/cover_electronics.png"
     }
 ];
