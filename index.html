@@ -1072,7 +1072,13 @@
 
                     <!-- Learning Progress Bars -->
                     <div style="margin-top: 20px; border-top: 1px dashed var(--mc-green); padding-top: 15px;">
-                        <div style="font-size: 0.9rem; margin-bottom: 10px; color: var(--mc-green);">>> 学习进度条</div>
+                        <div
+                            style="font-size: 0.9rem; margin-bottom: 10px; color: var(--mc-green); display: flex; justify-content: space-between; align-items: center;">
+                            <span>&gt;&gt; 学习进度条</span>
+                            <button onclick="openAIPanel('progress')" class="ai-btn" title="AI学习建议">
+                                <span>✨</span> AI分析
+                            </button>
+                        </div>
 
                         <style>
                             .progress-container {
@@ -1152,8 +1158,11 @@
                     <!-- Skill Tree Navigation (Moved Here) -->
                     <div class="skill-tree-wrapper">
                         <div
-                            style="font-family: 'Press Start 2P'; font-size: 0.8rem; color: var(--mc-green); margin-bottom: 10px; text-shadow: 0 0 5px var(--mc-green);">
-                            >> SKILL_TREE // 技能树
+                            style="font-family: 'Press Start 2P'; font-size: 0.8rem; color: var(--mc-green); margin-bottom: 10px; text-shadow: 0 0 5px var(--mc-green); display: flex; justify-content: space-between; align-items: center;">
+                            <span>&gt;&gt; SKILL_TREE // 技能树</span>
+                            <button onclick="openAIPanel('skill-tree')" class="ai-btn" title="AI路径规划">
+                                <span>🤖</span> AI规划
+                            </button>
                         </div>
 
                         <div class="skill-tree" id="skillTree">
@@ -1196,8 +1205,13 @@
 
                     <!-- Locked Skills (Pending) -->
                     <div style="margin-top: 20px;">
-                        <div style="font-size: 0.9rem; margin-bottom: 10px; color: var(--mc-cyan);">>> 待点亮技能 //
-                            LOCKED_SKILLS</div>
+                        <div
+                            style="font-size: 0.9rem; margin-bottom: 10px; color: var(--mc-cyan); display: flex; justify-content: space-between; align-items: center;">
+                            <span>&gt;&gt; 待点亮技能 // LOCKED_SKILLS</span>
+                            <button onclick="openAIPanel('locked-skills')" class="ai-btn" title="AI推荐">
+                                <span>💡</span> AI推荐
+                            </button>
+                        </div>
                         <div class="locked-skills-grid">
                             <div class="locked-skill" title="无人机 (Drone)">🚁<span>无人机</span></div>
                             <div class="locked-skill" title="CNC加工 (CNC)">⚙️<span>CNC</span></div>
@@ -1332,6 +1346,10 @@
                 <span class="slot-icon">✉️</span>
                 <span class="slot-label">联系我们</span>
             </a>
+            <div class="slot" onclick="toggleGlobalAI()" style="cursor: pointer; border-color: #a855f7;">
+                <span class="slot-icon">🤖</span>
+                <span class="slot-label">AI助手</span>
+            </div>
         </div>
     </div>
 
@@ -1659,7 +1677,7 @@
 
         aiCoach.addEventListener('mouseenter', () => {
             const randomQuote = coachQuotes[Math.floor(Math.random() * coachQuotes.length)];
-            coachBubble.innerText = randomQuote;
+            coachBubble.innerText = randomQ;
         });
     </script>
     <!-- Auth Modal -->
@@ -1793,8 +1811,8 @@
             onAuthStateChange((event, session) => {
                 console.log('Auth state changed:', event);
                 updateAuthUI(session?.user);
+                ;
             });
-        });
     </script>
     <!-- Custom Cyberpunk Chat Interface -->
     <div id="custom-chat-interface" style="display: none;">
@@ -2019,228 +2037,460 @@
         #aiCoach:active {
             transform: scale(0.95);
         }
+
+        /* AI Button Styles */
+        .ai-btn {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(139, 92, 246, 0.3));
+            border: 1px solid #a855f7;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-family: 'VT323', monospace;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ai-btn:hover {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(139, 92, 246, 0.5));
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .ai-btn span:first-child {
+            font-size: 1rem;
+        }
+
+        /* AI Panel Styles */
+        #ai-panel {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 380px;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-left: 2px solid var(--mc-cyan);
+            box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #ai-panel.active {
+            right: 0;
+        }
+
+        .ai-panel-header {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(139, 92, 246, 0.2));
+            border-bottom: 1px solid var(--mc-cyan);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-panel-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.9rem;
+            color: var(--mc-cyan);
+            text-shadow: 0 0 10px var(--mc-cyan);
+        }
+
+        .ai-panel-close {
+            background: transparent;
+            border: 1px solid var(--mc-cyan);
+            color: var(--mc-cyan);
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+
+        .ai-panel-close:hover {
+            background: var(--mc-cyan);
+            color: #000;
+        }
+
+        .ai-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .ai-response {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: #fff;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .ai-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--mc-cyan);
+        }
+
+        .ai-loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60%,
+            100% {
+                content: '...';
+            }
+        }
     </style>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const avatar = document.getElementById('aiCoach');
-            const chatInterface = document.getElementById('custom-chat-interface');
-            const closeBtn = document.getElementById('close-chat-btn');
-            const restartBtn = document.getElementById('restart-chat-btn');
-            const sendBtn = document.getElementById('send-chat-btn');
-            const inputField = document.getElementById('chat-input');
-            const historyDiv = document.getElementById('chat-history');
+            document.addEventListener('DOMContentLoaded', () => {
+                const avatar = document.getElementById('aiCoach');
+                const chatInterface = document.getElementById('custom-chat-interface');
+                const closeBtn = document.getElementById('close-chat-btn');
+                const restartBtn = document.getElementById('restart-chat-btn');
+                const sendBtn = document.getElementById('send-chat-btn');
+                const inputField = document.getElementById('chat-input');
+                const historyDiv = document.getElementById('chat-history');
 
-            // Load conversation ID from local storage to maintain history
-            let conversationId = localStorage.getItem('dify_conversation_id') || '';
-            const API_KEY = 'app-XZYyFcpsU6Qk1dIoWDz92ZCR'; // New Agent API Key (With Search)
-            const API_URL = 'https://acquired-daniel-visitor-safe.trycloudflare.com/v1/chat-messages';
+                // Load conversation ID from local storage to maintain history
+                let conversationId = localStorage.getItem('dify_conversation_id') || '';
+                const API_KEY = 'app-XZYyFcpsU6Qk1dIoWDz92ZCR'; // New Agent API Key (With Search)
+                const API_URL = 'https://acquired-daniel-visitor-safe.trycloudflare.com/v1/chat-messages';
 
-            // Toggle Chat
-            if (avatar) {
-                avatar.addEventListener('click', () => {
-                    chatInterface.style.display = 'flex';
-                    inputField.focus();
-                });
-            }
+                // Toggle Chat
+                if (avatar) {
+                    avatar.addEventListener('click', () => {
+                        chatInterface.style.display = 'flex';
+                        inputField.focus();
+                    });
+                }
 
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    chatInterface.style.display = 'none';
-                });
-            }
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        chatInterface.style.display = 'none';
+                    });
+                }
 
-            // Restart Chat
-            if (restartBtn) {
-                restartBtn.addEventListener('click', () => {
-                    if (confirm('Start a new conversation? This will clear current history.')) {
-                        // Clear Local Storage
-                        localStorage.removeItem('dify_conversation_id');
-                        conversationId = '';
+                // Restart Chat
+                if (restartBtn) {
+                    restartBtn.addEventListener('click', () => {
+                        if (confirm('Start a new conversation? This will clear current history.')) {
+                            // Clear Local Storage
+                            localStorage.removeItem('dify_conversation_id');
+                            conversationId = '';
 
-                        // Clear UI
-                        historyDiv.innerHTML = '';
+                            // Clear UI
+                            historyDiv.innerHTML = '';
 
-                        // Add Initial Messages
-                        appendMessage('SYSTEM', 'Connection established...', 'system');
-                        appendMessage('ZHOU_XIAOMAI', '你好，我是你的AI教练！请下达指令。', 'ai');
-                    }
-                });
-            }
+                            // Add Initial Messages
+                            appendMessage('SYSTEM', 'Connection established...', 'system');
+                            appendMessage('ZHOU_XIAOMAI', '你好，我是你的AI教练！请下达指令。', 'ai');
+                        }
+                    });
+                }
 
-            // Voice Input (Web Speech API)
-            const voiceBtn = document.getElementById('voice-input-btn');
-            let recognition = null;
+                // Voice Input (Web Speech API)
+                const voiceBtn = document.getElementById('voice-input-btn');
+                let recognition = null;
 
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                recognition = new SpeechRecognition();
-                recognition.lang = 'zh-CN'; // Chinese
-                recognition.continuous = false;
-                recognition.interimResults = false;
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    recognition = new SpeechRecognition();
+                    recognition.lang = 'zh-CN'; // Chinese
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
 
-                recognition.onstart = () => {
-                    voiceBtn.classList.add('recording');
-                    voiceBtn.textContent = '🔴';
-                };
+                    recognition.onstart = () => {
+                        voiceBtn.classList.add('recording');
+                        voiceBtn.textContent = '🔴';
+                    };
 
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    inputField.value = transcript;
-                    inputField.focus();
-                };
+                    recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        inputField.value = transcript;
+                        inputField.focus();
+                    };
 
-                recognition.onerror = (event) => {
-                    console.error('Speech recognition error:', event.error);
-                    voiceBtn.classList.remove('recording');
-                    voiceBtn.textContent = '🎤';
-                };
+                    recognition.onerror = (event) => {
+                        console.error('Speech recognition error:', event.error);
+                        voiceBtn.classList.remove('recording');
+                        voiceBtn.textContent = '🎤';
+                    };
 
-                recognition.onend = () => {
-                    voiceBtn.classList.remove('recording');
-                    voiceBtn.textContent = '🎤';
-                };
+                    recognition.onend = () => {
+                        voiceBtn.classList.remove('recording');
+                        voiceBtn.textContent = '🎤';
+                    };
 
-                voiceBtn.addEventListener('click', () => {
-                    if (voiceBtn.classList.contains('recording')) {
-                        recognition.stop();
-                    } else {
-                        recognition.start();
-                    }
-                });
-            } else {
-                voiceBtn.disabled = true;
-                voiceBtn.title = 'Voice input not supported in this browser';
-                voiceBtn.style.opacity = '0.5';
-            }
+                    voiceBtn.addEventListener('click', () => {
+                        if (voiceBtn.classList.contains('recording')) {
+                            recognition.stop();
+                        } else {
+                            recognition.start();
+                        }
+                    });
+                } else {
+                    voiceBtn.disabled = true;
+                    voiceBtn.title = 'Voice input not supported in this browser';
+                    voiceBtn.style.opacity = '0.5';
+                }
 
-            // Send Message (Streaming Support for Agent)
-            const sendMessage = async () => {
-                const text = inputField.value.trim();
-                if (!text) return;
+                // Send Message (Streaming Support for Agent)
+                const sendMessage = async () => {
+                    const text = inputField.value.trim();
+                    if (!text) return;
 
-                // Add User Message
-                appendMessage('USER', text, 'user');
-                inputField.value = '';
+                    // Add User Message
+                    appendMessage('USER', text, 'user');
+                    inputField.value = '';
 
-                // Create AI Message Placeholder
-                const aiMsgId = 'ai-' + Date.now();
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'chat-msg ai';
-                msgDiv.id = aiMsgId;
-                msgDiv.innerHTML = `
+                    // Create AI Message Placeholder
+                    const aiMsgId = 'ai-' + Date.now();
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'chat-msg ai';
+                    msgDiv.id = aiMsgId;
+                    msgDiv.innerHTML = `
                     <div class="avatar">
                         <img src="zhou_xiaomai_avatar.png" alt="AI">
                     </div>
                     <div class="content"><span class="typing-cursor">|</span></div>
                 `;
-                historyDiv.appendChild(msgDiv);
-                historyDiv.scrollTop = historyDiv.scrollHeight;
+                    historyDiv.appendChild(msgDiv);
+                    historyDiv.scrollTop = historyDiv.scrollHeight;
 
-                const contentSpan = msgDiv.querySelector('.content');
-                let fullAnswer = '';
+                    const contentSpan = msgDiv.querySelector('.content');
+                    let fullAnswer = '';
 
-                try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${API_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            inputs: {},
-                            query: text,
-                            response_mode: "streaming", // Agent requires streaming
-                            conversation_id: conversationId,
-                            user: "commander-zhou"
-                        })
-                    });
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${API_KEY}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                inputs: {},
+                                query: text,
+                                response_mode: "streaming", // Agent requires streaming
+                                conversation_id: conversationId,
+                                user: "commander-zhou"
+                            })
+                        });
 
-                    if (!response.ok) {
-                        if (response.status === 404 || response.status === 400) {
-                            console.warn('Session mismatch. Resetting.');
-                            localStorage.removeItem('dify_conversation_id');
-                            conversationId = '';
-                            contentSpan.innerHTML = '⚠️ Session expired. Please retry.';
-                            return;
+                        if (!response.ok) {
+                            if (response.status === 404 || response.status === 400) {
+                                console.warn('Session mismatch. Resetting.');
+                                localStorage.removeItem('dify_conversation_id');
+                                conversationId = '';
+                                contentSpan.innerHTML = '⚠️ Session expired. Please retry.';
+                                return;
+                            }
+                            throw new Error(`API Error: ${response.statusText}`);
                         }
-                        throw new Error(`API Error: ${response.statusText}`);
-                    }
 
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
 
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
 
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
+                            const chunk = decoder.decode(value);
+                            const lines = chunk.split('\n');
 
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                const jsonStr = line.slice(6);
-                                if (jsonStr === '[DONE]') break;
-                                try {
-                                    const data = JSON.parse(jsonStr);
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    const jsonStr = line.slice(6);
+                                    if (jsonStr === '[DONE]') break;
+                                    try {
+                                        const data = JSON.parse(jsonStr);
 
-                                    // Handle Conversation ID
-                                    if (data.conversation_id && !conversationId) {
-                                        conversationId = data.conversation_id;
-                                        localStorage.setItem('dify_conversation_id', conversationId);
-                                    }
-
-                                    // Handle Answer Chunk
-                                    if (data.event === 'message' || data.event === 'agent_message') {
-                                        const delta = data.answer;
-                                        if (delta) {
-                                            fullAnswer += delta;
-                                            // Simple Markdown to HTML (Basic)
-                                            contentSpan.innerHTML = fullAnswer
-                                                .replace(/\n/g, '<br>')
-                                                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                                        // Handle Conversation ID
+                                        if (data.conversation_id && !conversationId) {
+                                            conversationId = data.conversation_id;
+                                            localStorage.setItem('dify_conversation_id', conversationId);
                                         }
-                                    }
 
-                                    // Handle Agent Thought (Optional: Show tool use)
-                                    if (data.event === 'agent_thought') {
-                                        // You could visualize reasoning here
-                                    }
+                                        // Handle Answer Chunk
+                                        if (data.event === 'message' || data.event === 'agent_message') {
+                                            const delta = data.answer;
+                                            if (delta) {
+                                                fullAnswer += delta;
+                                                // Simple Markdown to HTML (Basic)
+                                                contentSpan.innerHTML = fullAnswer
+                                                    .replace(/\n/g, '<br>')
+                                                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                                            }
+                                        }
 
-                                } catch (e) {
-                                    console.error('JSON Parse Error', e);
+                                        // Handle Agent Thought (Optional: Show tool use)
+                                        if (data.event === 'agent_thought') {
+                                            // You could visualize reasoning here
+                                        }
+
+                                    } catch (e) {
+                                        console.error('JSON Parse Error', e);
+                                    }
                                 }
                             }
                         }
+
+                    } catch (error) {
+                        contentSpan.innerHTML += `<br><span style="color:red">[Error: ${error.message}]</span>`;
                     }
+                };
 
-                } catch (error) {
-                    contentSpan.innerHTML += `<br><span style="color:red">[Error: ${error.message}]</span>`;
+                // Bind Send Events
+                sendBtn.addEventListener('click', sendMessage);
+                inputField.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendMessage();
+                });
+
+                // Helper: Append Message
+                function appendMessage(sender, text, type) {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `chat-msg ${type}`;
+                    msgDiv.id = `msg-${Date.now()}`;
+                    msgDiv.innerHTML = `<span class="prefix">${sender}:</span> ${text}`;
+                    historyDiv.appendChild(msgDiv);
+                    historyDiv.scrollTop = historyDiv.scrollHeight;
+                    return msgDiv.id;
                 }
-            };
 
-            // Bind Send Events
-            sendBtn.addEventListener('click', sendMessage);
-            inputField.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendMessage();
+                // Helper: Remove Message
+                function removeMessage(id) {
+                    const el = document.getElementById(id);
+                    if (el) el.remove();
+                }
             });
-
-            // Helper: Append Message
-            function appendMessage(sender, text, type) {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `chat-msg ${type}`;
-                msgDiv.id = `msg-${Date.now()}`;
-                msgDiv.innerHTML = `<span class="prefix">${sender}:</span> ${text}`;
-                historyDiv.appendChild(msgDiv);
-                historyDiv.scrollTop = historyDiv.scrollHeight;
-                return msgDiv.id;
-            }
-
-            // Helper: Remove Message
-            function removeMessage(id) {
-                const el = document.getElementById(id);
-                if (el) el.remove();
-            }
         });
+    </script>
+
+    <!-- AI Panel -->
+    <div id="ai-panel">
+        <div class="ai-panel-header">
+            <div class="ai-panel-title">AI ASSISTANT</div>
+            <button class="ai-panel-close" onclick="closeAIPanel()">&times;</button>
+        </div>
+        <div class="ai-panel-content" id="ai-panel-content">
+            <div class="ai-loading">AI正在思考中</div>
+        </div>
+    </div>
+
+    <script>
+        // AI Panel Functions
+        const AI_CONTEXTS = {
+            'progress': {
+                title: '学习进度分析',
+                prompt: '请分析我的学习进度情况,并给出个性化的学习建议。我目前的进度是:自我管理85%,基础能力与思维78%,基础学科知识92%,全栈技能树65%。'
+            },
+            'skill-tree': {
+                title: '技能树路径规划',
+                prompt: '我目前已经学习了数学、物理、信息技术、化学和生物基础课程。请帮我规划接下来的学习路径,推荐优先学习的技能。'
+            },
+            'locked-skills': {
+                title: '待点亮技能推荐',
+                prompt: '我有以下待学习的技能:无人机、CNC加工、C++编程、气动系统、立创EDA、Python算法、机器视觉、GPS定位、嵌入式开发、大模型微调、激光切割、金属加工。请根据我的当前水平,推荐我应该优先学习哪些技能,并说明理由。'
+            },
+            'global': {
+                title: 'AI助手',
+                prompt: '你好!我是周小麦,12岁,目前在学习VEX机器人、3D建模、电子电路和Python。请问有什么可以帮助我的吗?'
+            }
+        };
+
+        function openAIPanel(context) {
+            const panel = document.getElementById('ai-panel');
+            const content = document.getElementById('ai-panel-content');
+            const contextInfo = AI_CONTEXTS[context] || AI_CONTEXTS['global'];
+
+            // Show panel
+            panel.classList.add('active');
+
+            // Show loading
+            content.innerHTML = '<div class="ai-loading">AI正在思考中</div>';
+
+            // Call AI API
+            callAI(contextInfo.prompt, content);
+        }
+
+        function toggleGlobalAI() {
+            const panel = document.getElementById('ai-panel');
+            if (panel.classList.contains('active')) {
+                closeAIPanel();
+            } else {
+                openAIPanel('global');
+            }
+        }
+
+        function closeAIPanel() {
+            const panel = document.getElementById('ai-panel');
+            panel.classList.remove('active');
+        }
+
+        async function callAI(prompt, contentElement) {
+            const API_KEY = 'app-XZYyFcpsU6Qk1dIoWDz92ZCR';
+            const API_URL = 'https://acquired-daniel-visitor-safe.trycloudflare.com/v1/chat-messages';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inputs: {},
+                        query: prompt,
+                        response_mode: "blocking",
+                        user: "zhou-xiaomai"
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const answer = data.answer || '抱歉,我现在无法回答。';
+
+                // Display response
+                contentElement.innerHTML = `
+                    <div class="ai-response">
+                        ${answer.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}
+                    </div>
+                `;
+            } catch (error) {
+                contentElement.innerHTML = `
+                    <div class="ai-response" style="border-color: #ff0055;">
+                        <span style="color: #ff0055;">❌ 连接失败</span><br><br>
+                        ${error.message}<br><br>
+                        请确保Cloudflare隧道正在运行。
+                    </div>
+                `;
+            }
+        }
     </script>
 </body>
