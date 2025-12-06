@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="//unpkg.com/3d-force-graph"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
     <style>
         :root {
             --primary-color: #00f3ff;
@@ -642,6 +642,12 @@
             <div class="modal-body">
                 <div id="modal-content-text">Content goes here...</div>
                 <div class="modal-tags" id="modal-tags"></div>
+                <div class="modal-actions" style="margin-top:20px; text-align:right;">
+                    <a id="modal-action-btn" href="#" target="_blank" class="view-btn active"
+                        style="display:inline-flex; text-decoration:none;">
+                        <i data-lucide="external-link"></i> <span id="modal-btn-text">查看详情</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -853,7 +859,34 @@
             content.innerText = item.content; // In prod, use markdown parser if available
             tags.innerHTML = item.tags.map(t => `<span class="modal-tag">#${t}</span>`).join('');
 
+            // Action Button Logic
+            const actionBtn = document.getElementById('modal-action-btn');
+            const btnText = document.getElementById('modal-btn-text');
+
+            if (item.url) {
+                // If direct URL exists
+                actionBtn.style.display = 'inline-flex';
+                actionBtn.href = item.url;
+
+                if (item.category === 'course') btnText.innerText = "开始课程";
+                else if (item.category === 'tool') btnText.innerText = "获取工具";
+                else if (item.category === 'book') btnText.innerText = "阅读书记";
+                else if (item.category === 'competition') btnText.innerText = "参赛详情";
+                else if (item.category === 'school') btnText.innerText = "访问官网";
+                else btnText.innerText = "查看详情";
+
+            } else {
+                // Fallback: Search on Google or Baidu? Or internal search?
+                // Let's hide it or make it a google search
+                actionBtn.style.display = 'inline-flex';
+                actionBtn.href = `https://www.google.com/search?q=${encodeURIComponent(item.title + ' ' + item.tags[0])}`;
+                btnText.innerText = "搜索相关资料";
+            }
+
             modal.classList.add('active');
+
+            // Re-render icons for the button
+            setTimeout(() => lucide.createIcons(), 50);
         }
 
         function closeModal() {
