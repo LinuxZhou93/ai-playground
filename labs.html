@@ -366,6 +366,74 @@
 
         let currentFilter = 'all';
 
+        // Manual Translations for common PhET items if API data is missing zh
+        const manualTranslations = {
+            "Acid-Base Solutions": "酸碱溶液",
+            "Area Builder": "面积构建",
+            "Area Model Algebra": "代数面积模型",
+            "Area Model Decimals": "小数面积模型",
+            "Area Model Introduction": "面积模型入门",
+            "Area Model Multiplication": "面积模型乘法",
+            "Arithmetic": "算术",
+            "Atomic Interactions": "原子相互作用",
+            "Balancing Act": "平衡实验",
+            "Balancing Chemical Equations": "配平化学方程式",
+            "Balloons and Static Electricity": "气球与静电",
+            "Beer's Law Lab": "比尔定律实验室",
+            "Bending Light": "光的折射",
+            "Blackbody Spectrum": "黑体辐射光谱",
+            "Build a Fraction": "分数构建",
+            "Build a Molecule": "分子构建",
+            "Build a Nucleus": "原子核构建",
+            "Build an Atom": "原子构建",
+            "Buoyancy": "浮力",
+            "Buoyancy: Basics": "浮力基础",
+            "Calculus Grapher": "微积分绘图器",
+            "Capacitor Lab: Basics": "电容器实验室基础",
+            "Center and Variability": "中心与变异性",
+            "Charges and Fields": "电荷与电场",
+            "Circuit Construction Kit: AC": "电路搭建：交流电",
+            "Circuit Construction Kit: DC": "电路搭建：直流电",
+            "Collision Lab": "碰撞实验室",
+            "Color Vision": "色觉",
+            "Concentration": "浓度",
+            "Coulomb's Law": "库仑定律",
+            "Curve Fitting": "曲线拟合",
+            "Density": "密度",
+            "Diffusion": "扩散",
+            "Energy Forms and Changes": "能量形式与转换",
+            "Energy Skate Park": "能量滑板公园",
+            "Equality Explorer": "等式探索",
+            "Faraday's Law": "法拉第定律",
+            "Forces and Motion: Basics": "力与运动基础",
+            "Friction": "摩擦力",
+            "Gas Properties": "气体性质",
+            "Gene Expression Essentials": "基因表达基础",
+            "Geometric Optics": "几何光学",
+            "Gravity and Orbits": "引力与轨道",
+            "Greenhouse Effect": "温室效应",
+            "Hooke's Law": "胡克定律",
+            "Isotopes and Atomic Mass": "同位素与原子质量",
+            "John Travoltage": "约翰·特拉沃尔塔奇 (静电)",
+            "Kepler's Laws": "开普勒定律",
+            "Masses and Springs": "弹簧振子",
+            "Molecules and Light": "分子与光",
+            "Molecule Shapes": "分子形状",
+            "Natural Selection": "自然选择",
+            "Neuron": "神经元",
+            "Ohm's Law": "欧姆定律",
+            "Pendulum Lab": "单摆实验室",
+            "pH Scale": "pH 标度",
+            "Projectile Motion": "抛体运动",
+            "Resistance in a Wire": "导线电阻",
+            "Rutherford Scattering": "卢瑟福散射",
+            "Sound": "声波",
+            "States of Matter": "物质状态",
+            "Under Pressure": "流体压力",
+            "Wave Interference": "波的干涉",
+            "Waves Intro": "波的入门"
+        };
+
         // Render Labs
         function renderLabs(filter = 'all') {
             currentFilter = filter;
@@ -411,6 +479,24 @@
                         thumbnailContent = `<div class="w-full h-48 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center text-6xl">${emoji}</div>`;
                     }
 
+                    // Localize Content
+                    let displayTitle = exp.title;
+                    let displayDesc = exp.description;
+
+                    if (currentLang === 'zh') {
+                        // Priority: title_zh (if valid and not same as en) > manualTranslations > title
+                        if (exp.title_zh && exp.title_zh !== exp.title) {
+                            displayTitle = exp.title_zh;
+                        } else if (manualTranslations[exp.title]) {
+                            displayTitle = manualTranslations[exp.title];
+                        }
+
+                        // Description handling
+                        if (exp.description_zh && exp.description_zh !== exp.description) {
+                            displayDesc = exp.description_zh;
+                        }
+                    }
+
                     card.innerHTML = `
                         <div class="relative">
                              ${thumbnailContent}
@@ -419,8 +505,8 @@
                             </div>
                         </div>
                         <div class="p-5 flex-grow flex flex-col">
-                            <h3 class="font-tech text-lg font-bold mb-2 text-white group-hover:text-cyan-400 transition-colors">${exp.title}</h3>
-                            <p class="text-gray-400 text-sm mb-4 line-clamp-2">${exp.description}</p>
+                            <h3 class="font-tech text-lg font-bold mb-2 text-white group-hover:text-cyan-400 transition-colors">${displayTitle}</h3>
+                            <p class="text-gray-400 text-sm mb-4 line-clamp-2">${displayDesc}</p>
                             
                             <div class="mt-auto pt-4 border-t border-white/5">
                                 <button class="w-full py-2 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 rounded text-cyan-400 hover:text-cyan-200 font-tech text-sm tracking-widest transition-all glow-text flex items-center justify-center gap-2">
@@ -431,7 +517,8 @@
                     `;
 
                     // Add click event for modal (on the whole card)
-                    card.onclick = () => openModal(exp);
+                    // We also need to pass the localized title to the modal
+                    card.onclick = () => openModal(exp, displayTitle);
 
                     grid.appendChild(card);
                 });
@@ -442,8 +529,8 @@
         }
 
         // Modal Logic
-        function openModal(lab) {
-            if (modalTitle) modalTitle.innerText = lab.title;
+        function openModal(lab, localizedTitle) {
+            if (modalTitle) modalTitle.innerText = localizedTitle || lab.title;
             // Infer source from URL or default
             let source = "SYSTEM";
             if (lab.url.includes("phet")) source = "PhET Colorado";

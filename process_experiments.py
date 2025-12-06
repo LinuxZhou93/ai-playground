@@ -32,17 +32,32 @@ try:
             if localizations: localized = [localizations[0]]
             else: continue
         
-        loc_sim = localized[0]
-        title = loc_sim['title']
-        url = loc_sim['runUrl']
+        loc_sim_en = localized[0]
+        title_en = loc_sim_en['title']
+        url = loc_sim_en['runUrl']
+
+        # Try to find Chinese localization
+        localized_zh = [loc for loc in localizations if loc['locale'] == 'zh_CN']
+        if localized_zh:
+            loc_sim_zh = localized_zh[0]
+            title_zh = loc_sim_zh['title']
+            # description in zh might not exist or be deep in sim object, PhET structure varies.
+            # We'll use get('description', {}).get('zh_CN') from the sim object if available.
+            description_zh = sim.get('description', {}).get('zh_CN', loc_sim_zh.get('title', '')) # Fallback to title
+        else:
+            title_zh = title_en # Fallback
+            description_zh = sim.get('description', {}).get('en', '')
+
         thumbnail = sim.get('media', {}).get('screenshotUrl', '')
         if not thumbnail: thumbnail = sim.get('thumbnailUrl', '')
             
         experiments.append({
-            'title': title,
-            'category': get_category(title),
+            'title': title_en,
+            'title_zh': title_zh,
+            'category': get_category(title_en),
             'level': 'Middle/High',
             'description': sim.get('description', {}).get('en', 'Interactive STEM simulation by PhET.'),
+            'description_zh': description_zh or '来自 PhET 的互动 STEM 模拟实验。',
             'url': url,
             'thumbnail': thumbnail or 'assets/images/placeholder_phet.png'
         })
@@ -66,9 +81,11 @@ try:
         
         experiments.append({
             'title': title,
+            'title_zh': title, # No translation available yet
             'category': 'Physics',
             'level': 'High/University',
             'description': f"Advanced physics simulation: {title}. Focuses on differential equations and real-time physics engine.",
+            'description_zh': f"高级物理模拟：{title}。专注于微分方程和实时物理引擎。",
             'url': url,
             'thumbnail': thumbnail
         })
@@ -92,9 +109,11 @@ try:
             
         experiments.append({
             'title': title,
+            'title_zh': title,
             'category': 'Chemistry',
             'level': 'High/University',
             'description': "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
+            'description_zh': "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
             'url': url,
             'thumbnail': 'https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg'
         })
@@ -120,9 +139,11 @@ try:
         
         experiments.append({
             'title': title,
+            'title_zh': title,
             'category': category,
             'level': 'High School',
             'description': f"Classic HTML5 physics applet by Walter Fendt: {title}.",
+            'description_zh': f"Walter Fendt 的经典 HTML5 物理小程序：{title}。",
             'url': url,
             'thumbnail': 'https://www.walter-fendt.de/html5/phen/javaphys.gif' # Generic Logo
         })
@@ -166,9 +187,11 @@ netlogo_curated = [
 for title, cat, desc, url in netlogo_curated:
     experiments.append({
         'title': title,
+        'title_zh': title,
         'category': cat,
         'level': 'University',
         'description': f"NetLogo Agent-Based Model: {desc}. Explore complex systems and emergent behavior.",
+        'description_zh': f"NetLogo 基于代理的模型：{desc}。探索复杂系统和涌现行为。",
         'url': url,
         'thumbnail': 'https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg'
     })
@@ -219,9 +242,11 @@ concord_curated = [
 for title, cat, url in concord_curated:
     experiments.append({
         'title': title,
+        'title_zh': title,
         'category': cat,
         'level': 'Middle/High',
         'description': f"Interactive STEM simulation from Concord Consortium: {title}.",
+        'description_zh': f"来自 Concord Consortium 的互动 STEM 模拟：{title}。",
         'url': url,
         'thumbnail': 'https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png'
     })
@@ -272,9 +297,11 @@ tpc_curated = [
 for title, cat, url in tpc_curated:
     experiments.append({
         'title': title,
+        'title_zh': title,
         'category': cat,
         'level': 'High School',
         'description': f"Physics Classroom Interactive: {title}. Concept-building simulation.",
+        'description_zh': f"Physics Classroom 互动演示：{title}。概念构建模拟。",
         'url': url,
         'thumbnail': 'https://www.physicsclassroom.com/images/TPC_logo.png'
     })
@@ -282,50 +309,62 @@ for title, cat, url in tpc_curated:
 # --- 8. Legacy/Manual Items ---
 legacy_items = [
     {
-        "title": "图形计算器",
+        "title": "Graphing Calculator",
+        "title_zh": "图形计算器",
         "category": "Mathematics",
         "level": "High",
-        "description": "功能强大的在线图形计算器，绘制函数曲线，求解方程。",
+        "description": "Powerful online graphing calculator. Plot functions, solve equations.",
+        "description_zh": "功能强大的在线图形计算器，绘制函数曲线，求解方程。",
         "url": "https://www.geogebra.org/calculator",
         "thumbnail": "https://www.geogebra.org/images/GeoGebra_loading.png"
     },
     {
-        "title": "3D 几何画板",
+        "title": "3D Calculator",
+        "title_zh": "3D 几何画板",
         "category": "Mathematics",
         "level": "High",
-        "description": "探索三维空间中的几何图形，构建多面体、旋转体。",
+        "description": "Explore 3D geometry, build polyhedra, and surfaces of revolution.",
+        "description_zh": "探索三维空间中的几何图形，构建多面体、旋转体。",
         "url": "https://www.geogebra.org/3d",
         "thumbnail": "https://www.geogebra.org/images/GeoGebra_loading.png"
     },
     {
-        "title": "太阳系模型",
+        "title": "Solar System Scope",
+        "title_zh": "太阳系模型",
         "category": "Earth Science",
         "level": "Elementary",
-        "description": "探索太阳系八大行星的大小、距离和运行轨道。",
+        "description": "Explore the solar system, planets, and orbits in 3D.",
+        "description_zh": "探索太阳系八大行星的大小、距离和运行轨道。",
         "url": "https://www.solarsystemscope.com/",
         "thumbnail": "https://www.solarsystemscope.com/images/share_facebook.jpg"
     },
      {
-        "title": "赛博太空战机",
+        "title": "Cyber Space Shooter",
+        "title_zh": "赛博太空战机",
         "category": "Coding",
         "level": "All",
-        "description": "驾驶战机，在霓虹弹幕中生存。击碎敌机，挑战最高分！",
+        "description": "Survive the neon barrage. Destroy enemies and beat the high score!",
+        "description_zh": "驾驶战机，在霓虹弹幕中生存。击碎敌机，挑战最高分！",
         "url": "space-shooter.html",
         "thumbnail": "🚀"
     },
     {
-        "title": "赛博打砖块",
+        "title": "Cyber Breakout",
+        "title_zh": "赛博打砖块",
         "category": "Coding",
         "level": "All",
-        "description": "经典的街机游戏重制版。体验霓虹美学与粒子碰撞的快感。",
+        "description": "Classic arcade mechanic with neon aesthetics and particle physics.",
+        "description_zh": "经典的街机游戏重制版。体验霓虹美学与粒子碰撞的快感。",
         "url": "breakout.html",
         "thumbnail": "🧱"
     },
     {
-        "title": "Python 极速赛车",
+        "title": "Python Turbo Racing",
+        "title_zh": "Python 极速赛车",
         "category": "Coding",
         "level": "All",
-        "description": "基于 Tkinter 的本地桌面游戏。下载源码，体验复古赛车躲避玩法。",
+        "description": "Tkinter-based desktop game. Download source code and race!",
+        "description_zh": "基于 Tkinter 的本地桌面游戏。下载源码，体验复古赛车躲避玩法。",
         "url": "racing.html",
         "thumbnail": "🏎️"
     }
@@ -340,6 +379,8 @@ final_list = list(unique_experiments)
 print(f"Total Unique Experiments: {len(final_list)}")
 
 # Generate JS file content
+# Custom JSON Dump to keep file size reasonable by not indenting too much if simpler?
+# Default indent is fine.
 js_content = "const experiments = " + json.dumps(final_list, indent=4, ensure_ascii=False) + ";"
 
 with open('assets/js/experiments.js', 'w') as f:

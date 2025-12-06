@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Odyssey | 科技奥德赛 - 全生命周期学习平台</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        odyssey: {
+                            purple: '#8B5CF6',
+                            cyan: '#06B6D4',
+                            pink: '#EC4899',
+                            amber: '#F59E0B',
+                            lime: '#84CC16'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'slide-up': 'slideUp 0.6s ease-out',
+                        'fade-in': 'fadeIn 0.8s ease-out',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)' },
+                            '100%': { boxShadow: '0 0 40px rgba(139, 92, 246, 0.6)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(60px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            /* Color System - Deep Space Theme */
+            --bg-deep: #05050A;
+            --bg-surface: #0F0F16;
+            --bg-elevated: #181825;
+
+            --primary: #8B5CF6;
+            /* Odyssey Purple */
+            --primary-glow: rgba(139, 92, 246, 0.4);
+            --accent: #06B6D4;
+            /* Odyssey Cyan */
+            --accent-glow: rgba(6, 182, 212, 0.4);
+
+            --text-main: #FFFFFF;
+            --text-muted: #94A3B8;
+            --text-dim: #475569;
+
+            --border-light: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.15);
+
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-strong: rgba(10, 10, 15, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Ambient Background */
+        .ambient-glow {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            background:
+                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.08), transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.08), transparent 40%);
+            pointer-events: none;
+        }
+
+        /* Glass Utility */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-light);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-panel:hover {
+            border-color: var(--border-hover);
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Typography */
+        h1,
+        h2,
+        h3,
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 30%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-deep);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Animation Utilities */
+        .fade-in-up {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-glow"></div>
+
+    <div id="app" class="relative z-10 font-sans">
+
+        <!-- Navigation Bar -->
+        <nav
+            class="fixed top-0 w-full h-16 border-b border-[var(--border-light)] bg-[rgba(5,5,10,0.6)] backdrop-blur-xl z-50 transition-all duration-300">
+            <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
+                <!-- Logo -->
+                <a href="index.html" class="flex items-center gap-3 group">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-purple-500/20">
+                        T
+                    </div>
+                    <span
+                        class="font-display font-bold text-lg text-white tracking-wide group-hover:text-gray-200 transition-colors hidden sm:block">Tech
+                        Odyssey</span>
+                </a>
+
+                <!-- Nav Links -->
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#explore"
+                        class="text-sm font-medium text-[var(--text-muted)] hover:text-white transition-colors">探索</a>
+                    <a href="#paths"
+                        class="text-sm font-medium text-[var(--text-muted)] hover:text-white transition-colors">学习路径</a>
+                    <a href="labs.html"
+                        class="text-sm font-medium text-[var(--text-muted)] hover:text-white transition-colors">实验室</a>
+                    <a href="roadmap.html"
+                        class="text-sm font-medium text-[var(--text-muted)] hover:text-white transition-colors">成长图谱</a>
+                </div>
+
+                <!-- User / CTA -->
+                <div class="flex items-center gap-4">
+                    <button v-if="!user"
+                        class="px-5 py-2 rounded-lg bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all">
+                        开始学习
+                    </button>
+                    <div v-else
+                        class="flex items-center gap-3 px-3 py-1.5 rounded-full border border-[var(--border-light)] bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                        <div
+                            class="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] overflow-hidden">
+                            <img v-if="user.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-xs font-medium text-gray-300 pr-1">{{ user.username || 'Learner' }}</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="min-h-[80vh] flex items-center justify-center px-6 pt-32 pb-20 relative">
+            <div class="max-w-5xl mx-auto text-center relative z-10">
+
+                <!-- Badge -->
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 mb-8 fade-in-up"
+                    style="animation-delay: 0.1s">
+                    <span class="relative flex h-2 w-2">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                    </span>
+                    <span class="text-xs font-semibold text-purple-200 tracking-wide uppercase">AI-Powered Learning
+                        V2.0</span>
+                </div>
+
+                <!-- Headline -->
+                <h1 class="text-5xl md:text-7xl font-bold mb-8 leading-tight tracking-tight fade-in-up"
+                    style="animation-delay: 0.2s">
+                    Build. Code. <span class="gradient-text">Innovate.</span>
+                </h1>
+
+                <!-- Subheadline -->
+                <p class="text-lg md:text-xl text-[var(--text-muted)] mb-10 max-w-2xl mx-auto leading-relaxed fade-in-up"
+                    style="animation-delay: 0.3s">
+                    从零构建你的科技世界观。在沉浸式 3D 环境中探索
+                    <span class="text-white font-medium">人工智能</span>、
+                    <span class="text-white font-medium">机器人</span> 与
+                    <span class="text-white font-medium">全栈开发</span>。
+                </p>
+
+                <!-- CTAs -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center fade-in-up"
+                    style="animation-delay: 0.4s">
+                    <button @click="scrollToExplore"
+                        class="px-8 py-3.5 rounded-xl bg-white text-black font-bold text-base hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                        开始探索
+                    </button>
+                    <a href="coding.html"
+                        class="px-8 py-3.5 rounded-xl glass-panel text-white font-semibold text-base flex items-center gap-2 hover:bg-white/10">
+                        <span>进入工作台</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                    </a>
+                </div>
+
+                <!-- Stats -->
+                <div class="mt-20 pt-10 border-t border-[var(--border-light)] flex flex-wrap justify-center gap-12 fade-in-up"
+                    style="animation-delay: 0.5s">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white mb-1">12+</div>
+                        <div class="text-xs text-[var(--text-dim)] uppercase tracking-wider">核心路径</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white mb-1">58</div>
+                        <div class="text-xs text-[var(--text-dim)] uppercase tracking-wider">实战项目</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white mb-1">10k+</div>
+                        <div class="text-xs text-[var(--text-dim)] uppercase tracking-wider">代码提交</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SVG Filters for Hand-drawn Effect -->
+        <svg style="position: absolute; width: 0; height: 0;">
+            <defs>
+                <filter id="hand-drawn-filter">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+                </filter>
+            </defs>
+        </svg>
+
+        <!-- 3D Background Canvas -->
+        <canvas id="bg-canvas"
+            style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 0; pointer-events: none;"></canvas>
+
+        <div id="app" class="relative z-10">
+
+            <!-- Navigation Bar (Apple-inspired) -->
+            <nav class="fixed top-0 w-full h-16 glass z-50 transition-all duration-300"
+                :class="{'bg-black/80': scrolled}">
+                <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
+                    <!-- Logo -->
+                    <a href="index.html" class="flex items-center gap-3 group">
+                        <div
+                            class="w-9 h-9 rounded-xl bg-gradient-to-br from-odyssey-purple to-odyssey-pink flex items-center justify-center font-black text-lg transform group-hover:scale-110 transition-transform">
+                            T
+                        </div>
+                        <span class="font-display font-bold text-lg hidden sm:block">Tech Odyssey</span>
+                    </a>
+
+                    <!-- Nav Links (Center) -->
+                    <div class="hidden md:flex items-center gap-8 absolute left-1/2 transform -translate-x-1/2">
+                        <a href="#explore"
+                            class="text-sm font-medium text-gray-300 hover:text-white transition-colors relative group">
+                            探索
+                            <span
+                                class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-odyssey-purple to-odyssey-pink group-hover:w-full transition-all duration-300"></span>
+                        </a>
+                        <a href="#paths"
+                            class="text-sm font-medium text-gray-300 hover:text-white transition-colors relative group">
+                            路径
+                            <span
+                                class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-odyssey-cyan to-odyssey-lime group-hover:w-full transition-all duration-300"></span>
+                        </a>
+                        <a href="#live"
+                            class="text-sm font-medium text-gray-300 hover:text-white transition-colors relative group">
+                            直播
+                            <span
+                                class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-odyssey-pink to-odyssey-amber group-hover:w-full transition-all duration-300"></span>
+                        </a>
+                        <a href="roadmap.html"
+                            class="text-sm font-medium text-gray-300 hover:text-white transition-colors relative group">
+                            成长图谱
+                            <span
+                                class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-odyssey-purple to-odyssey-pink group-hover:w-full transition-all duration-300"></span>
+                        </a>
+                        <a href="math.html"
+                            class="text-sm font-medium text-gray-300 hover:text-white transition-colors relative group">
+                            数理基石
+                            <span
+                                class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-odyssey-cyan to-odyssey-lime group-hover:w-full transition-all duration-300"></span>
+                        </a>
+                        <a href="minecraft.html"
+                            class="text-sm font-medium text-gray-300 hover:text-white transition-colors relative group">
+                            我的世界
+                            <span
+                                class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-green-400 to-emerald-500 group-hover:w-full transition-all duration-300"></span>
+                        </a>
+                    </div>
+
+                    <!-- User / CTA -->
+                    d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                    </button>
+                    <button @click="scrollToExplore"
+                        class="px-8 py-4 rounded-2xl glass font-bold text-lg hover:bg-white/10 transition-colors border border-white/20 flex items-center gap-3">
+                        <svg class="w-5 h-5" fill="currentColor">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                        <span>观看演示</span>
+                    </button>
+                </div>
+
+                <!-- Social Proof (Coursera-style) -->
+                <div class="mt-16 flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500">
+                    <div class="flex items-center gap-2">
+                        <div class="flex -space-x-2">
+                            <div
+                                class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-black">
+                            </div>
+                            <div
+                                class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-red-500 border-2 border-black">
+                            </div>
+                            <div
+                                class="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-cyan-500 border-2 border-black">
+                            </div>
+                        </div>
+                        <span>12,000+ 活跃学员</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-yellow-400">★★★★★</span>
+                        <span>4.9/5.0 平均评分</span>
+                    </div>
+                </div>
+        </div>
+        </section>
+
+        <!-- Bento Grid Section (Apple-inspired modular layout) -->
+        <section id="explore" class="py-20 px-6 max-w-7xl mx-auto">
+            <div class="text-center mb-16 fade-in-up" style="animation-delay: 0.6s">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4 font-display">
+                    知识星域
+                </h2>
+                <p class="text-[var(--text-muted)] text-lg">选择你的学习轨道，开启专属成长路径</p>
+            </div>
+
+            <div class="bento-grid">
+                <!-- Large Feature Card: AI -->
+                <div class="bento-item-1 glass-panel rounded-3xl p-8 relative overflow-hidden group cursor-pointer"
+                    @click="goToCourse(2)">
+                    <div
+                        class="absolute top-0 right-0 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] group-hover:bg-purple-600/30 transition-all duration-700">
+                    </div>
+
+                    <div class="relative z-10 h-full flex flex-col justify-between">
+                        <div>
+                            <div
+                                class="text-6xl mb-6 transform group-hover:scale-110 transition-transform duration-500 origin-left">
+                                🤖</div>
+                            <h3 class="text-3xl font-bold mb-3 text-white">人工智能</h3>
+                            <p class="text-[var(--text-muted)] text-lg max-w-md">从机器学习到深度神经网络，掌握 AI 的核心原理与实战技能。</p>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-8">
+                            <div class="flex gap-2">
+                                <span
+                                    class="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-semibold border border-purple-500/30">TensorFlow</span>
+                                <span
+                                    class="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-semibold border border-cyan-500/30">PyTorch</span>
+                            </div>
+                            <span
+                                class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all">
+                                ➔
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medium Card: Programming -->
+                <div @click="selectedCategory = 'programming'; scrollToCourses()"
+                    class="bento-item-2 glass-panel rounded-3xl p-6 relative overflow-hidden group cursor-pointer hover:border-cyan-500/50">
+                    <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-cyan-900/20 to-transparent">
+                    </div>
+                    <div class="relative z-10">
+                        <div class="text-4xl mb-4">💻</div>
+                        <h3 class="text-xl font-bold mb-2">编程基础</h3>
+                        <p class="text-sm text-[var(--text-muted)]">Python, JS, C++</p>
+                    </div>
+                </div>
+
+                <!-- Medium Card: Robotics -->
+                <div @click="selectedCategory = 'robotics'; scrollToCourses()"
+                    class="bento-item-3 glass-panel rounded-3xl p-6 relative overflow-hidden group cursor-pointer hover:border-pink-500/50">
+                    <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-pink-900/20 to-transparent">
+                    </div>
+                    <div class="relative z-10">
+                        <div class="text-4xl mb-4">🦾</div>
+                        <h3 class="text-xl font-bold mb-2">机器人</h3>
+                        <p class="text-sm text-[var(--text-muted)]">VEX, Arduino, ROS</p>
+                    </div>
+                </div>
+
+                <!-- Tall Card: Creative -->
+                <div class="bento-item-4 glass-panel rounded-3xl p-8 relative overflow-hidden group cursor-pointer"
+                    @click="goToCourse(4)">
+                    <div class="text-5xl mb-6">🎨</div>
+                    <h3 class="text-2xl font-bold mb-2">创意设计</h3>
+                    <p class="text-[var(--text-muted)] mb-6">Code as Art.</p>
+
+                    <!-- Progress Ring Mini -->
+                    <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                        <div
+                            class="w-10 h-10 rounded-full border-2 border-cyan-500 flex items-center justify-center text-[10px] font-bold">
+                            75%</div>
+                        <div class="text-xs text-gray-300">当前进度</div>
+                    </div>
+                </div>
+
+
+                <div class="bento-item-5 glass rounded-3xl p-8 relative overflow-hidden group card-3d">
+                    <div class="text-5xl mb-4">🧬</div>
+                    <h3 class="text-2xl font-black mb-3">科学探索</h3>
+                    <p class="text-gray-400 mb-6">物理、化学、生物、数学</p>
+
+                    <!-- Animated Stats -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-400">物理</span>
+                            <span class="text-sm font-semibold">8 课程</span>
+                        </div>
+                        <div class="w-full h-2 bg-black/50 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-odyssey-purple to-odyssey-pink rounded-full"
+                                style="width: 60%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="live" class="bento-item-6 neomorph rounded-3xl p-8 relative overflow-hidden group card-3d">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-odyssey-amber/20 rounded-full blur-2xl">
+                    </div>
+
+                    <div class="relative z-10">
+                        <div class="text-5xl mb-4">🎮</div>
+                        <h3 class="text-2xl font-black mb-3">游戏开发</h3>
+                        <p class="text-gray-400 mb-6">Unity, Unreal Engine, Godot</p>
+
+                        <!-- Live Indicator -->
+                        <div
+                            class="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-red-500/20 border border-red-500/30 mb-4">
+                            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                            <span class="text-xs font-semibold text-red-400">直播中</span>
+                        </div>
+
+                        <button @click="joinLive" :disabled="joiningLive"
+                            class="w-full py-3 rounded-xl bg-gradient-to-r from-odyssey-pink to-odyssey-amber text-white font-bold hover:scale-105 transition-all flex items-center justify-center gap-2">
+                            <span v-if="joiningLive"
+                                class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                            <span v-else>加入直播</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Featured Courses with Search & Filters -->
+        <section id="courses" class="py-20 px-6">
+            <div class="max-w-7xl mx-auto">
+                <!-- Search & Filter Bar -->
+                <div class="mb-12 space-y-6">
+                    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <h2 class="text-4xl md:text-5xl font-black">
+                            <span class="gradient-text">精选课程</span>
+                        </h2>
+
+                        <!-- Search Bar -->
+                        <div class="relative w-full md:w-96">
+                            <input v-model="searchQuery" type="text" placeholder="搜索课程..."
+                                class="w-full px-6 py-3 pl-12 rounded-2xl glass border border-white/10 focus:border-odyssey-cyan focus:outline-none transition-colors text-white placeholder-gray-500">
+                            <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500"
+                                fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Category Filters -->
+                    <div class="flex flex-wrap gap-3">
+                        <button v-for="category in courseCategories" :key="category.id"
+                            @click="selectedCategory = category.id" <!-- Search & Filter Bar -->
+                            <div class="mb-12 space-y-6">
+                                <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                                    <h2 class="text-4xl md:text-5xl font-black">
+                                        <span class="gradient-text">精选课程</span>
+                                    </h2>
+
+                                    <!-- Search Bar -->
+                                    <div class="relative w-full md:w-96">
+                                        <input v-model="searchQuery" type="text" placeholder="搜索课程..."
+                                            class="w-full px-6 py-3 pl-12 rounded-2xl glass border border-white/10 focus:border-odyssey-cyan focus:outline-none transition-colors text-white placeholder-gray-500">
+                                        <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500"
+                                            fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Category Filters -->
+                                <div class="flex flex-wrap gap-3">
+                                    <button v-for="category in courseCategories" :key="category.id"
+                                        @click="selectedCategory = category.id"
+                                        class="px-5 py-2 rounded-full font-semibold text-sm transition-all" :class="selectedCategory === category.id 
+                                ? 'bg-white text-black' 
+                                : 'glass hover:bg-white/10 text-gray-300'">
+                                        {{ category.icon }} {{ category.name }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div v-if="coursesLoading" class="text-center py-20">
+                                <div
+                                    class="inline-block animate-spin w-12 h-12 border-4 border-gray-800 border-t-odyssey-cyan rounded-full mb-4">
+                                </div>
+                                <p class="text-gray-400">加载课程中...</p>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div v-else-if="filteredCourses.length === 0" class="text-center py-20">
+                                <div class="text-6xl mb-4">🔍</div>
+                                <h3 class="text-2xl font-bold mb-2">未找到课程</h3>
+                                <p class="text-gray-400">试试其他关键词或分类</p>
+                            </div>
+
+                            <!-- Course Grid -->
+                            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div v-for="(course, index) in filteredCourses" :key="course.id"
+                                    @click="goToCourse(course.id)"
+                                    class="group glass rounded-3xl overflow-hidden hover:border-white/30 transition-all hover:-translate-y-2 cursor-pointer card-3d animate-[fadeInUp_0.5s_ease-out_forwards]"
+                                    :style="{ animationDelay: `${index * 100}ms` }">
+                                    <!-- Thumbnail -->
+                                    <div
+                                        class="aspect-video bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
+                                        <img v-if="course.thumbnail_url" :src="course.thumbnail_url"
+                                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                        <div v-else
+                                            class="w-full h-full flex items-center justify-center text-gray-700">
+                                            <svg width="60" height="60" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+
+                                        <!-- Difficulty Badge -->
+                                        <div class="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold backdrop-blur"
+                                            :class="{
+                                     'bg-green-500/80 text-white': course.difficulty === 'beginner',
+                                     'bg-yellow-500/80 text-white': course.difficulty === 'intermediate',
+                                     'bg-red-500/80 text-white': course.difficulty === 'advanced'
+                                 }">
+                                            {{ getDifficultyLabel(course.difficulty) }}
+                                        </div>
+
+                                        <!-- Play Button Overlay -->
+                                        <div
+                                            class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <div
+                                                class="w-16 h-16 rounded-full bg-white/20 backdrop-blur flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                                <svg width="24" height="24" fill="white">
+                                                    <path d="M8 5v14l11-7z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Info -->
+                                    <div class="p-6">
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase"
+                                                :class="getCategoryColor(course.category)">
+                                                {{ getCategoryName(course.category) }}
+                                            </span>
+                                        </div>
+
+                                        <h3
+                                            class="font-bold text-lg mb-2 line-clamp-2 group-hover:text-odyssey-cyan transition-colors">
+                                            {{ course.title }}
+                                        </h3>
+
+                                        <p class="text-sm text-gray-400 mb-4 line-clamp-2">
+                                            {{ course.description }}
+                                        </p>
+
+                                        <div class="flex items-center justify-between text-xs text-gray-600">
+                                            <div class="flex items-center gap-4">
+                                                <span class="flex items-center gap-1">
+                                                    <svg width="14" height="14" fill="none" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2" d="M12 8v4m0 0v4m0-4h4m-4 0H8" />
+                                                    </svg>
+                                                    {{ course.lesson_count || 12 }} 课时
+                                                </span>
+                                                <span class="flex items-center gap-1">
+                                                    <svg width="14" height="14" fill="none" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    </svg>
+                                                    {{ course.student_count || 0 }}
+                                                </span>
+                                            </div>
+
+                                            <!-- Rating -->
+                                            <div v-if="course.rating" class="flex items-center gap-1">
+                                                <span class="text-yellow-400">★</span>
+                                                <span class="text-white font-semibold">{{ course.rating }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Load More Button -->
+                            <div v-if="hasMoreCourses && !coursesLoading" class="text-center mt-12">
+                                <button @click="loadMoreCourses"
+                                    class="px-8 py-4 rounded-2xl glass hover:bg-white/10 transition-colors font-bold border border-white/20">
+                                    加载更多课程
+                                </button>
+                            </div>
+                    </div>
+        </section>
+
+        <!-- Learning Paths (Brilliant-inspired interactive visualization) -->
+        <section id="paths" class="py-20 px-6 bg-gradient-to-b from-transparent to-black/50">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-5xl font-black mb-4">
+                        <span class="gradient-text">学习路径</span>
+                    </h2>
+                    <p class="text-gray-400 text-lg">从入门到精通，为你量身定制的成长地图</p>
+                </div>
+
+                <!-- Interactive Path Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div v-for="(path, index) in learningPaths" :key="index"
+                        class="glass rounded-3xl p-8 hover:border-white/30 transition-all group card-3d relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 blur-2xl opacity-0 group-hover:opacity-30 transition-opacity"
+                            :style="{background: path.color}"></div>
+
+                        <div class="relative z-10">
+                            <div class="text-5xl mb-4">{{ path.icon }}</div>
+                            <h3 class="text-2xl font-bold mb-3">{{ path.title }}</h3>
+                            <p class="text-gray-400 mb-6 text-sm">{{ path.description }}</p>
+
+                            <!-- Progress Steps -->
+                            <div class="space-y-3 mb-6">
+                                <div v-for="(step, i) in path.steps" :key="i" class="flex items-center gap-3">
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                                        :class="step.completed ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'">
+                                        <span v-if="step.completed">✓</span>
+                                        <span v-else>{{ i + 1 }}</span>
+                                    </div>
+                                    <span class="text-sm" :class="step.completed ? 'text-white' : 'text-gray-500'">
+                                        {{ step.name }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button @click="selectedCategory = path.category; scrollToCourses()"
+                                class="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors font-semibold border border-white/10">
+                                查看详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="py-12 px-6 border-t border-white/10">
+            <div class="max-w-7xl mx-auto text-center text-gray-500 text-sm">
+                <p>&copy; 2025 Tech Odyssey. All rights reserved.</p>
+                <p class="mt-2">Powered by AI · Built with ❤️</p>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, onUnmounted, computed } = Vue;
+
+        const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
+
+        let supabase = null;
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+
+        createApp({
+            setup() {
+                const user = ref(null);
+                const scrolled = ref(false);
+
+                // Course Data
+                const courses = ref([]);
+                const coursesLoading = ref(true);
+                const searchQuery = ref('');
+                const selectedCategory = ref('all');
+                const hasMoreCourses = ref(false);
+                const currentPage = ref(1);
+
+                const courseCategories = ref([
+                    { id: 'all', name: '全部', icon: '🌟' },
+                    { id: 'programming', name: '编程', icon: '💻' },
+                    { id: 'ai', name: 'AI', icon: '🤖' },
+                    { id: 'robotics', name: '机器人', icon: '🦾' },
+                    { id: 'design', name: '设计', icon: '🎨' },
+                    { id: 'science', name: '科学', icon: '🧬' },
+                    { id: 'game', name: '游戏', icon: '🎮' },
+                    { id: 'mindset', name: '思维', icon: '🧠' },
+                ]);
+
+                const learningPaths = ref([
+                    {
+                        icon: '🔧',
+                        title: '工程思维启蒙',
+                        description: '6-9岁：机械结构与逻辑基础',
+                        color: '#8B5CF6',
+                        category: 'robotics',
+                        steps: [
+                            { name: 'Scratch 编程', completed: true },
+                            { name: '乐高机械结构', completed: true },
+                            { name: '简单的杠杆与齿轮', completed: false },
+                            { name: '图形化机器人控制', completed: false },
+                        ]
+                    },
+                    {
+                        icon: '🏆',
+                        title: 'VEX 机器人竞赛',
+                        description: '10+岁：白名单赛事直通名校',
+                        color: '#EC4899', // 使用稍微醒目的颜色，比如粉红或之前的橙色
+                        category: 'robotics',
+                        steps: [
+                            { name: 'VEX IQ 搭建', completed: false },
+                            { name: 'RobotC/Python 编程', completed: false },
+                            { name: '传感器与 PID 算法', completed: false },
+                            { name: '国赛/世锦赛实战', completed: false },
+                        ]
+                    },
+                    {
+                        icon: '⚡',
+                        title: '硬科技创新',
+                        description: '全年龄段：软硬件结合创造',
+                        color: '#06B6D4',
+                        category: 'design',
+                        steps: [
+                            { name: 'Arduino 开源硬件', completed: false },
+                            { name: '3D 建模与打印', completed: false },
+                            { name: '嵌入式 C 开发', completed: false },
+                            { name: '科技创新大赛', completed: false },
+                        ]
+                    },
+                ]);
+
+                // Computed: Filtered Courses
+                const filteredCourses = computed(() => {
+                    let result = courses.value;
+
+                    // Filter by category
+                    if (selectedCategory.value !== 'all') {
+                        result = result.filter(c => c.category === selectedCategory.value);
+                    }
+
+                    // Filter by search query
+                    if (searchQuery.value.trim()) {
+                        const query = searchQuery.value.toLowerCase();
+                        result = result.filter(c =>
+                            c.title.toLowerCase().includes(query) ||
+                            c.description?.toLowerCase().includes(query)
+                        );
+                    }
+
+                    return result;
+                });
+
+                // Methods
+                const scrollToExplore = () => {
+                    document.getElementById('explore').scrollIntoView({ behavior: 'smooth' });
+                };
+
+                const scrollToCourses = () => {
+                    document.getElementById('courses').scrollIntoView({ behavior: 'smooth' });
+                };
+
+                const handleScroll = () => {
+                    scrolled.value = window.scrollY > 50;
+                };
+
+                const fetchCourses = async () => {
+                    coursesLoading.value = true;
+
+                    if (!supabase) {
+                        // Mock data for demo
+                        courses.value = [
+                            {
+                                id: 3,
+                                title: 'VEX V5 机器人竞赛全能班',
+                                description: '从机械结构设计到高级自动驾驶算法，备战 VEX 世锦赛的核心课程。',
+                                category: 'robotics',
+                                difficulty: 'advanced',
+                                lesson_count: 48,
+                                student_count: 560,
+                                rating: 4.9,
+                                thumbnail_url: 'https://via.placeholder.com/640x360/EC4899/FFFFFF?text=VEX+Robotics+MasterClass'
+                            },
+                            {
+                                id: 9,
+                                title: 'Arduino 创意电子工坊',
+                                description: '零基础入门开源硬件，制作智能灯、循迹小车等酷炫电子项目。',
+                                category: 'design',
+                                difficulty: 'beginner',
+                                lesson_count: 24,
+                                student_count: 1200,
+                                rating: 4.8,
+                                thumbnail_url: 'https://via.placeholder.com/640x360/06B6D4/FFFFFF?text=Arduino+Maker'
+                            },
+                            {
+                                id: 1,
+                                title: 'Python 编程与算法思维',
+                                description: '从零开始学习 Python，掌握 CSP-J/S 竞赛必备的算法基础。',
+                                category: 'programming',
+                                difficulty: 'beginner',
+                                lesson_count: 32,
+                                student_count: 2150,
+                                rating: 4.8,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 2,
+                                title: '深度学习与计算机视觉',
+                                description: '使用 PyTorch 构建识别模型的进阶课程，探索 AI 的无限可能。',
+                                category: 'ai',
+                                difficulty: 'advanced',
+                                lesson_count: 36,
+                                student_count: 856,
+                                rating: 4.9,
+                                thumbnail_url: 'assets/images/creative_coding.png'
+                            },
+                            {
+                                id: 4,
+                                title: 'Fusion 360: 3D 建模大师',
+                                description: '为你的机器人设计定制零件，掌握工业级 3D 建模软件。',
+                                category: 'design',
+                                difficulty: 'intermediate',
+                                lesson_count: 20,
+                                student_count: 678,
+                                rating: 4.7,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 7,
+                                title: 'Titan Mindset: 认知操作系统',
+                                description: '20+ 顶级思维模型，重塑你的认知底座。从第一性原理到二阶思维。',
+                                category: 'mindset',
+                                difficulty: 'advanced',
+                                lesson_count: 20,
+                                student_count: 5678,
+                                rating: 5.0,
+                                thumbnail_url: 'assets/images/titan_mindset.png'
+                            },
+                            {
+                                id: 5,
+                                title: 'Unity 游戏开发基础',
+                                description: '使用 Unity 引擎创建 2D/3D 游戏，从零到发布完整流程',
+                                category: 'game',
+                                difficulty: 'beginner',
+                                lesson_count: 28,
+                                student_count: 923,
+                                rating: 4.8,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 7,
+                                title: '高中物理竞赛：力学篇',
+                                description: '深入理解牛顿定律与动量守恒，为机器人动力学打下坚实基础。',
+                                category: 'science',
+                                difficulty: 'advanced',
+                                lesson_count: 40,
+                                student_count: 345,
+                                rating: 4.9,
+                                thumbnail_url: null
+                            }
+                        ];
+                        coursesLoading.value = false;
+                        return;
+                    }
+
+                    try {
+                        const { data, error } = await supabase
+                            .from('courses')
+                            .select('*')
+                            .eq('is_published', true)
+                            .order('created_at', { ascending: false })
+                            .limit(12);
+
+                        if (error && error.code !== 'PGRST116') {
+                            console.error('Error fetching courses:', error);
+                        } else {
+                            courses.value = data || [];
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    } finally {
+                        coursesLoading.value = false;
+                    }
+                };
+
+                const loadMoreCourses = async () => {
+                    // Implement pagination
+                    currentPage.value++;
+                    // Fetch next page...
+                };
+
+                const goToCourse = (courseId) => {
+                    window.location.href = `course.html?id=${courseId}`;
+                };
+
+                const joiningLive = ref(false);
+                const joinLive = () => {
+                    joiningLive.value = true;
+                    setTimeout(() => {
+                        goToCourse(5);
+                        joiningLive.value = false;
+                    }, 1000);
+                };
+
+                const getDifficultyLabel = (difficulty) => {
+                    const labels = {
+                        'beginner': '入门',
+                        'intermediate': '进阶',
+                        'advanced': '高级'
+                    };
+                    return labels[difficulty] || difficulty;
+                };
+
+                const getCategoryName = (categoryId) => {
+                    const category = courseCategories.value.find(c => c.id === categoryId);
+                    return category ? category.name : categoryId;
+                };
+
+                const getCategoryColor = (categoryId) => {
+                    const colors = {
+                        'programming': 'bg-odyssey-purple/20 text-odyssey-purple border-odyssey-purple/30',
+                        'ai': 'bg-odyssey-cyan/20 text-odyssey-cyan border-odyssey-cyan/30',
+                        'robotics': 'bg-odyssey-pink/20 text-odyssey-pink border-odyssey-pink/30',
+                        'design': 'bg-odyssey-amber/20 text-odyssey-amber border-odyssey-amber/30',
+                        'science': 'bg-odyssey-lime/20 text-odyssey-lime border-odyssey-lime/30',
+                        'game': 'bg-red-500/20 text-red-400 border-red-500/30',
+                        'mindset': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                    };
+                    return colors[categoryId] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+                };
+
+                onMounted(async () => {
+                    if (supabase) {
+                        const { data } = await supabase.auth.getUser();
+                        user.value = data.user;
+                    }
+
+                    window.addEventListener('scroll', handleScroll);
+                    init3DScene();
+                    fetchCourses();
+                });
+
+                onUnmounted(() => {
+                    window.removeEventListener('scroll', handleScroll);
+                });
+
+                return {
+                    user,
+                    scrolled,
+                    learningPaths,
+                    scrollToExplore,
+                    // Course data
+                    courses,
+                    coursesLoading,
+                    searchQuery,
+                    selectedCategory,
+                    courseCategories,
+                    filteredCourses,
+                    hasMoreCourses,
+                    loadMoreCourses,
+                    goToCourse,
+                    joinLive,
+                    joiningLive,
+                    scrollToCourses,
+                    getDifficultyLabel,
+                    getCategoryName,
+                    getCategoryColor,
+                };
+            }
+        }).mount('#app');
+
+        // Enhanced 3D Scene with Particle System
+        function init3DScene() {
+            const canvas = document.getElementById('bg-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            camera.position.z = 50;
+
+            // Particle System
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particleCount = 2000;
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            const colorPalette = [
+                new THREE.Color(0x8B5CF6),
+                new THREE.Color(0x06B6D4),
+                new THREE.Color(0xEC4899),
+                new THREE.Color(0xF59E0B),
+            ];
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 200;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+
+                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.8,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending,
+            });
+
+            const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particles);
+
+            // Animation
+            let mouseX = 0, mouseY = 0;
+
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                particles.rotation.y += 0.0005;
+                particles.rotation.x += 0.0002;
+
+                // Mouse parallax
+                camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
+                camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+    </script>
+</body>
+
+</html>

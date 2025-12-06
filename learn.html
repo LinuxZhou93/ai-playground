@@ -13,11 +13,12 @@
         rel="stylesheet">
 
     <!-- Dependencies -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="libs/supabase.min.js"></script>
+    <script src="libs/three.min.js"></script>
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="assets/js/supabase-client.js"></script>
 
     <script>
         tailwind.config = {
@@ -388,8 +389,9 @@
                 </div>
 
                 <div class="bento-grid">
-                    <!-- Large Feature Card -->
-                    <div class="bento-item-1 neomorph rounded-3xl p-8 relative overflow-hidden group card-3d crayon-bg">
+                    <!-- Large Feature Card: AI -->
+                    <div class="bento-item-1 neomorph rounded-3xl p-8 relative overflow-hidden group card-3d crayon-bg cursor-pointer"
+                        @click="selectedCategory = 'ai'; scrollToCourses()">
                         <div
                             class="absolute top-0 right-0 w-64 h-64 bg-odyssey-purple/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700">
                         </div>
@@ -408,7 +410,7 @@
                                     class="px-3 py-1 rounded-full bg-odyssey-pink/20 text-odyssey-pink text-xs font-semibold border border-odyssey-pink/30">GPT-4</span>
                             </div>
 
-                            <button @click="goToCourse(2)"
+                            <button @click.stop="selectedCategory = 'ai'; scrollToCourses()"
                                 class="px-6 py-3 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform">
                                 开始学习 →
                             </button>
@@ -432,7 +434,8 @@
                     </div>
 
                     <!-- Medium Cards with Interactive Elements -->
-                    <div class="bento-item-4 neomorph rounded-3xl p-8 relative overflow-hidden group card-3d">
+                    <div class="bento-item-4 neomorph rounded-3xl p-8 relative overflow-hidden group card-3d cursor-pointer"
+                        @click="selectedCategory = 'design'; scrollToCourses()">
                         <div
                             class="absolute inset-0 bg-gradient-to-br from-odyssey-cyan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                         </div>
@@ -461,14 +464,15 @@
                                 </div>
                             </div>
 
-                            <button @click="goToCourse(4)"
+                            <button @click.stop="selectedCategory = 'design'; scrollToCourses()"
                                 class="w-full py-3 rounded-xl glass hover:bg-white/10 transition-colors font-semibold">
                                 继续学习
                             </button>
                         </div>
                     </div>
 
-                    <div class="bento-item-5 glass rounded-3xl p-8 relative overflow-hidden group card-3d">
+                    <div class="bento-item-5 glass rounded-3xl p-8 relative overflow-hidden group card-3d cursor-pointer"
+                        @click="selectedCategory = 'science'; scrollToCourses()">
                         <div class="text-5xl mb-4">🧬</div>
                         <h3 class="text-2xl font-black mb-3">科学探索</h3>
                         <p class="text-gray-400 mb-6">物理、化学、生物、数学</p>
@@ -715,13 +719,8 @@
     <script>
         const { createApp, ref, onMounted, onUnmounted, computed } = Vue;
 
-        const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
-
-        let supabase = null;
-        if (window.supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        }
+        // Supabase client is initialized in supabase-client.js and available via window.SupabaseClient
+        const getSupabase = () => window.SupabaseClient?.client;
 
         createApp({
             setup() {
@@ -825,6 +824,7 @@
 
                 const fetchCourses = async () => {
                     coursesLoading.value = true;
+                    const supabase = getSupabase();
 
                     if (!supabase) {
                         // Mock data for demo
@@ -989,9 +989,12 @@
                 };
 
                 onMounted(async () => {
-                    if (supabase) {
-                        const { data } = await supabase.auth.getUser();
-                        user.value = data.user;
+                    // Use shared getCurrentUser helper to get profile data including avatar
+                    if (window.SupabaseClient) {
+                        const currentUser = await window.SupabaseClient.getCurrentUser();
+                        if (currentUser) {
+                            user.value = currentUser;
+                        }
                     }
 
                     window.addEventListener('scroll', handleScroll);
@@ -1087,6 +1090,9 @@
 
             function animate() {
                 requestAnimationFrame(animate);
+
+                // Performance optimization: Skip rendering when page is not visible
+                if (document.hidden) return;
 
                 particles.rotation.y += 0.0005;
                 particles.rotation.x += 0.0002;
