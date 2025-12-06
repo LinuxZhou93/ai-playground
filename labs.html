@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Science Lab - AI Playground</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@400;700&family=Space+Mono&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --ccd-noise-url: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAGFBMVEUAAAA5OTkAAAAAAAAAAABMTExERERmZmUbbDt1AAAACHRSTlMAMwA3M2YzM2Y0r6QwAAAAQUlEQVQ4y2NgQAX8DIwsCgwMDCz8DCDKyMLA8B+I/wPx/6H4PxD/B+L/QPH/ofg/EP8H4v9A8f+h+D8Q/wfC/wEAxF0v055O01IAAAAASUVORK5CYII=');
+        }
+
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* CCD Noise Background */
+        .ccd-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: var(--ccd-noise-url);
+            opacity: 0.05;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Animated Grid Background */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200%;
+            height: 200%;
+            background-image:
+                linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+            animation: gridMove 20s linear infinite;
+            z-index: -2;
+            opacity: 0.3;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px);
+            }
+
+            100% {
+                transform: perspective(500px) rotateX(60deg) translateY(50px) translateZ(-200px);
+            }
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        /* CRT/CCD Scanline Effect */
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.3) 51%);
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        /* Typography */
+        .font-tech {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 0.05em;
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        /* Modal Animation */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: all 0.3s ease-out;
+        }
+
+        .modal-exit {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .modal-exit-active {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.2s ease-in;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-blue);
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+    <!-- Background Elements -->
+    <div class="ccd-bg"></div>
+    <div class="grid-bg"></div>
+    <div class="scanline"></div>
+
+    <!-- Navigation (Simplified for this page) -->
+    <nav class="fixed w-full z-50 transition-all duration-300 pointer-events-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pointer-events-auto">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex-shrink-0">
+                    <a href="index.html" class="flex items-center gap-2 group">
+                        <div
+                            class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center font-bold text-white shadow-[0_0_15px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_25px_rgba(59,130,246,0.8)] transition-all">
+                            AI
+                        </div>
+                        <span
+                            class="font-tech font-bold text-xl tracking-wider text-white group-hover:text-blue-400 transition-colors">
+                            LABS<span class="text-blue-500">.exe</span>
+                        </span>
+                    </a>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-8">
+                        <a href="coding.html"
+                            class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Coding</a>
+                        <a href="course.html"
+                            class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Courses</a>
+                        <a href="wiki.html"
+                            class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Wiki</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full z-10 relative">
+
+        <!-- Header Section -->
+        <div class="text-center mb-16 relative">
+            <h1
+                class="font-tech text-5xl md:text-7xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 text-glow animate-pulse">
+                INFINITE LAB
+            </h1>
+            <p
+                class="text-gray-400 text-lg md:text-xl font-mono max-w-2xl mx-auto border-l-2 border-cyan-500 pl-4 text-left md:text-center md:border-none md:pl-0">
+                &gt; INITIALIZING VIRTUAL EXPERIMENTS...<br class="hidden md:inline" />
+                &gt; SELECT MODULE TO BEGIN SIMULATION.
+            </p>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap justify-center gap-4 mb-12">
+            <button
+                class="glass-card px-6 py-2 rounded-full text-sm font-tech text-cyan-300 hover:bg-cyan-900/30 active ring-1 ring-cyan-500/50"
+                onclick="filterLabs('all')">
+                ALL_MODULES
+            </button>
+            <button class="glass-card px-6 py-2 rounded-full text-sm font-tech text-purple-300 hover:bg-purple-900/30"
+                onclick="filterLabs('Physics')">
+                PHYSICS
+            </button>
+            <button class="glass-card px-6 py-2 rounded-full text-sm font-tech text-green-300 hover:bg-green-900/30"
+                onclick="filterLabs('Chemistry')">
+                CHEMISTRY
+            </button>
+            <button class="glass-card px-6 py-2 rounded-full text-sm font-tech text-yellow-300 hover:bg-yellow-900/30"
+                onclick="filterLabs('Biology')">
+                BIOLOGY
+            </button>
+        </div>
+
+        <!-- Labs Grid -->
+        <div id="labs-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Cards will be injected here via JS -->
+        </div>
+
+    </main>
+
+    <!-- Modal for Simulation -->
+    <div id="sim-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-8">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div
+            class="glass-card w-full max-w-6xl h-[85vh] flex flex-col rounded-2xl relative overflow-hidden modal-enter">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/20">
+                <div class="flex items-center gap-3">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <h3 id="modal-title" class="font-tech text-xl text-white">SIMULATION_NAME</h3>
+                </div>
+                <button onclick="closeModal()"
+                    class="text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-lg p-2">
+                    <i class="fas fa-times"></i> ESC
+                </button>
+            </div>
+
+            <!-- Modal Content (Iframe) -->
+            <div class="flex-grow w-full bg-black relative">
+                <div id="loader" class="absolute inset-0 flex items-center justify-center text-cyan-500 font-mono">
+                    LOADING CORE...
+                </div>
+                <iframe id="sim-frame" src="" class="w-full h-full border-none relative z-10" allowfullscreen
+                    onload="document.getElementById('loader').style.display='none'"></iframe>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="px-6 py-3 border-t border-white/10 bg-black/20 text-xs font-mono text-gray-500 flex justify-between">
+                <span id="modal-source">SOURCE: SYSTEM</span>
+                <span>STATUS: ACTIVE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/labs-data.js"></script>
+    <script>
+        // DOM Elements
+        const grid = document.getElementById('labs-grid');
+        const modal = document.getElementById('sim-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalSource = document.getElementById('modal-source');
+        const simFrame = document.getElementById('sim-frame');
+        const loader = document.getElementById('loader');
+
+        // Render Labs
+        function renderLabs(filter = 'all') {
+            grid.innerHTML = '';
+
+            const filteredData = filter === 'all'
+                ? labsData
+                : labsData.filter(item => item.category === filter);
+
+            filteredData.forEach((lab, index) => {
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-xl overflow-hidden group cursor-pointer flex flex-col h-full';
+                card.style.animationDelay = `${index * 100}ms`;
+                card.onclick = () => openModal(lab);
+
+                // Determine border color based on category
+                let categoryColor = 'text-gray-400';
+                if (lab.category === 'Physics') categoryColor = 'text-purple-400';
+                if (lab.category === 'Chemistry') categoryColor = 'text-green-400';
+                if (lab.category === 'Biology') categoryColor = 'text-yellow-400';
+
+                card.innerHTML = `
+                    <div class="relative h-48 overflow-hidden bg-black/50">
+                        <img src="${lab.thumbnail_url}" alt="${lab.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                        <div class="absolute bottom-3 left-3">
+                            <span class="font-mono text-xs px-2 py-1 rounded bg-white/10 backdrop-blur ${categoryColor} border border-white/10">
+                                ${lab.category}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <h3 class="font-tech text-lg font-bold mb-2 text-white group-hover:text-cyan-400 transition-colors">${lab.title}</h3>
+                        <p class="text-gray-400 text-sm mb-4 line-clamp-2">${lab.description}</p>
+                        
+                        <div class="mt-auto flex items-center justify-between text-xs font-mono text-gray-500 pt-4 border-t border-white/5">
+                            <span>LVL: ${lab.difficulty}</span>
+                            <span class="group-hover:translate-x-1 transition-transform text-cyan-500">
+                                INITIALIZE <i class="fas fa-chevron-right ml-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Modal Logic
+        function openModal(lab) {
+            modalTitle.innerText = lab.title;
+            modalSource.innerText = `SOURCE: ${lab.source.toUpperCase()}`;
+            simFrame.src = lab.embed_url;
+            loader.style.display = 'flex';
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            // Animation class handled by simpler visibility toggle for now, 
+            // but structure is there for transitions if needed.
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            simFrame.src = ''; // Stop simulation to save resources
+        }
+
+        function filterLabs(category) {
+            renderLabs(category);
+        }
+
+        // Initial Render
+        document.addEventListener('DOMContentLoaded', () => {
+            renderLabs();
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+
+</html>
