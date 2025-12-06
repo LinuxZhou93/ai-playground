@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学科协同知识星系 | Subject Synergy Galaxy</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 3D Libraries -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three-spritetext@1.8.1/dist/three-spritetext.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph@1.73.1/dist/3d-force-graph.min.js"></script>
+    <script src="https://unpkg.com/d3@7.8.5/dist/d3.min.js"></script>
+
+    <style>
+        body {
+            background-color: #050b14;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            /* Full screen immersive */
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .neon-text {
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+        }
+
+        /* Scrollbar for list view */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.6);
+        }
+
+        /* Modal Animation */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 300ms, transform 300ms;
+        }
+
+        .modal-exit {
+            opacity: 1;
+        }
+
+        .modal-exit-active {
+            opacity: 0;
+            transition: opacity 200ms;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 1. Background Graph Container (Full Screen) -->
+    <div id="galaxy-area" class="fixed inset-0 z-0 bg-[#050b14]">
+        <div id="galaxy-graph" class="w-full h-full"></div>
+    </div>
+
+    <!-- 2. Overlay UI -->
+    <div class="relative z-10 w-full h-screen flex flex-col pointer-events-none">
+
+        <!-- Header Bar -->
+        <div class="pointer-events-auto w-full p-4 md:p-6 flex justify-between items-start">
+            <!-- Title -->
+            <div class="glass-panel rounded-2xl p-4 md:px-6 md:py-3 flex items-center gap-4">
+                <div
+                    class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 animate-pulse">
+                    <i data-lucide="network"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white font-orbitron tracking-wider">
+                        学科协同星系 <span class="text-cyan-400 text-sm block md:inline md:ml-2">SYNERGY GALAXY</span>
+                    </h1>
+                    <div class="flex gap-4 text-xs text-slate-400 mt-1">
+                        <span><i data-lucide="database" class="w-3 h-3 inline"></i> <span id="total-entries">0</span>
+                            节点</span>
+                        <span><i data-lucide="activity" class="w-3 h-3 inline"></i> <span
+                                id="run-status">自动运行中</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Right Navigation -->
+            <div class="flex gap-4">
+                <div class="glass-panel rounded-full p-1 flex gap-1">
+                    <button onclick="switchView('galaxy')" id="btn-galaxy"
+                        class="px-4 py-2 rounded-full text-sm font-bold transition-all text-white bg-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.5)]">
+                        <i data-lucide="box" class="w-4 h-4 inline mr-1"></i> 星系视图
+                    </button>
+                    <button onclick="switchView('grid')" id="btn-grid"
+                        class="px-4 py-2 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+                        <i data-lucide="layout-grid" class="w-4 h-4 inline mr-1"></i> 矩阵列表
+                    </button>
+                </div>
+
+                <a href="subject-synergy.html"
+                    class="glass-panel p-3 rounded-full text-slate-300 hover:text-white hover:bg-cyan-900/40 transition-all"
+                    title="返回上一页">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Matrix List View (Centered Overlay) -->
+        <div id="wiki-container-wrapper"
+            class="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center p-4 md:p-10"
+            style="display: none;">
+            <div
+                class="glass-panel w-full max-w-6xl h-full rounded-3xl overflow-hidden flex flex-col bg-slate-900/90 shadow-2xl">
+                <!-- List Header -->
+                <div class="p-6 border-b border-cyan-500/20 flex justify-between items-center bg-slate-900/40">
+                    <h2 class="text-xl text-white font-bold flex items-center gap-2">
+                        <i data-lucide="list"></i> 知识矩阵数据库 (1000+ ENTRY)
+                    </h2>
+                    <div class="relative w-64 md:w-96">
+                        <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
+                        <input type="text" onkeyup="searchWiki()" id="search-input" placeholder="检索学科知识库..."
+                            class="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Scrollable Grid -->
+                <div id="wiki-container"
+                    class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Galaxy Controls (Bottom Right) -->
+        <div id="galaxy-controls-overlay" class="pointer-events-auto absolute bottom-8 right-8 flex flex-col gap-3">
+            <button onclick="toggleRotation()" id="btn-rotate"
+                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105 animate-pulse shadow-[0_0_10px_rgba(8,145,178,0.5)]"
+                title="开启/停止 自动旋转 (Auto-Rotation)">
+                <i data-lucide="refresh-cw"></i>
+            </button>
+            <button onclick="resetCamera()"
+                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105"
+                title="重置视角 (Reset View)">
+                <i data-lucide="crosshair"></i>
+            </button>
+            <div class="h-px bg-slate-700 w-full my-1"></div>
+            <button onclick="zoomIn()"
+                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105" title="放大"><i
+                    data-lucide="plus"></i></button>
+            <button onclick="zoomOut()"
+                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105" title="缩小"><i
+                    data-lucide="minus"></i></button>
+        </div>
+
+        <!-- Filter Bar (Bottom center, floating) -->
+        <div id="filter-bar"
+            class="pointer-events-auto absolute bottom-8 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-2 py-2 flex gap-1 overflow-x-auto max-w-[90vw]">
+            <button onclick="filterContent('all', this)"
+                class="filter-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all whitespace-nowrap transform scale-105">ALL</button>
+            <button onclick="filterContent('math', this)"
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap">MATH</button>
+            <button onclick="filterContent('physics', this)"
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-orange-600 hover:text-white transition-all whitespace-nowrap">PHYSICS</button>
+            <button onclick="filterContent('chemistry', this)"
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-pink-600 hover:text-white transition-all whitespace-nowrap">CHEMISTRY</button>
+            <button onclick="filterContent('biology', this)"
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-green-600 hover:text-white transition-all whitespace-nowrap">BIOLOGY</button>
+            <button onclick="filterContent('cs', this)"
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-cyan-600 hover:text-white transition-all whitespace-nowrap">CS</button>
+            <button onclick="filterContent('science', this)"
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-purple-600 hover:text-white transition-all whitespace-nowrap">SCIENCE</button>
+        </div>
+
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detail-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        onclick="if(event.target===this) closeModal()">
+        <div class="glass-panel w-full max-w-2xl m-4 rounded-2xl overflow-hidden transform transition-all scale-95 opacity-0 relative"
+            id="modal-content-box">
+            <!-- Corrected Close Button -->
+            <button onclick="closeModal()"
+                class="absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-white hover:bg-red-500 hover:rotate-90 transition-all z-10 shadow-lg">
+                <i data-lucide="x" width="24" height="24"></i>
+            </button>
+
+            <div class="p-6 border-b border-cyan-500/20 flex justify-between items-start bg-slate-900/60 pt-10 md:pt-6">
+                <h2 id="modal-title" class="text-2xl font-bold text-white font-orbitron pr-8">Title</h2>
+            </div>
+            <div class="p-6 max-h-[60vh] overflow-y-auto text-slate-300 leading-relaxed" id="modal-content-text">
+                <!-- Content -->
+            </div>
+            <div class="p-6 border-t border-cyan-500/20 bg-slate-900/60 flex justify-between items-center">
+                <div id="modal-tags" class="flex gap-2 flex-wrap"></div>
+                <button
+                    class="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-cyan-500/30 whitespace-nowrap">
+                    查看关联图谱
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Data -->
+    <script src="assets/js/synergy-data.js"></script>
+
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        // Global State
+        let Graph = null;
+        let isRotating = true;
+        let currentFilter = 'all';
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            initGalaxy();
+            updateEntryCount();
+        });
+
+        function updateEntryCount() {
+            if (window.synergyData) {
+                document.getElementById('total-entries').innerText = window.synergyData.length;
+            }
+        }
+
+        /* === VIEW SWITCHER === */
+        function switchView(mode) {
+            const listWrapper = document.getElementById('wiki-container-wrapper');
+            const btnGalaxy = document.getElementById('btn-galaxy');
+            const btnGrid = document.getElementById('btn-grid');
+            const galaxyControls = document.getElementById('galaxy-controls-overlay');
+            const filterBar = document.getElementById('filter-bar');
+
+            if (mode === 'grid') {
+                listWrapper.style.display = 'flex';
+                // Update buttons
+                btnGalaxy.className = "px-4 py-2 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all";
+                btnGrid.className = "px-4 py-2 rounded-full text-sm font-bold transition-all text-white bg-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.5)]";
+
+                galaxyControls.style.display = 'none'; // Hide galaxy controls
+                filterBar.style.display = 'none'; // Hide filters in grid mode
+
+                // Populate List
+                renderList();
+            } else {
+                listWrapper.style.display = 'none';
+
+                btnGrid.className = "px-4 py-2 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all";
+                btnGalaxy.className = "px-4 py-2 rounded-full text-sm font-bold transition-all text-white bg-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.5)]";
+
+                galaxyControls.style.display = 'flex';
+                filterBar.style.display = 'flex';
+            }
+        }
+
+        /* === RENDER LIST === */
+        function renderList() {
+            const container = document.getElementById('wiki-container');
+            container.innerHTML = '';
+
+            // Search Logic
+            const searchTerm = document.getElementById('search-input')?.value.toLowerCase();
+
+            const data = synergyData;
+            const finalData = searchTerm
+                ? data.filter(item => item.title.toLowerCase().includes(searchTerm) || item.category.includes(searchTerm))
+                : data;
+
+            // Render first 200
+            finalData.slice(0, 200).forEach(item => {
+                const card = document.createElement('div');
+                card.className = "glass-panel p-4 rounded-xl hover:bg-slate-800/80 cursor-pointer group transition-all transform hover:scale-[1.02] border border-slate-700/50";
+                card.onclick = () => openModal(item);
+
+                const color = getCategoryColor(item.category);
+
+                card.innerHTML = `
+                     <div class="flex justify-between items-start mb-2">
+                         <span class="text-xs font-bold px-2 py-1 rounded bg-slate-900 text-[${color}] border border-[${color}]/30" style="color:${color}; border-color:${color}4d">
+                             ${item.category.toUpperCase()}
+                         </span>
+                         <span class="text-xs text-slate-500">${item.stage ? item.stage.toUpperCase() : 'STAGE'}</span>
+                     </div>
+                     <h3 class="text-lg font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">${item.title}</h3>
+                     <div class="text-sm text-slate-400 overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${item.content.replace(/<[^>]*>?/gm, '')}</div>
+                 `;
+                container.appendChild(card);
+            });
+        }
+
+        function searchWiki() {
+            if (document.getElementById('wiki-container-wrapper').style.display !== 'none') {
+                renderList();
+            }
+        }
+
+        /* === FILTER LOGIC === */
+        function filterContent(category, btn) {
+            currentFilter = category;
+
+            // UI Update
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.className = b.className.replace(/active|bg-cyan-600|text-white|scale-105|shadow-lg/g, '');
+                b.className = "filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap";
+            });
+            // highlight active
+            btn.className = "filter-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all whitespace-nowrap transform scale-105";
+
+            // Update Graph
+            updateGalaxyData(currentFilter);
+        }
+
+        /* === GALAXY ENGINE (CLUSTERING) === */
+        function initGalaxy() {
+            const elem = document.getElementById('galaxy-graph');
+
+            Graph = ForceGraph3D()
+                (elem)
+                .backgroundColor('#00000000')
+                .showNavInfo(false)
+                .nodeLabel(node => node.isHub ? '' : node.title) // Don't show hover label for hub, it has perma-label
+                .nodeColor(node => getCategoryColor(node.group))
+                .nodeRelSize(node => node.val)
+
+                // === Custom Render Objects ===
+                .nodeThreeObject(node => {
+                    const group = new THREE.Group();
+                    const color = getCategoryColor(node.group);
+
+                    if (node.isHub) {
+                        // === GLOWING HUB CENTER ===
+
+                        // 1. Large Core Sphere
+                        const geometry = new THREE.SphereGeometry(node.val, 32, 32);
+                        const material = new THREE.MeshBasicMaterial({ color: color });
+                        const mesh = new THREE.Mesh(geometry, material);
+                        group.add(mesh);
+
+                        // 2. Huge Glow Aura (Canvas Sprite)
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 128; canvas.height = 128; // Higher res
+                        const ctx = canvas.getContext('2d');
+                        const grd = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+                        grd.addColorStop(0, color);
+                        grd.addColorStop(0.2, color);
+                        grd.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = grd;
+                        ctx.fillRect(0, 0, 128, 128);
+
+                        const spriteMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending });
+                        const spriteMesh = new THREE.Sprite(spriteMat);
+                        spriteMesh.scale.set(150, 150, 1); // Huge faint glow
+                        group.add(spriteMesh);
+
+                        // 3. Brighter Inner Glow
+                        const spriteMat2 = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+                        const spriteMesh2 = new THREE.Sprite(spriteMat2);
+                        spriteMesh2.scale.set(60, 60, 1); // Tight bright glow
+                        group.add(spriteMesh2);
+
+                        // 4. Text Label (Always Visible, Huge)
+                        const sprite = new SpriteText(node.title);
+                        sprite.color = '#ffffff';
+                        sprite.textHeight = 12;
+                        sprite.fontFace = 'Orbitron';
+                        sprite.fontWeight = 'bold';
+                        sprite.strokeColor = 'black';
+                        sprite.strokeWidth = 1;
+                        sprite.position.y = 40;
+                        group.add(sprite);
+
+                    } else {
+                        // === NORMAL DATA NODE ===
+                        // Small Sphere
+                        const geometry = new THREE.SphereGeometry(node.val, 8, 8);
+                        const material = new THREE.MeshLambertMaterial({
+                            color: color,
+                            transparent: true,
+                            opacity: 0.9
+                        });
+                        const mesh = new THREE.Mesh(geometry, material);
+                        group.add(mesh);
+
+                        // Label (Only if close? show smaller)
+                        const sprite = new SpriteText(node.title);
+                        sprite.color = 'rgba(255,255,255,0.9)';
+                        sprite.textHeight = 3;
+                        sprite.backgroundColor = 'rgba(0,0,0,0.6)';
+                        sprite.padding = 1;
+                        sprite.borderRadius = 2;
+                        sprite.position.y = node.val + 6;
+                        group.add(sprite);
+                    }
+
+                    return group;
+                })
+                .linkWidth(link => link.type === 'hub_link' ? 0.8 : 0.2)
+                .linkColor(link => link.type === 'hub_link' ? getCategoryColor(link.group) : 'rgba(255,255,255,0.1)')
+                .linkDirectionalParticles(link => link.type === 'hub_link' ? 4 : 0) // Energy flowing to hub
+                .linkDirectionalParticleSpeed(0.005)
+                .linkDirectionalParticleWidth(2)
+
+                // === FORCES ===
+                // We use updateGalaxyData to set d3 forces
+                .onNodeClick(node => {
+                    // Manual stop rotation
+                    if (isRotating) toggleRotation();
+
+                    const distRatio = 1 + 60 / Math.hypot(node.x, node.y, node.z);
+                    Graph.cameraPosition(
+                        { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+                        node,
+                        2000
+                    );
+                    if (!node.isHub) setTimeout(() => openModal(node.data), 1500);
+                });
+
+            updateGalaxyData('all');
+
+            // Auto Rotate
+            let angle = 0;
+            setInterval(() => {
+                if (isRotating && Graph) {
+                    angle += 0.0005; // Slower orbit speed
+                    Graph.cameraPosition({
+                        x: 800 * Math.sin(angle), // Further out to see clusters
+                        z: 800 * Math.cos(angle)
+                    });
+                }
+            }, 30);
+
+            // Resize
+            window.addEventListener('resize', () => {
+                Graph.width(window.innerWidth);
+                Graph.height(window.innerHeight);
+            });
+        }
+
+        function updateGalaxyData(filter) {
+            let data = filter === 'all' ? synergyData : synergyData.filter(i => i.category === filter);
+
+            // 1. Create Data Nodes
+            const nodes = data.map(i => ({
+                id: i.id, // Use unique ID
+                title: i.title,
+                group: i.category,
+                val: i.rank || 2,
+                isHub: false,
+                data: i
+            }));
+
+            // 2. Create Category Hubs (The Glowing Centers)
+            const categories = [...new Set(data.map(d => d.category))];
+
+            // Pre-calculate positions to help force simulation start apart
+            const hubNodes = categories.map((cat, idx) => {
+                // Distribute hubs in a large circle/sphere initially
+                const angle = (idx / categories.length) * Math.PI * 2;
+                const radius = 400; // Large initial spread
+                return {
+                    id: `HUB_${cat.toUpperCase()}`,
+                    title: cat.toUpperCase(),
+                    group: cat,
+                    val: 15,
+                    isHub: true,
+                    // Give initial positions (x,y,z) to help separation
+                    x: Math.cos(angle) * radius,
+                    y: Math.random() * 200 - 100, // Slight vertical variation
+                    z: Math.sin(angle) * radius
+                };
+            });
+
+            const allNodes = [...hubNodes, ...nodes];
+
+            // 3. Create Links (Cluster Structure)
+            const links = [];
+
+            nodes.forEach(node => {
+                // Link each node to its Category Hub
+                links.push({
+                    source: node.id,
+                    target: `HUB_${node.group.toUpperCase()}`,
+                    group: node.group,
+                    type: 'hub_link'
+                });
+            });
+
+            Graph.graphData({ nodes: allNodes, links });
+
+            // 4. Custom Force Layout for POWERFUL CLUSTERING
+
+            // Repulsion:
+            // Hubs repel massively (-5000) to stay apart.
+            // Nodes repel locally (-50) to not bunch up too much.
+            Graph.d3Force('charge', d3.forceManyBody().strength(node => node.isHub ? -3000 : -50));
+
+            // Links:
+            // Hub Links are tight and rigid -> creates the "Ball" effect around hub
+            // distance: 50-150 depending on node rank? No, keep uniform for 'Cloud' look
+            Graph.d3Force('link').strength(link => link.type === 'hub_link' ? 0.3 : 0.1).distance(link => link.type === 'hub_link' ? 100 : 30);
+
+            // Radial Force? No, center force is fine if hubs repel enough.
+            // Let's add a radial force to keep hubs from flying into infinity, but purely for structure
+            Graph.d3Force('center', d3.forceCenter());
+
+            // Warmup
+            Graph.d3ReheatSimulation();
+        }
+
+        /* === HELPER FUNCTIONS === */
+        function getCategoryColor(cat) {
+            const map = {
+                'math': '#3B82F6',
+                'physics': '#F59E0B',
+                'chemistry': '#EC4899',
+                'biology': '#10B981',
+                'cs': '#06B6D4',
+                'science': '#8B5CF6'
+            };
+            return map[cat] || '#ffffff';
+        }
+
+        function toggleRotation() {
+            isRotating = !isRotating;
+            updateRotationBtn();
+
+            // Toast / Status text update
+            const status = document.getElementById('run-status');
+            if (status) {
+                status.innerText = isRotating ? "自动运行中" : "手动控制";
+                status.className = isRotating ? "text-cyan-400 animate-pulse" : "text-slate-500";
+            }
+        }
+
+        function updateRotationBtn() {
+            const btn = document.getElementById('btn-rotate');
+            if (btn) {
+                if (isRotating) {
+                    btn.classList.add('bg-cyan-600/30', 'text-white', 'shadow-[0_0_10px_rgba(8,145,178,0.5)]', 'animate-pulse');
+                    btn.classList.remove('text-cyan-400');
+                } else {
+                    btn.classList.remove('bg-cyan-600/30', 'text-white', 'shadow-[0_0_10px_rgba(8,145,178,0.5)]', 'animate-pulse');
+                    btn.classList.add('text-cyan-400');
+                }
+            }
+        }
+
+        function resetCamera() { Graph.cameraPosition({ x: 0, y: 0, z: 800 }, { x: 0, y: 0, z: 0 }, 1000); }
+        function zoomIn() {
+            const pos = Graph.cameraPosition();
+            Graph.cameraPosition({ x: pos.x * 0.8, y: pos.y * 0.8, z: pos.z * 0.8 }, null, 500);
+        }
+        function zoomOut() {
+            const pos = Graph.cameraPosition();
+            Graph.cameraPosition({ x: pos.x * 1.2, y: pos.y * 1.2, z: pos.z * 1.2 }, null, 500);
+        }
+
+        /* === MODAL LOGIC === */
+        function openModal(data) {
+            const m = document.getElementById('detail-modal');
+            const c = document.getElementById('modal-content-box');
+            m.classList.remove('hidden');
+            setTimeout(() => {
+                c.classList.remove('scale-95', 'opacity-0');
+                c.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            document.getElementById('modal-title').innerText = data.title;
+            document.getElementById('modal-content-text').innerHTML = data.content;
+
+            // Tags
+            const tags = document.getElementById('modal-tags');
+            tags.innerHTML = data.tags.map(t => `<span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 border border-cyan-500/30">#${t}</span>`).join('');
+        }
+
+        function closeModal() {
+            const m = document.getElementById('detail-modal');
+            const c = document.getElementById('modal-content-box');
+            c.classList.remove('scale-100', 'opacity-100');
+            c.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => m.classList.add('hidden'), 300);
+        }
+
+    </script>
+</body>
+
+</html>

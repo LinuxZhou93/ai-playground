@@ -14,6 +14,9 @@
     <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three-spritetext@1.8.2/dist/three-spritetext.min.js"></script>
     <script src="https://unpkg.com/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
+    <script src="assets/js/wiki-data.js"></script>
+    <script src="assets/js/synergy-data.js"></script>
+    <script src="assets/data/course.json"></script>
 
     <style>
         :root {
@@ -111,6 +114,9 @@
             border-radius: 4px;
             margin-bottom: 5px;
             font-size: 14px;
+            position: relative;
+            z-index: 101;
+            /* Above galaxy area */
         }
 
         .nav-item:hover,
@@ -387,13 +393,18 @@
         }
 
         #galaxy-area {
-            width: 100%;
-            height: calc(100vh - 200px);
+            position: fixed;
+            top: 0;
+            left: 260px;
+            /* Sidebar width */
+            width: calc(100% - 260px);
+            height: 100vh;
             display: none;
             /* Hidden by default */
-            border: 1px solid var(--glass-border);
-            background: rgba(0, 0, 0, 0.2);
-            position: relative;
+            border: none;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 50;
+            /* Above main content */
             overflow: hidden;
         }
 
@@ -716,9 +727,32 @@
         let currentFilter = 'all';
         let currentData = []; // Store the currently filtered dataset
         let renderedCount = 0; // Track how many items are currently on screen
-        const BATCH_SIZE = 24; // Number of items to load per batch
+        // Graph Categories (Dynamic)
+        let graphCategories = ['concept', 'tool', 'course', 'competition', 'school', 'book', 'career', 'frontier', 'project', 'pathway'];
 
-        // UI Translation Maps
+        const categoryColors = {
+            'concept': '#F59E0B', // Amber
+            'tool': '#3B82F6',    // Blue
+            'course': '#10B981',  // Emerald
+            'competition': '#F43F5E', // Rose
+            'school': '#8B5CF6',  // Violet
+            'book': '#EC4899',    // Pink
+            'career': '#6366F1',  // Indigo
+            'frontier': '#06B6D4', // Cyan
+            'project': '#84CC16',  // Lime
+            'pathway': '#FFFFFF',   // White
+
+            // Synergy Categories
+            'math': '#3B82F6',    // Blue (Math)
+            'physics': '#F59E0B', // Orange (Physics)
+            'chemistry': '#EC4899', // Pink (Chem)
+            'biology': '#10B981', // Green (Bio)
+            'cs': '#06B6D4',      // Cyan (CS)
+            'science': '#8B5CF6',  // Purple (General Science)
+            'science': '#8B5CF6',  // Purple (General Science)
+            'core': '#FFFFFF'     // White (Core Synergy)
+        };
+
         const categoryMap = {
             'concept': '核心概念',
             'tool': '开发工具',
@@ -729,7 +763,16 @@
             'career': '职业发展',
             'frontier': '前沿科技',
             'project': '项目案例',
-            'pathway': '学习路径'
+            'pathway': '学习路径',
+
+            // Synergy Map
+            'math': '数学 (Math)',
+            'physics': '物理 (Physics)',
+            'chemistry': '化学 (Chemistry)',
+            'biology': '生物 (Biology)',
+            'cs': '信息科技 (CS)',
+            'science': '小学科学 (Science)',
+            'core': '核心素养 (Core)'
         };
 
         const stageMap = {
@@ -974,7 +1017,7 @@
 
         // Shared data for graph
         // Shared data for graph (Updated with new categories)
-        const graphCategories = ['concept', 'tool', 'course', 'competition', 'school', 'book', 'career', 'frontier', 'project', 'pathway'];
+
 
         function initGalaxy() {
             const elem = document.getElementById('galaxy-graph');
@@ -998,14 +1041,49 @@
                         'career': '#0099ff',
                         'frontier': '#ff00ff', // Magenta
                         'project': '#ffae00',  // Orange
-                        'pathway': '#ffffff'   // White for paths
+                        'pathway': '#ffffff',   // White for paths
+                        // Synergy Map
+                        'math': '#00ff00', // Green
+                        'physics': '#ff6600', // Orange
+                        'chemistry': '#9933ff', // Purple
+                        'biology': '#00cc66', // Dark Green
+                        'cs': '#0099ff', // Blue
+                        'science': '#ffff33', // Yellow
+                        'core': '#ff00cc' // Pink
                     };
                     return colorMap[node.group] || '#cccccc';
                 })
                 .nodeThreeObject(node => {
                     const group = new THREE.Group();
 
-                    // 1. Orb / Sphere
+                    // 1. Glow Sprite (Bloom Simulation)
+                    // Create a soft glow texture
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 32;
+                    canvas.height = 32;
+                    const context = canvas.getContext('2d');
+                    const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
+                    const color = node.isHub ? '#ffffff' : (Graph.nodeColor()(node));
+
+                    gradient.addColorStop(0, color);
+                    gradient.addColorStop(0.4, color);
+                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                    context.fillStyle = gradient;
+                    context.fillRect(0, 0, 32, 32);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const spriteMaterial = new THREE.SpriteMaterial({
+                        map: texture,
+                        transparent: true,
+                        opacity: 0.6,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
+                    });
+                    const glowSprite = new THREE.Sprite(spriteMaterial);
+                    glowSprite.scale.set(node.val * 6, node.val * 6, 1);
+                    group.add(glowSprite);
+
+                    // 2. Orb / Sphere (Core)
                     let geometry, material, mesh;
                     if (node.isHub) {
                         geometry = new THREE.SphereGeometry(node.val / 2, 32, 32);
@@ -1014,17 +1092,16 @@
                             transparent: true,
                             opacity: 0.9,
                             emissive: 0xffffff,
-                            emissiveIntensity: 0.8
+                            emissiveIntensity: 1
                         });
                     } else {
-                        const color = Graph.nodeColor()(node);
                         geometry = new THREE.SphereGeometry(node.val, 16, 16);
                         material = new THREE.MeshLambertMaterial({
                             color: color,
                             transparent: true,
-                            opacity: 0.8,
+                            opacity: 0.9,
                             emissive: color,
-                            emissiveIntensity: 0.4
+                            emissiveIntensity: 0.8
                         });
                     }
                     mesh = new THREE.Mesh(geometry, material);
@@ -1044,12 +1121,23 @@
                     return group;
                 })
 
-                // Link Visuals
-                .linkWidth(link => link.type === 'structure' ? 0.5 : 0.2)
-                .linkColor(link => link.type === 'structure' ? 'rgba(255,255,255,0.05)' : 'rgba(0,243,255,0.1)')
-                .linkDirectionalParticles(link => link.type === 'association' ? 1 : 0) // Only data flows on association links
-                .linkDirectionalParticleSpeed(0.005)
-                .linkDirectionalParticleWidth(1.5)
+                // Link Visuals - Neural Flow
+                .linkWidth(link => link.type === 'structure' ? 1.0 : 0.5)
+                .linkColor(link => {
+                    if (link.type === 'structure') return 'rgba(255,255,255,0.08)'; // Faint structural lines
+                    if (link.type === 'sequence') return '#ffae00'; // Learning paths are Gold
+                    return 'rgba(0,243,255,0.15)'; // Associations are Cyan
+                })
+                .linkDirectionalParticles(link => {
+                    // "Knowledge Flowing": More particles for active connections
+                    if (link.type === 'sequence') return 4; // High flow on learning paths
+                    if (link.type === 'association') return 2; // Moderate flow on associations
+                    return 0;
+                })
+                .linkDirectionalParticleSpeed(link => link.type === 'sequence' ? 0.01 : 0.006)
+                .linkDirectionalParticleWidth(link => link.type === 'sequence' ? 2.5 : 1.5)
+                .linkDirectionalArrowLength(3.5)
+                .linkDirectionalArrowRelPos(1)
 
                 // Interaction
                 .onNodeHover(node => {
@@ -1058,19 +1146,22 @@
                 .onNodeClick(node => {
                     if (node.isHub) return; // Ignore hubs
 
-                    // Fly to node
+                    // 1. Stop Auto-Rotation to prevent fighting
+                    isRotating = false;
+
+                    // 2. Fly to node (Space Shuttle Zoom)
                     const distance = 80;
                     const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
 
                     Graph.cameraPosition(
                         { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
-                        node,
-                        2000
+                        node, // Look at node
+                        2000  // Duration (ms)
                     );
 
-                    // Open Modal
+                    // 3. Open Modal after flight
                     if (node.data) {
-                        setTimeout(() => openModal(node.data), 1000);
+                        setTimeout(() => openModal(node.data), 2000);
                     }
                 });
 
@@ -1213,6 +1304,37 @@
             // or we can just iterate scene objects.
             // For simplicity, we keep them always on for now as requested.
             // This button could interact with visible/opacity props.
+        }
+
+        function initWiki() {
+            // Check for Data Mode
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataMode = urlParams.get('data');
+
+            // Switch Data Source
+            let activeData = window.wikiData; // Default
+            if (dataMode === 'synergy' && window.synergyData) {
+                console.log("Loading Synergy Data...");
+                activeData = window.synergyData;
+                document.title = "全学科协同星系 | Curriculum Synergy Galaxy";
+
+                // Switch Categories for Synergy View
+                graphCategories = ['math', 'physics', 'chemistry', 'biology', 'cs', 'science'];
+            }
+
+            // Load Data
+            currentData = activeData;
+            renderCards(currentData);
+            updateGalaxyData(activeData); // Pass activeData directly
+
+            // Add resize listener
+            window.addEventListener('resize', () => {
+                if (Graph) {
+                    const elem = document.getElementById('galaxy-graph');
+                    Graph.width(elem.clientWidth);
+                    Graph.height(elem.clientHeight);
+                }
+            });
         }
 
         // Initial render
