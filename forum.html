@@ -593,7 +593,7 @@
 
             // --- 2. Auth Logic & Events ---
             let currentUser = null;
-            sidebarLoginBtn.onclick = () => { if (currentUser) alert(`你好，${currentUser.name}！`); else { toggleAuthModal(true); switchTab('login'); } };
+            sidebarLoginBtn.onclick = () => { if (currentUser) actions.viewProfile(); else { toggleAuthModal(true); switchTab('login'); } };
 
             formLogin.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -700,7 +700,10 @@
                         hasUpvoted: false,
                         comments: 5 + (i * 3),
                         time: new Date(Date.now() - (i * 3600000)),
-                        replies: []
+                        replies: i === 0 ? [
+                            { id: 1, user: "老师_张", content: "非常有价值的分享，感谢！", time: new Date(Date.now() - 100000) },
+                            { id: 2, user: "竞赛教练_王", content: "CSP-J 确实是基础，但 VEX 能锻炼工程思维，看孩子兴趣。", time: new Date(Date.now() - 200000) }
+                        ] : []
                     };
                 });
             };
@@ -721,7 +724,26 @@
                     if (thread) { state.activeThread = thread; state.view = 'detail'; render(); document.getElementById('thread-container').scrollTop = 0; }
                 },
                 backToList: () => { state.activeThread = null; state.view = 'list'; render(); },
-                aiAnalyze: (id) => { performAIAnalysis(id); }
+                viewProfile: () => { state.view = 'profile'; render(); },
+                aiAnalyze: (id) => { performAIAnalysis(id); },
+                submitComment: (threadId) => {
+                    if (!currentUser) return alert('请先登录');
+                    const input = document.getElementById('comment-input');
+                    const content = input.value.trim();
+                    if (!content) return;
+
+                    const thread = state.items.find(t => t.id === threadId);
+                    if (thread) {
+                        thread.replies.unshift({
+                            id: Date.now(),
+                            user: currentUser.name,
+                            content: content,
+                            time: new Date()
+                        });
+                        thread.comments++;
+                        renderDetailView();
+                    }
+                }
             };
 
             const render = () => {
@@ -729,10 +751,66 @@
                 if (state.view === 'detail') {
                     threadListEl.className = 'p-4 max-w-4xl mx-auto animate-fade-in-up';
                     renderDetailView();
+                } else if (state.view === 'profile') {
+                    threadListEl.className = 'p-4 max-w-4xl mx-auto animate-fade-in-up';
+                    renderProfileView();
                 } else {
                     threadListEl.className = 'p-6 grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-max';
                     renderListView();
                 }
+            };
+
+            const renderProfileView = () => {
+                const myPosts = state.items.filter(i => i.author === currentUser?.name);
+                threadListEl.innerHTML = `
+                    <div class="glass-panel p-8 animate-fade-in-up">
+                        <button onclick="window.forumActions.backToList()" class="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+                            <span class="text-xl group-hover:-translate-x-1 transition-transform">←</span>
+                            <span class="font-bold">返回首页</span>
+                        </button>
+                    
+                        <div class="flex items-center gap-6 mb-8 pb-8 border-b border-slate-700/50">
+                           <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-4xl text-white font-bold shadow-lg shadow-cyan-500/50">
+                                ${currentUser.name[0]}
+                           </div>
+                           <div>
+                               <h1 class="text-3xl font-bold text-white mb-2">${currentUser.name}</h1>
+                               <div class="flex gap-3 text-sm text-slate-400">
+                                   <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">${currentUser.role}</span>
+                                   <span class="flex items-center">✨ 积分: 1,240</span>
+                                   <span class="flex items-center">📅 加入于 2025</span>
+                               </div>
+                           </div>
+                           <button onclick="window.location.reload()" class="ml-auto px-6 py-2 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/10 transition-colors flex items-center gap-2">
+                                <span>🚪</span> 退出登录
+                           </button>
+                        </div>
+                        
+                        <div class="flex gap-6 border-b border-slate-700/50 mb-6">
+                            <button class="px-4 py-2 text-cyan-400 border-b-2 border-cyan-400 font-bold">我的发布 (${myPosts.length})</button>
+                            <button class="px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">我的收藏</button>
+                            <button class="px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">账户设置</button>
+                        </div>
+
+                        <div class="space-y-4">
+                            ${myPosts.length > 0 ? myPosts.map(post => `
+                                <div class="p-5 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-cyan-500/30 cursor-pointer transition-all group" onclick="window.forumActions.viewDetails(${post.id})">
+                                    <div class="flex justify-between items-start mb-2">
+                                         <h3 class="font-bold text-lg text-slate-200 group-hover:text-cyan-400 transition-colors">${post.title}</h3>
+                                         <span class="text-xs text-slate-500 font-mono">${new Date(post.time).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="flex gap-3 mb-3">
+                                        <span class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-500">${post.tag}</span>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-xs text-slate-500">
+                                        <span>👍 ${post.upvotes}</span>
+                                        <span>💬 ${post.comments}</span>
+                                    </div>
+                                </div>
+                            `).join('') : '<div class="text-center text-slate-500 py-10">你还没有发布过任何话题</div>'}
+                        </div>
+                    </div>
+                `;
             };
 
             const renderListView = () => {
@@ -817,7 +895,7 @@
                         <div class="flex-1">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-sm font-bold text-slate-300">${reply.user}</span>
-                                <span class="text-xs text-slate-500">${reply.time}</span>
+                                <span class="text-xs text-slate-500">${new Date(reply.time).toLocaleString()}</span>
                             </div>
                             <p class="text-slate-300 text-sm leading-relaxed">${reply.content}</p>
                         </div>
@@ -848,7 +926,7 @@
 
                              <div class="flex gap-3 mb-4">
                                 <span class="px-2 py-1 rounded-md bg-slate-800 ${thread.tagColor} border border-slate-700 text-xs font-bold">${thread.tag}</span>
-                                <span class="text-slate-500 text-xs flex items-center">发布于 近期</span>
+                                <span class="text-slate-500 text-xs flex items-center">发布于 ${window.dayjs ? dayjs(thread.time).fromNow() : '近期'}</span>
                              </div>
                              <h1 class="text-3xl font-bold text-white mb-6 leading-tight">${thread.title}</h1>
                              <div class="flex items-center gap-4 mb-8 pb-6 border-b border-slate-700/50">
@@ -862,8 +940,8 @@
                                 ${thread.content.split('\n').map(p => `<p>${p}</p>`).join('')}
                              </div>
                              <div class="flex items-center gap-6 text-slate-400 border-t border-slate-700/50 pt-6">
-                                <button class="flex items-center gap-2 hover:text-cyan-400 hover:scale-105 transition-all text-cyan-400">
-                                    <span class="text-xl">👍</span> ${thread.upvotes} 赞同
+                                <button class="flex items-center gap-2 hover:text-cyan-400 hover:scale-105 transition-all text-cyan-400" onclick="window.forumActions.upvote(${thread.id}, event)">
+                                    <span class="text-xl">${thread.hasUpvoted ? '👍' : '👍'}</span> ${thread.upvotes} 赞同
                                 </button>
                                 <button class="flex items-center gap-2 hover:text-cyan-400 transition-colors">
                                     <span class="text-xl">⭐</span> 收藏
@@ -873,7 +951,28 @@
                         
                         <div class="glass-panel p-6">
                             <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><span>💬</span> 讨论 (${thread.comments})</h3>
-                            <div class="space-y-4">${repliesHtml.length ? repliesHtml : '<div class="text-slate-500 text-center py-4">暂无评论，快来抢沙发吧！</div>'}</div>
+                            
+                            <!-- Comment Input -->
+                            <div class="mb-8 flex gap-4">
+                                <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold shrink-0">
+                                    ${currentUser ? currentUser.name[0] : 'G'}
+                                </div>
+                                <div class="flex-1">
+                                    <textarea id="comment-input" rows="3" placeholder=${currentUser ? "写下你的看法..." : "请先登录后发表评论..."} ${currentUser ? '' : 'disabled'}
+                                        class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors resize-none placeholder:text-slate-500 mb-2"></textarea>
+                                    <div class="flex justify-end">
+                                        <button onclick="window.forumActions.submitComment(${thread.id})" ${currentUser ? '' : 'disabled'}
+                                            class="px-6 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                            发表评论
+                                        </button>
+                                    </div>
+                                    ${!currentUser ? '<p class="text-xs text-slate-500 mt-2">提示：登录后即可参与讨论</p>' : ''}
+                                </div>
+                            </div>
+
+                            <div class="space-y-4" id="comments-list">
+                                ${repliesHtml.length ? repliesHtml : '<div class="text-slate-500 text-center py-4">暂无评论，快来抢沙发吧！</div>'}
+                            </div>
                         </div>
                 `;
             };
@@ -885,7 +984,8 @@
                 viewDetails: (id) => { actions.viewThread(id); },
                 viewThread: (id) => { actions.viewThread(id); },
                 backToList: () => { actions.backToList(); },
-                aiAnalyze: (id, e) => { if (e) e.stopPropagation(); actions.aiAnalyze(id); }
+                aiAnalyze: (id, e) => { if (e) e.stopPropagation(); actions.aiAnalyze(id); },
+                submitComment: (id) => { actions.submitComment(id); }
             };
 
             searchInput.addEventListener('input', (e) => { state.filter = e.target.value.toLowerCase(); render(); });

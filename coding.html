@@ -8,8 +8,28 @@
 
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Use BootCDN for better stability in China -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/3.3.4/vue.global.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/supabase.js/2.39.1/supabase.min.js"></script>
+
+    <!-- Global Error Handler to debug blank screen -->
+    <script>
+        window.addEventListener('error', function (e) {
+            console.error('Global Error:', e.message);
+            const app = document.getElementById('app');
+            if (app && getComputedStyle(app).display === 'none') {
+                // If app is hidden (v-cloak) and there's an error, show the error
+                document.body.innerHTML += `
+                    <div style="color: red; padding: 20px; background: #fff; z-index: 9999; position: fixed; top: 0; left: 0; width: 100%;">
+                        <h3>Startup Error</h3>
+                        <pre>${e.message}</pre>
+                        <p>Check console for details.</p>
+                        <button onclick="location.reload()">Reload</button>
+                    </div>
+                `;
+            }
+        });
+    </script>
 
     <!-- Configure Tailwind -->
     <script>
@@ -925,20 +945,8 @@
                 });
 
                 // Initialize Supabase if available
-                const supabaseUrl = 'https://glqbjpobdazzsozshjnt.supabase.co';
-                const supabaseKey = 'YourAnonKey'; // Assuming this is handled or public
-
-                let supabase = null;
-                if (typeof SupabaseClient !== 'undefined') {
-                    try {
-                        // We don't have the key here in the file usually, it might be in the client js or environment.
-                        // But looking at the code, it seems SupabaseClient was used globally or we need to check how it was initialized.
-                        // Actually, looking at the code, it expects SupabaseClient.createClient.
-                        // Let's just make it safe.
-                        // supabase = SupabaseClient.createClient(supabaseUrl, supabaseKey);
-                        // Wait, I don't see the key. Let's just mock it if missing to prevent crash.
-                    } catch (e) { console.warn("Supabase init error", e); }
-                }
+                // Note: Supabase Client is handled by assets/js/supabase-client.js
+                // We rely on window.SupabaseClient for logic.
 
                 // If Supabase is missing, we just use local mode.
                 const user = Vue.ref(null);

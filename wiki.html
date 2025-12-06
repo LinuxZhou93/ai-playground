@@ -351,6 +351,7 @@
 
         /* Galaxy Container */
         /* Galaxy Controls */
+        /* Galaxy Controls */
         #galaxy-controls {
             position: absolute;
             top: 20px;
@@ -382,7 +383,7 @@
             transform: scale(1.1);
         }
 
-        #galaxy-container {
+        #galaxy-area {
             width: 100%;
             height: calc(100vh - 200px);
             display: none;
@@ -393,7 +394,12 @@
             overflow: hidden;
         }
 
-        #galaxy-container canvas {
+        #galaxy-graph {
+            width: 100%;
+            height: 100%;
+        }
+
+        #galaxy-graph canvas {
             outline: none;
         }
 
@@ -661,7 +667,16 @@
         </div>
 
         <!-- Galaxy Container -->
-        <div id="galaxy-container"></div>
+        <!-- Galaxy Container -->
+        <div id="galaxy-area">
+            <div id="galaxy-controls">
+                <button onclick="toggleFullScreen()" title="全屏沉浸"><i data-lucide="maximize"></i></button>
+                <button onclick="resetCamera()" title="重置视角"><i data-lucide="crosshair"></i></button>
+                <button onclick="toggleRotation()" title="自动旋转"><i data-lucide="refresh-cw"></i></button>
+                <button onclick="toggleLabels()" title="切换标签"><i data-lucide="type"></i></button>
+            </div>
+            <div id="galaxy-graph"></div>
+        </div>
     </div>
 
     <!-- Details Modal -->
@@ -827,11 +842,12 @@
             }
 
             // Reset and render new dataset
+            // Reset and render new dataset
             renderCards(true);
 
             // Update Galaxy if active
-            const galaxyContainer = document.getElementById('galaxy-container');
-            if (galaxyContainer.style.display !== 'none' && typeof updateGalaxyData === 'function') {
+            const galaxyArea = document.getElementById('galaxy-area');
+            if (galaxyArea.style.display !== 'none' && typeof updateGalaxyData === 'function') {
                 updateGalaxyData(currentData);
             }
         }
@@ -850,10 +866,12 @@
             renderCards(true);
 
             // Update Galaxy if active
-            const galaxyContainer = document.getElementById('galaxy-container');
-            if (galaxyContainer.style.display !== 'none' && typeof updateGalaxyData === 'function') {
+            const galaxyArea = document.getElementById('galaxy-area');
+            if (galaxyArea.style.display !== 'none' && typeof updateGalaxyData === 'function') {
                 updateGalaxyData(currentData);
             }
+
+
         }
 
         // Number Counter Animation
@@ -873,13 +891,13 @@
         // View Switcher Logic
         function switchView(mode) {
             const gridContainer = document.getElementById('wiki-container');
-            const galaxyContainer = document.getElementById('galaxy-container');
+            const galaxyArea = document.getElementById('galaxy-area');
             const btnGrid = document.getElementById('btn-grid');
             const btnGalaxy = document.getElementById('btn-galaxy');
 
             if (mode === 'galaxy') {
                 gridContainer.style.display = 'none';
-                galaxyContainer.style.display = 'block';
+                galaxyArea.style.display = 'block';
                 btnGrid.classList.remove('active');
                 btnGalaxy.classList.add('active');
 
@@ -890,7 +908,7 @@
                 }
             } else {
                 gridContainer.style.display = 'grid';
-                galaxyContainer.style.display = 'none';
+                galaxyArea.style.display = 'none';
                 btnGrid.classList.add('active');
                 btnGalaxy.classList.remove('active');
             }
@@ -951,21 +969,9 @@
         const graphCategories = ['concept', 'tool', 'course', 'competition', 'school', 'book', 'career'];
 
         function initGalaxy() {
-            const elem = document.getElementById('galaxy-container');
+            const elem = document.getElementById('galaxy-graph');
 
-            // Add Controls UI if not exists
-            if (!document.getElementById('galaxy-controls')) {
-                const controls = document.createElement('div');
-                controls.id = 'galaxy-controls';
-                controls.innerHTML = `
-                    <button onclick="toggleFullScreen()" title="全屏沉浸"><i data-lucide="maximize"></i></button>
-                    <button onclick="resetCamera()" title="重置视角"><i data-lucide="crosshair"></i></button>
-                    <button onclick="toggleRotation()" title="自动旋转"><i data-lucide="refresh-cw"></i></button>
-                    <button onclick="toggleLabels()" title="切换标签"><i data-lucide="type"></i></button>
-                `;
-                elem.appendChild(controls);
-                lucide.createIcons();
-            }
+            // Controls are now static HTML inner #galaxy-area
 
             // Initialize Graph Instance (Empty initially)
             Graph = ForceGraph3D()
@@ -1079,7 +1085,7 @@
 
         // Toolbar Functions
         function toggleFullScreen() {
-            const elem = document.getElementById('galaxy-container');
+            const elem = document.getElementById('galaxy-area');
             if (!document.fullscreenElement) {
                 elem.requestFullscreen().catch(err => {
                     alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
