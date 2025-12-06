@@ -201,6 +201,23 @@
             </p>
         </div>
 
+        <!-- Search Bar -->
+        <div class="max-w-2xl mx-auto mb-8 relative group">
+            <div
+                class="absolute inset-0 bg-cyan-500/20 blur-xl rounded-full opacity-20 group-hover:opacity-40 transition-opacity">
+            </div>
+            <div
+                class="relative flex items-center bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-6 py-3 transition-colors hover:border-cyan-500/50">
+                <i class="fas fa-search text-cyan-500 mr-4"></i>
+                <input type="text" id="search-input" placeholder="Search experiments / 搜索实验..."
+                    class="w-full bg-transparent border-none text-white focus:outline-none font-mono text-sm placeholder-gray-500"
+                    oninput="handleSearch(this.value)">
+                <div class="text-xs text-gray-600 font-mono hidden md:block border-l border-white/10 pl-4 ml-4">
+                    CTRL+K
+                </div>
+            </div>
+        </div>
+
         <!-- Filters -->
         <div class="flex flex-wrap justify-center gap-4 mb-12" id="filter-container">
             <button
@@ -265,6 +282,19 @@
         <div id="labs-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Cards will be injected here via JS -->
             <div class="text-gray-500 text-center col-span-full font-mono">Loading data...</div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div id="pagination-controls" class="flex justify-center items-center gap-6 mt-12 mb-12 font-mono text-sm">
+            <button onclick="changePage(-1)" id="prev-btn"
+                class="text-cyan-500 hover:text-white disabled:text-gray-700 disabled:cursor-not-allowed transition-colors">
+                <i class="fas fa-chevron-left"></i> PREV
+            </button>
+            <span id="page-info" class="text-gray-400 tracking-widest">PAGE 1 / 1</span>
+            <button onclick="changePage(1)" id="next-btn"
+                class="text-cyan-500 hover:text-white disabled:text-gray-700 disabled:cursor-not-allowed transition-colors">
+                NEXT <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
 
     </main>
@@ -347,6 +377,11 @@
         // Language State
         let currentLang = 'zh'; // Default Chinese
         let currentExpUrl = ''; // Store URL for external launch
+
+        // Pagination & Search State
+        const itemsPerPage = 24;
+        let currentPage = 1;
+        let searchQuery = '';
 
         const translations = {
             zh: {
@@ -496,20 +531,62 @@
             }
         }
 
-        // Render Labs
+        // Search Handler
+        function handleSearch(query) {
+            searchQuery = query.toLowerCase().trim();
+            currentPage = 1; // Reset to first page
+            renderLabs(currentFilter);
+        }
+
+        // Pagination Handler
+        function changePage(delta) {
+            const filteredData = getFilteredData();
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            const newPage = currentPage + delta;
+
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderLabs(currentFilter);
+                // Scroll to top of grid
+                document.getElementById('filter-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Helper to get filtered data (Search + Category)
+        function getFilteredData() {
+            let data = typeof experiments !== 'undefined' ? experiments : [];
+
+            // 1. Filter by Category
+            if (currentFilter !== 'all') {
+                data = data.filter(item => item.category === currentFilter);
+            }
+
+            // 2. Filter by Search Query
+            if (searchQuery) {
+                data = data.filter(item => {
+                    const title = (item.title || '').toLowerCase();
+                    const desc = (item.description || '').toLowerCase();
+                    const titleZh = (item.title_zh || '').toLowerCase();
+                    const descZh = (item.description_zh || '').toLowerCase();
+                    return title.includes(searchQuery) || desc.includes(searchQuery) ||
+                        titleZh.includes(searchQuery) || descZh.includes(searchQuery);
+                });
+            }
+            return data;
+        }
+
+        // Render Labs (Updated for Pagination)
         function renderLabs(filter = 'all') {
             currentFilter = filter;
+
             if (typeof experiments === 'undefined') {
                 grid.innerHTML = '<div class="col-span-full text-red-500 text-center p-8 border border-red-500/30 bg-red-900/10 rounded-xl">Error: experiments.js failed to load. Please check network/console.</div>';
                 return;
             }
 
-
             try {
                 grid.innerHTML = '';
-                const filteredData = filter === 'all'
-                    ? experiments
-                    : experiments.filter(item => item.category === filter);
+                const filteredData = getFilteredData();
 
                 // Update Stats
                 if (categoryLabel && experimentCount) {
@@ -523,6 +600,9 @@
 
                 if (filteredData.length === 0) {
                     grid.innerHTML = '<div class="col-span-full text-gray-500 text-center p-8 border border-gray-500/30 bg-gray-900/10 rounded-xl font-mono">No simulation found / 暂无该分类实验</div>';
+                    document.getElementById('page-info').innerText = `PAGE 0 / 0`;
+                    document.getElementById('prev-btn').disabled = true;
+                    document.getElementById('next-btn').disabled = true;
                     return;
                 }
 
@@ -533,12 +613,32 @@
                     if (span) {
                         const zhText = span.getAttribute('data-zh');
                         if ((filter === 'all' && zhText.includes('全部')) || zhText.includes(filter)) {
-                            // btn.classList.add('ring-1', 'ring-cyan-500/50'); // Optional active state
+                            // btn.classList.add('ring-1', 'ring-cyan-500/50');
                         }
                     }
                 });
 
-                filteredData.forEach((exp, index) => {
+                // Pagination Logic
+                const totalItems = filteredData.length;
+                const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+                // Ensure currentPage is valid
+                if (currentPage > totalPages) currentPage = 1;
+
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
+
+                // Update Pagination Controls
+                const pageInfo = document.getElementById('page-info');
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
+
+                if (pageInfo) pageInfo.innerText = `PAGE ${currentPage} / ${totalPages}`;
+                if (prevBtn) prevBtn.disabled = currentPage === 1;
+                if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+                // Render Items
+                paginatedData.forEach((exp, index) => {
                     const card = document.createElement('div');
                     card.className = "experiment-card glass-card rounded-xl overflow-hidden hover:shadow-cyan-500/20 transition-all duration-300 group animate-fade-in";
                     card.style.animationDelay = `${index * 50}ms`;
@@ -656,12 +756,22 @@
 
         // Filter helper
         function filterLabs(category) {
+            currentPage = 1; // Reset page on filter change
             renderLabs(category);
         }
 
         // Initialize
         window.addEventListener('load', () => {
             renderLabs('all');
+        });
+
+        // Keyboard Shortcut for Search
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) searchInput.focus();
+            }
         });
     </script>
 

@@ -14,18 +14,19 @@
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap"
         rel="stylesheet">
 
-    <!-- 3D Libraries (Local for offline availability) -->
-    <script src="assets/js/lib/three.min.js"></script>
-    <script src="assets/js/lib/three-spritetext.min.js"></script>
-    <script src="assets/js/lib/3d-force-graph.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- 3D Libraries (Stable CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three-spritetext@1.8.1/dist/three-spritetext.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.1/dist/3d-force-graph.min.js"></script>
 
     <style>
         body {
             background-color: #050b14;
             font-family: 'Rajdhani', sans-serif;
             overflow: hidden;
-            /* Full screen immersive */
             margin: 0;
             padding: 0;
             user-select: none;
@@ -48,11 +49,7 @@
             border-color: rgba(56, 189, 248, 0.4);
         }
 
-        .neon-text {
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
-        }
-
-        /* Scrollbar for list view */
+        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -64,10 +61,6 @@
         ::-webkit-scrollbar-thumb {
             background: rgba(56, 189, 248, 0.3);
             border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(56, 189, 248, 0.6);
         }
 
         /* Modal Animation */
@@ -95,7 +88,7 @@
 
 <body>
 
-    <!-- 1. Background Graph Container (Full Screen) -->
+    <!-- 1. Background Graph Container -->
     <div id="galaxy-area" class="fixed inset-0 z-0 bg-[#050b14]">
         <div id="galaxy-graph" class="w-full h-full"></div>
     </div>
@@ -107,8 +100,7 @@
         <div class="pointer-events-auto w-full p-4 md:p-6 flex justify-between items-start">
             <!-- Title -->
             <div class="glass-panel rounded-2xl p-4 md:px-6 md:py-3 flex items-center gap-4">
-                <div
-                    class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 animate-pulse">
+                <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400">
                     <i data-lucide="network"></i>
                 </div>
                 <div>
@@ -118,8 +110,6 @@
                     <div class="flex gap-4 text-xs text-slate-400 mt-1">
                         <span><i data-lucide="database" class="w-3 h-3 inline"></i> <span id="total-entries">0</span>
                             节点</span>
-                        <span><i data-lucide="activity" class="w-3 h-3 inline"></i> <span
-                                id="run-status">自动运行中</span></span>
                     </div>
                 </div>
             </div>
@@ -142,24 +132,18 @@
                     title="返回上一页">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
-                <button onclick="toggleSafeMode()"
-                    class="glass-panel p-3 rounded-full text-red-400 hover:text-white hover:bg-red-900/40 transition-all"
-                    title="无法显示？点击切换简易模式 (Troubleshoot)">
-                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-                </button>
             </div>
         </div>
 
-        <!-- Matrix List View (Centered Overlay) -->
+        <!-- Matrix List View -->
         <div id="wiki-container-wrapper"
             class="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center p-4 md:p-10"
             style="display: none;">
             <div
                 class="glass-panel w-full max-w-6xl h-full rounded-3xl overflow-hidden flex flex-col bg-slate-900/90 shadow-2xl">
-                <!-- List Header -->
                 <div class="p-6 border-b border-cyan-500/20 flex justify-between items-center bg-slate-900/40">
                     <h2 class="text-xl text-white font-bold flex items-center gap-2">
-                        <i data-lucide="list"></i> 知识矩阵数据库 (1000+ ENTRY)
+                        <i data-lucide="list"></i> 知识矩阵数据库
                     </h2>
                     <div class="relative w-64 md:w-96">
                         <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
@@ -167,8 +151,6 @@
                             class="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-all">
                     </div>
                 </div>
-
-                <!-- Scrollable Grid -->
                 <div id="wiki-container"
                     class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Cards go here -->
@@ -176,44 +158,30 @@
             </div>
         </div>
 
-        <!-- Galaxy Controls (Bottom Right) -->
+        <!-- Galaxy Controls -->
         <div id="galaxy-controls-overlay" class="pointer-events-auto absolute bottom-8 right-8 flex flex-col gap-3">
-            <button onclick="toggleRotation()" id="btn-rotate"
-                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105 animate-pulse shadow-[0_0_10px_rgba(8,145,178,0.5)]"
-                title="开启/停止 自动旋转 (Auto-Rotation)">
-                <i data-lucide="refresh-cw"></i>
-            </button>
             <button onclick="resetCamera()"
-                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105"
-                title="重置视角 (Reset View)">
-                <i data-lucide="crosshair"></i>
-            </button>
-            <div class="h-px bg-slate-700 w-full my-1"></div>
-            <button onclick="zoomIn()"
-                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105" title="放大"><i
-                    data-lucide="plus"></i></button>
-            <button onclick="zoomOut()"
-                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105" title="缩小"><i
-                    data-lucide="minus"></i></button>
+                class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105"><i
+                    data-lucide="crosshair"></i></button>
         </div>
 
-        <!-- Filter Bar (Bottom center, floating) -->
+        <!-- Filter Bar -->
         <div id="filter-bar"
             class="pointer-events-auto absolute bottom-8 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-2 py-2 flex gap-1 overflow-x-auto max-w-[90vw]">
             <button onclick="filterContent('all', this)"
-                class="filter-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all whitespace-nowrap transform scale-105">ALL</button>
+                class="filter-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all">ALL</button>
             <button onclick="filterContent('math', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap">MATH</button>
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all">MATH</button>
             <button onclick="filterContent('physics', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-orange-600 hover:text-white transition-all whitespace-nowrap">PHYSICS</button>
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-orange-600 hover:text-white transition-all">PHYSICS</button>
             <button onclick="filterContent('chemistry', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-pink-600 hover:text-white transition-all whitespace-nowrap">CHEMISTRY</button>
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-pink-600 hover:text-white transition-all">CHEMISTRY</button>
             <button onclick="filterContent('biology', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-green-600 hover:text-white transition-all whitespace-nowrap">BIOLOGY</button>
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-green-600 hover:text-white transition-all">BIOLOGY</button>
             <button onclick="filterContent('cs', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-cyan-600 hover:text-white transition-all whitespace-nowrap">CS</button>
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-cyan-600 hover:text-white transition-all">CS</button>
             <button onclick="filterContent('science', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-purple-600 hover:text-white transition-all whitespace-nowrap">SCIENCE</button>
+                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-purple-600 hover:text-white transition-all">SCIENCE</button>
         </div>
 
     </div>
@@ -224,24 +192,15 @@
         onclick="if(event.target===this) closeModal()">
         <div class="glass-panel w-full max-w-2xl m-4 rounded-2xl overflow-hidden transform transition-all scale-95 opacity-0 relative"
             id="modal-content-box">
-            <!-- Corrected Close Button -->
             <button onclick="closeModal()"
-                class="absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-white hover:bg-red-500 hover:rotate-90 transition-all z-10 shadow-lg">
-                <i data-lucide="x" width="24" height="24"></i>
-            </button>
-
-            <div class="p-6 border-b border-cyan-500/20 flex justify-between items-start bg-slate-900/60 pt-10 md:pt-6">
-                <h2 id="modal-title" class="text-2xl font-bold text-white font-orbitron pr-8">Title</h2>
+                class="absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-white hover:bg-red-500 transition-all z-10"><i
+                    data-lucide="x"></i></button>
+            <div class="p-6 border-b border-cyan-500/20 bg-slate-900/60 pt-10 md:pt-6">
+                <h2 id="modal-title" class="text-2xl font-bold text-white font-orbitron">Title</h2>
             </div>
-            <div class="p-6 max-h-[60vh] overflow-y-auto text-slate-300 leading-relaxed" id="modal-content-text">
-                <!-- Content -->
-            </div>
+            <div class="p-6 max-h-[60vh] overflow-y-auto text-slate-300 leading-relaxed" id="modal-content-text"></div>
             <div class="p-6 border-t border-cyan-500/20 bg-slate-900/60 flex justify-between items-center">
                 <div id="modal-tags" class="flex gap-2 flex-wrap"></div>
-                <button
-                    class="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-cyan-500/30 whitespace-nowrap">
-                    查看关联图谱
-                </button>
             </div>
         </div>
     </div>
@@ -250,18 +209,27 @@
     <script src="assets/js/synergy-data.js"></script>
 
     <script>
-        // Init Icons
         lucide.createIcons();
-
-        // Global State
         let Graph = null;
-        let isRotating = true;
         let currentFilter = 'all';
 
-        // Init
         document.addEventListener('DOMContentLoaded', () => {
             initGalaxy();
             updateEntryCount();
+
+            // Force Resize Patch for 'File' Protocol Issues
+            // Sometimes the canvas initializes with 0 height/width when local.
+            setTimeout(() => {
+                if (Graph) {
+                    Graph.width(window.innerWidth);
+                    Graph.height(window.innerHeight);
+                    Graph.d3ReheatSimulation();
+                }
+            }, 500);
+
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 1000);
         });
 
         function updateEntryCount() {
@@ -270,7 +238,78 @@
             }
         }
 
-        /* === VIEW SWITCHER === */
+        /* === ROLLBACK: PURE VANILLA FORCE GRAPH === */
+        function initGalaxy() {
+            const elem = document.getElementById('galaxy-graph');
+
+            // Standard Init - No Custom Sprites, No Custom Forces
+            Graph = ForceGraph3D()
+                (elem)
+                .backgroundColor('#00000000') // Transparent
+                .nodeLabel('title')
+                .nodeColor(node => getCategoryColor(node.group))
+                .nodeRelSize(parseInt(6)) // Consistent size
+                .showNavInfo(false)
+                .onNodeClick(node => {
+                    // Camera Focus
+                    const distRatio = 1 + 60 / Math.hypot(node.x, node.y, node.z);
+                    Graph.cameraPosition(
+                        { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+                        node,
+                        2000
+                    );
+                    setTimeout(() => openModal(node.data), 1500);
+                });
+
+            // Init Data
+            updateGalaxyData('all');
+
+            // Trigger Resize Force
+            const resize = () => { Graph.width(window.innerWidth); Graph.height(window.innerHeight); };
+            window.addEventListener('resize', resize);
+            resize();
+        }
+
+        function updateGalaxyData(filter) {
+            let data = filter === 'all' ? synergyData : synergyData.filter(i => i.category === filter);
+
+            // Simple node mapping
+            const nodes = data.map(i => ({
+                id: i.id,
+                title: i.title,
+                group: i.category,
+                val: i.rank || 1, // Default value if generic
+                data: i
+            }));
+
+            // Auto-Link based on category (Simple structure)
+            // Or just nodes? Let's add simple links to a phantom center to keep them together?
+            // Actually, for pure visibility, independent nodes are safest.
+            // But let's keep the Hub Logic just for structure, but rendered as normal nodes.
+
+            const categories = [...new Set(data.map(d => d.category))];
+            const hubNodes = categories.map(cat => ({
+                id: `HUB_${cat}`,
+                title: cat.toUpperCase(),
+                group: cat,
+                val: 20, // Big
+                isHub: true
+            }));
+
+            const links = [];
+            nodes.forEach(n => {
+                links.push({ source: n.id, target: `HUB_${n.group}` });
+            });
+
+            Graph.graphData({ nodes: [...nodes, ...hubNodes], links: links });
+        }
+
+        function getCategoryColor(cat) {
+            const map = { 'math': '#3B82F6', 'physics': '#F59E0B', 'chemistry': '#EC4899', 'biology': '#10B981', 'cs': '#06B6D4', 'science': '#8B5CF6' };
+            return map[cat] || '#ffffff';
+        }
+
+        /* === VIEW SWITCHER & MODAL === */
         function switchView(mode) {
             const listWrapper = document.getElementById('wiki-container-wrapper');
             const btnGalaxy = document.getElementById('btn-galaxy');
@@ -280,362 +319,59 @@
 
             if (mode === 'grid') {
                 listWrapper.style.display = 'flex';
-                // Update buttons
                 btnGalaxy.className = "px-4 py-2 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all";
                 btnGrid.className = "px-4 py-2 rounded-full text-sm font-bold transition-all text-white bg-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.5)]";
-
-                galaxyControls.style.display = 'none'; // Hide galaxy controls
-                filterBar.style.display = 'none'; // Hide filters in grid mode
-
-                // Populate List
+                galaxyControls.style.display = 'none'; filterBar.style.display = 'none';
                 renderList();
             } else {
                 listWrapper.style.display = 'none';
-
                 btnGrid.className = "px-4 py-2 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all";
                 btnGalaxy.className = "px-4 py-2 rounded-full text-sm font-bold transition-all text-white bg-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.5)]";
-
-                galaxyControls.style.display = 'flex';
-                filterBar.style.display = 'flex';
+                galaxyControls.style.display = 'flex'; filterBar.style.display = 'flex';
             }
         }
 
-        /* === RENDER LIST === */
         function renderList() {
             const container = document.getElementById('wiki-container');
             container.innerHTML = '';
-
-            // Search Logic
             const searchTerm = document.getElementById('search-input')?.value.toLowerCase();
-
             const data = synergyData;
-            const finalData = searchTerm
-                ? data.filter(item => item.title.toLowerCase().includes(searchTerm) || item.category.includes(searchTerm))
-                : data;
+            const finalData = searchTerm ? data.filter(item => item.title.toLowerCase().includes(searchTerm)) : data;
 
-            // Render first 200
             finalData.slice(0, 200).forEach(item => {
                 const card = document.createElement('div');
-                card.className = "glass-panel p-4 rounded-xl hover:bg-slate-800/80 cursor-pointer group transition-all transform hover:scale-[1.02] border border-slate-700/50";
+                card.className = "glass-panel p-4 rounded-xl hover:bg-slate-800/80 cursor-pointer border border-slate-700/50";
                 card.onclick = () => openModal(item);
-
                 const color = getCategoryColor(item.category);
-
-                card.innerHTML = `
-                     <div class="flex justify-between items-start mb-2">
-                         <span class="text-xs font-bold px-2 py-1 rounded bg-slate-900 text-[${color}] border border-[${color}]/30" style="color:${color}; border-color:${color}4d">
-                             ${item.category.toUpperCase()}
-                         </span>
-                         <span class="text-xs text-slate-500">${item.stage ? item.stage.toUpperCase() : 'STAGE'}</span>
-                     </div>
-                     <h3 class="text-lg font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">${item.title}</h3>
-                     <div class="text-sm text-slate-400 overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${item.content.replace(/<[^>]*>?/gm, '')}</div>
-                 `;
+                card.innerHTML = `<h3 class="text-lg font-bold text-white mb-2" style="color:${color}">${item.title}</h3><div class="text-sm text-slate-400">${item.content.replace(/<[^>]*>?/gm, '').substring(0, 60)}...</div>`;
                 container.appendChild(card);
             });
         }
+        function searchWiki() { if (document.getElementById('wiki-container-wrapper').style.display !== 'none') renderList(); }
 
-        function searchWiki() {
-            if (document.getElementById('wiki-container-wrapper').style.display !== 'none') {
-                renderList();
-            }
-        }
-
-        /* === FILTER LOGIC === */
         function filterContent(category, btn) {
             currentFilter = category;
-
-            // UI Update
-            document.querySelectorAll('.filter-btn').forEach(b => {
-                b.className = b.className.replace(/active|bg-cyan-600|text-white|scale-105|shadow-lg/g, '');
-                b.className = "filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap";
-            });
-            // highlight active
-            btn.className = "filter-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all whitespace-nowrap transform scale-105";
-
-            // Update Graph
-            updateGalaxyData(currentFilter);
+            document.querySelectorAll('.filter-btn').forEach(b => b.className = "filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all");
+            btn.className = "filter-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all";
+            updateGalaxyData(category);
         }
 
-        /* === GALAXY ENGINE (CLUSTERING) === */
-        function initGalaxy() {
-            // Pre-calculate Glow Texture (Optimization)
-            let glowTexture = null;
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = 128; canvas.height = 128;
-                const ctx = canvas.getContext('2d');
-                const grd = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-                grd.addColorStop(0, 'rgba(255,255,255,1)');
-                grd.addColorStop(0.2, 'rgba(255,255,255,0.8)');
-                grd.addColorStop(1, 'rgba(0,0,0,0)');
-                ctx.fillStyle = grd;
-                ctx.fillRect(0, 0, 128, 128);
-                glowTexture = new THREE.CanvasTexture(canvas);
-            } catch (e) { console.warn("Failed to create glow texture", e); }
-
-            try {
-                const elem = document.getElementById('galaxy-graph');
-                if (!elem) return;
-
-                Graph = ForceGraph3D()
-                    (elem)
-                    .backgroundColor('#00000000')
-                    .showNavInfo(false)
-                    .nodeLabel('title')
-                    .nodeColor(node => getCategoryColor(node.group))
-                    .nodeRelSize(node => node.val)
-                    .nodeThreeObject(node => {
-                        // SAFELY create custom objects
-                        try {
-                            const group = new THREE.Group();
-                            const color = getCategoryColor(node.group);
-
-                            if (node.isHub) {
-                                // 1. Core
-                                const geometry = new THREE.SphereGeometry(node.val, 32, 32);
-                                const material = new THREE.MeshBasicMaterial({ color: color });
-                                group.add(new THREE.Mesh(geometry, material));
-
-                                // 2. Glow (Reuse Texture)
-                                if (glowTexture) {
-                                    const spriteMat = new THREE.SpriteMaterial({ map: glowTexture, color: color, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending });
-                                    const sprite = new THREE.Sprite(spriteMat);
-                                    sprite.scale.set(150, 150, 1);
-                                    group.add(sprite);
-                                }
-
-                                // 3. Label
-                                const label = new SpriteText(node.title);
-                                label.color = '#ffffff';
-                                label.textHeight = 12;
-                                label.fontFace = 'Orbitron';
-                                label.fontWeight = 'bold';
-                                label.position.y = 40;
-                                group.add(label);
-
-                            } else {
-                                // Normal Node
-                                const geometry = new THREE.SphereGeometry(node.val, 8, 8);
-                                const material = new THREE.MeshLambertMaterial({ color: color, transparent: true, opacity: 0.9 });
-                                group.add(new THREE.Mesh(geometry, material));
-
-                                // Label (Conditional? Or simplified)
-                                // Only show label if rank > 2 to warn off performance? No, let's try all.
-                                // If crashing, we might need to remove this for low-tier nodes.
-                                const label = new SpriteText(node.title);
-                                label.color = 'rgba(255,255,255,0.9)';
-                                label.textHeight = 3;
-                                label.position.y = node.val + 6;
-                                group.add(label);
-                            }
-                            return group;
-                        } catch (err) {
-                            console.warn("Node Render Error", err);
-                            return null; // Fallback to default sphere
-                        }
-                    })
-                    .linkWidth(link => link.type === 'hub_link' ? 0.8 : 0.2)
-                    .linkColor(link => link.type === 'hub_link' ? getCategoryColor(link.group) : 'rgba(255,255,255,0.1)')
-                    .onNodeClick(node => {
-                        if (isRotating) toggleRotation();
-                        const distRatio = 1 + 60 / Math.hypot(node.x, node.y, node.z);
-                        Graph.cameraPosition(
-                            { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
-                            node, 2000
-                        );
-                        setTimeout(() => openModal(node.data), 1500);
-                    });
-
-                updateGalaxyData('all');
-
-                // Auto Rotate
-                let angle = 0;
-                setInterval(() => {
-                    if (isRotating && Graph) {
-                        angle += 0.0005;
-                        Graph.cameraPosition({ x: 800 * Math.sin(angle), z: 800 * Math.cos(angle) });
-                    }
-                }, 30);
-
-                // Resize - Force immediate execution
-                const resize = () => {
-                    Graph.width(window.innerWidth);
-                    Graph.height(window.innerHeight);
-                };
-                window.addEventListener('resize', resize);
-                resize(); // Trigger now ensuring non-zero size
-
-            } catch (e) {
-                alert("Critical Error Init: " + e.message);
-            }
-        }
-
-        function updateGalaxyData(filter) {
-            // 1. Create Data Nodes
-            const nodes = data.map(i => ({
-                id: i.id, // Use unique ID
-                title: i.title,
-                group: i.category,
-                val: i.rank || 2,
-                isHub: false,
-                data: i
-            }));
-
-            // 2. Create Category Hubs (The Glowing Centers)
-            const categories = [...new Set(data.map(d => d.category))];
-
-            // Pre-calculate positions to help force simulation start apart
-            const hubNodes = categories.map((cat, idx) => {
-                // Distribute hubs in a large circle/sphere initially
-                const angle = (idx / categories.length) * Math.PI * 2;
-                const radius = 400; // Large initial spread
-                return {
-                    id: `HUB_${cat.toUpperCase()}`,
-                    title: cat.toUpperCase(),
-                    group: cat,
-                    val: 15,
-                    isHub: true,
-                    // Give initial positions (x,y,z) to help separation
-                    x: Math.cos(angle) * radius,
-                    y: Math.random() * 200 - 100, // Slight vertical variation
-                    z: Math.sin(angle) * radius
-                };
-            });
-
-            const allNodes = [...hubNodes, ...nodes];
-
-            // 3. Create Links (Cluster Structure)
-            const links = [];
-
-            nodes.forEach(node => {
-                // Link each node to its Category Hub
-                links.push({
-                    source: node.id,
-                    target: `HUB_${node.group.toUpperCase()}`,
-                    group: node.group,
-                    type: 'hub_link'
-                });
-            });
-
-            Graph.graphData({ nodes: allNodes, links });
-
-            // 4. Custom Force Layout for POWERFUL CLUSTERING (Safe Config)
-            try {
-                // We modify the existing internal forces instead of replacing them
-                const chargeForce = Graph.d3Force('charge');
-                if (chargeForce) {
-                    chargeForce.strength(node => node.isHub ? -3000 : -60);
-                }
-
-                const linkForce = Graph.d3Force('link');
-                if (linkForce) {
-                    linkForce
-                        .strength(link => link.type === 'hub_link' ? 0.5 : 0.1)
-                        .distance(link => link.type === 'hub_link' ? 100 : 30);
-                }
-
-                // Re-heat to apply changes
-                Graph.d3ReheatSimulation();
-            } catch (e) {
-                console.warn("Custom clustering forces failed to apply. Using defaults.", e);
-            }
-        }
-
-        /* === HELPER FUNCTIONS === */
-        function getCategoryColor(cat) {
-            const map = {
-                'math': '#3B82F6',
-                'physics': '#F59E0B',
-                'chemistry': '#EC4899',
-                'biology': '#10B981',
-                'cs': '#06B6D4',
-                'science': '#8B5CF6'
-            };
-            return map[cat] || '#ffffff';
-        }
-
-        function toggleRotation() {
-            isRotating = !isRotating;
-            updateRotationBtn();
-
-            // Toast / Status text update
-            const status = document.getElementById('run-status');
-            if (status) {
-                status.innerText = isRotating ? "自动运行中" : "手动控制";
-                status.className = isRotating ? "text-cyan-400 animate-pulse" : "text-slate-500";
-            }
-        }
-
-        function updateRotationBtn() {
-            const btn = document.getElementById('btn-rotate');
-            if (btn) {
-                if (isRotating) {
-                    btn.classList.add('bg-cyan-600/30', 'text-white', 'shadow-[0_0_10px_rgba(8,145,178,0.5)]', 'animate-pulse');
-                    btn.classList.remove('text-cyan-400');
-                } else {
-                    btn.classList.remove('bg-cyan-600/30', 'text-white', 'shadow-[0_0_10px_rgba(8,145,178,0.5)]', 'animate-pulse');
-                    btn.classList.add('text-cyan-400');
-                }
-            }
-        }
-
-        function resetCamera() { Graph.cameraPosition({ x: 0, y: 0, z: 800 }, { x: 0, y: 0, z: 0 }, 1000); }
-        function zoomIn() {
-            const pos = Graph.cameraPosition();
-            Graph.cameraPosition({ x: pos.x * 0.8, y: pos.y * 0.8, z: pos.z * 0.8 }, null, 500);
-        }
-        function zoomOut() {
-            const pos = Graph.cameraPosition();
-            Graph.cameraPosition({ x: pos.x * 1.2, y: pos.y * 1.2, z: pos.z * 1.2 }, null, 500);
-        }
-
-        /* === MODAL LOGIC === */
         function openModal(data) {
             const m = document.getElementById('detail-modal');
             const c = document.getElementById('modal-content-box');
             m.classList.remove('hidden');
-            setTimeout(() => {
-                c.classList.remove('scale-95', 'opacity-0');
-                c.classList.add('scale-100', 'opacity-100');
-            }, 10);
-
+            setTimeout(() => { c.classList.remove('scale-95', 'opacity-0'); c.classList.add('scale-100', 'opacity-100'); }, 10);
             document.getElementById('modal-title').innerText = data.title;
             document.getElementById('modal-content-text').innerHTML = data.content;
-
-            // Tags
-            const tags = document.getElementById('modal-tags');
-            tags.innerHTML = data.tags.map(t => `<span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 border border-cyan-500/30">#${t}</span>`).join('');
+            document.getElementById('modal-tags').innerHTML = data.tags.map(t => `<span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300">#${t}</span>`).join('');
         }
-
-        function toggleSafeMode() {
-            if (confirm("画面显示异常？\n点击【确定】切换到'简易兼容模式' (纯几何体，无特效)。\n点击【取消】保持当前模式。")) {
-                const elem = document.getElementById('galaxy-graph');
-                elem.innerHTML = ''; // Clear
-
-                // Nuclear Re-init with minimal config
-                Graph = ForceGraph3D()
-                    (elem)
-                    .backgroundColor('#050b14') // Explicit dark background
-                    .showNavInfo(false)
-                    .nodeLabel('title')
-                    .nodeColor(node => getCategoryColor(node.group))
-                    .nodeRelSize(5)
-                    // NO CUSTOM THREE OBJECTS - Pure Spheres
-                    .onNodeClick(node => {
-                        const distRatio = 1 + 60 / Math.hypot(node.x, node.y, node.z);
-                        Graph.cameraPosition(
-                            { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
-                            node, 2000
-                        );
-                        setTimeout(() => openModal(node.data), 1500);
-                    });
-
-                updateGalaxyData('all');
-                alert("已切换到简易模式。如果现在能看到图像，说明是之前的'发光特效'在您的设备上不兼容。");
-            }
+        function closeModal() {
+            const m = document.getElementById('detail-modal');
+            const c = document.getElementById('modal-content-box');
+            c.classList.remove('scale-100', 'opacity-100'); c.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => m.classList.add('hidden'), 300);
         }
-
+        function resetCamera() { Graph.cameraPosition({ x: 0, y: 0, z: 800 }, { x: 0, y: 0, z: 0 }, 1000); }
     </script>
 </body>
 
