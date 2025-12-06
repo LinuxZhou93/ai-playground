@@ -66,6 +66,17 @@ try:
 except Exception as e:
     print(f"PhET Error: {e}")
 
+# --- 9. Category Covers Map ---
+category_covers = {
+    'Physics': 'assets/images/covers/cover_physics.png',
+    'Chemistry': 'assets/images/covers/cover_chemistry.png',
+    'Biology': 'assets/images/covers/cover_biology.png',
+    'Mathematics': 'assets/images/covers/cover_math.png',
+    'Earth Science': 'assets/images/covers/cover_earth.png',
+    'Coding': 'assets/images/covers/cover_coding.png',
+    'Social Science': 'assets/images/covers/cover_earth.png' # Fallback to Earth/Global style
+}
+
 # --- 2. myPhysicsLab Processing (Existing + Regex) ---
 try:
     with open('mpl_index.html', 'r', encoding='utf-8') as f:
@@ -77,6 +88,11 @@ try:
     for href, img_src, title_raw in mpl_matches:
         title = title_raw.replace('<br>', ' ').strip()
         url = f"https://www.myphysicslab.com/{href}"
+        # MPL uses screenshots but if they fail/are small, we might want consistent covers? 
+        # MPL screenshots are usually OK. Let's keep them but maybe prefer local if specific logic needed.
+        # Actually user said "check those without covers", MPL usually has them. 
+        # But to be safe and consistent with "premium" look, let's use cover if original is small/ugly?
+        # For now, keep MPL text-screenshots as they are specific.
         thumbnail = f"https://www.myphysicslab.com/{img_src}"
         
         experiments.append({
@@ -115,7 +131,7 @@ try:
             'description': "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
             'description_zh': "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
             'url': url,
-            'thumbnail': 'https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg'
+            'thumbnail': category_covers['Chemistry'] # Use Cover instead of Logo
         })
 except Exception as e:
     print(f"ChemCollective Error: {e}")
@@ -145,7 +161,7 @@ try:
             'description': f"Classic HTML5 physics applet by Walter Fendt: {title}.",
             'description_zh': f"Walter Fendt 的经典 HTML5 物理小程序：{title}。",
             'url': url,
-            'thumbnail': 'https://www.walter-fendt.de/html5/phen/javaphys.gif' # Generic Logo
+            'thumbnail': category_covers.get(category, category_covers['Physics']) # Use Cover
         })
 except Exception as e:
     print(f"Walter Fendt Error: {e}")
@@ -185,16 +201,16 @@ netlogo_curated = [
 ]
 
 for title, cat, desc, url in netlogo_curated:
-    experiments.append({
-        'title': title,
-        'title_zh': title,
-        'category': cat,
-        'level': 'University',
-        'description': f"NetLogo Agent-Based Model: {desc}. Explore complex systems and emergent behavior.",
-        'description_zh': f"NetLogo 基于代理的模型：{desc}。探索复杂系统和涌现行为。",
-        'url': url,
-        'thumbnail': 'https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg'
-    })
+        experiments.append({
+            'title': title,
+            'title_zh': title,
+            'category': cat,
+            'level': 'University',
+            'description': f"NetLogo Agent-Based Model: {desc}. Explore complex systems and emergent behavior.",
+            'description_zh': f"NetLogo 基于代理的模型：{desc}。探索复杂系统和涌现行为。",
+            'url': url,
+            'thumbnail': category_covers.get(cat, category_covers['Physics']) # Use Cover
+        })
 
 # --- 6. Concord Consortium (Curated Top List) ---
 concord_curated = [
@@ -240,16 +256,16 @@ concord_curated = [
 ]
 
 for title, cat, url in concord_curated:
-    experiments.append({
-        'title': title,
-        'title_zh': title,
-        'category': cat,
-        'level': 'Middle/High',
-        'description': f"Interactive STEM simulation from Concord Consortium: {title}.",
-        'description_zh': f"来自 Concord Consortium 的互动 STEM 模拟：{title}。",
-        'url': url,
-        'thumbnail': 'https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png'
-    })
+        experiments.append({
+            'title': title,
+            'title_zh': title,
+            'category': cat,
+            'level': 'Middle/High',
+            'description': f"Interactive STEM simulation from Concord Consortium: {title}.",
+            'description_zh': f"来自 Concord Consortium 的互动 STEM 模拟：{title}。",
+            'url': url,
+            'thumbnail': category_covers.get(cat, category_covers['Earth Science']) # Use Cover
+        })
 
 # --- 7. The Physics Classroom (Curated Top List) ---
 tpc_curated = [
@@ -295,16 +311,16 @@ tpc_curated = [
 ]
 
 for title, cat, url in tpc_curated:
-    experiments.append({
-        'title': title,
-        'title_zh': title,
-        'category': cat,
-        'level': 'High School',
-        'description': f"Physics Classroom Interactive: {title}. Concept-building simulation.",
-        'description_zh': f"Physics Classroom 互动演示：{title}。概念构建模拟。",
-        'url': url,
-        'thumbnail': 'https://www.physicsclassroom.com/images/TPC_logo.png'
-    })
+        experiments.append({
+            'title': title,
+            'title_zh': title,
+            'category': cat,
+            'level': 'High School',
+            'description': f"Physics Classroom Interactive: {title}. Concept-building simulation.",
+            'description_zh': f"Physics Classroom 互动演示：{title}。概念构建模拟。",
+            'url': url,
+            'thumbnail': category_covers.get(cat, category_covers['Physics']) # Use Cover
+        })
 
 # --- 8. Legacy/Manual Items ---
 legacy_items = [
@@ -316,7 +332,7 @@ legacy_items = [
         "description": "Powerful online graphing calculator. Plot functions, solve equations.",
         "description_zh": "功能强大的在线图形计算器，绘制函数曲线，求解方程。",
         "url": "https://www.geogebra.org/calculator",
-        "thumbnail": "https://www.geogebra.org/images/GeoGebra_loading.png"
+        "thumbnail": category_covers['Mathematics']
     },
     {
         "title": "3D Calculator",
@@ -326,7 +342,7 @@ legacy_items = [
         "description": "Explore 3D geometry, build polyhedra, and surfaces of revolution.",
         "description_zh": "探索三维空间中的几何图形，构建多面体、旋转体。",
         "url": "https://www.geogebra.org/3d",
-        "thumbnail": "https://www.geogebra.org/images/GeoGebra_loading.png"
+        "thumbnail": category_covers['Mathematics']
     },
     {
         "title": "Solar System Scope",
@@ -336,7 +352,7 @@ legacy_items = [
         "description": "Explore the solar system, planets, and orbits in 3D.",
         "description_zh": "探索太阳系八大行星的大小、距离和运行轨道。",
         "url": "https://www.solarsystemscope.com/",
-        "thumbnail": "https://www.solarsystemscope.com/images/share_facebook.jpg"
+        "thumbnail": category_covers['Earth Science']
     },
      {
         "title": "Cyber Space Shooter",
@@ -346,7 +362,7 @@ legacy_items = [
         "description": "Survive the neon barrage. Destroy enemies and beat the high score!",
         "description_zh": "驾驶战机，在霓虹弹幕中生存。击碎敌机，挑战最高分！",
         "url": "space-shooter.html",
-        "thumbnail": "🚀"
+        "thumbnail": category_covers['Coding']
     },
     {
         "title": "Cyber Breakout",
@@ -356,7 +372,7 @@ legacy_items = [
         "description": "Classic arcade mechanic with neon aesthetics and particle physics.",
         "description_zh": "经典的街机游戏重制版。体验霓虹美学与粒子碰撞的快感。",
         "url": "breakout.html",
-        "thumbnail": "🧱"
+        "thumbnail": category_covers['Coding']
     },
     {
         "title": "Python Turbo Racing",
@@ -366,7 +382,7 @@ legacy_items = [
         "description": "Tkinter-based desktop game. Download source code and race!",
         "description_zh": "基于 Tkinter 的本地桌面游戏。下载源码，体验复古赛车躲避玩法。",
         "url": "racing.html",
-        "thumbnail": "🏎️"
+        "thumbnail": category_covers['Coding']
     }
 ]
 

@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="专业的在线编程学习平台,提供视频课程、互动测验、实时编程练习和AI助教,助你掌握编程技能">
+    <meta name="keywords" content="在线学习,编程课程,视频教程,编程练习,AI助教">
+    <meta name="author" content="Tech Odyssey">
+    <meta name="theme-color" content="#8B5CF6">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="课程详情 | Tech Odyssey">
+    <meta property="og:description" content="专业的在线编程学习平台,提供视频课程、互动测验、实时编程练习和AI助教">
+    <meta property="og:image" content="/assets/images/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="课程详情 | Tech Odyssey">
+    <meta property="twitter:description" content="专业的在线编程学习平台">
+
+    <title>课程详情 | Tech Odyssey - 专业在线编程学习平台</title>
+
+    <!-- Performance Optimization -->
+    <!-- Removed preconnect/dns-prefetch links for external CDNs to avoid loading issues -->
+
+    <!-- Fonts -->
+    <link rel="preload"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&display=swap"
+        as="style">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="libs/supabase.min.js"></script>
+    <script src="libs/hls.min.js"></script>
+    <script src="libs/marked.min.js"></script>
+    <script src="libs/loader.min.js"></script>
+    <script src="libs/three.min.js"></script>
+    <script src="assets/js/background-3d.js" defer></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        odyssey: {
+                            purple: '#8B5CF6',
+                            cyan: '#06B6D4',
+                            pink: '#EC4899',
+                            amber: '#F59E0B',
+                            lime: '#84CC16'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0a;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+            /* Prevent body scroll */
+        }
+
+        .glass {
+            background: rgba(15, 15, 25, 0.7);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Modern Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.6), rgba(6, 182, 212, 0.6));
+            border-radius: 4px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.8), rgba(6, 182, 212, 0.8));
+        }
+
+        .lesson-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .lesson-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #8B5CF6, #06B6D4);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .lesson-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(2px);
+        }
+
+        .lesson-item.active {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.1));
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2), inset 0 0 20px rgba(139, 92, 246, 0.1);
+        }
+
+        .lesson-item.active::before {
+            opacity: 1;
+        }
+
+        /* Markdown Styles */
+        .prose h1,
+        .prose h2,
+        .prose h3 {
+            color: #f3f4f6;
+        }
+
+        .prose strong {
+            color: #22d3ee;
+            /* Cyan highlight */
+        }
+
+        .prose blockquote {
+            border-left-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            color: #d1d5db;
+        }
+
+        /* 3D Background Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Animations */
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .animate-gradient {
+            animation: gradient 3s ease infinite;
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg,
+                    rgba(255, 255, 255, 0.05) 25%,
+                    rgba(255, 255, 255, 0.1) 50%,
+                    rgba(255, 255, 255, 0.05) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s ease-in-out infinite;
+        }
+
+        @keyframes skeleton-loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .skeleton-text {
+            height: 1rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .skeleton-title {
+            height: 2rem;
+            width: 60%;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .skeleton-avatar {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+        }
+
+        /* Focus Indicators for Accessibility */
+        *:focus-visible {
+            outline: 2px solid #8B5CF6;
+            outline-offset: 2px;
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible {
+            outline: 2px solid #06B6D4;
+            outline-offset: 2px;
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .glass {
+                background: white;
+                color: black;
+            }
+
+            #bg-canvas,
+            aside {
+                display: none;
+            }
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+
+            .glass {
+                backdrop-filter: blur(12px);
+            }
+
+            aside {
+                position: fixed;
+                left: -100%;
+                transition: left 0.3s;
+                z-index: 100;
+            }
+
+            aside.mobile-open {
+                left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white h-screen flex flex-col">
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="app" class="h-full flex flex-col" v-cloak>
+        <!-- Navigation Bar -->
+        <nav class="h-16 glass z-50 flex-shrink-0 relative" role="navigation" aria-label="主导航">
+            <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
+                <a href="learn.html" aria-label="返回课程列表"
+                    class="flex items-center gap-3 group text-gray-300 hover:text-white transition-colors">
+                    <div class="p-1 rounded-lg group-hover:bg-white/10 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </div>
+                    <span class="font-medium">返回课程列表</span>
+                </a>
+
+                <div class="flex items-center gap-4">
+                    <div v-if="user" class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-odyssey-cyan to-odyssey-purple p-[1px]">
+                            <div class="w-full h-full rounded-full overflow-hidden bg-black">
+                                <img v-if="user.avatar_url" :src="user.avatar_url" class="w-full h-full object-cover">
+                                <div v-else class="w-full h-full flex items-center justify-center text-xs font-bold">
+                                    {{ user.username?.[0]?.toUpperCase() || 'U' }}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-300">{{ user.username || 'Learner' }}</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Layout -->
+        <div class="flex-1 flex overflow-hidden relative"> <!-- flex-1 ensures it takes remaining height -->
+
+            <!-- Left Sidebar: Course Outline -->
+            <aside class="w-80 glass border-r border-white/5 flex flex-col flex-shrink-0 z-20" role="complementary"
+                aria-label="课程大纲">
+                <div class="p-5 border-b border-white/5 bg-black/20">
+                    <h2 class="text-lg font-bold mb-3 leading-tight">{{ course.title }}</h2>
+                    <div class="flex items-center gap-3 text-xs text-gray-400">
+                        <div class="flex-1 h-2 bg-gray-900/50 rounded-full overflow-hidden border border-white/5">
+                            <div class="h-full bg-gradient-to-r from-odyssey-purple via-odyssey-cyan to-odyssey-purple bg-[length:200%_100%] animate-gradient transition-all duration-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+                                :style="{width: progressPercentage + '%'}"></div>
+                        </div>
+                        <span class="font-bold text-odyssey-cyan">{{ Math.round(progressPercentage) }}%</span>
+                    </div>
+                </div>
+
+                <!-- Lesson List (Scrollable) -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1" ref="lessonListContainer" role="list"
+                    aria-label="课程列表">
+                    <div v-for="(lesson, index) in lessons" :key="lesson.id" @click="selectLesson(lesson)"
+                        :id="'lesson-' + lesson.id" class="lesson-item p-3 rounded-lg cursor-pointer group"
+                        :class="{'active': currentLesson?.id === lesson.id}" role="listitem"
+                        :aria-current="currentLesson?.id === lesson.id ? 'true' : 'false'"
+                        :aria-label="`课程 ${index + 1}: ${lesson.title}`" tabindex="0"
+                        @keydown.enter="selectLesson(lesson)" @keydown.space.prevent="selectLesson(lesson)">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-5 h-5 mt-0.5 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors"
+                                :class="getLessonStatusClass(lesson)">
+                                <span v-if="lesson.completed">✓</span>
+                                <span v-else>{{ index + 1 }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-sm mb-0.5 truncate group-hover:text-white transition-colors"
+                                    :class="currentLesson?.id === lesson.id ? 'text-white' : 'text-gray-400'">
+                                    {{ lesson.title }}
+                                </div>
+                                <div
+                                    class="flex items-center gap-2 text-[10px] text-gray-600 group-hover:text-gray-500">
+                                    <span v-if="lesson.type === 'video'" class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        {{ formatDuration(lesson.duration_seconds) }}
+                                    </span>
+                                    <span v-else-if="lesson.type === 'quiz'" class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                                            </path>
+                                        </svg>
+                                        测验
+                                    </span>
+                                    <span v-else-if="lesson.type === 'reading'" class="flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                                            </path>
+                                        </svg>
+                                        阅读
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center: Video Player / Content Area -->
+            <main class="flex-1 overflow-y-auto relative custom-scrollbar bg-[#0a0a0a]" ref="mainContent" role="main"
+                aria-label="课程内容">
+                <div class="max-w-5xl mx-auto p-8 pb-32">
+
+                    <!-- Loading State with Skeleton -->
+                    <div v-if="loading" class="py-20" role="status" aria-live="polite" aria-label="加载中">
+                        <div class="max-w-3xl mx-auto space-y-6">
+                            <!-- Skeleton Title -->
+                            <div class="skeleton skeleton-title"></div>
+
+                            <!-- Skeleton Content Blocks -->
+                            <div class="space-y-3">
+                                <div class="skeleton skeleton-text" style="width: 100%"></div>
+                                <div class="skeleton skeleton-text" style="width: 95%"></div>
+                                <div class="skeleton skeleton-text" style="width: 90%"></div>
+                                <div class="skeleton skeleton-text" style="width: 85%"></div>
+                            </div>
+
+                            <!-- Skeleton Video Player -->
+                            <div class="skeleton aspect-video rounded-2xl"></div>
+
+                            <!-- Loading Text -->
+                            <div class="text-center">
+                                <div
+                                    class="inline-block animate-spin w-12 h-12 border-4 border-gray-800 border-t-odyssey-cyan rounded-full mb-4">
+                                </div>
+                                <p class="text-gray-400 font-medium">加载课程中...</p>
+                                <p class="text-gray-600 text-sm mt-2">正在为您准备最佳学习体验</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Player -->
+                    <div v-else-if="currentLesson && currentLesson.type === 'video'" class="mb-8">
+                        <div class="aspect-video bg-black rounded-2xl overflow-hidden glass">
+                            <video ref="videoPlayer" class="w-full h-full" controls @timeupdate="handleTimeUpdate"
+                                @ended="handleVideoEnded">
+                                <source :src="currentLesson.content_url" type="application/x-mpegURL">
+                                您的浏览器不支持视频播放。
+                            </video>
+                        </div>
+
+                        <!-- Video Controls & Info -->
+                        <div class="mt-6">
+                            <h1 class="text-3xl font-black mb-3">{{ currentLesson.title }}</h1>
+                            <div class="flex items-center gap-4 text-sm text-gray-400 mb-6">
+                                <span>📺 视频课程</span>
+                                <span>⏱️ {{ formatDuration(currentLesson.duration_seconds) }}</span>
+                                <span v-if="currentLesson.completed" class="text-green-400">✓ 已完成</span>
+                            </div>
+
+                            <!-- Navigation Buttons -->
+                            <div class="flex gap-4">
+                                <button v-if="previousLesson" @click="selectLesson(previousLesson)"
+                                    class="px-6 py-3 rounded-xl glass hover:bg-white/10 transition-colors font-semibold flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                    上一课
+                                </button>
+
+                                <button @click="markAsCompleted"
+                                    class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold hover:scale-105 transition-transform flex items-center gap-2"
+                                    :disabled="currentLesson.completed">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    {{ currentLesson.completed ? '已完成' : '标记为完成' }}
+                                </button>
+
+                                <button v-if="nextLesson" @click="selectLesson(nextLesson)"
+                                    class="px-6 py-3 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform flex items-center gap-2">
+                                    下一课
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Content -->
+                    <div v-if="currentLesson?.type === 'video'"
+                        class="w-full h-full flex items-center justify-center bg-black">
+                        <video ref="videoPlayer" class="w-full h-full max-h-full" controls crossorigin="anonymous"
+                            @ended="handleVideoEnded" @timeupdate="handleTimeUpdate">
+                            您的浏览器不支持视频播放。
+                        </video>
+                    </div>
+
+                    <!-- Quiz Interface -->
+                    <div v-else-if="currentLesson?.type === 'quiz'"
+                        class="w-full h-full overflow-y-auto p-8 bg-[#121212]">
+                        <div class="max-w-3xl mx-auto">
+                            <div class="mb-8 text-center" v-if="!quizStarted">
+                                <h2 class="text-3xl font-bold mb-4">准备好接受挑战了吗？</h2>
+                                <p class="text-gray-400 mb-8">本测验将检查您对本节课知识的掌握程度。</p>
+                                <button @click="startQuiz"
+                                    class="px-8 py-3 bg-gradient-to-r from-odyssey-purple to-odyssey-pink rounded-full text-white font-bold hover:shadow-[0_0_20px_rgba(236,72,153,0.4)] transition-all">
+                                    开始测验
+                                </button>
+                            </div>
+
+                            <div v-else-if="!quizCompleted" class="animate-fade-in">
+                                <div class="flex justify-between items-center mb-6">
+                                    <span class="text-sm font-bold text-gray-500">问题 {{ currentQuestionIndex + 1 }} / {{
+                                        quizQuestions.length }}</span>
+                                    <div class="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                        <div class="h-full bg-odyssey-purple transition-all duration-500"
+                                            :style="{ width: ((currentQuestionIndex + 1) / quizQuestions.length * 100) + '%' }">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-[#1e1e1e] rounded-2xl p-8 border border-white/5 mb-8">
+                                    <h3 class="text-xl font-bold mb-6">{{ quizQuestions[currentQuestionIndex].text }}
+                                    </h3>
+                                    <div class="space-y-3">
+                                        <div v-for="(option, idx) in quizQuestions[currentQuestionIndex].options"
+                                            :key="idx" @click="selectOption(idx)"
+                                            class="p-4 rounded-xl border transition-all flex items-center justify-between group"
+                                            :class="getOptionClass(idx)">
+                                            <span>{{ option }}</span>
+                                            <div v-if="hasAnsweredCurrent && idx === quizQuestions[currentQuestionIndex].correctIndex"
+                                                class="text-green-400">
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-end" v-if="hasAnsweredCurrent">
+                                    <button @click="nextQuestion"
+                                        class="px-6 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors">
+                                        {{ currentQuestionIndex < quizQuestions.length - 1 ? '下一题' : '查看结果' }} </button>
+                                </div>
+                            </div>
+
+                            <div v-else class="text-center animate-fade-in py-12">
+                                <div
+                                    class="w-24 h-24 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+                                    <span class="text-4xl font-black">{{ quizScore }}</span>
+                                </div>
+                                <h2 class="text-3xl font-bold mb-2">测验完成!</h2>
+                                <p class="text-gray-400 mb-8">您答对了 {{ correctAnswersCount }} / {{ quizQuestions.length
+                                    }} 道题目</p>
+                                <div class="flex justify-center gap-4">
+                                    <button @click="resetQuiz"
+                                        class="px-6 py-2 border border-white/20 rounded-lg hover:bg-white/5 transition-colors">再试一次</button>
+                                    <button @click="finishQuiz"
+                                        class="px-6 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors">完成课程</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reading Content -->
+                    <div v-else-if="currentLesson && currentLesson.type === 'reading'" class="glass rounded-2xl p-8">
+                        <h1 class="text-3xl font-black mb-6">{{ currentLesson.title }}</h1>
+                        <div class="prose prose-invert max-w-none" v-html="renderMarkdown(currentLesson.content)"></div>
+                        <div class="mt-8">
+                            <button @click="markAsCompleted"
+                                class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold">
+                                标记为完成
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Coding Interface -->
+                    <div v-else-if="currentLesson?.type === 'code'" class="w-full h-full flex flex-col bg-[#1e1e1e]">
+                        <div class="flex-1 flex overflow-hidden">
+                            <!-- Instructions -->
+                            <div class="w-1/3 bg-[#121212] border-r border-white/10 p-6 overflow-y-auto">
+                                <h3 class="text-xl font-bold mb-4 text-odyssey-cyan">编程挑战</h3>
+                                <div class="prose prose-invert prose-sm max-w-none mb-6">
+                                    <p>{{ currentLesson.description }}</p>
+                                    <h4>任务目标：</h4>
+                                    <ul>
+                                        <li v-for="(task, i) in currentLesson.tasks" :key="i">{{ task }}</li>
+                                    </ul>
+                                </div>
+                                <div
+                                    class="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-sm text-yellow-200">
+                                    💡 提示：{{ currentLesson.hint || '仔细检查变量名是否拼写正确。' }}
+                                </div>
+                            </div>
+                            <!-- Editor -->
+                            <div class="w-2/3 flex flex-col">
+                                <div id="monaco-editor-container" class="flex-1 w-full relative"></div>
+                                <div
+                                    class="h-40 bg-black border-t border-white/10 p-4 font-mono text-sm overflow-y-auto">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-gray-500 text-xs uppercase tracking-wider">Console
+                                            Output</span>
+                                        <button @click="runCode"
+                                            class="px-4 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold transition-colors flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Run Code
+                                        </button>
+                                    </div>
+                                    <div v-for="(log, i) in consoleLogs" :key="i"
+                                        :class="log.type === 'error' ? 'text-red-400' : 'text-gray-300'">
+                                        > {{ log.message }}
+                                    </div>
+                                    <div v-if="consoleLogs.length === 0" class="text-gray-600 italic">Ready to
+                                        execute...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-else class="w-full h-full flex items-center justify-center bg-black">
+                        <div class="text-center">
+                            <div class="text-4xl mb-4">🎬</div>
+                            <h3 class="text-xl font-bold text-gray-500">Select a lesson to start</h3>
+                        </div>
+                    </div>
+
+                    <!-- Infinite Science Lab Portal -->
+                    <div class="mt-16 relative group cursor-pointer overflow-hidden rounded-2xl border border-white/10 transition-all duration-300 hover:border-cyan-500/50"
+                        onclick="window.location.href='labs.html'">
+                        <div
+                            class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1532094349884-543bc11b234d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center opacity-20 transition-transform duration-700 group-hover:scale-110">
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent"></div>
+                        <div class="relative p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <span
+                                        class="px-2 py-1 text-xs font-mono font-bold text-cyan-400 bg-cyan-900/30 border border-cyan-500/30 rounded">NEW
+                                        MODULE</span>
+                                    <span class="flex h-2 w-2 relative">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                                    </span>
+                                </div>
+                                <h2
+                                    class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 font-display">
+                                    INFINITE SCIENCE LAB
+                                </h2>
+                                <p class="text-gray-400 max-w-lg text-lg">
+                                    进入虚拟实验室。在 "Flux/Glass" 环境中交互 Physics, Chemistry, and Biology 实验模拟。
+                                </p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <div
+                                    class="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-cyan-500 group-hover:text-black transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.3)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.8)]">
+                                    <svg class="w-8 h-8 transform group-hover:rotate-45 transition-transform"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                    </svg>
+                                </div>
+                                <span
+                                    class="block text-center mt-2 text-xs font-mono text-cyan-500 group-hover:text-white transition-colors">INITIATE</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+
+            <!-- Right Sidebar: AI Assistant & Notes -->
+            <aside class="w-80 glass border-l border-white/10 flex flex-col hidden lg:flex">
+                <!-- Sidebar Tabs -->
+                <div class="flex border-b border-white/10">
+                    <button @click="activeTab = 'ai'"
+                        class="flex-1 py-3 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2"
+                        :class="activeTab === 'ai' ? 'border-odyssey-cyan text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-gray-300'">
+                        <span>🤖</span> AI 助教
+                    </button>
+                    <button @click="activeTab = 'notes'"
+                        class="flex-1 py-3 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2"
+                        :class="activeTab === 'notes' ? 'border-odyssey-purple text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-gray-300'">
+                        <span>📝</span> 学习笔记
+                    </button>
+                    <button @click="activeTab = 'discussion'"
+                        class="flex-1 py-3 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2"
+                        :class="activeTab === 'discussion' ? 'border-odyssey-pink text-white bg-white/5' : 'border-transparent text-gray-500 hover:text-gray-300'">
+                        <span>💬</span> 讨论区
+                    </button>
+                </div>
+
+                <!-- AI Chat Tab -->
+                <div v-show="activeTab === 'ai'" class="flex-1 flex flex-col min-h-0">
+                    <div class="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                            <span class="text-xs text-gray-400">在线 - 随时提问</span>
+                        </div>
+                        <button class="text-gray-400 hover:text-white" title="清除历史" @click="clearChat">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <button class="text-gray-400 hover:text-odyssey-cyan transition-colors" title="Settings"
+                            @click="showSettings = true">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                </path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- API Key Settings Modal -->
+                    <div v-if="showSettings"
+                        class="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-2xl">
+                            <h3 class="text-white font-bold text-lg mb-4">AI Configuration</h3>
+                            <div class="mb-4">
+                                <label class="block text-xs uppercase text-gray-500 font-bold mb-2">DeepSeek API
+                                    Key</label>
+                                <input type="password" v-model="tempApiKey" placeholder="sk-..."
+                                    class="w-full bg-black/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:border-cyan-500 outline-none transition-colors">
+                                <p class="text-xs text-gray-500 mt-2">Key stored locally in browser.</p>
+                            </div>
+                            <div class="flex justify-end gap-2">
+                                <button @click="showSettings = false"
+                                    class="px-4 py-2 text-gray-400 hover:text-white text-sm">Cancel</button>
+                                <button @click="saveApiKey"
+                                    class="px-4 py-2 bg-odyssey-cyan text-black font-bold rounded text-sm hover:bg-cyan-400">Save</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <div v-if="chatMessages.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                            <p class="mb-2">👋 你好！我是你的 AI 学习助手。</p>
+                            <p>关于本节课有任何疑问，都可以问我哦！</p>
+                            <p class="mt-4 text-xs">试着问：</p>
+                            <div class="mt-2 text-left space-y-2">
+                                <button @click="sendQuery('这一节的核心概念是什么？')"
+                                    class="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors">"这一节的核心概念是什么？"</button>
+                                <button @click="sendQuery('能举个实际应用的例子吗？')"
+                                    class="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs transition-colors">"能举个实际应用的例子吗？"</button>
+                            </div>
+                        </div>
+
+                        <div v-for="(msg, index) in chatMessages" :key="index" class="flex gap-3"
+                            :class="msg.role === 'user' ? 'flex-row-reverse' : ''">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                                :class="msg.role === 'user' ? 'bg-odyssey-purple' : 'bg-odyssey-cyan/20'">
+                                <span v-if="msg.role === 'user'">👤</span>
+                                <span v-else>🤖</span>
+                            </div>
+                            <div class="max-w-[80%] rounded-2xl p-3 text-sm leading-relaxed"
+                                :class="msg.role === 'user' ? 'bg-odyssey-purple/20 text-white rounded-tr-none' : 'bg-white/5 text-gray-200 rounded-tl-none'">
+                                {{ msg.content }}
+                            </div>
+                        </div>
+
+                        <div v-if="isAiTyping" class="flex gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-odyssey-cyan/20 flex items-center justify-center flex-shrink-0">
+                                🤖</div>
+                            <div class="bg-white/5 rounded-2xl rounded-tl-none p-3 flex items-center gap-1">
+                                <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                                <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                                    style="animation-delay: 0.1s"></div>
+                                <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                                    style="animation-delay: 0.2s"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="p-4 border-t border-white/10 bg-black/20">
+                        <form @submit.prevent="sendMessage">
+                            <div class="relative">
+                                <input v-model="newMessage" type="text" placeholder="输入问题..."
+                                    class="w-full pl-4 pr-10 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-odyssey-cyan focus:bg-white/10 focus:outline-none transition-colors text-sm text-white">
+                                <button type="submit"
+                                    class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 text-odyssey-cyan hover:text-white transition-colors disabled:opacity-50"
+                                    :disabled="!newMessage.trim() || isAiTyping">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Notes Tab -->
+                <div v-show="activeTab === 'notes'" class="flex-1 flex flex-col min-h-0 bg-[#1e1e1e]">
+                    <div class="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 min-w-[40px]" v-if="noteSavedStatus">{{ noteSavedStatus
+                                }}</span>
+                            <span class="text-xs text-gray-500 min-w-[40px]" v-else>已同步</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button @click="isPreviewMode = !isPreviewMode"
+                                class="text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors"
+                                :class="isPreviewMode ? 'text-odyssey-cyan bg-white/5' : 'text-gray-400'">
+                                {{ isPreviewMode ? '编辑' : '预览' }}
+                            </button>
+                            <button @click="downloadNote"
+                                class="text-gray-400 hover:text-odyssey-purple transition-colors" title="下载笔记">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div v-if="isPreviewMode"
+                        class="flex-1 w-full bg-transparent p-4 overflow-y-auto prose prose-invert prose-sm max-w-none"
+                        v-html="renderedNote"></div>
+                    <textarea v-else v-model="currentNote" @input="handleNoteInput"
+                        class="flex-1 w-full bg-transparent p-4 resize-none focus:outline-none text-sm leading-relaxed text-gray-300 font-mono"
+                        placeholder="在此处记下您的学习笔记...
+- 主要观点
+- 代码片段
+- 疑问"></textarea>
+                </div>
+
+                <!-- Discussion Tab -->
+                <div v-show="activeTab === 'discussion'" class="flex-1 flex flex-col min-h-0 bg-[#1a1a1a]">
+                    <div class="p-3 border-b border-white/10 flex items-center justify-between bg-black/20">
+                        <span class="text-xs text-gray-400" v-if="commentSavedStatus">{{ commentSavedStatus }}</span>
+                        <span class="text-xs text-gray-500" v-else>加载中...</span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="commentContainer">
+                        <div v-if="comments.length === 0"
+                            class="flex flex-col items-center justify-center h-full text-center py-8">
+                            <div
+                                class="w-16 h-16 mb-4 bg-white/5 rounded-full flex items-center justify-center text-3xl">
+                                💭</div>
+                            <p class="text-gray-400 font-bold">暂无评论</p>
+                            <p class="text-xs text-gray-500 mt-1">快来抢占沙发，发表你的看法吧！</p>
+                        </div>
+                        <div v-for="(c, idx) in comments" :key="idx" class="mb-4 p-3 rounded-lg bg-white/5">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div
+                                    class="w-6 h-6 rounded-full bg-gradient-to-br from-odyssey-cyan to-odyssey-purple overflow-hidden">
+                                    <img v-if="c.avatar_url" :src="c.avatar_url" class="w-full h-full object-cover" />
+                                </div>
+                                <span class="font-semibold">{{ c.username || '匿名' }}</span>
+                                <span class="text-xs text-gray-400">{{ new Date(c.created_at).toLocaleString() }}</span>
+                            </div>
+                            <div class="text-sm text-gray-300">{{ c.content }}</div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-white/10 bg-black/20">
+                        <form @submit.prevent="postComment">
+                            <div class="relative">
+                                <input v-model="newComment" type="text" placeholder="输入评论..."
+                                    class="w-full pl-4 pr-10 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-odyssey-cyan focus:bg-white/10 focus:outline-none transition-colors text-sm text-white" />
+                                <button type="submit"
+                                    class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 text-odyssey-cyan hover:text-white transition-colors disabled:opacity-50"
+                                    :disabled="!newComment.trim()">发送</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <script src="assets/js/supabase-client.js"></script> <!-- Centralized Client -->
+
+    <script>
+        const { createApp, ref, computed, watch, nextTick, onMounted, onUnmounted } = Vue;
+
+        createApp({
+            setup() {
+                // State
+                const user = ref(null);
+                const loading = ref(true);
+
+                // Supabase instance from global client
+                const supabase = window.SupabaseClient ? window.SupabaseClient.client : null;
+
+                const course = ref({});
+                const lessons = ref([]);
+                const currentLesson = ref(null);
+                const videoPlayer = ref(null);
+
+                // Sidebar State
+                const activeTab = ref('ai'); // 'ai', 'notes', 'discussion'
+
+                // Notes State
+                const currentNote = ref('');
+                const noteSavedStatus = ref('');
+                const isPreviewMode = ref(false);
+                let noteSaveTimeout = null;
+
+                const renderedNote = computed(() => {
+                    return currentNote.value ? marked.parse(currentNote.value) : '';
+                });
+
+                // Discussion State
+                const comments = ref([]);
+                const newComment = ref('');
+                const commentSavedStatus = ref('');
+                let commentSaveTimeout = null;
+
+                // Quiz State
+                const quizStarted = ref(false);
+                const quizCompleted = ref(false);
+                const quizQuestions = ref([]);
+                const currentQuestionIndex = ref(0);
+                const selectedOptionIndex = ref(null);
+                const hasAnsweredCurrent = ref(false);
+                const quizScore = ref(0);
+                const correctAnswersCount = ref(0); // Added for quiz score calculation
+
+                // Editor State
+                const consoleLogs = ref([]);
+                let editorInstance = null;
+
+                // Chat Logic (moved to setup root for organization)
+                const chatContainer = ref(null);
+                const chatMessages = ref([]);
+                const newMessage = ref('');
+                const isAiTyping = ref(false);
+                const showSettings = ref(false);
+                const apiKey = ref(localStorage.getItem('deepseek_api_key') || '');
+                const tempApiKey = ref('');
+                // Auto‑store provided DeepSeek API key if not already set
+                if (!apiKey.value) {
+                    const providedKey = 'sk-68a03cdff5fe4b5a84eae26ee8bdd613';
+                    localStorage.setItem('deepseek_api_key', providedKey);
+                    apiKey.value = providedKey;
+                }
+
+                // Initialize temp key when opening settings
+                watch(showSettings, (val) => {
+                    if (val) tempApiKey.value = apiKey.value;
+                });
+
+                // Get course ID from URL
+                let courseId = null; // Changed to let as it's set in onMounted
+
+                // Computed
+                const totalLessons = computed(() => lessons.value.length);
+                const completedLessons = computed(() => lessons.value.filter(l => l.completed).length);
+                const progressPercentage = computed(() => {
+                    if (totalLessons.value === 0) return 0;
+                    return Math.round((completedLessons.value / totalLessons.value) * 100);
+                });
+
+                const currentLessonIndex = computed(() => {
+                    return lessons.value.findIndex(l => l.id === currentLesson.value?.id);
+                });
+
+                const previousLesson = computed(() => {
+                    const index = currentLessonIndex.value;
+                    return index > 0 ? lessons.value[index - 1] : null;
+                });
+
+                const nextLesson = computed(() => {
+                    const index = currentLessonIndex.value;
+                    return index < lessons.value.length - 1 ? lessons.value[index + 1] : null;
+                });
+
+                // Methods
+                const loadNote = async () => {
+                    if (!currentLesson.value) return;
+
+                    // Supabase
+                    if (supabase && user.value) {
+                        try {
+                            const { data, error } = await supabase.from('lesson_notes')
+                                .select('content')
+                                .eq('user_id', user.value.id)
+                                .eq('lesson_id', currentLesson.value.id)
+                                .single();
+
+                            if (data) {
+                                currentNote.value = data.content || '';
+                            } else {
+                                // Try localStorage fallback if no remote note found
+                                const key = `odyssey_note_${courseId || 'demo'}_${currentLesson.value.id}`;
+                                const saved = localStorage.getItem(key);
+                                currentNote.value = saved || '';
+                            }
+                        } catch (err) {
+                            console.error("Error loading note:", err);
+                        }
+                    } else {
+                        // LocalStorage fallback for demo/no-auth
+                        const key = `odyssey_note_${courseId || 'demo'}_${currentLesson.value.id}`;
+                        const saved = localStorage.getItem(key);
+                        currentNote.value = saved || '';
+                    }
+                };
+
+                const saveNote = async () => {
+                    if (!currentLesson.value) return;
+
+                    // Always save to localStorage as backup/fast cache
+                    const key = `odyssey_note_${courseId || 'demo'}_${currentLesson.value.id}`;
+                    localStorage.setItem(key, currentNote.value);
+
+                    // Supabase
+                    if (supabase && user.value) {
+                        try {
+                            const { error } = await supabase.from('lesson_notes').upsert({
+                                user_id: user.value.id,
+                                lesson_id: currentLesson.value.id,
+                                content: currentNote.value,
+                                updated_at: new Date()
+                            }, { onConflict: 'user_id, lesson_id' });
+
+                            if (error) throw error;
+                            noteSavedStatus.value = '已云端同步';
+                        } catch (err) {
+                            console.error("Error saving note to cloud:", err);
+                            noteSavedStatus.value = '仅本地保存';
+                        }
+                    } else {
+                        noteSavedStatus.value = '已本地保存';
+                    }
+
+                    setTimeout(() => noteSavedStatus.value = '', 2000);
+                };
+
+                const handleNoteInput = () => {
+                    noteSavedStatus.value = '保存中...';
+                    if (noteSaveTimeout) clearTimeout(noteSaveTimeout);
+                    noteSaveTimeout = setTimeout(saveNote, 1000);
+                };
+
+                const downloadNote = () => {
+                    const blob = new Blob([currentNote.value], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `note_${currentLesson.value.title}.md`;
+                    a.click();
+                };
+
+                // --- Discussion Logic ---
+                const loadComments = async () => {
+                    if (!currentLesson.value) return;
+                    comments.value = [];
+                    commentSavedStatus.value = '加载中...';
+
+                    // Supabase
+                    if (supabase && user.value) {
+                        try {
+                            const { data, error } = await supabase
+                                .from('lesson_comments')
+                                .select('*, profiles(username, avatar_url)')
+                                .eq('lesson_id', currentLesson.value.id)
+                                .order('created_at', { ascending: false });
+
+                            if (error) throw error;
+
+                            comments.value = data.map(c => ({
+                                id: c.id,
+                                content: c.content,
+                                created_at: c.created_at,
+                                username: c.profiles?.username || 'User',
+                                avatar_url: c.profiles?.avatar_url || null
+                            }));
+
+                        } catch (err) {
+                            console.error("Error loading comments:", err);
+                            // Fallback to local
+                        }
+                    }
+
+                    // LocalStorage / Mock Fallback if empty or no auth
+                    if (comments.value.length === 0) {
+                        const key = `odyssey_comments_${courseId || 'demo'}_${currentLesson.value.id}`;
+                        const saved = localStorage.getItem(key);
+                        if (saved) {
+                            comments.value = JSON.parse(saved);
+                        } else {
+                            // Seed some fake comments for demo only
+                            comments.value = [
+                                { id: 999, content: '这节课太棒了！非常有帮助。', created_at: new Date(Date.now() - 86400000).toISOString(), username: 'CodingStar', avatar_url: null },
+                                { id: 998, content: '这里讲的循环逻辑很清晰。', created_at: new Date(Date.now() - 172800000).toISOString(), username: 'PythonLearner', avatar_url: null }
+                            ];
+                        }
+                    }
+                    // Subscribe to Realtime changes
+                    if (supabase && currentLesson.value) {
+                        // Unsubscribe previous
+                        if (window.commentSubscription) supabase.removeChannel(window.commentSubscription);
+
+                        window.commentSubscription = supabase
+                            .channel('public:lesson_comments')
+                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lesson_comments', filter: `lesson_id=eq.${currentLesson.value.id}` }, async (payload) => {
+                                // Fetch profile for the new comment
+                                const { data: profile } = await supabase.from('profiles').select('username, avatar_url').eq('id', payload.new.user_id).single();
+
+                                const newComment = {
+                                    id: payload.new.id,
+                                    content: payload.new.content,
+                                    created_at: payload.new.created_at,
+                                    username: profile?.username || 'User',
+                                    avatar_url: profile?.avatar_url || null
+                                };
+
+                                // Prevent duplicate if it was my own optimistic update (simple check by content/time or just unshift and let vue key handle it if id differs?)
+                                // Actually optimistic update uses 'local_' id. Realtime uses Int id.
+                                // We should ideally replace the local optimistic one or just unshift.
+                                // Simplest for now: unshift if not already present (by ID)
+                                if (!comments.value.find(c => c.id === newComment.id)) {
+                                    comments.value.unshift(newComment);
+                                    // Remove local optimistic one if it matches content (approx)
+                                    const optIndex = comments.value.findIndex(c => c.id.toString().startsWith('local_') && c.content === newComment.content);
+                                    if (optIndex !== -1) comments.value.splice(optIndex, 1);
+                                }
+                            })
+                            .subscribe();
+                    }
+
+                    commentSavedStatus.value = `${comments.value.length} 条评论`;
+                };
+
+                const postComment = async () => {
+                    if (!newComment.value.trim() || !currentLesson.value) return;
+
+                    const commentData = {
+                        id: 'local_' + Date.now(),
+                        content: newComment.value.trim(),
+                        created_at: new Date().toISOString(),
+                        username: user.value?.username || '我', // Self username
+                        avatar_url: user.value?.avatar_url || null,
+                        lesson_id: currentLesson.value.id,
+                        user_id: user.value?.id || 'local_user'
+                    };
+
+                    // Optimistic Update
+                    comments.value.unshift(commentData);
+                    newComment.value = '';
+
+                    // Save to LocalStorage
+                    const key = `odyssey_comments_${courseId || 'demo'}_${currentLesson.value.id}`;
+                    localStorage.setItem(key, JSON.stringify(comments.value));
+
+                    // Supabase
+                    if (supabase && user.value) {
+                        try {
+                            const { error } = await supabase.from('lesson_comments').insert({
+                                lesson_id: currentLesson.value.id,
+                                user_id: user.value.id,
+                                content: commentData.content
+                            });
+                            if (error) throw error;
+                        } catch (err) {
+                            console.error("Failed to post comment to cloud:", err);
+                        }
+                    }
+                };
+
+                // Watch currentLesson change to load notes AND comments
+                watch(currentLesson, (newVal) => {
+                    if (newVal) {
+                        loadNote();
+                        loadComments();
+                        // Init editor if code lesson
+                        if (newVal.type === 'code') {
+                            nextTick(() => {
+                                initMonaco(newVal.initialCode || '');
+                            });
+                        }
+                    }
+                });
+
+                const initMonaco = (code) => {
+                    if (editorInstance) editorInstance.dispose();
+                    // Use CDN for Monaco Editor since local worker files are complex to bundle without a bundler
+                    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' } });
+                    require(['vs/editor/editor.main'], function () {
+                        const container = document.getElementById('monaco-editor-container');
+                        if (!container) return;
+                        editorInstance = monaco.editor.create(container, {
+                            value: code,
+                            language: 'python',
+                            theme: 'vs-dark',
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            automaticLayout: true
+                        });
+                    });
+                };
+
+                const runCode = () => {
+                    consoleLogs.value = [];
+                    if (!editorInstance) return;
+                    const code = editorInstance.getValue();
+                    try {
+                        const mockPrint = (msg) => {
+                            consoleLogs.value.push({ type: 'log', message: msg });
+                        };
+
+                        const lines = code.split('\n');
+                        lines.forEach(line => {
+                            if (line.trim().startsWith('print(')) {
+                                const content = line.match(/print\((["'])(.*?)\1\)/);
+                                if (content && content[2]) {
+                                    mockPrint(content[2]);
+                                } else {
+                                    mockPrint("Output: " + line.trim().replace('print(', '').replace(')', ''));
+                                }
+                            }
+                        });
+
+                        if (consoleLogs.value.some(l => l.message.includes('Hello'))) {
+                            markAsCompleted();
+                            consoleLogs.value.push({ type: 'success', message: '🎉 任务完成！' });
+                        }
+                    } catch (e) {
+                    };
+
+                    const loadMockData = async () => {
+                        try {
+                            const resp = await fetch('assets/data/course.json');
+                            if (!resp.ok) throw new Error('Failed to load local course data');
+                            const data = await resp.json();
+
+                            course.value = {
+                                id: 'demo',
+                                title: data.title,
+                                description: data.description,
+                                image: data.image || 'assets/images/default-course.jpg'
+                            };
+
+                            // Ensure lessons have necessary fields and defaults
+                            lessons.value = (data.lessons || []).map(l => ({
+                                ...l,
+                                completed: l.completed || false,
+                                type: l.type || 'reading',
+                                // Ensure content is handled if it's an object (for quiz) or string
+                                content: l.type === 'quiz' && typeof l.content === 'object'
+                                    ? JSON.stringify(l.content)
+                                    : l.content
+                            }));
+
+                            if (lessons.value.length > 0) {
+                                currentLesson.value = lessons.value[0];
+                            }
+                        } catch (e) {
+                            console.error('Mock data load error:', e);
+                            course.value = { title: '加载失败', description: '无法加载本地课程课程数据' };
+                        }
+                    };
+
+                    const fetchCourse = async () => {
+                        if (!supabase) {
+                            await loadMockData();
+                            loading.value = false;
+                            return;
+                        }
+
+                        try {
+                            const { data: courseData, error: courseError } = await supabase.from('courses').select('*').eq('id', courseId).single();
+                            if (courseError || !courseData) throw new Error('Course fetch failed');
+
+                            course.value = courseData;
+
+                            const { data: lessonsData, error: lessonsError } = await supabase.from('lessons').select('*').eq('course_id', courseId).order('order_index');
+
+                            if (lessonsError || !lessonsData || lessonsData.length === 0) throw new Error('Lessons fetch failed');
+
+                            lessons.value = lessonsData;
+                            currentLesson.value = lessons.value[0];
+                        } catch (e) {
+                            console.warn("Falling back to demo data due to:", e);
+                            loadMockData();
+                        } finally {
+                            loading.value = false;
+                        }
+                    };
+
+                    const lessonListContainer = ref(null);
+                    const mainContent = ref(null);
+
+                    const scrollToActiveLesson = () => {
+                        nextTick(() => {
+                            if (!currentLesson.value || !lessonListContainer.value) return;
+                            const activeEl = document.getElementById('lesson-' + currentLesson.value.id);
+                            if (activeEl) {
+                                activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }
+                        });
+                    };
+
+                    const getLessonStatusClass = (lesson) => {
+                        if (lesson.completed) return 'bg-green-500 text-white border-green-500';
+                        if (currentLesson.value?.id === lesson.id) return 'bg-odyssey-purple text-white border-odyssey-purple';
+                        return 'bg-transparent text-gray-500 border-gray-700';
+                    };
+
+                    const selectLesson = (lesson) => {
+                        currentLesson.value = lesson;
+
+                        // Scroll main content to top
+                        if (mainContent.value) {
+                            mainContent.value.scrollTop = 0;
+                        }
+
+                        // Scroll sidebar to active (audit trail)
+                        scrollToActiveLesson();
+
+                        // Reset Quiz State
+                        quizStarted.value = false;
+                        quizCompleted.value = false;
+                        currentQuestionIndex.value = 0;
+                        selectedOptionIndex.value = null;
+                        hasAnsweredCurrent.value = false;
+                        correctAnswersCount.value = 0;
+
+                        // Initialize HLS player if video
+                        if (lesson.type === 'video' && lesson.content_url) {
+                            setTimeout(() => initVideoPlayer(lesson.content_url), 100);
+                        }
+                    };
+
+                    // Quiz Logic (kept same)
+                    const startQuiz = () => {
+                        if (currentLesson.value.type !== 'quiz') return;
+                        try {
+                            let content = currentLesson.value.content;
+                            if (typeof content === 'string') content = JSON.parse(content);
+                            if (content && content.questions) {
+                                quizQuestions.value = content.questions;
+                                quizStarted.value = true;
+                            } else { alert('测验数据格式错误'); }
+                        } catch (e) {
+                            console.error('Failed to parse quiz content', e);
+                            quizQuestions.value = [{ text: "测试问题 1", options: ["A", "B", "C", "D"], correctIndex: 0 }];
+                            quizStarted.value = true;
+                        }
+                    };
+                    const selectOption = (index) => { if (hasAnsweredCurrent.value) return; selectedOptionIndex.value = index; hasAnsweredCurrent.value = true; if (index === quizQuestions.value[currentQuestionIndex.value].correctIndex) correctAnswersCount.value++; };
+                    const nextQuestion = () => { if (currentQuestionIndex.value < quizQuestions.value.length - 1) { currentQuestionIndex.value++; selectedOptionIndex.value = null; hasAnsweredCurrent.value = false; } else { quizScore.value = Math.round((correctAnswersCount.value / quizQuestions.value.length) * 100); quizCompleted.value = true; } };
+                    const resetQuiz = () => { currentQuestionIndex.value = 0; selectedOptionIndex.value = null; hasAnsweredCurrent.value = false; quizCompleted.value = false; correctAnswersCount.value = 0; };
+                    const finishQuiz = () => { markAsCompleted(); };
+                    const getOptionClass = (index) => {
+                        if (!hasAnsweredCurrent.value) return 'bg-white/5 border-white/10 hover:bg-white/10 cursor-pointer';
+                        const correctIndex = quizQuestions.value[currentQuestionIndex.value].correctIndex;
+                        if (index === correctIndex) return 'bg-green-500/20 border-green-500 text-green-300';
+                        if (index === selectedOptionIndex.value && index !== correctIndex) return 'bg-red-500/20 border-red-500 text-red-300';
+                        return 'bg-white/5 border-white/10 opacity-50';
+                    };
+
+                    // Chat Logic (kept same)
+                    // Chat Logic
+                    const scrollToBottom = () => { nextTick(() => { if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight; }); };
+
+                    const saveApiKey = () => {
+                        apiKey.value = tempApiKey.value.trim();
+                        localStorage.setItem('deepseek_api_key', apiKey.value);
+                        showSettings.value = false;
+                    };
+
+                    const sendMessage = async () => {
+                        const content = newMessage.value.trim();
+                        if (!content) return;
+
+                        if (!apiKey.value) {
+                            // Demo mode: Simulate AI response
+                            chatMessages.value.push({ role: 'user', content });
+                            newMessage.value = '';
+                            scrollToBottom();
+                            isAiTyping.value = true;
+
+                            setTimeout(() => {
+                                isAiTyping.value = false;
+                                const demoResponses = [
+                                    "这是一个精彩的问题！在生成艺术中，我们通常使用随机数来模拟自然界的这种不确定性。",
+                                    "好问题。你可以尝试调整 `turtle.forward()` 的参数，看看图形会发生什么变化。",
+                                    "确实如此。循环结构是编程中最强大的工具之一，它能帮我们处理重复任务。",
+                                    "👋 我是你的 AI 助教。当前处于演示模式，请在右上角设置中配置 API Key 以启用完整智能对话功能。"
+                                ];
+                                const randomResponse = demoResponses[Math.floor(Math.random() * demoResponses.length)];
+                                chatMessages.value.push({ role: 'assistant', content: randomResponse });
+                                scrollToBottom();
+                            }, 1500);
+                            return;
+                        }
+
+                        chatMessages.value.push({ role: 'user', content });
+                        newMessage.value = '';
+                        scrollToBottom();
+                        isAiTyping.value = true;
+
+                        try {
+                            const response = await fetch('https://api.deepseek.com/chat/completions', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${apiKey.value}`
+                                },
+                                body: JSON.stringify({
+                                    model: "deepseek-chat",
+                                    messages: [
+                                        { "role": "system", "content": "You are a helpful AI programming tutor for beginners. Keep answers concise, encouraging, and use emojis." },
+                                        ...chatMessages.value.map(msg => ({ role: msg.role, content: msg.content }))
+                                    ],
+                                    stream: false
+                                })
+                            });
+
+                            if (!response.ok) {
+                                const errData = await response.json();
+                                throw new Error(errData.error?.message || 'API request failed');
+                            }
+
+                            const data = await response.json();
+                            const aiContent = data.choices[0].message.content;
+
+                            chatMessages.value.push({ role: 'assistant', content: aiContent });
+
+                        } catch (error) {
+                            console.error('AI Error:', error);
+                            chatMessages.value.push({ role: 'assistant', content: `⚠️ Error: ${error.message}` });
+                        } finally {
+                            isAiTyping.value = false;
+                            scrollToBottom();
+                        }
+                    };
+
+                    const sendQuery = (query) => { newMessage.value = query; sendMessage(); };
+                    const clearChat = () => { chatMessages.value = []; };
+
+                    // Video & Common Logic (kept same)
+                    const initVideoPlayer = (url) => { if (!videoPlayer.value) return; if (Hls.isSupported()) { const hls = new Hls(); hls.loadSource(url); hls.attachMedia(videoPlayer.value); } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) { videoPlayer.value.src = url; } };
+                    const markAsCompleted = async () => { if (!currentLesson.value) return; currentLesson.value.completed = true; if (supabase && user.value) { await supabase.from('progress').upsert({ user_id: user.value.id, lesson_id: currentLesson.value.id, completed: true }); } if (nextLesson.value) setTimeout(() => selectLesson(nextLesson.value), 1000); };
+                    const handleTimeUpdate = () => { };
+                    const handleVideoEnded = () => markAsCompleted();
+                    const formatDuration = (seconds) => { if (!seconds) return '0:00'; const mins = Math.floor(seconds / 60); const secs = seconds % 60; return `${mins}:${secs.toString().padStart(2, '0')}`; };
+                    const renderMarkdown = (text) => marked.parse(text || '');
+
+                    onMounted(async () => {
+                        // Initialize 3D background
+                        if (typeof THREE !== 'undefined' && typeof init3DScene === 'function') {
+                            init3DScene();
+                        }
+
+                        if (window.SupabaseClient) {
+                            const currentUser = await window.SupabaseClient.getCurrentUser();
+                            if (currentUser) user.value = currentUser;
+                        }
+                        await fetchCourse();
+                        scrollToActiveLesson();
+                    });
+
+                    return {
+                        user, loading, course, lessons, currentLesson, videoPlayer, totalLessons, completedLessons, progressPercentage,
+                        activeTab, currentNote, noteSavedStatus, handleNoteInput, downloadNote, isPreviewMode, renderedNote,
+                        comments, newComment, commentSavedStatus, postComment,
+                        quizStarted, quizCompleted, quizQuestions, currentQuestionIndex, selectedOptionIndex, hasAnsweredCurrent, quizScore, startQuiz, selectOption, nextQuestion, resetQuiz, finishQuiz, getOptionClass,
+                        chatContainer, chatMessages, newMessage, isAiTyping, sendMessage, sendQuery, clearChat,
+                        selectLesson, markAsCompleted, handleTimeUpdate, handleVideoEnded, formatDuration,
+                        consoleLogs, runCode,
+                        showSettings, tempApiKey, saveApiKey, apiKey,
+                        previousLesson, nextLesson, correctAnswersCount, renderMarkdown,
+                        lessonListContainer, mainContent, getLessonStatusClass
+                    };
+                }
+            }).mount('#app');
+    </script>
+</body>
+
+</html>

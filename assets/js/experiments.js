@@ -1707,7 +1707,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/2",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Acid Dilution Problem",
@@ -1717,7 +1717,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/3",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Cola and Sucrose Concentration Problem",
@@ -1727,7 +1727,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/66",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Making Stock Solutions from Solids",
@@ -1737,7 +1737,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/67",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Identifying the Unknown Metal (Metals Density Problem)",
@@ -1747,7 +1747,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/68",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Identifying an Unknown Liquid from its Density",
@@ -1757,7 +1757,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/69",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Alcohol Density Problem",
@@ -1767,7 +1767,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/76",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Gravimetric Determination of Arsenic",
@@ -1777,7 +1777,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/75",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Determining Stoichiometric Coefficients",
@@ -1787,7 +1787,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/77",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Stoichiometry and Solution Preparation Problem",
@@ -1797,7 +1797,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/78",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Textbook Style Limiting Reagents Problems",
@@ -1807,7 +1807,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/activities/vlab/79",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Textbook Style Limiting Reagents Problem II",
@@ -1817,7 +1817,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/80",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Predicting DNA Concentration",
@@ -1827,7 +1827,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/81",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Unknown Concentration of DNA Solution Problem",
@@ -1837,7 +1837,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/82",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Camping Problem I",
@@ -1847,7 +1847,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/94",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Camping Problem II",
@@ -1857,7 +1857,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/95",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "ATP Reaction (Thermochemistry and Bonding)",
@@ -1867,7 +1867,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/97",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Determining the Heat of Reaction in Aqueous Solution",
@@ -1877,7 +1877,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/90",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Coffee Problem",
@@ -1887,7 +1887,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/91",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Measuring the heat capacity of an engine coolant.",
@@ -1897,7 +1897,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/92",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Measuring the heat capacity of an engine coolant II (Advanced version)",
@@ -1907,7 +1907,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/93",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Camping Problem III",
@@ -1917,7 +1917,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/96",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Heats of Reaction - Hess' Law",
@@ -1927,7 +1927,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/138",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Cobalt Chloride and LeChatlier’s Principle",
@@ -1937,7 +1937,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/85",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "DNA Binding Problem",
@@ -1947,7 +1947,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/86",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Strong Acid and Base Problems",
@@ -1957,7 +1957,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/98",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Determination of the pH Scale by the Method of Successive Dilutions",
@@ -1967,7 +1967,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/100",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Weak Acid and Base Problems",
@@ -1977,7 +1977,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/99",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Determining the pKa and Concentration Ratio of a Protein in Solution",
@@ -1987,7 +1987,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/102",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Unknown Acid and Base Problem",
@@ -1997,7 +1997,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/103",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Creating a Buffer Solution",
@@ -2007,7 +2007,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/104",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "DNA - Dye Binding: Equilibrium and Buffer Solutions",
@@ -2017,7 +2017,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/105",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Standardization of NaOH with a KHP solution: Acid Base Titration",
@@ -2027,7 +2027,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/101",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Determining the Solubility Product",
@@ -2037,7 +2037,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/88",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Temperature and the Solubility of Salts",
@@ -2047,7 +2047,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/87",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Determining the solubility of copper chloride at different temperatures",
@@ -2057,7 +2057,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/89",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Exploring Oxidation-Reduction Reactions",
@@ -2067,7 +2067,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/106",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Unknown Silver Chloride",
@@ -2077,7 +2077,7 @@ const experiments = [
         "description": "Virtual Chemistry Lab experiment. Perform authentic laboratory chemistry tasks online.",
         "description_zh": "虚拟化学实验室实验。在线执行真实的实验室化学任务。",
         "url": "https://chemcollective.org/vlab/83",
-        "thumbnail": "https://chemcollective.org/assets/common/images/styling/ChemCollectiveLogo-v2.svg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Motion with Constant Acceleration",
@@ -2087,7 +2087,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Motion with Constant Acceleration.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Motion with Constant Acceleration。",
         "url": "https://www.walter-fendt.de/html5/phen/acceleration_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Equilibrium of Three Forces",
@@ -2097,7 +2097,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Equilibrium of Three Forces.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Equilibrium of Three Forces。",
         "url": "https://www.walter-fendt.de/html5/phen/equilibriumforces_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Resultant of Forces (Addition of Vectors)",
@@ -2107,7 +2107,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Resultant of Forces (Addition of Vectors).",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Resultant of Forces (Addition of Vectors)。",
         "url": "https://www.walter-fendt.de/html5/phen/resultant_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Resolution of a Force into Components",
@@ -2117,7 +2117,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Resolution of a Force into Components.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Resolution of a Force into Components。",
         "url": "https://www.walter-fendt.de/html5/phen/forceresolution_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Pulley System",
@@ -2127,7 +2127,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Pulley System.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Pulley System。",
         "url": "https://www.walter-fendt.de/html5/phen/pulleysystem_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Lever Principle",
@@ -2137,7 +2137,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Lever Principle.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Lever Principle。",
         "url": "https://www.walter-fendt.de/html5/phen/lever_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Inclined Plane",
@@ -2147,7 +2147,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Inclined Plane.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Inclined Plane。",
         "url": "https://www.walter-fendt.de/html5/phen/inclinedplane_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Newton's Second Law Experiment",
@@ -2157,7 +2157,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Newton's Second Law Experiment.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Newton's Second Law Experiment。",
         "url": "https://www.walter-fendt.de/html5/phen/newtonlaw2_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Projectile Motion",
@@ -2167,7 +2167,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Projectile Motion.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Projectile Motion。",
         "url": "https://www.walter-fendt.de/html5/phen/projectile_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Elastic and Inelastic Collision",
@@ -2177,7 +2177,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Elastic and Inelastic Collision.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Elastic and Inelastic Collision。",
         "url": "https://www.walter-fendt.de/html5/phen/collision_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Newton's Cradle",
@@ -2187,7 +2187,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Newton's Cradle.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Newton's Cradle。",
         "url": "https://www.walter-fendt.de/html5/phen/newtoncradle_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Uniform Circular Motion",
@@ -2197,7 +2197,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Uniform Circular Motion.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Uniform Circular Motion。",
         "url": "https://www.walter-fendt.de/html5/phen/circularmotion_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Carousel (Centripetal Force)",
@@ -2207,7 +2207,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Carousel (Centripetal Force).",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Carousel (Centripetal Force)。",
         "url": "https://www.walter-fendt.de/html5/phen/carousel_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Model of a Looping Coaster (Centripetal Force)",
@@ -2217,7 +2217,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Model of a Looping Coaster (Centripetal Force).",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Model of a Looping Coaster (Centripetal Force)。",
         "url": "https://www.walter-fendt.de/html5/phen/looping_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Gravity, Two-Body Problem",
@@ -2227,7 +2227,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Gravity, Two-Body Problem.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Gravity, Two-Body Problem。",
         "url": "https://www.walter-fendt.de/html5/phen/gravity_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Kepler's First Law",
@@ -2237,7 +2237,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Kepler's First Law.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Kepler's First Law。",
         "url": "https://www.walter-fendt.de/html5/phen/keplerlaw1_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Kepler's Second Law",
@@ -2247,7 +2247,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Kepler's Second Law.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Kepler's Second Law。",
         "url": "https://www.walter-fendt.de/html5/phen/keplerlaw2_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Hydrostatic Pressure in Liquids",
@@ -2257,7 +2257,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Hydrostatic Pressure in Liquids.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Hydrostatic Pressure in Liquids。",
         "url": "https://www.walter-fendt.de/html5/phen/hydrostaticpressure_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Buoyant Force in Liquids",
@@ -2267,7 +2267,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Buoyant Force in Liquids.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Buoyant Force in Liquids。",
         "url": "https://www.walter-fendt.de/html5/phen/buoyantforce_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Simple Pendulum",
@@ -2277,7 +2277,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Simple Pendulum.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Simple Pendulum。",
         "url": "https://www.walter-fendt.de/html5/phen/pendulum_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Spring Pendulum",
@@ -2287,7 +2287,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Spring Pendulum.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Spring Pendulum。",
         "url": "https://www.walter-fendt.de/html5/phen/springpendulum_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Coupled Pendula",
@@ -2297,7 +2297,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Coupled Pendula.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Coupled Pendula。",
         "url": "https://www.walter-fendt.de/html5/phen/coupledpendula_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Forced Oscillations (Resonance)",
@@ -2307,7 +2307,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Forced Oscillations (Resonance).",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Forced Oscillations (Resonance)。",
         "url": "https://www.walter-fendt.de/html5/phen/resonance_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Beats",
@@ -2317,7 +2317,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Beats.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Beats。",
         "url": "https://www.walter-fendt.de/html5/phen/beats_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Standing Wave (Explanation by Superposition with the Reflected Wave)",
@@ -2327,7 +2327,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Standing Wave (Explanation by Superposition with the Reflected Wave).",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Standing Wave (Explanation by Superposition with the Reflected Wave)。",
         "url": "https://www.walter-fendt.de/html5/phen/standingwavereflection_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Standing Longitudinal Waves",
@@ -2337,7 +2337,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Standing Longitudinal Waves.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Standing Longitudinal Waves。",
         "url": "https://www.walter-fendt.de/html5/phen/standinglongitudinalwaves_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Interference of two Circular or Spherical Waves",
@@ -2347,7 +2347,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Interference of two Circular or Spherical Waves.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Interference of two Circular or Spherical Waves。",
         "url": "https://www.walter-fendt.de/html5/phen/interference_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Doppler Effect",
@@ -2357,7 +2357,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Doppler Effect.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Doppler Effect。",
         "url": "https://www.walter-fendt.de/html5/phen/dopplereffect_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Magnetic Field of a Bar Magnet",
@@ -2367,7 +2367,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Magnetic Field of a Bar Magnet.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Magnetic Field of a Bar Magnet。",
         "url": "https://www.walter-fendt.de/html5/phen/magneticfieldbar_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Magnetic Field of a Straight Current-Carrying Wire",
@@ -2377,7 +2377,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Magnetic Field of a Straight Current-Carrying Wire.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Magnetic Field of a Straight Current-Carrying Wire。",
         "url": "https://www.walter-fendt.de/html5/phen/magneticfieldwire_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Lorentz Force",
@@ -2387,7 +2387,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Lorentz Force.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Lorentz Force。",
         "url": "https://www.walter-fendt.de/html5/phen/lorentzforce_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Direct Current Electrical Motor",
@@ -2397,7 +2397,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Direct Current Electrical Motor.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Direct Current Electrical Motor。",
         "url": "https://www.walter-fendt.de/html5/phen/electricmotor_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Generator",
@@ -2407,7 +2407,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Generator.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Generator。",
         "url": "https://www.walter-fendt.de/html5/phen/generator_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Ohm's Law",
@@ -2417,7 +2417,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Ohm's Law.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Ohm's Law。",
         "url": "https://www.walter-fendt.de/html5/phen/ohmslaw_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Combinations of Resistors",
@@ -2427,7 +2427,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Combinations of Resistors.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Combinations of Resistors。",
         "url": "https://www.walter-fendt.de/html5/phen/combinationresistors_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Potentiometer",
@@ -2437,7 +2437,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Potentiometer.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Potentiometer。",
         "url": "https://www.walter-fendt.de/html5/phen/potentiometer_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Wheatstone's Bridge",
@@ -2447,7 +2447,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Wheatstone's Bridge.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Wheatstone's Bridge。",
         "url": "https://www.walter-fendt.de/html5/phen/wheatstonebridge_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Simple AC Circuits",
@@ -2457,7 +2457,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Simple AC Circuits.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Simple AC Circuits。",
         "url": "https://www.walter-fendt.de/html5/phen/accircuits_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Combinations of Resistors, Inductors and Capacitors",
@@ -2467,7 +2467,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Combinations of Resistors, Inductors and Capacitors.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Combinations of Resistors, Inductors and Capacitors。",
         "url": "https://www.walter-fendt.de/html5/phen/combinationrlc_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Electromagnetic Oscillating Circuit",
@@ -2477,7 +2477,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Electromagnetic Oscillating Circuit.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Electromagnetic Oscillating Circuit。",
         "url": "https://www.walter-fendt.de/html5/phen/oscillatingcircuit_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Electromagnetic Wave",
@@ -2487,7 +2487,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Electromagnetic Wave.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Electromagnetic Wave。",
         "url": "https://www.walter-fendt.de/html5/phen/electromagneticwave_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Refraction of Light",
@@ -2497,7 +2497,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Refraction of Light.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Refraction of Light。",
         "url": "https://www.walter-fendt.de/html5/phen/refraction_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Reflection and Refraction of Light Waves (Explanation by Huygens' Principle)",
@@ -2507,7 +2507,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Reflection and Refraction of Light Waves (Explanation by Huygens' Principle).",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Reflection and Refraction of Light Waves (Explanation by Huygens' Principle)。",
         "url": "https://www.walter-fendt.de/html5/phen/refractionhuygens_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Image Formation by Converging Lenses",
@@ -2517,7 +2517,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Image Formation by Converging Lenses.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Image Formation by Converging Lenses。",
         "url": "https://www.walter-fendt.de/html5/phen/imageconverginglens_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Refracting Astronomical Telescope",
@@ -2527,7 +2527,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Refracting Astronomical Telescope.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Refracting Astronomical Telescope。",
         "url": "https://www.walter-fendt.de/html5/phen/refractor_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Interference of Light at a Double Slit",
@@ -2537,7 +2537,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Interference of Light at a Double Slit.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Interference of Light at a Double Slit。",
         "url": "https://www.walter-fendt.de/html5/phen/doubleslit_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Diffraction of Light by a Single Slit",
@@ -2547,7 +2547,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Diffraction of Light by a Single Slit.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Diffraction of Light by a Single Slit。",
         "url": "https://www.walter-fendt.de/html5/phen/singleslit_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Special Processes of an Ideal Gas",
@@ -2557,7 +2557,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Special Processes of an Ideal Gas.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Special Processes of an Ideal Gas。",
         "url": "https://www.walter-fendt.de/html5/phen/gasprocesses_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Motion of Particles in an Ideal Gas",
@@ -2567,7 +2567,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Motion of Particles in an Ideal Gas.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Motion of Particles in an Ideal Gas。",
         "url": "https://www.walter-fendt.de/html5/phen/gas3d_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Carnot Cycle",
@@ -2577,7 +2577,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Carnot Cycle.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Carnot Cycle。",
         "url": "https://www.walter-fendt.de/html5/phen/carnotcycle_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Time Dilation",
@@ -2587,7 +2587,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Time Dilation.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Time Dilation。",
         "url": "https://www.walter-fendt.de/html5/phen/timedilation_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Photoelectric Effect",
@@ -2597,7 +2597,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Photoelectric Effect.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Photoelectric Effect。",
         "url": "https://www.walter-fendt.de/html5/phen/photoeffect_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Bohr's Theory of the Hydrogen Atom",
@@ -2607,7 +2607,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Bohr's Theory of the Hydrogen Atom.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Bohr's Theory of the Hydrogen Atom。",
         "url": "https://www.walter-fendt.de/html5/phen/bohrmodel_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Rutherford Scattering",
@@ -2617,7 +2617,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Rutherford Scattering.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Rutherford Scattering。",
         "url": "https://www.walter-fendt.de/html5/phen/rutherfordscattering_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Radioactive Decay Chains",
@@ -2627,7 +2627,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Radioactive Decay Chains.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Radioactive Decay Chains。",
         "url": "https://www.walter-fendt.de/html5/phen/decaychains_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Law of Radioactive Decay",
@@ -2637,7 +2637,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Law of Radioactive Decay.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Law of Radioactive Decay。",
         "url": "https://www.walter-fendt.de/html5/phen/lawdecay_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Bragg Reflection",
@@ -2647,7 +2647,7 @@ const experiments = [
         "description": "Classic HTML5 physics applet by Walter Fendt: Bragg Reflection.",
         "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Bragg Reflection。",
         "url": "https://www.walter-fendt.de/html5/phen/braggreflection_en.htm",
-        "thumbnail": "https://www.walter-fendt.de/html5/phen/javaphys.gif"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Wolf Sheep Predation",
@@ -2657,7 +2657,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Sample Model: Wolf Sheep Predation. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Sample Model: Wolf Sheep Predation。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Biology/Wolf%20Sheep%20Predation.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Ants",
@@ -2667,7 +2667,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Colony optimization simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Colony optimization simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Biology/Ants.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Flocking",
@@ -2677,7 +2677,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Bird flocking behavior simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Bird flocking behavior simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Biology/Flocking.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Traffic Basic",
@@ -2687,7 +2687,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Traffic jam emergence simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Traffic jam emergence simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Social%20Science/Traffic%20Basic.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Segregation",
@@ -2697,7 +2697,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Schelling's segregation model.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Schelling's segregation model.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Social%20Science/Segregation.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Giant Component",
@@ -2707,7 +2707,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Graph theory and network connectivity.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Graph theory and network connectivity.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Networks/Giant%20Component.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_math.png"
     },
     {
         "title": "Fire",
@@ -2717,7 +2717,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Forest fire spread simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Forest fire spread simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Earth%20Science/Fire.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Virus",
@@ -2727,7 +2727,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: SIR epidemic model simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：SIR epidemic model simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Biology/Virus.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Climate Change",
@@ -2737,7 +2737,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Global warming simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Global warming simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Earth%20Science/Climate%20Change.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "GasLab Adiabatic Piston",
@@ -2747,7 +2747,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Thermodynamics simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Thermodynamics simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/GasLab/GasLab%20Adiabatic%20Piston.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Art",
@@ -2757,7 +2757,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Generative art with turtles.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Generative art with turtles.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Art/Art.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_math.png"
     },
     {
         "title": "Game of Life",
@@ -2767,7 +2767,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Conway's Game of Life.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Conway's Game of Life.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Computer%20Science/Cellular%20Automata/Life.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_math.png"
     },
     {
         "title": "Termites",
@@ -2777,7 +2777,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Emergent behavior in termites.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Emergent behavior in termites.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Biology/Termites.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Tumor",
@@ -2787,7 +2787,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Tumor growth and resistance.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Tumor growth and resistance.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Biology/Tumor.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Wealth Distribution",
@@ -2797,7 +2797,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Economic inequality simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Economic inequality simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Social%20Science/Economics/Wealth%20Distribution.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Particle Fracture",
@@ -2807,7 +2807,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Material science simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Material science simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/Materials%20Science/Particle%20Fracture.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Lennard-Jones",
@@ -2817,7 +2817,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Molecular dynamics simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Molecular dynamics simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/Lennard-Jones.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Ising",
@@ -2827,7 +2827,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Ferromagnetism model.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Ferromagnetism model.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/Ising.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Gravitation",
@@ -2837,7 +2837,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: N-body gravity simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：N-body gravity simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/Gravitation.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Billiards",
@@ -2847,7 +2847,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Elastic collisions.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Elastic collisions.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/Billiards.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Crystallization",
@@ -2857,7 +2857,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Crystal growth simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Crystal growth simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/Crystallization/Crystallization%20Basic.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Chemical Kinetics",
@@ -2867,7 +2867,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Reaction rates simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Reaction rates simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/Chemical%20Kinetics/Chemical%20Kinetics.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Polymer Dynamics",
@@ -2877,7 +2877,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Polymer chain movement.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Polymer chain movement.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Chemistry%20&%20Physics/Polymer%20Dynamics.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Erosion",
@@ -2887,7 +2887,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Soil erosion simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Soil erosion simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Earth%20Science/Erosion.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Grand Canyon",
@@ -2897,7 +2897,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: River flow and terrain.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：River flow and terrain.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Earth%20Science/Grand%20Canyon.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Lightning",
@@ -2907,7 +2907,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Lightning strike percolation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Lightning strike percolation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Earth%20Science/Lightning.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Urban Sprawl",
@@ -2917,7 +2917,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: City growth model.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：City growth model.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Social%20Science/Urban%20Sprawl.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Voting",
@@ -2927,7 +2927,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Voting systems simulation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Voting systems simulation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Social%20Science/Voting/Voting.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Ethnocentrism",
@@ -2937,7 +2937,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Evolution of cooperation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Evolution of cooperation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Social%20Science/Ethnocentrism.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Mandelbrot",
@@ -2947,7 +2947,7 @@ const experiments = [
         "description": "NetLogo Agent-Based Model: Fractal generation.. Explore complex systems and emergent behavior.",
         "description_zh": "NetLogo 基于代理的模型：Fractal generation.。探索复杂系统和涌现行为。",
         "url": "https://www.netlogoweb.org/launch#http://ccl.northwestern.edu/netlogo/models/models/Sample%20Models/Mathematics/Mandelbrot.nlogo",
-        "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
+        "thumbnail": "assets/images/covers/cover_math.png"
     },
     {
         "title": "Seasons",
@@ -2957,7 +2957,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Seasons.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Seasons。",
         "url": "https://lab.concord.org/embeddable.html#interactives/seasons/seasons-1.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Tectonic Explorer",
@@ -2967,7 +2967,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Tectonic Explorer.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Tectonic Explorer。",
         "url": "https://tectonic-explorer.concord.org/",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Seismic Explorer",
@@ -2977,7 +2977,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Seismic Explorer.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Seismic Explorer。",
         "url": "https://seismic-explorer.concord.org/",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Climate Change Model",
@@ -2987,7 +2987,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Climate Change Model.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Climate Change Model。",
         "url": "https://lab.concord.org/embeddable.html#interactives/global-warming/global-warming-1.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Evolution: DNA",
@@ -2997,7 +2997,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Evolution: DNA.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Evolution: DNA。",
         "url": "https://lab.concord.org/embeddable.html#interactives/evolution/evolution-1.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Meiosis",
@@ -3007,7 +3007,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Meiosis.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Meiosis。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/DNA-to-proteins/4-mutations.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Protein Folding",
@@ -3017,7 +3017,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Protein Folding.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Protein Folding。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/intermolecular-attractions/1-protein-folding.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Membrane Channels",
@@ -3027,7 +3027,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Membrane Channels.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Membrane Channels。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/diffusion/5-ion-channels.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Diffusion",
@@ -3037,7 +3037,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Diffusion.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Diffusion。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/diffusion/1-diffusion.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Osmosis",
@@ -3047,7 +3047,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Osmosis.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Osmosis。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/diffusion/3-osmosis.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_biology.png"
     },
     {
         "title": "Electric Field Hockey",
@@ -3057,7 +3057,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Electric Field Hockey.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Electric Field Hockey。",
         "url": "https://lab.concord.org/embeddable.html#interactives/interactions/charge-hockey.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Coulomb's Law",
@@ -3067,7 +3067,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Coulomb's Law.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Coulomb's Law。",
         "url": "https://lab.concord.org/embeddable.html#interactives/interactions/coulomb.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Gravity and Orbits",
@@ -3077,7 +3077,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Gravity and Orbits.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Gravity and Orbits。",
         "url": "https://lab.concord.org/embeddable.html#interactives/interactions/gravity.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Friction",
@@ -3087,7 +3087,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Friction.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Friction。",
         "url": "https://lab.concord.org/embeddable.html#interactives/interactions/friction.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Springs and Mass",
@@ -3097,7 +3097,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Springs and Mass.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Springs and Mass。",
         "url": "https://lab.concord.org/embeddable.html#interactives/springs/springs.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Pendulum",
@@ -3107,7 +3107,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Pendulum.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Pendulum。",
         "url": "https://lab.concord.org/embeddable.html#interactives/pendulum/pendulum.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Wave Interference",
@@ -3117,7 +3117,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Wave Interference.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Wave Interference。",
         "url": "https://lab.concord.org/embeddable.html#interactives/waves/wave-interference.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Sound Waves",
@@ -3127,7 +3127,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Sound Waves.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Sound Waves。",
         "url": "https://lab.concord.org/embeddable.html#interactives/waves/sound-waves.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Light Reflection",
@@ -3137,7 +3137,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Light Reflection.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Light Reflection。",
         "url": "https://lab.concord.org/embeddable.html#interactives/optics/reflection.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Light Refraction",
@@ -3147,7 +3147,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Light Refraction.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Light Refraction。",
         "url": "https://lab.concord.org/embeddable.html#interactives/optics/refraction.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Color Vision",
@@ -3157,7 +3157,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Color Vision.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Color Vision。",
         "url": "https://lab.concord.org/embeddable.html#interactives/optics/color.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Circuit Builder",
@@ -3167,7 +3167,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Circuit Builder.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Circuit Builder。",
         "url": "https://lab.concord.org/embeddable.html#interactives/electricity/circuit-builder.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Ohm's Law",
@@ -3177,7 +3177,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Ohm's Law.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Ohm's Law。",
         "url": "https://lab.concord.org/embeddable.html#interactives/electricity/ohms-law.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Magnetic Fields",
@@ -3187,7 +3187,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Magnetic Fields.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Magnetic Fields。",
         "url": "https://lab.concord.org/embeddable.html#interactives/electricity/magnetic-fields.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Electromagnetic Induction",
@@ -3197,7 +3197,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Electromagnetic Induction.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Electromagnetic Induction。",
         "url": "https://lab.concord.org/embeddable.html#interactives/electricity/induction.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "States of Matter",
@@ -3207,7 +3207,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: States of Matter.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：States of Matter。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/states-of-matter/1-states-of-matter.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Atomic Structure",
@@ -3217,7 +3217,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Atomic Structure.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Atomic Structure。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/atomic-structure/1-atomic-structure.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Periodic Table",
@@ -3227,7 +3227,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Periodic Table.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Periodic Table。",
         "url": "https://lab.concord.org/embeddable.html#interactives/periodic-table/periodic-table.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Chemical Reactions",
@@ -3237,7 +3237,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Chemical Reactions.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Chemical Reactions。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/chemical-reactions/1-chemical-reactions.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Reaction Rates",
@@ -3247,7 +3247,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Reaction Rates.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Reaction Rates。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/reaction-rates/1-reaction-rates.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Equilibrium",
@@ -3257,7 +3257,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Equilibrium.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Equilibrium。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/equilibrium/1-equilibrium.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Acids and Bases",
@@ -3267,7 +3267,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Acids and Bases.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Acids and Bases。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/acids-bases/1-acids-bases.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Gas Properties",
@@ -3277,7 +3277,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Gas Properties.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Gas Properties。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/gas-laws/1-gas-properties.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Ideal Gas Law",
@@ -3287,7 +3287,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Ideal Gas Law.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Ideal Gas Law。",
         "url": "https://lab.concord.org/embeddable.html#interactives/sam/gas-laws/2-ideal-gas-law.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Energy Conservation",
@@ -3297,7 +3297,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Energy Conservation.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Energy Conservation。",
         "url": "https://lab.concord.org/embeddable.html#interactives/energy/energy-conservation.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Kinetic Energy",
@@ -3307,7 +3307,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Kinetic Energy.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Kinetic Energy。",
         "url": "https://lab.concord.org/embeddable.html#interactives/energy/kinetic-energy.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Potential Energy",
@@ -3317,7 +3317,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Potential Energy.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Potential Energy。",
         "url": "https://lab.concord.org/embeddable.html#interactives/energy/potential-energy.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Work and Power",
@@ -3327,7 +3327,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Work and Power.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Work and Power。",
         "url": "https://lab.concord.org/embeddable.html#interactives/energy/work-power.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Heat Transfer",
@@ -3337,7 +3337,7 @@ const experiments = [
         "description": "Interactive STEM simulation from Concord Consortium: Heat Transfer.",
         "description_zh": "来自 Concord Consortium 的互动 STEM 模拟：Heat Transfer。",
         "url": "https://lab.concord.org/embeddable.html#interactives/energy/heat-transfer.json",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Kinematics Graphing",
@@ -3347,7 +3347,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Kinematics Graphing. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Kinematics Graphing。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/1-D-Kinematics/Graph-That-Motion/Graph-That-Motion-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Name That Motion",
@@ -3357,7 +3357,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Name That Motion. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Name That Motion。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/1-D-Kinematics/Name-That-Motion/Name-That-Motion-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Vector Addition",
@@ -3367,7 +3367,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Vector Addition. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Vector Addition。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Vectors-and-Projectiles/Vector-Addition/Vector-Addition-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Projectile Simulator",
@@ -3377,7 +3377,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Projectile Simulator. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Projectile Simulator。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Vectors-and-Projectiles/Projectile-Simulator/Projectile-Simulator-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Free Body Diagrams",
@@ -3387,7 +3387,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Free Body Diagrams. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Free Body Diagrams。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Newtons-Laws/Free-Body-Diagrams/Free-Body-Diagram-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Force and Motion",
@@ -3397,7 +3397,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Force and Motion. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Force and Motion。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Newtons-Laws/Force-and-Motion/Force-and-Motion-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Friction",
@@ -3407,7 +3407,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Friction. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Friction。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Newtons-Laws/Friction/Friction-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Rocket Sled",
@@ -3417,7 +3417,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Rocket Sled. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Rocket Sled。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Newtons-Laws/Rocket-Sled/Rocket-Sled-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Circular Motion",
@@ -3427,7 +3427,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Circular Motion. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Circular Motion。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Circular-and-Satellite-Motion/Uniform-Circular-Motion/Uniform-Circular-Motion-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Gravitation",
@@ -3437,7 +3437,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Gravitation. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Gravitation。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Circular-and-Satellite-Motion/Gravitational-Fields/Gravitational-Fields-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Orbital Motion",
@@ -3447,7 +3447,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Orbital Motion. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Orbital Motion。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Circular-and-Satellite-Motion/Orbital-Motion/Orbital-Motion-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Momentum Conservation",
@@ -3457,7 +3457,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Momentum Conservation. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Momentum Conservation。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Momentum-and-Collisions/Collision-Carts/Collision-Carts-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Elastic Collisions",
@@ -3467,7 +3467,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Elastic Collisions. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Elastic Collisions。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Momentum-and-Collisions/Elastic-Collisions/Elastic-Collisions-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Inelastic Collisions",
@@ -3477,7 +3477,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Inelastic Collisions. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Inelastic Collisions。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Momentum-and-Collisions/Inelastic-Collisions/Inelastic-Collisions-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Work and Energy",
@@ -3487,7 +3487,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Work and Energy. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Work and Energy。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Work-and-Energy/Work-Energy-Bar-Charts/Work-Energy-Bar-Charts-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Roller Coaster Physics",
@@ -3497,7 +3497,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Roller Coaster Physics. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Roller Coaster Physics。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Work-and-Energy/Roller-Coaster-Model/Roller-Coaster-Model-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Spring Energy",
@@ -3507,7 +3507,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Spring Energy. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Spring Energy。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Work-and-Energy/Spring-Energy/Spring-Energy-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Simple Wave Simulator",
@@ -3517,7 +3517,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Simple Wave Simulator. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Simple Wave Simulator。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Waves-and-Sound/Simple-Wave-Simulator/Simple-Wave-Simulator-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Standing Waves",
@@ -3527,7 +3527,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Standing Waves. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Standing Waves。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Waves-and-Sound/Standing-Waves/Standing-Waves-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Sound Waves",
@@ -3537,7 +3537,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Sound Waves. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Sound Waves。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Waves-and-Sound/Sound-Waves/Sound-Waves-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Doppler Effect",
@@ -3547,7 +3547,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Doppler Effect. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Doppler Effect。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Waves-and-Sound/Doppler-Effect/Doppler-Effect-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Light Reflection",
@@ -3557,7 +3557,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Light Reflection. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Light Reflection。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Reflection-and-Mirrors/Reflection/Reflection-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Plane Mirrors",
@@ -3567,7 +3567,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Plane Mirrors. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Plane Mirrors。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Reflection-and-Mirrors/Plane-Mirrors/Plane-Mirrors-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Curved Mirrors",
@@ -3577,7 +3577,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Curved Mirrors. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Curved Mirrors。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Reflection-and-Mirrors/Curved-Mirrors/Curved-Mirrors-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Refraction",
@@ -3587,7 +3587,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Refraction. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Refraction。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Refraction-and-Lenses/Refraction/Refraction-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Lenses",
@@ -3597,7 +3597,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Lenses. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Lenses。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Refraction-and-Lenses/Lenses/Lenses-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Color Addition",
@@ -3607,7 +3607,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Color Addition. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Color Addition。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Light-and-Color/Color-Addition/Color-Addition-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Color Subtraction",
@@ -3617,7 +3617,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Color Subtraction. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Color Subtraction。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Light-and-Color/Color-Subtraction/Color-Subtraction-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Electric Field Lines",
@@ -3627,7 +3627,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Electric Field Lines. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Electric Field Lines。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Static-Electricity/Electric-Field-Lines/Electric-Field-Lines-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Coulomb's Law",
@@ -3637,7 +3637,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Coulomb's Law. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Coulomb's Law。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Static-Electricity/Coulombs-Law/Coulombs-Law-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Circuit Builder",
@@ -3647,7 +3647,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Circuit Builder. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Circuit Builder。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Circuit-Builder/Circuit-Builder-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Ohm's Law",
@@ -3657,7 +3657,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Ohm's Law. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Ohm's Law。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Ohms-Law/Ohms-Law-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Series Circuits",
@@ -3667,7 +3667,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Series Circuits. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Series Circuits。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Series-Circuits/Series-Circuits-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Magnetism",
@@ -3677,7 +3677,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Magnetism. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Magnetism。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Magnetism/Magnetism/Magnetism-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Electromagnetic Induction",
@@ -3687,7 +3687,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Electromagnetic Induction. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Electromagnetic Induction。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Magnetism/Electromagnetic-Induction/Electromagnetic-Induction-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
         "title": "Atomic Structure",
@@ -3697,7 +3697,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Atomic Structure. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Atomic Structure。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Chemistry/Atomic-Structure/Atomic-Structure-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Periodic Table",
@@ -3707,7 +3707,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Periodic Table. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Periodic Table。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Chemistry/Periodic-Table/Periodic-Table-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Chemical Bonding",
@@ -3717,7 +3717,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Chemical Bonding. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Chemical Bonding。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Chemistry/Chemical-Bonding/Chemical-Bonding-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Stoichiometry",
@@ -3727,7 +3727,7 @@ const experiments = [
         "description": "Physics Classroom Interactive: Stoichiometry. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Stoichiometry。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Chemistry/Stoichiometry/Stoichiometry-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
+        "thumbnail": "assets/images/covers/cover_chemistry.png"
     },
     {
         "title": "Graphing Calculator",
@@ -3737,7 +3737,7 @@ const experiments = [
         "description": "Powerful online graphing calculator. Plot functions, solve equations.",
         "description_zh": "功能强大的在线图形计算器，绘制函数曲线，求解方程。",
         "url": "https://www.geogebra.org/calculator",
-        "thumbnail": "https://www.geogebra.org/images/GeoGebra_loading.png"
+        "thumbnail": "assets/images/covers/cover_math.png"
     },
     {
         "title": "3D Calculator",
@@ -3747,7 +3747,7 @@ const experiments = [
         "description": "Explore 3D geometry, build polyhedra, and surfaces of revolution.",
         "description_zh": "探索三维空间中的几何图形，构建多面体、旋转体。",
         "url": "https://www.geogebra.org/3d",
-        "thumbnail": "https://www.geogebra.org/images/GeoGebra_loading.png"
+        "thumbnail": "assets/images/covers/cover_math.png"
     },
     {
         "title": "Solar System Scope",
@@ -3757,7 +3757,7 @@ const experiments = [
         "description": "Explore the solar system, planets, and orbits in 3D.",
         "description_zh": "探索太阳系八大行星的大小、距离和运行轨道。",
         "url": "https://www.solarsystemscope.com/",
-        "thumbnail": "https://www.solarsystemscope.com/images/share_facebook.jpg"
+        "thumbnail": "assets/images/covers/cover_earth.png"
     },
     {
         "title": "Cyber Space Shooter",
@@ -3767,7 +3767,7 @@ const experiments = [
         "description": "Survive the neon barrage. Destroy enemies and beat the high score!",
         "description_zh": "驾驶战机，在霓虹弹幕中生存。击碎敌机，挑战最高分！",
         "url": "space-shooter.html",
-        "thumbnail": "🚀"
+        "thumbnail": "assets/images/covers/cover_coding.png"
     },
     {
         "title": "Cyber Breakout",
@@ -3777,7 +3777,7 @@ const experiments = [
         "description": "Classic arcade mechanic with neon aesthetics and particle physics.",
         "description_zh": "经典的街机游戏重制版。体验霓虹美学与粒子碰撞的快感。",
         "url": "breakout.html",
-        "thumbnail": "🧱"
+        "thumbnail": "assets/images/covers/cover_coding.png"
     },
     {
         "title": "Python Turbo Racing",
@@ -3787,6 +3787,6 @@ const experiments = [
         "description": "Tkinter-based desktop game. Download source code and race!",
         "description_zh": "基于 Tkinter 的本地桌面游戏。下载源码，体验复古赛车躲避玩法。",
         "url": "racing.html",
-        "thumbnail": "🏎️"
+        "thumbnail": "assets/images/covers/cover_coding.png"
     }
 ];

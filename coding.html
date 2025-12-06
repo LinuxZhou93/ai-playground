@@ -1,1336 +1,480 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="dark">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Creative Coding Lab | 创意编程实验室</title>
 
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&display=swap"
+        rel="stylesheet">
+
     <!-- Dependencies -->
-    <!-- Dependencies (Standard Libs) -->
-    <script src="libs/tailwindcss.js" crossorigin="anonymous"></script>
-    <script src="libs/vue.global.prod.js" crossorigin="anonymous"></script>
-    <script src="libs/supabase.min.js" crossorigin="anonymous"></script>
-    <script src="libs/three.min.js" crossorigin="anonymous"></script>
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="libs/supabase.min.js"></script>
+    <script src="libs/three.min.js"></script>
+    <script src="assets/js/background-3d.js" defer></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/supabase-projects.js"></script>
+    <script src="assets/js/project-storage.js"></script>
 
-    <!-- Global Error Handler -->
-    <script>
-        window.addEventListener('error', function (e) {
-            console.error('Global Error:', e.message);
-            const app = document.getElementById('app');
-            // Wait a bit to see if app mounts
-            setTimeout(() => {
-                // Check if app is effectively hidden or empty
-                if (app && (getComputedStyle(app).display === 'none' || app.innerHTML.trim() === '')) {
-                    document.body.innerHTML += `
-                        <div style="color: red; padding: 20px; background: #fff; z-index: 9999; position: fixed; top: 0; left: 0; width: 100%; border-bottom: 2px solid red;">
-                            <h3>Startup Error (Libs Mode)</h3>
-                            <pre>${e.message}\nAt: ${e.filename}:${e.lineno}</pre>
-                            <p>Check console. Using local libs/</p>
-                            <button onclick="location.reload()">Reload</button>
-                        </div>
-                    `;
-                }
-            }, 3000);
-        });
-    </script>
-
-    <!-- Configure Tailwind -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        scratch: {
-                            orange: '#FFAB19',
-                            purple: '#855CD6',
-                            cyan: '#4D97FF',
-                            green: '#4CBF56'
-                        },
-                        odyssey: { // Add Odyssey colors for compatibility
-                            purple: '#8B5CF6',
-                            cyan: '#06B6D4',
-                            pink: '#EC4899',
-                            amber: '#F59E0B',
-                            lime: '#84CC16'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Outfit', 'Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                        display: ['Space Grotesk', 'sans-serif'], // Add display font
+                        scratch: { orange: '#FFAB19', purple: '#855CD6', cyan: '#4D97FF', green: '#4CBF56' }
                     }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <!-- Duplicate Three.js removed -->
 
     <style>
         body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0f172a;
-            /* Forum dark theme */
-            overflow-x: hidden;
-        }
-
-        #bg-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            pointer-events: none;
-            opacity: 0.6;
-        }
-
-        #app {
-            position: relative;
-            z-index: 10;
-        }
-
-        /* Ensure panels are transparent for effect */
-        .glass-panel,
-        nav,
-        aside {
-            backdrop-filter: blur(12px);
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 3px;
-        }
-
-        [v-cloak] {
-            display: none;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
-
-        .blob-bg {
-            position: absolute;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(77, 151, 255, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        .search-input {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(51, 65, 85, 0.5);
-            transition: all 0.2s;
-        }
-
-        .search-input:focus {
-            border-color: #4D97FF;
-            box-shadow: 0 0 0 2px rgba(77, 151, 255, 0.2);
-            outline: none;
-        }
-
-        /* Modal Styles */
-        .modal-backdrop {
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
-
-        .modal-content {
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        /* Custom Scrollbar for horizontal scrolling */
-        .overflow-x-auto::-webkit-scrollbar {
-            height: 6px;
-        }
-
-        .modal-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .modal-content::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.3);
-            border-radius: 3px;
-        }
-
-        .modal-content::-webkit-scrollbar-thumb {
-            background: rgba(100, 116, 139, 0.5);
-            border-radius: 3px;
-        }
-
-        .modal-content::-webkit-scrollbar-thumb:hover {
-            background: rgba(100, 116, 139, 0.8);
+            font-family: 'Inter', sans-serif;
         }
 
         [v-cloak] {
             display: none !important;
         }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes glow-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(99, 102, 241, 0.6), 0 0 60px rgba(139, 92, 246, 0.4);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        .editor-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .editor-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particle-float 8s infinite ease-in-out;
+        }
+
+        @keyframes particle-float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.3;
+            }
+
+            25% {
+                transform: translate(100px, -100px) scale(1.2);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: translate(-50px, -150px) scale(0.8);
+                opacity: 0.4;
+            }
+
+            75% {
+                transform: translate(-100px, -50px) scale(1.1);
+                opacity: 0.5;
+            }
+        }
     </style>
-    <script src="assets/js/supabase-client.js" crossorigin="anonymous"></script>
-    <script src="assets/js/supabase-projects.js" crossorigin="anonymous"></script>
-    <script src="assets/js/project-storage.js" crossorigin="anonymous"></script>
-    <script src="assets/js/translations.js" crossorigin="anonymous"></script>
-    <script src="assets/js/background-3d.js" crossorigin="anonymous"></script>
 </head>
 
-<body class="bg-slate-900 text-white">
+<body class="bg-slate-900 text-white overflow-x-hidden">
     <canvas id="bg-canvas"></canvas>
-    <div id="app" class="flex flex-col min-h-screen relative" v-cloak>
-        <!-- Background Effects -->
-        <div class="blob-bg top-[-200px] left-[-200px]"></div>
-        <div
-            class="blob-bg bottom-[-200px] right-[-200px] bg-[radial-gradient(circle,rgba(255,171,25,0.15)_0%,rgba(0,0,0,0)_70%)]">
-        </div>
 
+    <!-- Enhanced Ambient Blobs -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div
+            class="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse">
+        </div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[700px] h-[700px] bg-purple-600/20 rounded-full blur-[140px] animate-pulse"
+            style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-1/2 w-[500px] h-[500px] bg-cyan-600/15 rounded-full blur-[100px] animate-pulse"
+            style="animation-delay: 2s;"></div>
+    </div>
+
+    <div id="app" class="relative z-10" v-cloak>
         <!-- Navbar -->
-        <nav
-            class="h-20 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur z-50 flex items-center justify-between px-6 lg:px-12 sticky top-0">
-            <div class="flex items-center gap-4">
-                <a href="index.html" class="p-2 rounded-lg hover:bg-slate-800 transition-colors">
-                    <svg width="24" height="24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                </a>
+        <nav class="sticky top-0 z-50 glass-panel border-b border-indigo-500/20">
+            <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div
-                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-scratch-orange to-red-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-500/20">
+                        class="w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold">
                         C</div>
-                    <div>
-                        <h1 class="font-bold text-white text-lg leading-tight">科技特长生实训平台</h1>
-                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">VEX Robotics & AI
-                            Workspace</div>
-                    </div>
+                    <span class="font-bold text-xl">Coding<span class="text-indigo-400">Lab</span></span>
                 </div>
-            </div>
-
-            <!-- New Navigation Links -->
-            <div class="hidden md:flex items-center gap-8 mx-8">
-                <a href="learn.html"
-                    class="text-sm font-bold text-slate-400 hover:text-white transition-colors">课程中心</a>
-                <a href="roadmap.html"
-                    class="text-sm font-bold text-slate-400 hover:text-white transition-colors">成长图谱</a>
-                <a href="math.html" class="text-sm font-bold text-slate-400 hover:text-white transition-colors">数理基石</a>
-                <a href="minecraft.html"
-                    class="text-sm font-bold text-slate-400 hover:text-white transition-colors">我的世界</a>
-            </div>
-
-            <div class="flex items-center gap-4">
-                <button @click="toggleLanguage"
-                    class="px-4 py-2 rounded-lg border border-slate-600 hover:border-scratch-cyan transition-colors text-sm font-bold flex items-center gap-2">
-                    <svg width="16" height="16" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                    </svg>
-                    <span>{{ currentLang === 'zh' ? 'EN' : '中文' }}</span>
-                </button>
-                <div v-if="user"
-                    class="flex items-center gap-3 bg-slate-800/50 rounded-full pl-1 pr-4 py-1 border border-slate-700">
-                    <div class="w-8 h-8 rounded-full bg-slate-700 overflow-hidden">
-                        <img v-if="user.avatar_url" :src="user.avatar_url" class="object-cover w-full h-full">
-                        <span v-else class="flex w-full h-full items-center justify-center">👤</span>
-                    </div>
-                    <span class="text-sm font-bold text-slate-300">{{ user.username || 'Creator' }}</span>
+                <div class="flex items-center gap-4">
+                    <a href="ide-jr.html"
+                        class="text-sm text-slate-400 hover:text-white transition-colors">ScratchJr</a>
+                    <a href="ide-scratch.html"
+                        class="text-sm text-slate-400 hover:text-white transition-colors">Scratch</a>
+                    <a href="index.html" class="text-sm text-slate-400 hover:text-white transition-colors">Home</a>
                 </div>
-                <button v-else @click="loginWithGithub"
-                    class="px-5 py-2 rounded-full border border-slate-600 hover:border-white transition-colors text-sm font-bold"
-                    data-i18n="login">
-                    Login
-                </button>
             </div>
         </nav>
 
         <!-- Main Content -->
-        <main class="flex-1 w-full max-w-7xl mx-auto p-6 lg:p-12">
+        <main class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Editor Cards Section -->
+            <div class="mb-16">
+                <h2
+                    class="text-3xl font-bold text-center mb-4 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    Choose Your Coding Environment</h2>
+                <p class="text-center text-slate-400 mb-12">Select the perfect editor for your skill level</p>
 
-            <!-- Hero / Create Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-                <!-- Create Scratch -->
-                <div
-                    class="group relative bg-slate-800/40 rounded-3xl p-8 border border-slate-700 overflow-hidden hover:border-scratch-purple transition-all duration-300 hover:shadow-[0_0_30px_rgba(133,92,214,0.2)]">
-                    <div
-                        class="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    </div>
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-start mb-6">
-                            <span
-                                class="px-3 py-1 bg-scratch-purple/20 text-scratch-purple rounded-full text-xs font-bold uppercase tracking-wide">Block-based</span>
-                            <div class="p-3 bg-slate-800 rounded-2xl group-hover:bg-scratch-purple transition-colors">
-                                <span class="text-3xl filter grayscale group-hover:grayscale-0 transition-all">🤖</span>
-                            </div>
-                        </div>
-                        <h2 class="text-3xl font-black text-white mb-2" data-i18n="create_project">VEX & Scratch</h2>
-                        <p class="text-slate-400 mb-8" data-i18n="start_coding">从积木编程到机器人控制，开启工程挑战。</p>
-                        <a href="ide-scratch.html"
-                            class="inline-flex items-center gap-2 bg-white text-slate-900 px-6 py-3 rounded-xl font-bold hover:bg-scratch-cyan hover:text-white transition-all shadow-lg shadow-indigo-500/20 group-hover:scale-105">
-                            <span data-i18n="new_project">Open Workbench</span>
-                            <svg width="20" height="20" fill="none" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Create Scratch Jr -->
-                <div
-                    class="group relative bg-slate-800/40 rounded-3xl p-8 border border-slate-700 overflow-hidden hover:border-scratch-orange transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,171,25,0.2)]">
-                    <div
-                        class="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    </div>
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-start mb-6">
-                            <span
-                                class="px-3 py-1 bg-scratch-orange/20 text-scratch-orange rounded-full text-xs font-bold uppercase tracking-wide">Junior</span>
-                            <div class="p-3 bg-slate-800 rounded-2xl group-hover:bg-scratch-orange transition-colors">
-                                <span class="text-3xl filter grayscale group-hover:grayscale-0 transition-all">🧩</span>
-                            </div>
-                        </div>
-                        <h2 class="text-3xl font-black text-white mb-2">Scratch Jr</h2>
-                        <p class="text-slate-400 mb-8">专为 5-7 岁设计的启蒙编程工具。</p>
-                        <a href="ide-jr.html"
-                            class="inline-flex items-center gap-2 bg-white text-slate-900 px-6 py-3 rounded-xl font-bold hover:bg-scratch-orange hover:text-white transition-all shadow-lg shadow-orange-500/20 group-hover:scale-105">
-                            <span data-i18n="new_jr_project">Launch Junior</span>
-                            <svg width="20" height="20" fill="none" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Learning Path Selector -->
-            <div class="mb-12">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                        <span class="text-3xl">🗺️</span>
-                        <span>选择你的工程路径</span>
-                    </h2>
-                    <button @click="selectedPath = null; fetchProjects()" v-if="selectedPath"
-                        class="text-sm text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
-                        <span>✕ 清除选择</span>
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Path: Beginner -->
-                    <button @click="selectPath('beginner')"
-                        :class="{'ring-2 ring-emerald-500 bg-slate-800': selectedPath === 'beginner', 'bg-slate-800/40 hover:bg-slate-800': selectedPath !== 'beginner'}"
-                        class="p-6 rounded-2xl border border-slate-700 transition-all text-left relative group overflow-hidden">
+                <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    <!-- Scratch Card -->
+                    <a href="ide-scratch.html" class="editor-card group block">
                         <div
-                            class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-6xl">
-                            🔧</div>
-                        <div class="relative z-10">
+                            class="glass-panel rounded-3xl p-8 border-2 border-indigo-500/30 hover:border-indigo-500 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/50 relative overflow-hidden">
+                            <!-- Particles -->
+                            <div class="particle w-3 h-3 bg-indigo-400 top-10 left-10" style="animation-delay: 0s;">
+                            </div>
+                            <div class="particle w-2 h-2 bg-purple-400 top-20 right-20" style="animation-delay: 1s;">
+                            </div>
+                            <div class="particle w-4 h-4 bg-cyan-400 bottom-10 left-20" style="animation-delay: 2s;">
+                            </div>
+
+                            <!-- Icon -->
                             <div
-                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-bold mb-3 uppercase tracking-wider">
-                                Foundation
+                                class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-scratch-orange to-scratch-purple flex items-center justify-center text-4xl shadow-lg group-hover:rotate-12 transition-transform duration-500">
+                                <span>🎨</span>
                             </div>
-                            <h3 class="font-bold text-white text-lg mb-1">工程启蒙</h3>
-                            <p class="text-slate-400 text-sm mb-4">从图形化编程开始，学习基本的机械结构与逻辑控制。</p>
-                            <div class="flex items-center gap-2 text-xs text-slate-500 font-mono">
-                                <span>🎯 适合 6-9 岁</span>
+
+                            <!-- Content -->
+                            <h3
+                                class="text-2xl font-bold text-white mb-3 text-center group-hover:text-indigo-300 transition-colors">
+                                Scratch 3.0</h3>
+                            <p class="text-slate-400 text-center mb-6 text-sm">8+ years | Block-based Programming</p>
+
+                            <div class="space-y-2 mb-6">
+                                <div class="flex items-center gap-2 text-sm text-slate-300">
+                                    <span class="text-green-400">✓</span>
+                                    <span>Visual block coding</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm text-slate-300">
+                                    <span class="text-green-400">✓</span>
+                                    <span>Create games & animations</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm text-slate-300">
+                                    <span class="text-green-400">✓</span>
+                                    <span>Share with community</span>
+                                </div>
+                            </div>
+
+                            <div class="text-center">
+                                <span
+                                    class="inline-block px-6 py-3 bg-gradient-to-r from-scratch-purple to-scratch-cyan text-white rounded-full font-bold group-hover:shadow-lg group-hover:shadow-purple-500/50 transition-all">Start
+                                    Creating &rarr;</span>
                             </div>
                         </div>
-                    </button>
+                    </a>
 
-                    <!-- Path: Competition -->
-                    <button @click="selectPath('competition')"
-                        :class="{'ring-2 ring-orange-500 bg-slate-800': selectedPath === 'competition', 'bg-slate-800/40 hover:bg-slate-800': selectedPath !== 'competition'}"
-                        class="p-6 rounded-2xl border border-slate-700 transition-all text-left relative group overflow-hidden">
+                    <!-- ScratchJr Card -->
+                    <a href="ide-jr.html" class="editor-card group block">
                         <div
-                            class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-6xl">
-                            🤖</div>
-                        <div class="relative z-10">
+                            class="glass-panel rounded-3xl p-8 border-2 border-yellow-500/30 hover:border-yellow-500 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/50 relative overflow-hidden">
+                            <!-- Particles -->
+                            <div class="particle w-3 h-3 bg-yellow-400 top-10 right-10" style="animation-delay: 0.5s;">
+                            </div>
+                            <div class="particle w-2 h-2 bg-orange-400 top-20 left-20" style="animation-delay: 1.5s;">
+                            </div>
+                            <div class="particle w-4 h-4 bg-green-400 bottom-10 right-20"
+                                style="animation-delay: 2.5s;"></div>
+
+                            <!-- Icon -->
                             <div
-                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 text-[10px] font-bold mb-3 uppercase tracking-wider">
-                                Elite
+                                class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-4xl shadow-lg group-hover:rotate-12 transition-transform duration-500">
+                                <span>🧩</span>
                             </div>
-                            <h3 class="font-bold text-white text-lg mb-1">白名单赛事 (VEX/CSP)</h3>
-                            <p class="text-slate-400 text-sm mb-4">VEX 机器人工程挑战与 CSP-J 算法实战，直通名校科技特长生。</p>
-                            <div class="flex items-center gap-2 text-xs text-slate-500 font-mono">
-                                <span>🚀 适合 10+ 岁</span>
+
+                            <!-- Content -->
+                            <h3
+                                class="text-2xl font-bold text-white mb-3 text-center group-hover:text-yellow-300 transition-colors">
+                                ScratchJr</h3>
+                            <p class="text-slate-400 text-center mb-6 text-sm">5-7 years | Touch-friendly Coding</p>
+
+                            <div class="space-y-2 mb-6">
+                                <div class="flex items-center gap-2 text-sm text-slate-300">
+                                    <span class="text-green-400">✓</span>
+                                    <span>Designed for young kids</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm text-slate-300">
+                                    <span class="text-green-400">✓</span>
+                                    <span>Simple drag & drop</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm text-slate-300">
+                                    <span class="text-green-400">✓</span>
+                                    <span>Mobile app available</span>
+                                </div>
+                            </div>
+
+                            <div class="text-center">
+                                <span
+                                    class="inline-block px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-full font-bold group-hover:shadow-lg group-hover:shadow-yellow-500/50 transition-all">Get
+                                    Started &rarr;</span>
                             </div>
                         </div>
-                    </button>
+                    </a>
+                </div>
+            </div>
 
-                    <!-- Path: Creative -->
-                    <button @click="selectPath('creative')"
-                        :class="{'ring-2 ring-purple-500 bg-slate-800': selectedPath === 'creative', 'bg-slate-800/40 hover:bg-slate-800': selectedPath !== 'creative'}"
-                        class="p-6 rounded-2xl border border-slate-700 transition-all text-left relative group overflow-hidden">
-                        <div
-                            class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-6xl">
-                            ⚙️</div>
-                        <div class="relative z-10">
+            <!-- Featured Carousel -->
+            <div v-if="featuredProjects.length > 0"
+                class="mb-12 relative group rounded-2xl overflow-hidden shadow-2xl border border-indigo-500/30 h-[400px]">
+                <div class="absolute inset-0 transition-transform duration-700"
+                    :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
+                    <div class="absolute inset-0 flex">
+                        <div v-for="project in featuredProjects" :key="project.id"
+                            class="w-full flex-shrink-0 relative">
+                            <img :src="project.thumbnail_url" class="absolute inset-0 w-full h-full object-cover">
                             <div
-                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 text-[10px] font-bold mb-3 uppercase tracking-wider">
-                                Maker
-                            </div>
-                            <h3 class="font-bold text-white text-lg mb-1">创客与工程</h3>
-                            <p class="text-slate-400 text-sm mb-4">Arduino 开源硬件、3D 打印与智能智造，实现你的创意发明。</p>
-                            <div class="flex items-center gap-2 text-xs text-slate-500 font-mono">
-                                <span>✨ 全年龄段</span>
+                                class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent flex flex-col justify-end p-8">
+                                <span
+                                    class="bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-bold w-fit mb-4">FEATURED</span>
+                                <h1 class="text-3xl md:text-5xl font-bold text-white mb-4">{{ project.title }}</h1>
+                                <p class="text-slate-300 max-w-2xl mb-8 line-clamp-2">{{ project.description }}</p>
+                                <button @click="openProjectDetail(project)"
+                                    class="px-8 py-3 bg-white text-slate-900 rounded-full font-bold hover:bg-indigo-50 transition-colors w-fit">Explore</button>
                             </div>
                         </div>
-                    </button>
+                    </div>
                 </div>
+                <button @click="prevSlide"
+                    class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">&larr;</button>
+                <button @click="nextSlide"
+                    class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">&rarr;</button>
             </div>
 
-            <!-- Competition Training Hub -->
-            <div class="mb-16 glass-panel rounded-3xl p-8 border-2 border-orange-500/30 relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl -mr-32 -mt-32">
-                </div>
-
-                <div class="relative z-10">
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <div
-                                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold mb-3 border border-red-500/30 animate-pulse">
-                                🔥 热门赛道
-                            </div>
-                            <h2 class="text-3xl font-black text-white mb-2">竞赛训练营</h2>
-                            <p class="text-slate-400">针对性训练,助力白名单赛事</p>
-                        </div>
-                        <div class="hidden md:block text-right">
-                            <div class="text-xs text-slate-500 mb-1">距离 CSP-J 2025</div>
-                            <div class="text-2xl font-black text-orange-400">还有 <span class="text-4xl">45</span> 天
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <!-- CSP-J/S -->
-                        <div
-                            class="bg-slate-800/50 rounded-xl p-5 border border-slate-700 hover:border-purple-500/50 transition-all group cursor-pointer">
-                            <div class="text-3xl mb-3">🏅</div>
-                            <h3 class="font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">
-                                CSP-J/S
-                                专区</h3>
-                            <p class="text-xs text-slate-400 mb-4">算法思维 + 真题训练</p>
-                            <div class="flex items-center gap-2 text-xs text-slate-500">
-                                <span class="px-2 py-1 bg-purple-500/10 text-purple-400 rounded">12 个项目</span>
-                                <span>•</span>
-                                <span>入门→进阶</span>
-                            </div>
-                        </div>
-
-                        <!-- VEX Robotics -->
-                        <div
-                            class="bg-slate-800/50 rounded-xl p-5 border border-slate-700 hover:border-green-500/50 transition-all group cursor-pointer">
-                            <div class="text-3xl mb-3">🤖</div>
-                            <h3 class="font-bold text-white mb-2 group-hover:text-green-400 transition-colors">VEX
-                                机器人
-                            </h3>
-                            <p class="text-xs text-slate-400 mb-4">编程 + 工程思维</p>
-                            <div class="flex items-center gap-2 text-xs text-slate-500">
-                                <span class="px-2 py-1 bg-green-500/10 text-green-400 rounded">8 个项目</span>
-                                <span>•</span>
-                                <span>实战导向</span>
-                            </div>
-                        </div>
-
-                        <!-- Creative Coding -->
-                        <div
-                            class="bg-slate-800/50 rounded-xl p-5 border border-slate-700 hover:border-cyan-500/50 transition-all group cursor-pointer">
-                            <div class="text-3xl mb-3">🎨</div>
-                            <h3 class="font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">创意编程赛
-                            </h3>
-                            <p class="text-xs text-slate-400 mb-4">艺术 + 科技融合</p>
-                            <div class="flex items-center gap-2 text-xs text-slate-500">
-                                <span class="px-2 py-1 bg-cyan-500/10 text-cyan-400 rounded">15 个项目</span>
-                                <span>•</span>
-                                <span>创意优先</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Filters -->
+            <div class="flex gap-4 mb-8">
+                <input v-model="searchQuery" type="text" placeholder="Search projects..."
+                    class="flex-1 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2 text-sm">
             </div>
 
-            <!-- Featured Projects Carousel -->
-            <!-- Featured Projects Carousel (Temporarily Removed for Debugging) -->
-            <div class="mb-12 p-8 glass-panel rounded-2xl text-center">
-                <h2>Carousel Placeholder</h2>
-            </div>
-            <!-- End Carousel -->
-
-            <!-- Statistics Dashboard -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-16 px-2">
-                <div
-                    class="glass-panel p-6 rounded-2xl border border-slate-700/50 flex items-center justify-between group hover:border-indigo-500/30 transition-all">
-                    <div>
-                        <div class="text-3xl font-black text-white mb-1 group-hover:text-indigo-400 transition-colors">
-                            2,048+</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Active Makers</div>
-                    </div>
-                    <div
-                        class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                        🚀</div>
-                </div>
-                <div
-                    class="glass-panel p-6 rounded-2xl border border-slate-700/50 flex items-center justify-between group hover:border-emerald-500/30 transition-all">
-                    <div>
-                        <div class="text-3xl font-black text-white mb-1 group-hover:text-emerald-400 transition-colors">
-                            {{ projects.length > 50 ? projects.length : 120 + projects.length }}+</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Total Projects</div>
-                    </div>
-                    <div
-                        class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                        💻</div>
-                </div>
-                <div
-                    class="glass-panel p-6 rounded-2xl border border-slate-700/50 flex items-center justify-between group hover:border-orange-500/30 transition-all">
-                    <div>
-                        <div class="text-3xl font-black text-white mb-1 group-hover:text-orange-400 transition-colors">
-                            560h</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Learning Hours</div>
-                    </div>
-                    <div
-                        class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                        ⏱️</div>
-                </div>
-                <div
-                    class="glass-panel p-6 rounded-2xl border border-slate-700/50 flex items-center justify-between group hover:border-pink-500/30 transition-all">
-                    <div>
-                        <div class="text-3xl font-black text-white mb-1 group-hover:text-pink-400 transition-colors">
-                            15+</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Competitions</div>
-                    </div>
-                    <div
-                        class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                        🏆</div>
-                </div>
-            </div>
-
-            <!-- Gallery Filter & Search -->
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                    <span data-i18n="community_lab">Community Lab</span>
-                    <span class="text-xs font-normal text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">{{
-                        projects.length }}</span>
-                </h2>
-
-                <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                    <!-- Search -->
-                    <div class="relative group">
-                        <input v-model="searchQuery" type="text"
-                            class="search-input w-full sm:w-64 pl-10 pr-4 py-2 rounded-xl text-sm text-white placeholder-slate-500"
-                            :placeholder="currentLang === 'zh' ? '搜索项目...' : 'Search projects...'">
-                        <svg class="absolute left-3 top-2.5 w-4 h-4 text-slate-500 group-focus-within:text-scratch-cyan transition-colors"
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-
-                    <!-- Filter Tabs -->
-                    <div class="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700/50">
-                        <button @click="filter = 'all'"
-                            :class="{'bg-slate-600 text-white shadow-sm': filter === 'all', 'text-slate-400 hover:text-slate-200': filter !== 'all'}"
-                            class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all"
-                            data-i18n="filter_all">All</button>
-                        <button @click="filter = 'my'"
-                            :class="{'bg-slate-600 text-white shadow-sm': filter === 'my', 'text-slate-400 hover:text-slate-200': filter !== 'my'}"
-                            class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all" data-i18n="filter_my">My
-                            Projects</button>
-                        <button @click="filter = 'featured'"
-                            :class="{'bg-slate-600 text-white shadow-sm': filter === 'featured', 'text-slate-400 hover:text-slate-200': filter !== 'featured'}"
-                            class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all"
-                            data-i18n="filter_featured">Featured</button>
-                    </div>
-
-                    <!-- Sort Dropdown -->
-                    <div class="relative">
-                        <select v-model="sortBy"
-                            class="search-input px-4 py-2 rounded-xl text-sm font-bold text-white appearance-none pr-10 cursor-pointer">
-                            <option value="latest">{{ currentLang === 'zh' ? '最新发布' : 'Latest' }}</option>
-                            <option value="popular">{{ currentLang === 'zh' ? '最多点赞' : 'Most Liked' }}</option>
-                            <option value="views">{{ currentLang === 'zh' ? '最多浏览' : 'Most Viewed' }}</option>
-                            <option value="random">{{ currentLang === 'zh' ? '随机推荐' : 'Random' }}</option>
-                        </select>
-                        <svg class="absolute right-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" fill="none"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
+            <!-- Loading -->
+            <div v-if="loading" class="flex justify-center py-20">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
             </div>
 
             <!-- Projects Grid -->
-            <div v-if="loading" class="text-center py-20">
-                <div
-                    class="animate-spin w-12 h-12 border-4 border-slate-700 border-t-scratch-cyan rounded-full mx-auto mb-4">
-                </div>
-                <p class="text-slate-500" data-i18n="loading">加载中...</p>
-            </div>
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div v-for="project in projects" :key="project.id"
+                    class="glass-panel rounded-2xl overflow-hidden group hover:border-indigo-500/50 transition-all">
 
-            <div v-else-if="projects.length === 0"
-                class="text-center py-20 bg-slate-800/20 rounded-3xl border border-dashed border-slate-700">
-                <div class="text-4xl mb-4">🎨</div>
-                <h3 class="text-xl font-bold text-white mb-2" data-i18n="no_projects">No projects yet</h3>
-                <p class="text-slate-500" data-i18n="be_first">Be the first to create something amazing!</p>
-            </div>
-
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Project Card -->
-                <div v-for="project in projects" :key="project.id" @click="openProjectDetail(project)"
-                    class="glass-panel group rounded-2xl overflow-hidden hover:border-scratch-purple/50 transition-all hover:translate-y-[-4px] block relative cursor-pointer">
                     <!-- Thumbnail -->
-                    <div
-                        class="aspect-video bg-slate-900 relative overflow-hidden group-hover:opacity-90 transition-opacity">
-                        <img v-if="project.thumbnail_url" :src="project.thumbnail_url"
-                            class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
-                        <div v-else class="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600">
-                            <span class="text-4xl text-white/20">{{ project.type === 'scratch' ? '🐱' : '🧩'
-                                }}</span>
-                        </div>
-
-                        <!-- Type Badge -->
-                        <div
-                            class="absolute top-2 left-2 px-2 py-1 rounded bg-black/60 backdrop-blur-md text-[10px] font-bold text-white border border-white/10 uppercase tracking-wider flex items-center gap-1">
-                            <span>{{ project.type === 'scratch' ? '🐱' : '🧩' }}</span>
-                            {{ project.type }}
-                        </div>
+                    <div class="h-48 bg-slate-800 relative cursor-pointer" @click="openProjectDetail(project)">
+                        <img :src="project.thumbnail_url || 'assets/images/scratch-placeholder-1.png'"
+                            class="w-full h-full object-cover">
                     </div>
 
                     <!-- Info -->
                     <div class="p-4">
-                        <div class="flex justify-between items-start mb-1">
-                            <h3
-                                class="font-bold text-white truncate text-lg group-hover:text-scratch-cyan transition-colors flex-1">
-                                {{ project.title }}</h3>
-                        </div>
-                        <p class="text-xs text-slate-400 mb-3 line-clamp-2 font-medium">{{ project.description || 'No
-                            description' }}</p>
+                        <h3 class="font-bold text-white truncate mb-1">{{ project.title }}</h3>
+                        <p class="text-xs text-slate-400 mb-3 line-clamp-2">{{ project.description || 'No description'
+                            }}</p>
 
-                        <!-- Tags -->
-                        <div v-if="project.tags && project.tags.length" class="flex flex-wrap gap-1 mb-3">
-                            <span v-for="tag in project.tags.slice(0, 3)" :key="tag"
-                                class="px-2 py-0.5 bg-slate-700/50 text-slate-300 text-[10px] rounded-full border border-slate-600/50 hover:border-scratch-cyan/50 transition-colors">
-                                {{ tag }}
-                            </span>
-                        </div>
                         <div
-                            class="flex items-center justify-between text-xs text-slate-500 border-t border-slate-700/50 pt-3">
-                            <span class="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
-                                <div
-                                    class="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center text-[8px] text-white">
-                                    {{ (project.author || 'U')[0] }}
-                                </div>
-                                <span class="truncate max-w-[80px]">{{ project.isLocal ? 'Me' : (project.author ||
-                                    'User') }}</span>
-                            </span>
-                            <span class="flex items-center gap-3">
-                                <span class="flex items-center gap-1 hover:text-scratch-cyan transition-colors"><span
-                                        class="text-[10px]">👁️</span> {{ project.view_count || 0 }}</span>
-                                <button @click.stop="toggleLike(project)"
-                                    class="flex items-center gap-1 hover:scale-110 transition-all active:scale-95"
-                                    :class="project.isLiked ? 'text-red-500' : 'text-slate-500 hover:text-red-400'">
-                                    <span class="text-[14px]">{{ project.isLiked ? '❤️' : '🤍' }}</span>
-                                    <span :class="project.isLiked ? 'font-bold' : ''">{{ project.likes || 0 }}</span>
-                                </button>
-                            </span>
-                        </div>
-
-                        <!-- Action Overlay -->
-                        <div
-                            class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-900/90 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex gap-2">
-                            <button @click="playProject(project)"
-                                class="flex-1 py-2 bg-white text-slate-900 rounded-lg font-bold text-xs hover:bg-scratch-cyan hover:text-white transition-colors shadow-lg"
-                                data-i18n="play">Play</button>
-                            <button @click="playProject(project, 'remix')"
-                                class="flex-1 py-1.5 bg-slate-800/80 backdrop-blur text-white border border-slate-600 rounded-lg font-bold text-xs hover:bg-slate-700"
-                                data-i18n="remix">Remix</button>
+                            class="flex justify-between items-center text-xs text-slate-500 border-t border-slate-700/50 pt-3">
+                            <span>{{ project.author || 'User' }}</span>
+                            <span>Likes: {{ project.likes || 0 }}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-
+            <!-- Empty State -->
+            <div v-if="!loading && projects.length === 0" class="text-center py-20 text-slate-500">
+                <p>No projects found.</p>
+            </div>
         </main>
 
-        <!-- AI Assistant Floating Button -->
-        <button id="ai-assistant-btn" @click="toggleAI"
-            class="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-2xl shadow-indigo-500/50 flex items-center justify-center text-2xl hover:scale-110 transition-all z-50 animate-pulse hover:animate-none group">
-            <span class="group-hover:scale-125 transition-transform">🤖</span>
-        </button>
-
-        <!-- AI Assistant Modal -->
-        <div id="ai-assistant-modal" v-show="aiState.isOpen" :class="{'opacity-0': !aiState.isVisible}"
-            class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300">
-            <div id="ai-assistant-panel"
-                class="glass-panel w-full max-w-2xl max-h-[80vh] transform transition-transform duration-300 relative border-indigo-500/30 shadow-[0_0_60px_-12px_rgba(99,102,241,0.5)] flex flex-col"
-                :class="{'scale-95': !aiState.isVisible, 'scale-100': aiState.isVisible}">
-                <button @click="toggleAI"
-                    class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl z-10">✕</button>
-
-                <!-- Header -->
-                <div class="p-6 border-b border-slate-700/50">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/30">
-                            🤖
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-black text-white">AI 编程助手</h2>
-                            <div class="text-xs text-indigo-400 font-mono tracking-widest uppercase">Powered by Gemini
-                                Pro
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chat Area -->
-                <div id="ai-chat-scroller" class="flex-1 overflow-y-auto p-6 space-y-4">
-                    <div v-for="(msg, index) in aiState.messages" :key="index" class="flex gap-3"
-                        :class="{'flex-row-reverse': msg.isUser}">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
-                            :class="msg.isUser ? 'bg-slate-600' : 'bg-indigo-500'">
-                            {{ msg.isUser ? '👤' : '🤖' }}
-                        </div>
-                        <div class="flex-1" :class="{'text-right': msg.isUser}">
-                            <div class="inline-block text-left p-4 rounded-2xl border text-sm leading-relaxed"
-                                :class="msg.isUser ? 'bg-slate-700 rounded-tr-none border-slate-600 text-white' : 'bg-indigo-900/30 rounded-tl-none border-indigo-500/20 text-slate-200'">
-                                <span v-html="msg.text"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Typing Indicator -->
-                    <div v-if="aiState.isTyping" class="flex gap-3">
-                        <div
-                            class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm shrink-0">
-                            🤖</div>
-                        <div class="flex-1">
-                            <div
-                                class="bg-indigo-900/30 rounded-2xl rounded-tl-none p-4 border border-indigo-500/20 w-16 h-10 flex items-center justify-center gap-1">
-                                <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
-                                <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                                    style="animation-delay: 0.1s"></div>
-                                <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                                    style="animation-delay: 0.2s"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="p-4 border-t border-slate-700/50">
-                    <div class="text-xs text-slate-500 mb-3 font-bold">快捷问题:</div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button @click="askAI('如何在 Scratch 中实现重力效果?')"
-                            class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-left text-slate-300 border border-slate-700 hover:border-indigo-500/50 transition-all">
-                            💡 如何实现重力效果?
-                        </button>
-                        <button @click="askAI('推荐适合 CSP-J 初学者的项目')"
-                            class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-left text-slate-300 border border-slate-700 hover:border-purple-500/50 transition-all">
-                            🎯 CSP-J 入门项目推荐
-                        </button>
-                        <button @click="askAI('角色移动不流畅怎么办?')"
-                            class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-left text-slate-300 border border-slate-700 hover:border-cyan-500/50 transition-all">
-                            🐛 角色移动问题
-                        </button>
-                        <button @click="askAI('VEX 机器人编程入门')"
-                            class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-left text-slate-300 border border-slate-700 hover:border-green-500/50 transition-all">
-                            🤖 VEX 入门指南
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Input Area -->
-                <div class="p-4 border-t border-slate-700/50">
-                    <div class="flex gap-2">
-                        <input id="ai-input" v-model="aiState.input" type="text" placeholder="输入你的问题..."
-                            class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                            @keypress.enter="sendAIMessage">
-                        <button @click="sendAIMessage"
-                            class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all">
-                            发送
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Project Detail Modal -->
-        <div v-if="selectedProject" v-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="selectedProject = null"></div>
+        <div v-if="selectedProject" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/80" @click="closeProjectDetail"></div>
             <div
-                class="glass-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto relative rounded-3xl border border-indigo-500/30 shadow-2xl shadow-indigo-500/20 animate-fade-in-up">
-                <button @click="selectedProject = null"
-                    class="absolute top-6 right-6 text-slate-400 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2 transition-colors z-10">
-                    <svg width="24" height="24" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-
-                <div class="grid grid-cols-1 md:grid-cols-2">
-                    <!-- Left: Preview -->
-                    <div class="h-64 md:h-auto bg-slate-900 relative group">
-                        <img v-if="selectedProject.thumbnail_url" :src="selectedProject.thumbnail_url"
-                            class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <button @click="playProject(selectedProject)"
-                                class="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full p-6 shadow-xl transform group-hover:scale-110 transition-all">
-                                <svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
-                            </button>
-                        </div>
-                        <!-- Badges -->
-                        <div class="absolute top-4 left-4 flex flex-col gap-2">
-                            <span v-if="selectedProject.difficulty"
-                                class="px-3 py-1 rounded-full bg-black/60 backdrop-blur text-xs font-bold text-white border border-white/10">
-                                {{ selectedProject.difficulty === 'beginner' ? '🟢 入门' : selectedProject.difficulty ===
-                                'intermediate' ? '🟡 进阶' : '🔴 高级' }}
-                            </span>
-                            <span v-if="selectedProject.competition"
-                                class="px-3 py-1 rounded-full bg-indigo-600/80 backdrop-blur text-xs font-bold text-white border border-white/10 shadow-lg shadow-indigo-500/20">
-                                🏆 {{ selectedProject.competition }}
-                            </span>
-                        </div>
+                class="relative bg-slate-900 w-full max-w-4xl rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col md:flex-row">
+                <div class="w-full md:w-2/3 bg-black relative group">
+                    <img :src="selectedProject.thumbnail_url" class="w-full h-full object-contain">
+                    <div
+                        class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button @click="playProject(selectedProject)"
+                            class="px-8 py-3 bg-indigo-600 rounded-full font-bold text-white">Run Project</button>
                     </div>
-
-                    <!-- Right: Info -->
-                    <div class="p-8 md:p-10 flex flex-col h-full bg-slate-900/50">
-                        <div class="flex-1">
-                            <div
-                                class="flex items-center gap-2 text-indigo-400 font-bold text-sm tracking-wider uppercase mb-2">
-                                <span>{{ selectedProject.type }} Project</span>
-                                <span>•</span>
-                                <span>ID: {{ selectedProject.id }}</span>
-                            </div>
-                            <h2 class="text-3xl md:text-4xl font-black text-white mb-4 leading-tight">{{
-                                selectedProject.title }}</h2>
-
-                            <div class="flex items-center gap-4 text-slate-400 mb-8 pb-8 border-b border-slate-700/50">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-white font-bold">
-                                        {{ (selectedProject.author || 'U')[0] }}
-                                    </div>
-                                    <span>{{ selectedProject.author }}</span>
-                                </div>
-                                <div class="flex items-center gap-4">
-                                    <span class="flex items-center gap-1"><span class="text-lg">👁️</span> {{
-                                        selectedProject.view_count }}</span>
-                                    <span class="flex items-center gap-1"><span class="text-lg">❤️</span> {{
-                                        selectedProject.likes }}</span>
-                                </div>
-                            </div>
-
-                            <div class="prose prose-invert prose-indigo max-w-none mb-8">
-                                <h3 class="text-white font-bold text-lg mb-2">项目介绍</h3>
-                                <p class="text-slate-300 leading-relaxed">{{ selectedProject.description }}</p>
-
-                                <h3 class="text-white font-bold text-lg mb-2 mt-6">知识点</h3>
-                                <div class="flex flex-wrap gap-2">
-                                    <span v-for="tag in selectedProject.tags" :key="tag"
-                                        class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm border border-slate-700">
-                                        # {{ tag }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-4 mt-auto pt-8 border-t border-slate-700/50">
-                            <button @click="playProject(selectedProject)"
-                                class="flex-1 bg-white text-slate-900 py-3.5 rounded-xl font-bold hover:bg-indigo-50 hover:scale-[1.02] transition-all shadow-lg text-center">
-                                开始学习
-                            </button>
-                            <button @click="playProject(selectedProject, 'remix')"
-                                class="flex-1 bg-slate-800 text-white py-3.5 rounded-xl font-bold border border-slate-600 hover:bg-slate-700 hover:border-indigo-500/50 transition-all text-center">
-                                查看源码 (Remix)
-                            </button>
-                        </div>
+                </div>
+                <div class="w-full md:w-1/3 p-6 flex flex-col bg-slate-800">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-2xl font-bold">{{ selectedProject.title }}</h2>
+                        <button @click="closeProjectDetail" class="text-slate-400 hover:text-white">&times;</button>
+                    </div>
+                    <p class="text-slate-300 text-sm mb-6 flex-1">{{ selectedProject.description }}</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button @click="playProject(selectedProject)"
+                            class="py-2.5 bg-indigo-600 rounded-xl font-bold">Play</button>
+                        <button class="py-2.5 bg-slate-700 rounded-xl">Share</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Footer / Debug Tools -->
-        <footer class="text-center p-6 text-slate-600 text-xs">
-            <p>&copy; 2024 Creative Coding Lab</p>
-            <div class="mt-2">
-                <button onclick="localStorage.clear(); window.location.reload();"
-                    class="text-slate-700 hover:text-red-400 underline transition-colors">
-                    [Debug] Reset Data
-                </button>
+        <!-- AI Assistant -->
+        <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+            <div v-if="aiState.isOpen"
+                class="w-80 glass-panel rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[500px] border border-indigo-500/30">
+                <div class="p-4 bg-indigo-600/90 flex justify-between items-center text-white">
+                    <h3 class="font-bold">AI Assistant</h3>
+                    <button @click="toggleAI">&times;</button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900/50">
+                    <div v-for="(msg, idx) in aiState.messages" :key="idx" class="flex"
+                        :class="msg.isUser ? 'justify-end' : 'justify-start'">
+                        <div class="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm"
+                            :class="msg.isUser ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-200'">
+                            <div v-html="msg.text"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 bg-slate-800/80 border-t border-slate-700">
+                    <div class="flex gap-2">
+                        <input v-model="aiState.input" @keydown.enter="sendAIMessage" type="text"
+                            placeholder="Ask AI..."
+                            class="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm">
+                        <button @click="sendAIMessage"
+                            class="bg-indigo-600 text-white px-3 py-2 rounded-lg">&rarr;</button>
+                    </div>
+                </div>
             </div>
-        </footer>
+            <button @click="toggleAI"
+                class="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                {{ aiState.isOpen ? '&times;' : 'AI' }}
+            </button>
+        </div>
     </div>
 
+    <!-- Main Script -->
     <script>
-        try {
-            // ===== AI Assistant Logic =====
+        const { createApp, ref, onMounted, watch } = Vue;
 
+        createApp({
+            setup() {
+                const loading = ref(true);
+                const projects = ref([]);
+                const searchQuery = ref('');
+                const selectedProject = ref(null);
+                const featuredProjects = ref([]);
+                const currentSlide = ref(0);
+                const aiState = Vue.reactive({
+                    isOpen: false,
+                    messages: [{ isUser: false, text: 'Hello! Ask me anything about coding.' }],
+                    input: ''
+                });
 
-            const { createApp, ref, computed, onMounted, onUnmounted, watch } = Vue;
-
-            createApp({
-                setup() {
-                    onMounted(() => {
-                        if (typeof THREE !== 'undefined') init3DScene();
-                    });
-
-                    // Initialize Supabase if available
-                    // Note: Supabase Client is handled by assets/js/supabase-client.js
-                    // We rely on window.SupabaseClient for logic.
-
-                    // If Supabase is missing, we just use local mode.
-                    const user = Vue.ref(null);
-
-                    const loading = ref(true);
-                    const projects = ref([]);
-                    const filter = ref('all');
-                    const currentLang = ref(localStorage.getItem('ide_lang') || 'zh');
-                    const selectedProject = ref(null);
-                    const selectedPath = ref(null);
-
-                    const openProjectDetail = (project) => {
-                        selectedProject.value = project;
-                    };
-
-                    const selectPath = (path) => {
-                        selectedPath.value = path;
-                        // Reset filter tab to 'all' when selecting a path to avoid confusion
-                        filter.value = 'all';
-                        fetchProjects();
-                        // Scroll to projects grid
-                        setTimeout(() => {
-                            const grid = document.querySelector('.grid-cols-1');
-                            if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 100);
-                    };
-
-                    const playProject = (project, mode = 'play') => {
-                        if (project.type === 'scratch-jr') {
-                            // Scratch Jr doesn't support direct linking yet without complex setup, just go to page
-                            window.location.href = 'ide-jr.html';
-                        } else {
-                            let targetUrl = 'ide-scratch.html';
-                            const params = new URLSearchParams();
-
-                            // Handle External/Hosted Project
-                            if (project.project_url) {
-                                params.append('project_url', project.project_url);
+                const fetchProjects = async () => {
+                    loading.value = true;
+                    try {
+                        if (window.ProjectStorage) {
+                            if (window.ProjectStorage.seedDemoData) {
+                                ProjectStorage.seedDemoData();
                             }
-                            // Handle Local Project (if we support loading by ID later)
-                            // params.append('project_id', project.id);
-
-                            if (mode === 'remix') {
-                                params.append('remix', 'true');
-                                params.append('original_title', project.title);
-                            }
-
-                            // Construct final URL
-                            const queryString = params.toString();
-                            if (queryString) {
-                                targetUrl += `?${queryString}`;
-                            }
-
-                            window.location.href = targetUrl;
+                            projects.value = ProjectStorage.getAllProjects();
+                            featuredProjects.value = projects.value.slice(0, 5);
                         }
-                    };
+                    } catch (e) {
+                        console.error("Fetch error", e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
 
-                    const searchQuery = ref('');
-                    const sortBy = ref('latest'); // latest, popular, views, random
+                const playProject = (project) => {
+                    window.location.href = `ide-scratch.html?project_url=${encodeURIComponent(project.project_url || '')}&id=${project.id}`;
+                };
 
-                    // Toggle Like Function
-                    const toggleLike = async (project) => {
-                        try {
-                            // Try Supabase first
-                            if (window.SupabaseProjects && window.SupabaseClient) {
-                                const currentUser = await window.SupabaseClient.getCurrentUser();
-                                if (!currentUser) {
-                                    alert('请先登录才能点赞');
-                                    return;
-                                }
+                const openProjectDetail = (p) => { selectedProject.value = p; };
+                const closeProjectDetail = () => { selectedProject.value = null; };
+                const nextSlide = () => { currentSlide.value = (currentSlide.value + 1) % featuredProjects.value.length; };
+                const prevSlide = () => { currentSlide.value = (currentSlide.value - 1 + featuredProjects.value.length) % featuredProjects.value.length; };
+                const toggleAI = () => { aiState.isOpen = !aiState.isOpen; };
+                const sendAIMessage = () => {
+                    const text = aiState.input.trim();
+                    if (!text) return;
+                    aiState.messages.push({ isUser: true, text });
+                    aiState.input = '';
+                    setTimeout(() => {
+                        aiState.messages.push({ isUser: false, text: 'Great question! I am still learning.' });
+                    }, 500);
+                };
 
-                                const result = await window.SupabaseProjects.toggleLike(project.id);
+                onMounted(async () => {
+                    if (typeof init3DScene === 'function') init3DScene();
+                    await fetchProjects();
+                });
 
-                                // Update local state
-                                project.isLiked = result.liked;
-                                project.likes += result.liked ? 1 : -1;
-                                project.like_count = project.likes; // Keep both for compatibility
-                            } else {
-                                // Fallback to localStorage
-                                project.isLiked = !project.isLiked;
-                                project.likes += project.isLiked ? 1 : -1;
+                watch(searchQuery, fetchProjects);
 
-                                // Update in storage
-                                if (window.ProjectStorage && typeof ProjectStorage.updateProject === 'function') {
-                                    ProjectStorage.updateProject(project);
-                                }
-                            }
-                        } catch (error) {
-                            console.error('Error toggling like:', error);
-                            alert('点赞失败，请稍后重试');
-                        }
-                    };
-
-                    const fetchProjects = async () => {
-                        loading.value = true;
-                        try {
-                            // Try Supabase first
-                            if (window.SupabaseProjects && window.SupabaseClient) {
-                                const currentUser = await window.SupabaseClient.getCurrentUser();
-
-                                // Determine competition filter
-                                let competitionFilter = null;
-                                if (selectedPath.value === 'competition') {
-                                    // For competition path, we'll filter in post-processing
-                                    // since we need OR logic (CSP-J OR VEX)
-                                }
-
-                                const options = {
-                                    filter: filter.value,
-                                    difficulty: selectedPath.value === 'beginner' ? 'beginner' : null,
-                                    search: searchQuery.value,
-                                    sortBy: sortBy.value,
-                                    userId: currentUser?.id
-                                };
-
-                                let fetchedProjects = await window.SupabaseProjects.getProjects(options);
-
-                                // Post-process filters
-                                if (selectedPath.value === 'competition') {
-                                    fetchedProjects = fetchedProjects.filter(p =>
-                                        p.competition === 'CSP-J' || p.competition === 'VEX' || p.competition === 'NOIP'
-                                    );
-                                } else if (selectedPath.value === 'creative') {
-                                    fetchedProjects = fetchedProjects.filter(p =>
-                                        (p.tags && (p.tags.includes('艺术') || p.tags.includes('音乐'))) ||
-                                        p.type === 'scratch-jr'
-                                    );
-                                }
-
-                                projects.value = fetchedProjects;
-                            } else {
-                                // Fallback to localStorage (offline mode)
-                                console.log('Using localStorage fallback');
-
-                                // Ensure seeds exist if empty
-                                if (window.ProjectStorage && typeof ProjectStorage.seedDemoData === 'function') {
-                                    ProjectStorage.seedDemoData();
-                                }
-
-                                // Get All
-                                let allProjects = [];
-                                if (window.ProjectStorage) {
-                                    allProjects = ProjectStorage.getAllProjects();
-                                } else {
-                                    allProjects = JSON.parse(localStorage.getItem('scratch_community_projects') || '[]');
-                                }
-
-                                // Filter Logic (Tab)
-                                let filtered = [];
-                                if (filter.value === 'my') {
-                                    filtered = allProjects.filter(p => p.isLocal === true);
-                                } else if (filter.value === 'featured') {
-                                    filtered = allProjects.filter(p => p.project_url);
-                                } else {
-                                    filtered = allProjects;
-                                }
-
-                                // Path Logic
-                                if (selectedPath.value) {
-                                    if (selectedPath.value === 'beginner') {
-                                        filtered = filtered.filter(p => p.difficulty === 'beginner');
-                                    } else if (selectedPath.value === 'competition') {
-                                        filtered = filtered.filter(p => p.competition === 'CSP-J' || p.competition === 'VEX');
-                                    } else if (selectedPath.value === 'creative') {
-                                        filtered = filtered.filter(p => (p.tags && (p.tags.includes('艺术') || p.tags.includes('音乐'))) || p.type === 'scratch-jr');
-                                    }
-                                }
-
-                                // Search Logic
-                                if (searchQuery.value.trim()) {
-                                    const q = searchQuery.value.toLowerCase();
-                                    filtered = filtered.filter(p =>
-                                        p.title.toLowerCase().includes(q) ||
-                                        (p.description && p.description.toLowerCase().includes(q)) ||
-                                        (p.author && p.author.toLowerCase().includes(q))
-                                    );
-                                }
-
-                                // Sort Logic
-                                switch (sortBy.value) {
-                                    case 'popular':
-                                        filtered.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-                                        break;
-                                    case 'views':
-                                        filtered.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-                                        break;
-                                    case 'random':
-                                        filtered.sort(() => Math.random() - 0.5);
-                                        break;
-                                    case 'latest':
-                                    default:
-                                        break;
-                                }
-
-                                projects.value = filtered;
-                            }
-
-                        } catch (e) {
-                            console.error("Error fetching projects:", e);
-                            // On error, try localStorage fallback
-                            if (window.ProjectStorage) {
-                                projects.value = ProjectStorage.getAllProjects();
-                            } else {
-                                projects.value = [];
-                            }
-                        } finally {
-                            loading.value = false;
-                        }
-                    };
-
-                    const loginWithGithub = async () => {
-                        try {
-                            if (window.SupabaseClient) {
-                                await window.SupabaseClient.signInWithGitHub();
-                                // Redirect will happen automatically
-                            } else {
-                                alert("Supabase not configured. Please check database/README.md for setup instructions.");
-                            }
-                        } catch (error) {
-                            console.error('Login error:', error);
-                            alert('登录失败，请稍后重试');
-                        }
-                    };
-
-                    watch([filter, searchQuery, sortBy], () => {
-                        fetchProjects();
-                    });
-
-                    onMounted(async () => {
-                        // Check User Session via Centralized Client
-                        if (window.SupabaseClient) {
-                            const currentUser = await window.SupabaseClient.getCurrentUser();
-                            if (currentUser) {
-                                user.value = currentUser;
-                            }
-                        }
-
-                        fetchProjects();
-
-                        // Initialize language
-                        setTimeout(() => setLanguage(currentLang.value), 100);
-                    });
-
-                    // Language switching
-                    // currentLang is already declared above
-                    // Translations now loaded from assets/js/translations.js
-
-                    const setLanguage = (lang) => {
-                        currentLang.value = lang;
-                        localStorage.setItem('coding_lang', lang);
-
-                        // Update all elements with data-i18n
-                        document.querySelectorAll('[data-i18n]').forEach(el => {
-                            const key = el.getAttribute('data-i18n');
-                            if (translations[lang][key]) {
-                                el.textContent = translations[lang][key];
-                            }
-                        });
-                    };
-
-                    const toggleLanguage = () => {
-                        setLanguage(currentLang.value === 'zh' ? 'en' : 'zh');
-                    };
-
-                    // --- Carousel Logic ---
-                    const currentSlide = ref(0);
-                    const featuredProjects = computed(() => {
-                        // Filter projects: Use featured ones, or top liked, or specific URLs
-                        // Fallback to first 5
-                        let list = projects.value.filter(p => p.isFeatured || (p.likes && p.likes > 3) || p.project_url);
-                        if (list.length === 0 && projects.value.length > 0) {
-                            list = projects.value.slice(0, 3);
-                        }
-                        return list.slice(0, 5);
-                    });
-
-                    let slideInterval;
-                    const nextSlide = () => {
-                        if (featuredProjects.value.length === 0) return;
-                        currentSlide.value = (currentSlide.value + 1) % featuredProjects.value.length;
-                    };
-                    const prevSlide = () => {
-                        if (featuredProjects.value.length === 0) return;
-                        currentSlide.value = (currentSlide.value - 1 + featuredProjects.value.length) % featuredProjects.value.length;
-                    };
-                    const setSlide = (index) => {
-                        currentSlide.value = index;
-                        // Reset timer on manual interaction
-                        if (slideInterval) {
-                            clearInterval(slideInterval);
-                            slideInterval = setInterval(nextSlide, 5000);
-                        }
-                    };
-
-                    onMounted(() => {
-                        slideInterval = setInterval(nextSlide, 5000);
-                    });
-                    onUnmounted(() => {
-                        if (slideInterval) clearInterval(slideInterval);
-                    });
-
-                    // --- AI Assistant Logic (Vue Integrated) ---
-                    const aiState = Vue.reactive({
-                        isOpen: false,
-                        isVisible: false,
-                        isTyping: false,
-                        input: '',
-                        messages: [
-                            {
-                                isUser: false,
-                                text: "你好!我是你的 AI 编程助手。我可以帮你:<br><br>💡 解答 Scratch 编程问题<br>🎯 推荐适合你的学习项目<br>🐛 诊断代码 Bug<br>🏆 提供竞赛备考建议"
-                            }
-                        ]
-                    });
-
-                    const scrollChat = () => {
-                        setTimeout(() => {
-                            const div = document.getElementById('ai-chat-scroller');
-                            if (div) div.scrollTop = div.scrollHeight;
-                        }, 50);
-                    };
-
-                    const toggleAI = () => {
-                        if (!aiState.isOpen) {
-                            aiState.isOpen = true;
-                            setTimeout(() => aiState.isVisible = true, 10);
-
-                            // Intelligent Greeting
-                            if (selectedProject.value && aiState.messages.length <= 1) {
-                                aiState.messages.push({
-                                    isUser: false,
-                                    text: `你好！我看你正在浏览 <b>${selectedProject.value.title}</b>。有什么我可以帮你的吗？`
-                                });
-                            }
-                            scrollChat();
-                        } else {
-                            aiState.isVisible = false;
-                            setTimeout(() => aiState.isOpen = false, 300);
-                        }
-                    };
-
-                    const askAI = (question) => {
-                        if (!aiState.isOpen) toggleAI();
-                        handleMessage(question);
-                    };
-
-                    const sendAIMessage = () => {
-                        const text = aiState.input.trim();
-                        if (!text) return;
-                        handleMessage(text);
-                        aiState.input = '';
-                    };
-
-                    const handleMessage = (text) => {
-                        // Add User Message
-                        aiState.messages.push({ isUser: true, text });
-                        scrollChat();
-
-                        // Simulate Response
-                        aiState.isTyping = true;
-                        scrollChat();
-
-                        setTimeout(() => {
-                            aiState.isTyping = false;
-                            let response = "这个问题很有趣！作为一个 AI 编程助手，我建议你可以尝试分解问题，一步步解决。";
-
-                            // Context Aware
-                            if (selectedProject.value) {
-                                const p = selectedProject.value;
-                                if (text.includes('这个项目') || text.includes('复刻')) {
-                                    response = `关于 <b>${p.title}</b>: <br>这是一个适合 <b>${p.difficulty}</b> 的项目。<br>核心知识点包含: ${p.tags ? p.tags.join(', ') : '基础编程'}。<br>你可以点击'查看源码'来学习其逻辑！`;
-                                }
-                            }
-
-                            const q = text.toLowerCase();
-                            if (q.includes('重力')) {
-                                response = "在 Scratch 中实现<b>重力</b>：<br>1. 建立变量 [速度Y]<br>2. 循环中将 [速度Y] -1<br>3. Y 坐标增加 [速度Y]<br>4. 碰到地面时，[速度Y] 设为 0。";
-                            } else if (q.includes('csp') || q.includes('竞赛')) {
-                                response = "备战 <b>CSP-J/S</b> 重点：<br>1. 模拟算法<br>2. 排序与枚举<br>3. 栈与队列等基础结构。";
-                            } else if (q.includes('vex') || q.includes('机器人')) {
-                                response = "VEX 机器人核心是 <b>PID 控制</b>。<br>利用传感器反馈，实时调整电机输出，实现精确走直线或转弯。";
-                            }
-
-                            aiState.messages.push({ isUser: false, text: response });
-                            scrollChat();
-                        }, 1500);
-                    };
-
-                    // Bind to window for backup access
-                    window.askAI = askAI;
-                    window.sendAIMessage = sendAIMessage;
-
-                    // Also bind the top-right button manually if needed, or rely on existing onclick
-                    // Ideally we use checking onMounted to bind events if not using Vue @click
-
-
-                    return {
-                        user,
-                        loading,
-                        projects,
-                        filter,
-                        searchQuery,
-                        sortBy,
-                        loginWithGithub,
-                        currentLang,
-                        toggleLanguage,
-                        playProject,
-                        toggleLike,
-                        selectedProject,
-                        openProjectDetail,
-                        selectedPath,
-                        selectPath,
-                        // Carousel
-                        featuredProjects,
-                        currentSlide,
-                        nextSlide,
-                        prevSlide,
-                        setSlide,
-                        aiState,
-                        toggleAI,
-                        askAI,
-                        sendAIMessage
-                    };
-                }
-            }).mount('#app');
-        } catch (err) {
-            console.error("Vue Init Error:", err);
-            document.body.innerHTML += `<div style="color:red;padding:20px;background:white;position:fixed;top:0;left:0;z-index:9999"><h3>Vue Init Error</h3><pre>${err.toString()}</pre></div>`;
-        }
-
-
-
-        // Initialize Supabase (keeping inline for auth config injection if needed, or move later)
+                return {
+                    loading, projects, searchQuery,
+                    selectedProject, openProjectDetail, closeProjectDetail,
+                    featuredProjects, currentSlide, nextSlide, prevSlide,
+                    aiState, toggleAI, sendAIMessage,
+                    playProject
+                };
+            }
+        }).mount('#app');
     </script>
 </body>
 
