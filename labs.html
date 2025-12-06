@@ -83,6 +83,13 @@
             transform: translateY(-5px);
         }
 
+        /* Nav Glass Effect */
+        .glass-effect {
+            background: rgba(5, 5, 5, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
         /* CRT/CCD Scanline Effect */
         .scanline {
             position: fixed;
@@ -156,16 +163,13 @@
     <div class="grid-bg"></div>
     <div class="scanline"></div>
 
-    <!-- Navigation (Simplified for this page) -->
     <!-- Navigation -->
     <nav class="fixed top-0 w-full z-50 glass-effect border-b border-white/10">
         <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <i class="fas fa-flask text-3xl text-cyan-400 animate-pulse"></i>
                 <h1 class="font-tech text-2xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500"
-                    id="nav-title">
-                    万物实验室 <span class="text-xs text-white/50 ml-2">v2.0.45</span>
-                </h1>
+                    id="nav-title">万物实验室 <span class="text-xs text-white/50 ml-2">v2.0.45</span></h1>
             </div>
             <div class="flex items-center gap-6">
                 <button onclick="toggleLanguage()"
@@ -188,9 +192,7 @@
             <div
                 class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none">
             </div>
-            <h2 class="font-tech text-5xl md:text-7xl mb-6 typing-effect inline-block" id="hero-title">
-                INFINITE LAB
-            </h2>
+            <h2 class="font-tech text-5xl md:text-7xl mb-6 typing-effect inline-block" id="hero-title">INFINITE LAB</h2>
             <p class="font-mono text-cyan-300/80 text-sm md:text-base tracking-widest mb-8 terminal-text"
                 id="hero-subtitle">
                 &gt; INITIALIZING VIRTUAL EXPERIMENT CORE...<br class="hidden md:inline" />
@@ -234,6 +236,7 @@
         <!-- Labs Grid -->
         <div id="labs-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Cards will be injected here via JS -->
+            <div class="text-gray-500 text-center col-span-full font-mono">Loading data...</div>
         </div>
 
     </main>
@@ -322,30 +325,43 @@
         }
 
         function updateLanguage() {
-            const t = translations[currentLang];
+            try {
+                const t = translations[currentLang];
 
-            // Static text updates
-            document.getElementById('nav-title').childNodes[0].nodeValue = t.navTitle + " ";
-            document.getElementById('hero-title').innerText = t.heroTitle; // Added this line
-            document.getElementById('hero-subtitle').innerHTML = t.heroSubtitle;
-            document.getElementById('loader').innerText = t.loader;
-            document.getElementById('modal-source').innerText = t.source;
-            document.getElementById('modal-status').innerText = t.status;
-            document.getElementById('modal-new-tab').innerText = t.newTab;
-            document.getElementById('lang-btn').innerText = currentLang === 'zh' ? 'EN/CN' : 'CN/EN'; // Added this line
-            document.getElementById('nav-home').innerText = currentLang === 'zh' ? '首页' : 'HOME'; // Added this line
+                // Static text updates
+                const navTitle = document.getElementById('nav-title');
+                if (navTitle) navTitle.innerHTML = t.navTitle + ' <span class="text-xs text-white/50 ml-2">v2.0.45</span>';
 
-            // Filter buttons
-            document.querySelectorAll('#filter-container span[data-zh]').forEach(el => {
-                el.innerText = el.getAttribute(`data-${currentLang}`);
-            });
+                const heroTitle = document.getElementById('hero-title');
+                if (heroTitle) heroTitle.innerText = t.heroTitle;
 
-            // Re-render grid to update button text
-            const activeFilterButton = document.querySelector('#filter-container button.ring-1');
-            // Re-trigger filter to refresh cards (simplest way)
-            // But we need to keep the active filter.
-            // Actually, renderLabs generates cards with text. We need to update renderLabs.
-            renderLabs(currentFilter);
+                const heroSubtitle = document.getElementById('hero-subtitle');
+                if (heroSubtitle) heroSubtitle.innerHTML = t.heroSubtitle;
+
+                if (loader) loader.innerText = t.loader;
+                if (modalSource) modalSource.innerText = t.source;
+                const modalStatus = document.getElementById('modal-status');
+                if (modalStatus) modalStatus.innerText = t.status;
+                const modalNewTab = document.getElementById('modal-new-tab');
+                if (modalNewTab) modalNewTab.innerText = t.newTab;
+
+                const langBtn = document.getElementById('lang-btn');
+                if (langBtn) langBtn.innerText = currentLang === 'zh' ? 'EN/CN' : 'CN/EN';
+
+                const navHome = document.getElementById('nav-home');
+                if (navHome) navHome.innerText = currentLang === 'zh' ? '首页' : 'HOME';
+
+                // Filter buttons
+                document.querySelectorAll('#filter-container span[data-zh]').forEach(el => {
+                    const text = el.getAttribute(`data-${currentLang}`);
+                    if (text) el.innerText = text;
+                });
+
+                // Re-render grid to update button text
+                renderLabs(currentFilter);
+            } catch (e) {
+                console.error("Language update failed:", e);
+            }
         }
 
         let currentFilter = 'all';
@@ -353,85 +369,122 @@
         // Render Labs
         function renderLabs(filter = 'all') {
             currentFilter = filter;
-            grid.innerHTML = '';
+            if (typeof experiments === 'undefined') {
+                grid.innerHTML = '<div class="col-span-full text-red-500 text-center p-8 border border-red-500/30 bg-red-900/10 rounded-xl">Error: experiments.js failed to load. Please check network/console.</div>';
+                return;
+            }
 
-            const filteredData = filter === 'all'
-                ? experiments
-                : experiments.filter(item => item.category === filter);
+            try {
+                grid.innerHTML = '';
+                const filteredData = filter === 'all'
+                    ? experiments
+                    : experiments.filter(item => item.category === filter);
 
-            // Highlight active button
-            document.querySelectorAll('#filter-container button').forEach(btn => {
-                btn.classList.remove('ring-1', 'ring-cyan-500/50');
-                // Simple check for text content match roughly or store filter in data attr
-            });
-            // (Button generic highlighting fix omitted for brevity, user didn't ask for strict filter active state fix, but logic matches)
-
-            filteredData.forEach(exp => {
-                const card = document.createElement('div');
-                card.className = 'glass-card rounded-xl overflow-hidden hover-scale group relative border border-white/5';
-
-                // Determine thumbnail content
-                let thumbnailContent;
-                if (exp.thumbnail && (exp.thumbnail.startsWith('http') || exp.thumbnail.startsWith('assets/'))) {
-                    thumbnailContent = `<img src="${exp.thumbnail}" alt="${exp.title}" class="w-full h-48 object-cover opacity-80 group-hover:opacity-100 transition-opacity">`;
-                } else {
-                    // Fallback or Emoji
-                    const emoji = exp.thumbnail || '🔬';
-                    thumbnailContent = `<div class="w-full h-48 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center text-6xl">${emoji}</div>`;
+                if (filteredData.length === 0) {
+                    grid.innerHTML = '<div class="col-span-full text-gray-400 text-center font-mono">No experiments found in this category.</div>';
+                    return;
                 }
 
-                card.innerHTML = `
-                    <div class="p-5 flex-grow flex flex-col">
-                        <h3 class="font-tech text-lg font-bold mb-2 text-white group-hover:text-cyan-400 transition-colors">${lab.title}</h3>
-                        <p class="text-gray-400 text-sm mb-4 line-clamp-2">${lab.description}</p>
-                        
-                        <div class="mt-auto flex items-center justify-between text-xs font-mono text-gray-500 pt-4 border-t border-white/5">
-                            <span>LVL: ${lab.level}</span>
-                            <span class="group-hover:translate-x-1 transition-transform text-cyan-500">
-                                启动实验 <i class="fas fa-chevron-right ml-1"></i>
-                            </span>
+                // Highlight active button
+                document.querySelectorAll('#filter-container button').forEach(btn => {
+                    btn.classList.remove('ring-1', 'ring-cyan-500/50');
+                    const span = btn.querySelector('span');
+                    if (span) {
+                        const zhText = span.getAttribute('data-zh');
+                        if ((filter === 'all' && zhText.includes('全部')) || zhText.includes(filter)) {
+                            // btn.classList.add('ring-1', 'ring-cyan-500/50'); // Optional: Add active state logic
+                        }
+                    }
+                });
+
+                filteredData.forEach((exp, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'glass-card rounded-xl overflow-hidden hover-scale group relative border border-white/5 cursor-pointer flex flex-col h-full';
+
+                    // Determine thumbnail content
+                    let thumbnailContent;
+                    if (exp.thumbnail && (exp.thumbnail.startsWith('http') || exp.thumbnail.startsWith('assets/'))) {
+                        thumbnailContent = `<img src="${exp.thumbnail}" alt="${exp.title}" class="w-full h-48 object-cover opacity-80 group-hover:opacity-100 transition-opacity">`;
+                    } else {
+                        // Fallback or Emoji
+                        const emoji = exp.thumbnail || '🔬';
+                        thumbnailContent = `<div class="w-full h-48 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center text-6xl">${emoji}</div>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="relative">
+                             ${thumbnailContent}
+                             <div class="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur rounded text-xs font-mono text-cyan-400 border border-cyan-500/30">
+                                ${exp.category.toUpperCase()}
+                            </div>
                         </div>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
+                        <div class="p-5 flex-grow flex flex-col">
+                            <h3 class="font-tech text-lg font-bold mb-2 text-white group-hover:text-cyan-400 transition-colors">${exp.title}</h3>
+                            <p class="text-gray-400 text-sm mb-4 line-clamp-2">${exp.description}</p>
+                            
+                            <div class="mt-auto pt-4 border-t border-white/5">
+                                <button class="w-full py-2 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 rounded text-cyan-400 hover:text-cyan-200 font-tech text-sm tracking-widest transition-all glow-text flex items-center justify-center gap-2">
+                                     <i class="fas fa-play text-xs"></i> ${currentLang === 'zh' ? '启动实验' : 'START SIM'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Add click event for modal (on the whole card)
+                    card.onclick = () => openModal(exp);
+
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error("Render failed:", e);
+                grid.innerHTML = `<div class="col-span-full text-red-500">Render Error: ${e.message}</div>`;
+            }
         }
 
         // Modal Logic
         function openModal(lab) {
-            modalTitle.innerText = lab.title;
+            if (modalTitle) modalTitle.innerText = lab.title;
             // Infer source from URL or default
             let source = "SYSTEM";
             if (lab.url.includes("phet")) source = "PhET Colorado";
             else if (lab.url.includes("geogebra")) source = "GeoGebra";
             else if (lab.url.includes("solarsystemscope")) source = "Solar System Scope";
 
-            modalSource.innerText = `SOURCE: ${source}`;
-            simFrame.src = lab.url; // Use lab.url from experiments.js
-            loader.style.display = 'flex';
+            if (modalSource) modalSource.innerText = `SOURCE: ${source}`;
+            if (simFrame) simFrame.src = lab.url;
+            if (loader) loader.style.display = 'flex';
 
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
 
-            // Trigger animation
-            const card = modal.querySelector('.glass-card');
-            requestAnimationFrame(() => {
-                card.classList.remove('modal-enter');
-                card.classList.add('modal-enter-active');
-            });
+                // Trigger animation
+                const card = modal.querySelector('.glass-card');
+                if (card) {
+                    requestAnimationFrame(() => {
+                        card.classList.remove('modal-enter');
+                        card.classList.add('modal-enter-active');
+                    });
+                }
+            }
         }
 
         function closeModal() {
+            if (!modal) return;
             const card = modal.querySelector('.glass-card');
-            card.classList.remove('modal-enter-active');
-            card.classList.add('modal-exit-active'); // Use exit-active for proper transition out
+            if (card) {
+                card.classList.remove('modal-enter-active');
+                card.classList.add('modal-exit-active');
+            }
 
             setTimeout(() => {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
-                card.classList.remove('modal-exit-active');
-                card.classList.add('modal-enter'); // Reset to initial state
-                simFrame.src = ''; // Stop simulation
+                if (card) {
+                    card.classList.remove('modal-exit-active');
+                    card.classList.add('modal-enter');
+                }
+                if (simFrame) simFrame.src = '';
             }, 200);
         }
 
@@ -441,6 +494,7 @@
 
         // Initial Render
         document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM Loaded. Experiments:", typeof experiments !== 'undefined' ? experiments.length : 'undefined');
             renderLabs();
         });
 
