@@ -157,6 +157,7 @@
         }
     </style>
     <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/supabase-projects.js"></script>
     <script src="assets/js/project-storage.js"></script>
     <script src="assets/js/translations.js"></script>
     <script src="assets/js/background-3d.js"></script>
@@ -649,7 +650,8 @@
                                 class="font-bold text-white truncate text-lg group-hover:text-scratch-cyan transition-colors flex-1">
                                 {{ project.title }}</h3>
                         </div>
-                        <p class="text-xs text-slate-400 mb-3 line-clamp-2 font-medium">{{ project.description || 'No description' }}</p>
+                        <p class="text-xs text-slate-400 mb-3 line-clamp-2 font-medium">{{ project.description || 'No
+                            description' }}</p>
 
                         <!-- Tags -->
                         <div v-if="project.tags && project.tags.length" class="flex flex-wrap gap-1 mb-3">
@@ -998,92 +1000,167 @@
                 const sortBy = ref('latest'); // latest, popular, views, random
 
                 // Toggle Like Function
-                const toggleLike = (project) => {
-                    project.isLiked = !project.isLiked;
-                    project.likes += project.isLiked ? 1 : -1;
-                    // Update in storage
-                    if (window.ProjectStorage && typeof ProjectStorage.updateProject === 'function') {
-                        ProjectStorage.updateProject(project);
+                const toggleLike = async (project) => {
+                    try {
+                        // Try Supabase first
+                        if (window.SupabaseProjects && window.SupabaseClient) {
+                            const currentUser = await window.SupabaseClient.getCurrentUser();
+                            if (!currentUser) {
+                                alert('请先登录才能点赞');
+                                return;
+                            }
+
+                            const result = await window.SupabaseProjects.toggleLike(project.id);
+
+                            // Update local state
+                            project.isLiked = result.liked;
+                            project.likes += result.liked ? 1 : -1;
+                            project.like_count = project.likes; // Keep both for compatibility
+                        } else {
+                            // Fallback to localStorage
+                            project.isLiked = !project.isLiked;
+                            project.likes += project.isLiked ? 1 : -1;
+
+                            // Update in storage
+                            if (window.ProjectStorage && typeof ProjectStorage.updateProject === 'function') {
+                                ProjectStorage.updateProject(project);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error toggling like:', error);
+                        alert('点赞失败，请稍后重试');
                     }
                 };
 
-                const fetchProjects = () => {
+                const fetchProjects = async () => {
                     loading.value = true;
                     try {
-                        // Ensure seeds exist if empty
-                        if (window.ProjectStorage && typeof ProjectStorage.seedDemoData === 'function') {
-                            ProjectStorage.seedDemoData();
-                        }
+                        // Try Supabase first
+                        if (window.SupabaseProjects && window.SupabaseClient) {
+                            const currentUser = await window.SupabaseClient.getCurrentUser();
 
-                        // 1. Get All
-                        let allProjects = [];
-                        if (window.ProjectStorage) {
-                            allProjects = ProjectStorage.getAllProjects();
-                        } else {
-                            // Fallback if script missing
-                            allProjects = JSON.parse(localStorage.getItem('scratch_community_projects') || '[]');
-                        }
-
-                        // 2. Filter Logic (Tab)
-                        let filtered = [];
-                        if (filter.value === 'my') {
-                            filtered = allProjects.filter(p => p.isLocal === true);
-                        } else if (filter.value === 'featured') {
-                            filtered = allProjects.filter(p => p.project_url); // Has URL usually means featured
-                        } else {
-                            filtered = allProjects;
-                        }
-
-                        // 3. Path Logic
-                        if (selectedPath.value) {
-                            if (selectedPath.value === 'beginner') {
-                                filtered = filtered.filter(p => p.difficulty === 'beginner');
-                            } else if (selectedPath.value === 'competition') {
-                                filtered = filtered.filter(p => p.competition === 'CSP-J' || p.competition === 'VEX');
-                            } else if (selectedPath.value === 'creative') {
-                                filtered = filtered.filter(p => (p.tags && (p.tags.includes('艺术') || p.tags.includes('音乐'))) || p.type === 'scratch-jr');
+                            // Determine competition filter
+                            let competitionFilter = null;
+                            if (selectedPath.value === 'competition') {
+                                // For competition path, we'll filter in post-processing
+                                // since we need OR logic (CSP-J OR VEX)
                             }
-                        }
 
-                        // 4. Search Logic
-                        if (searchQuery.value.trim()) {
-                            const q = searchQuery.value.toLowerCase();
-                            filtered = filtered.filter(p =>
-                                p.title.toLowerCase().includes(q) ||
-                                (p.description && p.description.toLowerCase().includes(q)) ||
-                                (p.author && p.author.toLowerCase().includes(q))
-                            );
-                        }
+                            const options = {
+                                filter: filter.value,
+                                difficulty: selectedPath.value === 'beginner' ? 'beginner' : null,
+                                search: searchQuery.value,
+                                sortBy: sortBy.value,
+                                userId: currentUser?.id
+                            };
 
-                        // 4. Sort Logic
-                        switch (sortBy.value) {
-                            case 'popular':
-                                filtered.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-                                break;
-                            case 'views':
-                                filtered.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-                                break;
-                            case 'random':
-                                filtered.sort(() => Math.random() - 0.5);
-                                break;
-                            case 'latest':
-                            default:
-                                // Already in reverse chronological order from storage
-                                break;
-                        }
+                            let fetchedProjects = await window.SupabaseProjects.getProjects(options);
 
-                        projects.value = filtered;
+                            // Post-process filters
+                            if (selectedPath.value === 'competition') {
+                                fetchedProjects = fetchedProjects.filter(p =>
+                                    p.competition === 'CSP-J' || p.competition === 'VEX' || p.competition === 'NOIP'
+                                );
+                            } else if (selectedPath.value === 'creative') {
+                                fetchedProjects = fetchedProjects.filter(p =>
+                                    (p.tags && (p.tags.includes('艺术') || p.tags.includes('音乐'))) ||
+                                    p.type === 'scratch-jr'
+                                );
+                            }
+
+                            projects.value = fetchedProjects;
+                        } else {
+                            // Fallback to localStorage (offline mode)
+                            console.log('Using localStorage fallback');
+
+                            // Ensure seeds exist if empty
+                            if (window.ProjectStorage && typeof ProjectStorage.seedDemoData === 'function') {
+                                ProjectStorage.seedDemoData();
+                            }
+
+                            // Get All
+                            let allProjects = [];
+                            if (window.ProjectStorage) {
+                                allProjects = ProjectStorage.getAllProjects();
+                            } else {
+                                allProjects = JSON.parse(localStorage.getItem('scratch_community_projects') || '[]');
+                            }
+
+                            // Filter Logic (Tab)
+                            let filtered = [];
+                            if (filter.value === 'my') {
+                                filtered = allProjects.filter(p => p.isLocal === true);
+                            } else if (filter.value === 'featured') {
+                                filtered = allProjects.filter(p => p.project_url);
+                            } else {
+                                filtered = allProjects;
+                            }
+
+                            // Path Logic
+                            if (selectedPath.value) {
+                                if (selectedPath.value === 'beginner') {
+                                    filtered = filtered.filter(p => p.difficulty === 'beginner');
+                                } else if (selectedPath.value === 'competition') {
+                                    filtered = filtered.filter(p => p.competition === 'CSP-J' || p.competition === 'VEX');
+                                } else if (selectedPath.value === 'creative') {
+                                    filtered = filtered.filter(p => (p.tags && (p.tags.includes('艺术') || p.tags.includes('音乐'))) || p.type === 'scratch-jr');
+                                }
+                            }
+
+                            // Search Logic
+                            if (searchQuery.value.trim()) {
+                                const q = searchQuery.value.toLowerCase();
+                                filtered = filtered.filter(p =>
+                                    p.title.toLowerCase().includes(q) ||
+                                    (p.description && p.description.toLowerCase().includes(q)) ||
+                                    (p.author && p.author.toLowerCase().includes(q))
+                                );
+                            }
+
+                            // Sort Logic
+                            switch (sortBy.value) {
+                                case 'popular':
+                                    filtered.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+                                    break;
+                                case 'views':
+                                    filtered.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+                                    break;
+                                case 'random':
+                                    filtered.sort(() => Math.random() - 0.5);
+                                    break;
+                                case 'latest':
+                                default:
+                                    break;
+                            }
+
+                            projects.value = filtered;
+                        }
 
                     } catch (e) {
                         console.error("Error fetching projects:", e);
-                        projects.value = [];
+                        // On error, try localStorage fallback
+                        if (window.ProjectStorage) {
+                            projects.value = ProjectStorage.getAllProjects();
+                        } else {
+                            projects.value = [];
+                        }
                     } finally {
                         loading.value = false;
                     }
                 };
 
-                const loginWithGithub = () => {
-                    alert("Auth not connected locally. Using Guest Mode.");
+                const loginWithGithub = async () => {
+                    try {
+                        if (window.SupabaseClient) {
+                            await window.SupabaseClient.signInWithGitHub();
+                            // Redirect will happen automatically
+                        } else {
+                            alert("Supabase not configured. Please check database/README.md for setup instructions.");
+                        }
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        alert('登录失败，请稍后重试');
+                    }
                 };
 
                 watch([filter, searchQuery, sortBy], () => {
