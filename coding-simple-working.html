@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Coding Lab | 创意编程实验室</title>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Configure Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        scratch: {
+                            orange: '#FFAB19',
+                            purple: '#855CD6',
+                            cyan: '#4D97FF',
+                            green: '#4CBF56'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        [v-cloak] {
+            display: none !important;
+        }
+    </style>
+
+    <script src="assets/js/project-storage.js"></script>
+    <script src="assets/js/background-3d.js"></script>
+    <script src="assets/js/translations.js"></script>
+</head>
+
+<body class="bg-slate-900 text-white">
+    <div id="app" class="min-h-screen p-8" v-cloak>
+        <h1
+            class="text-5xl font-bold mb-8 text-center bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            {{ title }}
+        </h1>
+
+        <div class="max-w-6xl mx-auto">
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                <div class="glass-panel p-6 rounded-2xl text-center">
+                    <div class="text-3xl font-bold text-indigo-400 mb-2">{{ projects.length }}</div>
+                    <div class="text-sm text-slate-400">项目总数</div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl text-center">
+                    <div class="text-3xl font-bold text-emerald-400 mb-2">2048+</div>
+                    <div class="text-sm text-slate-400">活跃创客</div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl text-center">
+                    <div class="text-3xl font-bold text-orange-400 mb-2">560h</div>
+                    <div class="text-sm text-slate-400">学习时长</div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl text-center">
+                    <div class="text-3xl font-bold text-pink-400 mb-2">15+</div>
+                    <div class="text-sm text-slate-400">竞赛项目</div>
+                </div>
+            </div>
+
+            <!-- Projects Grid -->
+            <h2 class="text-3xl font-bold mb-6">社区项目</h2>
+
+            <div v-if="loading" class="text-center py-20">
+                <div class="animate-spin w-12 h-12 border-4 border-slate-700 border-t-indigo-500 rounded-full mx-auto">
+                </div>
+                <p class="mt-4 text-slate-400">加载中...</p>
+            </div>
+
+            <div v-else-if="projects.length === 0" class="text-center py-20">
+                <p class="text-slate-400">还没有项目</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="project in projects" :key="project.id"
+                    class="glass-panel p-6 rounded-2xl hover:border-indigo-500/50 transition-all cursor-pointer"
+                    @click="selectedProject = project">
+                    <h3 class="text-xl font-bold text-white mb-2">{{ project.title }}</h3>
+                    <p class="text-xs text-slate-400 mb-3 line-clamp-2 font-medium">{{ project.description || 'No
+                        description' }}</p>
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                        <span>{{ project.author }}</span>
+                        <span>❤️ {{ project.likes || 0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Detail Modal -->
+        <div v-if="selectedProject" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+            @click="selectedProject = null">
+            <div class="glass-panel max-w-2xl w-full p-8 rounded-3xl" @click.stop>
+                <button @click="selectedProject = null"
+                    class="float-right text-slate-400 hover:text-white text-2xl">×</button>
+                <h2 class="text-3xl font-bold text-white mb-4">{{ selectedProject.title }}</h2>
+                <p class="text-slate-300 mb-6">{{ selectedProject.description }}</p>
+                <div class="flex gap-4">
+                    <button class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold">
+                        开始学习
+                    </button>
+                    <button class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-bold">
+                        查看源码
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const title = ref('科技特长生实训平台');
+                const loading = ref(true);
+                const projects = ref([]);
+                const selectedProject = ref(null);
+
+                onMounted(() => {
+                    // Load projects from ProjectStorage
+                    setTimeout(() => {
+                        if (window.ProjectStorage) {
+                            projects.value = window.ProjectStorage.getAllProjects();
+                        }
+                        loading.value = false;
+                    }, 500);
+                });
+
+                return {
+                    title,
+                    loading,
+                    projects,
+                    selectedProject
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
