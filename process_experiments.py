@@ -146,6 +146,10 @@ try:
     print(f"Walter Fendt: Found {len(wf_matches)} matches.")
     
     for href, title in wf_matches:
+        # Skip known broken items
+        if 'generator' in href.lower():
+            continue
+            
         url = f"https://www.walter-fendt.de/html5/phen/{href}"
         # Determine category based on section headers? Too complex for regex, defaulting to Physics
         category = 'Physics'
@@ -280,12 +284,10 @@ tpc_curated = [
     ("Circular Motion", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Circular-and-Satellite-Motion/Uniform-Circular-Motion/Uniform-Circular-Motion-Interactive"),
     ("Gravitation", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Circular-and-Satellite-Motion/Gravitational-Fields/Gravitational-Fields-Interactive"),
     ("Orbital Motion", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Circular-and-Satellite-Motion/Orbital-Motion/Orbital-Motion-Interactive"),
-    ("Momentum Conservation", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Momentum-and-Collisions/Collision-Carts/Collision-Carts-Interactive"),
     ("Elastic Collisions", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Momentum-and-Collisions/Elastic-Collisions/Elastic-Collisions-Interactive"),
     ("Inelastic Collisions", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Momentum-and-Collisions/Inelastic-Collisions/Inelastic-Collisions-Interactive"),
     ("Work and Energy", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Work-and-Energy/Work-Energy-Bar-Charts/Work-Energy-Bar-Charts-Interactive"),
     ("Roller Coaster Physics", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Work-and-Energy/Roller-Coaster-Model/Roller-Coaster-Model-Interactive"),
-    ("Spring Energy", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Work-and-Energy/Spring-Energy/Spring-Energy-Interactive"),
     ("Simple Wave Simulator", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Waves-and-Sound/Simple-Wave-Simulator/Simple-Wave-Simulator-Interactive"),
     ("Standing Waves", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Waves-and-Sound/Standing-Waves/Standing-Waves-Interactive"),
     ("Sound Waves", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Waves-and-Sound/Sound-Waves/Sound-Waves-Interactive"),
@@ -353,36 +355,6 @@ legacy_items = [
         "description_zh": "探索太阳系八大行星的大小、距离和运行轨道。",
         "url": "https://www.solarsystemscope.com/",
         "thumbnail": category_covers['Earth Science']
-    },
-     {
-        "title": "Cyber Space Shooter",
-        "title_zh": "赛博太空战机",
-        "category": "Coding",
-        "level": "All",
-        "description": "Survive the neon barrage. Destroy enemies and beat the high score!",
-        "description_zh": "驾驶战机，在霓虹弹幕中生存。击碎敌机，挑战最高分！",
-        "url": "space-shooter.html",
-        "thumbnail": category_covers['Coding']
-    },
-    {
-        "title": "Cyber Breakout",
-        "title_zh": "赛博打砖块",
-        "category": "Coding",
-        "level": "All",
-        "description": "Classic arcade mechanic with neon aesthetics and particle physics.",
-        "description_zh": "经典的街机游戏重制版。体验霓虹美学与粒子碰撞的快感。",
-        "url": "breakout.html",
-        "thumbnail": category_covers['Coding']
-    },
-    {
-        "title": "Python Turbo Racing",
-        "title_zh": "Python 极速赛车",
-        "category": "Coding",
-        "level": "All",
-        "description": "Tkinter-based desktop game. Download source code and race!",
-        "description_zh": "基于 Tkinter 的本地桌面游戏。下载源码，体验复古赛车躲避玩法。",
-        "url": "racing.html",
-        "thumbnail": category_covers['Coding']
     }
 ]
 

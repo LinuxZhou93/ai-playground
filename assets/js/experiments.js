@@ -2400,16 +2400,6 @@ const experiments = [
         "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
-        "title": "Generator",
-        "title_zh": "Generator",
-        "category": "Physics",
-        "level": "High School",
-        "description": "Classic HTML5 physics applet by Walter Fendt: Generator.",
-        "description_zh": "Walter Fendt 的经典 HTML5 物理小程序：Generator。",
-        "url": "https://www.walter-fendt.de/html5/phen/generator_en.htm",
-        "thumbnail": "assets/images/covers/cover_physics.png"
-    },
-    {
         "title": "Ohm's Law",
         "title_zh": "Ohm's Law",
         "category": "Physics",
@@ -3450,16 +3440,6 @@ const experiments = [
         "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
-        "title": "Momentum Conservation",
-        "title_zh": "Momentum Conservation",
-        "category": "Physics",
-        "level": "High School",
-        "description": "Physics Classroom Interactive: Momentum Conservation. Concept-building simulation.",
-        "description_zh": "Physics Classroom 互动演示：Momentum Conservation。概念构建模拟。",
-        "url": "https://www.physicsclassroom.com/Physics-Interactives/Momentum-and-Collisions/Collision-Carts/Collision-Carts-Interactive",
-        "thumbnail": "assets/images/covers/cover_physics.png"
-    },
-    {
         "title": "Elastic Collisions",
         "title_zh": "Elastic Collisions",
         "category": "Physics",
@@ -3497,16 +3477,6 @@ const experiments = [
         "description": "Physics Classroom Interactive: Roller Coaster Physics. Concept-building simulation.",
         "description_zh": "Physics Classroom 互动演示：Roller Coaster Physics。概念构建模拟。",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Work-and-Energy/Roller-Coaster-Model/Roller-Coaster-Model-Interactive",
-        "thumbnail": "assets/images/covers/cover_physics.png"
-    },
-    {
-        "title": "Spring Energy",
-        "title_zh": "Spring Energy",
-        "category": "Physics",
-        "level": "High School",
-        "description": "Physics Classroom Interactive: Spring Energy. Concept-building simulation.",
-        "description_zh": "Physics Classroom 互动演示：Spring Energy。概念构建模拟。",
-        "url": "https://www.physicsclassroom.com/Physics-Interactives/Work-and-Energy/Spring-Energy/Spring-Energy-Interactive",
         "thumbnail": "assets/images/covers/cover_physics.png"
     },
     {
@@ -3758,35 +3728,5 @@ const experiments = [
         "description_zh": "探索太阳系八大行星的大小、距离和运行轨道。",
         "url": "https://www.solarsystemscope.com/",
         "thumbnail": "assets/images/covers/cover_earth.png"
-    },
-    {
-        "title": "Cyber Space Shooter",
-        "title_zh": "赛博太空战机",
-        "category": "Coding",
-        "level": "All",
-        "description": "Survive the neon barrage. Destroy enemies and beat the high score!",
-        "description_zh": "驾驶战机，在霓虹弹幕中生存。击碎敌机，挑战最高分！",
-        "url": "space-shooter.html",
-        "thumbnail": "assets/images/covers/cover_coding.png"
-    },
-    {
-        "title": "Cyber Breakout",
-        "title_zh": "赛博打砖块",
-        "category": "Coding",
-        "level": "All",
-        "description": "Classic arcade mechanic with neon aesthetics and particle physics.",
-        "description_zh": "经典的街机游戏重制版。体验霓虹美学与粒子碰撞的快感。",
-        "url": "breakout.html",
-        "thumbnail": "assets/images/covers/cover_coding.png"
-    },
-    {
-        "title": "Python Turbo Racing",
-        "title_zh": "Python 极速赛车",
-        "category": "Coding",
-        "level": "All",
-        "description": "Tkinter-based desktop game. Download source code and race!",
-        "description_zh": "基于 Tkinter 的本地桌面游戏。下载源码，体验复古赛车躲避玩法。",
-        "url": "racing.html",
-        "thumbnail": "assets/images/covers/cover_coding.png"
     }
 ];
