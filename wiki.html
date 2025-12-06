@@ -828,6 +828,12 @@
 
             // Reset and render new dataset
             renderCards(true);
+
+            // Update Galaxy if active
+            const galaxyContainer = document.getElementById('galaxy-container');
+            if (galaxyContainer.style.display !== 'none' && typeof updateGalaxyData === 'function') {
+                updateGalaxyData(currentData);
+            }
         }
 
         function searchWiki() {
@@ -842,6 +848,12 @@
 
             // Reset and render new dataset
             renderCards(true);
+
+            // Update Galaxy if active
+            const galaxyContainer = document.getElementById('galaxy-container');
+            if (galaxyContainer.style.display !== 'none' && typeof updateGalaxyData === 'function') {
+                updateGalaxyData(currentData);
+            }
         }
 
         // Number Counter Animation
@@ -873,6 +885,8 @@
 
                 if (!galaxyInitialized) {
                     initGalaxy();
+                } else {
+                    updateGalaxyData(currentData);
                 }
             } else {
                 gridContainer.style.display = 'grid';
@@ -933,6 +947,9 @@
         let Graph = null;
         let isRotating = true;
 
+        // Shared data for graph
+        const graphCategories = ['concept', 'tool', 'course', 'competition', 'school', 'book', 'career'];
+
         function initGalaxy() {
             const elem = document.getElementById('galaxy-container');
 
@@ -950,86 +967,21 @@
                 lucide.createIcons();
             }
 
-            const width = elem.clientWidth;
-            const height = elem.clientHeight;
-
-            // 1. Advanced Data Preparation
-            // Create a "Core" node for each category to act as a gravity center
-            const categories = ['concept', 'tool', 'course', 'competition', 'school', 'book', 'career'];
-            const categoryNodes = categories.map(cat => ({
-                id: `CAT_${cat}`,
-                title: categoryMap[cat] || cat,
-                group: 'HUB',
-                val: 40, // Bigger Hubs
-                isHub: true
-            }));
-
-            // Map original data to nodes
-            const contentNodes = wikiData.map(item => ({
-                id: item.title,
-                group: item.category,
-                val: 3, // Smaller content nodes
-                isHub: false,
-                data: item
-            }));
-
-            const nodes = [...categoryNodes, ...contentNodes];
-            const links = [];
-
-            // 2. Advanced Link Strategy
-            wikiData.forEach(item => {
-                // Link item to its Category Hub (Structural Link)
-                links.push({
-                    source: item.title,
-                    target: `CAT_${item.category}`,
-                    value: 2,
-                    type: 'structure'
-                });
-
-                // Link items sharing tags (Associative Link)
-                // To prefer "strong" links, only link if they share >1 tag or match specific logic
-                /* 
-                   Simplified: Link to other items if they share the *first* tag.
-                   This creates sub-clusters within the category.
-                */
-                const primaryTag = item.tags[0];
-                if (primaryTag) {
-                    wikiData.forEach(other => {
-                        if (item.title !== other.title && other.tags.includes(primaryTag)) {
-                            // Avoid duplicate links (A-B and B-A) by string comparison
-                            if (item.title < other.title) {
-                                links.push({
-                                    source: item.title,
-                                    target: other.title,
-                                    value: 0.5,
-                                    type: 'association'
-                                });
-                            }
-                        }
-                    });
-                }
-            });
-
-            const graphData = { nodes, links };
-
-            // 3. Initialize Graph
+            // Initialize Graph Instance (Empty initially)
             Graph = ForceGraph3D()
                 (elem)
-                .graphData(graphData)
-                .backgroundColor('rgba(0,0,0,0)') // Transparent for cyberpunk bg
+                .backgroundColor('rgba(0,0,0,0)')
                 .showNavInfo(false)
-
-                // Node Visuals
                 .nodeColor(node => {
                     if (node.isHub) return '#ffffff';
                     const colorMap = {
-                        'concept': '#00f3ff', // Cyan
-                        'tool': '#ff0055',    // Red/Pink
-                        'course': '#00ff9d',  // Green
-                        'competition': '#ffae00', // Orange
-                        'school': '#bd00ff',  // Purple
-                        'book': '#ffff00',    // Yellow
-                        'career': '#0099ff'   // Blue
+                        'concept': '#00f3ff',
+                        'tool': '#ff0055',
+                        'course': '#00ff9d',
+                        'competition': '#ffae00',
+                        'school': '#bd00ff',
+                        'book': '#ffff00',
+                        'career': '#0099ff'
                     };
                     return colorMap[node.group] || '#cccccc';
                 })
