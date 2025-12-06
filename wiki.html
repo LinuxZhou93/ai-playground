@@ -1080,6 +1080,71 @@
             }, 30);
 
             galaxyInitialized = true;
+
+            // Load initial data
+            updateGalaxyData(currentData);
+        }
+
+        // Update Galaxy Data
+        function updateGalaxyData(data) {
+            if (!Graph) return;
+
+            // 1. Create Hub Nodes for each category
+            const hubNodes = graphCategories.map(cat => ({
+                id: `hub_${cat}`,
+                title: categoryMap[cat] || cat,
+                isHub: true,
+                group: cat,
+                val: 20
+            }));
+
+            // 2. Create Data Nodes from filtered data
+            const dataNodes = data.map(item => ({
+                id: item.title,
+                title: item.title,
+                isHub: false,
+                group: item.category,
+                val: 3,
+                data: item
+            }));
+
+            // 3. Combine all nodes
+            const allNodes = [...hubNodes, ...dataNodes];
+
+            // 4. Create Links
+            const links = [];
+
+            // Structural Links: Each data node connects to its category hub
+            dataNodes.forEach(node => {
+                links.push({
+                    source: node.id,
+                    target: `hub_${node.group}`,
+                    type: 'structure'
+                });
+            });
+
+            // Associative Links: Connect nodes with shared tags
+            for (let i = 0; i < dataNodes.length; i++) {
+                for (let j = i + 1; j < dataNodes.length; j++) {
+                    const nodeA = dataNodes[i];
+                    const nodeB = dataNodes[j];
+
+                    // Check if they share primary tag (first tag)
+                    if (nodeA.data.tags[0] === nodeB.data.tags[0] && nodeA.group !== nodeB.group) {
+                        links.push({
+                            source: nodeA.id,
+                            target: nodeB.id,
+                            type: 'association'
+                        });
+                    }
+                }
+            }
+
+            // 5. Update Graph
+            Graph.graphData({
+                nodes: allNodes,
+                links: links
+            });
         }
 
         // Toolbar Functions
