@@ -2360,86 +2360,6 @@ const experiments = [
         "thumbnail": "https://ccl.northwestern.edu/netlogo/images/netlogo-title-new.jpg"
     },
     {
-        "title": "Molecular Workbench: Gas Laws",
-        "category": "Physics",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Gas Laws.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/gaslaws/gaslaws.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: Phase Change",
-        "category": "Physics",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Phase Change.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/phasechange/phasechange.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: Atomic Structure",
-        "category": "Chemistry",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Atomic Structure.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/atomicstructure/atomicstructure.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: Chemical Bonding",
-        "category": "Chemistry",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Chemical Bonding.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/chemicalbonding/chemicalbonding.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: Water Molecules",
-        "category": "Chemistry",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Water Molecules.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/water/water.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: DNA",
-        "category": "Biology",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: DNA.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/dna/dna.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: Proteins",
-        "category": "Biology",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Proteins.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/proteins/proteins.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: Heat and Temperature",
-        "category": "Physics",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Heat and Temperature.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/heat/heat.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: Light and Matter",
-        "category": "Physics",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Light and Matter.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/light/light.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Molecular Workbench: Semiconductor",
-        "category": "Physics",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Molecular Workbench: Semiconductor.",
-        "url": "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/semiconductors/semiconductors.html",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
         "title": "Seasons",
         "category": "Earth Science",
         "level": "Middle/High",
@@ -2461,14 +2381,6 @@ const experiments = [
         "level": "Middle/High",
         "description": "Interactive STEM simulation from Concord Consortium: Seismic Explorer.",
         "url": "https://seismic-explorer.concord.org/",
-        "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
-    },
-    {
-        "title": "Hurricane Explorer",
-        "category": "Earth Science",
-        "level": "Middle/High",
-        "description": "Interactive STEM simulation from Concord Consortium: Hurricane Explorer.",
-        "url": "https://hurricane-explorer.concord.org/",
         "thumbnail": "https://concord.org/wp-content/uploads/2017/11/cc-logo-trans-300x127.png"
     },
     {
@@ -3021,14 +2933,6 @@ const experiments = [
         "level": "High School",
         "description": "Physics Classroom Interactive: Series Circuits. Concept-building simulation.",
         "url": "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Series-Circuits/Series-Circuits-Interactive",
-        "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
-    },
-    {
-        "title": "Parallel Circuits",
-        "category": "Physics",
-        "level": "High School",
-        "description": "Physics Classroom Interactive: Parallel Circuits. Concept-building simulation.",
-        "url": "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Parallel-Circuits/Parallel-Circuits-Interactive",
         "thumbnail": "https://www.physicsclassroom.com/images/TPC_logo.png"
     },
     {

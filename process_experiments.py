@@ -175,20 +175,9 @@ for title, cat, desc, url in netlogo_curated:
 
 # --- 6. Concord Consortium (Curated Top List) ---
 concord_curated = [
-    ("Molecular Workbench: Gas Laws", "Physics", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/gaslaws/gaslaws.html"),
-    ("Molecular Workbench: Phase Change", "Physics", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/phasechange/phasechange.html"),
-    ("Molecular Workbench: Atomic Structure", "Chemistry", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/atomicstructure/atomicstructure.html"),
-    ("Molecular Workbench: Chemical Bonding", "Chemistry", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/chemicalbonding/chemicalbonding.html"),
-    ("Molecular Workbench: Water Molecules", "Chemistry", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/water/water.html"),
-    ("Molecular Workbench: DNA", "Biology", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/dna/dna.html"),
-    ("Molecular Workbench: Proteins", "Biology", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/proteins/proteins.html"),
-    ("Molecular Workbench: Heat and Temperature", "Physics", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/heat/heat.html"),
-    ("Molecular Workbench: Light and Matter", "Physics", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/light/light.html"),
-    ("Molecular Workbench: Semiconductor", "Physics", "https://mw.concord.org/modeler/show.html?url=https://mw.concord.org/modeler/1.3/part1/semiconductors/semiconductors.html"),
     ("Seasons", "Earth Science", "https://lab.concord.org/embeddable.html#interactives/seasons/seasons-1.json"),
     ("Tectonic Explorer", "Earth Science", "https://tectonic-explorer.concord.org/"),
     ("Seismic Explorer", "Earth Science", "https://seismic-explorer.concord.org/"),
-    ("Hurricane Explorer", "Earth Science", "https://hurricane-explorer.concord.org/"),
     ("Climate Change Model", "Earth Science", "https://lab.concord.org/embeddable.html#interactives/global-warming/global-warming-1.json"),
     ("Evolution: DNA", "Biology", "https://lab.concord.org/embeddable.html#interactives/evolution/evolution-1.json"),
     ("Meiosis", "Biology", "https://lab.concord.org/embeddable.html#interactives/sam/DNA-to-proteins/4-mutations.json"),
@@ -272,7 +261,6 @@ tpc_curated = [
     ("Circuit Builder", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Circuit-Builder/Circuit-Builder-Interactive"),
     ("Ohm's Law", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Ohms-Law/Ohms-Law-Interactive"),
     ("Series Circuits", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Series-Circuits/Series-Circuits-Interactive"),
-    ("Parallel Circuits", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Electric-Circuits/Parallel-Circuits/Parallel-Circuits-Interactive"),
     ("Magnetism", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Magnetism/Magnetism/Magnetism-Interactive"),
     ("Electromagnetic Induction", "Physics", "https://www.physicsclassroom.com/Physics-Interactives/Magnetism/Electromagnetic-Induction/Electromagnetic-Induction-Interactive"),
     ("Atomic Structure", "Chemistry", "https://www.physicsclassroom.com/Physics-Interactives/Chemistry/Atomic-Structure/Atomic-Structure-Interactive"),
