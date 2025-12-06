@@ -492,6 +492,47 @@ data_experiments = [
     ("Fast.ai", "Data Science", "University", "Practical deep learning.", "实用深度学习课程。", "https://www.fast.ai/", "Fast.ai")
 ]
 
+
+# --- Blocked Domains (Non-Embeddable) ---
+blocked_domains = [
+    "toptal.com", "regex101.com", "logic.ly", "cisco.com", 
+    "cryptohack.org", "shadertoy.com", "tinkercad.com", "wokwi.com", 
+    "circuitverse.org", "partsim.com", "easyeda.com", "upverter.com", 
+    "simulide.com", "github.com", "onshape.com", "selfcad.com", 
+    "vectary.com", "simscale.com", "consim.com", "gns3.com", 
+    "dnsviz.net", "speedtest.net", "webpagetest.org", "ssllabs.com", 
+    "postman.com", "observablehq.com", "kaggle.com", "google.com", 
+    "flourish.studio", "teachablemachine.withgoogle.com", "visualgo.net",
+    "stackoverflow.com", "youtube.com", "wikipedia.org"
+]
+
+def is_embeddable(url):
+    for domain in blocked_domains:
+        if domain in url:
+            return False
+    return True
+
+def get_smart_thumbnail(url, default_cover):
+    # Scratch
+    if "scratch.mit.edu/projects/" in url:
+        try:
+            # Extract ID: https://scratch.mit.edu/projects/10128407/ -> 10128407
+            project_id = url.split("projects/")[1].split("/")[0]
+            return f"https://uploads.scratch.mit.edu/projects/thumbnails/{project_id}.png"
+        except:
+            pass
+            
+    # Shadertoy
+    if "shadertoy.com/view/" in url:
+        try:
+            # Extract ID: https://www.shadertoy.com/view/Ms2SD1 -> Ms2SD1
+            shader_id = url.split("view/")[1]
+            return f"https://www.shadertoy.com/media/shaders/{shader_id}.jpg"
+        except:
+            pass
+            
+    return default_cover
+
 # --- Append New Experiments ---
 def append_new_items(item_list, category, default_cover):
     for title, cat, level, desc, desc_zh, url, _ in item_list: # Ignored last short_name
@@ -503,7 +544,8 @@ def append_new_items(item_list, category, default_cover):
             'description': desc,
             'description_zh': desc_zh,
             'url': url,
-            'thumbnail': default_cover
+            'thumbnail': get_smart_thumbnail(url, default_cover),
+            'embeddable': is_embeddable(url)
         })
 
 # Helper ensuring ascii
@@ -527,18 +569,9 @@ print(f"Adding {len(data_experiments)} Data Science experiments...")
 append_new_items(data_experiments, 'Data Science', category_covers['Data Science'])
 
 
-# --- Final Export ---
-# Deduplicate by URL
-unique_experiments = {e['url']: e for e in experiments}.values()
-final_list = list(unique_experiments)
-
-print(f"Total Unique Experiments: {len(final_list)}")
 
 # Generate JS file content
-js_content = "const experiments = " + json.dumps(final_list, indent=4, ensure_ascii=False) + ";"
 
-with open('assets/js/experiments.js', 'w') as f:
-    f.write(js_content)
 
 # --- 11. Supplemental Experiments (Phase 5 Part 2) ---
 
@@ -586,6 +619,29 @@ circuit_examples = [
 ]
 
 # Append Extra
+print(f"Adding {len(shader_experiments)} Shaders...")
+append_new_items(shader_experiments, 'Computer Science', category_covers['Computer Science'])
+
+print(f"Adding {len(scratch_links)} Scratch games...")
+append_new_items(scratch_links, 'Computer Science', category_covers['Computer Science'])
+
+print(f"Adding {len(circuit_examples)} Specific Circuits...")
+append_new_items(circuit_examples, 'Electronics', category_covers['Electronics'])
+
+# --- Final Export ---
+# Deduplicate by URL
+unique_experiments = {e['url']: e for e in experiments}.values()
+final_list = list(unique_experiments)
+
+print(f"Total Unique Experiments: {len(final_list)}")
+
+# Generate JS file content
+js_content = "const experiments = " + json.dumps(final_list, indent=4, ensure_ascii=False) + ";"
+
+with open('assets/js/experiments.js', 'w') as f:
+    f.write(js_content)
+
+# --- Correctly Appending Supplemental Experiments ---
 print(f"Adding {len(shader_experiments)} Shaders...")
 append_new_items(shader_experiments, 'Computer Science', category_covers['Computer Science'])
 

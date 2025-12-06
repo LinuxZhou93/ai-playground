@@ -284,6 +284,24 @@
                 <div id="loader" class="absolute inset-0 flex items-center justify-center text-cyan-500 font-mono">
                     装载核心中...
                 </div>
+
+                <!-- Blocked UI Overlay -->
+                <div id="blocked-ui"
+                    class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/95 hidden">
+                    <i class="fas fa-external-link-alt text-6xl text-cyan-500 mb-6 animate-pulse"></i>
+                    <h3 class="font-tech text-2xl text-white mb-2">EXTERNAL SOURCE</h3>
+                    <p class="font-mono text-gray-400 mb-8 text-center max-w-md px-4">
+                        此实验源 (<span id="blocked-host" class="text-cyan-300"></span>) 不支持嵌入。<br>
+                        请在新窗口中启动。<br>
+                        <span class="text-xs text-gray-600 mt-2 block">Source restricts embedding
+                            (X-Frame-Options)</span>
+                    </p>
+                    <button id="blocked-launch-btn"
+                        class="glass-card px-8 py-3 rounded-full text-cyan-300 font-bold hover:bg-cyan-900/50 transition-all border border-cyan-500/30 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+                        在新窗口启动 / LAUNCH
+                    </button>
+                </div>
+
                 <iframe id="sim-frame" src="" class="w-full h-full border-none relative z-10" allowfullscreen
                     onload="document.getElementById('loader').style.display='none'"></iframe>
             </div>
@@ -295,7 +313,7 @@
                     <span id="modal-source">来源: SYSTEM</span>
                     <span id="modal-status">状态: 运行中</span>
                 </div>
-                <button onclick="window.open(document.getElementById('sim-frame').src, '_blank')"
+                <button onclick="window.open(document.getElementById('sim-frame').src || currentExpUrl, '_blank')"
                     class="text-cyan-500 hover:text-cyan-300 font-bold flex items-center gap-1 transition-colors">
                     <i class="fas fa-external-link-alt"></i> <span id="modal-new-tab">新窗口打开</span>
                 </button>
@@ -313,15 +331,19 @@
         const modalSource = document.getElementById('modal-source');
         const simFrame = document.getElementById('sim-frame');
         const loader = document.getElementById('loader');
+        const blockedUi = document.getElementById('blocked-ui');
+        const blockedHost = document.getElementById('blocked-host');
+        const blockedLaunchBtn = document.getElementById('blocked-launch-btn');
 
         // Language State
         let currentLang = 'zh'; // Default Chinese
+        let currentExpUrl = ''; // Store URL for external launch
 
         const translations = {
             zh: {
                 navTitle: '万物实验室',
                 heroTitle: 'INFINITE LAB',
-                heroSubtitle: '> 初始化虚拟实验核心...<br class="hidden md:inline" />> 请选择模块开始模拟交互。',
+                heroSubtitle: '> 初始化虚拟实验核心...<br class="hidden md::inline" />> 请选择模块开始模拟交互。',
                 loader: '装载核心中...',
                 source: '来源: SYSTEM',
                 status: '状态: 运行中',
@@ -331,7 +353,7 @@
             en: {
                 navTitle: 'INFINITE LAB',
                 heroTitle: 'INFINITE LAB',
-                heroSubtitle: '> VIRTUAL CORE INITIALIZED...<br class="hidden md:inline" />> SELECT MODULE TO BEGIN.',
+                heroSubtitle: '> VIRTUAL CORE INITIALIZED...<br class="hidden md::inline" />> SELECT MODULE TO BEGIN.',
                 loader: 'LOADING CORE...',
                 source: 'SOURCE: SYSTEM',
                 status: 'STATUS: RUNNING',
@@ -360,7 +382,7 @@
                 if (heroSubtitle) heroSubtitle.innerHTML = t.heroSubtitle;
 
                 if (loader) loader.innerText = t.loader;
-                if (modalSource) modalSource.innerText = t.source;
+                if (modalSource) modalSource.innerText = t.source + (modalSource.innerText.split(': ')[1] ? ': ' + modalSource.innerText.split(': ')[1] : '');
                 const modalStatus = document.getElementById('modal-status');
                 if (modalStatus) modalStatus.innerText = t.status;
                 const modalNewTab = document.getElementById('modal-new-tab');
@@ -410,6 +432,7 @@
             "Buoyancy": "浮力",
             "Buoyancy: Basics": "浮力基础",
             "Calculus Grapher": "微积分绘图器",
+            "Capacitor Lab": "电容器实验室",
             "Capacitor Lab: Basics": "电容器实验室基础",
             "Center and Variability": "中心与变异性",
             "Charges and Fields": "电荷与电场",
@@ -455,6 +478,15 @@
             "Waves Intro": "波的入门"
         };
 
+        // Helper to get domain/host
+        function getHostName(url) {
+            try {
+                return new URL(url).hostname;
+            } catch {
+                return 'External';
+            }
+        }
+
         // Render Labs
         function renderLabs(filter = 'all') {
             currentFilter = filter;
@@ -463,6 +495,7 @@
                 return;
             }
 
+
             try {
                 grid.innerHTML = '';
                 const filteredData = filter === 'all'
@@ -470,7 +503,7 @@
                     : experiments.filter(item => item.category === filter);
 
                 if (filteredData.length === 0) {
-                    grid.innerHTML = '<div class="col-span-full text-gray-400 text-center font-mono">No experiments found in this category.</div>';
+                    grid.innerHTML = '<div class="col-span-full text-gray-500 text-center p-8 border border-gray-500/30 bg-gray-900/10 rounded-xl font-mono">No simulation found / 暂无该分类实验</div>';
                     return;
                 }
 
@@ -481,66 +514,44 @@
                     if (span) {
                         const zhText = span.getAttribute('data-zh');
                         if ((filter === 'all' && zhText.includes('全部')) || zhText.includes(filter)) {
-                            // btn.classList.add('ring-1', 'ring-cyan-500/50'); // Optional: Add active state logic
+                            // btn.classList.add('ring-1', 'ring-cyan-500/50'); // Optional active state
                         }
                     }
                 });
 
                 filteredData.forEach((exp, index) => {
                     const card = document.createElement('div');
-                    card.className = 'glass-card rounded-xl overflow-hidden hover-scale group relative border border-white/5 cursor-pointer flex flex-col h-full';
+                    card.className = "experiment-card glass-card rounded-xl overflow-hidden hover:shadow-cyan-500/20 transition-all duration-300 group animate-fade-in";
+                    card.style.animationDelay = `${index * 50}ms`;
 
-                    // Determine thumbnail content
-                    let thumbnailContent;
-                    if (exp.thumbnail && (exp.thumbnail.startsWith('http') || exp.thumbnail.startsWith('assets/'))) {
-                        thumbnailContent = `<img src="${exp.thumbnail}" alt="${exp.title}" class="w-full h-48 object-cover opacity-80 group-hover:opacity-100 transition-opacity">`;
-                    } else {
-                        // Fallback or Emoji
-                        const emoji = exp.thumbnail || '🔬';
-                        thumbnailContent = `<div class="w-full h-48 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center text-6xl">${emoji}</div>`;
-                    }
+                    // Localization
+                    let title = currentLang === 'zh' ? (exp.title_zh || manualTranslations[exp.title] || exp.title) : exp.title;
+                    let description = currentLang === 'zh' ? (exp.description_zh || exp.description) : exp.description;
+                    if (!description) description = "No description available.";
 
-                    // Localize Content
-                    let displayTitle = exp.title;
-                    let displayDesc = exp.description;
-
-                    if (currentLang === 'zh') {
-                        // Priority: title_zh (if valid and not same as en) > manualTranslations > title
-                        if (exp.title_zh && exp.title_zh !== exp.title) {
-                            displayTitle = exp.title_zh;
-                        } else if (manualTranslations[exp.title]) {
-                            displayTitle = manualTranslations[exp.title];
-                        }
-
-                        // Description handling
-                        if (exp.description_zh && exp.description_zh !== exp.description) {
-                            displayDesc = exp.description_zh;
-                        }
-                    }
+                    // Truncate description
+                    if (description.length > 80) description = description.substring(0, 80) + '...';
 
                     card.innerHTML = `
-                        <div class="relative">
-                             ${thumbnailContent}
-                             <div class="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur rounded text-xs font-mono text-cyan-400 border border-cyan-500/30">
-                                ${exp.category.toUpperCase()}
+                        <div class="relative h-48 overflow-hidden cursor-pointer" onclick="openModal('${exp.url}', '${title.replace(/'/g, "\\'")}', '${exp.category}')">
+                            <img src="${exp.thumbnail}" alt="${title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                            <div class="absolute bottom-4 left-4 right-4">
+                                <span class="text-xs font-mono text-cyan-400 mb-1 block tracking-wider uppercase flex items-center gap-2">
+                                     <i class="fas fa-tag"></i> ${exp.category}
+                                     ${exp.embeddable === false ? '<span class="text-orange-400" title="Opens in new window"><i class="fas fa-external-link-alt"></i></span>' : ''}
+                                </span>
+                                <h3 class="font-tech text-xl text-white group-hover:text-cyan-300 transition-colors">${title}</h3>
                             </div>
                         </div>
-                        <div class="p-5 flex-grow flex flex-col">
-                            <h3 class="font-tech text-lg font-bold mb-2 text-white group-hover:text-cyan-400 transition-colors">${displayTitle}</h3>
-                            <p class="text-gray-400 text-sm mb-4 line-clamp-2">${displayDesc}</p>
-                            
-                            <div class="mt-auto pt-4 border-t border-white/5">
-                                <button class="w-full py-2 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-500/50 rounded text-cyan-400 hover:text-cyan-200 font-tech text-sm tracking-widest transition-all glow-text flex items-center justify-center gap-2">
-                                     <i class="fas fa-play text-xs"></i> ${currentLang === 'zh' ? '启动实验' : 'START SIM'}
-                                </button>
-                            </div>
+                        <div class="p-4 border-t border-white/5">
+                            <p class="text-gray-400 text-sm mb-4 h-10 overflow-hidden text-ellipsis">${description}</p>
+                            <button onclick="openModal('${exp.url}', '${title.replace(/'/g, "\\'")}', '${exp.category}')"
+                                class="w-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 hover:text-white border border-cyan-500/30 rounded-lg py-2 font-mono text-xs transition-all flex items-center justify-center gap-2 group-hover:border-cyan-400/50">
+                                <i class="fas fa-play"></i> <span>${translations[currentLang].startLab}</span>
+                            </button>
                         </div>
                     `;
-
-                    // Add click event for modal (on the whole card)
-                    // We also need to pass the localized title to the modal
-                    card.onclick = () => openModal(exp, displayTitle);
-
                     grid.appendChild(card);
                 });
             } catch (e) {
@@ -550,65 +561,66 @@
         }
 
         // Modal Logic
-        function openModal(lab, localizedTitle) {
-            if (modalTitle) modalTitle.innerText = localizedTitle || lab.title;
-            // Infer source from URL or default
-            let source = "SYSTEM";
-            if (lab.url.includes("phet")) source = "PhET Colorado";
-            else if (lab.url.includes("geogebra")) source = "GeoGebra";
-            else if (lab.url.includes("solarsystemscope")) source = "Solar System Scope";
+        function openModal(url, title, category) {
+            currentExpUrl = url;
+            if (modalTitle) modalTitle.innerText = title;
+            if (modalSource) modalSource.innerText = `来源: ${category} / SYSTEM`;
 
-            if (modalSource) modalSource.innerText = `SOURCE: ${source}`;
-            if (simFrame) simFrame.src = lab.url;
+            // Check if embeddable (Look up in data)
+            const exp = experiments.find(e => e.url === url);
+            const isEmbeddable = exp ? (exp.embeddable !== false) : true; // Default true if legacy
+
+            // Reset UI
             if (loader) loader.style.display = 'flex';
+            if (blockedUi) blockedUi.classList.add('hidden');
+            if (simFrame) {
+                simFrame.classList.remove('hidden');
+                simFrame.src = ""; // Clear first
+            }
 
             if (modal) {
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
+            }
 
-                // Trigger animation
-                const card = modal.querySelector('.glass-card');
-                if (card) {
-                    requestAnimationFrame(() => {
-                        card.classList.remove('modal-enter');
-                        card.classList.add('modal-enter-active');
-                    });
+            if (isEmbeddable) {
+                setTimeout(() => {
+                    if (simFrame) simFrame.src = url;
+                }, 100);
+            } else {
+                // Not embeddable
+                if (loader) loader.style.display = 'none';
+                if (simFrame) simFrame.classList.add('hidden');
+                if (blockedUi) {
+                    blockedUi.classList.remove('hidden');
+                    if (blockedHost) blockedHost.innerText = getHostName(url);
+                    if (blockedLaunchBtn) blockedLaunchBtn.onclick = () => window.open(url, '_blank');
                 }
             }
         }
 
         function closeModal() {
-            if (!modal) return;
-            const card = modal.querySelector('.glass-card');
-            if (card) {
-                card.classList.remove('modal-enter-active');
-                card.classList.add('modal-exit-active');
-            }
-
-            setTimeout(() => {
+            if (modal) {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
-                if (card) {
-                    card.classList.remove('modal-exit-active');
-                    card.classList.add('modal-enter');
-                }
-                if (simFrame) simFrame.src = '';
-            }, 200);
+            }
+            if (simFrame) simFrame.src = '';
+            currentExpUrl = '';
         }
 
+        // Close on Esc
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Filter helper
         function filterLabs(category) {
             renderLabs(category);
         }
 
-        // Initial Render
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM Loaded. Experiments:", typeof experiments !== 'undefined' ? experiments.length : 'undefined');
-            renderLabs();
-        });
-
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
+        // Initialize
+        window.addEventListener('load', () => {
+            renderLabs('all');
         });
     </script>
 
