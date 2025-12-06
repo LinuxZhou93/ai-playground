@@ -350,6 +350,38 @@
         }
 
         /* Galaxy Container */
+        /* Galaxy Controls */
+        #galaxy-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        #galaxy-controls button {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            color: var(--neon-blue);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        #galaxy-controls button:hover {
+            background: rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+            transform: scale(1.1);
+        }
+
         #galaxy-container {
             width: 100%;
             height: calc(100vh - 200px);
@@ -899,9 +931,25 @@
         // 3D Galaxy Logic
         let galaxyInitialized = false;
         let Graph = null;
+        let isRotating = true;
 
         function initGalaxy() {
             const elem = document.getElementById('galaxy-container');
+
+            // Add Controls UI if not exists
+            if (!document.getElementById('galaxy-controls')) {
+                const controls = document.createElement('div');
+                controls.id = 'galaxy-controls';
+                controls.innerHTML = `
+                    <button onclick="toggleFullScreen()" title="全屏沉浸"><i data-lucide="maximize"></i></button>
+                    <button onclick="resetCamera()" title="重置视角"><i data-lucide="crosshair"></i></button>
+                    <button onclick="toggleRotation()" title="自动旋转"><i data-lucide="refresh-cw"></i></button>
+                    <button onclick="toggleLabels()" title="切换标签"><i data-lucide="type"></i></button>
+                `;
+                elem.appendChild(controls);
+                lucide.createIcons();
+            }
+
             const width = elem.clientWidth;
             const height = elem.clientHeight;
 
@@ -912,7 +960,7 @@
                 id: `CAT_${cat}`,
                 title: categoryMap[cat] || cat,
                 group: 'HUB',
-                val: 20,
+                val: 40, // Bigger Hubs
                 isHub: true
             }));
 
@@ -920,7 +968,7 @@
             const contentNodes = wikiData.map(item => ({
                 id: item.title,
                 group: item.category,
-                val: 5,
+                val: 3, // Smaller content nodes
                 isHub: false,
                 data: item
             }));
@@ -934,7 +982,7 @@
                 links.push({
                     source: item.title,
                     target: `CAT_${item.category}`,
-                    value: 1,
+                    value: 2,
                     type: 'structure'
                 });
 
@@ -972,7 +1020,6 @@
                 .showNavInfo(false)
 
                 // Node Visuals
-                .nodeLabel('title') // Tooltip
                 .nodeColor(node => {
                     if (node.isHub) return '#ffffff';
                     const colorMap = {
@@ -987,34 +1034,53 @@
                     return colorMap[node.group] || '#cccccc';
                 })
                 .nodeThreeObject(node => {
+                    const group = new THREE.Group();
+
+                    // 1. Orb / Sphere
+                    let geometry, material, mesh;
                     if (node.isHub) {
-                        // Hubs are text sprites
-                        const sprite = new SpriteText(node.title);
-                        sprite.color = 'white';
-                        sprite.textHeight = 8;
-                        sprite.fontFace = 'Orbitron';
-                        return sprite;
+                        geometry = new THREE.SphereGeometry(node.val / 2, 32, 32);
+                        material = new THREE.MeshLambertMaterial({
+                            color: 0xffffff,
+                            transparent: true,
+                            opacity: 0.9,
+                            emissive: 0xffffff,
+                            emissiveIntensity: 0.8
+                        });
                     } else {
-                        // Content nodes are glowing spheres
-                        const color = Graph.nodeColor()(node); // Get color via function
-                        const geometry = new THREE.SphereGeometry(node.val, 16, 16);
-                        const material = new THREE.MeshLambertMaterial({
+                        const color = Graph.nodeColor()(node);
+                        geometry = new THREE.SphereGeometry(node.val, 16, 16);
+                        material = new THREE.MeshLambertMaterial({
                             color: color,
                             transparent: true,
                             opacity: 0.8,
-                            emissive: color, // GLOW EFFECT
-                            emissiveIntensity: 0.6
+                            emissive: color,
+                            emissiveIntensity: 0.4
                         });
-                        return new THREE.Mesh(geometry, material);
                     }
+                    mesh = new THREE.Mesh(geometry, material);
+                    group.add(mesh);
+
+                    // 2. Text Label (Sprite)
+                    const sprite = new SpriteText(node.title);
+                    sprite.color = node.isHub ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.6)';
+                    sprite.textHeight = node.isHub ? 12 : 4;
+                    sprite.fontFace = 'Orbitron';
+                    sprite.fontWeight = node.isHub ? 'bold' : 'normal';
+                    sprite.backgroundColor = 'rgba(0,0,0,0.3)'; // Better readability
+                    sprite.padding = 2;
+                    sprite.position.y = node.isHub ? 25 : 8; // Offset above node
+                    group.add(sprite);
+
+                    return group;
                 })
 
                 // Link Visuals
                 .linkWidth(link => link.type === 'structure' ? 0.5 : 0.2)
-                .linkColor(link => link.type === 'structure' ? 'rgba(255,255,255,0.1)' : 'rgba(0,243,255,0.2)')
-                .linkDirectionalParticles(link => link.type === 'association' ? 2 : 0) // Only data flows on association links
+                .linkColor(link => link.type === 'structure' ? 'rgba(255,255,255,0.05)' : 'rgba(0,243,255,0.1)')
+                .linkDirectionalParticles(link => link.type === 'association' ? 1 : 0) // Only data flows on association links
                 .linkDirectionalParticleSpeed(0.005)
-                .linkDirectionalParticleWidth(2)
+                .linkDirectionalParticleWidth(1.5)
 
                 // Interaction
                 .onNodeHover(node => {
@@ -1041,10 +1107,50 @@
 
             // 4. Force Configuration
             // Pull associative links closer, keep structure loose
-            Graph.d3Force('link').distance(link => link.type === 'structure' ? 100 : 30);
-            Graph.d3Force('charge').strength(-100); // Repulsion
+            Graph.d3Force('link').distance(link => link.type === 'structure' ? 120 : 40);
+            Graph.d3Force('charge').strength(-80); // Repulsion
+
+            // Auto Rotation
+            let angle = 0;
+            setInterval(() => {
+                if (isRotating && Graph) {
+                    angle += 0.001;
+                    Graph.cameraPosition({
+                        x: 400 * Math.sin(angle),
+                        z: 400 * Math.cos(angle)
+                    });
+                }
+            }, 30);
 
             galaxyInitialized = true;
+        }
+
+        // Toolbar Functions
+        function toggleFullScreen() {
+            const elem = document.getElementById('galaxy-container');
+            if (!document.fullscreenElement) {
+                elem.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function resetCamera() {
+            if (Graph) Graph.cameraPosition({ x: 0, y: 0, z: 400 }, { x: 0, y: 0, z: 0 }, 2000);
+        }
+
+        function toggleRotation() {
+            isRotating = !isRotating;
+            // Show toast or icon change
+        }
+
+        function toggleLabels() {
+            // Re-render graph with different nodeThreeObject logic if needed, 
+            // or we can just iterate scene objects.
+            // For simplicity, we keep them always on for now as requested.
+            // This button could interact with visible/opacity props.
         }
 
         // Initial render
