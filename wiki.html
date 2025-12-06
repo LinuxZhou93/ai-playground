@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three-spritetext"></script>
     <script src="https://unpkg.com/3d-force-graph"></script>
     <style>
         :root {
@@ -900,82 +902,149 @@
 
         function initGalaxy() {
             const elem = document.getElementById('galaxy-container');
+            const width = elem.clientWidth;
+            const height = elem.clientHeight;
 
-            // Transform Data for Graph
-            // Nodes: All wiki items
-            // Links: Connect items that share at least 1 common tag
-            const nodes = wikiData.map(item => ({
+            // 1. Advanced Data Preparation
+            // Create a "Core" node for each category to act as a gravity center
+            const categories = ['concept', 'tool', 'course', 'competition', 'school', 'book', 'career'];
+            const categoryNodes = categories.map(cat => ({
+                id: `CAT_${cat}`,
+                title: categoryMap[cat] || cat,
+                group: 'HUB',
+                val: 20,
+                isHub: true
+            }));
+
+            // Map original data to nodes
+            const contentNodes = wikiData.map(item => ({
                 id: item.title,
                 group: item.category,
-                val: 1, // Size
+                val: 5,
+                isHub: false,
                 data: item
             }));
 
+            const nodes = [...categoryNodes, ...contentNodes];
             const links = [];
-            // Simple linking strategy: if share tags, link. 
-            // Warning: O(N^2) complexity. For 300 items ~90k checks, fine.
-            for (let i = 0; i < wikiData.length; i++) {
-                for (let j = i + 1; j < wikiData.length; j++) {
-                    const itemA = wikiData[i];
-                    const itemB = wikiData[j];
 
-                    // Count shared tags
-                    const sharedTags = itemA.tags.filter(tag => itemB.tags.includes(tag));
-                    if (sharedTags.length > 0) {
-                        links.push({
-                            source: itemA.title,
-                            target: itemB.title,
-                            value: sharedTags.length // Thickness
-                        });
-                    }
+            // 2. Advanced Link Strategy
+            wikiData.forEach(item => {
+                // Link item to its Category Hub (Structural Link)
+                links.push({
+                    source: item.title,
+                    target: `CAT_${item.category}`,
+                    value: 1,
+                    type: 'structure'
+                });
+
+                // Link items sharing tags (Associative Link)
+                // To prefer "strong" links, only link if they share >1 tag or match specific logic
+                /* 
+                   Simplified: Link to other items if they share the *first* tag.
+                   This creates sub-clusters within the category.
+                */
+                const primaryTag = item.tags[0];
+                if (primaryTag) {
+                    wikiData.forEach(other => {
+                        if (item.title !== other.title && other.tags.includes(primaryTag)) {
+                            // Avoid duplicate links (A-B and B-A) by string comparison
+                            if (item.title < other.title) {
+                                links.push({
+                                    source: item.title,
+                                    target: other.title,
+                                    value: 0.5,
+                                    type: 'association'
+                                });
+                            }
+                        }
+                    });
                 }
-            }
+            });
 
             const graphData = { nodes, links };
 
+            // 3. Initialize Graph
             Graph = ForceGraph3D()
                 (elem)
                 .graphData(graphData)
-                .nodeAutoColorBy('group')
-                .nodeLabel('id')
-                .nodeVal(node => 5 + (node.data.content.length / 50)) // Size based on content length
-                .linkWidth(link => Math.sqrt(link.value))
-                .linkOpacity(0.3)
-                .backgroundColor('rgba(0,0,0,0)') // Transparent to see cyberpunk bg
+                .backgroundColor('rgba(0,0,0,0)') // Transparent for cyberpunk bg
+                .showNavInfo(false)
+
+                // Node Visuals
+                .nodeLabel('title') // Tooltip
+                .nodeColor(node => {
+                    if (node.isHub) return '#ffffff';
+                    const colorMap = {
+                        'concept': '#00f3ff', // Cyan
+                        'tool': '#ff0055',    // Red/Pink
+                        'course': '#00ff9d',  // Green
+                        'competition': '#ffae00', // Orange
+                        'school': '#bd00ff',  // Purple
+                        'book': '#ffff00',    // Yellow
+                        'career': '#0099ff'   // Blue
+                    };
+                    return colorMap[node.group] || '#cccccc';
+                })
+                .nodeThreeObject(node => {
+                    if (node.isHub) {
+                        // Hubs are text sprites
+                        const sprite = new SpriteText(node.title);
+                        sprite.color = 'white';
+                        sprite.textHeight = 8;
+                        sprite.fontFace = 'Orbitron';
+                        return sprite;
+                    } else {
+                        // Content nodes are glowing spheres
+                        const color = Graph.nodeColor()(node); // Get color via function
+                        const geometry = new THREE.SphereGeometry(node.val, 16, 16);
+                        const material = new THREE.MeshLambertMaterial({
+                            color: color,
+                            transparent: true,
+                            opacity: 0.8,
+                            emissive: color, // GLOW EFFECT
+                            emissiveIntensity: 0.6
+                        });
+                        return new THREE.Mesh(geometry, material);
+                    }
+                })
+
+                // Link Visuals
+                .linkWidth(link => link.type === 'structure' ? 0.5 : 0.2)
+                .linkColor(link => link.type === 'structure' ? 'rgba(255,255,255,0.1)' : 'rgba(0,243,255,0.2)')
+                .linkDirectionalParticles(link => link.type === 'association' ? 2 : 0) // Only data flows on association links
+                .linkDirectionalParticleSpeed(0.005)
+                .linkDirectionalParticleWidth(2)
+
+                // Interaction
+                .onNodeHover(node => {
+                    elem.style.cursor = node ? 'pointer' : null;
+                })
                 .onNodeClick(node => {
-                    // Aim at node from outside it
-                    const distance = 40;
+                    if (node.isHub) return; // Ignore hubs
+
+                    // Fly to node
+                    const distance = 80;
                     const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
 
                     Graph.cameraPosition(
-                        { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
-                        node, // lookAt ({ x, y, z })
-                        3000  // ms transition duration
+                        { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+                        node,
+                        2000
                     );
 
-                    setTimeout(() => {
-                        openModal(node.data);
-                    }, 1000);
+                    // Open Modal
+                    if (node.data) {
+                        setTimeout(() => openModal(node.data), 1000);
+                    }
                 });
 
-            wikiData.forEach(item => {
-                // Pre-calculate something if needed? No.
-            });
+            // 4. Force Configuration
+            // Pull associative links closer, keep structure loose
+            Graph.d3Force('link').distance(link => link.type === 'structure' ? 100 : 30);
+            Graph.d3Force('charge').strength(-100); // Repulsion
 
             galaxyInitialized = true;
-
-            // Adjust canvas size
-            setTimeout(() => {
-                Graph.width(elem.clientWidth);
-                Graph.height(elem.clientHeight);
-            }, 100);
-
-            window.addEventListener('resize', () => {
-                if (Graph) {
-                    Graph.width(elem.clientWidth);
-                    Graph.height(elem.clientHeight);
-                }
-            });
         }
 
         // Initial render
