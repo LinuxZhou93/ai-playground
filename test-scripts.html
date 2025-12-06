@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test with External Scripts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="assets/js/project-storage.js"></script>
+    <script src="assets/js/translations.js"></script>
+</head>
+
+<body class="bg-slate-900 text-white p-8">
+    <div id="app">
+        <h1 class="text-4xl font-bold mb-4">{{ title }}</h1>
+        <p class="mb-2">Translations loaded: {{ translationsLoaded }}</p>
+        <p class="mb-2">ProjectStorage loaded: {{ projectStorageLoaded }}</p>
+        <p class="mb-4">Projects count: {{ projectsCount }}</p>
+        <button @click="testFunction" class="px-4 py-2 bg-indigo-600 rounded">
+            Test Button
+        </button>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const title = ref('External Scripts Test');
+                const translationsLoaded = ref(false);
+                const projectStorageLoaded = ref(false);
+                const projectsCount = ref(0);
+
+                onMounted(() => {
+                    // Check if external scripts loaded
+                    translationsLoaded.value = typeof window.translations !== 'undefined';
+                    projectStorageLoaded.value = typeof window.ProjectStorage !== 'undefined';
+
+                    if (projectStorageLoaded.value) {
+                        try {
+                            const projects = window.ProjectStorage.getAllProjects();
+                            projectsCount.value = projects.length;
+                        } catch (e) {
+                            console.error('Error getting projects:', e);
+                        }
+                    }
+                });
+
+                const testFunction = () => {
+                    alert('Button clicked! Scripts working.');
+                };
+
+                return {
+                    title,
+                    translationsLoaded,
+                    projectStorageLoaded,
+                    projectsCount,
+                    testFunction
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
