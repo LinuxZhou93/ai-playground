@@ -221,6 +221,14 @@
                 onclick="filterLabs('Biology')">
                 生物 (BIOLOGY)
             </button>
+            <button class="glass-card px-6 py-2 rounded-full text-sm font-tech text-red-300 hover:bg-red-900/30"
+                onclick="filterLabs('Mathematics')">
+                数学 (MATH)
+            </button>
+            <button class="glass-card px-6 py-2 rounded-full text-sm font-tech text-blue-300 hover:bg-blue-900/30"
+                onclick="filterLabs('Earth Science')">
+                地球科学 (EARTH)
+            </button>
         </div>
 
         <!-- Labs Grid -->
@@ -272,7 +280,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="assets/js/labs-data.js"></script>
+    <script src="assets/js/experiments.js"></script>
     <script>
         // DOM Elements
         const grid = document.getElementById('labs-grid');
@@ -287,13 +295,13 @@
             grid.innerHTML = '';
 
             const filteredData = filter === 'all'
-                ? labsData
-                : labsData.filter(item => item.category === filter);
+                ? experiments
+                : experiments.filter(item => item.category === filter);
 
             filteredData.forEach((lab, index) => {
                 const card = document.createElement('div');
                 card.className = 'glass-card rounded-xl overflow-hidden group cursor-pointer flex flex-col h-full';
-                card.style.animationDelay = `${index * 100}ms`;
+                card.style.animationDelay = `${index * 50}ms`;
                 card.onclick = () => openModal(lab);
 
                 // Determine border color based on category
@@ -301,10 +309,20 @@
                 if (lab.category === 'Physics') categoryColor = 'text-purple-400';
                 if (lab.category === 'Chemistry') categoryColor = 'text-green-400';
                 if (lab.category === 'Biology') categoryColor = 'text-yellow-400';
+                if (lab.category === 'Mathematics') categoryColor = 'text-red-400';
+                if (lab.category === 'Earth Science') categoryColor = 'text-blue-400';
+
+                // Handle Thumbnail (Emoji or Image)
+                let thumbContent;
+                if (lab.thumbnail && (lab.thumbnail.startsWith('http') || lab.thumbnail.startsWith('/'))) {
+                    thumbContent = `<img src="${lab.thumbnail}" alt="${lab.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100">`;
+                } else {
+                    thumbContent = `<div class="w-full h-full flex items-center justify-center bg-black/40 text-6xl group-hover:scale-110 transition-transform duration-500">${lab.thumbnail || '🔬'}</div>`;
+                }
 
                 card.innerHTML = `
-                    <div class="relative h-48 overflow-hidden bg-black/50">
-                        <img src="${lab.thumbnail_url}" alt="${lab.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100">
+                    <div class="relative h-48 overflow-hidden bg-black/50 border-b border-white/5">
+                        ${thumbContent}
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                         <div class="absolute bottom-3 left-3">
                             <span class="font-mono text-xs px-2 py-1 rounded bg-white/10 backdrop-blur ${categoryColor} border border-white/10">
@@ -317,7 +335,7 @@
                         <p class="text-gray-400 text-sm mb-4 line-clamp-2">${lab.description}</p>
                         
                         <div class="mt-auto flex items-center justify-between text-xs font-mono text-gray-500 pt-4 border-t border-white/5">
-                            <span>LVL: ${lab.difficulty}</span>
+                            <span>LVL: ${lab.level}</span>
                             <span class="group-hover:translate-x-1 transition-transform text-cyan-500">
                                 启动实验 <i class="fas fa-chevron-right ml-1"></i>
                             </span>
@@ -329,11 +347,16 @@
         }
 
         // Modal Logic
-        // Modal Logic
         function openModal(lab) {
             modalTitle.innerText = lab.title;
-            modalSource.innerText = `SOURCE: ${lab.source.toUpperCase()}`;
-            simFrame.src = lab.embed_url;
+            // Infer source from URL or default
+            let source = "SYSTEM";
+            if (lab.url.includes("phet")) source = "PhET Colorado";
+            else if (lab.url.includes("geogebra")) source = "GeoGebra";
+            else if (lab.url.includes("solarsystemscope")) source = "Solar System Scope";
+
+            modalSource.innerText = `SOURCE: ${source}`;
+            simFrame.src = lab.url; // Use lab.url from experiments.js
             loader.style.display = 'flex';
 
             modal.classList.remove('hidden');
