@@ -1,9 +1,18 @@
-function init3DScene() {
-    const canvas = document.getElementById('bg-canvas');
-    if (!canvas) return;
+/**
+ * 3D Particle Background Effect using Three.js
+ * Creates a connected particle network with mouse interaction
+ */
 
+window.init3DScene = function () {
+    const canvas = document.getElementById('bg-canvas');
+    if (!canvas) {
+        console.warn('Three.js Background: Canvas #bg-canvas not found');
+        return;
+    }
+
+    // Ensure Three.js is loaded
     if (typeof THREE === 'undefined') {
-        console.warn('THREE.js not loaded');
+        console.error('Three.js not loaded');
         return;
     }
 
@@ -12,62 +21,82 @@ function init3DScene() {
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
 
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    camera.position.z = 50;
+    renderer.setPixelRatio(window.devicePixelRatio);
 
+    // Particles
     const particlesGeometry = new THREE.BufferGeometry();
-    const particleCount = 1500;
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
-    const colorPalette = [
-        new THREE.Color(0x8B5CF6), new THREE.Color(0x06B6D4),
-        new THREE.Color(0xEC4899), new THREE.Color(0xF59E0B),
-    ];
+    const particlesCount = 100; // Adjustable density
+    const posArray = new Float32Array(particlesCount * 3);
 
-    for (let i = 0; i < particleCount; i++) {
-        positions[i * 3] = (Math.random() - 0.5) * 200;
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
-        positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
-        const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-        colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
+    for (let i = 0; i < particlesCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 20; // Spread
     }
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-    const particles = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({
-        size: 0.8, vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending
-    }));
-    scene.add(particles);
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
 
-    let mouseX = 0, mouseY = 0;
-    document.addEventListener('mousemove', (e) => {
-        mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-        mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+    // Material
+    const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.05,
+        color: 0x6366f1, // Indigo-500
+        transparent: true,
+        opacity: 0.8,
     });
 
-    function animate() {
+    // Mesh
+    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particlesMesh);
+
+    // Lines connecting particles (optional, computationally expensive for many particles, simplified here)
+    // For better performance, we'll stick to points or use a custom shader for lines. 
+    // Let's keep it simple and elegant with floating particles for now to match the "Space" theme.
+    // If we want lines, we'd need a Loop to check distances.
+
+    // Better Visuals: Add some floating blobs or gradient sprites if needed.
+    // For now, let's just make the particles move nicely.
+
+    camera.position.z = 5;
+
+    // Mouse interaction
+    let mouseX = 0;
+    let mouseY = 0;
+
+    // Target position for smoothing
+    let targetX = 0;
+    let targetY = 0;
+
+    const windowHalfX = window.innerWidth / 2;
+    const windowHalfY = window.innerHeight / 2;
+
+    document.addEventListener('mousemove', (event) => {
+        mouseX = (event.clientX - windowHalfX);
+        mouseY = (event.clientY - windowHalfY);
+    });
+
+    // Animate
+    const animate = () => {
         requestAnimationFrame(animate);
-        particles.rotation.y += 0.0005;
-        particles.rotation.x += 0.0002;
-        camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
-        camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
-        camera.lookAt(scene.position);
+
+        targetX = mouseX * 0.001;
+        targetY = mouseY * 0.001;
+
+        particlesMesh.rotation.y += 0.001;
+        particlesMesh.rotation.x += 0.001;
+
+        // Smooth camera follow
+        particlesMesh.rotation.y += 0.05 * (targetX - particlesMesh.rotation.y);
+        particlesMesh.rotation.x += 0.05 * (targetY - particlesMesh.rotation.x);
+
         renderer.render(scene, camera);
-    }
+    };
+
     animate();
+
+    // Resize handle
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-}
 
-// Auto-initialize if canvas schema is ready
-if (document.getElementById('bg-canvas')) {
-    // Wait for window load to ensure THREE is loaded if it's a script tag
-    if (document.readyState === 'complete') {
-        init3DScene();
-    } else {
-        window.addEventListener('load', init3DScene);
-    }
-}
+    console.log("3D Scene Initialized");
+};

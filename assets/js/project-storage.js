@@ -66,7 +66,7 @@ const ProjectStorage = {
         if (stored) {
             const parsed = JSON.parse(stored);
             // Check if new VEX projects exist
-            if (parsed.length > 0 && (!parsed[0].difficulty || !parsed.find(p => p.id === 'vex_demo_1'))) {
+            if (parsed.length > 0 && (!parsed[0].difficulty || !parsed.find(p => p.id === 'vex_iq_high_stakes'))) {
                 needsUpdate = true;
                 localStorage.removeItem(STORAGE_KEY); // Clear old data to re-seed
             }
@@ -185,10 +185,77 @@ const ProjectStorage = {
                     difficulty: 'intermediate',
                     competition: 'CSP-J',
                     tags: ['算法', 'CSP-J'],
-                    thumbnail_url: 'https://via.placeholder.com/480x360/8B5CF6/FFFFFF?text=Bubble+Sort',
+                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/10128431_480x360.png',
                     project_url: null,
                     view_count: 234,
                     likes: 89,
+                    created_at: new Date().toISOString(),
+                    isLocal: false
+                },
+                {
+                    id: 'vex_iq_high_stakes',
+                    title: 'VEX IQ 2025: High Stakes',
+                    description: '2025 赛季 High Stakes 挑战赛满分自动程序演示。',
+                    author: 'VEX_Champion',
+                    type: 'scratch',
+                    difficulty: 'advanced',
+                    competition: 'VEX',
+                    tags: ['VEX', '机器人', '竞赛'],
+                    thumbnail_url: 'https://cdn.vexrobotics.com/vexverse/viqc-high-stakes-field.png',
+                    project_url: null,
+                    view_count: 2100,
+                    likes: 560,
+                    created_at: new Date().toISOString(),
+                    isLocal: false,
+                    isLiked: true,
+                    isFeatured: true
+                },
+                {
+                    id: 'csp_binary_search',
+                    title: '二分查找算法演示',
+                    description: 'CSP-J 必考：在有序数组中快速查找目标值的可视化过程。',
+                    author: 'CS_Teacher',
+                    type: 'scratch',
+                    difficulty: 'intermediate',
+                    competition: 'CSP-J',
+                    tags: ['算法', '二分查找', '数学'],
+                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/321456_480x360.png',
+                    project_url: null,
+                    view_count: 450,
+                    likes: 120,
+                    created_at: new Date().toISOString(),
+                    isLocal: false
+                },
+                {
+                    id: 'art_gen_p5',
+                    title: 'Generative Art: Flow Field',
+                    description: '使用 Scratch 模拟 p5.js 的流场艺术效果。',
+                    author: 'CreativeCoder',
+                    type: 'scratch',
+                    difficulty: 'advanced',
+                    competition: '创意编程',
+                    tags: ['艺术', '数学', '生成艺术'],
+                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/654321_480x360.png',
+                    project_url: null,
+                    view_count: 890,
+                    likes: 340,
+                    created_at: new Date().toISOString(),
+                    isLocal: false,
+                    isFeatured: true
+                },
+                {
+                    id: 'python_intro_sim',
+                    title: 'Python Syntax Simulator',
+                    description: '在 Scratch 中体验 Python 语法！Print("Hello World")。',
+                    author: 'PyFan',
+                    type: 'scratch',
+                    difficulty: 'beginner',
+                    competition: null,
+                    tags: ['Python', '模拟', '教学'],
+                    thumbnail_url: 'https://cdn2.scratch.mit.edu/get_image/project/987654_480x360.png',
+                    project_url: null,
+                    view_count: 150,
+                    likes: 45,
                     created_at: new Date().toISOString(),
                     isLocal: false
                 }
