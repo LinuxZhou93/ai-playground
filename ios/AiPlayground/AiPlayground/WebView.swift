@@ -1,3 +1,6 @@
+import SwiftUI
+import WebKit
+
 struct WebView: UIViewRepresentable {
     let urlString: String
     // Callback to handle navigation requests from the web content
