@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML/CSS IDE | 编程实践站</title>
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+
+    <!-- CodeMirror for Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        html: { orange: '#E34C26', blue: '#264DE4' },
+                        odyssey: { dark: '#0B0B15', surface: '#1E1E2E' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: #0B0B15;
+            color: #E2E8F0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .CodeMirror {
+            height: 100%;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1E1E2E;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        iframe {
+            border: none;
+            background: white;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div id="app" class="h-full flex flex-col">
+        <!-- Navbar -->
+        <nav class="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-odyssey-surface/50">
+            <div class="flex items-center gap-3">
+                <a href="coding.html" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <div
+                        class="w-8 h-8 rounded bg-gradient-to-r from-html-orange to-html-blue flex items-center justify-center font-bold text-white text-xs">
+                        HTML</div>
+                    <span class="font-bold text-lg">Web <span class="text-pink-400">Designer</span></span>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <button @click="runCode"
+                    class="px-4 py-1.5 bg-pink-600 hover:bg-pink-500 text-white rounded font-bold text-sm transition-colors">
+                    ▶ Preview
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Workspace -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar (Examples) -->
+            <div class="w-64 border-r border-white/10 bg-odyssey-surface/30 flex flex-col">
+                <div class="p-3 border-b border-white/5 font-bold text-sm text-slate-400">Examples</div>
+                <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <button v-for="ex in examples" :key="ex.name" @click="loadExample(ex)"
+                        class="w-full text-left px-3 py-2 rounded hover:bg-white/5 text-sm transition-colors text-slate-300 hover:text-white truncate">
+                        {{ ex.name }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Editor Area -->
+            <div class="flex-1 flex flex-col md:flex-row">
+                <!-- Code Editor -->
+                <div class="flex-1 flex flex-col border-r border-white/10 bg-[#263238]">
+                    <div class="bg-[#1E282C] px-4 py-1 text-xs text-slate-400 flex justify-between">
+                        <span>index.html</span>
+                        <span class="text-slate-500">HTML5 + CSS3</span>
+                    </div>
+                    <textarea id="code-editor"></textarea>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="w-full md:w-1/2 flex flex-col bg-white">
+                    <div class="bg-[#1a1a2e] px-4 py-1 text-xs text-slate-400 border-b border-white/5 font-bold">
+                        Live Preview</div>
+                    <iframe id="preview" class="flex-1 w-full"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const editor = ref(null);
+
+                const examples = [
+                    {
+                        name: 'Hello World',
+                        code: `<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        h1 {
+            color: white;
+            font-size: 3rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <h1>Hello, World! 🌍</h1>
+</body>
+</html>`
+                    },
+                    {
+                        name: 'Colorful Card',
+                        code: `<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f0f0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 300px;
+        }
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        .card p {
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>My First Card 🎨</h2>
+        <p>This is a beautiful card created with HTML and CSS!</p>
+    </div>
+</body>
+</html>`
+                    },
+                    {
+                        name: 'Animated Button',
+                        code: `<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #1a1a2e;
+        }
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            color: white;
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <button class="btn">Click Me! ✨</button>
+</body>
+</html>`
+                    }
+                ];
+
+                const loadExample = (ex) => {
+                    if (editor.value) {
+                        editor.value.setValue(ex.code);
+                        runCode();
+                    }
+                };
+
+                const runCode = () => {
+                    const code = editor.value.getValue();
+                    const preview = document.getElementById('preview');
+                    const previewDoc = preview.contentDocument || preview.contentWindow.document;
+                    previewDoc.open();
+                    previewDoc.write(code);
+                    previewDoc.close();
+                };
+
+                onMounted(() => {
+                    editor.value = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                        mode: 'htmlmixed',
+                        theme: 'material',
+                        lineNumbers: true,
+                        indentUnit: 4,
+                        lineWrapping: true
+                    });
+
+                    // Auto-update preview on change
+                    editor.value.on('change', () => {
+                        clearTimeout(window.previewTimeout);
+                        window.previewTimeout = setTimeout(runCode, 500);
+                    });
+
+                    loadExample(examples[0]);
+                });
+
+                return { runCode, examples, loadExample };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

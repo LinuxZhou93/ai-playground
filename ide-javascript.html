@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript IDE | 编程实践站</title>
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+
+    <!-- CodeMirror for Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        js: { yellow: '#F7DF1E', dark: '#323330' },
+                        odyssey: { dark: '#0B0B15', surface: '#1E1E2E' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: #0B0B15;
+            color: #E2E8F0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .CodeMirror {
+            height: 100%;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            border-radius: 0.5rem;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1E1E2E;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div id="app" class="h-full flex flex-col">
+        <!-- Navbar -->
+        <nav class="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-odyssey-surface/50">
+            <div class="flex items-center gap-3">
+                <a href="coding.html" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <div
+                        class="w-8 h-8 rounded bg-js-yellow flex items-center justify-center font-bold text-black text-xs">
+                        JS</div>
+                    <span class="font-bold text-lg">JavaScript <span class="text-js-yellow">Studio</span></span>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <button @click="runCode" :disabled="isRunning"
+                    class="px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    <span v-if="isRunning" class="animate-spin">⟳</span>
+                    <span v-else>▶ Run Code</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Workspace -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar (Examples) -->
+            <div class="w-64 border-r border-white/10 bg-odyssey-surface/30 flex flex-col">
+                <div class="p-3 border-b border-white/5 font-bold text-sm text-slate-400">Examples</div>
+                <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <button v-for="ex in examples" :key="ex.name" @click="loadExample(ex)"
+                        class="w-full text-left px-3 py-2 rounded hover:bg-white/5 text-sm transition-colors text-slate-300 hover:text-white truncate">
+                        {{ ex.name }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Editor Area -->
+            <div class="flex-1 flex flex-col md:flex-row">
+                <!-- Code Editor -->
+                <div class="flex-1 flex flex-col border-r border-white/10 bg-[#272822]">
+                    <div class="bg-[#1E1F1C] px-4 py-1 text-xs text-slate-400 flex justify-between">
+                        <span>main.js</span>
+                        <span class="text-slate-500">JavaScript ES6+</span>
+                    </div>
+                    <textarea id="code-editor"></textarea>
+                </div>
+
+                <!-- Console Output -->
+                <div class="w-full md:w-1/3 flex flex-col bg-[#0f0f1a]">
+                    <div class="bg-[#1a1a2e] px-4 py-1 text-xs text-slate-400 border-b border-white/5 font-bold">
+                        Console Output</div>
+                    <div id="console"
+                        class="flex-1 p-4 font-mono text-sm overflow-y-auto whitespace-pre-wrap text-slate-300">
+                        <div v-for="(log, i) in logs" :key="i"
+                            :class="log.type === 'error' ? 'text-red-400' : log.type === 'warn' ? 'text-yellow-400' : 'text-slate-300'">
+                            {{ log.msg }}</div>
+                        <div v-if="logs.length === 0" class="text-slate-600 italic">Click "Run Code" to see output...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const isRunning = ref(false);
+                const logs = ref([]);
+                const editor = ref(null);
+
+                const examples = [
+                    {
+                        name: 'Hello World',
+                        code: `// Welcome to JavaScript Studio!\n\nconst name = "Friend";\nconsole.log(\`Hello, \${name}!\`);\nconsole.log("Welcome to Creative Coding Lab.");`
+                    },
+                    {
+                        name: 'Array Methods',
+                        code: `// Array manipulation\n\nconst numbers = [1, 2, 3, 4, 5];\n\nconst doubled = numbers.map(n => n * 2);\nconsole.log("Doubled:", doubled);\n\nconst sum = numbers.reduce((a, b) => a + b, 0);\nconsole.log("Sum:", sum);`
+                    },
+                    {
+                        name: 'DOM Simulation',
+                        code: `// Object-oriented programming\n\nclass Person {\n  constructor(name, age) {\n    this.name = name;\n    this.age = age;\n  }\n  \n  greet() {\n    return \`Hi, I'm \${this.name}, \${this.age} years old.\`;\n  }\n}\n\nconst alice = new Person("Alice", 12);\nconsole.log(alice.greet());`
+                    }
+                ];
+
+                const loadExample = (ex) => {
+                    if (editor.value) editor.value.setValue(ex.code);
+                    logs.value = [];
+                };
+
+                const addToLog = (msg, type = 'info') => {
+                    logs.value.push({ msg, type });
+                    nextTick(() => {
+                        const term = document.getElementById('console');
+                        if (term) term.scrollTop = term.scrollHeight;
+                    });
+                };
+
+                const runCode = () => {
+                    isRunning.value = true;
+                    logs.value = [];
+                    const code = editor.value.getValue();
+
+                    // Override console methods
+                    const originalLog = console.log;
+                    const originalError = console.error;
+                    const originalWarn = console.warn;
+
+                    console.log = (...args) => addToLog(args.join(' '), 'info');
+                    console.error = (...args) => addToLog(args.join(' '), 'error');
+                    console.warn = (...args) => addToLog(args.join(' '), 'warn');
+
+                    try {
+                        eval(code);
+                    } catch (err) {
+                        addToLog(err.message, 'error');
+                    } finally {
+                        // Restore console
+                        console.log = originalLog;
+                        console.error = originalError;
+                        console.warn = originalWarn;
+                        isRunning.value = false;
+                    }
+                };
+
+                onMounted(() => {
+                    editor.value = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                        mode: 'javascript',
+                        theme: 'monokai',
+                        lineNumbers: true,
+                        indentUnit: 2,
+                        lineWrapping: true
+                    });
+
+                    loadExample(examples[0]);
+                });
+
+                return { isRunning, logs, runCode, examples, loadExample };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
