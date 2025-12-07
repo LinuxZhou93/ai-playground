@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electronic Circuits Lab | 电子电路实验室</title>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        tech: ['Share Tech Mono', 'monospace'],
+                        display: ['Orbitron', 'sans-serif'],
+                    },
+                    colors: {
+                        circuit: {
+                            bg: '#050a10',
+                            panel: 'rgba(10, 20, 30, 0.7)',
+                            neon: '#00ff9d',
+                            cyan: '#06b6d4',
+                            gold: '#ffd700',
+                            danger: '#ef4444'
+                        }
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(rgba(0, 255, 157, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 157, 0.05) 1px, transparent 1px)",
+                    },
+                    animation: {
+                        'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: 1, boxShadow: '0 0 10px #00ff9d' },
+                            '50%': { opacity: .5, boxShadow: '0 0 20px #00ff9d' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050a10;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #050a10;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00ff9d;
+            border-radius: 4px;
+        }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(10, 25, 40, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 255, 157, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(0, 255, 157, 0.4);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+
+        .nav-link {
+            position: relative;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: #00ff9d;
+            transition: width 0.3s;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Neon Text */
+        .neon-text {
+            color: #00ff9d;
+            text-shadow: 0 0 5px rgba(0, 255, 157, 0.5);
+        }
+
+        /* PCB Traces Decoration */
+        .pcb-line {
+            position: absolute;
+            background: rgba(0, 255, 157, 0.2);
+            z-index: -1;
+        }
+    </style>
+</head>
+
+<body class="selection:bg-teal-500/30">
+    <!-- Background Canvas and Image -->
+    <div
+        class="fixed inset-0 z-0 bg-[url('assets/images/circuit_bg.png')] bg-cover bg-center bg-no-repeat opacity-40 mix-blend-overlay">
+    </div>
+    <canvas id="circuit-canvas" class="fixed inset-0 z-0 pointer-events-none opacity-60"></canvas>
+
+    <!-- Navbar -->
+    <nav class="fixed top-0 w-full z-50 glass-panel border-b border-circuit-neon/20">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i data-lucide="cpu" class="w-8 h-8 text-circuit-neon"></i>
+                <span class="font-display font-bold text-xl tracking-wider">CIRCUITS<span
+                        class="text-circuit-neon">.LAB</span></span>
+            </div>
+            <div class="flex items-center gap-8">
+                <a href="index.html" class="nav-link text-gray-300 hover:text-white text-sm">HOME</a>
+                <a href="#roadmap" class="nav-link text-gray-300 hover:text-white text-sm">ROADMAP</a>
+                <a href="#simulation" class="nav-link text-gray-300 hover:text-white text-sm">SIMULATION</a>
+                <a href="#lab" class="nav-link text-gray-300 hover:text-white text-sm">LAB</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex flex-col justify-center items-center relative px-6 pt-20">
+        <div class="text-center max-w-4xl space-y-6 z-10">
+            <div
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-circuit-neon/30 bg-circuit-neon/10 text-circuit-neon font-tech text-sm mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <span class="w-2 h-2 rounded-full bg-circuit-neon animate-pulse"></span>
+                SYSTEM STATUS: ONLINE
+            </div>
+
+            <h1 class="font-display font-bold text-5xl md:text-7xl leading-tight">
+                <span class="block text-white mb-2">ENGINEERING THE</span>
+                <span
+                    class="text-transparent bg-clip-text bg-gradient-to-r from-circuit-neon to-circuit-cyan filter drop-shadow-[0_0_10px_rgba(0,255,157,0.3)]">INVISIBLE
+                    FLOW</span>
+            </h1>
+
+            <p class="text-xl text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
+                Unlock the physical world through electrons. From basic LED circuits to complex embedded systems, build
+                the future with your hands.
+            </p>
+
+            <div class="flex flex-wrap gap-4 justify-center pt-8">
+                <a href="#simulation"
+                    class="group relative px-8 py-3 bg-circuit-neon/10 border border-circuit-neon text-circuit-neon font-display tracking-wider hover:bg-circuit-neon hover:text-black transition-all duration-300 rounded overflow-hidden">
+                    <span class="relative z-10">START SIMULATION</span>
+                    <div
+                        class="absolute inset-0 bg-circuit-neon transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out -z-0">
+                    </div>
+                </a>
+                <a href="#roadmap"
+                    class="px-8 py-3 glass-panel text-gray-300 font-display tracking-wider hover:text-white hover:border-white/50 transition-all rounded">
+                    VIEW ROADMAP
+                </a>
+            </div>
+        </div>
+
+        <!-- Decorative Elements -->
+        <div class="absolute bottom-10 left-10 hidden md:block text-xs font-tech text-gray-600">
+            COORD: 34.0522° N, 118.2437° W<br>
+            VOLTAGE: 5.0V<br>
+            FREQ: 60Hz
+        </div>
+    </section>
+
+    <!-- Interactive Lab Panel -->
+    <section id="simulation" class="py-24 relative z-10 bg-[#070e16]/80">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="flex items-end justify-between mb-12 border-b border-gray-800 pb-4">
+                <div>
+                    <h2 class="font-display text-3xl text-white mb-2">VIRTUAL WORKBENCH</h2>
+                    <p class="font-tech text-gray-400">Interactive Ohm's Law Demonstrator</p>
+                </div>
+                <div class="font-tech text-circuit-neon text-sm">v2.1.0</div>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- Control Panel -->
+                <div class="lg:col-span-1 glass-panel p-6 rounded-xl flex flex-col gap-6">
+                    <div class="bg-black/40 p-4 rounded border border-gray-800">
+                        <label class="font-display text-xs text-gray-500 block mb-2">VOLTAGE SUPPLY (V)</label>
+                        <input type="range" id="voltage-slider" min="0" max="12" step="0.5" value="5"
+                            class="w-full accent-circuit-neon h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs font-tech text-circuit-neon mt-2">
+                            <span>0V</span>
+                            <span id="voltage-value">5.0V</span>
+                            <span>12V</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="font-display text-xs text-gray-500">MAIN POWER</span>
+                        <button id="power-btn"
+                            class="w-12 h-6 rounded-full bg-gray-700 relative transition-colors duration-300">
+                            <div
+                                class="w-6 h-6 rounded-full bg-gray-400 absolute left-0 top-0 transform scale-75 transition-transform duration-300 shadow-lg">
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="mt-auto space-y-4">
+                        <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                            <span class="font-tech text-gray-400 text-sm">Current (I)</span>
+                            <span id="current-value" class="font-tech text-circuit-cyan">0.023 A</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                            <span class="font-tech text-gray-400 text-sm">Resistor (R)</span>
+                            <span class="font-tech text-circuit-gold">220 Ω</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-tech text-gray-400 text-sm">Power (P)</span>
+                            <span id="power-value" class="font-tech text-pink-500">0.114 W</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization -->
+                <div
+                    class="lg:col-span-2 glass-panel p-1 rounded-xl relative overflow-hidden bg-black flex items-center justify-center min-h-[400px]">
+                    <!-- Background Grid -->
+                    <div
+                        class="absolute inset-0 bg-[linear-gradient(rgba(30,50,70,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(30,50,70,0.3)_1px,transparent_1px)] bg-[length:20px_20px]">
+                    </div>
+
+                    <!-- Circuit Diagram Visual -->
+                    <div class="relative w-full h-full flex items-center justify-center">
+                        <!-- LED Object -->
+                        <div class="relative group">
+                            <div id="led-bulb"
+                                class="w-20 h-20 rounded-full bg-gray-800 border-4 border-gray-700 shadow-xl transition-all duration-300 mx-auto flex items-center justify-center">
+                                <div class="w-12 h-12 rounded-full bg-white opacity-10 blur-sm"></div>
+                            </div>
+                            <div
+                                class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 font-tech text-xs text-gray-500">
+                                LED_COMPONENT</div>
+                        </div>
+
+                        <!-- Wire Connections (CSS Lines) -->
+                        <div class="absolute inset-x-20 top-1/2 h-[2px] bg-gray-700 -z-10"></div>
+                        <div class="absolute left-20 top-1/2 w-4 h-[100px] border-l-2 border-b-2 border-gray-700 -z-10">
+                        </div> <!-- To Battery -->
+                        <div
+                            class="absolute right-20 top-1/2 w-4 h-[100px] border-r-2 border-b-2 border-gray-700 -z-10">
+                        </div> <!-- To Battery -->
+
+                        <!-- Electron Animation -->
+                        <div id="electron-flow"
+                            class="absolute inset-x-20 top-1/2 h-[2px] overflow-hidden opacity-0 transition-opacity duration-500">
+                            <div
+                                class="w-full h-full bg-gradient-to-r from-transparent via-circuit-neon to-transparent animate-[flow_1s_linear_infinite]">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section id="roadmap" class="py-24 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="font-display text-4xl font-bold text-center mb-16">MASTERY ROADMAP <span
+                    class="text-circuit-neon">//</span></h2>
+
+            <div class="relative grid md:grid-cols-4 gap-6">
+                <!-- Connecting Line -->
+                <div class="hidden md:block absolute top-8 left-0 w-full h-1 bg-gray-800 -z-10">
+                    <div class="h-full bg-circuit-neon w-0 animate-[grow_2s_ease-out_forwards]"></div>
+                </div>
+                <style>
+                    @keyframes grow {
+                        to {
+                            width: 100%;
+                        }
+                    }
+                </style>
+
+                <!-- Step 1 -->
+                <div
+                    class="glass-panel p-6 rounded-xl hover:-translate-y-2 transition-transform duration-300 relative group">
+                    <div
+                        class="w-16 h-16 rounded-lg bg-gray-900 border border-circuit-neon flex items-center justify-center mb-4 mx-auto group-hover:shadow-[0_0_20px_rgba(0,255,157,0.3)] transition-shadow">
+                        <span class="text-3xl">🔋</span>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-tech text-circuit-neon text-xs mb-1">LEVEL 01</div>
+                        <h3 class="font-display text-xl font-bold mb-2">FOUNDATION</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Snap Circuits & Basic Physics. Understanding loop, voltage, and current concepts through
+                            physical blocks.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div
+                    class="glass-panel p-6 rounded-xl hover:-translate-y-2 transition-transform duration-300 relative group">
+                    <div
+                        class="w-16 h-16 rounded-lg bg-gray-900 border border-circuit-cyan flex items-center justify-center mb-4 mx-auto group-hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-shadow">
+                        <span class="text-3xl">🔌</span>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-tech text-circuit-cyan text-xs mb-1">LEVEL 02</div>
+                        <h3 class="font-display text-xl font-bold mb-2">PROTOTYPING</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Breadboards & Components. Real circuit building with resistors, caps, and transistors.
+                            Introduction to Arduino.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div
+                    class="glass-panel p-6 rounded-xl hover:-translate-y-2 transition-transform duration-300 relative group">
+                    <div
+                        class="w-16 h-16 rounded-lg bg-gray-900 border border-purple-500 flex items-center justify-center mb-4 mx-auto group-hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-shadow">
+                        <span class="text-3xl">📡</span>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-tech text-purple-500 text-xs mb-1">LEVEL 03</div>
+                        <h3 class="font-display text-xl font-bold mb-2">ENGINEERING</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            PCB Design & Soldering. Converting prototypes to permanent boards using EDA tools.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div
+                    class="glass-panel p-6 rounded-xl hover:-translate-y-2 transition-transform duration-300 relative group">
+                    <div
+                        class="w-16 h-16 rounded-lg bg-gray-900 border border-circuit-gold flex items-center justify-center mb-4 mx-auto group-hover:shadow-[0_0_20px_rgba(255,215,0,0.3)] transition-shadow">
+                        <span class="text-3xl">🧠</span>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-tech text-circuit-gold text-xs mb-1">LEVEL 04</div>
+                        <h3 class="font-display text-xl font-bold mb-2">EMBEDDED</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Microcontrollers & IoT. STM32, ESP32, and high-frequency circuit design logic.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lab Tools Links -->
+    <section id="lab" class="py-20 bg-black/40 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="font-display text-3xl font-bold mb-8">VIRTUAL LAB TOOLS</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <a href="https://www.falstad.com/circuit/circuitjs.html" target="_blank"
+                    class="glass-panel p-6 rounded-xl flex items-center gap-4 group hover:bg-circuit-neon/5">
+                    <div class="w-12 h-12 bg-gray-800 rounded flex items-center justify-center text-xl">🎯</div>
+                    <div>
+                        <h3 class="font-bold font-display group-hover:text-circuit-neon transition-colors">Falstad
+                            Simulator</h3>
+                        <p class="text-xs text-gray-500 font-tech">Visual Circuit Physics</p>
+                    </div>
+                    <i data-lucide="external-link" class="ml-auto w-4 h-4 text-gray-600 group-hover:text-white"></i>
+                </a>
+
+                <a href="https://www.tinkercad.com/circuits" target="_blank"
+                    class="glass-panel p-6 rounded-xl flex items-center gap-4 group hover:bg-circuit-neon/5">
+                    <div class="w-12 h-12 bg-gray-800 rounded flex items-center justify-center text-xl">🧱</div>
+                    <div>
+                        <h3 class="font-bold font-display group-hover:text-circuit-neon transition-colors">TinkerCAD
+                        </h3>
+                        <p class="text-xs text-gray-500 font-tech">3D Arduino Simulation</p>
+                    </div>
+                    <i data-lucide="external-link" class="ml-auto w-4 h-4 text-gray-600 group-hover:text-white"></i>
+                </a>
+
+                <a href="https://wokwi.com/" target="_blank"
+                    class="glass-panel p-6 rounded-xl flex items-center gap-4 group hover:bg-circuit-neon/5">
+                    <div class="w-12 h-12 bg-gray-800 rounded flex items-center justify-center text-xl">💾</div>
+                    <div>
+                        <h3 class="font-bold font-display group-hover:text-circuit-neon transition-colors">Wokwi</h3>
+                        <p class="text-xs text-gray-500 font-tech">IoT & Embedded Sim</p>
+                    </div>
+                    <i data-lucide="external-link" class="ml-auto w-4 h-4 text-gray-600 group-hover:text-white"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Global Resources -->
+    <section class="py-20 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="font-display text-3xl font-bold mb-12 text-center">GLOBAL ENGINEERING ACADEMY <span
+                    class="text-circuit-neon">//</span></h2>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- MIT OCW -->
+                <a href="https://ocw.mit.edu/courses/6-002-circuits-and-electronics-spring-2007/" target="_blank"
+                    class="group relative overflow-hidden rounded-xl h-80 glass-panel border-t-0 hover:-translate-y-2 transition-all duration-500">
+                    <div class="absolute inset-0 bg-black">
+                        <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=800&auto=format&fit=crop"
+                            alt="MIT Classroom"
+                            class="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-40 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/60 to-transparent">
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 p-6 flex flex-col h-full">
+                        <div class="h-10 flex items-center mb-auto">
+                            <span class="font-display font-bold text-xl tracking-tighter text-white">MIT<span
+                                    class="text-red-500">OPEN</span></span>
+                        </div>
+
+                        <div>
+                            <div
+                                class="w-10 h-1 bg-red-600 mb-4 rounded-full group-hover:w-20 transition-all duration-300">
+                            </div>
+                            <h3 class="font-bold text-xl text-white mb-2 leading-tight">Circuits & Electronics</h3>
+                            <p class="text-xs text-gray-300 font-tech mb-4">The legendary 6.002 course. Anant Agarwal's
+                                masterpiece on circuit theory.</p>
+                            <div class="flex items-center text-red-400 text-xs font-bold tracking-widest uppercase">
+                                Access Course <i data-lucide="arrow-right"
+                                    class="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- All About Circuits -->
+                <a href="https://www.allaboutcircuits.com/textbook/" target="_blank"
+                    class="group relative overflow-hidden rounded-xl h-80 glass-panel border-t-0 hover:-translate-y-2 transition-all duration-500">
+                    <div class="absolute inset-0 bg-black">
+                        <img src="https://images.unsplash.com/photo-1632571401005-458e9d244591?q=80&w=800&auto=format&fit=crop"
+                            alt="Electronics Schematic"
+                            class="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-40 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/60 to-transparent">
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 p-6 flex flex-col h-full">
+                        <div class="h-10 flex items-center mb-auto">
+                            <i data-lucide="book-open" class="w-8 h-8 text-orange-400"></i>
+                        </div>
+
+                        <div>
+                            <div
+                                class="w-10 h-1 bg-orange-500 mb-4 rounded-full group-hover:w-20 transition-all duration-300">
+                            </div>
+                            <h3 class="font-bold text-xl text-white mb-2 leading-tight">AAC Textbook</h3>
+                            <p class="text-xs text-gray-300 font-tech mb-4">The world's most comprehensive free online
+                                electronics textbook.</p>
+                            <div class="flex items-center text-orange-400 text-xs font-bold tracking-widest uppercase">
+                                Read Now <i data-lucide="arrow-right"
+                                    class="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Adafruit Learning -->
+                <a href="https://learn.adafruit.com/" target="_blank"
+                    class="group relative overflow-hidden rounded-xl h-80 glass-panel border-t-0 hover:-translate-y-2 transition-all duration-500">
+                    <div class="absolute inset-0 bg-black">
+                        <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop"
+                            alt="Maker Lab"
+                            class="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-40 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/60 to-transparent">
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 p-6 flex flex-col h-full">
+                        <div class="h-10 flex items-center mb-auto">
+                            <i data-lucide="flower-2" class="w-8 h-8 text-pink-500"></i>
+                        </div>
+
+                        <div>
+                            <div
+                                class="w-10 h-1 bg-pink-500 mb-4 rounded-full group-hover:w-20 transition-all duration-300">
+                            </div>
+                            <h3 class="font-bold text-xl text-white mb-2 leading-tight">Adafruit Learning</h3>
+                            <p class="text-xs text-gray-300 font-tech mb-4">Project-based learning. From wearables to
+                                IoT, built by Ladyada.</p>
+                            <div class="flex items-center text-pink-400 text-xs font-bold tracking-widest uppercase">
+                                Start Making <i data-lucide="arrow-right"
+                                    class="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- EEVblog -->
+                <a href="https://www.youtube.com/user/EEVblog" target="_blank"
+                    class="group relative overflow-hidden rounded-xl h-80 glass-panel border-t-0 hover:-translate-y-2 transition-all duration-500">
+                    <div class="absolute inset-0 bg-black">
+                        <img src="https://images.unsplash.com/photo-1581093458791-9f302e6d38e9?q=80&w=800&auto=format&fit=crop"
+                            alt="Oscilloscope"
+                            class="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-40 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/60 to-transparent">
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 p-6 flex flex-col h-full">
+                        <div class="h-10 flex items-center mb-auto">
+                            <i data-lucide="youtube" class="w-8 h-8 text-blue-500"></i>
+                        </div>
+
+                        <div>
+                            <div
+                                class="w-10 h-1 bg-blue-500 mb-4 rounded-full group-hover:w-20 transition-all duration-300">
+                            </div>
+                            <h3 class="font-bold text-xl text-white mb-2 leading-tight">EEVblog</h3>
+                            <p class="text-xs text-gray-300 font-tech mb-4">Dave Jones' no-nonsense electronics
+                                engineering lab tear-downs.</p>
+                            <div class="flex items-center text-blue-400 text-xs font-bold tracking-widest uppercase">
+                                Watch <i data-lucide="arrow-right"
+                                    class="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-gray-800 text-center relative z-10">
+        <p class="font-tech text-gray-500 text-sm">&copy; 2025 AI PLAYGROUND // HARDWARE DIVISION</p>
+    </footer>
+
+    <!-- Three.js Circuit Background Script -->
+    <script>
+        lucide.createIcons();
+
+        // 3D Scene Setup
+        const canvas = document.getElementById('circuit-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        // Circuit Nodes (Particles)
+        const geometry = new THREE.BufferGeometry();
+        const count = 150;
+        const positions = new Float32Array(count * 3);
+        const velocities = [];
+
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 30; // x
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 20; // y
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
+
+            velocities.push({
+                x: (Math.random() - 0.5) * 0.02,
+                y: (Math.random() - 0.5) * 0.02
+            });
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const material = new THREE.PointsMaterial({
+            size: 0.1,
+            color: 0x00ff9d,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // Connections Lines
+        const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0x00ff9d,
+            transparent: true,
+            opacity: 0.15
+        });
+
+        const linesGeometry = new THREE.BufferGeometry();
+        const lines = new THREE.LineSegments(linesGeometry, lineMaterial);
+        scene.add(lines);
+
+        camera.position.z = 10;
+
+        // Interaction
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update particles
+            const positions = particles.geometry.attributes.position.array;
+            let linePositions = [];
+
+            for (let i = 0; i < count; i++) {
+                // Move
+                positions[i * 3] += velocities[i].x;
+                positions[i * 3 + 1] += velocities[i].y;
+
+                // Bounce
+                if (Math.abs(positions[i * 3]) > 15) velocities[i].x *= -1;
+                if (Math.abs(positions[i * 3 + 1]) > 10) velocities[i].y *= -1;
+
+                // Connect
+                for (let j = i + 1; j < count; j++) {
+                    const dx = positions[i * 3] - positions[j * 3];
+                    const dy = positions[i * 3 + 1] - positions[j * 3 + 1];
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 3) {
+                        linePositions.push(
+                            positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2],
+                            positions[j * 3], positions[j * 3 + 1], positions[j * 3 + 2]
+                        );
+                    }
+                }
+            }
+
+            particles.geometry.attributes.position.needsUpdate = true;
+
+            // Update Lines
+            lines.geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+
+            // Gentle rotation based on mouse
+            scene.rotation.y = mouseX * 0.05;
+            scene.rotation.x = mouseY * 0.05;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --------------------------------------------------------
+        // Workbench Logic
+        // --------------------------------------------------------
+        const slider = document.getElementById('voltage-slider');
+        const voltageVal = document.getElementById('voltage-value');
+        const powerBtn = document.getElementById('power-btn');
+        const bulb = document.getElementById('led-bulb');
+        const connectLines = document.getElementById('electron-flow');
+        const currentText = document.getElementById('current-value');
+        const powerText = document.getElementById('power-value');
+
+        let isOn = false;
+        const R = 220;
+
+        function updateState() {
+            const V = parseFloat(slider.value);
+            voltageVal.innerText = V.toFixed(1) + 'V';
+
+            if (isOn) {
+                // Physics Calculations
+                const I = V / R;
+                const P = V * I;
+
+                // UI Updates
+                currentText.innerText = I.toFixed(3) + ' A';
+                powerText.innerText = P.toFixed(3) + ' W';
+
+                // Visuals
+                const intensity = Math.min((V / 12), 1);
+                bulb.style.backgroundColor = `rgba(0, 255, 157, ${intensity})`;
+                bulb.style.boxShadow = `0 0 ${intensity * 40}px ${intensity * 10}px rgba(0, 255, 157, ${intensity})`;
+
+                // Wire animation speed based on current
+                // Actually simple opacity toggle is enough for now
+                connectLines.style.opacity = intensity > 0.1 ? 1 : 0.3;
+
+            } else {
+                bulb.style.backgroundColor = '#1f2937';
+                bulb.style.boxShadow = 'none';
+                connectLines.style.opacity = 0;
+                currentText.innerText = '0.000 A';
+                powerText.innerText = '0.000 W';
+            }
+        }
+
+        powerBtn.addEventListener('click', () => {
+            isOn = !isOn;
+            const toggle = powerBtn.querySelector('div');
+
+            if (isOn) {
+                powerBtn.classList.replace('bg-gray-700', 'bg-circuit-neon');
+                toggle.classList.replace('bg-gray-400', 'bg-white');
+                toggle.style.transform = 'translateX(24px) scale(0.9)';
+            } else {
+                powerBtn.classList.replace('bg-circuit-neon', 'bg-gray-700');
+                toggle.classList.replace('bg-white', 'bg-gray-400');
+                toggle.style.transform = 'translateX(0) scale(0.75)';
+            }
+            updateState();
+        });
+
+        slider.addEventListener('input', updateState);
+
+        // Init
+        updateState();
+
+    </script>
+</body>
+
+</html>

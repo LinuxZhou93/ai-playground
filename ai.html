@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Future | 人工智能进阶之路</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --ai-primary: #8b5cf6;
+            --ai-secondary: #06b6d4;
+            --ai-accent: #f472b6;
+            --ai-dark: #0f172a;
+            --ai-panel: rgba(15, 23, 42, 0.8);
+            --ai-glass: rgba(255, 255, 255, 0.05);
+            --glow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--ai-dark);
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* Background Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            /* Overlay darker gradient on top of image */
+            background: linear-gradient(to bottom, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.95)), url('assets/images/ai_bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.2);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--ai-primary);
+            text-shadow: 0 0 10px var(--ai-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-link {
+            font-family: 'Share Tech Mono', monospace;
+            color: #ccc;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: var(--ai-secondary);
+            text-shadow: 0 0 10px var(--ai-secondary);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background: var(--ai-secondary);
+            transition: 0.3s;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .hero-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5rem;
+            background: linear-gradient(135deg, #fff 0%, var(--ai-primary) 50%, var(--ai-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.3));
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 1s ease-out forwards 0.5s;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: #cbd5e1;
+            max-width: 800px;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 1s ease-out forwards 0.8s;
+        }
+
+        .cta-btn {
+            padding: 15px 40px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 2px solid var(--ai-primary);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 1s ease-out forwards 1.1s;
+        }
+
+        .cta-btn:hover {
+            background: var(--ai-primary);
+            box-shadow: 0 0 30px var(--ai-primary);
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Content Sections */
+        .section {
+            padding: 100px 10%;
+            position: relative;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            color: var(--ai-secondary);
+            margin-bottom: 60px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+
+        /* Roadmap Styles */
+        .roadmap-container {
+            position: relative;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .roadmap-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--ai-primary), var(--ai-secondary));
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+
+        .roadmap-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 80px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .roadmap-item:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+
+        .roadmap-content {
+            width: 45%;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+            transition: 0.3s;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .roadmap-content:hover {
+            transform: translateY(-5px);
+            border-color: var(--ai-secondary);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.2);
+        }
+
+        .roadmap-marker {
+            width: 20px;
+            height: 20px;
+            background: var(--ai-dark);
+            border: 4px solid var(--ai-accent);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--ai-accent);
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .stage-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--ai-accent);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .stage-desc {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--ai-secondary);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        /* Resources Grid */
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .resource-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .resource-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--ai-primary);
+        }
+
+        .resource-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--ai-primary), var(--ai-secondary));
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .resource-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: var(--ai-secondary);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .card-desc {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--ai-accent);
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .card-link:hover {
+            gap: 10px;
+            color: #fff;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 40px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.9);
+            color: #64748b;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 3rem;
+            }
+
+            .roadmap-line {
+                left: 20px;
+            }
+
+            .roadmap-item {
+                flex-direction: column !important;
+                align-items: flex-start;
+                margin-left: 50px;
+            }
+
+            .roadmap-content {
+                width: 100%;
+            }
+
+            .roadmap-marker {
+                left: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo">
+            <i data-lucide="brain-circuit"></i>
+            AI LAB // 未来实验室
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">HOME</a>
+            <a href="#roadmap" class="nav-link">ROADMAP</a>
+            <a href="#resources" class="nav-link">RESOURCES</a>
+            <a href="#tools" class="nav-link">TOOLS</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-title">AI REVOLUTION</div>
+        <p class="hero-subtitle">
+            掌握未来的钥匙，开启人工智能无限可能。<br>
+            从零基础到深度学习，为青少年打造的全球顶级AI进阶课程。
+        </p>
+        <a href="#roadmap" class="cta-btn">开始探索 // START MISSION</a>
+    </section>
+
+    <!-- Roadmap -->
+    <section id="roadmap" class="section">
+        <h2 class="section-title">LEARNING PATH // 进阶路线图</h2>
+        <div class="roadmap-container">
+            <div class="roadmap-line"></div>
+
+            <!-- Stage 1 -->
+            <div class="roadmap-item">
+                <div class="roadmap-marker"></div>
+                <div class="roadmap-content">
+                    <h3 class="stage-title">STAGE 1: 编程启蒙与Python基础</h3>
+                    <p class="stage-desc">
+                        万丈高楼平地起。学习AI的第一步是掌握计算机语言。Python是AI领域的通用语言，我们将从趣味编程开始，打下坚实基础。
+                    </p>
+                    <div class="tech-tags">
+                        <span class="tag">Scratch</span>
+                        <span class="tag">Python Syntax</span>
+                        <span class="tag">Logic</span>
+                        <span class="tag">Algorithms</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 2 -->
+            <div class="roadmap-item">
+                <div class="roadmap-marker"></div>
+                <div class="roadmap-content">
+                    <h3 class="stage-title">STAGE 2: 数据科学与可视化</h3>
+                    <p class="stage-desc">
+                        AI的燃料是数据。在这个阶段，我们将学习如何处理、分析数据，并使用图表让数据“说话”，探索数据背后的秘密。
+                    </p>
+                    <div class="tech-tags">
+                        <span class="tag">Pandas</span>
+                        <span class="tag">Matplotlib</span>
+                        <span class="tag">Data Analysis</span>
+                        <span class="tag">Visualization</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 3 -->
+            <div class="roadmap-item">
+                <div class="roadmap-marker"></div>
+                <div class="roadmap-content">
+                    <h3 class="stage-title">STAGE 3: 机器学习初探</h3>
+                    <p class="stage-desc">
+                        教会机器像人一样思考。学习经典的机器学习算法，从分类到回归，亲手构建能够预测未来的智能模型。
+                    </p>
+                    <div class="tech-tags">
+                        <span class="tag">Scikit-learn</span>
+                        <span class="tag">Regression</span>
+                        <span class="tag">Classification</span>
+                        <span class="tag">K-Means</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 4 -->
+            <div class="roadmap-item">
+                <div class="roadmap-marker"></div>
+                <div class="roadmap-content">
+                    <h3 class="stage-title">STAGE 4: 深度学习与神经网络</h3>
+                    <p class="stage-desc">
+                        深入大脑的奥秘。构建神经网络，模仿人脑神经元连接，挑战图像识别、自然语言处理等高阶任务。
+                    </p>
+                    <div class="tech-tags">
+                        <span class="tag">TensorFlow</span>
+                        <span class="tag">PyTorch</span>
+                        <span class="tag">Neural Networks</span>
+                        <span class="tag">Computer Vision</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 5 -->
+            <div class="roadmap-item">
+                <div class="roadmap-marker"></div>
+                <div class="roadmap-content">
+                    <h3 class="stage-title">STAGE 5: 生成式AI与大模型</h3>
+                    <p class="stage-desc">
+                        站在巨人的肩膀上。探索ChatGPT、Midjourney等前沿技术，学习Prompt Engineering，甚至微调属于你自己的大模型。
+                    </p>
+                    <div class="tech-tags">
+                        <span class="tag">LLMs</span>
+                        <span class="tag">Transformers</span>
+                        <span class="tag">Prompt Engineering</span>
+                        <span class="tag">Fine-tuning</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Elite Education Resources -->
+    <section class="section" style="background: rgba(15, 23, 42, 0.6);">
+        <h2 class="section-title">ELITE EDUCATION // 世界名校资源</h2>
+        <div class="resources-grid">
+            <!-- Stanford AI4ALL -->
+            <div class="resource-card" style="border-color: rgba(140, 21, 21, 0.4);">
+                <div class="card-icon" style="color: #8C1515;"><i data-lucide="graduation-cap"></i></div>
+                <h3 class="card-title">Stanford AI4ALL</h3>
+                <p class="card-desc">斯坦福大学官方夏校项目。专为高中生设计，由李飞飞教授倡导，通过三周的高强度科研训练，探索AI在医疗、灾害应对等领域的应用。</p>
+                <a href="https://ai4all.stanford.edu/" target="_blank" class="card-link"
+                    style="color: #8C1515;">Official Site <i data-lucide="arrow-right"></i></a>
+            </div>
+
+            <!-- MIT RAISE -->
+            <div class="resource-card" style="border-color: rgba(163, 31, 52, 0.4);">
+                <div class="card-icon" style="color: #A31F34;"><i data-lucide="box"></i></div>
+                <h3 class="card-title">MIT RAISE (Day of AI)</h3>
+                <p class="card-desc">麻省理工学院媒体实验室(Media Lab)领衔。提供从K-12全学段的AI普及课程，包括著名的"Day of AI"活动，让孩子理解AI的伦理与社会影响。</p>
+                <a href="https://raise.mit.edu/" target="_blank" class="card-link" style="color: #A31F34;">Explore MIT
+                    <i data-lucide="arrow-right"></i></a>
+            </div>
+
+            <!-- CMU CS Academy -->
+            <div class="resource-card" style="border-color: rgba(196, 18, 48, 0.4);">
+                <div class="card-icon" style="color: #C41230;"><i data-lucide="terminal"></i></div>
+                <h3 class="card-title">CMU CS Academy</h3>
+                <p class="card-desc">卡内基梅隆大学(CMU)提供的免费在线计算机科学课程。基于Python，拥有世界顶级的图形化编程教学体系，无缝衔接大学计算机专业。</p>
+                <a href="https://academy.cs.cmu.edu/" target="_blank" class="card-link" style="color: #C41230;">Start
+                    Course <i data-lucide="arrow-right"></i></a>
+            </div>
+
+            <!-- Harvard CS50 AI -->
+            <div class="resource-card" style="border-color: rgba(165, 28, 48, 0.4);">
+                <div class="card-icon" style="color: #A51C30;"><i data-lucide="brain"></i></div>
+                <h3 class="card-title">Harvard CS50 AI</h3>
+                <p class="card-desc">哈佛大学CS50系列的进阶课程"Introduction to AI with Python"。深入讲解搜索算法、神经网络、逻辑推理等核心概念，挑战常春藤难度。
+                </p>
+                <a href="https://cs50.harvard.edu/ai/" target="_blank" class="card-link"
+                    style="color: #A51C30;">Challenge Now <i data-lucide="arrow-right"></i></a>
+            </div>
+
+            <!-- DeepLearning.AI for Everyone -->
+            <div class="resource-card" style="border-color: rgba(4, 119, 189, 0.4);">
+                <div class="card-icon" style="color: #0477BD;"><i data-lucide="users"></i></div>
+                <h3 class="card-title">AI for Everyone</h3>
+                <p class="card-desc">吴恩达(Andrew Ng)教授的非技术类通识课程。适合希望了解AI商业应用和未来趋势的学生与家长，建立正确的AI世界观。</p>
+                <a href="https://www.deeplearning.ai/courses/ai-for-everyone/" target="_blank" class="card-link"
+                    style="color: #0477BD;">Watch Course <i data-lucide="arrow-right"></i></a>
+            </div>
+
+            <!-- Google PAIR -->
+            <div class="resource-card" style="border-color: rgba(66, 133, 244, 0.4);">
+                <div class="card-icon" style="color: #4285F4;"><i data-lucide="microscope"></i></div>
+                <h3 class="card-title">Google PAIR</h3>
+                <p class="card-desc">People + AI Research。谷歌的可视化交互式学习项目，通过Teachable Machine等工具，让孩子零代码体验机器学习模型的训练过程。</p>
+                <a href="https://pair.withgoogle.com/" target="_blank" class="card-link"
+                    style="color: #4285F4;">Experiment <i data-lucide="arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Global Resources (Previous Section) -->
+    <section id="resources" class="section">
+        <h2 class="section-title">GLOBAL RESOURCES // 顶级资源库</h2>
+        <div class="resources-grid">
+            <div class="resource-card">
+                <div class="card-icon"><i data-lucide="book-open"></i></div>
+                <h3 class="card-title">Coursera Deep Learning</h3>
+                <p class="card-desc">吴恩达教授亲自授课，全球最受欢迎的深度学习专项课程，深入浅出。</p>
+                <a href="https://www.coursera.org/specializations/deep-learning" target="_blank" class="card-link">View
+                    Course <i data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="resource-card">
+                <div class="card-icon"><i data-lucide="code"></i></div>
+                <h3 class="card-title">Kaggle Competitions</h3>
+                <p class="card-desc">全球最大的数据科学竞赛平台，实战演练，与全球顶尖高手切磋。</p>
+                <a href="https://www.kaggle.com/competitions" target="_blank" class="card-link">Explore Kaggle <i
+                        data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="resource-card">
+                <div class="card-icon"><i data-lucide="video"></i></div>
+                <h3 class="card-title">Fast.ai</h3>
+                <p class="card-desc">最实用的深度学习课程，强调“自顶向下”的学习方式，快速上手实战。</p>
+                <a href="https://www.fast.ai/" target="_blank" class="card-link">Start Learning <i
+                        data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="resource-card">
+                <div class="card-icon"><i data-lucide="cpu"></i></div>
+                <h3 class="card-title">Hugging Face</h3>
+                <p class="card-desc">AI界的GitHub，海量预训练模型和数据集，轻松调用最先进的AI能力。</p>
+                <a href="https://huggingface.co/" target="_blank" class="card-link">Visit Hub <i
+                        data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="resource-card">
+                <div class="card-icon"><i data-lucide="play-circle"></i></div>
+                <h3 class="card-title">3Blue1Brown</h3>
+                <p class="card-desc">用最直观的动画讲解神经网络背后的数学原理，让微积分和线性代数不再枯燥。</p>
+                <a href="https://www.3blue1brown.com/topics/neural-networks" target="_blank" class="card-link">Watch
+                    Videos <i data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="resource-card">
+                <div class="card-icon"><i data-lucide="trophy"></i></div>
+                <h3 class="card-title">Google Colab</h3>
+                <p class="card-desc">免费的云端Jupyter Notebook环境，提供免费GPU算力，随时随地写代码。</p>
+                <a href="https://colab.research.google.com/" target="_blank" class="card-link">Start Coding <i
+                        data-lucide="arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- University Open Courseware -->
+    <section class="section" style="background: rgba(15, 23, 42, 0.4);">
+        <h2 class="section-title">UNIVERSITY OPEN COURSEWARE // 顶尖大学公开课</h2>
+        <div class="resources-grid">
+            <!-- Stanford CS229 -->
+            <div class="resource-card relative overflow-hidden group h-80 border-0 p-0">
+                <div class="absolute inset-0">
+                    <img src="https://images.unsplash.com/photo-1627556592933-ffe99c1cd9eb?q=80&w=800&auto=format&fit=crop"
+                        alt="Stanford Architecture"
+                        class="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+                </div>
+                <div class="relative z-10 p-8 flex flex-col h-full">
+                    <div
+                        class="w-12 h-12 rounded-full bg-[#8C1515]/20 flex items-center justify-center mb-auto border border-[#8C1515]">
+                        <i data-lucide="library" class="text-[#8C1515]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Stanford CS229</h3>
+                        <p class="text-gray-300 text-sm mb-4">Andrew Ng's legendary Machine Learning course. The
+                            mathematical foundation of AI.</p>
+                        <a href="https://cs229.stanford.edu/" target="_blank"
+                            class="text-[#fca5a5] hover:text-white font-bold text-sm tracking-widest flex items-center gap-2">
+                            VIEW MATERIALS <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MIT 6.034 -->
+            <div class="resource-card relative overflow-hidden group h-80 border-0 p-0">
+                <div class="absolute inset-0">
+                    <img src="https://images.unsplash.com/photo-1592659762303-90081d34b277?q=80&w=800&auto=format&fit=crop"
+                        alt="MIT Dome"
+                        class="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+                </div>
+                <div class="relative z-10 p-8 flex flex-col h-full">
+                    <div
+                        class="w-12 h-12 rounded-full bg-[#A31F34]/20 flex items-center justify-center mb-auto border border-[#A31F34]">
+                        <i data-lucide="brain-circuit" class="text-[#A31F34]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-white mb-2">MIT 6.034</h3>
+                        <p class="text-gray-300 text-sm mb-4">Artificial Intelligence by Patrick Winston. Reasoning,
+                            constraints, and learning.</p>
+                        <a href="https://ocw.mit.edu/courses/6-034-artificial-intelligence-fall-2010/" target="_blank"
+                            class="text-[#fca5a5] hover:text-white font-bold text-sm tracking-widest flex items-center gap-2">
+                            WATCH ON OCW <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Berkeley CS188 -->
+            <div class="resource-card relative overflow-hidden group h-80 border-0 p-0">
+                <div class="absolute inset-0">
+                    <img src="https://images.unsplash.com/photo-1596496356938-a2a11caa776d?q=80&w=800&auto=format&fit=crop"
+                        alt="Berkeley Campus"
+                        class="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+                </div>
+                <div class="relative z-10 p-8 flex flex-col h-full">
+                    <div
+                        class="w-12 h-12 rounded-full bg-[#FDB515]/20 flex items-center justify-center mb-auto border border-[#FDB515]">
+                        <i data-lucide="bot" class="text-[#FDB515]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Berkeley CS188</h3>
+                        <p class="text-gray-300 text-sm mb-4">Introduction to AI. Famous for Pac-Man search algorithms
+                            and reinforcement learning.</p>
+                        <a href="https://inst.eecs.berkeley.edu/~cs188/fa18/" target="_blank"
+                            class="text-[#fcd34d] hover:text-white font-bold text-sm tracking-widest flex items-center gap-2">
+                            PAC-MAN PROJECTS <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stanford CS231n -->
+            <div class="resource-card relative overflow-hidden group h-80 border-0 p-0">
+                <div class="absolute inset-0">
+                    <img src="https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?q=80&w=800&auto=format&fit=crop"
+                        alt="Computer Vision"
+                        class="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+                </div>
+                <div class="relative z-10 p-8 flex flex-col h-full">
+                    <div
+                        class="w-12 h-12 rounded-full bg-[#8C1515]/20 flex items-center justify-center mb-auto border border-[#8C1515]">
+                        <i data-lucide="eye" class="text-[#8C1515]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Stanford CS231n</h3>
+                        <p class="text-gray-300 text-sm mb-4">Convolutional Neural Networks. The absolute
+                            state-of-the-art for Computer Vision.</p>
+                        <a href="http://cs231n.stanford.edu/" target="_blank"
+                            class="text-[#fca5a5] hover:text-white font-bold text-sm tracking-widest flex items-center gap-2">
+                            COMPUTER VISION <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 AI Playground. All Rights Reserved. Built for the Future.</p>
+    </footer>
+
+    <!-- Three.js Background Animation -->
+    <script>
+        lucide.createIcons();
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        // Particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 2000;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 20; // Spread within -10 to 10
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        const material = new THREE.PointsMaterial({
+            size: 0.02,
+            color: 0x8b5cf6,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, material);
+        scene.add(particlesMesh);
+
+        camera.position.z = 5;
+
+        // Mouse interaction
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX / window.innerWidth - 0.5;
+            mouseY = event.clientY / window.innerHeight - 0.5;
+        });
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            particlesMesh.rotation.y = elapsedTime * 0.05;
+            particlesMesh.rotation.x = mouseY * 0.2;
+            particlesMesh.rotation.y += mouseX * 0.2;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
