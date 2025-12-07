@@ -17,11 +17,44 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- 3D Libraries (Stable CDN) -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three-spritetext@1.8.1/dist/three-spritetext.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.1/dist/3d-force-graph.min.js"></script>
+    <!-- Local Libraries (Offline Friendly) -->
+    <script src="assets/js/lib/three.min.js"></script>
+    <script src="assets/js/lib/three-spritetext.min.js"></script>
+    <script src="assets/js/lib/3d-force-graph.min.js"></script>
+    <!-- Downloaded D3 Locally -->
+    <script src="assets/js/lib/d3.min.js"></script>
+    <!-- D3 is needed for force simulation - relying on graph internal or simple D3 if needed. 
+         ForceGraph usually bundles key D3 modules. If not, we might need d3.js locally too. 
+         But sticking to what worked before: The minified 3d-force-graph usually has it. -->
 
+    <!-- On-Screen Debug Console (Hidden by default, shows on error) -->
+    <div id="debug-console"
+        class="fixed top-0 left-0 w-full h-32 bg-red-900/90 text-white text-xs font-mono p-2 overflow-y-auto z-[100] hidden pointer-events-none">
+    </div>
+
+    <script>
+        // Emergency Debugger
+        const debugElem = document.getElementById('debug-console');
+        window.onerror = function (msg, url, line) {
+            debugElem.style.display = 'block';
+            debugElem.innerHTML += `<div>[CRITICAL] ${msg} (${line})</div>`;
+        };
+        const _log = console.log;
+        const _warn = console.warn;
+        const _error = console.error;
+        console.error = (...args) => {
+            debugElem.style.display = 'block';
+            debugElem.innerHTML += `<div class="text-red-300">[ERROR] ${args.join(' ')}</div>`;
+            _error(...args);
+        };
+        console.warn = (...args) => {
+            // debugElem.style.display = 'block'; // Don't show for warnings
+            _warn(...args);
+        };
+        console.log = (...args) => {
+            // _log(...args); // Keep console clean for user
+        };
+    </script>
     <style>
         body {
             background-color: #050b14;
@@ -165,25 +198,40 @@
                     data-lucide="crosshair"></i></button>
         </div>
 
-        <!-- Filter Bar -->
-        <div id="filter-bar"
-            class="pointer-events-auto absolute bottom-8 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-2 py-2 flex gap-1 overflow-x-auto max-w-[90vw]">
-            <button onclick="filterContent('all', this)"
-                class="filter-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all">ALL</button>
-            <button onclick="filterContent('math', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all">MATH</button>
-            <button onclick="filterContent('physics', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-orange-600 hover:text-white transition-all">PHYSICS</button>
-            <button onclick="filterContent('chemistry', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-pink-600 hover:text-white transition-all">CHEMISTRY</button>
-            <button onclick="filterContent('biology', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-green-600 hover:text-white transition-all">BIOLOGY</button>
-            <button onclick="filterContent('cs', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-cyan-600 hover:text-white transition-all">CS</button>
-            <button onclick="filterContent('science', this)"
-                class="filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-purple-600 hover:text-white transition-all">SCIENCE</button>
+        <!-- Stage Selector (New) -->
+        <div class="pointer-events-auto absolute top-24 left-1/2 transform -translate-x-1/2 flex gap-2">
+            <div class="glass-panel p-1 rounded-full flex gap-1 bg-slate-900/80 backdrop-blur-md">
+                <button onclick="filterStage('all', this)"
+                    class="stage-btn active px-4 py-1.5 rounded-full text-xs font-bold text-white bg-indigo-600 shadow-lg transition-all">全部阶段</button>
+                <button onclick="filterStage('elementary', this)"
+                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">小学</button>
+                <button onclick="filterStage('middle', this)"
+                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">初中</button>
+                <button onclick="filterStage('high', this)"
+                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">高中</button>
+                <button onclick="filterStage('university', this)"
+                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">大学</button>
+            </div>
         </div>
 
+        <!-- Filter Bar (Subject) -->
+        <div id="filter-bar"
+            class="pointer-events-auto absolute bottom-8 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-2 py-2 flex gap-1 overflow-x-auto max-w-[90vw]">
+            <button onclick="filterSubject('all', this)"
+                class="subject-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all">ALL</button>
+            <button onclick="filterSubject('math', this)"
+                class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all">MATH</button>
+            <button onclick="filterSubject('physics', this)"
+                class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-orange-600 hover:text-white transition-all">PHYSICS</button>
+            <button onclick="filterSubject('chemistry', this)"
+                class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-pink-600 hover:text-white transition-all">CHEMISTRY</button>
+            <button onclick="filterSubject('biology', this)"
+                class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-green-600 hover:text-white transition-all">BIOLOGY</button>
+            <button onclick="filterSubject('cs', this)"
+                class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-cyan-600 hover:text-white transition-all">CS</button>
+            <button onclick="filterSubject('science', this)"
+                class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-purple-600 hover:text-white transition-all">SCIENCE</button>
+        </div>
     </div>
 
     <!-- Detail Modal -->
@@ -211,7 +259,10 @@
     <script>
         lucide.createIcons();
         let Graph = null;
-        let currentFilter = 'all';
+
+        // 2D Filter State
+        let currentSubject = 'all';
+        let currentStage = 'all';
 
         document.addEventListener('DOMContentLoaded', () => {
             initGalaxy();
@@ -232,26 +283,37 @@
             }, 1000);
         });
 
+        // Computed Data Getter
+        function getFilteredData() {
+            return synergyData.filter(item => {
+                const matchSubject = currentSubject === 'all' || item.category === currentSubject;
+                const matchStage = currentStage === 'all' || item.stage === currentStage;
+                return matchSubject && matchStage;
+            });
+        }
+
         function updateEntryCount() {
             if (window.synergyData) {
-                document.getElementById('total-entries').innerText = window.synergyData.length;
+                // Show currently visible count / total
+                const visible = getFilteredData().length;
+                document.getElementById('total-entries').innerText = `${visible} / ${window.synergyData.length}`;
             }
         }
 
-        /* === ROLLBACK: PURE VANILLA FORCE GRAPH === */
+        /* === VISUAL RESTORATION: PURE DEFAULTS === */
         function initGalaxy() {
             const elem = document.getElementById('galaxy-graph');
 
-            // Standard Init - No Custom Sprites, No Custom Forces
+            // Revert to Pure Instanced Mesh (Performance & Stability King)
             Graph = ForceGraph3D()
                 (elem)
-                .backgroundColor('#00000000') // Transparent
+                .backgroundColor('#00000000')
+                .showNavInfo(false)
                 .nodeLabel('title')
                 .nodeColor(node => getCategoryColor(node.group))
-                .nodeRelSize(parseInt(6)) // Consistent size
-                .showNavInfo(false)
+                .nodeRelSize(node => node.val || 4)
+                .nodeOpacity(0.9)
                 .onNodeClick(node => {
-                    // Camera Focus
                     const distRatio = 1 + 60 / Math.hypot(node.x, node.y, node.z);
                     Graph.cameraPosition(
                         { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
@@ -261,39 +323,39 @@
                     setTimeout(() => openModal(node.data), 1500);
                 });
 
-            // Init Data
-            updateGalaxyData('all');
+            // No Custom Lights, No Custom Objects -> Uses Library Defaults
 
-            // Trigger Resize Force
+            // Init Data
+            updateGalaxyData();
+
+            // Force Resize Patch
             const resize = () => { Graph.width(window.innerWidth); Graph.height(window.innerHeight); };
             window.addEventListener('resize', resize);
             resize();
         }
 
-        function updateGalaxyData(filter) {
-            let data = filter === 'all' ? synergyData : synergyData.filter(i => i.category === filter);
+        function updateGalaxyData() {
+            const data = getFilteredData();
+            updateEntryCount();
 
-            // Simple node mapping
             const nodes = data.map(i => ({
                 id: i.id,
                 title: i.title,
                 group: i.category,
-                val: i.rank || 1, // Default value if generic
-                data: i
+                val: i.type === 'concept' ? 3 : (i.type === 'lab' ? 2 : 4),
+                data: i,
+                isHub: false
             }));
 
-            // Auto-Link based on category (Simple structure)
-            // Or just nodes? Let's add simple links to a phantom center to keep them together?
-            // Actually, for pure visibility, independent nodes are safest.
-            // But let's keep the Hub Logic just for structure, but rendered as normal nodes.
-
+            // Create Hubs
             const categories = [...new Set(data.map(d => d.category))];
             const hubNodes = categories.map(cat => ({
                 id: `HUB_${cat}`,
                 title: cat.toUpperCase(),
                 group: cat,
-                val: 20, // Big
-                isHub: true
+                val: 12,
+                isHub: true,
+                data: { title: cat.toUpperCase() + " HUB", content: `Center of ${cat}`, tags: [] }
             }));
 
             const links = [];
@@ -302,11 +364,11 @@
             });
 
             Graph.graphData({ nodes: [...nodes, ...hubNodes], links: links });
-        }
 
-        function getCategoryColor(cat) {
-            const map = { 'math': '#3B82F6', 'physics': '#F59E0B', 'chemistry': '#EC4899', 'biology': '#10B981', 'cs': '#06B6D4', 'science': '#8B5CF6' };
-            return map[cat] || '#ffffff';
+            // Keep Galaxy Forces (They are mostly safe)
+            Graph.d3Force('charge', d3.forceManyBody().strength(node => node.isHub ? -800 : -60));
+
+            Graph.d3ReheatSimulation();
         }
 
         /* === VIEW SWITCHER & MODAL === */
@@ -328,6 +390,8 @@
                 btnGrid.className = "px-4 py-2 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all";
                 btnGalaxy.className = "px-4 py-2 rounded-full text-sm font-bold transition-all text-white bg-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.5)]";
                 galaxyControls.style.display = 'flex'; filterBar.style.display = 'flex';
+                // Trigger update to ensure graph is fresh
+                updateGalaxyData();
             }
         }
 
@@ -335,25 +399,55 @@
             const container = document.getElementById('wiki-container');
             container.innerHTML = '';
             const searchTerm = document.getElementById('search-input')?.value.toLowerCase();
-            const data = synergyData;
-            const finalData = searchTerm ? data.filter(item => item.title.toLowerCase().includes(searchTerm)) : data;
 
-            finalData.slice(0, 200).forEach(item => {
+            // Use filtered Data
+            let data = getFilteredData();
+
+            if (searchTerm) {
+                data = data.filter(item => item.title.toLowerCase().includes(searchTerm));
+            }
+
+            data.slice(0, 200).forEach(item => {
                 const card = document.createElement('div');
                 card.className = "glass-panel p-4 rounded-xl hover:bg-slate-800/80 cursor-pointer border border-slate-700/50";
                 card.onclick = () => openModal(item);
                 const color = getCategoryColor(item.category);
-                card.innerHTML = `<h3 class="text-lg font-bold text-white mb-2" style="color:${color}">${item.title}</h3><div class="text-sm text-slate-400">${item.content.replace(/<[^>]*>?/gm, '').substring(0, 60)}...</div>`;
+
+                // Show Stage Tag
+                card.innerHTML = `
+                    <div class="flex justify-between mb-2">
+                        <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-400">${item.stage.toUpperCase()}</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2" style="color:${color}">${item.title}</h3>
+                    <div class="text-sm text-slate-400 overflow-hidden h-12">${item.content.replace(/<[^>]*>?/gm, '').substring(0, 60)}...</div>
+                 `;
                 container.appendChild(card);
             });
         }
         function searchWiki() { if (document.getElementById('wiki-container-wrapper').style.display !== 'none') renderList(); }
 
-        function filterContent(category, btn) {
-            currentFilter = category;
-            document.querySelectorAll('.filter-btn').forEach(b => b.className = "filter-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all");
-            btn.className = "filter-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all";
-            updateGalaxyData(category);
+        // --- 2D Filter Logic ---
+
+        function filterSubject(subject, btn) {
+            currentSubject = subject;
+
+            // Visual Update
+            document.querySelectorAll('.subject-btn').forEach(b => b.className = "subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all");
+            btn.className = "subject-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all";
+
+            updateGalaxyData();
+            if (document.getElementById('wiki-container-wrapper').style.display !== 'none') renderList();
+        }
+
+        function filterStage(stage, btn) {
+            currentStage = stage;
+
+            // Visual Update
+            document.querySelectorAll('.stage-btn').forEach(b => b.className = "stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all");
+            btn.className = "stage-btn active px-4 py-1.5 rounded-full text-xs font-bold text-white bg-indigo-600 shadow-lg transition-all";
+
+            updateGalaxyData();
+            if (document.getElementById('wiki-container-wrapper').style.display !== 'none') renderList();
         }
 
         function openModal(data) {
@@ -361,9 +455,13 @@
             const c = document.getElementById('modal-content-box');
             m.classList.remove('hidden');
             setTimeout(() => { c.classList.remove('scale-95', 'opacity-0'); c.classList.add('scale-100', 'opacity-100'); }, 10);
+
             document.getElementById('modal-title').innerText = data.title;
+            // Rich Content is already in data.content
             document.getElementById('modal-content-text').innerHTML = data.content;
-            document.getElementById('modal-tags').innerHTML = data.tags.map(t => `<span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300">#${t}</span>`).join('');
+
+            document.getElementById('modal-tags').innerHTML =
+                (data.tags || []).map(t => `<span class="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300">#${t}</span>`).join('');
         }
         function closeModal() {
             const m = document.getElementById('detail-modal');

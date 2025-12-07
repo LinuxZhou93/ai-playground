@@ -5103,5 +5103,1075 @@ const experiments = [
         "url": "https://www.falstad.com/circuit/e-tl.html",
         "thumbnail": "assets/images/covers/cover_electronics.png",
         "embeddable": true
+    },
+    {
+        "title": "例如：力学",
+        "title_zh": "例如：力学",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 哈比尔普拉多.",
+        "description_zh": "由 哈比尔普拉多 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/t8prq4cg",
+        "thumbnail": "https://www.geogebra.org/resource/zmymby76/dUrBCR0CMbdIckXJ/material-zmymby76-thumb@l.png"
+    },
+    {
+        "title": "物理力学剪贴画制作器",
+        "title_zh": "物理力学剪贴画制作器",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 汤姆·沃尔什.",
+        "description_zh": "由 汤姆·沃尔什 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/vUK7gGkN",
+        "thumbnail": "https://www.geogebra.org/resource/vUK7gGkN/xouj2q5DUbQBPIIF/material-vUK7gGkN-thumb@l.png"
+    },
+    {
+        "title": "物理力学剪贴画制作器",
+        "title_zh": "物理力学剪贴画制作器",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by sciwithmrb.",
+        "description_zh": "由 sciwithmrb 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/krennjse",
+        "thumbnail": "https://www.geogebra.org/resource/krennjse/U5tQ9Kt1P1x10SUd/material-krennjse-thumb.png"
+    },
+    {
+        "title": "物理问题：图片+模板",
+        "title_zh": "物理问题：图片+模板",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 帕特里克·多尔蒂.",
+        "description_zh": "由 帕特里克·多尔蒂 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/jm2xyzkz",
+        "thumbnail": "https://www.geogebra.org/resource/teeba8c8/sqbIYFMuAE9DK5MD/material-teeba8c8-thumb.png"
+    },
+    {
+        "title": "粒子物理学的图解故事 / Graficando Historias de Física de Partículas",
+        "title_zh": "粒子物理学的图解故事 / Graficando Historias de Física de Partículas",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by JP MathPR.",
+        "description_zh": "由 JP MathPR 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/rspa6xgx",
+        "thumbnail": "https://www.geogebra.org/resource/nwxgae47/KtxXsda5yKvWmJ2X/material-nwxgae47.png"
+    },
+    {
+        "title": "物理力学剪贴画制作器副本",
+        "title_zh": "物理力学剪贴画制作器副本",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 罗南·唐斯.",
+        "description_zh": "由 罗南·唐斯 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/dkja74hh",
+        "thumbnail": "https://www.geogebra.org/resource/dkja74hh/s6T2bSh45zQPPPe1/material-dkja74hh-thumb@l.png"
+    },
+    {
+        "title": "物理力学剪贴画制作器",
+        "title_zh": "物理力学剪贴画制作器",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 萨德塔默.",
+        "description_zh": "由 萨德塔默 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/epnqvke2",
+        "thumbnail": "https://www.geogebra.org/resource/epnqvke2/kqmdO6HW0FxoMbqx/material-epnqvke2-thumb.png"
+    },
+    {
+        "title": "教学顺序",
+        "title_zh": "教学顺序",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 哈比尔普拉多.",
+        "description_zh": "由 哈比尔普拉多 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/g72caykj",
+        "thumbnail": "https://www.geogebra.org/resource/cjaryhny/QzL8F8P0wswyNoPA/material-cjaryhny-thumb@l.png"
+    },
+    {
+        "title": "利用 GeoGebra 模拟进行交互式物理学习",
+        "title_zh": "利用 GeoGebra 模拟进行交互式物理学习",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by Vivax Solutions.",
+        "description_zh": "由 Vivax Solutions 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ujefyrm4",
+        "thumbnail": "https://www.geogebra.org/resource/ujefyrm4/lr5Xxf9tvDBGNFJG/material-ujefyrm4-thumb.png"
+    },
+    {
+        "title": "卫星或行星轨道模拟",
+        "title_zh": "卫星或行星轨道模拟",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 凯帕·豪雷吉.",
+        "description_zh": "由 凯帕·豪雷吉 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ggr6bEmN",
+        "thumbnail": "https://www.geogebra.org/resource/ggr6bEmN/kcaN8OOnocQIUJ4H/material-ggr6bEmN-thumb.png"
+    },
+    {
+        "title": "物理12年级第2课第1部分",
+        "title_zh": "物理12年级第2课第1部分",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 陶菲克·阿布·谢迪德博士.",
+        "description_zh": "由 陶菲克·阿布·谢迪德博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/dprhjpq9",
+        "thumbnail": "https://www.geogebra.org/resource/pyccgejg/es01kxebJNsxL17c/material-pyccgejg-thumb.png"
+    },
+    {
+        "title": "五个向量的合力",
+        "title_zh": "五个向量的合力",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by Vivax Solutions.",
+        "description_zh": "由 Vivax Solutions 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/yvtrgbxn",
+        "thumbnail": "https://www.geogebra.org/resource/yvtrgbxn/9hq04zT8TpCjjAaW/material-yvtrgbxn-thumb.png"
+    },
+    {
+        "title": "困境",
+        "title_zh": "困境",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 塞尔玛·贝顿.",
+        "description_zh": "由 塞尔玛·贝顿 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/nefuhxdw",
+        "thumbnail": "https://www.geogebra.org/resource/vyhnxdmp/vtpBdl3CjMPL0Uyl/material-vyhnxdmp.png"
+    },
+    {
+        "title": "介绍",
+        "title_zh": "介绍",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 拉斐尔·洛萨达·利斯特.",
+        "description_zh": "由 拉斐尔·洛萨达·利斯特 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/rpt7brrv",
+        "thumbnail": "https://www.geogebra.org/resource/jkevscnp/fUu2KNVMycnW6O00/material-jkevscnp-thumb.png"
+    },
+    {
+        "title": "马尔法蒂问题",
+        "title_zh": "马尔法蒂问题",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 何塞·曼努埃尔·多斯桑托斯·多斯桑托斯.",
+        "description_zh": "由 何塞·曼努埃尔·多斯桑托斯·多斯桑托斯 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/xQ4tnw2N",
+        "thumbnail": "https://www.geogebra.org/resource/ymrDQPKg/nRy48mtxzQ7nsgQW/material-ymrDQPKg-thumb@l.png"
+    },
+    {
+        "title": "平衡游戏",
+        "title_zh": "平衡游戏",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 普拉珊蒂·拉奥.",
+        "description_zh": "由 普拉珊蒂·拉奥 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/tvnvmbp8",
+        "thumbnail": "https://www.geogebra.org/resource/tvnvmbp8/20jAzK40ke1f7GZl/material-tvnvmbp8-thumb.png"
+    },
+    {
+        "title": "混合坐标系中的自然时空",
+        "title_zh": "混合坐标系中的自然时空",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 威尔·雷.",
+        "description_zh": "由 威尔·雷 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ju3kxkrr",
+        "thumbnail": "https://www.geogebra.org/resource/wqfvndxn/onbNLgPQXE1EuOUs/material-wqfvndxn-thumb@l.png"
+    },
+    {
+        "title": "时序门 - 循环",
+        "title_zh": "时序门 - 循环",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 维维安娜·阿哈罗尼安.",
+        "description_zh": "由 维维安娜·阿哈罗尼安 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/uwbze4zq",
+        "thumbnail": "https://www.geogebra.org/resource/chbzjz2v/NU6dSZkuiLFrY18V/material-chbzjz2v.png"
+    },
+    {
+        "title": "费米子自旋",
+        "title_zh": "费米子自旋",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 乔恩·M.",
+        "description_zh": "由 乔恩·M 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/tcre7tnz",
+        "thumbnail": "https://www.geogebra.org/resource/q2nkcttg/sC7KMzGJDXJL9lGD/material-q2nkcttg-thumb.png"
+    },
+    {
+        "title": "探索《太阳粉碎》的独特之处：行星毁灭趣味指南",
+        "title_zh": "探索《太阳粉碎》的独特之处：行星毁灭趣味指南",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 希金萨特.",
+        "description_zh": "由 希金萨特 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/jddjvmsq",
+        "thumbnail": "https://www.geogebra.org/assets/img/ws.e641d526.png"
+    },
+    {
+        "title": "阿基米德杠杆",
+        "title_zh": "阿基米德杠杆",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 塞西莉亚·鲁索.",
+        "description_zh": "由 塞西莉亚·鲁索 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/cx33dspz",
+        "thumbnail": "https://www.geogebra.org/resource/hrnerqy4/Dz5GKE2t1waqNcJA/material-hrnerqy4.png"
+    },
+    {
+        "title": "阿基米德杠杆",
+        "title_zh": "阿基米德杠杆",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 何塞·圣马丁.",
+        "description_zh": "由 何塞·圣马丁 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ctremvku",
+        "thumbnail": "https://www.geogebra.org/resource/tfvrkm5w/7UgD79TJdfkiAbVJ/material-tfvrkm5w.png"
+    },
+    {
+        "title": "2 - 光学",
+        "title_zh": "2 - 光学",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 项目Logifaces.",
+        "description_zh": "由 项目Logifaces 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/sc3mgnkp",
+        "thumbnail": "https://www.geogebra.org/resource/nwvvvv7n/HKYhxPSW1V9lYNCM/material-nwvvvv7n-thumb.png"
+    },
+    {
+        "title": "物理学 射线光学/薄透镜",
+        "title_zh": "物理学 射线光学/薄透镜",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by carsgibby24.",
+        "description_zh": "由 carsgibby24 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/rcbppzhk",
+        "thumbnail": "https://www.geogebra.org/resource/rcbppzhk/VPiSpOM5uWNb7UiS/material-rcbppzhk-thumb.png"
+    },
+    {
+        "title": "几何光学，第一部分——光学图像",
+        "title_zh": "几何光学，第一部分——光学图像",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 大卫·钱德勒.",
+        "description_zh": "由 大卫·钱德勒 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/qRqhz37Y",
+        "thumbnail": "https://www.geogebra.org/resource/qRqhz37Y/cTYW5AYyYmwNIOvu/material-qRqhz37Y-thumb.png"
+    },
+    {
+        "title": "光学图像导论",
+        "title_zh": "光学图像导论",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 大卫·钱德勒.",
+        "description_zh": "由 大卫·钱德勒 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/b7GxhDD6",
+        "thumbnail": "https://www.geogebra.org/resource/b7GxhDD6/gneInFHacAjdoS8j/material-b7GxhDD6-thumb.png"
+    },
+    {
+        "title": "几何光学，第二部分——薄凸透镜",
+        "title_zh": "几何光学，第二部分——薄凸透镜",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 大卫·钱德勒.",
+        "description_zh": "由 大卫·钱德勒 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/mvAes4YM",
+        "thumbnail": "https://www.geogebra.org/resource/mvAes4YM/Avcg25sk8I4nkjay/material-mvAes4YM-thumb.png"
+    },
+    {
+        "title": "光学：正透镜",
+        "title_zh": "光学：正透镜",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 达丹·苏马尔达尼.",
+        "description_zh": "由 达丹·苏马尔达尼 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/f8vuxqgu",
+        "thumbnail": "https://www.geogebra.org/resource/f8vuxqgu/0ccjNPAkT4ssZZ3O/material-f8vuxqgu-thumb.png"
+    },
+    {
+        "title": "《光学图像导论》副本",
+        "title_zh": "《光学图像导论》副本",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 米哈伊尔·尼蒂辛斯利.",
+        "description_zh": "由 米哈伊尔·尼蒂辛斯利 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/qvete3se",
+        "thumbnail": "https://www.geogebra.org/resource/b7GxhDD6/gneInFHacAjdoS8j/material-b7GxhDD6-thumb@l.png"
+    },
+    {
+        "title": "现代物理学与数值方法",
+        "title_zh": "现代物理学与数值方法",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 罗南·唐斯.",
+        "description_zh": "由 罗南·唐斯 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/t9buyyyz",
+        "thumbnail": "https://www.geogebra.org/resource/t9buyyyz/bjDqRXLzaiQFj2nT/material-t9buyyyz-thumb@l.png"
+    },
+    {
+        "title": "现代物理学——波的世界",
+        "title_zh": "现代物理学——波的世界",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂莫·布达尔兹.",
+        "description_zh": "由 蒂莫·布达尔兹 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/nyssufjx",
+        "thumbnail": "https://www.geogebra.org/resource/nyssufjx/NnxhCiFGGsN25ogP/material-nyssufjx-thumb@l.png"
+    },
+    {
+        "title": "Flash：Разные модели PhET 模拟",
+        "title_zh": "Flash：Разные модели PhET 模拟",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 阿勒克西耶·Евгеньевич Сорокин.",
+        "description_zh": "由 阿勒克西耶·Евгеньевич Сорокин 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ndh68fjq",
+        "thumbnail": "https://www.geogebra.org/assets/img/ws.e641d526.png"
+    },
+    {
+        "title": "Ray1 物理 223",
+        "title_zh": "Ray1 物理 223",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 布兰登·桑德斯.",
+        "description_zh": "由 布兰登·桑德斯 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/xfjjwsHr",
+        "thumbnail": "https://www.geogebra.org/resource/xfjjwsHr/yZ2okubFI7fqDq4y/material-xfjjwsHr-thumb.png"
+    },
+    {
+        "title": "325-相量-电场",
+        "title_zh": "325-相量-电场",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 罗布·萨尔加多（robphy）.",
+        "description_zh": "由 罗布·萨尔加多（robphy） 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/xuaeyxdd",
+        "thumbnail": "https://www.geogebra.org/resource/vwxdx3rv/OvdFkQXdQ064WhqC/material-vwxdx3rv-thumb@l.png"
+    },
+    {
+        "title": "ปฏิบัติการเสมือน 2",
+        "title_zh": "ปฏิบัติการเสมือน 2",
+        "category": "Physics",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 伊萨拉·科图塔.",
+        "description_zh": "由 伊萨拉·科图塔 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/beqzwctf",
+        "thumbnail": "https://www.geogebra.org/resource/beqzwctf/qhjoShbumRL4G1oa/material-beqzwctf-thumb@l.png"
+    },
+    {
+        "title": "微积分：极限与连续性",
+        "title_zh": "微积分：极限与连续性",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 格雷格·伯利尔.",
+        "description_zh": "由 格雷格·伯利尔 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/Tz5BHBcj",
+        "thumbnail": "https://www.geogebra.org/resource/nGfXYFPc/bBuej4wVrY0kEH3M/material-nGfXYFPc-thumb@l.png"
+    },
+    {
+        "title": "微积分极限",
+        "title_zh": "微积分极限",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 汤姆·奥西亚克.",
+        "description_zh": "由 汤姆·奥西亚克 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/kCcHttSy",
+        "thumbnail": "https://www.geogebra.org/resource/kCcHttSy/yLbuACHJTmLbW6Mi/material-kCcHttSy-thumb.png"
+    },
+    {
+        "title": "限制",
+        "title_zh": "限制",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 凯文·霍普金斯.",
+        "description_zh": "由 凯文·霍普金斯 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/rSdFYkkM",
+        "thumbnail": "https://www.geogebra.org/assets/img/ws.e641d526.png"
+    },
+    {
+        "title": "极限与连续性",
+        "title_zh": "极限与连续性",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/jR5qtBfh",
+        "thumbnail": "https://www.geogebra.org/resource/jR5qtBfh/blOenECqIK3zzbyp/material-jR5qtBfh-thumb@l.png"
+    },
+    {
+        "title": "Copia de Calculus - Epsilon-Delta 极限定义",
+        "title_zh": "Copia de Calculus - Epsilon-Delta 极限定义",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 耶森.",
+        "description_zh": "由 耶森 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/avrtb9h2",
+        "thumbnail": "https://www.geogebra.org/resource/qT8RZgfz/GvPY5dEuXza3zoTG/material-qT8RZgfz-thumb@l.png"
+    },
+    {
+        "title": "微积分：极限的定义（交互式）",
+        "title_zh": "微积分：极限的定义（交互式）",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by LibraryGhost.",
+        "description_zh": "由 LibraryGhost 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/SSmnVK3Q",
+        "thumbnail": "https://www.geogebra.org/resource/SSmnVK3Q/nVztuFr62h3XyBIo/material-SSmnVK3Q-thumb.png"
+    },
+    {
+        "title": "光盘方法：全新升级！",
+        "title_zh": "光盘方法：全新升级！",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/qmutkdex",
+        "thumbnail": "https://www.geogebra.org/resource/qmutkdex/FUiATqeoTtVvdTZv/material-qmutkdex-thumb@l.png"
+    },
+    {
+        "title": "极限与连续性",
+        "title_zh": "极限与连续性",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 萨瓦什·奥尔汉.",
+        "description_zh": "由 萨瓦什·奥尔汉 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/tqKFbXgu",
+        "thumbnail": "https://www.geogebra.org/resource/tqKFbXgu/ugk5BFkSAAmrLuAT/material-tqKFbXgu-thumb@l.png"
+    },
+    {
+        "title": "微积分第一基本定理 2",
+        "title_zh": "微积分第一基本定理 2",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/t7hdexz7",
+        "thumbnail": "https://www.geogebra.org/resource/t7hdexz7/oFsvisSG8K82jyQD/material-t7hdexz7-thumb.png"
+    },
+    {
+        "title": "横截面为实心",
+        "title_zh": "横截面为实心",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 约翰·戈尔登.",
+        "description_zh": "由 约翰·戈尔登 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/qvwrBN3R",
+        "thumbnail": "https://www.geogebra.org/resource/ebqCjEyW/Ct88iEYawfnlSUJ4/material-ebqCjEyW-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的正方形截面",
+        "title_zh": "可变实体：平行于y轴的正方形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/bvt9xb3x",
+        "thumbnail": "https://www.geogebra.org/resource/bvt9xb3x/NKy4LyZiS3EUyaNu/material-bvt9xb3x-thumb@l.png"
+    },
+    {
+        "title": "微积分第二基本定理",
+        "title_zh": "微积分第二基本定理",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 塔尔杰罗姆.",
+        "description_zh": "由 塔尔杰罗姆 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/deusmqwv",
+        "thumbnail": "https://www.geogebra.org/resource/mw4hthvt/2z8MSntVZQeATwcm/material-mw4hthvt-thumb.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的正十边形截面",
+        "title_zh": "可变实体：平行于y轴的正十边形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/uexjwndz",
+        "thumbnail": "https://www.geogebra.org/resource/uexjwndz/npC3J1nLoQokjk0d/material-uexjwndz-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的正五边形截面",
+        "title_zh": "可变实体：平行于y轴的正五边形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/khh445wb",
+        "thumbnail": "https://www.geogebra.org/resource/khh445wb/nstJwnYzjnDsWS4W/material-khh445wb-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的正八边形截面",
+        "title_zh": "可变实体：平行于y轴的正八边形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/bbq78w6x",
+        "thumbnail": "https://www.geogebra.org/resource/bbq78w6x/DyGBG72MYH6NJnEw/material-bbq78w6x-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的正九边形截面",
+        "title_zh": "可变实体：平行于y轴的正九边形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ybjuvg8m",
+        "thumbnail": "https://www.geogebra.org/resource/ybjuvg8m/3yqvqPl8uaIlJtHq/material-ybjuvg8m-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的半圆形截面",
+        "title_zh": "可变实体：平行于y轴的半圆形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/epxhemgz",
+        "thumbnail": "https://www.geogebra.org/resource/epxhemgz/0aU0LeZXpMXku7kT/material-epxhemgz-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于 y 轴的等腰直角三角形截面 (VA)",
+        "title_zh": "可变实体：平行于 y 轴的等腰直角三角形截面 (VA)",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/jjx7ycbj",
+        "thumbnail": "https://www.geogebra.org/resource/jjx7ycbj/OmuqMlUKBVywauVM/material-jjx7ycbj-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的等边三角形截面",
+        "title_zh": "可变实体：平行于y轴的等边三角形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/rfjatd4f",
+        "thumbnail": "https://www.geogebra.org/resource/rfjatd4f/1GnGMp8LVYWtzxzt/material-rfjatd4f-thumb@l.png"
+    },
+    {
+        "title": "可变实体：等腰三角形（可变）平行于y轴的横截面",
+        "title_zh": "可变实体：等腰三角形（可变）平行于y轴的横截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/f97crzkb",
+        "thumbnail": "https://www.geogebra.org/resource/f97crzkb/5b4CMJcyh2H2GmHI/material-f97crzkb-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的正六边形截面",
+        "title_zh": "可变实体：平行于y轴的正六边形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/fxasxygk",
+        "thumbnail": "https://www.geogebra.org/resource/fxasxygk/zviMtKvzbCcuIpCm/material-fxasxygk-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于y轴的正七边形截面",
+        "title_zh": "可变实体：平行于y轴的正七边形截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/rkancd6k",
+        "thumbnail": "https://www.geogebra.org/resource/rkancd6k/aqmZBbdYVMEBxHi7/material-rkancd6k-thumb@l.png"
+    },
+    {
+        "title": "可变实体：平行于 y 轴的等腰直角三角形截面 (VB)",
+        "title_zh": "可变实体：平行于 y 轴的等腰直角三角形截面 (VB)",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/pxjggdmr",
+        "thumbnail": "https://www.geogebra.org/resource/pxjggdmr/7YV0AAb8xfzdcbes/material-pxjggdmr-thumb@l.png"
+    },
+    {
+        "title": "自定义实体：可更改的平行于y轴的菱形横截面",
+        "title_zh": "自定义实体：可更改的平行于y轴的菱形横截面",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/exkb3dpg",
+        "thumbnail": "https://www.geogebra.org/resource/exkb3dpg/Rnfcl1LAAhRDbLkT/material-exkb3dpg-thumb@l.png"
+    },
+    {
+        "title": "球面几何中的一般三角形",
+        "title_zh": "球面几何中的一般三角形",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/gubjrdhg",
+        "thumbnail": "https://www.geogebra.org/resource/gubjrdhg/DdXpEwWYNRXTPDcs/material-gubjrdhg-thumb.png"
+    },
+    {
+        "title": "欧几里得几何中的三角形分类",
+        "title_zh": "欧几里得几何中的三角形分类",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/s67e62rd",
+        "thumbnail": "https://www.geogebra.org/resource/s67e62rd/3ABWg2ql5lj0BhuR/material-s67e62rd-thumb.png"
+    },
+    {
+        "title": "几何资源",
+        "title_zh": "几何资源",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/JVc49sEa",
+        "thumbnail": "https://www.geogebra.org/resource/mcmtqjbj/26V54ro67z7RZxcy/material-mcmtqjbj-thumb@l.png"
+    },
+    {
+        "title": "SAS 探索出租车几何",
+        "title_zh": "SAS 探索出租车几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/p5eyzzqe",
+        "thumbnail": "https://www.geogebra.org/resource/p5eyzzqe/6wIkRJbe9npDtyCE/material-p5eyzzqe-thumb.png"
+    },
+    {
+        "title": "AAA 三角形探索欧几里得几何",
+        "title_zh": "AAA 三角形探索欧几里得几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/xpfxbeqn",
+        "thumbnail": "https://www.geogebra.org/resource/xpfxbeqn/Cu3UNWUfkGfwxq3P/material-xpfxbeqn-thumb.png"
+    },
+    {
+        "title": "SAS探索双曲几何",
+        "title_zh": "SAS探索双曲几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/pcjtasq4",
+        "thumbnail": "https://www.geogebra.org/resource/pcjtasq4/psGtlpqoiCwMO08Y/material-pcjtasq4-thumb.png"
+    },
+    {
+        "title": "ASA 勘探球几何",
+        "title_zh": "ASA 勘探球几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/tjgsngub",
+        "thumbnail": "https://www.geogebra.org/resource/tjgsngub/wy3v7OeC4xjce4RL/material-tjgsngub-thumb.png"
+    },
+    {
+        "title": "AAA 探索球面几何",
+        "title_zh": "AAA 探索球面几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/fvuvkak2",
+        "thumbnail": "https://www.geogebra.org/resource/fvuvkak2/hFPekhMNhp2B4SgU/material-fvuvkak2-thumb.png"
+    },
+    {
+        "title": "SAS 探索球面几何",
+        "title_zh": "SAS 探索球面几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/fhbwmbbm",
+        "thumbnail": "https://www.geogebra.org/resource/fhbwmbbm/7vnUOZ9CLb4c2uBT/material-fhbwmbbm-thumb.png"
+    },
+    {
+        "title": "AAA探索双曲几何",
+        "title_zh": "AAA探索双曲几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ax9y4esu",
+        "thumbnail": "https://www.geogebra.org/resource/ax9y4esu/8VDvBDbGl30gAIFK/material-ax9y4esu-thumb.png"
+    },
+    {
+        "title": "SSS 探索出租车几何",
+        "title_zh": "SSS 探索出租车几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/hprjgrq3",
+        "thumbnail": "https://www.geogebra.org/resource/hprjgrq3/crgV8rrt4X6nZSbJ/material-hprjgrq3-thumb.png"
+    },
+    {
+        "title": "AA(A) 探索出租车几何",
+        "title_zh": "AA(A) 探索出租车几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/xrdeb9r6",
+        "thumbnail": "https://www.geogebra.org/resource/xrdeb9r6/reGT5yAHVzVaxP0M/material-xrdeb9r6-thumb.png"
+    },
+    {
+        "title": "AAS探索双曲几何",
+        "title_zh": "AAS探索双曲几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/upambaah",
+        "thumbnail": "https://www.geogebra.org/resource/upambaah/glF0KBNj75x6swKL/material-upambaah-thumb.png"
+    },
+    {
+        "title": "SSS探索球面几何",
+        "title_zh": "SSS探索球面几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/spz8mav5",
+        "thumbnail": "https://www.geogebra.org/resource/spz8mav5/poDNJ5wmclonDMer/material-spz8mav5-thumb.png"
+    },
+    {
+        "title": "SSS 研究双曲几何",
+        "title_zh": "SSS 研究双曲几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/hnvt8vwz",
+        "thumbnail": "https://www.geogebra.org/resource/hnvt8vwz/8wQu3JL9NEjTTjn4/material-hnvt8vwz-thumb.png"
+    },
+    {
+        "title": "SSS三角形全等探索欧几里得几何",
+        "title_zh": "SSS三角形全等探索欧几里得几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/jxusgk7y",
+        "thumbnail": "https://www.geogebra.org/resource/jxusgk7y/MwaMDnJ7AcRbw2O1/material-jxusgk7y-thumb.png"
+    },
+    {
+        "title": "AAS勘探球面几何",
+        "title_zh": "AAS勘探球面几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/n833q9qr",
+        "thumbnail": "https://www.geogebra.org/resource/n833q9qr/vdNPYgWHLmMEs4aA/material-n833q9qr-thumb.png"
+    },
+    {
+        "title": "SAS三角形全等性探索欧几里得几何",
+        "title_zh": "SAS三角形全等性探索欧几里得几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/wtkxwac2",
+        "thumbnail": "https://www.geogebra.org/resource/wtkxwac2/xM9MljMQaBfCufVh/material-wtkxwac2-thumb.png"
+    },
+    {
+        "title": "ASA 和 AAS 勘探出租车几何形状",
+        "title_zh": "ASA 和 AAS 勘探出租车几何形状",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/f7vcrbmx",
+        "thumbnail": "https://www.geogebra.org/resource/f7vcrbmx/jfnPFy2pFunshhvQ/material-f7vcrbmx-thumb.png"
+    },
+    {
+        "title": "出租车几何中的风筝",
+        "title_zh": "出租车几何中的风筝",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/wxcw7smt",
+        "thumbnail": "https://www.geogebra.org/resource/wxcw7smt/MkV0UNzEi6pann5W/material-wxcw7smt-thumb.png"
+    },
+    {
+        "title": "SAS - 练习 2",
+        "title_zh": "SAS - 练习 2",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/YESSM4Yu",
+        "thumbnail": "https://www.geogebra.org/resource/YESSM4Yu/n8O3ckxPwMd6HD1y/material-YESSM4Yu-thumb@l.png"
+    },
+    {
+        "title": "欧几里得一般三角形的测量",
+        "title_zh": "欧几里得一般三角形的测量",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/fqehdrp6",
+        "thumbnail": "https://www.geogebra.org/resource/fqehdrp6/WTz16oyyh1rbJJ48/material-fqehdrp6-thumb.png"
+    },
+    {
+        "title": "相似直角三角形（V1）",
+        "title_zh": "相似直角三角形（V1）",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/fswR8fRV",
+        "thumbnail": "https://www.geogebra.org/resource/fswR8fRV/ahRxyoG8F1M0isKp/material-fswR8fRV-thumb@l.png"
+    },
+    {
+        "title": "相似直角三角形（V2）",
+        "title_zh": "相似直角三角形（V2）",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 蒂姆·布热津斯基.",
+        "description_zh": "由 蒂姆·布热津斯基 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/mCeGRH4y",
+        "thumbnail": "https://www.geogebra.org/resource/mCeGRH4y/4E01rL0el6SumcfI/material-mCeGRH4y-thumb@l.png"
+    },
+    {
+        "title": "620 - 条件概率",
+        "title_zh": "620 - 条件概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 项目Logifaces.",
+        "description_zh": "由 项目Logifaces 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/wnekj37s",
+        "thumbnail": "https://www.geogebra.org/resource/sq5w93km/Aq1xcMJl3IVbNtYK/material-sq5w93km-thumb.png"
+    },
+    {
+        "title": "两棵概率树 A",
+        "title_zh": "两棵概率树 A",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/nnxfhyrd",
+        "thumbnail": "https://www.geogebra.org/resource/nnxfhyrd/Hz2RTXWvhTC76XjP/material-nnxfhyrd-thumb.png"
+    },
+    {
+        "title": "实验概率旋转器",
+        "title_zh": "实验概率旋转器",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 萨曼莎·加西亚.",
+        "description_zh": "由 萨曼莎·加西亚 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/gfyr88ke",
+        "thumbnail": "https://www.geogebra.org/resource/gfyr88ke/5Q3ooKQOVhrjEKqJ/material-gfyr88ke-thumb@l.png"
+    },
+    {
+        "title": "事件与概率",
+        "title_zh": "事件与概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 莱纳德·鲍比·阿西里特.",
+        "description_zh": "由 莱纳德·鲍比·阿西里特 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/mzcbpeu5",
+        "thumbnail": "https://www.geogebra.org/resource/mzcbpeu5/El3nkR3Z4c904EwQ/material-mzcbpeu5-thumb.png"
+    },
+    {
+        "title": "622 - 概率加法法则",
+        "title_zh": "622 - 概率加法法则",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 项目Logifaces.",
+        "description_zh": "由 项目Logifaces 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/wjdqcj7s",
+        "thumbnail": "https://www.geogebra.org/resource/wqzdbh4m/UbAzDAFWsdObMYBp/material-wqzdbh4m-thumb.png"
+    },
+    {
+        "title": "旋转概率",
+        "title_zh": "旋转概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 凯文·霍普金斯.",
+        "description_zh": "由 凯文·霍普金斯 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/A4DZpcEX",
+        "thumbnail": "https://www.geogebra.org/resource/A4DZpcEX/c3PiiGCs1Uow4NOD/material-A4DZpcEX-thumb.png"
+    },
+    {
+        "title": "GeoGebra 概率与统计快速入门信息",
+        "title_zh": "GeoGebra 概率与统计快速入门信息",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 朱迪思.",
+        "description_zh": "由 朱迪思 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/jylgF3Ob",
+        "thumbnail": "https://www.geogebra.org/resource/tYj7nlGn/y135yH56f1vWu1hz/material-tYj7nlGn-thumb@l.png"
+    },
+    {
+        "title": "619 - 给定高度的概率",
+        "title_zh": "619 - 给定高度的概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 项目Logifaces.",
+        "description_zh": "由 项目Logifaces 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/de9hyc22",
+        "thumbnail": "https://www.geogebra.org/resource/wxt6tmtc/yePyg5CrOzUTIw2T/material-wxt6tmtc-thumb.png"
+    },
+    {
+        "title": "概率与几何",
+        "title_zh": "概率与几何",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 西蒙娜·里瓦.",
+        "description_zh": "由 西蒙娜·里瓦 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ke2cguzv",
+        "thumbnail": "https://www.geogebra.org/resource/snqpuk8r/4dG9lVbDhz7msvGM/material-snqpuk8r-thumb.png"
+    },
+    {
+        "title": "概率：选择球",
+        "title_zh": "概率：选择球",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 麦克杜尔.",
+        "description_zh": "由 麦克杜尔 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/HMd4zuur",
+        "thumbnail": "https://www.geogebra.org/resource/HMd4zuur/g0Ew8VTvBCJaS3Ne/material-HMd4zuur-thumb.png"
+    },
+    {
+        "title": "可能性",
+        "title_zh": "可能性",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by D.瓦苏·拉杰.",
+        "description_zh": "由 D.瓦苏·拉杰 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/mj887yua",
+        "thumbnail": "https://www.geogebra.org/resource/nwrj6yrg/VRJPoY6iYpcAL3QQ/material-nwrj6yrg-thumb@l.png"
+    },
+    {
+        "title": "实验概率旋转器 FLGGB",
+        "title_zh": "实验概率旋转器 FLGGB",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 萨曼莎·加西亚.",
+        "description_zh": "由 萨曼莎·加西亚 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ntqztsbh",
+        "thumbnail": "https://www.geogebra.org/resource/ntqztsbh/nwPoYGfGoJ0GwdBj/material-ntqztsbh-thumb@l.png"
+    },
+    {
+        "title": "利用理论概率预测结果",
+        "title_zh": "利用理论概率预测结果",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by GeoGebra 内容团队.",
+        "description_zh": "由 GeoGebra 内容团队 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/mbfx2vaz",
+        "thumbnail": "https://www.geogebra.org/resource/ecqadcaa/WIu8ZZ9rWev9FNZ9/material-ecqadcaa-thumb.png"
+    },
+    {
+        "title": "实验概率",
+        "title_zh": "实验概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 欣顿女士.",
+        "description_zh": "由 欣顿女士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/cubzsvxw",
+        "thumbnail": "https://www.geogebra.org/resource/cubzsvxw/ccdBend7SgeGZ2w5/material-cubzsvxw-thumb.png"
+    },
+    {
+        "title": "几何概率",
+        "title_zh": "几何概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by MathyMcMatherson.",
+        "description_zh": "由 MathyMcMatherson 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/urvAtKg6",
+        "thumbnail": "https://www.geogebra.org/resource/urvAtKg6/FZKLql6eGcSDRJjY/material-urvAtKg6-thumb.png"
+    },
+    {
+        "title": "利用弹珠机模拟计算概率",
+        "title_zh": "利用弹珠机模拟计算概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by GeoGebra 内容团队.",
+        "description_zh": "由 GeoGebra 内容团队 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/zsxhewqn",
+        "thumbnail": "https://www.geogebra.org/resource/wdem8bnx/XsWBDMwwKUFuMwXZ/material-wdem8bnx-thumb.png"
+    },
+    {
+        "title": "长度概率",
+        "title_zh": "长度概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 凯文·霍普金斯.",
+        "description_zh": "由 凯文·霍普金斯 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/P6Yu6BDv",
+        "thumbnail": "https://www.geogebra.org/resource/P6Yu6BDv/I04AGKT1Xbp5W06E/material-P6Yu6BDv-thumb.png"
+    },
+    {
+        "title": "概率：选择球",
+        "title_zh": "概率：选择球",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 弗吉尼亚·基思.",
+        "description_zh": "由 弗吉尼亚·基思 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/BwXxPjDw",
+        "thumbnail": "https://www.geogebra.org/resource/HMd4zuur/g0Ew8VTvBCJaS3Ne/material-HMd4zuur-thumb@l.png"
+    },
+    {
+        "title": "확률분포（概率分布）",
+        "title_zh": "확률분포（概率分布）",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 민은기 (闵恩基).",
+        "description_zh": "由 민은기 (闵恩基) 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/euaz3sj4",
+        "thumbnail": "https://www.geogebra.org/resource/ndjxtnjh/akN8FIsPJlvgEWM2/material-ndjxtnjh-thumb.png"
+    },
+    {
+        "title": "实验概率旋转器",
+        "title_zh": "实验概率旋转器",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 范夫人.",
+        "description_zh": "由 范夫人 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/ayjgmh6d",
+        "thumbnail": "https://www.geogebra.org/resource/ayjgmh6d/HTDPD2ZnmgMbPE6B/material-ayjgmh6d-thumb@l.png"
+    },
+    {
+        "title": "饼干原料概率模型中的频率",
+        "title_zh": "饼干原料概率模型中的频率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by GeoGebra 内容团队.",
+        "description_zh": "由 GeoGebra 内容团队 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/nq7cuhw6",
+        "thumbnail": "https://www.geogebra.org/resource/yk4kjxys/2eRFa4UmCCyMw1n0/material-yk4kjxys-thumb.png"
+    },
+    {
+        "title": "几何概率",
+        "title_zh": "几何概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 艾达玛.",
+        "description_zh": "由 艾达玛 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/b792fbpa",
+        "thumbnail": "https://www.geogebra.org/resource/urvAtKg6/FZKLql6eGcSDRJjY/material-urvAtKg6-thumb@l.png"
+    },
+    {
+        "title": "超几何分布、二项分布和正态分布概率",
+        "title_zh": "超几何分布、二项分布和正态分布概率",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 杰克·L·杰克逊二世博士.",
+        "description_zh": "由 杰克·L·杰克逊二世博士 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/gxbsubvz",
+        "thumbnail": "https://www.geogebra.org/resource/gxbsubvz/hUaAU7bEQyjianT4/material-gxbsubvz-thumb.png"
+    },
+    {
+        "title": "概率在7",
+        "title_zh": "概率在7",
+        "category": "Math",
+        "level": "Middle/High",
+        "description": "Interactive GeoGebra simulation by 约翰·戈尔登.",
+        "description_zh": "由 约翰·戈尔登 创建的 GeoGebra 交互式模拟。",
+        "url": "https://www.geogebra.org/m/KBmbRM5v",
+        "thumbnail": "https://www.geogebra.org/resource/greWAsJD/ZCAXAdKzqITauiyx/material-greWAsJD-thumb@l.png"
     }
 ];
