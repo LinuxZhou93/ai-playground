@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++ Studio | 编程实践站</title>
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+
+    <!-- CodeMirror for Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/nord.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cpp: { blue: '#00599C', light: '#5E97D1' },
+                        odyssey: { dark: '#0C1021', surface: '#23273A' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: #0C1021;
+            color: #E2E8F0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .CodeMirror {
+            height: 100%;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            border-radius: 0.5rem;
+        }
+
+        .glass-panel {
+            background: rgba(35, 39, 58, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* CustomScrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #23273A;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748B;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div id="app" class="h-full flex flex-col">
+        <!-- Navbar -->
+        <nav class="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-odyssey-surface/50">
+            <div class="flex items-center gap-3">
+                <a href="coding.html" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <div
+                        class="w-8 h-8 rounded bg-gradient-to-br from-cpp-blue to-cpp-light flex items-center justify-center font-bold text-white text-xs">
+                        C++</div>
+                    <span class="font-bold text-lg">C++ <span class="text-cpp-light">Studio</span></span>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-xs text-slate-500">
+                    <span>GCC 11.2 (Simulated)</span>
+                </div>
+                <button @click="runCode" :disabled="isCompiling"
+                    class="px-4 py-1.5 bg-cpp-blue hover:bg-blue-600 text-white rounded font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    <span v-if="isCompiling" class="animate-spin">⟳</span>
+                    <span v-else>▶ Compile & Run</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Workspace -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar (Examples) -->
+            <div class="w-64 border-r border-white/10 bg-odyssey-surface/30 flex flex-col">
+                <div class="p-3 border-b border-white/5 font-bold text-sm text-slate-400">Labs</div>
+                <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <button v-for="ex in examples" :key="ex.name" @click="loadExample(ex)"
+                        class="w-full text-left px-3 py-2 rounded hover:bg-white/5 text-sm transition-colors text-slate-300 hover:text-white truncate">
+                        {{ ex.name }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Editor Area -->
+            <div class="flex-1 flex flex-col md:flex-row">
+                <!-- Code Editor -->
+                <div class="flex-1 flex flex-col border-r border-white/10 bg-[#2E3440]">
+                    <div class="bg-[#23273A] px-4 py-1 text-xs text-slate-400 flex justify-between">
+                        <span>main.cpp</span>
+                        <span class="text-slate-500">C++17</span>
+                    </div>
+                    <textarea id="code-editor"></textarea>
+                </div>
+
+                <!-- Terminal/Output -->
+                <div class="w-full md:w-1/3 flex flex-col bg-[#0f0f1a]">
+                    <div class="bg-[#1a1a2e] px-4 py-1 text-xs text-slate-400 border-b border-white/5 font-bold">Console
+                        Output</div>
+                    <div id="terminal"
+                        class="flex-1 p-4 font-mono text-sm overflow-y-auto whitespace-pre-wrap text-slate-300">
+                        <div v-for="(log, i) in logs" :key="i" :class="getLogClass(log.type)">{{ log.msg }}</div>
+                        <div v-if="logs.length === 0" class="text-slate-600 italic">Click "Compile & Run" to execute...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const isCompiling = ref(false);
+                const logs = ref([]);
+                const editor = ref(null);
+
+                const examples = [
+                    {
+                        name: 'Hello World',
+                        code: `#include <iostream>\n\nint main() {\n    std::cout << "Hello, C++ World!" << std::endl;\n    return 0;\n}`
+                    },
+                    {
+                        name: 'Simple Loop',
+                        code: `#include <iostream>\n\nint main() {\n    for(int i = 1; i <= 5; i++) {\n        std::cout << "Count: " << i << std::endl;\n    }\n    return 0;\n}`
+                    },
+                    {
+                        name: 'Calculate Sum',
+                        code: `#include <iostream>\n\nint main() {\n    int a = 10;\n    int b = 20;\n    int sum = a + b;\n    std::cout << "Sum of " << a << " and " << b << " is " << sum << std::endl;\n    return 0;\n}`
+                    }
+                ];
+
+                const loadExample = (ex) => {
+                    if (editor.value) editor.value.setValue(ex.code);
+                    logs.value = []; // clear logs
+                };
+
+                const addToLog = (msg, type = 'info') => {
+                    logs.value.push({ msg, type });
+                    nextTick(() => {
+                        const term = document.getElementById('terminal');
+                        if (term) term.scrollTop = term.scrollHeight;
+                    });
+                };
+
+                const getLogClass = (type) => {
+                    if (type === 'error') return 'text-red-400';
+                    if (type === 'system') return 'text-blue-400 font-bold';
+                    return 'text-slate-300';
+                }
+
+                // Simplified Simulation Logic
+                // Note: Real C++ in browser requires heavy WASM (like Cheerp or Clang.wasm > 50MB)
+                // For this experiential module, we simulate the output for the examples.
+                const runCode = async () => {
+                    if (isCompiling.value) return;
+                    isCompiling.value = true;
+                    logs.value = [];
+
+                    const code = editor.value.getValue();
+
+                    // Simulate Compilation Delay
+                    addToLog("Compiling main.cpp...", 'system');
+
+                    setTimeout(() => {
+                        addToLog("Compilation successful.", 'system');
+                        addToLog("-----------------------", 'info');
+
+                        // Basic Heuristic Matcher for Demo Purposes
+                        if (code.includes('Hello, C++ World')) {
+                            addToLog("Hello, C++ World!");
+                        } else if (code.includes('for(int i = 1; i <= 5')) {
+                            for (let i = 1; i <= 5; i++) addToLog(`Count: ${i}`);
+                        } else if (code.includes('int sum = a + b')) {
+                            addToLog("Sum of 10 and 20 is 30");
+                        } else {
+                            // Default fallback for unknown code in this demo
+                            if (code.includes('cout')) {
+                                addToLog("(Output simulation: Program executed successfully)");
+                            } else {
+                                addToLog("Program exited with return code 0.");
+                            }
+                        }
+
+                        isCompiling.value = false;
+                    }, 800);
+                };
+
+                onMounted(() => {
+                    // Init CodeMirror for C++
+                    editor.value = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                        mode: 'text/x-c++src',
+                        theme: 'nord',
+                        lineNumbers: true,
+                        indentUnit: 4,
+                        lineWrapping: true
+                    });
+
+                    // Load default example
+                    loadExample(examples[0]);
+                });
+
+                return { isCompiling, logs, runCode, examples, loadExample, getLogClass };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
