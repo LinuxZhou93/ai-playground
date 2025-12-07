@@ -1,85 +1,68 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学科协同知识星系 | Subject Synergy Galaxy</title>
-
+    <title>Subject Synergy Galaxy - K12 Education Map</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
     <!-- Google Fonts -->
     <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;500;700&display=swap"
         rel="stylesheet">
-
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Local Libraries (Offline Friendly) -->
-    <script src="assets/js/lib/three.min.js"></script>
-    <script src="assets/js/lib/three-spritetext.min.js"></script>
-    <script src="assets/js/lib/3d-force-graph.min.js"></script>
-    <!-- Downloaded D3 Locally -->
-    <script src="assets/js/lib/d3.min.js"></script>
-    <!-- D3 is needed for force simulation - relying on graph internal or simple D3 if needed. 
-         ForceGraph usually bundles key D3 modules. If not, we might need d3.js locally too. 
-         But sticking to what worked before: The minified 3d-force-graph usually has it. -->
+    <!-- 3D Libraries (Stable CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three-spritetext@1.8.1/dist/three-spritetext.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.1/dist/3d-force-graph.min.js"></script>
+    <!-- Note: 3d-force-graph bundles necessary D3 modules internally -->
 
-    <!-- On-Screen Debug Console (Hidden by default, shows on error) -->
-    <div id="debug-console"
-        class="fixed top-0 left-0 w-full h-32 bg-red-900/90 text-white text-xs font-mono p-2 overflow-y-auto z-[100] hidden pointer-events-none">
-    </div>
-
-    <script>
-        // Emergency Debugger
-        const debugElem = document.getElementById('debug-console');
-        window.onerror = function (msg, url, line) {
-            debugElem.style.display = 'block';
-            debugElem.innerHTML += `<div>[CRITICAL] ${msg} (${line})</div>`;
-        };
-        const _log = console.log;
-        const _warn = console.warn;
-        const _error = console.error;
-        console.error = (...args) => {
-            debugElem.style.display = 'block';
-            debugElem.innerHTML += `<div class="text-red-300">[ERROR] ${args.join(' ')}</div>`;
-            _error(...args);
-        };
-        console.warn = (...args) => {
-            // debugElem.style.display = 'block'; // Don't show for warnings
-            _warn(...args);
-        };
-        console.log = (...args) => {
-            // _log(...args); // Keep console clean for user
-        };
-    </script>
     <style>
         body {
             background-color: #050b14;
-            font-family: 'Rajdhani', sans-serif;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
             overflow: hidden;
-            margin: 0;
-            padding: 0;
-            user-select: none;
         }
 
         .font-orbitron {
             font-family: 'Orbitron', sans-serif;
         }
 
-        /* Glassmorphism */
         .glass-panel {
-            background: rgba(15, 23, 42, 0.7);
+            background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(56, 189, 248, 0.2);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
 
-        .glass-panel:hover {
-            border-color: rgba(56, 189, 248, 0.4);
+        .nav-link {
+            position: relative;
+            color: #94a3b8;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #38bdf8;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #38bdf8;
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
         }
 
         /* Scrollbar */
@@ -88,7 +71,7 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(15, 23, 42, 0.5);
         }
 
         ::-webkit-scrollbar-thumb {
@@ -96,142 +79,157 @@
             border-radius: 3px;
         }
 
-        /* Modal Animation */
-        .modal-enter {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-
-        .modal-enter-active {
-            opacity: 1;
-            transform: scale(1);
-            transition: opacity 300ms, transform 300ms;
-        }
-
-        .modal-exit {
-            opacity: 1;
-        }
-
-        .modal-exit-active {
-            opacity: 0;
-            transition: opacity 200ms;
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.5);
         }
     </style>
 </head>
 
-<body>
+<body class="overflow-hidden">
 
-    <!-- 1. Background Graph Container -->
-    <div id="galaxy-area" class="fixed inset-0 z-0 bg-[#050b14]">
-        <div id="galaxy-graph" class="w-full h-full"></div>
-    </div>
-
-    <!-- 2. Overlay UI -->
-    <div class="relative z-10 w-full h-screen flex flex-col pointer-events-none">
-
-        <!-- Header Bar -->
-        <div class="pointer-events-auto w-full p-4 md:p-6 flex justify-between items-start">
-            <!-- Title -->
-            <div class="glass-panel rounded-2xl p-4 md:px-6 md:py-3 flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                    <i data-lucide="network"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl md:text-2xl font-bold text-white font-orbitron tracking-wider">
-                        学科协同星系 <span class="text-cyan-400 text-sm block md:inline md:ml-2">SYNERGY GALAXY</span>
-                    </h1>
-                    <div class="flex gap-4 text-xs text-slate-400 mt-1">
-                        <span><i data-lucide="database" class="w-3 h-3 inline"></i> <span id="total-entries">0</span>
-                            节点</span>
+    <!-- Navigation -->
+    <nav class="fixed w-full z-40 top-0 transition-all duration-300 py-4" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 md:px-8">
+            <div class="glass-panel rounded-2xl px-6 py-3 flex justify-between items-center">
+                <a href="index.html" class="flex items-center gap-3 group">
+                    <div
+                        class="relative w-10 h-10 flex items-center justify-center bg-cyan-500/10 rounded-xl border border-cyan-500/30 group-hover:bg-cyan-500/20 transition-all duration-300">
+                        <i data-lucide="network" class="w-6 h-6 text-cyan-400"></i>
                     </div>
-                </div>
-            </div>
-
-            <!-- Top Right Navigation -->
-            <div class="flex gap-4">
-                <div class="glass-panel rounded-full p-1 flex gap-1">
-                    <button onclick="switchView('galaxy')" id="btn-galaxy"
-                        class="px-4 py-2 rounded-full text-sm font-bold transition-all text-white bg-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.5)]">
-                        <i data-lucide="box" class="w-4 h-4 inline mr-1"></i> 星系视图
-                    </button>
-                    <button onclick="switchView('grid')" id="btn-grid"
-                        class="px-4 py-2 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                        <i data-lucide="layout-grid" class="w-4 h-4 inline mr-1"></i> 矩阵列表
-                    </button>
-                </div>
-
-                <a href="subject-synergy.html"
-                    class="glass-panel p-3 rounded-full text-slate-300 hover:text-white hover:bg-cyan-900/40 transition-all"
-                    title="返回上一页">
-                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    <span
+                        class="text-xl font-bold font-orbitron bg-gradient-to-r from-white to-cyan-400 bg-clip-text text-transparent">SYNERGY</span>
                 </a>
+                <div class="flex items-center gap-4">
+                    <button onclick="switchView('galaxy')" id="btn-galaxy"
+                        class="px-4 py-2 rounded-full text-sm font-bold transition-all text-white bg-cyan-600 shadow-[0_0_15px_rgba(8,145,178,0.5)]">Galaxy
+                        View</button>
+                    <button onclick="switchView('grid')" id="btn-grid"
+                        class="px-4 py-2 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">List
+                        View</button>
+                    <a href="index.html"
+                        class="p-2 rounded-full text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"><i
+                            data-lucide="home" class="w-5 h-5"></i></a>
+                </div>
             </div>
         </div>
+    </nav>
 
-        <!-- Matrix List View -->
+    <!-- Main Content Area -->
+    <div class="relative w-full h-screen overflow-hidden">
+
+        <!-- 3D Galaxy Container -->
+        <div id="galaxy-graph" class="absolute inset-0 cursor-move z-0 bg-black"></div>
+
+        <!-- Wiki List Container (Hidden by default) -->
         <div id="wiki-container-wrapper"
-            class="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center p-4 md:p-10"
-            style="display: none;">
-            <div
-                class="glass-panel w-full max-w-6xl h-full rounded-3xl overflow-hidden flex flex-col bg-slate-900/90 shadow-2xl">
-                <div class="p-6 border-b border-cyan-500/20 flex justify-between items-center bg-slate-900/40">
-                    <h2 class="text-xl text-white font-bold flex items-center gap-2">
-                        <i data-lucide="list"></i> 知识矩阵数据库
-                    </h2>
-                    <div class="relative w-64 md:w-96">
-                        <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
-                        <input type="text" onkeyup="searchWiki()" id="search-input" placeholder="检索学科知识库..."
-                            class="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-all">
+            class="absolute inset-0 z-10 pt-24 pb-20 px-4 md:px-12 flex-col items-center overflow-hidden hidden bg-[#050b14]">
+            <div class="w-full max-w-5xl h-full flex flex-col gap-4">
+                <!-- Search & Controls -->
+                <div
+                    class="w-full glass-panel p-4 rounded-xl flex flex-col md:flex-row gap-4 justify-between items-center">
+                    <!-- Search -->
+                    <div class="flex gap-4 items-center w-full md:w-auto flex-1">
+                        <button onclick="switchView('galaxy')"
+                            class="p-2 rounded-full bg-slate-800 text-cyan-400 hover:bg-cyan-600 hover:text-white transition-all"><i
+                                data-lucide="arrow-left"></i></button>
+                        <div class="relative flex-1">
+                            <i data-lucide="search"
+                                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                            <input type="text" id="search-input" placeholder="Search knowledge nodes..."
+                                class="bg-slate-900/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2 w-full text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-all font-mono text-sm"
+                                onkeyup="searchWiki()">
+                        </div>
+                    </div>
+
+                    <!-- Embedded Filters (List View Only) -->
+                    <div class="flex flex-col gap-2 w-full md:w-auto">
+                        <!-- Stage Filter -->
+                        <div class="flex gap-1 overflow-x-auto pb-1">
+                            <button onclick="filterStage('all')" data-stage="all"
+                                class="stage-btn active px-3 py-1 rounded-md text-[10px] font-bold text-white bg-indigo-600 transition-all uppercase tracking-wider">All
+                                Stages</button>
+                            <button onclick="filterStage('elementary')" data-stage="elementary"
+                                class="stage-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">Elementary</button>
+                            <button onclick="filterStage('middle')" data-stage="middle"
+                                class="stage-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">Middle</button>
+                            <button onclick="filterStage('high')" data-stage="high"
+                                class="stage-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">High</button>
+                            <button onclick="filterStage('university')" data-stage="university"
+                                class="stage-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">Uni</button>
+                        </div>
+                        <!-- Subject Filter -->
+                        <div class="flex gap-1 overflow-x-auto pb-1">
+                            <button onclick="filterSubject('all')" data-subject="all"
+                                class="subject-btn active px-3 py-1 rounded-md text-[10px] font-bold text-white bg-cyan-600 transition-all uppercase tracking-wider">All
+                                Subjects</button>
+                            <button onclick="filterSubject('math')" data-subject="math"
+                                class="subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">Math</button>
+                            <button onclick="filterSubject('physics')" data-subject="physics"
+                                class="subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">Phys</button>
+                            <button onclick="filterSubject('chemistry')" data-subject="chemistry"
+                                class="subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">Chem</button>
+                            <button onclick="filterSubject('biology')" data-subject="biology"
+                                class="subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">Bio</button>
+                            <button onclick="filterSubject('cs')" data-subject="cs"
+                                class="subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">CS</button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Grid -->
                 <div id="wiki-container"
-                    class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- Cards go here -->
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pr-2 pb-20 custom-scrollbar">
+                    <!-- Dynamic Content -->
                 </div>
             </div>
         </div>
 
-        <!-- Galaxy Controls -->
+        <!-- Stage Selector -->
+        <div class="pointer-events-auto absolute top-24 left-1/2 transform -translate-x-1/2 flex gap-2">
+            <div class="glass-panel p-1 rounded-full flex gap-1 bg-slate-900/80 backdrop-blur-md">
+                <button onclick="filterStage('all')" data-stage="all"
+                    class="stage-btn active px-4 py-1.5 rounded-full text-xs font-bold text-white bg-indigo-600 shadow-lg transition-all">全部阶段</button>
+                <button onclick="filterStage('elementary')" data-stage="elementary"
+                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">小学</button>
+                <button onclick="filterStage('middle')" data-stage="middle"
+                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">初中</button>
+                <button onclick="filterStage('high')" data-stage="high"
+                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">高中</button>
+                <button onclick="filterStage('university')" data-stage="university"
+                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">大学</button>
+            </div>
+        </div>
+
+        <!-- Galaxy HUD -->
         <div id="galaxy-controls-overlay" class="pointer-events-auto absolute bottom-8 right-8 flex flex-col gap-3">
+            <div class="glass-panel p-3 rounded-xl flex flex-col gap-1 text-center">
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Nodes</span>
+                <span class="text-xl font-bold text-cyan-400 font-orbitron" id="total-entries">0</span>
+            </div>
             <button onclick="resetCamera()"
                 class="glass-panel p-3 rounded-xl text-cyan-400 hover:bg-cyan-900/30 hover:scale-105"><i
                     data-lucide="crosshair"></i></button>
         </div>
 
-        <!-- Stage Selector (New) -->
-        <div class="pointer-events-auto absolute top-24 left-1/2 transform -translate-x-1/2 flex gap-2">
-            <div class="glass-panel p-1 rounded-full flex gap-1 bg-slate-900/80 backdrop-blur-md">
-                <button onclick="filterStage('all', this)"
-                    class="stage-btn active px-4 py-1.5 rounded-full text-xs font-bold text-white bg-indigo-600 shadow-lg transition-all">全部阶段</button>
-                <button onclick="filterStage('elementary', this)"
-                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">小学</button>
-                <button onclick="filterStage('middle', this)"
-                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">初中</button>
-                <button onclick="filterStage('high', this)"
-                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">高中</button>
-                <button onclick="filterStage('university', this)"
-                    class="stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all">大学</button>
-            </div>
-        </div>
-
         <!-- Filter Bar (Subject) -->
         <div id="filter-bar"
             class="pointer-events-auto absolute bottom-8 left-1/2 transform -translate-x-1/2 glass-panel rounded-full px-2 py-2 flex gap-1 overflow-x-auto max-w-[90vw]">
-            <button onclick="filterSubject('all', this)"
+            <button onclick="filterSubject('all')" data-subject="all"
                 class="subject-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all">ALL</button>
-            <button onclick="filterSubject('math', this)"
+            <button onclick="filterSubject('math')" data-subject="math"
                 class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all">MATH</button>
-            <button onclick="filterSubject('physics', this)"
+            <button onclick="filterSubject('physics')" data-subject="physics"
                 class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-orange-600 hover:text-white transition-all">PHYSICS</button>
-            <button onclick="filterSubject('chemistry', this)"
+            <button onclick="filterSubject('chemistry')" data-subject="chemistry"
                 class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-pink-600 hover:text-white transition-all">CHEMISTRY</button>
-            <button onclick="filterSubject('biology', this)"
+            <button onclick="filterSubject('biology')" data-subject="biology"
                 class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-green-600 hover:text-white transition-all">BIOLOGY</button>
-            <button onclick="filterSubject('cs', this)"
+            <button onclick="filterSubject('cs')" data-subject="cs"
                 class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-cyan-600 hover:text-white transition-all">CS</button>
-            <button onclick="filterSubject('science', this)"
+            <button onclick="filterSubject('science')" data-subject="science"
                 class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-purple-600 hover:text-white transition-all">SCIENCE</button>
         </div>
+
     </div>
 
     <!-- Detail Modal -->
@@ -267,20 +265,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             initGalaxy();
             updateEntryCount();
-
-            // Force Resize Patch for 'File' Protocol Issues
-            // Sometimes the canvas initializes with 0 height/width when local.
-            setTimeout(() => {
-                if (Graph) {
-                    Graph.width(window.innerWidth);
-                    Graph.height(window.innerHeight);
-                    Graph.d3ReheatSimulation();
-                }
-            }, 500);
-
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-            }, 1000);
         });
 
         // Computed Data Getter
@@ -300,19 +284,43 @@
             }
         }
 
-        /* === VISUAL RESTORATION: PURE DEFAULTS === */
+        /* === NEURAL NETWORK TOPOLOGY === */
         function initGalaxy() {
             const elem = document.getElementById('galaxy-graph');
 
-            // Revert to Pure Instanced Mesh (Performance & Stability King)
+            // NEURAL VISUALS: Custom Objects (Sphere + Text)
             Graph = ForceGraph3D()
                 (elem)
                 .backgroundColor('#00000000')
                 .showNavInfo(false)
-                .nodeLabel('title')
-                .nodeColor(node => getCategoryColor(node.group))
-                .nodeRelSize(node => node.val || 4)
-                .nodeOpacity(0.9)
+                .nodeLabel('title') // Hover label (keep as backup)
+                .nodeThreeObject(node => {
+                    const group = new THREE.Group();
+
+                    // 1. The Neuron (Sphere)
+                    const color = getCategoryColor(node.group);
+                    const geometry = new THREE.SphereGeometry(node.val || 1.5, 8, 8); // Low poly for performance
+                    const material = new THREE.MeshLambertMaterial({
+                        color: color,
+                        transparent: true,
+                        opacity: 0.9
+                    });
+                    const sphere = new THREE.Mesh(geometry, material);
+                    group.add(sphere);
+
+                    // 2. The Label (Text)
+                    const sprite = new SpriteText(node.title);
+                    sprite.material.depthWrite = false; // Prevent occlusion issues
+                    sprite.color = color;
+                    sprite.textHeight = node.isHub ? 4 : 1.5; // Hubs get bigger text
+                    sprite.position.set(0, node.isHub ? 10 : 4, 0); // Position above node
+                    group.add(sprite);
+
+                    return group;
+                })
+                .nodeRelSize(node => node.val || 1.5) // Fallback
+                .linkWidth(0.3)
+                .linkOpacity(0.2) // Subtle connections
                 .onNodeClick(node => {
                     const distRatio = 1 + 60 / Math.hypot(node.x, node.y, node.z);
                     Graph.cameraPosition(
@@ -322,8 +330,6 @@
                     );
                     setTimeout(() => openModal(node.data), 1500);
                 });
-
-            // No Custom Lights, No Custom Objects -> Uses Library Defaults
 
             // Init Data
             updateGalaxyData();
@@ -338,37 +344,66 @@
             const data = getFilteredData();
             updateEntryCount();
 
+            // Neurons
             const nodes = data.map(i => ({
                 id: i.id,
                 title: i.title,
                 group: i.category,
-                val: i.type === 'concept' ? 3 : (i.type === 'lab' ? 2 : 4),
+                val: 1.5, // Uniform neuron size
                 data: i,
-                isHub: false
+                stage: i.stage
             }));
 
-            // Create Hubs
+            // Nuclei (Hubs) - Optional: Keep them for structure
             const categories = [...new Set(data.map(d => d.category))];
             const hubNodes = categories.map(cat => ({
                 id: `HUB_${cat}`,
                 title: cat.toUpperCase(),
                 group: cat,
-                val: 12,
+                val: 8,
                 isHub: true,
-                data: { title: cat.toUpperCase() + " HUB", content: `Center of ${cat}`, tags: [] }
+                data: { title: cat.toUpperCase() + " NUCLEUS", content: `Central Node for ${cat}`, tags: [] }
             }));
 
             const links = [];
-            nodes.forEach(n => {
-                links.push({ source: n.id, target: `HUB_${n.group}` });
+
+            // 1. Synaptic Connections (The Mesh)
+            // Connect each node to random peers in the same STAGE (Cross-Subject Synergy)
+            // and same SUBJECT (Deep Knowledge)
+            nodes.forEach(source => {
+                // Link to Hub (Gravity)
+                links.push({ source: source.id, target: `HUB_${source.group}` });
+
+                // Link to 2 random peers in same Stage (e.g. Elementary Math -> Elementary Science)
+                const sameStagePeers = nodes.filter(n => n.stage === source.stage && n.id !== source.id);
+                if (sameStagePeers.length > 0) {
+                    for (let k = 0; k < 2; k++) {
+                        const target = sameStagePeers[Math.floor(Math.random() * sameStagePeers.length)];
+                        links.push({ source: source.id, target: target.id });
+                    }
+                }
+
+                // Link to 1 random peer in same Subject (Knowledge Chain)
+                const sameSubjectPeers = nodes.filter(n => n.group === source.group && n.id !== source.id);
+                if (sameSubjectPeers.length > 0) {
+                    const target = sameSubjectPeers[Math.floor(Math.random() * sameSubjectPeers.length)];
+                    links.push({ source: source.id, target: target.id });
+                }
             });
 
             Graph.graphData({ nodes: [...nodes, ...hubNodes], links: links });
 
-            // Keep Galaxy Forces (They are mostly safe)
-            Graph.d3Force('charge', d3.forceManyBody().strength(node => node.isHub ? -800 : -60));
+            // Neural Physics
+            // Tighter mesh, less repulsion for dense brain look
+            Graph.d3Force('charge', d3.forceManyBody().strength(node => node.isHub ? -300 : -15));
+            Graph.d3Force('link', d3.forceLink().distance(link => link.target.isHub ? 80 : 20).strength(0.5));
 
             Graph.d3ReheatSimulation();
+        }
+
+        function getCategoryColor(cat) {
+            const map = { 'math': '#3B82F6', 'physics': '#F59E0B', 'chemistry': '#EC4899', 'biology': '#10B981', 'cs': '#06B6D4', 'science': '#8B5CF6' };
+            return map[cat] || '#ffffff';
         }
 
         /* === VIEW SWITCHER & MODAL === */
@@ -428,23 +463,58 @@
 
         // --- 2D Filter Logic ---
 
-        function filterSubject(subject, btn) {
+        function filterSubject(subject) {
             currentSubject = subject;
 
-            // Visual Update
-            document.querySelectorAll('.subject-btn').forEach(b => b.className = "subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all");
-            btn.className = "subject-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all";
+            // Sync UI: Update ALL buttons with matching data-subject
+            document.querySelectorAll('.subject-btn').forEach(b => {
+                if (b.dataset.subject === subject) {
+                    // Active State
+                    b.classList.remove('text-slate-400', 'hover:bg-slate-800', 'hover:bg-blue-600', 'hover:text-white');
+                    // Style depends on context (Galaxy Bottom Bar vs List Top Bar)
+                    if (b.parentElement.id === 'filter-bar') {
+                        b.className = "subject-btn active px-4 py-2 rounded-full text-xs md:text-sm font-bold text-white bg-cyan-600 shadow-lg shadow-cyan-500/30 transition-all";
+                    } else {
+                        // List View Style
+                        b.className = "subject-btn active px-3 py-1 rounded-md text-[10px] font-bold text-white bg-cyan-600 transition-all uppercase tracking-wider";
+                    }
+                } else {
+                    // Inactive State
+                    if (b.parentElement.id === 'filter-bar') {
+                        b.className = "subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-blue-600 hover:text-white transition-all";
+                    } else {
+                        // List View Style
+                        b.className = "subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider";
+                    }
+                }
+            });
 
             updateGalaxyData();
             if (document.getElementById('wiki-container-wrapper').style.display !== 'none') renderList();
         }
 
-        function filterStage(stage, btn) {
+        function filterStage(stage) {
             currentStage = stage;
 
-            // Visual Update
-            document.querySelectorAll('.stage-btn').forEach(b => b.className = "stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all");
-            btn.className = "stage-btn active px-4 py-1.5 rounded-full text-xs font-bold text-white bg-indigo-600 shadow-lg transition-all";
+            // Sync UI
+            document.querySelectorAll('.stage-btn').forEach(b => {
+                if (b.dataset.stage === stage) {
+                    if (b.parentElement && b.parentElement.classList.contains('glass-panel') && b.parentElement.parentElement === document.body.querySelector('.pointer-events-auto.absolute.top-24')) {
+                        // Galaxy View (Top Center)
+                        b.className = "stage-btn active px-4 py-1.5 rounded-full text-xs font-bold text-white bg-indigo-600 shadow-lg transition-all";
+                    } else { // List View
+                        b.className = "stage-btn active px-3 py-1 rounded-md text-[10px] font-bold text-white bg-indigo-600 transition-all uppercase tracking-wider";
+                    }
+                } else {
+                    if (b.parentElement && b.parentElement.classList.contains('glass-panel') && b.parentElement.parentElement === document.body.querySelector('.pointer-events-auto.absolute.top-24')) {
+                        // Galaxy View
+                        b.className = "stage-btn px-4 py-1.5 rounded-full text-xs font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all";
+                    } else {
+                        // List View
+                        b.className = "stage-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider";
+                    }
+                }
+            });
 
             updateGalaxyData();
             if (document.getElementById('wiki-container-wrapper').style.display !== 'none') renderList();
@@ -457,7 +527,6 @@
             setTimeout(() => { c.classList.remove('scale-95', 'opacity-0'); c.classList.add('scale-100', 'opacity-100'); }, 10);
 
             document.getElementById('modal-title').innerText = data.title;
-            // Rich Content is already in data.content
             document.getElementById('modal-content-text').innerHTML = data.content;
 
             document.getElementById('modal-tags').innerHTML =
