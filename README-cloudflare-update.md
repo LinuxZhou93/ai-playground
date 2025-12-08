@@ -5,7 +5,7 @@
 
 ## 当前配置
 - **API_KEY**: `app-XZYyFcpsU6Qk1dIoWDz92ZCR` (保持不变)
-- **当前URL**: `https://livestock-gravity-confidence-higher.trycloudflare.com`
+- **当前URL**: `https://turn-uni-potato-inch.trycloudflare.com`
 
 ## 快速更新步骤
 
