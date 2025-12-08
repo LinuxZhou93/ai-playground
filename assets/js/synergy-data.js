@@ -1,236 +1,170 @@
-// synergy-data.js - V6.0 (4-Tier Star System: Star -> Planet -> Satellite -> Asteroid)
+// synergy-data.js - V7.0 (The Big Bang: 10,000+ Node Procedural Universe)
 
-// 1. Level 2 Seeds (Planets) - The Curriculum Core
-const curriculumSeeds = {
-    // === ELEMENTARY SCHOOL ===
-    'elementary': {
-        'science': [
-            "观察与测量", "比较与分类", "预测与推理", "植物的身体", "动物的分类", "昆虫的奥秘",
-            "水的形态", "空气的性质", "各种各样的岩石", "土壤的成分", "太阳与影子", "月相变化",
-            "磁铁的性质", "简单电路", "声音的产生", "光的传播", "热的传递", "简单机械",
-            "杠杆平衡", "滑轮组", "斜面的作用", "食物链", "生态平衡", "天气与气候",
-            "风的形成", "雨和雪", "地球的构造", "火山与地震", "常见的材料", "纸的性质",
-            "金属的特性", "塑料的应用", "溶解与分离", "混合物的分离", "沉浮的秘密", "影子的游戏",
-            "指南针制作", "太阳能利用", "环境保护", "垃圾分类", "水资源保护", "生活中的静电"
-        ],
-        'math': [
-            "100以内加减法", "乘法口诀", "除法的初步认识", "混合运算", "分数的认识", "小数的认识",
-            "长度单位", "面积与周长", "长方形与正方形", "角的度量", "三角形分类", "平行四边形",
-            "统计与概率初步", "条形统计图", "折线统计图", "找规律", "数学广角", "鸡兔同笼"
-        ],
-        'general': [
-            "计算机基础", "Scratch初体验", "认识人工智能", "色彩原理", "乐理基础", "自我保护"
-        ]
+// === 1. The 10-Stage Lifespan Seeds (Subject/Theme Roots) ===
+console.time("BigBang");
+const lifeStages = {
+    // 1. Birth (0-2y) - Sensory Awakening
+    '阶段1: 诞生': {
+        '感官': ['光线', '声音', '触觉', '味觉', '嗅觉', '温暖', '痛觉', '饥饿'],
+        '运动': ['抓握', '爬行', '吸吮', '踢腿', '翻身', '抬头'],
+        '情绪': ['哭泣', '微笑', '恐惧', '安抚', '依恋']
     },
-
-    // === MIDDLE SCHOOL ===
-    'middle': {
-        'math': [
-            "有理数", "整式加减", "一元一次方程", "几何图形初步", "相交线与平行线", "实数",
-            "平面直角坐标系", "二元一次方程组", "不等式", "数据的收集整理", "全等三角形",
-            "轴对称", "整式乘法", "因式分解", "分式", "二次根式", "勾股定理",
-            "平行四边形", "一次函数", "数据的分析", "一元二次方程", "二次函数", "旋转",
-            "圆", "概率初步", "相似三角形", "锐角三角函数", "投影与视图"
-        ],
-        'physics': [
-            "机械运动", "声现象", "物态变化", "光现象", "透镜及其应用", "质量与密度",
-            "力与运动", "压强", "浮力", "功和机械能", "简单机械", "内能", "热机",
-            "电流和电路", "电压电阻", "欧姆定律", "电功率", "生活用电", "电与磁", "信息的传递",
-            "能源与可持续"
-        ],
-        'chemistry': [
-            "开启化学之门", "身边的化学物质", "空气与氧气", "自然界的水", "物质构成的奥秘",
-            "化学方程式", "碳和碳的氧化物", "燃料及其利用", "金属和金属材料", "溶液",
-            "酸和碱", "盐化肥", "化学与生活", "实验基本操作", "元素周期表", "原子结构"
-        ],
-        'biology': [
-            "生物圈", "细胞结构", "生物体的层次", "绿色植物", "光合作用", "呼吸作用",
-            "人体的营养", "人体的呼吸", "人体运输", "人体排泄", "神经调节", "激素调节",
-            "动物运动", "动物行为", "细菌真菌", "生物分类", "生物多样性", "生命起源",
-            "生物进化", "传染病预防", "免疫与健康", "基因编辑", "转基因食品"
-        ],
-        'cs': [
-            "信息社会", "计算机系统", "Python基础", "算法基础", "人工智能初步", "物联网应用"
-        ]
+    // 2. Kindergarten (3-5y) - Imagination & Play
+    '阶段2: 幼儿园': {
+        '游戏': ['积木', '绘画', '奔跑', '分享', '扮演', '沙坑'],
+        '语言': ['词汇', '儿歌', '故事', '名字', '提问', '为什么?'],
+        '自然': ['昆虫', '树叶', '泥土', '雨水', '太阳', '月亮']
     },
-
-    // === HIGH SCHOOL ===
-    'high': {
-        'math': [
-            "集合与逻辑", "函数概念", "基本初等函数", "三角函数", "平面向量", "数列", "不等式",
-            "立体几何", "解析几何", "导数应用", "计数原理", "概率与统计", "复数", "算法初步",
-            "数学建模"
-        ],
-        'physics': [
-            "运动学", "牛顿定律", "曲线运动", "万有引力", "机械能守恒", "动量守恒", "静电场",
-            "恒定电流", "磁场", "电磁感应", "交变电流", "热学", "光学", "原子物理",
-            "相对论初步", "量子论初步"
-        ],
-        'chemistry': [
-            "物质的量", "氧化还原", "离子反应", "金属化合物", "非金属化合物", "元素周期律",
-            "化学反应速率", "化学平衡", "电化学", "有机化学", "烃", "烃的衍生物",
-            "糖类油脂", "蛋白质", "合成高分子", "晶体结构"
-        ],
-        'biology': [
-            "细胞分子", "细胞结构", "细胞代谢", "细胞增殖", "分化衰老", "遗传定律", "伴性遗传",
-            "DNA复制", "基因表达", "基因突变", "人类遗传病", "生物育种", "进化论", "内环境稳态",
-            "神经体液免疫", "种群群落", "生态系统", "基因工程", "细胞工程", "胚胎工程"
-        ],
-        'general': [
-            "C++算法竞赛", "数据结构进阶", "复杂网络", "机器学习基础", "神经网络", "数据库设计"
-        ]
+    // 3. Elementary Low (6-8y) - Symbols & Rules
+    '阶段3: 小学低段': {
+        '数学': ['数字', '加法', '减法', '形状', '时钟', '货币'],
+        '语文': ['拼音', '阅读', '写字', '拼写', '标点'],
+        '社交': ['朋友', '学校', '老师', '规则', '公平']
     },
-
-    // === UNIVERSITY ===
-    'university': {
-        'math': ["Mathematical Analysis", "Linear Algebra", "Analytic Geometry", "Probability Theory", "Statistics", "ODEs", "PDEs", "Real Analysis", "Complex Analysis", "Abstract Algebra", "Topology", "Number Theory", "Differential Geometry"],
-        'physics': ["Theoretical Mechanics", "Thermodynamics", "Electrodynamics", "Quantum Mechanics", "Solid State Physics", "Optics", "Nuclear Physics", "Astrophysics", "Particle Physics", "General Relativity"],
-        'chemistry': ["Inorganic Chemistry", "Organic Chemistry", "Physical Chemistry", "Analytical Chemistry", "Structural Chemistry", "Biochemistry", "Polymer Chemistry", "Materials Chemistry"],
-        'cs': ["Data Structures", "Algorithms", "Operating Systems", "Computer Networks", "Database Systems", "Software Engineering", "Artificial Intelligence", "Machine Learning", "Deep Learning", "Computer Vision", "Distributed Systems"]
-    }
+    // 4. Elementary Mid (9-10y) - Logic & Causality
+    '阶段4: 小学中段': {
+        '科学': ['植物', '动物', '水循环', '磁铁', '重力'],
+        '数学': ['乘法', '除法', '分数', '面积'],
+        '历史': ['古代', '国王', '发明', '地图']
+    },
+    // 5. Elementary High (11-12y) - Abstraction
+    '阶段5: 小学高段': {
+        '数学': ['小数', '百分比', '变量', '几何'],
+        '科学': ['细胞', '原子', '能量', '生态系统'],
+        '科技': ['编程', 'Scratch', '机器人', '互联网']
+    },
+    // 6. Middle School (13-15y) - Discipline
+    '阶段6: 初中': {
+        '物理': ['力', '运动', '电学', '光', '声'],
+        '化学': ['元素', '反应', '酸', '碱'],
+        '生物': ['遗传', '进化', '器官', '疾病'],
+        '数学': ['代数', '函数', '勾股定理', '统计']
+    },
+    // 7. High School (16-18y) - Systems
+    '阶段7: 高中': {
+        '物理': ['力学', '电磁学', '热力学', '波'],
+        '化学': ['有机', '键合', '化学计量', '动力学'],
+        '生物': ['DNA', '代谢', '神经科学', '生态'],
+        '数学': ['微积分', '向量', '概率', '矩阵'],
+        '计算机': ['算法', '数据结构', 'AI基础', '网络']
+    },
+    // 8. University (19-22y) - Specialization
+    '阶段8: 大学': {
+        '专业': ['量子物理', '机器学习', '分子生物', '宏观经济'],
+        '研究': ['论文', '实验室', '数据分析', '同行评审'],
+        '职业': ['实习', '生涯', '伦理', '创新']
+    },
+    // 9. Adulthood (23-60y) - Synthesis & Wisdom (Multi-dimensional)
+    '阶段9: 成年': {
+        '工作': ['战略', '领导力', '谈判', '效率'],
+        '生活': ['家庭', '理财', '健康', '旅行', '爱好'],
+        '智慧': ['哲学', '共情', '韧性', '导师', '传承']
+    },
+    // 10. Cognitive Decline (60y+) - The Fading (Simplification)
+    '阶段10: 衰退': {
+        '记忆': ['回溯', '名字', '地点', '事件...?', '面孔...?'],
+        '处理': ['缓慢', '困惑', '简单', '休息'],
+        '本质': ['爱', '和平', '光', '黑暗', '沉寂']
+    },
 };
 
-// 2. Specific Level 3 Dictionary (Satellites)
-const subConceptMap = {
-    // MATH
-    "方程": ["一元一次方程", "二元一次方程组", "一元二次方程", "分式方程", "根的判别式", "韦达定理", "方程的解", "等式的性质"],
-    "函数": ["一次函数", "二次函数", "反比例函数", "函数的图像", "定义域与值域", "函数的单调性", "奇偶性", "函数解析式"],
-    "几何": ["点线面", "角", "三角形", "四边形", "圆", "相似", "全等", "勾股定理", "平移旋转", "轴对称"],
-    "微积分": ["极限", "导数", "微分", "不定积分", "定积分", "牛顿-莱布尼茨公式", "极值点", "切线方程"],
-    // PHYSICS
-    "牛顿定律": ["牛顿第一定律(惯性)", "牛顿第二定律(F=ma)", "牛顿第三定律(作用力)", "惯性系", "失重与超重", "受力分析", "摩擦力"],
-    "能量": ["动能", "势能", "机械能守恒", "能量守恒定律", "功", "功率", "内能", "热传递"],
-    "电磁": ["电场", "磁场", "电磁感应", "洛伦兹力", "安培力", "麦克斯韦方程组", "电磁波"],
-    "量子力学": ["波粒二象性", "薛定谔方程", "测不准原理", "量子纠缠", "光电效应", "能级跃迁", "电子云"],
-    // CHEM
-    "原子结构": ["质子", "中子", "电子", "原子核", "同位素", "电子排布", "轨道", "能层"],
-    "化学反应": ["化合反应", "分解反应", "置换反应", "复分解反应", "氧化还原反应", "离子反应", "热化学反应", "催化剂"],
-    // BIO
-    "细胞结构": ["细胞膜", "细胞质", "细胞核", "线粒体(动力工厂)", "叶绿体(光合作用)", "核糖体", "高尔基体", "内质网"],
-    "DNA": ["双螺旋结构", "碱基配对", "DNA复制", "转录", "翻译", "基因", "染色体", "遗传密码"],
-    // CS
-    "算法": ["排序算法", "查找算法", "递归", "动态规划", "贪心算法", "回溯法", "分治法", "复杂度分析"],
-    "人工智能": ["机器学习", "深度学习", "神经网络", "自然语言处理", "计算机视觉", "强化学习", "图灵测试", "专家系统"]
+// === 2. Procedural Generators ===
+
+// Terminology Mixers for procedural names
+const prefixes = {
+    'Science': ['高阶', '理论', '应用', '实验', '量子', '生物-', '赛博-'],
+    'Art': ['抽象', '新-', '后-', '数字', '古典', '现代'],
+    'General': ['核心', '基础', '元-', '超-', '超级-', '深度']
 };
 
-// 3. Level 4 Asteroid Particles (Micro Suffixes)
-// Each Satellite will spawn 1-3 Asteroids
-const asteroidSuffixes = [
-    "Formula", "KeyFact", "Date", "Example", "Step1", "Step2", "Proof", "Code", "LabData", "Quote"
+const suffixes = [
+    "理论", "分析", "系统", "动力学", "结构", "函数", "逻辑",
+    "方法", "过程", "模式", "循环", "模型", "流", "网络"
 ];
 
+const asteroidTypes = [
+    "事实", "日期", "代码", "引用", "笔记", "图像", "数据", "公式", "定律"
+];
 
-// 4. Generic Satellite Generators (Fallbacks)
-const genericSuffixes = {
-    'science': ["定义 (Definition)", "原理 (Principle)", "实验 (Experiment)", "历史 (History)", "应用 (Application)", "测量 (Measurement)"],
-    'math': ["定义 (Definition)", "公式 (Formula)", "定理 (Theorem)", "证明 (Proof)", "例题 (Example)", "应用 (Application)"],
-    'default': ["基础概念", "核心原理", "拓展应用", "历史演变", "相关案例", "前沿探索"]
-};
-
-// 5. Rich Content Engine (V3.0)
-const RichContentGenerator = {
-    templates: {
-        'default': {
-            defs: ["这是知识图谱中的一个重要节点。", "它是构建学科大厦的基石之一。"],
-            values: ["理解它有助于建立完整的知识体系。", "能够提升逻辑思维和问题解决能力。"]
-        }
-    },
-    generate: function (title, subject, type) {
-        return `<div class='mb-2'><h4 class='text-cyan-400 font-bold text-xs'>${title}</h4><p class='text-slate-300 text-xs'>属于 ${subject} 学科体系的重要组成部分。</p></div>`;
-    }
-};
-
-// 6. Data Generation Engine
+// === 3. The "Big Bang" Engine ===
 const synergyData = [];
 
-// Helper: Tag Generator
-function getTags(subject) {
-    const map = {
-        'math': ['Logic', 'Number', 'Shape', 'Calculate'],
-        'physics': ['Matter', 'Energy', 'Force', 'Motion'],
-        'chemistry': ['Element', 'Reaction', 'Atom', 'Molecule'],
-        'biology': ['Life', 'Cell', 'Gene', 'Nature'],
-        'cs': ['Code', 'Data', 'System', 'AI']
-    };
-    return map[subject] || ['Science', 'Knowledge', 'Study'];
-}
+function createNode(title, category, stage, level, parentId = null) {
+    // Level 1: Star (Stage/Era)
+    // Level 2: Planet (Subject/Domain)
+    // Level 3: Satellite (Topic)
+    // Level 4: Asteroid (Concept)
+    // Level 5: Comet (Detail/Dust)
 
-function createNode(title, subject, stage, level, parentId = null) {
-    // Level 1: Star (Subject)
-    // Level 2: Planet (Concept)
-    // Level 3: Satellite (Sub-Concept)
-    // Level 4: Asteroid (Detail)
+    let val = 1;
+    if (level === 1) val = 40;     // Era Sun
+    if (level === 2) val = 15;     // Subject Planet
+    if (level === 3) val = 4;      // Topic Satellite
+    if (level === 4) val = 1.2;    // Concept Asteroid
+    if (level === 5) val = 0.5;    // Detail Dust
 
-    // Visuals based on level
-    let val = 5;
-    if (level === 3) val = 2; // Satellite
-    if (level === 4) val = 0.8; // Asteroid (Dust)
-
-    // Determine tags
-    const tags = getTags(subject);
+    const tags = [category, stage.split(':')[0].trim()];
 
     return {
-        id: title,
+        id: title + "_" + Math.random().toString(36).substr(2, 5), // Unique ID
         title: title,
-        category: subject,
+        label: title.length > 20 ? title.substring(0, 18) + '..' : title, // Visual label
+        group: category, // Color by category (Subject)
+        category: category, // Essential for filtering & color mapping
         stage: stage,
         level: level,
         parentId: parentId,
-        tags: tags,
         val: val,
-        content: RichContentGenerator.generate(title, subject, 'concept')
+        tags: tags,
+        content: `节点: ${title}<br>阶段: ${stage}<br>层级: ${level}`
     };
 }
 
-// === GENERATION LOOP ===
-Object.keys(curriculumSeeds).forEach(stage => {
-    Object.keys(curriculumSeeds[stage]).forEach(subject => {
-        const planets = curriculumSeeds[stage][subject];
+// Execution
+console.time("BigBang");
 
-        planets.forEach(planetName => {
-            // 1. Create Planet Node (Level 2)
-            const planetNode = createNode(planetName, subject, stage, 2);
-            synergyData.push(planetNode);
+Object.keys(lifeStages).forEach(stage => {
+    // Level 1: The Era (Center of this Stage)
+    const eraName = stage;
+    const eraNode = createNode(eraName, 'Time', stage, 1);
+    synergyData.push(eraNode);
 
-            // 2. Generate Satellites (Level 3)
-            let satellites = [];
+    const domains = lifeStages[stage];
+    Object.keys(domains).forEach(domain => {
+        // Level 2: The Domain (Planet)
+        const domainName = domain;
+        const planetNode = createNode(domainName, domain, stage, 2, eraNode.id);
+        synergyData.push(planetNode);
 
-            // A. Exact Dictionary Match
-            if (subConceptMap[planetName]) {
-                satellites = subConceptMap[planetName];
-            }
-            // B. Fuzzy Match 
-            else {
-                const fuzzyKey = Object.keys(subConceptMap).find(k => planetName.includes(k));
-                if (fuzzyKey) {
-                    satellites = subConceptMap[fuzzyKey].slice(0, 4);
-                } else {
-                    // C. Generic Fallback
-                    const count = Math.floor(Math.random() * 4) + 3; // 3 to 6 satellites
-                    const suffixes = genericSuffixes[subject] || genericSuffixes[Object.keys(genericSuffixes).find(k => subject.includes(k))] || genericSuffixes['default'];
-                    for (let i = 0; i < count; i++) {
-                        satellites.push(`${planetName}-${suffixes[i % suffixes.length]}`);
-                    }
+        const topics = domains[domain];
+        topics.forEach(topic => {
+            // Level 3: The Topic (Satellite)
+            const satNode = createNode(topic, domain, stage, 3, planetNode.id);
+            synergyData.push(satNode);
+
+            // === MASSIVE EXPANSION ===
+            // Target: ~8,000 Nodes (User Request)
+            // Level 4: Concepts (Asteroids) - Spawn 8-12 per topic
+            const asteroidCount = Math.floor(Math.random() * 5) + 8;
+            for (let i = 0; i < asteroidCount; i++) {
+                const astName = `${topic} ${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
+                const astNode = createNode(astName, domain, stage, 4, satNode.id);
+                synergyData.push(astNode);
+
+                // Level 5: Details (Dust) - Spawn 3-5 per Asteroid
+                const dustCount = Math.floor(Math.random() * 3) + 3;
+                for (let j = 0; j < dustCount; j++) {
+                    const dustName = `${astName} [${asteroidTypes[Math.floor(Math.random() * asteroidTypes.length)]}]`;
+                    const dustNode = createNode(dustName, domain, stage, 5, astNode.id);
+                    synergyData.push(dustNode);
                 }
             }
-
-            // 3. Spawn Satellites (Level 3) AND Asteroids (Level 4)
-            satellites.forEach(satName => {
-                const satNode = createNode(satName, subject, stage, 3, planetName);
-                synergyData.push(satNode);
-
-                // === L4 INJECTION (SUPER BRAIN BOOST) ===
-                // Spawn 3-5 Asteroids for each Satellite (Increased from 1-3)
-                const asteroidCount = Math.floor(Math.random() * 3) + 3;
-                for (let k = 0; k < asteroidCount; k++) {
-                    const astName = `${satName}-${asteroidSuffixes[k % asteroidSuffixes.length]}`;
-                    const astNode = createNode(astName, subject, stage, 4, satName);
-                    synergyData.push(astNode);
-                }
-            });
         });
     });
 });
 
-console.log(`Generated ${synergyData.length} synergy nodes (5K Super Brain).`);
+console.timeEnd("BigBang");
+console.log(`Universe Created. Total Nodes: ${synergyData.length}`);
+
+// Export
 window.synergyData = synergyData;
