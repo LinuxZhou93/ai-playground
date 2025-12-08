@@ -28,6 +28,7 @@ function initSupabase() {
 // Initialize immediately
 initSupabase();
 
+
 // --- Auth Helpers ---
 
 async function getCurrentUser() {
@@ -55,19 +56,49 @@ async function getCurrentUser() {
     return user;
 }
 
+// Email & Password Sign Up
+async function signUp(email, password) {
+    if (!_supabase) return { error: { message: "Supabase not initialized" } };
+    const { data, error } = await _supabase.auth.signUp({
+        email,
+        password,
+    });
+    return { data, error };
+}
+
+// Email & Password Sign In
+async function signIn(email, password) {
+    if (!_supabase) return { error: { message: "Supabase not initialized" } };
+    const { data, error } = await _supabase.auth.signInWithPassword({
+        email,
+        password,
+    });
+    return { data, error };
+}
+
+// GitHub OAuth Login
 async function signInWithGitHub() {
-    if (!_supabase) return;
+    if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const { data, error } = await _supabase.auth.signInWithOAuth({
         provider: 'github',
     });
     return { data, error };
 }
 
+// Sign Out
 async function signOut() {
-    if (!_supabase) return;
+    if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const { error } = await _supabase.auth.signOut();
     if (!error) window.location.reload();
     return { error };
+}
+
+// Listen for Auth State Changes
+function onAuthStateChange(callback) {
+    if (!_supabase) return;
+    return _supabase.auth.onAuthStateChange(async (event, session) => {
+        if (callback) callback(event, session);
+    });
 }
 
 // --- Data Helpers ---
@@ -78,6 +109,17 @@ window.SupabaseClient = {
     client: _supabase,
     init: initSupabase,
     getCurrentUser,
+    signUp,
+    signIn,
     signInWithGitHub,
-    signOut
+    signOut,
+    onAuthStateChange
 };
+
+// Also expose individual functions strictly to window if needed by some inline scripts
+window.signUp = signUp;
+window.signIn = signIn;
+window.signInWithGitHub = signInWithGitHub;
+window.signOut = signOut;
+window.getCurrentUser = getCurrentUser;
+window.onAuthStateChange = onAuthStateChange;
