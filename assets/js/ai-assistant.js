@@ -70,7 +70,7 @@ const AI_PAGE_CONTEXTS = {
 // API配置
 const AI_CONFIG = {
     apiKey: 'app-XZYyFcpsU6Qk1dIoWDz92ZCR',
-    apiUrl: 'https://turn-uni-potato-inch.trycloudflare.com/v1/chat-messages',
+    apiUrl: 'https://referenced-frontier-breach-divorce.trycloudflare.com/v1/chat-messages',
     user: 'zhou-xiaomai'
 };
 
