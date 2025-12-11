@@ -394,16 +394,80 @@ const SubscriptionManager = {
     },
 
     bindGlobalPaywall: function () {
+        console.log('🛡️ Global Paywall: Active');
+        // Intercept all clicks to check for premium content
         document.body.addEventListener('click', (e) => {
             const link = e.target.closest('a');
             if (link) {
                 const href = link.getAttribute('href');
-                if (href && !href.startsWith('#') && !href.startsWith('javascript') && !href.startsWith('mailto')) {
-                    this.checkAccess(e, href);
+                console.log(`🖱️ Click detected on: ${href}`);
+
+                // Allow simple anchors, javascript calls, mailto
+                if (!href || href.startsWith('#') || href.startsWith('javascript') || href.startsWith('mailto')) {
+                    return;
+                }
+
+                // Check Access
+                const allowed = this.checkAccess(e, href);
+                if (!allowed) {
+                    console.log(`🚫 Access Denied: ${href}`);
+                } else {
+                    console.log(`✅ Access Granted: ${href}`);
                 }
             }
-        }, true);
-    }
+        }, true); // Use capture phase to ensure we catch it first
+    },
+
+    // --- Access Control Helpers ---
+
+    isPremium: function (link) {
+        if (!link) return false;
+
+        // Normalize: remove query/hash, get path part
+        // Handle absolute URLs if necessary, but mostly relative
+        const cleanLink = link.split('?')[0].split('#')[0];
+        const fileName = cleanLink.substring(cleanLink.lastIndexOf('/') + 1);
+
+        console.log(`🔍 Checking access for: ${fileName}`);
+
+        // Base Rules
+        if (fileName === '' || fileName === 'index.html' || fileName === '/') return false;
+
+        // Whitelist Check
+        if (!this.FREE_PAGES) return true;
+
+        // Check if explicitly free
+        const isFree = this.FREE_PAGES.some(page => fileName === page || link.endsWith(page));
+
+        return !isFree; // If not free, it is premium
+    },
+
+    isSubscribed: function () {
+        if (!this.user) return false; // No user = Not subscribed
+        const status = this.getSubscriptionStatus();
+        return status.isVIP;
+    },
+
+    checkAccess: function (e, link) {
+        // 1. VIP allows all
+        if (this.isSubscribed()) {
+            console.log('User is VIP. Access granted.');
+            return true;
+        }
+
+        // 2. Free page allows all
+        if (!this.isPremium(link)) {
+            console.log('Page is Free. Access granted.');
+            return true;
+        }
+
+        // 3. Otherwise, Block
+        e.preventDefault();
+        e.stopPropagation(); // Stop other listeners
+        e.stopImmediatePropagation(); // REALLY stop others
+        this.showPaywall();
+        return false;
+    },
 };
 
 // Auto Init
