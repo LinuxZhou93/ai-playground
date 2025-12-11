@@ -239,13 +239,28 @@ const Launchpad = (() => {
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-    Launchpad.init();
+    console.log('Launchpad: DOMContentLoaded');
+    try {
+        Launchpad.init();
+        console.log('Launchpad: Initialized');
 
-    const btn = document.getElementById('launchpadBtn');
-    if (btn) {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            Launchpad.open();
-        });
+        const btn = document.getElementById('launchpadBtn');
+        if (btn) {
+            console.log('Launchpad: Button found, attaching listener');
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Launchpad: Button clicked');
+                Launchpad.open();
+            });
+            // Force verify click (optional, for debugging)
+            btn.onclick = (e) => {
+                e.preventDefault();
+                Launchpad.open();
+            };
+        } else {
+            console.error('Launchpad: Button NOT found');
+        }
+    } catch (e) {
+        console.error('Launchpad: Error during init', e);
     }
 });
