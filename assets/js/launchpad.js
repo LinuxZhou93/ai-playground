@@ -56,9 +56,20 @@ const Launchpad = (() => {
         dotsContainer.id = 'lpDots';
         overlay.appendChild(dotsContainer);
 
-        // Click outside to close
+
+        // Close Button (Top Right)
+        const closeBtn = document.createElement('div');
+        closeBtn.className = 'lp-close-btn';
+        closeBtn.innerHTML = '✕';
+        closeBtn.title = '返回主页';
+        closeBtn.addEventListener('click', close);
+        overlay.appendChild(closeBtn);
+
+        // Click outside to close (Enhanced)
         overlay.addEventListener('click', (e) => {
-            if (e.target === overlay || e.target === pagesContainer) {
+            if (e.target === overlay ||
+                e.target.classList.contains('launchpad-pages-container') ||
+                e.target.classList.contains('launchpad-page')) {
                 close();
             }
         });
