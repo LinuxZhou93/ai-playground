@@ -77,12 +77,12 @@ const Launchpad = (() => {
             }
         });
 
-        // Initial Render
-        renderPages();
-
         // Swipe support and overlay attach
         setupGestures(overlay);
         document.body.appendChild(overlay);
+
+        // Initial Render (Must be AFTER appending to body because renderPages uses getElementById)
+        renderPages();
 
         // Resize Listener
         window.addEventListener('resize', () => {
@@ -97,6 +97,12 @@ const Launchpad = (() => {
     function renderPages(filterText = '') {
         const container = document.getElementById('lpPages');
         const dotsContainer = document.getElementById('lpDots');
+
+        if (!container || !dotsContainer) {
+            console.error('Launchpad: Required elements not found in DOM');
+            return;
+        }
+
         const itemsPerPage = getAppsPerPage();
 
         // Filter apps
