@@ -170,13 +170,31 @@ const AdminPanel = {
         if (!error) this.renderUsers();
     },
 
-    generateVouchers: async function () {
-        const count = prompt("How many vouchers?", "5");
-        if (!count) return;
+    generateVouchers: function () {
+        this.showGenerateModal();
+    },
+
+    showGenerateModal: function () {
+        document.getElementById('generate-modal').classList.remove('hidden');
+    },
+
+    closeGenerateModal: function () {
+        document.getElementById('generate-modal').classList.add('hidden');
+    },
+
+    confirmGenerate: async function () {
+        const input = document.getElementById('voucher-count-input');
+        const count = parseInt(input.value) || 5;
+
+        // Visual Feedback
+        const confirmBtn = document.querySelector('#generate-modal button:last-child');
+        const originalText = confirmBtn.innerText;
+        confirmBtn.innerText = 'Minting...';
+        confirmBtn.disabled = true;
 
         // Generate array
         const vouchers = [];
-        for (let i = 0; i < parseInt(count); i++) {
+        for (let i = 0; i < count; i++) {
             vouchers.push({
                 code: 'VIP-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
                 duration_months: 12
@@ -185,10 +203,15 @@ const AdminPanel = {
 
         const { data, error } = await this.client.from('vouchers').insert(vouchers).select();
 
+        // Restore UI
+        confirmBtn.innerText = originalText;
+        confirmBtn.disabled = false;
+        this.closeGenerateModal();
+
         if (error) {
             alert('Error generating: ' + error.message);
         } else {
-            alert(`Success! Generated ${data.length} codes.`);
+            // alert(`Success! Generated ${data.length} codes.`); // Optional: remove alert for smoother flow
             this.loadVouchers();
             this.renderStats();
         }
