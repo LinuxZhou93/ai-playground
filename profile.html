@@ -363,7 +363,7 @@
                         style="border: 1px dashed rgba(0,243,255,0.3); padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.3);">
                         <label class="paywall-label" style="color: #fbbf24; font-weight: bold;">💎 会员卡密兑换</label>
                         <div style="display: flex; gap: 10px;">
-                            <input type="text" id="voucherCode" class="paywall-input" placeholder="输入卡密 VIP-xxxx..."
+                            <input type="text" id="voucher-code" class="paywall-input" placeholder="输入卡密 VIP-xxxx..."
                                 style="text-transform: uppercase;">
                             <button class="paywall-btn" onclick="redeem()"
                                 style="width: auto; padding: 0 20px; font-size: 14px; margin: 0;">兑换</button>
@@ -434,15 +434,31 @@
 
             // 2. Button Actions
             async function redeem() {
-                if (!window.SubscriptionManager) return;
+                const btn = document.querySelector('.paywall-btn');
+                const origText = btn.innerText;
 
-                // If not logged in, prompt login first
-                if (!window.SubscriptionManager.user) {
-                    window.SubscriptionManager.showPaywall();
-                    return;
+                try {
+                    btn.innerText = '处理中...';
+                    btn.disabled = true;
+
+                    if (!window.SubscriptionManager) {
+                        alert('系统组件未加载，请刷新页面重试');
+                        return;
+                    }
+
+                    // If not logged in, prompt login first
+                    if (!window.SubscriptionManager.user) {
+                        window.SubscriptionManager.showPaywall();
+                        return;
+                    }
+
+                    await window.SubscriptionManager.redeemVoucher();
+                } catch (e) {
+                    alert('出错: ' + e.message);
+                } finally {
+                    btn.innerText = origText;
+                    btn.disabled = false;
                 }
-
-                await window.SubscriptionManager.redeemVoucher();
             }
 
             function logout() {

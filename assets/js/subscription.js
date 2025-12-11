@@ -248,13 +248,18 @@ const SubscriptionManager = {
             if (voucher.status === 'used') throw new Error('此卡密已被使用');
 
             let currentExpiry = new Date();
+            // Override: Force expiry to 2026-12-31 as requested
+            currentExpiry = new Date('2026-12-31T23:59:59');
+
+            // Old Logic kept for reference:
+            /*
             if (this.profile && this.profile.expiry_date) {
                 const existing = new Date(this.profile.expiry_date);
                 if (existing > new Date()) currentExpiry = existing;
             }
-
             const duration = voucher.duration_months || 12;
             currentExpiry.setMonth(currentExpiry.getMonth() + duration);
+            */
 
             // 3. Update User Profile
             // Handle case where profile might indicate success but return no data
