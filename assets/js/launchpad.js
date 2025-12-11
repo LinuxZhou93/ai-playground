@@ -93,6 +93,12 @@ const Launchpad = (() => {
                 renderPages(search ? search.value : '');
             }, 200);
         });
+
+        // Listen for Subscription Updates (e.g. after login/load)
+        window.addEventListener('subscription_updated', () => {
+            console.log('Launchpad: Subscription updated, refreshing icons...');
+            renderPages();
+        });
     }
 
     function renderPages(filterText = '') {
@@ -146,16 +152,35 @@ const Launchpad = (() => {
 
                 let iconContent = app.icon;
 
-                // Subscription Check
+                // Subscription Check - Robust Logic
                 let lockBadge = '';
-                if (typeof SubscriptionManager !== 'undefined' && SubscriptionManager.isPremium) {
-                    const isPrem = SubscriptionManager.isPremium(app.link);
-                    const isSub = SubscriptionManager.isSubscribed();
-                    // console.log(`App: ${app.name}, Premium: ${isPrem}, Subbed: ${isSub}`);
 
-                    if (isPrem && !isSub) {
-                        lockBadge = '<div class="app-lock-icon">🔒</div>';
+                // Default to LOCKED if system not ready (Secure Default)
+                let isLocked = true;
+
+                if (typeof SubscriptionManager !== 'undefined' && SubscriptionManager.isPremium) {
+                    const link = app.link;
+                    const isPrem = SubscriptionManager.isPremium(link);
+                    const isSub = SubscriptionManager.isSubscribed();
+
+                    // If it is NOT premium, checkPass = true
+                    if (!isPrem) {
+                        isLocked = false;
                     }
+                    // If it IS premium, but user is VIP, checkPass = true
+                    else if (isPrem && isSub) {
+                        isLocked = false;
+                    }
+                    // Otherwise stays true (Locked)
+                } else {
+                    // If Manager missing, only unlock known safest pages vaguely
+                    if (app.link === '#' || app.link.includes('index') || app.link.includes('profile')) {
+                        isLocked = false;
+                    }
+                }
+
+                if (isLocked) {
+                    lockBadge = '<div class="app-lock-icon">🔒</div>';
                 }
 
                 item.innerHTML = `

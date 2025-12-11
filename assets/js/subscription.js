@@ -7,7 +7,7 @@ const SubscriptionManager = {
     // Free Access Configuration
     FREE_PAGES: [
         'blog.html', 'post-4.html', 'post-6.html', 'competition-atlas.html',
-        'subject-synergy.html', 'wiki.html', 'forum.html', 'index.html', 'profile.html', '#', '', '/'
+        'subject-synergy.html', 'wiki.html', 'forum.html', 'index.html', 'profile.html', '#', '/'
     ],
 
     init: async function () {
@@ -472,5 +472,7 @@ const SubscriptionManager = {
 
 // Auto Init
 document.addEventListener('DOMContentLoaded', () => {
+    // Explicitly expose to window to ensure Launchpad can find it
+    window.SubscriptionManager = SubscriptionManager;
     SubscriptionManager.init();
 });
