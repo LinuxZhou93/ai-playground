@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="assets/css/index.css">
-    <link rel="stylesheet" href="assets/css/subscription.css">
+    <link rel="stylesheet" href="assets/css/subscription.css?v=final">
     <style>
         /* Dashboard Specific Styles */
         body {
@@ -388,30 +388,79 @@
 
         <!-- Supabase Core -->
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-        <script src="assets/js/supabase-config.js"></script>
+        <script src="assets/js/supabase-config.js?v=final"></script>
 
-        <script src="assets/js/subscription.js"></script>
+        <script src="assets/js/subscription.js?v=final"></script>
         <script>
-            // Init Logic
-            document.addEventListener('DOMContentLoaded', () => {
-                // 1. Check Login
-                const storedUser = localStorage.getItem('vip_user');
-                if (storedUser) {
-                    const user = JSON.parse(storedUser);
-                    document.getElementById('uName').textContent = user.username === 'student01' ? 'Demonstration User' : user.username;
-                    document.getElementById('uID').textContent = '#' + Math.random().toString(36).substr(2, 6).toUpperCase();
-                    document.getElementById('uRole').textContent = '尊享会员 VIP';
-                    document.getElementById('uExpiry').textContent = user.expiry;
-                    document.getElementById('uAvatar').innerHTML = '🎓';
+            // --- Sync with SubscriptionManager ---
+
+            // 1. Listen for Updates
+            window.addEventListener('subscription_updated', () => {
+                const manager = window.SubscriptionManager;
+                if (!manager) return;
+
+                const user = manager.user;
+                const profile = manager.profile;
+                const isVIP = manager.isSubscribed();
+
+                if (user) {
+                    // Update Sidebar
+                    document.getElementById('uAvatar').innerHTML = isVIP ? '🎓' : '👤';
+                    document.getElementById('uName').innerText = profile?.username || user.email.split('@')[0];
+                    document.getElementById('uRole').innerText = isVIP ? '尊享会员 VIP' : '普通学员';
+                    document.getElementById('uRole').style.color = isVIP ? '#fbbf24' : '#94a1b2';
+                    document.getElementById('uID').innerText = '#' + user.id.substring(0, 6).toUpperCase();
+
+                    const expiry = profile?.expiry_date ? new Date(profile.expiry_date).toLocaleDateString() : '未开通';
+                    document.getElementById('uExpiry').innerText = expiry;
+                    document.getElementById('uExpiry').style.color = isVIP ? '#fbbf24' : '#64748b';
+
+                    // Update Logout Button Text
+                    document.querySelector('.logout-btn').innerText = '退出登录';
+
+                    // Unlock UI
+                    document.querySelector('.content-grid').style.opacity = '1';
+                    document.querySelector('.content-grid').style.pointerEvents = 'auto'; // Re-enable clicks
                 } else {
-                    // Not logged in UI
-                    document.querySelector('.content-grid').style.opacity = '0.3';
-                    document.querySelector('.content-grid').style.pointerEvents = 'none';
-                    // Prompt login
-                    setTimeout(() => SubscriptionManager.showPaywall(), 500);
+                    // Not Logged In
+                    document.getElementById('uName').innerText = '游客 (未登录)';
+                    document.getElementById('uRole').innerText = '点击兑换登录';
+                    document.querySelector('.logout-btn').innerText = '去登录 / 注册';
+
+                    // We don't block UI anymore, but maybe dim it lightly
+                    document.querySelector('.content-grid').style.opacity = '0.5';
+                }
+            });
+
+            // 2. Button Actions
+            async function redeem() {
+                if (!window.SubscriptionManager) return;
+
+                // If not logged in, prompt login first
+                if (!window.SubscriptionManager.user) {
+                    window.SubscriptionManager.showPaywall();
+                    return;
                 }
 
-                // 2. Render Courses
+                await window.SubscriptionManager.redeemVoucher();
+            }
+
+            function logout() {
+                if (!window.SubscriptionManager) return;
+
+                if (!window.SubscriptionManager.user) {
+                    // If guest, go to login
+                    window.SubscriptionManager.showPaywall();
+                } else {
+                    // If user, logout
+                    if (confirm('确定要退出登录吗？')) {
+                        window.SubscriptionManager.handleLogout();
+                    }
+                }
+            }
+
+            // 3. Render Static Courses (Visual Only)
+            document.addEventListener('DOMContentLoaded', () => {
                 const courses = [
                     { name: 'Python 基础入门', icon: '🐍', progress: 85, last: '2小时前' },
                     { name: '天文宇宙探索', icon: '🪐', progress: 40, last: '1天前' },
@@ -419,33 +468,27 @@
                 ];
 
                 const list = document.getElementById('courseList');
-                courses.forEach(c => {
-                    const div = document.createElement('div');
-                    div.className = 'course-item';
-                    div.innerHTML = `
-                    <div class="c-icon">${c.icon}</div>
-                    <div class="c-info">
-                        <div class="c-title">${c.name}</div>
-                        <div class="progress-track">
-                            <div class="progress-fill" style="width: ${c.progress}%"></div>
+                if (list) {
+                    courses.forEach(c => {
+                        const div = document.createElement('div');
+                        div.className = 'course-item';
+                        div.innerHTML = `
+                        <div class="c-icon">${c.icon}</div>
+                        <div class="c-info">
+                            <div class="c-title">${c.name}</div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: ${c.progress}%"></div>
+                            </div>
+                            <div class="c-meta">
+                                <span>已学 ${c.progress}%</span>
+                                <span>上次: ${c.last}</span>
+                            </div>
                         </div>
-                        <div class="c-meta">
-                            <span>已学 ${c.progress}%</span>
-                            <span>上次: ${c.last}</span>
-                        </div>
-                    </div>
-                 `;
-                    list.appendChild(div);
-                });
-            });
-
-            function logout() {
-                if (confirm('确定要退出登录吗？\n退出后将无法访问会员课程。')) {
-                    localStorage.removeItem('vip_user');
-                    localStorage.removeItem('is_vip_member'); // Clean old key just in case
-                    window.location.href = 'index.html';
+                     `;
+                        list.appendChild(div);
+                    });
                 }
-            }
+            });
         </script>
 
         <!-- Baground Effect (Simple Starfield) -->
