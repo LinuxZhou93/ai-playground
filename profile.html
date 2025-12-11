@@ -356,55 +356,73 @@
 
                 <!-- Settings -->
                 <div class="dash-card">
-                    <h3>⚙️ 账号设置</h3>
-                    <div class="paywall-input-group" style="margin-bottom: 15px;">
-                        <label class="paywall-label">修改密码</label>
-                        <input type="password" class="paywall-input" placeholder="输入新密码" disabled value="******">
-                        <div style="font-size: 11px; color: #64748b; margin-top: 5px;">* 演示账号不支持修改密码</div>
+                    <h3>⚙️ 账号服务</h3>
+
+                    <!-- Voucher Redemption -->
+                    <div class="paywall-input-group"
+                        style="border: 1px dashed rgba(0,243,255,0.3); padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.3);">
+                        <label class="paywall-label" style="color: #fbbf24; font-weight: bold;">💎 会员卡密兑换</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="voucherCode" class="paywall-input" placeholder="输入卡密 VIP-xxxx..."
+                                style="text-transform: uppercase;">
+                            <button class="paywall-btn" onclick="redeem()"
+                                style="width: auto; padding: 0 20px; font-size: 14px; margin: 0;">兑换</button>
+                        </div>
+                        <div id="redeemMsg" style="font-size: 12px; margin-top: 10px; min-height: 15px;"></div>
                     </div>
+
+                    <div style="height: 20px;"></div>
+
                     <div class="paywall-input-group">
-                        <label class="paywall-label">绑定邮箱</label>
-                        <input type="email" class="paywall-input" placeholder="绑定安全邮箱" value="student01@example.com">
+                        <label class="paywall-label">修改密码</label>
+                        <input type="password" class="paywall-input" placeholder="********" disabled>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 5px;">* 请联系管理员重置密码</div>
                     </div>
                 </div>
 
             </div>
         </div>
-    </div>
+        <div class="dashboard-container">
+            <!-- Content... -->
+        </div>
 
-    <script src="assets/js/subscription.js"></script>
-    <script>
-        // Init Logic
-        document.addEventListener('DOMContentLoaded', () => {
-            // 1. Check Login
-            const storedUser = localStorage.getItem('vip_user');
-            if (storedUser) {
-                const user = JSON.parse(storedUser);
-                document.getElementById('uName').textContent = user.username === 'student01' ? 'Demonstration User' : user.username;
-                document.getElementById('uID').textContent = '#' + Math.random().toString(36).substr(2, 6).toUpperCase();
-                document.getElementById('uRole').textContent = '尊享会员 VIP';
-                document.getElementById('uExpiry').textContent = user.expiry;
-                document.getElementById('uAvatar').innerHTML = '🎓';
-            } else {
-                // Not logged in UI
-                document.querySelector('.content-grid').style.opacity = '0.3';
-                document.querySelector('.content-grid').style.pointerEvents = 'none';
-                // Prompt login
-                setTimeout(() => SubscriptionManager.showPaywall(), 500);
-            }
+        <!-- Supabase Core -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="assets/js/supabase-config.js"></script>
 
-            // 2. Render Courses
-            const courses = [
-                { name: 'Python 基础入门', icon: '🐍', progress: 85, last: '2小时前' },
-                { name: '天文宇宙探索', icon: '🪐', progress: 40, last: '1天前' },
-                { name: '无人机飞行原理', icon: '🚁', progress: 15, last: '3天前' }
-            ];
+        <script src="assets/js/subscription.js"></script>
+        <script>
+            // Init Logic
+            document.addEventListener('DOMContentLoaded', () => {
+                // 1. Check Login
+                const storedUser = localStorage.getItem('vip_user');
+                if (storedUser) {
+                    const user = JSON.parse(storedUser);
+                    document.getElementById('uName').textContent = user.username === 'student01' ? 'Demonstration User' : user.username;
+                    document.getElementById('uID').textContent = '#' + Math.random().toString(36).substr(2, 6).toUpperCase();
+                    document.getElementById('uRole').textContent = '尊享会员 VIP';
+                    document.getElementById('uExpiry').textContent = user.expiry;
+                    document.getElementById('uAvatar').innerHTML = '🎓';
+                } else {
+                    // Not logged in UI
+                    document.querySelector('.content-grid').style.opacity = '0.3';
+                    document.querySelector('.content-grid').style.pointerEvents = 'none';
+                    // Prompt login
+                    setTimeout(() => SubscriptionManager.showPaywall(), 500);
+                }
 
-            const list = document.getElementById('courseList');
-            courses.forEach(c => {
-                const div = document.createElement('div');
-                div.className = 'course-item';
-                div.innerHTML = `
+                // 2. Render Courses
+                const courses = [
+                    { name: 'Python 基础入门', icon: '🐍', progress: 85, last: '2小时前' },
+                    { name: '天文宇宙探索', icon: '🪐', progress: 40, last: '1天前' },
+                    { name: '无人机飞行原理', icon: '🚁', progress: 15, last: '3天前' }
+                ];
+
+                const list = document.getElementById('courseList');
+                courses.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'course-item';
+                    div.innerHTML = `
                     <div class="c-icon">${c.icon}</div>
                     <div class="c-info">
                         <div class="c-title">${c.name}</div>
@@ -417,59 +435,59 @@
                         </div>
                     </div>
                  `;
-                list.appendChild(div);
+                    list.appendChild(div);
+                });
             });
-        });
 
-        function logout() {
-            if (confirm('确定要退出登录吗？\n退出后将无法访问会员课程。')) {
-                localStorage.removeItem('vip_user');
-                localStorage.removeItem('is_vip_member'); // Clean old key just in case
-                window.location.href = 'index.html';
+            function logout() {
+                if (confirm('确定要退出登录吗？\n退出后将无法访问会员课程。')) {
+                    localStorage.removeItem('vip_user');
+                    localStorage.removeItem('is_vip_member'); // Clean old key just in case
+                    window.location.href = 'index.html';
+                }
             }
-        }
-    </script>
+        </script>
 
-    <!-- Baground Effect (Simple Starfield) -->
-    <script>
-        const canvas = document.getElementById('bg-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height;
+        <!-- Baground Effect (Simple Starfield) -->
+        <script>
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
 
-        function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+            function resize() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+            }
+            window.addEventListener('resize', resize);
+            resize();
 
-        const stars = Array(100).fill().map(() => ({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            size: Math.random() * 2,
-            speed: Math.random() * 0.5 + 0.1
-        }));
+            const stars = Array(100).fill().map(() => ({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                size: Math.random() * 2,
+                speed: Math.random() * 0.5 + 0.1
+            }));
 
-        function animate() {
-            ctx.fillStyle = '#050a14';
-            ctx.fillRect(0, 0, width, height);
-            ctx.fillStyle = '#fff';
+            function animate() {
+                ctx.fillStyle = '#050a14';
+                ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = '#fff';
 
-            stars.forEach(s => {
-                s.y += s.speed;
-                if (s.y > height) s.y = 0;
-                ctx.globalAlpha = Math.random() * 0.5 + 0.5;
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-                ctx.fill();
-            });
+                stars.forEach(s => {
+                    s.y += s.speed;
+                    if (s.y > height) s.y = 0;
+                    ctx.globalAlpha = Math.random() * 0.5 + 0.5;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
 
-            requestAnimationFrame(animate);
-        }
-        animate();
-    </script>
+                requestAnimationFrame(animate);
+            }
+            animate();
+        </script>
 </body>
 
 </html>
