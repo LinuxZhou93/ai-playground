@@ -4,6 +4,12 @@ const SubscriptionManager = {
     user: null,
     profile: null,
 
+    // Free Access Configuration
+    FREE_PAGES: [
+        'blog.html', 'post-4.html', 'post-6.html', 'competition-atlas.html',
+        'subject-synergy.html', 'wiki.html', 'forum.html', 'index.html', 'profile.html', '#', '', '/'
+    ],
+
     init: async function () {
         console.log('SubscriptionManager: Initializing Supabase...');
 
@@ -17,7 +23,6 @@ const SubscriptionManager = {
 
         // 2. Init Client
         try {
-            // Assume supabase global is available from CDN
             if (typeof supabase === 'undefined') {
                 console.error('Supabase SDK not loaded');
                 return;
@@ -46,6 +51,7 @@ const SubscriptionManager = {
 
         // 4. Bind Events
         this.bindEvents();
+        this.bindGlobalPaywall();
 
         // 5. Auth State Listener
         this.client.auth.onAuthStateChange(async (event, session) => {
@@ -53,7 +59,6 @@ const SubscriptionManager = {
             if (event === 'SIGNED_IN' && session) {
                 this.user = session.user;
                 await this.fetchProfile();
-                // Close modal if open
                 this.hideAuthModal();
             } else if (event === 'SIGNED_OUT') {
                 this.user = null;
@@ -83,7 +88,6 @@ const SubscriptionManager = {
                 return;
             }
 
-            // If no profile exists (should be handled by trigger, but just in case)
             if (!data) {
                 this.profile = {
                     username: this.user.user_metadata.username || this.user.email.split('@')[0],
@@ -96,14 +100,11 @@ const SubscriptionManager = {
             this.updateUI();
             this.updateDockAuthButton(true);
 
-            // Dispatch event for other components (like Launchpad)
+            // Dispatch event for other components
             const status = this.getSubscriptionStatus();
             window.dispatchEvent(new CustomEvent('subscription_updated', {
                 detail: status
             }));
-
-            // Should also persist to local storage for other synchronous checks if needed, 
-            // but relying on memory state is safer for Single Page App feel.
 
         } catch (e) {
             console.error('Profile fetch unexpected error:', e);
@@ -113,28 +114,13 @@ const SubscriptionManager = {
     // --- UI Updates ---
 
     updateDockAuthButton: function (isLoggedIn) {
-        const btn = document.getElementById('auth-btn'); // For index.html
-        // Also check if we are on profile page, maybe we want to update header? 
-        // But mainly this is for the dock button.
-
-        // If btn not found, try finding by ID or class used in Launchpad/Dock
-        // The dock button was <a href="..." id="auth-btn">...</a> or similar
-        // Let's try to find it generically if id is missing or different
-        const dockBtn = document.getElementById('launchpad-personal-center') || document.querySelector('a[href*="profile.html"]');
-
-        if (dockBtn) {
-            // It's already linking to profile, so we just leave it unless we want to change icon
-            // But if it's the specific auth button we added:
-            // logic here depends on how index.html dock is structured. 
-        }
-
-        // Specifically for the header/dock login button created in previous steps
+        // Update the specific auth button in the header/dock if it exists
         const specificAuthBtn = document.getElementById('auth-btn');
         if (specificAuthBtn) {
             if (isLoggedIn) {
                 specificAuthBtn.href = 'profile.html';
                 specificAuthBtn.innerHTML = `<span class="slot-icon">👤</span><span class="slot-label">个人中心</span>`;
-                specificAuthBtn.onclick = null; // Remove binding
+                specificAuthBtn.onclick = null;
             } else {
                 specificAuthBtn.href = 'javascript:void(0)';
                 specificAuthBtn.innerHTML = `<span class="slot-icon">🔒</span><span class="slot-label">登录/注册</span>`;
@@ -147,13 +133,11 @@ const SubscriptionManager = {
     },
 
     updateUI: function () {
-        // Only run on profile page
         if (!document.getElementById('user-name-display')) return;
 
         const status = this.getSubscriptionStatus();
         const username = this.profile?.username || this.user?.user_metadata?.username || '用户';
 
-        // Update Text
         document.getElementById('user-name-display').textContent = username;
         document.getElementById('user-role-display').textContent = status.isVIP ? 'VIP会员' : '普通用户';
 
@@ -161,7 +145,6 @@ const SubscriptionManager = {
         const expiryDisplay = document.getElementById('user-expiry-display');
         if (expiryDisplay) expiryDisplay.textContent = validUntil;
 
-        // Update Visuals
         const avatar = document.querySelector('.profile-avatar');
         if (avatar) {
             if (status.isVIP) {
@@ -178,19 +161,13 @@ const SubscriptionManager = {
 
     handleLogin: async function (username, password) {
         const email = this.usernameToEmail(username);
-        console.log(`Attempting login for ${email}`);
-
         try {
             const { data, error } = await this.client.auth.signInWithPassword({
                 email: email,
                 password: password
             });
-
-            if (error) {
-                throw error;
-            }
+            if (error) throw error;
             alert('登录成功！');
-
         } catch (e) {
             console.error(e);
             alert('登录失败: ' + e.message);
@@ -199,24 +176,15 @@ const SubscriptionManager = {
 
     handleRegister: async function (username, password) {
         const email = this.usernameToEmail(username);
-        console.log(`Attempting register for ${email}`);
-
         try {
             const { data, error } = await this.client.auth.signUp({
                 email: email,
                 password: password,
-                options: {
-                    data: {
-                        username: username // Metadata for profile trigger
-                    }
-                }
+                options: { data: { username: username } }
             });
-
             if (error) throw error;
-
             alert('注册成功！请直接登录。');
-            this.toggleAuthMode(); // Switch back to login
-
+            this.toggleAuthMode();
         } catch (e) {
             console.error(e);
             alert('注册失败: ' + e.message);
@@ -234,69 +202,36 @@ const SubscriptionManager = {
         const codeInput = document.getElementById('voucher-code');
         const code = codeInput.value.trim();
 
-        if (!code) {
-            alert('请输入卡密');
-            return;
-        }
-
-        if (!this.user) {
-            alert('请先登录');
-            return;
-        }
+        if (!code) { alert('请输入卡密'); return; }
+        if (!this.user) { alert('请先登录'); return; }
 
         try {
-            // 1. Check Voucher
             const { data: voucher, error: vError } = await this.client
-                .from('vouchers')
-                .select('*')
-                .eq('code', code)
-                .single();
+                .from('vouchers').select('*').eq('code', code).single();
 
-            if (vError || !voucher) {
-                throw new Error('卡密无效');
-            }
+            if (vError || !voucher) throw new Error('卡密无效');
+            if (voucher.status === 'used') throw new Error('此卡密已被使用');
 
-            if (voucher.status === 'used') {
-                throw new Error('此卡密已被使用');
-            }
-
-            // 2. Calculate New Expiry
             let currentExpiry = new Date();
-            // If user already has valid expiry in future, extend from there
             if (this.profile && this.profile.expiry_date) {
                 const existing = new Date(this.profile.expiry_date);
                 if (existing > new Date()) currentExpiry = existing;
             }
 
-            // Add months (default 12)
             const duration = voucher.duration_months || 12;
             currentExpiry.setMonth(currentExpiry.getMonth() + duration);
 
-            // 3. Update Voucher Status (Mark as used)
-            // Note: Optimistic update or transaction would be better, but keeping simple
             const { error: updateVError } = await this.client
-                .from('vouchers')
-                .update({
-                    status: 'used',
-                    used_by: this.user.id
-                })
-                .eq('id', voucher.id);
+                .from('vouchers').update({ status: 'used', used_by: this.user.id }).eq('id', voucher.id);
 
             if (updateVError) throw new Error('核销失败，请重试');
 
-            // 4. Update Profile
             const { error: updatePError } = await this.client
-                .from('profiles')
-                .update({
-                    expiry_date: currentExpiry.toISOString()
-                })
-                .eq('id', this.user.id);
+                .from('profiles').update({ expiry_date: currentExpiry.toISOString() }).eq('id', this.user.id);
 
             if (updatePError) throw new Error('更新会员状态失败');
 
             alert(`充值成功！您的会员已延长至 ${currentExpiry.toLocaleDateString()}`);
-
-            // Refresh local state
             await this.fetchProfile();
             codeInput.value = '';
 
@@ -320,26 +255,59 @@ const SubscriptionManager = {
         };
     },
 
+    // Legacy / Shared Helpers needed by Launchpad
+    isPremium: function (link) {
+        if (!link) return false;
+        const cleanLink = link.split('?')[0].split('#')[0];
+        const fileName = cleanLink.substring(cleanLink.lastIndexOf('/') + 1);
+        if (fileName === '' || fileName === 'index.html') return false;
+        if (!this.FREE_PAGES) return true;
+        return !this.FREE_PAGES.some(page => fileName === page || link.endsWith(page));
+    },
+
+    isSubscribed: function () {
+        const status = this.getSubscriptionStatus();
+        return status.isVIP;
+    },
+
+    checkAccess: function (e, link) {
+        if (this.isSubscribed()) return true;
+        if (!this.isPremium(link)) return true;
+        e.preventDefault();
+        e.stopPropagation();
+        this.showPaywall();
+        return false;
+    },
+
     usernameToEmail: function (username) {
-        // Helper to fake emails for simple usernames
         if (username.includes('@')) return username;
         return `${username}@ai-playground.com`;
     },
 
     // --- UI Interactions ---
 
+    showPaywall: function () {
+        this.showAuthModal();
+        const modal = document.getElementById('auth-modal');
+        if (modal) {
+            const title = modal.querySelector('h2');
+            if (title) title.textContent = '🔒 会员专享内容';
+        }
+    },
+
     showAuthModal: function () {
-        // Create modal if it doesn't exist (or just assume it is in HTML)
         let modal = document.getElementById('auth-modal');
         if (!modal) {
-            console.log('Creating auth modal...');
             this.createAuthModalHTML();
             modal = document.getElementById('auth-modal');
         }
         modal.style.display = 'flex';
-        // Ensure default is login
+        // Reset title if it was changed by paywall
+        const title = modal.querySelector('h2');
         if (modal.getAttribute('data-mode') === 'register') {
-            this.toggleAuthMode();
+            if (title) title.textContent = '注册账号';
+        } else {
+            if (title) title.textContent = '账号登录';
         }
     },
 
@@ -351,19 +319,16 @@ const SubscriptionManager = {
     toggleAuthMode: function () {
         const modal = document.getElementById('auth-modal');
         const isLogin = modal.getAttribute('data-mode') !== 'register';
-
         const title = modal.querySelector('h2');
         const submitBtn = modal.querySelector('.auth-submit-btn');
         const switchText = modal.querySelector('.auth-switch p');
 
         if (isLogin) {
-            // Switch to RegisterMode
             modal.setAttribute('data-mode', 'register');
             if (title) title.textContent = '注册账号';
             if (submitBtn) submitBtn.textContent = '注册';
             if (switchText) switchText.innerHTML = '已有账号？ <a href="#" onclick="SubscriptionManager.toggleAuthMode()">去登录</a>';
         } else {
-            // Switch to LoginMode
             modal.setAttribute('data-mode', 'login');
             if (title) title.textContent = '账号登录';
             if (submitBtn) submitBtn.textContent = '登录';
@@ -372,11 +337,11 @@ const SubscriptionManager = {
     },
 
     createAuthModalHTML: function () {
-        // Fallback if modal not present in HTML
         const div = document.createElement('div');
         div.id = 'auth-modal';
         div.className = 'auth-modal';
-        div.style.display = 'none'; // hidden by default
+        div.style.display = 'none';
+        div.setAttribute('data-mode', 'login');
         div.innerHTML = `
         <div class="auth-box">
             <span class="auth-close" onclick="SubscriptionManager.hideAuthModal()">×</span>
@@ -392,21 +357,16 @@ const SubscriptionManager = {
         </div>
         `;
         document.body.appendChild(div);
-
-        // Re-bind events since we just added elements
         this.bindEvents();
     },
 
     bindEvents: function () {
-        // Modal Close
         const closeBtn = document.querySelector('.auth-close');
         if (closeBtn) closeBtn.onclick = () => this.hideAuthModal();
 
-        // Auth Form Submit
         const submitBtn = document.querySelector('.auth-submit-btn');
-
         if (submitBtn) {
-            // Remove old listeners using clone or just reassignment
+            // Replace to remove old listeners
             const newBtn = submitBtn.cloneNode(true);
             submitBtn.parentNode.replaceChild(newBtn, submitBtn);
 
@@ -431,9 +391,18 @@ const SubscriptionManager = {
                 }
             };
         }
+    },
 
-        // Global Paywall / Lock intercept (optional, if using old logic)
-        // Leaving this out for now to focus on Login/Profile flow
+    bindGlobalPaywall: function () {
+        document.body.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link) {
+                const href = link.getAttribute('href');
+                if (href && !href.startsWith('#') && !href.startsWith('javascript') && !href.startsWith('mailto')) {
+                    this.checkAccess(e, href);
+                }
+            }
+        }, true);
     }
 };
 
