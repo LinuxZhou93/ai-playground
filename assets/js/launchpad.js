@@ -16,6 +16,7 @@ const Launchpad = (() => {
         { name: '知识库', icon: '📖', link: 'wiki.html', color: '#fff' },
         { name: '天文宇宙', icon: '🪐', link: 'astronomy.html', color: '#bc13fe' },
         { name: '恐龙世界', icon: '🦖', link: 'dino.html', color: '#4ade80' },
+        { name: '地球科学', icon: '🌏', link: 'earth.html', color: '#06b6d4' },
         { name: '读书观影', icon: '📚', link: 'library.html', color: '#ec4899' },
         { name: '论坛', icon: '💬', link: 'forum.html', color: '#06b6d4' },
         { name: '编程', icon: '🎨', link: 'coding.html', color: '#FFAB19' },
