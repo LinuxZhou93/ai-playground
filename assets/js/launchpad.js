@@ -144,8 +144,21 @@ const Launchpad = (() => {
                 item.style.animationDelay = `${index * 30}ms`; // Faster stagger
 
                 let iconContent = app.icon;
+
+                // Subscription Check
+                let lockBadge = '';
+                if (typeof SubscriptionManager !== 'undefined') {
+                    const isLocked = SubscriptionManager.isPremium(app.link) && !SubscriptionManager.isSubscribed();
+                    if (isLocked) {
+                        lockBadge = '<div class="app-lock-icon">🔒</div>';
+                    }
+                }
+
                 item.innerHTML = `
-                    <div class="lp-app-icon" style="color: ${app.color}">${iconContent}</div>
+                    <div class="lp-app-icon" style="color: ${app.color}; position: relative;">
+                        ${iconContent}
+                        ${lockBadge}
+                    </div>
                     <span class="lp-app-label">${app.name}</span>
                 `;
 
