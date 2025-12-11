@@ -160,35 +160,70 @@ const SubscriptionManager = {
     // --- Actions ---
 
     handleLogin: async function (username, password) {
-        const email = this.usernameToEmail(username);
+        // Auto-detect phone number or pure username
+        const email = this.smartFormatEmail(username);
+        console.log(`Attempting login with: ${email}`);
+
         try {
             const { data, error } = await this.client.auth.signInWithPassword({
                 email: email,
                 password: password
             });
+
             if (error) throw error;
-            alert('登录成功！');
+            alert('🎉 登录成功！');
         } catch (e) {
             console.error(e);
-            alert('登录失败: ' + e.message);
+            let msg = e.message;
+            if (msg.includes("Invalid login credentials")) msg = "账号或密码错误";
+            if (msg.includes("Email not confirmed")) msg = "请前往邮箱确认验证链接，或联系管理员关闭邮箱验证。";
+            alert('登录失败: ' + msg);
         }
     },
 
     handleRegister: async function (username, password) {
-        const email = this.usernameToEmail(username);
+        const email = this.smartFormatEmail(username);
+        console.log(`Attempting register with: ${email}`);
+
         try {
             const { data, error } = await this.client.auth.signUp({
                 email: email,
                 password: password,
-                options: { data: { username: username } }
+                options: {
+                    data: { username: username } // Store original username/phone
+                }
             });
+
             if (error) throw error;
-            alert('注册成功！请直接登录。');
-            this.toggleAuthMode();
+
+            // Check if session exists (Auto Confirm ON) or not (Email Confirm ON)
+            if (data.session) {
+                alert('🎉 注册成功并已登录！');
+                this.toggleAuthMode(); // Close modal or switch mode
+            } else {
+                alert('✅ 注册申请已提交！\n\n如果Supabase开启了邮箱验证，请查收邮件。\n如果没有开启，请直接尝试登录。');
+                // Switch to login mode
+                this.toggleAuthMode();
+            }
         } catch (e) {
             console.error(e);
             alert('注册失败: ' + e.message);
         }
+    },
+
+    // Helper: Turn Phone/Username into Email
+    smartFormatEmail: function (input) {
+        input = input.trim();
+        // If already email, return as is
+        if (input.includes('@')) return input;
+
+        // If pure numbers (Phone), append phone domain
+        if (/^\d+$/.test(input)) {
+            return `${input}@phone.ai-playground.com`;
+        }
+
+        // If regular username, append default domain
+        return `${input}@ai-playground.com`;
     },
 
     handleLogout: async function () {
