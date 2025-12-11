@@ -6,7 +6,8 @@ echo "⏳ 请稍候,这可能需要几分钟..."
 echo ""
 
 # 启动cloudflared并捕获输出
-TUNNEL_OUTPUT=$(/tmp/cloudflared tunnel --url http://localhost:80 2>&1 &)
+# 使用 nohup 确保后台运行，并将所有输出重定向到日志文件
+nohup /tmp/cloudflared tunnel --url http://localhost:80 > /tmp/cloudflared.log 2>&1 &
 TUNNEL_PID=$!
 
 # 等待隧道URL出现

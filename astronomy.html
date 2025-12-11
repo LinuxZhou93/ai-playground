@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interstellar | 天文宇宙探索</title>
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/three.min.js"></script>
+
+    <!-- Scripts -->
+    <script src="assets/js/background-3d.js" defer></script>
+    <link rel="stylesheet" href="assets/css/ai-assistant.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        cosmos: {
+                            base: '#05050A',
+                            accent: '#00F3FF', // Cyan
+                            purple: '#BC13FE', // Neon Purple
+                            gold: '#FFD700',
+                            panel: 'rgba(5, 5, 10, 0.7)'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 8s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 20s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500600;700&family=Space+Grotesk:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #05050A;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Sci-Fi Glassmorphism */
+        .glass-panel {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.05);
+            transition: all 0.4s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(0, 243, 255, 0.4);
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.15);
+            transform: translateY(-5px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        .text-gradient-cosmos {
+            background: linear-gradient(135deg, #00F3FF 0%, #BC13FE 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hologram-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.5), transparent);
+            width: 100%;
+        }
+
+        /* Scanline Effect */
+        .scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 243, 255, 0.02) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .hero-title {
+            letter-spacing: -0.05em;
+        }
+    </style>
+</head>
+
+<body class="selection:bg-cyan-500/30">
+    <!-- Visual Effects -->
+    <div class="scanline fixed inset-0"></div>
+
+    <!-- Hero Background -->
+    <div class="fixed inset-0 z-0">
+        <img src="assets/images/astronomy_hero.png" class="w-full h-full object-cover opacity-30 animate-pulse-slow">
+        <div class="absolute inset-0 bg-gradient-to-b from-[#05050A] via-transparent to-[#05050A]"></div>
+    </div>
+
+    <!-- 3D Canvas -->
+    <canvas id="bg-canvas" class="fixed inset-0 z-0 opacity-60"></canvas>
+
+    <div class="relative z-10">
+        <!-- Navbar -->
+        <nav class="sticky top-0 z-50 glass-panel border-b border-b-cyan-500/10 mb-20">
+            <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full border border-cyan-500/30 flex items-center justify-center animate-spin-slow">
+                        <span class="text-xl">🪐</span>
+                    </div>
+                    <span class="font-display font-bold text-2xl tracking-widest uppercase">Inter<span
+                            class="text-gradient-cosmos">stellar</span></span>
+                </div>
+                <div class="flex items-center gap-8">
+                    <a href="#cosmos"
+                        class="text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-widest hidden md:block">Cosmos</a>
+                    <a href="#lab"
+                        class="text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors uppercase tracking-widest hidden md:block">Lab</a>
+                    <a href="index.html"
+                        class="px-6 py-2 rounded-full border border-cyan-500/30 text-sm font-semibold hover:bg-cyan-500/10 hover:border-cyan-400 transition-all text-cyan-400 uppercase tracking-wider">Home</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="space-y-32 pb-32">
+
+            <!-- Hero Section -->
+            <section class="min-h-[80vh] flex flex-col justify-center items-center text-center px-6 relative">
+                <div class="hologram-line absolute top-1/4"></div>
+
+                <div class="space-y-8 max-w-5xl animate-float">
+                    <div
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-[0.2em] mb-4">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                        Exploration Status: Active
+                    </div>
+
+                    <h1 class="font-display font-bold text-7xl md:text-9xl hero-title leading-none">
+                        <span
+                            class="block text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500">BEYOND</span>
+                        <span
+                            class="text-gradient-cosmos filter drop-shadow-[0_0_20px_rgba(0,243,255,0.4)]">INFINITY</span>
+                    </h1>
+
+                    <p class="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
+                        探索宇宙的终极奥秘。从微小的夸克到宏大的星系，<br>
+                        在这里，我们将所有的已知与未知，以<span class="text-cyan-400">最前沿的视角</span>呈现。
+                    </p>
+
+                    <div class="flex flex-wrap gap-6 justify-center pt-12">
+                        <a href="#tools"
+                            class="px-10 py-4 bg-cyan-500/10 border border-cyan-500/50 text-cyan-400 rounded-none font-display font-bold text-lg hover:bg-cyan-500 hover:text-black transition-all uppercase tracking-widest">
+                            Start Mission
+                        </a>
+                        <a href="#encyclopedia"
+                            class="px-10 py-4 glass-panel rounded-none font-display font-bold text-lg hover:bg-white/5 transition-all uppercase tracking-widest text-slate-300">
+                            Knowledge Base
+                        </a>
+                    </div>
+                </div>
+
+                <!-- HUD Stats -->
+                <div
+                    class="absolute bottom-10 w-full max-w-7xl mx-auto px-6 flex justify-between text-xs font-mono text-cyan-500/50 uppercase tracking-widest border-t border-cyan-500/10 pt-4">
+                    <div>Coordinates: <span class="text-cyan-400">42.3601° N, 71.0589° W</span></div>
+                    <div>System Time: <span class="text-cyan-400">2049.12.31</span></div>
+                    <div>Atmosphere: <span class="text-cyan-400">Stable</span></div>
+                </div>
+            </section>
+
+            <!-- Tools & Experiments -->
+            <section id="tools" class="max-w-7xl mx-auto px-6">
+                <div class="flex items-center gap-4 mb-16">
+                    <div class="w-1 h-12 bg-gradient-to-b from-cyan-400 to-purple-500"></div>
+                    <h2 class="text-4xl md:text-5xl font-display font-bold uppercase tracking-wide">
+                        Cosmic <span class="text-gradient-cosmos">Tools</span>
+                    </h2>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Tool 1: Star Map -->
+                    <div class="glass-panel p-1 group relative overflow-hidden h-[400px]">
+                        <img src="assets/images/astronomy_tools.png"
+                            class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+
+                        <div class="absolute bottom-0 left-0 p-8 w-full z-10">
+                            <div
+                                class="w-12 h-12 border border-cyan-500/30 flex items-center justify-center text-2xl mb-4 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-black transition-colors">
+                                🔭
+                            </div>
+                            <h3 class="text-3xl font-display font-bold mb-2">Holographic Star Map</h3>
+                            <p class="text-slate-400 mb-6 max-w-md">Real-time interactive star chart. Track
+                                constellations, planets, and ISS trajectory in 3D space.</p>
+                            <button
+                                class="px-6 py-2 border border-cyan-500 text-cyan-400 text-sm font-bold uppercase hover:bg-cyan-500 hover:text-black transition-all">
+                                Initialize
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tool 2: Lab -->
+                    <div class="glass-panel p-1 group relative overflow-hidden h-[400px]">
+                        <img src="assets/images/astronomy_lab.png"
+                            class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+
+                        <div class="absolute bottom-0 left-0 p-8 w-full z-10">
+                            <div
+                                class="w-12 h-12 border border-purple-500/30 flex items-center justify-center text-2xl mb-4 text-purple-400 group-hover:bg-purple-500 group-hover:text-black transition-colors">
+                                🧬
+                            </div>
+                            <h3 class="text-3xl font-display font-bold mb-2">Exoplanet Laboratory</h3>
+                            <p class="text-slate-400 mb-6 max-w-md">Analyze atmospheric composition and habitability
+                                data from Kepler and TESS missions.</p>
+                            <button
+                                class="px-6 py-2 border border-purple-500 text-purple-400 text-sm font-bold uppercase hover:bg-purple-500 hover:text-black transition-all">
+                                Enter Lab
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Encyclopedia -->
+            <section id="encyclopedia" class="max-w-7xl mx-auto px-6">
+                <div class="flex items-center gap-4 mb-16 justify-end text-right">
+                    <h2 class="text-4xl md:text-5xl font-display font-bold uppercase tracking-wide">
+                        Universal <span class="text-gradient-cosmos">Data</span>
+                    </h2>
+                    <div class="w-1 h-12 bg-gradient-to-b from-purple-500 to-cyan-400"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Card 1 -->
+                    <div
+                        class="glass-panel p-6 hover:shadow-[0_0_30px_rgba(188,19,254,0.15)] group hover:border-purple-500/40">
+                        <div
+                            class="text-6xl mb-6 filter drop-shadow-[0_0_10px_rgba(255,100,0,0.5)] transform group-hover:scale-110 transition-transform duration-500">
+                            Mars</div>
+                        <h3 class="text-xl font-bold font-display uppercase tracking-wider mb-2 text-cyan-100">The Red
+                            Planet</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed mb-4">Target for colonization. Home to Olympus
+                            Mons, the largest volcano in the solar system.</p>
+                        <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-orange-500 w-[45%]"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-2 font-mono uppercase">
+                            <span>Terraform</span>
+                            <span>45%</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div
+                        class="glass-panel p-6 hover:shadow-[0_0_30px_rgba(188,19,254,0.15)] group hover:border-purple-500/40">
+                        <div
+                            class="text-6xl mb-6 filter drop-shadow-[0_0_10px_rgba(200,200,200,0.5)] transform group-hover:scale-110 transition-transform duration-500">
+                            Moon</div>
+                        <h3 class="text-xl font-bold font-display uppercase tracking-wider mb-2 text-cyan-100">Lunar
+                            Gateway</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed mb-4">Earth's only natural satellite. The
+                            perfect staging ground for deep space missions.</p>
+                        <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-slate-200 w-[92%]"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-2 font-mono uppercase">
+                            <span>Mapped</span>
+                            <span>92%</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div
+                        class="glass-panel p-6 hover:shadow-[0_0_30px_rgba(188,19,254,0.15)] group hover:border-purple-500/40">
+                        <div
+                            class="text-6xl mb-6 filter drop-shadow-[0_0_10px_rgba(50,0,100,0.8)] transform group-hover:scale-110 transition-transform duration-500">
+                            Black Hole</div>
+                        <h3 class="text-xl font-bold font-display uppercase tracking-wider mb-2 text-cyan-100">
+                            Singularity</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed mb-4">A region of spacetime where gravity is so
+                            strong that nothing can escape.</p>
+                        <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-purple-600 w-[100%] animate-pulse"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-2 font-mono uppercase">
+                            <span>Danger</span>
+                            <span>Critical</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 4 -->
+                    <div
+                        class="glass-panel p-6 hover:shadow-[0_0_30px_rgba(188,19,254,0.15)] group hover:border-purple-500/40">
+                        <div
+                            class="text-6xl mb-6 filter drop-shadow-[0_0_10px_rgba(0,255,200,0.5)] transform group-hover:scale-110 transition-transform duration-500">
+                            Exoplanets</div>
+                        <h3 class="text-xl font-bold font-display uppercase tracking-wider mb-2 text-cyan-100">New
+                            Worlds</h3>
+                        <p class="text-sm text-slate-400 leading-relaxed mb-4">Planets outside our solar system. The
+                            search for extraterrestrial life continues.</p>
+                        <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-cyan-500 w-[12%]"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-2 font-mono uppercase">
+                            <span>Explored</span>
+                            <span>0.001%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- AI Assistant Init -->
+    <script src="assets/js/ai-assistant.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initAIAssistant('astronomy');
+        });
+    </script>
+</body>
+
+</html>

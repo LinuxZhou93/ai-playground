@@ -61,6 +61,10 @@ const AI_PAGE_CONTEXTS = {
         title: '无人机飞行顾问',
         prompt: '你好!我是无人机实验室AI顾问。我可以提供飞行安全法规咨询、FPV模拟器入门指导、穿越机组装配置建议以及编程飞行课程辅导。无论你是新手小白还是想进阶的飞手，都可以问我。'
     },
+    'astronomy': {
+        title: '宇宙探索顾问',
+        prompt: '你好!我是天文与宇宙探索AI顾问。欢迎来到星际空间。我可以带你了解黑洞的奥秘、火星殖民计划、系外行星探索以及最新的天文学发现。随时准备为你解答关于宇宙的一切问题。'
+    },
     'default': {
         title: 'AI智能助手',
         prompt: '你好!我是周小麦网站的AI助手。我可以回答关于网站内容、学习资源、技术问题等各类问题。请问有什么可以帮助你的吗?'
@@ -70,7 +74,7 @@ const AI_PAGE_CONTEXTS = {
 // API配置
 const AI_CONFIG = {
     apiKey: 'app-XZYyFcpsU6Qk1dIoWDz92ZCR',
-    apiUrl: 'https://referenced-frontier-breach-divorce.trycloudflare.com/v1/chat-messages',
+    apiUrl: 'https://engaged-acquisition-knows-incl.trycloudflare.com/v1/chat-messages',
     user: 'zhou-xiaomai'
 };
 
