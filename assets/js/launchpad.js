@@ -148,9 +148,12 @@ const Launchpad = (() => {
 
                 // Subscription Check
                 let lockBadge = '';
-                if (typeof SubscriptionManager !== 'undefined') {
-                    const isLocked = SubscriptionManager.isPremium(app.link) && !SubscriptionManager.isSubscribed();
-                    if (isLocked) {
+                if (typeof SubscriptionManager !== 'undefined' && SubscriptionManager.isPremium) {
+                    const isPrem = SubscriptionManager.isPremium(app.link);
+                    const isSub = SubscriptionManager.isSubscribed();
+                    // console.log(`App: ${app.name}, Premium: ${isPrem}, Subbed: ${isSub}`);
+
+                    if (isPrem && !isSub) {
                         lockBadge = '<div class="app-lock-icon">🔒</div>';
                     }
                 }
