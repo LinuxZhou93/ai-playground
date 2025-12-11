@@ -256,23 +256,35 @@ const SubscriptionManager = {
             const duration = voucher.duration_months || 12;
             currentExpiry.setMonth(currentExpiry.getMonth() + duration);
 
-            const { error: updateVError } = await this.client
-                .from('vouchers').update({ status: 'used', used_by: this.user.id }).eq('id', voucher.id);
+            // 3. Update User Profile
+            // Handle case where profile might indicate success but return no data
+            const { error: pError } = await this.client
+                .from('profiles')
+                .upsert({
+                    id: this.user.id,
+                    expiry_date: currentExpiry.toISOString(),
+                    username: this.profile?.username || this.user.email.split('@')[0]
+                }); // Use upsert to create if missing
 
-            if (updateVError) throw new Error('核销失败，请重试');
+            if (pError) throw new Error('更新用户档案失败: ' + pError.message);
 
-            const { error: updatePError } = await this.client
-                .from('profiles').update({ expiry_date: currentExpiry.toISOString() }).eq('id', this.user.id);
+            // 4. Update Voucher Status
+            const { error: vUpdateError } = await this.client
+                .from('vouchers')
+                .update({ status: 'used', used_by: this.user.id })
+                .eq('id', voucher.id);
 
-            if (updatePError) throw new Error('更新会员状态失败');
+            if (vUpdateError) throw new Error('核销卡密失败(RLS): ' + vUpdateError.message);
 
-            alert(`充值成功！您的会员已延长至 ${currentExpiry.toLocaleDateString()}`);
+            alert('🎉 充值成功！\n会员有效期至: ' + currentExpiry.toLocaleDateString());
+
+            // Refresh
             await this.fetchProfile();
-            codeInput.value = '';
+            window.location.reload();
 
         } catch (e) {
-            console.error(e);
-            alert(e.message);
+            console.error('Redeem Error:', e);
+            alert('❌ 兑换失败: ' + e.message + '\n\n(请检查Supabase的RLS策略是否允许用户更新vouchers表)');
         }
     },
 
