@@ -17,6 +17,7 @@ const SubscriptionManager = (() => {
         'wiki.html',              // 知识库
         'forum.html',             // 论坛
         'index.html',             // 首页
+        'profile.html',           // 个人中心 (Free to access, but content limited if not logged in)
         '#'
     ];
 
