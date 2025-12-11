@@ -1,6 +1,8 @@
 const Launchpad = (() => {
     // Configuration
-    const APPS_PER_PAGE = 20; // 5 cols x 4 rows
+    function getAppsPerPage() {
+        return window.innerWidth < 768 ? 12 : 20; // 12 for Mobile (3x4), 20 for Desktop (5x4)
+    }
 
     // App Data (Real apps only)
     const apps = [
@@ -20,6 +22,7 @@ const Launchpad = (() => {
     ];
 
     let currentPage = 0;
+    let resizeTimeout;
 
     function init() {
         const overlay = document.createElement('div');
@@ -80,11 +83,21 @@ const Launchpad = (() => {
         // Swipe support and overlay attach
         setupGestures(overlay);
         document.body.appendChild(overlay);
+
+        // Resize Listener
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const search = document.querySelector('.lp-search-bar');
+                renderPages(search ? search.value : '');
+            }, 200);
+        });
     }
 
     function renderPages(filterText = '') {
         const container = document.getElementById('lpPages');
         const dotsContainer = document.getElementById('lpDots');
+        const itemsPerPage = getAppsPerPage();
 
         // Filter apps
         const filteredApps = apps.filter(app =>
@@ -107,15 +120,15 @@ const Launchpad = (() => {
             return;
         }
 
-        const totalPages = Math.ceil(filteredApps.length / APPS_PER_PAGE);
+        const totalPages = Math.ceil(filteredApps.length / itemsPerPage);
 
         // Generate Pages
         for (let i = 0; i < totalPages; i++) {
             const page = document.createElement('div');
             page.className = 'launchpad-page';
 
-            const start = i * APPS_PER_PAGE;
-            const end = start + APPS_PER_PAGE;
+            const start = i * itemsPerPage;
+            const end = start + itemsPerPage;
             const pageApps = filteredApps.slice(start, end);
 
             pageApps.forEach((app, index) => {
@@ -129,6 +142,12 @@ const Launchpad = (() => {
                     <div class="lp-app-icon" style="color: ${app.color}">${iconContent}</div>
                     <span class="lp-app-label">${app.name}</span>
                 `;
+
+                // If it's a dummy link, prevent default (for safety, though we removed them)
+                if (app.link === '#') {
+                    item.addEventListener('click', (e) => e.preventDefault());
+                }
+
                 page.appendChild(item);
             });
 
