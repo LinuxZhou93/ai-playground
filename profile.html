@@ -394,8 +394,8 @@
         <script>
             // --- Sync with SubscriptionManager ---
 
-            // 1. Listen for Updates
-            window.addEventListener('subscription_updated', () => {
+            // 1. Listen for Updates & Force Check
+            function checkState() {
                 const manager = window.SubscriptionManager;
                 if (!manager) return;
 
@@ -403,10 +403,18 @@
                 const profile = manager.profile;
                 const isVIP = manager.isSubscribed();
 
+                console.log('Profile CheckState:', { user, profile, isVIP }); // Debug Log
+
                 if (user) {
                     // Update Sidebar
                     document.getElementById('uAvatar').innerHTML = isVIP ? '🎓' : '👤';
-                    document.getElementById('uName').innerText = profile?.username || user.email.split('@')[0];
+
+                    // Display Name Logic: Profile Name -> Email Prefix -> Phone
+                    let displayName = 'User';
+                    if (profile?.username) displayName = profile.username;
+                    else if (user.email) displayName = user.email.split('@')[0];
+
+                    document.getElementById('uName').innerText = displayName;
                     document.getElementById('uRole').innerText = isVIP ? '尊享会员 VIP' : '普通学员';
                     document.getElementById('uRole').style.color = isVIP ? '#fbbf24' : '#94a1b2';
                     document.getElementById('uID').innerText = '#' + user.id.substring(0, 6).toUpperCase();
@@ -419,17 +427,28 @@
                     document.querySelector('.logout-btn').innerText = '退出登录';
 
                     // Unlock UI
-                    document.querySelector('.content-grid').style.opacity = '1';
-                    document.querySelector('.content-grid').style.pointerEvents = 'auto'; // Re-enable clicks
+                    const grid = document.querySelector('.content-grid');
+                    if (grid) {
+                        grid.style.opacity = '1';
+                        grid.style.pointerEvents = 'auto';
+                    }
                 } else {
                     // Not Logged In
                     document.getElementById('uName').innerText = '游客 (未登录)';
                     document.getElementById('uRole').innerText = '点击兑换登录';
                     document.querySelector('.logout-btn').innerText = '去登录 / 注册';
 
-                    // We don't block UI anymore, but maybe dim it lightly
-                    document.querySelector('.content-grid').style.opacity = '0.5';
+                    const grid = document.querySelector('.content-grid');
+                    if (grid) grid.style.opacity = '0.5';
                 }
+            }
+
+            window.addEventListener('subscription_updated', checkState);
+
+            // Also check immediately in case we missed the event
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(checkState, 500); // Wait a bit for Supabase to init
+                setInterval(checkState, 2000); // Polling backup just in case
             });
 
             // 2. Button Actions
