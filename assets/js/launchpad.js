@@ -6,8 +6,7 @@ const Launchpad = (() => {
 
     // App Data (Real apps only)
     const apps = [
-        { name: '个人中心', icon: '👤', link: 'profile.html', color: 'var(--mc-cyan)' }, // New Entry
-        { name: '教育日志', icon: '📝', link: 'blog.html', color: '#fff' },
+        { name: '个人中心', icon: '👤', link: 'profile.html', color: 'var(--mc-cyan)' },
         { name: '培养图谱', icon: '🗺️', link: 'post-4.html', color: '#fff' },
         { name: '课程地图', icon: '🧭', link: 'post-6.html', color: '#fff' },
         { name: '竞赛地图', icon: '🏆', link: 'competition-atlas.html', color: '#fbbf24' },
@@ -19,7 +18,14 @@ const Launchpad = (() => {
         { name: '读书观影', icon: '📚', link: 'library.html', color: '#ec4899' },
         { name: '论坛', icon: '💬', link: 'forum.html', color: '#06b6d4' },
         { name: '编程', icon: '🎨', link: 'coding.html', color: '#FFAB19' },
-        { name: '无人机', icon: '🚁', link: 'drone.html', color: '#0ea5e9' }
+        { name: '无人机', icon: '🚁', link: 'drone.html', color: '#0ea5e9' },
+        { name: '实验', icon: '⚗️', link: 'labs.html', color: '#00f3ff' },
+        { name: '3D打印', icon: '🖨️', link: '3d-print.html', color: '#FF2D55' },
+        { name: '学习', icon: '🚀', link: 'learn.html', color: '#8B5CF6' },
+        { name: '电子电路', icon: '🔌', link: 'circuits.html', color: '#00FF9D' },
+        { name: '人工智能', icon: '🧠', link: 'ai.html', color: '#d946ef' },
+        { name: '我的世界', icon: '⛏️', link: 'minecraft.html', color: 'var(--mc-green)' },
+        { name: '教育日志', icon: '📝', link: 'blog.html', color: '#fff' }
     ];
 
     let currentPage = 0;
