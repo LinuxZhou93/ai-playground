@@ -527,35 +527,54 @@
                 }, 500); // 500ms delay for visual feedback
             }
 
-            // 3. Dynamic Data Rendering (Sync with Admin/Index)
-            function renderProfileData() {
-                // 1. Try Local Bridge First
+            // 3. Dynamic Data Rendering (Cloud Sync Enabled)
+            async function renderProfileData() {
                 let d = null;
+                
+                // 1. Try Local Bridge First (Fast Preview)
                 const localData = localStorage.getItem('local_dashboard_data');
                 if (localData) {
                     try { d = JSON.parse(localData); } catch (e) { }
                 }
 
-                // Default Mock if empty
+                // 2. Fetch Cloud Data (Single Source of Truth)
+                if (window.SubscriptionManager && window.SubscriptionManager.user) {
+                    const uEmail = window.SubscriptionManager.user.email;
+                    try {
+                        const { data, error } = await window.SubscriptionManager.client
+                            .from('user_dashboard_data')
+                            .select('*')
+                            .eq('username', uEmail)
+                            .single();
+                        
+                        if (data) {
+                            d = data; // Override local with cloud
+                            // Update local cache
+                            localStorage.setItem('local_dashboard_data', JSON.stringify(data));
+                            console.log('Profile synced from Cloud:', data);
+                        }
+                    } catch (err) { console.warn('Cloud Fetch Err:', err); }
+                }
+
+                // Default Mock if completely empty
                 if (!d) {
                     d = {
-                        prog_self: 85, prog_basic: 72, prog_subject: 90, prog_tech: 65,
-                        skill_math: true, skill_physics: true, skill_info: true,
-                        skill_ai: true, skill_english: false, skill_reading: false
+                        prog_self: 0, prog_basic: 0, prog_subject: 0, prog_tech: 0, // Reset to 0 to indicate valid fetch needed
+                        skill_math: false, skill_physics: false, skill_info: false,
+                        skill_ai: false, skill_english: false, skill_reading: false
                     };
                 }
 
-                // 2. Render Core Growth (Replacing Courses)
+                // 2. Render Core Growth
                 const list = document.getElementById('courseList');
-                // Update Title to match content
                 const titleEl = document.querySelector('.dash-card h3');
                 if (titleEl && titleEl.innerText.includes('正在学习')) titleEl.innerText = '📊 核心素养成长 | Core Growth';
 
                 const dimensions = [
-                    { name: 'Self Management / 自我管理', val: d.prog_self, icon: '🧠', color: '#3b82f6' },
-                    { name: 'Cognition / 基础思维', val: d.prog_basic, icon: '💡', color: '#a855f7' },
-                    { name: 'Academic / 学科知识', val: d.prog_subject, icon: '📚', color: '#22c55e' },
-                    { name: 'Tech Stack / 技术栈', val: d.prog_tech, icon: '🛠️', color: '#f59e0b' }
+                    { name: 'Self Management / 自我管理', val: d.prog_self || 0, icon: '🧠', color: '#3b82f6' },
+                    { name: 'Cognition / 基础思维', val: d.prog_basic || 0, icon: '💡', color: '#a855f7' },
+                    { name: 'Academic / 学科知识', val: d.prog_subject || 0, icon: '📚', color: '#22c55e' },
+                    { name: 'Tech Stack / 技术栈', val: d.prog_tech || 0, icon: '🛠️', color: '#f59e0b' }
                 ];
 
                 if (list) {
@@ -580,10 +599,9 @@
                     });
                 }
 
-                // 3. Render Achievements based on Skills (Reactive)
+                // 3. Render Achievements
                 const badgeGrid = document.querySelector('.badge-grid');
                 if (badgeGrid) {
-                    // Define badges mapped to admin skills
                     const badges = [
                         { id: 'skill_math', name: '数学之星', icon: '📐' },
                         { id: 'skill_physics', name: '物理先锋', icon: '🌌' },

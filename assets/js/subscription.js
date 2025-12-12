@@ -91,6 +91,11 @@ const SubscriptionManager = {
             }
 
             if (!data) {
+                // First Time User: Initialize DB
+                console.log('New User Detected: Initializing Data...');
+                await this.initNewUser();
+
+                // Fallback Mock while initializing
                 this.profile = {
                     username: this.user.user_metadata.username || this.user.email.split('@')[0],
                     expiry_date: null
@@ -111,6 +116,29 @@ const SubscriptionManager = {
         } catch (e) {
             console.error('Profile fetch unexpected error:', e);
         }
+    },
+
+    initNewUser: async function () {
+        if (!this.user) return;
+        const uEmail = this.user.email;
+        const uName = this.user.user_metadata.username || uEmail.split('@')[0];
+
+        // 1. Init Profile
+        await this.client.from('profiles').upsert({
+            id: this.user.id,
+            username: uName,
+            updated_at: new Date()
+        });
+
+        // 2. Init Dashboard Data (For Admin Panel Visibility)
+        await this.client.from('user_dashboard_data').upsert({
+            username: uEmail, // Using Email as PK for dashboard table as per schema
+            is_logged_in: true,
+            prog_self: 10,  // Default starter values
+            prog_basic: 5,
+            mod_launch: true
+        });
+        console.log('User Data Initialized in DB');
     },
 
     // --- UI Updates ---

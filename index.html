@@ -1520,58 +1520,80 @@
         const canvas = document.getElementById('neuron-canvas');
 
         // --- DATA SYNC LOGIC (CONNECT TO ADMIN/PROFILE) ---
-        function updateDashboardFromStorage() {
+        async function updateDashboardFromStorage() {
             // 1. User Info Sync
             let userName = '小创客01';
             let uid = '8848-ALPHA';
+            let currentUserEmail = null;
 
-            // Try Supabase User
             if (window.SubscriptionManager?.user) {
                 const u = window.SubscriptionManager.user;
                 userName = u.email.split('@')[0];
+                currentUserEmail = u.email;
                 uid = u.id.substring(0, 6).toUpperCase();
             } else {
-                // Try Local Logic (from Profile/Auth)
                 const localEmail = localStorage.getItem('current_user_email');
                 if (localEmail) {
                     userName = localEmail.split('@')[0];
-                    uid = 'LOCAL-USER';
+                    currentUserEmail = localEmail;
+                    uid = 'LOCAL-USER'; // Or read from stored token
                 }
             }
 
-            // Update DOM
             const nameEl = document.querySelector('.u-name');
             const uidEl = document.querySelector('.u-uid');
             if (nameEl && nameEl.innerText !== userName) nameEl.innerText = userName;
             if (uidEl && !uidEl.innerText.includes(uid)) uidEl.innerText = 'UID: ' + uid;
 
-            // 2. Growth Data Sync (From Admin 'local_dashboard_data')
-            const localData = localStorage.getItem('local_dashboard_data');
-            if (localData) {
-                try {
-                    const d = JSON.parse(localData);
-                    // Mapping: key -> index in .holo-group list
-                    const keys = ['prog_self', 'prog_basic', 'prog_subject', 'prog_tech'];
-                    const groups = document.querySelectorAll('.holo-group');
+            // 2. Growth Data Sync (Cloud Priority)
+            let d = null;
 
-                    keys.forEach((k, i) => {
-                        if (groups[i] && d[k] !== undefined) {
-                            const val = d[k];
-                            // Update Text
-                            const labelSpan = groups[i].querySelector('.holo-label span:last-child');
-                            if (labelSpan) labelSpan.innerText = val + '%';
-                            // Update Bar Width
-                            const bar = groups[i].querySelector('.holo-bar');
-                            if (bar) bar.style.width = val + '%';
-                        }
-                    });
-                } catch (e) { console.error('Data Sync Error', e); }
+            // A. Try Cloud Fetch
+            if (currentUserEmail && window.SubscriptionManager?.client) {
+                try {
+                    const { data } = await window.SubscriptionManager.client
+                        .from('user_dashboard_data')
+                        .select('*')
+                        .eq('username', currentUserEmail) // User Email as key
+                        .single();
+
+                    if (data) {
+                        d = data;
+                        localStorage.setItem('local_dashboard_data', JSON.stringify(data)); // Sync back to local
+                    }
+                } catch (e) { }
+            }
+
+            // B. Fallback to LocalStorage
+            if (!d) {
+                const localData = localStorage.getItem('local_dashboard_data');
+                if (localData) {
+                    try { d = JSON.parse(localData); } catch (e) { }
+                }
+            }
+
+            if (d) {
+                const keys = ['prog_self', 'prog_basic', 'prog_subject', 'prog_tech'];
+                const groups = document.querySelectorAll('.holo-group');
+
+                keys.forEach((k, i) => {
+                    if (groups[i] && d[k] !== undefined) {
+                        const val = d[k];
+                        const labelSpan = groups[i].querySelector('.holo-label span:last-child');
+                        if (labelSpan) labelSpan.innerText = val + '%';
+                        const bar = groups[i].querySelector('.holo-bar');
+                        if (bar) bar.style.width = val + '%';
+                    }
+                });
+
+                // Also update Skill Tree Visualization if needed
+                // (Optional: Pass d to renderSkillTree(d))
             }
         }
 
-        // Run Sync Loop
-        setInterval(updateDashboardFromStorage, 1000); // Poll every second
-        updateDashboardFromStorage(); // Run immediately
+        // Run Sync Loop (Adjusted for async)
+        setInterval(updateDashboardFromStorage, 2000); // Poll slower for network
+        setTimeout(updateDashboardFromStorage, 100); // Immediate
 
         const ctx = canvas.getContext('2d');
         let w, h, particles = [];
