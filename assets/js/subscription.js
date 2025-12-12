@@ -11,42 +11,44 @@ const SubscriptionManager = {
     ],
 
     init: async function () {
-        console.log('SubscriptionManager: Initializing Supabase...');
+        console.log('SubscriptionManager: Initializing...');
 
         // 1. Check Config
-        if (typeof SUPABASE_CONFIG === 'undefined' ||
-            !SUPABASE_CONFIG.url || SUPABASE_CONFIG.url.includes("YOUR_SUPABASE_URL")) {
-            console.warn('⚠️ Supabase config not found or invalid.');
-            this.updateDockAuthButton(false);
+        if (typeof SUPABASE_CONFIG === 'undefined') {
+            console.warn('⚠️ Supabase Config Missing');
+            alert('系统配置加载失败 (Config Missing)');
             return;
         }
 
-        // 2. Init Client
+        // 2. Init Client (Safe Check)
         try {
             if (typeof supabase === 'undefined') {
-                console.error('Supabase SDK not loaded');
-                return;
+                console.error('CRITICAL: Supabase SDK not loaded.');
+                this.client = null;
+                // Don't return, keep the object alive so UI doesn't crash
+            } else {
+                this.client = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
             }
-            this.client = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
         } catch (e) {
             console.error("Supabase init failed:", e);
-            return;
         }
 
-        // 3. Check Session
-        try {
-            const { data: { session } } = await this.client.auth.getSession();
-
-            if (session) {
-                console.log('User logged in:', session.user);
-                this.user = session.user;
-                await this.fetchProfile();
-            } else {
-                console.log('No active session');
-                this.updateDockAuthButton(false);
+        // 3. Check Session (Only if client exists)
+        if (this.client) {
+            try {
+                const { data: { session } } = await this.client.auth.getSession();
+                if (session) {
+                    console.log('User logged in:', session.user);
+                    this.user = session.user;
+                    await this.fetchProfile();
+                } else {
+                    console.log('No active session');
+                }
+            } catch (e) {
+                console.error("Error checking session:", e);
             }
-        } catch (e) {
-            console.error("Error checking session:", e);
+        } else {
+            console.warn('Skipping session check (No Client)');
         }
 
         // 4. Bind Events
@@ -171,7 +173,13 @@ const SubscriptionManager = {
             });
 
             if (error) throw error;
+
+            console.log('Login Success, persisting session:', data.user.email);
+            localStorage.setItem('current_user_email', data.user.email);
+
             alert('🎉 登录成功！');
+            this.hideAuthModal();
+            window.location.reload();
         } catch (e) {
             console.error(e);
             let msg = e.message;
@@ -229,6 +237,10 @@ const SubscriptionManager = {
     handleLogout: async function () {
         const { error } = await this.client.auth.signOut();
         if (error) console.error('Logout error:', error);
+
+        localStorage.removeItem('current_user_email');
+        localStorage.removeItem('dify_conversation_id');
+
         alert('已退出登录');
         window.location.href = 'index.html';
     },
@@ -348,6 +360,11 @@ const SubscriptionManager = {
     },
 
     showAuthModal: function () {
+        if (!this.client) {
+            alert('错误：无法连接到登录服务 (Supabase SDK Failed)。\n请尝试刷新页面或检查网络。');
+            return;
+        }
+
         let modal = document.getElementById('auth-modal');
         if (!modal) {
             this.createAuthModalHTML();
@@ -523,8 +540,11 @@ const SubscriptionManager = {
 };
 
 // Auto Init
-document.addEventListener('DOMContentLoaded', () => {
-    // Explicitly expose to window to ensure Launchpad can find it
-    window.SubscriptionManager = SubscriptionManager;
-    SubscriptionManager.init();
-});
+window.SubscriptionManager = SubscriptionManager;
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM Ready, initializing SubscriptionManager...');
+        SubscriptionManager.init();
+    });
+}

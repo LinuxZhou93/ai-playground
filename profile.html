@@ -395,8 +395,33 @@
             // --- Sync with SubscriptionManager ---
 
             // 1. Listen for Updates & Force Check
+            // 1. Listen for Updates & Force Check
             function checkState() {
                 const manager = window.SubscriptionManager;
+
+                // --- FALLBACK: Direct LocalStorage Check (If Manager is slow) ---
+                if (!manager || !manager.user) {
+                    const localEmail = localStorage.getItem('current_user_email');
+                    const sbToken = localStorage.getItem('sb-znmbkxmnwuurzhevfxtq-auth-token');
+
+                    if (localEmail || sbToken) {
+                        // We have local evidence of login!
+                        const email = localEmail || (sbToken ? JSON.parse(sbToken).user.email : 'User');
+                        const simpleName = email.split('@')[0];
+
+                        document.getElementById('uName').innerText = simpleName;
+                        document.getElementById('uID').innerText = 'ONLINE';
+                        document.getElementById('uRole').innerText = '普通学员'; // Default to Regular instead of 'Validating'
+                        document.getElementById('uRole').style.color = '#94a1b2';
+                        document.querySelector('.logout-btn').innerText = '退出登录';
+
+                        // Unlock UI partially
+                        const grid = document.querySelector('.content-grid');
+                        if (grid) grid.style.opacity = '0.8';
+                    }
+                }
+                // -----------------------------------------------------------
+
                 if (!manager) return;
 
                 const user = manager.user;
@@ -433,13 +458,15 @@
                         grid.style.pointerEvents = 'auto';
                     }
                 } else {
-                    // Not Logged In
-                    document.getElementById('uName').innerText = '游客 (未登录)';
-                    document.getElementById('uRole').innerText = '点击兑换登录';
-                    document.querySelector('.logout-btn').innerText = '去登录 / 注册';
+                    // Only show "Not Logged In" if we fail the fallback check too
+                    if (!localStorage.getItem('current_user_email')) {
+                        document.getElementById('uName').innerText = '游客 (未登录)';
+                        document.getElementById('uRole').innerText = '点击兑换登录';
+                        document.querySelector('.logout-btn').innerText = '去登录 / 注册';
 
-                    const grid = document.querySelector('.content-grid');
-                    if (grid) grid.style.opacity = '0.5';
+                        const grid = document.querySelector('.content-grid');
+                        if (grid) grid.style.opacity = '0.5';
+                    }
                 }
             }
 
@@ -447,6 +474,7 @@
 
             // Also check immediately in case we missed the event
             document.addEventListener('DOMContentLoaded', () => {
+                checkState(); // Run strict check
                 setTimeout(checkState, 500); // Wait a bit for Supabase to init
                 setInterval(checkState, 2000); // Polling backup just in case
             });
@@ -499,35 +527,88 @@
                 }, 500); // 500ms delay for visual feedback
             }
 
-            // 3. Render Static Courses (Visual Only)
-            document.addEventListener('DOMContentLoaded', () => {
-                const courses = [
-                    { name: 'Python 基础入门', icon: '🐍', progress: 85, last: '2小时前' },
-                    { name: '天文宇宙探索', icon: '🪐', progress: 40, last: '1天前' },
-                    { name: '无人机飞行原理', icon: '🚁', progress: 15, last: '3天前' }
+            // 3. Dynamic Data Rendering (Sync with Admin/Index)
+            function renderProfileData() {
+                // 1. Try Local Bridge First
+                let d = null;
+                const localData = localStorage.getItem('local_dashboard_data');
+                if (localData) {
+                    try { d = JSON.parse(localData); } catch (e) { }
+                }
+
+                // Default Mock if empty
+                if (!d) {
+                    d = {
+                        prog_self: 85, prog_basic: 72, prog_subject: 90, prog_tech: 65,
+                        skill_math: true, skill_physics: true, skill_info: true,
+                        skill_ai: true, skill_english: false, skill_reading: false
+                    };
+                }
+
+                // 2. Render Core Growth (Replacing Courses)
+                const list = document.getElementById('courseList');
+                // Update Title to match content
+                const titleEl = document.querySelector('.dash-card h3');
+                if (titleEl && titleEl.innerText.includes('正在学习')) titleEl.innerText = '📊 核心素养成长 | Core Growth';
+
+                const dimensions = [
+                    { name: 'Self Management / 自我管理', val: d.prog_self, icon: '🧠', color: '#3b82f6' },
+                    { name: 'Cognition / 基础思维', val: d.prog_basic, icon: '💡', color: '#a855f7' },
+                    { name: 'Academic / 学科知识', val: d.prog_subject, icon: '📚', color: '#22c55e' },
+                    { name: 'Tech Stack / 技术栈', val: d.prog_tech, icon: '🛠️', color: '#f59e0b' }
                 ];
 
-                const list = document.getElementById('courseList');
                 if (list) {
-                    courses.forEach(c => {
+                    list.innerHTML = '';
+                    dimensions.forEach(c => {
                         const div = document.createElement('div');
                         div.className = 'course-item';
                         div.innerHTML = `
-                        <div class="c-icon">${c.icon}</div>
+                        <div class="c-icon" style="background:${c.color}20; color:${c.color}">${c.icon}</div>
                         <div class="c-info">
                             <div class="c-title">${c.name}</div>
                             <div class="progress-track">
-                                <div class="progress-fill" style="width: ${c.progress}%"></div>
+                                <div class="progress-fill" style="width: ${c.val}%; background:${c.color}"></div>
                             </div>
                             <div class="c-meta">
-                                <span>已学 ${c.progress}%</span>
-                                <span>上次: ${c.last}</span>
+                                <span>已完成 ${c.val}%</span>
+                                <span>Status: Active</span>
                             </div>
                         </div>
                      `;
                         list.appendChild(div);
                     });
                 }
+
+                // 3. Render Achievements based on Skills (Reactive)
+                const badgeGrid = document.querySelector('.badge-grid');
+                if (badgeGrid) {
+                    // Define badges mapped to admin skills
+                    const badges = [
+                        { id: 'skill_math', name: '数学之星', icon: '📐' },
+                        { id: 'skill_physics', name: '物理先锋', icon: '🌌' },
+                        { id: 'skill_info', name: '代码猎手', icon: '💻' },
+                        { id: 'skill_ai', name: 'AI 探索者', icon: '🤖' },
+                        { id: 'skill_reading', name: '博览群书', icon: '📖' },
+                        { id: 'skill_english', name: '双语达人', icon: '🌍' }
+                    ];
+
+                    badgeGrid.innerHTML = '';
+                    badges.forEach(b => {
+                        const unlocked = d[b.id] === true;
+                        const div = document.createElement('div');
+                        div.className = `badge-item ${unlocked ? 'unlocked' : ''}`;
+                        div.innerHTML = `
+                             <div class="badge-icon">${b.icon}</div>
+                             <span class="badge-name">${b.name}</span>
+                        `;
+                        badgeGrid.appendChild(div);
+                    });
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                renderProfileData();
             });
         </script>
 
