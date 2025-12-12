@@ -1,4 +1,4 @@
-const Launchpad = (() => {
+window.Launchpad = (() => {
     // Configuration
     function getAppsPerPage() {
         return window.innerWidth < 768 ? 12 : 20; // 12 for Mobile (3x4), 20 for Desktop (5x4)
@@ -106,6 +106,104 @@ const Launchpad = (() => {
         window.addEventListener('subscription_updated', () => {
             console.log('Launchpad: Subscription updated, refreshing icons...');
             renderPages();
+            updateDock(); // Sync bottom dock
+        });
+
+        // Initial Dock Sync
+        setTimeout(updateDock, 500);
+    }
+
+    function updateDock() {
+        if (typeof SubscriptionManager === 'undefined') return;
+
+        const dockItems = document.querySelectorAll('.dock-icon-box');
+        dockItems.forEach(item => {
+            // 1. Identify Target Link
+            // Most items use onclick="location.href='...'"
+            const onclickStr = item.getAttribute('onclick');
+            if (!onclickStr || !onclickStr.includes('location.href')) return;
+
+            // Extract 'page.html' from string "location.href='page.html'"
+            const match = onclickStr.match(/['"]([^'"]+)['"]/);
+            if (!match) return;
+            const link = match[1];
+
+            // 2. Check Permission
+            // Using same logic as renderPages
+            let isLocked = false;
+
+            // Check Free List
+            const isAlwaysFree = SubscriptionManager.FREE_PAGES.some(p => link.includes(p));
+
+            if (!isAlwaysFree) {
+                let isSubscribed = SubscriptionManager.isSubscribed && SubscriptionManager.isSubscribed();
+
+                // Fallback LocalStorage Check (Same as renderPages)
+                if (!isSubscribed) {
+                    try {
+                        const dashData = JSON.parse(localStorage.getItem('local_dashboard_data') || '{}');
+                        if (dashData && dashData.username) isSubscribed = true;
+                    } catch (e) { }
+                }
+
+                if (!isSubscribed) isLocked = true;
+            }
+
+            // 3. Update UI
+            // Remove existing lock overlay if any
+            const existingLock = item.querySelector('.dock-lock-overlay');
+            if (existingLock) existingLock.remove();
+
+            if (isLocked) {
+                // Add Visual Lock
+                item.classList.add('dock-locked');
+                item.style.opacity = '0.5';
+                item.style.position = 'relative'; // Ensure relative for absolute lock
+
+                const lock = document.createElement('div');
+                lock.className = 'dock-lock-overlay';
+                lock.innerHTML = '🔒';
+                lock.style.position = 'absolute';
+                lock.style.top = '-5px';
+                lock.style.right = '-5px';
+                lock.style.fontSize = '12px';
+                lock.style.background = '#000';
+                lock.style.borderRadius = '50%';
+                lock.style.width = '16px';
+                lock.style.height = '16px';
+                lock.style.display = 'flex';
+                lock.style.alignItems = 'center';
+                lock.style.justifyContent = 'center';
+                lock.style.border = '1px solid #333';
+                item.appendChild(lock);
+
+                // Override Click
+                item.dataset.originalClick = onclickStr;
+                item.removeAttribute('onclick'); // Kill original
+                item.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Shake
+                    item.style.transform = 'translateX(5px)';
+                    setTimeout(() => item.style.transform = 'translateX(-5px)', 50);
+                    setTimeout(() => item.style.transform = 'none', 150);
+
+                    if (typeof SubscriptionManager.showPaywall === 'function') {
+                        SubscriptionManager.showPaywall();
+                    }
+                };
+            } else {
+                // Unlock
+                item.classList.remove('dock-locked');
+                item.style.opacity = '1';
+
+                // Restore Click if it was locked
+                if (item.dataset.originalClick) {
+                    item.setAttribute('onclick', item.dataset.originalClick);
+                    item.onclick = null; // Remove JS override handler so attribute takes over
+                    delete item.dataset.originalClick;
+                }
+            }
         });
     }
 
@@ -153,58 +251,83 @@ const Launchpad = (() => {
             const pageApps = filteredApps.slice(start, end);
 
             pageApps.forEach((app, index) => {
-                const item = document.createElement('a');
-                item.href = app.link;
-                item.className = 'lp-app-item';
-                item.style.animationDelay = `${index * 30}ms`; // Faster stagger
+                const appLink = document.createElement('a');
+                appLink.className = 'lp-app-item';
+                appLink.href = app.link;
+                // Add staggered animation delay
+                appLink.style.animationDelay = `${index * 50}ms`;
 
-                let iconContent = app.icon;
+                // --- SUBSCRIPTION CHECK LOGIC ---
+                let isLocked = false;
 
-                // Subscription Check - Robust Logic
-                let lockBadge = '';
+                // 1. Safe List Check (Check if link is in FREE_PAGES)
+                const isAlwaysFree = (SubscriptionManager && SubscriptionManager.FREE_PAGES)
+                    ? SubscriptionManager.FREE_PAGES.some(p => app.link.includes(p))
+                    : false;
 
-                // Default to LOCKED if system not ready (Secure Default)
-                let isLocked = true;
+                if (!isAlwaysFree) {
+                    // It's a premium page, we need to check auth
 
-                if (typeof SubscriptionManager !== 'undefined' && SubscriptionManager.isPremium) {
-                    const link = app.link;
-                    const isPrem = SubscriptionManager.isPremium(link);
-                    const isSub = SubscriptionManager.isSubscribed();
-
-                    // If it is NOT premium, checkPass = true
-                    if (!isPrem) {
-                        isLocked = false;
+                    // A. Check SubscriptionManager Runtime State
+                    let isSubscribed = false;
+                    if (typeof SubscriptionManager !== 'undefined') {
+                        isSubscribed = SubscriptionManager.isSubscribed && SubscriptionManager.isSubscribed();
                     }
-                    // If it IS premium, but user is VIP, checkPass = true
-                    else if (isPrem && isSub) {
-                        isLocked = false;
+
+                    // B. Fallback: Check LocalStorage (Fast Path)
+                    if (!isSubscribed) {
+                        try {
+                            const cached = JSON.parse(localStorage.getItem('sb-fcdqsoroqvocybcaxnvu-auth-token'));
+                            if (cached && cached.user) isSubscribed = true; // Rudimentary check: has user = maybe premium?
+
+                            // Better: Check local dashboard data which drives the UI sidebar
+                            const dashData = JSON.parse(localStorage.getItem('local_dashboard_data') || '{}');
+                            if (dashData && dashData.username) isSubscribed = true; // Trusted local user
+                        } catch (e) { }
                     }
-                    // Otherwise stays true (Locked)
-                } else {
-                    // If Manager missing, only unlock known safest pages vaguely
-                    if (app.link === '#' || app.link.includes('index') || app.link.includes('profile')) {
-                        isLocked = false;
+
+                    // C. Final Decision
+                    if (!isSubscribed) {
+                        isLocked = true;
                     }
                 }
 
+                // Override Link if Locked
                 if (isLocked) {
-                    lockBadge = '<div class="app-lock-icon">🔒</div>';
+                    appLink.classList.add('locked');
+                    appLink.href = 'javascript:void(0)';
+                    appLink.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Simple Shake Animation
+                        const box = appLink.querySelector('.lp-app-icon-box');
+                        if (box) {
+                            box.style.transform = 'translateX(5px)';
+                            setTimeout(() => box.style.transform = 'translateX(-5px)', 50);
+                            setTimeout(() => box.style.transform = 'translateX(5px)', 100);
+                            setTimeout(() => box.style.transform = 'none', 150);
+                        }
+                        // Optional: Show Toast "Please Subscribe"
+                        if (typeof showToast === 'function') showToast('请解锁会员以访问此功能');
+                    };
                 }
 
-                item.innerHTML = `
-                    <div class="lp-app-icon" style="color: ${app.color}; position: relative;">
-                        ${iconContent}
-                        ${lockBadge}
-                    </div>
-                    <span class="lp-app-label">${app.name}</span>
-                `;
-
-                // If it's a dummy link, prevent default (for safety, though we removed them)
-                if (app.link === '#') {
-                    item.addEventListener('click', (e) => e.preventDefault());
+                // --- NEW HTML STRUCTURE (Glass Style) ---
+                const iconBox = document.createElement('div');
+                iconBox.className = 'lp-app-icon-box';
+                iconBox.innerHTML = app.icon;
+                // Use app color for subtle glow/border if needed
+                if (app.color && app.color !== '#fff') {
+                    iconBox.style.boxShadow = `0 4px 15px ${app.color}40`; // 40 = 25% alpha
                 }
 
-                page.appendChild(item);
+                const label = document.createElement('div');
+                label.className = 'lp-app-text';
+                label.innerText = app.name;
+
+                appLink.appendChild(iconBox);
+                appLink.appendChild(label);
+                page.appendChild(appLink);
             });
 
             container.appendChild(page);
@@ -297,8 +420,10 @@ const Launchpad = (() => {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Launchpad: DOMContentLoaded');
     try {
-        Launchpad.init();
-        console.log('Launchpad: Initialized');
+        if (window.Launchpad) {
+            window.Launchpad.init();
+            console.log('Launchpad: Initialized');
+        }
 
         const btn = document.getElementById('launchpadBtn');
         if (btn) {
@@ -306,15 +431,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 console.log('Launchpad: Button clicked');
-                Launchpad.open();
+                if (window.Launchpad) window.Launchpad.open();
             });
             // Force verify click (optional, for debugging)
             btn.onclick = (e) => {
                 e.preventDefault();
-                Launchpad.open();
+                if (window.Launchpad) window.Launchpad.open();
             };
         } else {
-            console.error('Launchpad: Button NOT found');
+            console.log('Launchpad: Button lookup skipped (using global toggle)');
         }
     } catch (e) {
         console.error('Launchpad: Error during init', e);

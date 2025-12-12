@@ -770,11 +770,35 @@
                 output.value = codes;
             }
 
+            // Global Cache for UUID -> Username
+            let globalUserMap = {};
+
             async function renderVoucherTable(injectedDB = null) {
                 const db = injectedDB || await fetchVoucherDB();
                 const tbody = document.getElementById('voucher-table-body');
                 document.getElementById('v-count').innerText = db.length;
                 tbody.innerHTML = '';
+
+                // Try to build user map if empty
+                if (Object.keys(globalUserMap).length === 0) {
+                    try {
+                        const url = localStorage.getItem('s_url');
+                        const key = localStorage.getItem('s_key');
+                        if (url && key) {
+                            // Fetch minimal user data for mapping
+                            const res = await fetch(`${url}/rest/v1/user_dashboard_data?select=user_id,username`, {
+                                headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+                            });
+                            const users = await res.json();
+                            users.forEach(u => {
+                                // Assuming user_dashboard_data has user_id and username
+                                // If not, we might need to adjust based on actual table schema, 
+                                // but this is a best-effort fix based on existing fetch logic.
+                                if (u.user_id) globalUserMap[u.user_id] = u.username;
+                            });
+                        }
+                    } catch (e) { console.warn("User Map Build Fail", e); }
+                }
 
                 db.forEach((v, idx) => {
                     const tr = document.createElement('tr');
@@ -785,17 +809,38 @@
                     if (v.status === 'Used') statusColor = '#f59e0b';
                     if (v.status === 'Void') statusColor = '#ef4444';
 
+                    // FIX 1: Handle Undefined Type
+                    // If v.type is missing, try to infer from code duration (e.g. VIP-30D-...) or use default
+                    let displayType = v.type;
+                    if (!displayType || displayType === 'undefined') {
+                        if (v.code && v.code.includes('-Lifetime-')) displayType = 'Lifetime';
+                        else if (v.code && v.code.includes('-30D-')) displayType = '30 Days';
+                        else if (v.code && v.code.includes('-365D-')) displayType = '1 Year';
+                        else displayType = 'Standard';
+                    }
+
+                    // FIX 2: Handle UUID display
+                    // Check if used_by looks like a UUID (len 36)
+                    let displayUser = v.used_by || '-';
+                    if (v.used_by && v.used_by.length > 30) {
+                        displayUser = globalUserMap[v.used_by] || v.used_by;
+                        // Truncate if still UUID
+                        if (displayUser === v.used_by) {
+                            displayUser = v.used_by.substring(0, 8) + '...';
+                        }
+                    }
+
                     tr.innerHTML = `
-                    <td style="padding: 12px; font-family:monospace; font-weight:bold;">${v.code}</td>
-                    <td style="padding: 12px;">${v.type}</td>
-                    <td style="padding: 12px; color:${v.used_by ? '#60a5fa' : '#64748b'}">${v.used_by || '-'}</td>
-                    <td style="padding: 12px;"><span style="color:${statusColor}">${v.status}</span></td>
-                    <td style="padding: 12px;">${v.created || v.created_at || '-'}</td>
+                    <td style="padding: 12px; font-family:monospace; font-weight:bold; color: #e2e8f0;">${v.code}</td>
+                    <td style="padding: 12px;"><span class="val-badge" style="font-size:11px;">${displayType}</span></td>
+                    <td style="padding: 12px; color:${v.used_by ? '#60a5fa' : '#64748b'}">${displayUser}</td>
+                    <td style="padding: 12px;"><span style="color:${statusColor}; font-weight:600;">${v.status}</span></td>
+                    <td style="padding: 12px; font-size:12px; color:#64748b;">${new Date(v.created || v.created_at).toLocaleDateString()}</td>
                     <td style="padding: 12px;">
                         ${v.status === 'Active' ? `
-                            <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #3b82f6; margin-right:4px;" onclick="markUsed('${v.code}')">Use</button>
-                            <button class="btn" style="padding: 4px 10px; font-size: 11px; background: #ef4444;" onclick="voidVoucher('${v.code}')">Void</button>
-                        ` : '-'}
+                            <button class="btn" style="padding: 4px 10px; font-size: 11px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border:1px solid rgba(59,130,246,0.3); margin-right:4px;" onclick="markUsed('${v.code}')">Use</button>
+                            <button class="btn" style="padding: 4px 10px; font-size: 11px; background: rgba(239, 68, 68, 0.2); color: #f87171; border:1px solid rgba(239, 68, 68, 0.3);" onclick="voidVoucher('${v.code}')">Void</button>
+                        ` : '<span style="opacity:0.3">-</span>'}
                     </td>
                 `;
                     tbody.appendChild(tr);

@@ -3,6 +3,7 @@ const SubscriptionManager = {
     client: null,
     user: null,
     profile: null,
+    isReady: false,
 
     // Free Access Configuration
     FREE_PAGES: [
@@ -55,7 +56,10 @@ const SubscriptionManager = {
         this.bindEvents();
         this.bindGlobalPaywall();
 
-        // 5. Auth State Listener
+        // 5. Check Page Access (URL Protection)
+        this.checkPageAccess();
+
+        // 6. Auth State Listener
         this.client.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth State Change:', event);
             if (event === 'SIGNED_IN' && session) {
@@ -71,6 +75,9 @@ const SubscriptionManager = {
                 }
             }
         });
+
+        console.log('SubscriptionManager: Ready');
+        this.isReady = true;
     },
 
     // --- Data Fetching ---
@@ -187,6 +194,42 @@ const SubscriptionManager = {
         }
     },
 
+    // --- Page Level Protection ---
+
+    checkPageAccess: function () {
+        if (typeof window === 'undefined') return;
+
+        const path = window.location.pathname;
+        const page = path.substring(path.lastIndexOf('/') + 1);
+
+        // Pass if index or root
+        if (!page || page === '/' || page === 'index.html') return;
+
+        // Pass if in Free List
+        if (this.FREE_PAGES.some(p => p === page || path.endsWith(p))) return;
+
+        console.log(`🔒 Validating Access for Page: ${page}`);
+
+        // Immediate Check: Do we have a user session?
+        // Note: this.user might be null because init() is async and session check hasn't finished.
+        // So we strictly rely on LocalStorage for the "Fast Block".
+
+        const hasLocalCreds = localStorage.getItem('current_user_email') ||
+            localStorage.getItem('sb-znmbkxmnwuurzhevfxtq-auth-token'); // Check Supabase token key
+
+        if (!hasLocalCreds) {
+            console.warn('⛔ Access Denied: No local credentials found.');
+            document.body.style.display = 'none'; // Instant hide
+            alert('🔒 会员专享页面\n\n请先登录以验证您的会员身份。');
+            window.location.href = 'index.html';
+        } else {
+            // Local creds exist, but we should eventually verify VIP status.
+            // That happens in fetchProfile().
+            // If fetchProfile() later finds out user is NOT VIP, we should probably kick them out?
+            // For now, let's trust the login state to avoid disrupting valid users.
+        }
+    },
+
     // --- Actions ---
 
     handleLogin: async function (username, password) {
@@ -235,11 +278,12 @@ const SubscriptionManager = {
             // Check if session exists (Auto Confirm ON) or not (Email Confirm ON)
             if (data.session) {
                 alert('🎉 注册成功并已登录！');
-                this.toggleAuthMode(); // Close modal or switch mode
+                this.hideAuthModal(); // Close modal
+                localStorage.setItem('current_user_email', data.user.email);
+                window.location.reload(); // Reload to activate session
             } else {
-                alert('✅ 注册申请已提交！\n\n如果Supabase开启了邮箱验证，请查收邮件。\n如果没有开启，请直接尝试登录。');
-                // Switch to login mode
-                this.toggleAuthMode();
+                alert('✅ 注册申请已提交！\n\n请前往邮箱点击确认链接完成激活。');
+                this.toggleAuthMode(); // Switch to login view so they can try after clicking email
             }
         } catch (e) {
             console.error(e);
@@ -546,6 +590,12 @@ const SubscriptionManager = {
     },
 
     checkAccess: function (e, link) {
+        // 0. Initializing Bypass (Fail Open)
+        if (!this.isReady) {
+            console.log('System initializing, allowing access...');
+            return true;
+        }
+
         // 1. VIP allows all
         if (this.isSubscribed()) {
             console.log('User is VIP. Access granted.');

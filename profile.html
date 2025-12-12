@@ -509,28 +509,34 @@
             }
 
             function logout() {
-                if (!window.SubscriptionManager) return;
+                // Force UI Feedback immediately
+                const btn = document.querySelector('.logout-btn');
+                btn.innerText = '正在退出...';
+                btn.disabled = true;
 
-                // If not logged in, prompt login
-                if (!window.SubscriptionManager.user) {
-                    window.SubscriptionManager.showPaywall();
-                    return;
+                // Clear all local storage credentials immediately
+                localStorage.removeItem('current_user_email');
+                localStorage.removeItem('local_dashboard_data');
+                // Also clear Supabase tokens if possible (by key prefix)
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('sb-') && key.endsWith('-token')) localStorage.removeItem(key);
+                });
+
+                if (window.SubscriptionManager) {
+                    // Tell manager to sign out properly from Supabase
+                    window.SubscriptionManager.handleLogout();
                 }
 
-                // Direct logout without native confirm (which is flaky)
-                const btn = document.querySelector('.logout-btn');
-                const origText = btn.innerText;
-                btn.innerText = '正在退出...';
-
+                // Hard Redirect to Index after short delay
                 setTimeout(() => {
-                    window.SubscriptionManager.handleLogout();
-                }, 500); // 500ms delay for visual feedback
+                    window.location.href = 'index.html';
+                }, 500);
             }
 
             // 3. Dynamic Data Rendering (Cloud Sync Enabled)
             async function renderProfileData() {
                 let d = null;
-                
+
                 // 1. Try Local Bridge First (Fast Preview)
                 const localData = localStorage.getItem('local_dashboard_data');
                 if (localData) {
@@ -546,7 +552,7 @@
                             .select('*')
                             .eq('username', uEmail)
                             .single();
-                        
+
                         if (data) {
                             d = data; // Override local with cloud
                             // Update local cache
