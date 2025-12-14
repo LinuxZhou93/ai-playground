@@ -4,837 +4,779 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学员个人中心 | Student Profile</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
+    <title>学员大数据全景中心 | Student Data Panorama</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&family=Inter:wght@300;400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="assets/css/index.css">
     <link rel="stylesheet" href="assets/css/subscription.css?v=final">
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- LiquidFill -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts-liquidfill@3.1.0/dist/echarts-liquidfill.min.js"></script>
+    <!-- Vanilla Tilt -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+
     <style>
-        /* --- VISUAL UPGRADE 2.0 --- */
+        /* --- VISUAL UPGRADE 5.2: FIXED AUTH BUTTONS & SIDEBAR --- */
         :root {
             --primary: #00f0ff;
+            --primary-dim: rgba(0, 240, 255, 0.1);
             --secondary: #7000ff;
-            --glass-bg: rgba(10, 15, 30, 0.65);
-            --glass-border: rgba(0, 240, 255, 0.3);
-            --neon-glow: 0 0 10px rgba(0, 240, 255, 0.4);
+            --accent: #fbbf24;
+            --success: #10b981;
+            --bg-dark: #02040a;
+            --glass-bg: rgba(13, 17, 28, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.08);
         }
 
         body {
-            background-color: #050510;
-            overflow-x: hidden;
-            background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000 100%);
+            background-color: var(--bg-dark);
+            color: #cbd5e1;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            /* Main scroll handled by containers */
+            height: 100vh;
+            background: radial-gradient(circle at 50% -20%, #1a1a40 0%, #000 70%);
         }
 
-        /* Dynamic Background Canvas */
-        #starfield {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            /* Behind everything */
+        /* --- LAYOUT: SIDEBAR + SCROLLABLE WALL --- */
+        .app-container {
+            display: flex;
+            height: 100vh;
         }
 
-        /* --- GLASSMORPHISM CARDS --- */
-        .dash-card {
+        .sidebar {
+            width: 300px;
+            flex-shrink: 0;
+            background: rgba(5, 5, 10, 0.95);
+            border-right: 1px solid var(--glass-border);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .main-wall {
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image:
+                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            position: relative;
+        }
+
+        /* --- DATA WALL SCROLL TRACK --- */
+        .data-track-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            /* Center Vertically if needed, or flex-start */
+            padding: 40px;
+            overflow-x: auto;
+            /* Hide scrollbar for sleek look but allow scroll */
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) #111;
+        }
+
+        .data-grid-wall {
+            display: grid;
+            grid-template-rows: repeat(2, 320px);
+            /* 2 Rows fix height */
+            grid-template-columns: repeat(8, 420px);
+            /* 8 Cols -> Total 16 Charts */
+            gap: 20px;
+            padding-right: 40px;
+            /* Spacer at end */
+        }
+
+        /* Card Panel */
+        .chart-card {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            backdrop-filter: blur(12px);
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
             position: relative;
-            overflow: hidden;
+            backdrop-filter: blur(10px);
+            transition: 0.3s;
         }
 
-        .dash-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.15);
-            border-color: rgba(0, 240, 255, 0.6);
+        .chart-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+            z-index: 5;
+            transform: scale(1.02);
         }
 
-        /* Subtle Inner Glow */
-        .dash-card::before {
+        .card-header {
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: bold;
+            font-size: 13px;
+            color: #94a3b8;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header::before {
             content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            margin-right: 8px;
+            box-shadow: 0 0 5px var(--primary);
+        }
+
+        .chart-box {
+            flex: 1;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 60%);
-            pointer-events: none;
+            min-height: 200px;
         }
 
-        /* Typography */
-        .dash-card h3 {
-            font-family: 'Orbitron', sans-serif;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 2px solid rgba(0, 240, 255, 0.2);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+        /* --- SIDEBAR COMPONENTS --- */
+        .profile-hero {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .avatar-glow {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 15px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 15px var(--primary-dim);
+            padding: 3px;
+            background: url('assets/images/bot_avatar_vip.png') center/cover;
+        }
+
+        .user-title {
+            font-size: 18px;
+            color: #fff;
+            font-weight: bold;
+            font-family: 'Noto Sans SC';
+        }
+
+        .user-tag {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .nav-item {
+            padding: 12px;
+            border-radius: 8px;
+            color: #94a3b8;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        /* Dashboard Specific Styles */
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 80px auto 40px;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 30px;
-            width: 95%;
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-
-
-        /* Profile Sidebar */
-        .profile-sidebar {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-
-        .user-avatar {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 3px solid #fbbf24;
-            /* VIP Gold */
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
-            margin-bottom: 15px;
-            background: url('assets/images/avatar_placeholder.png') center/cover;
-            background-color: #1e293b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            position: relative;
-        }
-
-        .vip-tag {
-            position: absolute;
-            bottom: -5px;
-            right: -5px;
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            color: #5a3804;
-            font-size: 12px;
-            font-weight: 900;
-            padding: 4px 10px;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.6);
-            border: 3px solid #050a14;
-            z-index: 10;
-            font-family: 'Orbitron', sans-serif;
-            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
-        }
-
-        .user-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: #fff;
-        }
-
-        .user-role {
-            background: rgba(251, 191, 36, 0.1);
-            color: #fbbf24;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-top: 5px;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-        }
-
-        .profile-stats {
-            margin-top: 30px;
-            width: 100%;
-        }
-
-        .p-stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 14px;
-            color: #94a3b8;
-        }
-
-        .p-stat-val {
-            color: #fff;
-            font-family: 'Share Tech Mono', monospace;
-        }
-
-        .logout-btn {
-            margin-top: 40px;
-            width: 100%;
-            padding: 12px;
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: rgba(239, 68, 68, 0.2);
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
-        }
-
-        /* Main Content Grid */
-        .content-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        /* Course Progress */
-        .course-item {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            border: 1px solid transparent;
-            transition: 0.3s;
-        }
-
-        .course-item:hover {
-            border-color: rgba(0, 243, 255, 0.2);
+        .nav-item:hover,
+        .nav-item.active {
             background: rgba(255, 255, 255, 0.05);
+            color: #fff;
         }
 
-        .c-icon {
-            font-size: 24px;
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .c-info {
-            flex: 1;
-        }
-
-        .c-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #e2e8f0;
-            margin-bottom: 5px;
-        }
-
-        .progress-track {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--mc-cyan);
-            width: 0%;
-            transition: width 1s ease-out;
-        }
-
-        .c-meta {
-            font-size: 11px;
-            color: #64748b;
-            margin-top: 5px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        /* Badges */
-        .badge-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            gap: 15px;
+        .nav-icon {
+            width: 20px;
             text-align: center;
         }
 
-        .badge-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            opacity: 0.5;
-            filter: grayscale(1);
-            transition: 0.3s;
+        .redeem-mini {
+            background: linear-gradient(135deg, #111, #222);
+            border: 1px solid #444;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: auto;
         }
 
-        .badge-item.unlocked {
-            opacity: 1;
-            filter: grayscale(0);
-        }
-
-        .badge-icon {
-            font-size: 32px;
-            margin-bottom: 8px;
-            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
-        }
-
-        .badge-name {
-            font-size: 11px;
-            color: #cbd5e1;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .dashboard-container {
-                grid-template-columns: 1fr;
-            }
-
-            .content-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Back Button */
-        .nav-back {
+        /* --- SCROLL HINT --- */
+        .scroll-hint {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #94a3b8;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 14px;
-            transition: 0.3s;
+            bottom: 20px;
+            right: 40px;
+            background: rgba(0, 0, 0, 0.6);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid var(--primary-dim);
+            pointer-events: none;
+            animation: pulse 2s infinite;
         }
 
-        .nav-back:hover {
-            color: var(--mc-cyan);
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+                transform: translateX(0);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translateX(10px);
+            }
+
+            100% {
+                opacity: 0.5;
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <canvas id="bg-canvas" style="position: fixed; top:0; left:0; z-index:-1;"></canvas>
+    <div class="app-container">
 
-    <a href="index.html" class="nav-back">
-        <span>←</span> 返回首页
-    </a>
+        <!-- FIXED SIDEBAR -->
+        <aside class="sidebar">
+            <a href="index.html"
+                style="color:#64748b; text-decoration:none; font-size:12px; margin-bottom:20px; display:block;">←
+                返回首页</a>
 
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="dash-card profile-sidebar">
-            <div class="user-avatar" id="uAvatar">👤</div>
-            <div class="user-name" id="uName">未登录</div>
-            <div class="user-role" id="uRole">游客</div>
+            <div class="profile-hero">
+                <div class="avatar-glow" id="uAvatar"></div>
+                <div class="user-title" id="uName">学员</div>
+                <div class="user-tag" id="uRole">尊享会员 VIP</div>
+            </div>
 
-            <div class="profile-stats">
-                <div class="p-stat-row">
-                    <span>账号ID</span>
-                    <span class="p-stat-val" id="uID">---</span>
-                </div>
-                <div class="p-stat-row">
-                    <span>会员有效期</span>
-                    <span class="p-stat-val" id="uExpiry" style="color: #fbbf24;">---</span>
-                </div>
-                <div class="p-stat-row">
-                    <span>学习时长</span>
-                    <span class="p-stat-val">12h 45m</span>
-                </div>
-                <div class="p-stat-row">
-                    <span>已获勋章</span>
-                    <span class="p-stat-val">3 / 12</span>
+            <div class="sidebar-nav">
+                <div class="nav-item active"><span class="nav-icon">📊</span> 全景数据概览</div>
+                <div class="nav-item"><span class="nav-icon">🏆</span> 勋章墙 (12/50)</div>
+                <div class="nav-item"><span class="nav-icon">📅</span> 学习日历</div>
+                <div class="nav-item"><span class="nav-icon">⚔️</span> 竞技场排名</div>
+            </div>
+
+            <!-- REDEEM AREA -->
+            <div class="redeem-mini">
+                <div style="font-size:11px; color:#fbbf24; margin-bottom:8px;">VIP SERVICE / 会员兑换</div>
+                <input type="text" id="voucher-code" placeholder="输入卡密..."
+                    style="width:100%; background:#000; border:1px solid #333; color:#fff; padding:6px; font-size:12px; margin-bottom:8px;">
+                <button onclick="redeem()"
+                    style="width:100%; background:#fbbf24; color:#000; border:none; padding:6px; font-size:12px; font-weight:bold; cursor:pointer;">立即激活</button>
+                <div id="redeemMsg" style="font-size:10px; color:#64748b; margin-top:5px; height:12px;"></div>
+            </div>
+
+            <button id="authBtn" onclick="handleAuth()"
+                style="margin-top:20px; background:rgba(255,255,255,0.05); border:1px solid #333; color:#fff; padding:10px; cursor:pointer; font-size:12px; border-radius: 4px; transition: 0.3s;">
+                安全退出系统
+            </button>
+        </aside>
+
+        <!-- HORIZONTAL SCROLL WALL -->
+        <main class="main-wall">
+            <div class="data-track-container">
+                <div class="data-grid-wall">
+
+                    <!-- 1. Radar -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>核心素养模型</span><span>01</span></div>
+                        <div id="c1" class="chart-box"></div>
+                    </div>
+
+                    <!-- 2. Thinking Rose -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>编程思维维度</span><span>02</span></div>
+                        <div id="c2" class="chart-box"></div>
+                    </div>
+
+                    <!-- 3. Tech Bar -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>技术栈掌握度</span><span>03</span></div>
+                        <div id="c3" class="chart-box"></div>
+                    </div>
+
+                    <!-- 4. Trend Line -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>学习投入趋势</span><span>04</span></div>
+                        <div id="c4" class="chart-box"></div>
+                    </div>
+
+                    <!-- 5. Subject Treemap -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>学科融合分析</span><span>05</span></div>
+                        <div id="c5" class="chart-box"></div>
+                    </div>
+
+                    <!-- 6. AI Radar (Skill Tree) -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>AI 人工智能能力</span><span>06</span></div>
+                        <div id="c6" class="chart-box"></div>
+                    </div>
+
+                    <!-- 7. Code Heatmap -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>代码提交热力</span><span>07</span></div>
+                        <div id="c7" class="chart-box"></div>
+                    </div>
+
+                    <!-- 8. Debug Funnel -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>Debug 问题解决漏斗</span><span>08</span></div>
+                        <div id="c8" class="chart-box"></div>
+                    </div>
+
+                    <!-- 9. Knowledge Graph -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>动态知识图谱</span><span>09</span></div>
+                        <div id="c9" class="chart-box"></div>
+                    </div>
+
+                    <!-- 10. Focus Sunburst -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>精力分配占比</span><span>10</span></div>
+                        <div id="c10" class="chart-box"></div>
+                    </div>
+
+                    <!-- 11. Project Gantt -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>项目开发里程碑</span><span>11</span></div>
+                        <div id="c11" class="chart-box"></div>
+                    </div>
+
+                    <!-- 12. Score Scatter -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>效能分析(速度vs质量)</span><span>12</span></div>
+                        <div id="c12" class="chart-box"></div>
+                    </div>
+
+                    <!-- 13. Vocab Area -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>知识量积累趋势</span><span>13</span></div>
+                        <div id="c13" class="chart-box"></div>
+                    </div>
+
+                    <!-- 14. Team Bar -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>团队协作贡献</span><span>14</span></div>
+                        <div id="c14" class="chart-box"></div>
+                    </div>
+
+                    <!-- 15. Rank Gauge -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>综合战力评分</span><span>15</span></div>
+                        <div id="c15" class="chart-box"></div>
+                    </div>
+
+                    <!-- 16. Badge Grid (Visual) -->
+                    <div class="chart-card">
+                        <div class="card-header"><span>🔥 荣誉勋章墙</span><span>16</span></div>
+                        <div id="c16" class="chart-box"></div>
+                    </div>
+
                 </div>
             </div>
 
-            <button class="logout-btn" onclick="logout()">退出登录</button>
-        </div>
+            <div class="scroll-hint">向右滑动查看更多 >>></div>
+        </main>
+    </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="content-grid">
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js?v=final"></script>
+    <script src="assets/js/subscription.js?v=final"></script>
 
-                <!-- Recent Courses -->
-                <div class="dash-card" style="grid-column: span 2;">
-                    <h3>📚 正在学习</h3>
-                    <div id="courseList">
-                        <!-- Items injected by JS -->
-                    </div>
-                </div>
+    <script>
+        // --- 16 CHART CONFIGURATIONS (CHINESE) ---
+        const Colors = {
+            cyan: '#00f0ff', purple: '#7000ff', yellow: '#fbbf24', green: '#10b981', red: '#ef4444',
+            blue: '#3b82f6', grid: 'rgba(255,255,255,0.05)', text: '#94a3b8'
+        };
 
-                <!-- Achievements -->
-                <div class="dash-card">
-                    <h3>🏆 成就勋章</h3>
-                    <div class="badge-grid">
-                        <div class="badge-item unlocked">
-                            <div class="badge-icon">🥚</div>
-                            <span class="badge-name">初生牛犊</span>
-                        </div>
-                        <div class="badge-item unlocked">
-                            <div class="badge-icon">🚀</div>
-                            <span class="badge-name">启航者</span>
-                        </div>
-                        <div class="badge-item unlocked">
-                            <div class="badge-icon">💻</div>
-                            <span class="badge-name">代码小白</span>
-                        </div>
-                        <div class="badge-item">
-                            <div class="badge-icon">🪐</div>
-                            <span class="badge-name">星际探索</span>
-                        </div>
-                        <div class="badge-item">
-                            <div class="badge-icon">🤖</div>
-                            <span class="badge-name">机甲大师</span>
-                        </div>
-                        <div class="badge-item">
-                            <div class="badge-icon">🧠</div>
-                            <span class="badge-name">最强大脑</span>
-                        </div>
-                    </div>
-                </div>
+        const CommonTooltip = {
+            trigger: 'axis',
+            backgroundColor: 'rgba(5, 5, 10, 0.9)',
+            borderColor: '#333',
+            textStyle: { color: '#fff' }
+        };
 
-                <!-- Settings -->
-                <div class="dash-card">
-                    <h3>⚙️ 账号服务</h3>
+        function initAllCharts(data) {
 
-                    <!-- Voucher Redemption -->
-                    <div class="paywall-input-group"
-                        style="border: 1px dashed rgba(0,243,255,0.3); padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.3);">
-                        <label class="paywall-label" style="color: #fbbf24; font-weight: bold;">💎 会员卡密兑换</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="voucher-code" class="paywall-input" placeholder="输入卡密 VIP-xxxx..."
-                                style="text-transform: uppercase;">
-                            <button class="paywall-btn" onclick="redeem()"
-                                style="width: auto; padding: 0 20px; font-size: 14px; margin: 0;">兑换</button>
-                        </div>
-                        <div id="redeemMsg" style="font-size: 12px; margin-top: 10px; min-height: 15px;"></div>
+            // 1. Core Radar
+            const c1 = echarts.init(document.getElementById('c1'));
+            c1.setOption({
+                tooltip: { trigger: 'item' },
+                radar: {
+                    indicator: [{ name: '自我管理', max: 100 }, { name: '逻辑思维', max: 100 }, { name: '创新创造', max: 100 }, { name: '技术实践', max: 100 }, { name: '团队协作', max: 100 }],
+                    splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0.01)', 'rgba(255,255,255,0.05)'] } },
+                    axisName: { color: Colors.cyan, fontFamily: 'Noto Sans SC', fontWeight: 'bold' }
+                },
+                series: [{
+                    type: 'radar',
+                    data: [
+                        { value: [85, 92, 78, 95, 80], name: '我的数据', itemStyle: { color: Colors.cyan }, areaStyle: { color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [{ offset: 0, color: 'rgba(0,240,255,0.1)' }, { offset: 1, color: 'rgba(0,240,255,0.5)' }]) } },
+                        { value: [60, 60, 60, 60, 60], name: '班级平均', itemStyle: { color: 'rgba(255,255,255,0.3)' }, lineStyle: { type: 'dashed' } }
+                    ]
+                }]
+            });
 
-                        <div
-                            style="font-size: 11px; color: #94a3b8; margin-top: 15px; line-height: 1.6; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
-                            <div style="color: #cbd5e1; margin-bottom: 5px;">ℹ️ <strong>兑换说明</strong></div>
-                            卡密兑换请对接您的负责老师，先注册后兑换会员。<br>
-                            会员有 7天 / 半年 / 全年 三个等级。
-                        </div>
-                    </div>
+            // 2. Thinking Rose
+            const c2 = echarts.init(document.getElementById('c2'));
+            c2.setOption({
+                tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
+                series: [{
+                    type: 'pie', roseType: 'area', radius: [20, 100], center: ['50%', '55%'],
+                    itemStyle: { borderRadius: 5, borderColor: '#111', borderWidth: 2 },
+                    label: { color: Colors.text, fontFamily: 'Noto Sans SC' },
+                    data: [
+                        { value: 45, name: '抽象思维', itemStyle: { color: Colors.purple } },
+                        { value: 38, name: '算法设计', itemStyle: { color: Colors.blue } },
+                        { value: 32, name: '模式识别', itemStyle: { color: Colors.cyan } },
+                        { value: 28, name: '问题分解', itemStyle: { color: Colors.green } },
+                        { value: 25, name: '评估优化', itemStyle: { color: Colors.yellow } },
+                        { value: 20, name: '调试纠错', itemStyle: { color: Colors.red } }
+                    ]
+                }]
+            });
 
-                    <div style="height: 20px;"></div>
+            // 3. Tech Bar
+            const c3 = echarts.init(document.getElementById('c3'));
+            c3.setOption({
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { top: 30, bottom: 20, left: 20, right: 40, containLabel: true },
+                xAxis: { type: 'value', splitLine: { show: false }, axisLabel: { show: false } },
+                yAxis: { type: 'category', data: ['Python', 'Web前端', 'C++', '数据库', 'Linux', 'Git版本', 'Docker'], axisLabel: { color: '#fff', fontFamily: 'Noto Sans SC' } },
+                series: [{
+                    type: 'bar', data: [95, 80, 50, 60, 45, 70, 30],
+                    barWidth: 12,
+                    itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: Colors.cyan }, { offset: 1, color: Colors.purple }]) },
+                    label: { show: true, position: 'right', color: '#fff', formatter: '{c}%' },
+                    showBackground: true, backgroundStyle: { color: 'rgba(255,255,255,0.05)', borderRadius: 6 }
+                }]
+            });
 
+            // 4. Trend Line
+            const c4 = echarts.init(document.getElementById('c4'));
+            c4.setOption({
+                tooltip: { trigger: 'axis', backgroundColor: 'rgba(5,5,10,0.9)', borderColor: '#333', textStyle: { color: '#fff' } },
+                grid: { left: 10, right: 10, bottom: 10, containLabel: true },
+                xAxis: { type: 'category', boundaryGap: false, data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'], axisLine: { lineStyle: { color: '#333' } }, axisLabel: { fontFamily: 'Noto Sans SC' } },
+                yAxis: { type: 'value', splitLine: { lineStyle: { color: Colors.grid } } },
+                series: [{
+                    name: '专注时长 (h)', type: 'line', smooth: true, showSymbol: false,
+                    data: [4, 5, 3, 6, 8, 12, 10],
+                    lineStyle: { width: 4, color: Colors.green },
+                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(16,185,129,0.5)' }, { offset: 1, color: 'transparent' }]) },
+                    markPoint: { data: [{ type: 'max', name: '峰值' }] }
+                }]
+            });
 
-                </div>
+            // 5. Subject Treemap
+            const c5 = echarts.init(document.getElementById('c5'));
+            c5.setOption({
+                tooltip: { formatter: '{b}: {c}' },
+                series: [{
+                    type: 'treemap', width: '90%', height: '80%', top: '10%', breadcrumb: { show: false },
+                    itemStyle: { borderColor: '#000', borderWidth: 2, gapWidth: 2 },
+                    data: [
+                        { name: '数学 Math', value: 40, itemStyle: { color: Colors.blue }, children: [{ name: '代数', value: 20 }, { name: '几何', value: 10 }, { name: '统计', value: 10 }] },
+                        { name: '物理 Physics', value: 25, itemStyle: { color: Colors.purple }, children: [{ name: '力学', value: 15 }, { name: '光学', value: 10 }] },
+                        { name: '艺术 Art', value: 20, itemStyle: { color: Colors.red }, children: [{ name: '设计', value: 10 }, { name: '色彩', value: 10 }] },
+                        { name: '语文/英语', value: 15, itemStyle: { color: Colors.cyan }, children: [{ name: '科技英语', value: 15 }] }
+                    ]
+                }]
+            });
 
-            </div>
-        </div>
-        <div class="dashboard-container">
-            <!-- Content... -->
-        </div>
+            // 6. AI Radar
+            const c6 = echarts.init(document.getElementById('c6'));
+            c6.setOption({
+                radar: {
+                    indicator: [{ name: '提示词工程', max: 100 }, { name: '模型微调', max: 100 }, { name: 'RAG 架构', max: 100 }, { name: 'AIGC 工具', max: 100 }, { name: '部署落地', max: 100 }],
+                    shape: 'circle', splitNumber: 5,
+                    axisName: { color: Colors.red, fontWeight: 'bold', fontFamily: 'Noto Sans SC' },
+                    splitLine: { lineStyle: { color: 'rgba(239, 68, 68, 0.2)' } },
+                    splitArea: { show: false }
+                },
+                series: [{
+                    type: 'radar',
+                    data: [{ value: [90, 40, 60, 95, 30], name: 'AI 能力值', itemStyle: { color: Colors.red }, areaStyle: { color: 'rgba(239, 68, 68, 0.4)' } }]
+                }]
+            });
 
-        <!-- Supabase Core -->
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-        <script src="assets/js/supabase-config.js?v=final"></script>
-
-        <script src="assets/js/subscription.js?v=final"></script>
-        <script>
-            // --- Sync with SubscriptionManager ---
-
-            // 1. Listen for Updates & Force Check
-            // 1. Listen for Updates & Force Check
-            function checkState() {
-                const manager = window.SubscriptionManager;
-
-                // --- FALLBACK: Direct LocalStorage Check (If Manager is slow) ---
-                if (!manager || !manager.user) {
-                    const localEmail = localStorage.getItem('current_user_email');
-                    const sbToken = localStorage.getItem('sb-znmbkxmnwuurzhevfxtq-auth-token');
-
-                    if (localEmail || sbToken) {
-                        // We have local evidence of login!
-                        const email = localEmail || (sbToken ? JSON.parse(sbToken).user.email : 'User');
-                        const simpleName = email.split('@')[0];
-
-                        document.getElementById('uName').innerText = simpleName;
-                        document.getElementById('uID').innerText = 'ONLINE';
-                        document.getElementById('uRole').innerText = '普通学员'; // Default to Regular instead of 'Validating'
-                        document.getElementById('uRole').style.color = '#94a1b2';
-                        document.querySelector('.logout-btn').innerText = '退出登录';
-
-                        // Unlock UI partially
-                        const grid = document.querySelector('.content-grid');
-                        if (grid) grid.style.opacity = '0.8';
-                    }
+            // 7. Heatmap
+            const c7 = echarts.init(document.getElementById('c7'));
+            const c7Data = [];
+            for (let i = 0; i < 7; i++) {
+                for (let j = 0; j < 24; j++) {
+                    c7Data.push([i, j, Math.random() > 0.7 ? Math.floor(Math.random() * 10) : 0]);
                 }
-                // -----------------------------------------------------------
+            }
+            c7.setOption({
+                tooltip: { position: 'top' },
+                grid: { height: '80%', top: '5%' },
+                xAxis: { type: 'category', data: ['一', '二', '三', '四', '五', '六', '日'], axisLine: { show: false }, axisLabel: { color: '#666', fontFamily: 'Noto Sans SC' } },
+                yAxis: { type: 'category', data: ['0点', '', '', '4点', '', '', '8点', '', '', '12点', '', '', '16点', '', '', '20点', '', '', ''], axisLine: { show: false }, axisLabel: { color: '#666', fontSize: 9 } },
+                visualMap: { min: 0, max: 10, show: false, inRange: { color: ['#1a1a1a', '#0e4a4d', Colors.cyan] } },
+                series: [{
+                    type: 'heatmap', data: c7Data,
+                    itemStyle: { borderColor: '#000', borderWidth: 1, borderRadius: 2 }
+                }]
+            });
 
-                if (!manager) return;
+            // 8. Funnel
+            const c8 = echarts.init(document.getElementById('c8'));
+            c8.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{
+                    type: 'funnel', sort: 'descending', gap: 2, left: '10%', width: '80%',
+                    label: { show: true, position: 'inside', fontFamily: 'Noto Sans SC' },
+                    data: [
+                        { value: 100, name: '发现 Bug', itemStyle: { color: Colors.red } },
+                        { value: 80, name: '定位根源', itemStyle: { color: '#f97316' } },
+                        { value: 60, name: '尝试修复', itemStyle: { color: Colors.yellow } },
+                        { value: 40, name: '验证通过', itemStyle: { color: Colors.blue } },
+                        { value: 20, name: '举一反三', itemStyle: { color: Colors.green } }
+                    ]
+                }]
+            });
 
-                const user = manager.user;
-                const profile = manager.profile;
-                const isVIP = manager.isSubscribed();
+            // 9. Knowledge Graph
+            const c9 = echarts.init(document.getElementById('c9'));
+            c9.setOption({
+                tooltip: {},
+                series: [{
+                    type: 'graph', layout: 'force',
+                    draggable: true,
+                    symbolSize: (val) => val * 1.5,
+                    roam: true,
+                    label: { show: true, color: '#fff', fontFamily: 'Noto Sans SC' },
+                    edgeSymbol: ['circle', 'arrow'], edgeSymbolSize: [4, 10],
+                    force: { repulsion: 200, edgeLength: 50 },
+                    lineStyle: { color: 'source', curveness: 0.3 },
+                    data: [
+                        { name: 'root', value: 40, itemStyle: { color: Colors.cyan } },
+                        { name: 'Python', value: 30, itemStyle: { color: Colors.blue } },
+                        { name: 'Web开发', value: 30, itemStyle: { color: Colors.purple } },
+                        { name: '人工智能', value: 35, itemStyle: { color: Colors.red } },
+                        { name: 'Django', value: 20, itemStyle: { color: Colors.blue } },
+                        { name: 'React', value: 20, itemStyle: { color: Colors.purple } },
+                        { name: 'LLM大模型', value: 25, itemStyle: { color: Colors.red } }
+                    ],
+                    links: [
+                        { source: 'root', target: 'Python' }, { source: 'root', target: 'Web开发' }, { source: 'root', target: '人工智能' },
+                        { source: 'Python', target: 'Django' }, { source: 'Web开发', target: 'React' }, { source: '人工智能', target: 'LLM大模型' },
+                        { source: 'Python', target: '人工智能' }
+                    ]
+                }]
+            });
 
-                console.log('Profile CheckState:', { user, profile, isVIP }); // Debug Log
+            // 10. Sunburst
+            const c10 = echarts.init(document.getElementById('c10'));
+            c10.setOption({
+                series: [{
+                    type: 'sunburst', radius: ['15%', '85%'],
+                    itemStyle: { borderRadius: 4, borderWidth: 2 },
+                    label: { rotate: 'radial', color: '#fff', fontFamily: 'Noto Sans SC' },
+                    data: [
+                        { name: '编程实战', itemStyle: { color: Colors.blue }, children: [{ name: '开发', value: 4 }, { name: '调试', value: 2 }] },
+                        { name: '理论学习', itemStyle: { color: Colors.purple }, children: [{ name: '视频', value: 3 }, { name: '文档', value: 2 }] },
+                        { name: '创意设计', itemStyle: { color: Colors.yellow }, children: [{ name: 'UI设计', value: 2 }, { name: '头脑风暴', value: 2 }] }
+                    ]
+                }]
+            });
 
-                if (user) {
-                    // Update Sidebar
-                    const avatarImg = isVIP ? 'assets/images/bot_avatar_vip.png' : 'assets/images/bot_avatar_guest.png';
-                    const vipBadgeHTML = isVIP ? '<div class="vip-tag">VIP</div>' : '';
-                    document.getElementById('uAvatar').innerHTML = `<img src="${avatarImg}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">${vipBadgeHTML}`;
+            // 11. Gantt
+            const c11 = echarts.init(document.getElementById('c11'));
+            c11.setOption({
+                grid: { containLabel: true, left: 10, right: 30 },
+                xAxis: { type: 'value', axisLabel: { formatter: '第{value}周' }, splitLine: { show: false } },
+                yAxis: { type: 'category', data: ['个人博客', '贪吃蛇AI', '天气APP'], axisLabel: { color: '#fff', fontFamily: 'Noto Sans SC' } },
+                series: [
+                    { name: '开始', type: 'bar', stack: 'total', itemStyle: { borderColor: 'transparent', color: 'transparent' }, emphasis: { itemStyle: { borderColor: 'transparent', color: 'transparent' } }, data: [0, 2, 5] },
+                    {
+                        name: '持续', type: 'bar', stack: 'total', label: { show: true, position: 'inside', formatter: '进行中' }, itemStyle: { borderRadius: 4 }, data: [
+                            { value: 4, itemStyle: { color: Colors.cyan } },
+                            { value: 3, itemStyle: { color: Colors.purple } },
+                            { value: 5, itemStyle: { color: Colors.green } }
+                        ]
+                    }
+                ]
+            });
 
-                    // Display Name Logic: Profile Name -> Email Prefix -> Phone
-                    let displayName = 'User';
-                    if (profile?.username) displayName = profile.username;
-                    else if (user.email) displayName = user.email.split('@')[0];
+            // 12. Scatter
+            const c12 = echarts.init(document.getElementById('c12'));
+            c12.setOption({
+                tooltip: { formatter: '得分: {c}' },
+                xAxis: { name: '解题速度(min)', type: 'value', min: 0, max: 60, splitLine: { show: false } },
+                yAxis: { name: '代码质量(%)', type: 'value', min: 50, max: 100, splitLine: { lineStyle: { color: Colors.grid } } },
+                series: [{
+                    type: 'scatter', symbolSize: 15,
+                    itemStyle: { shadowBlur: 10, shadowColor: Colors.cyan, color: Colors.cyan },
+                    data: [[15, 95], [20, 90], [25, 85], [10, 80], [45, 100], [30, 88], [50, 92]]
+                }]
+            });
 
-                    document.getElementById('uName').innerText = displayName;
-                    document.getElementById('uRole').innerText = isVIP ? '尊享会员 VIP' : '普通学员';
-                    document.getElementById('uRole').style.color = isVIP ? '#fbbf24' : '#94a1b2';
-                    document.getElementById('uID').innerText = '#' + user.id.substring(0, 6).toUpperCase();
+            // 13. Area
+            const c13 = echarts.init(document.getElementById('c13'));
+            c13.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 0, right: 0, bottom: 0, top: 10 },
+                xAxis: { type: 'category', boundaryGap: false, data: ['Lv.1', 'Lv.2', 'Lv.3', 'Lv.4', 'Lv.5'] },
+                yAxis: { type: 'value', show: false },
+                series: [{
+                    type: 'line', smooth: true, symbol: 'none',
+                    lineStyle: { width: 0 },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: Colors.purple },
+                            { offset: 1, color: Colors.blue }
+                        ])
+                    },
+                    data: [50, 150, 400, 800, 1200]
+                }]
+            });
 
-                    const expiry = profile?.expiry_date ? new Date(profile.expiry_date).toLocaleDateString() : '未开通';
-                    document.getElementById('uExpiry').innerText = expiry;
-                    document.getElementById('uExpiry').style.color = isVIP ? '#fbbf24' : '#64748b';
+            // 14. Team Bar
+            const c14 = echarts.init(document.getElementById('c14'));
+            c14.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { textStyle: { color: '#ccc', fontSize: 10, fontFamily: 'Noto Sans SC' }, top: 0 },
+                grid: { top: 30, bottom: 20 },
+                xAxis: { type: 'category', data: ['项目A', '项目B', '项目C'] },
+                yAxis: { type: 'value', splitLine: { show: false } },
+                series: [
+                    { name: '代码贡献', type: 'bar', stack: 'total', data: [30, 50, 40], itemStyle: { color: Colors.cyan } },
+                    { name: 'Code Review', type: 'bar', stack: 'total', data: [10, 20, 15], itemStyle: { color: Colors.purple } },
+                    { name: '文档编写', type: 'bar', stack: 'total', data: [5, 10, 10], itemStyle: { color: Colors.yellow } }
+                ]
+            });
 
-                    // Update Logout Button Text
-                    document.querySelector('.logout-btn').innerText = '退出登录';
+            // 15. Gauge
+            const c15 = echarts.init(document.getElementById('c15'));
+            c15.setOption({
+                series: [{
+                    type: 'gauge', startAngle: 180, endAngle: 0, min: 0, max: 1000,
+                    radius: '90%', center: ['50%', '70%'],
+                    axisLine: { lineStyle: { width: 15, color: [[0.3, Colors.red], [0.7, Colors.yellow], [1, Colors.cyan]] } },
+                    pointer: { itemStyle: { color: 'auto' } },
+                    axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+                    detail: { valueAnimation: true, formatter: '战力值\n{value}', color: '#fff', fontSize: 20, offsetCenter: [0, -20], fontFamily: 'Noto Sans SC' },
+                    data: [{ value: 845 }]
+                }]
+            });
 
-                    // Unlock UI
-                    const grid = document.querySelector('.content-grid');
-                    if (grid) {
-                        grid.style.opacity = '1';
-                        grid.style.pointerEvents = 'auto';
+            // 16. 🔥 视觉化勋章墙 (HTML 注入)
+            const el16 = document.getElementById('c16');
+            el16.innerHTML = `
+                <div style="display:grid; grid-template-columns: repeat(4,1fr); gap:10px; padding:10px; height:100%; align-content:center;">
+                   <div style="text-align:center"><img src="assets/images/badge_novice.png" style="width:36px; filter:drop-shadow(0 0 5px #00f0ff);"><div style="font-size:10px; color:#fff; margin-top:2px;">初生牛犊</div></div>
+                   <div style="text-align:center"><img src="assets/images/badge_explorer.png" style="width:36px; filter:drop-shadow(0 0 5px #7000ff);"><div style="font-size:10px; color:#fff; margin-top:2px;">探索者</div></div>
+                   <div style="text-align:center"><img src="assets/images/badge_coder.png" style="width:36px; filter:drop-shadow(0 0 5px #10b981);"><div style="font-size:10px; color:#fff; margin-top:2px;">代码猎手</div></div>
+                   <div style="text-align:center"><img src="assets/images/badge_locked.png" style="width:36px; opacity:0.3"><div style="font-size:10px; color:#666; margin-top:2px;">AI觉醒</div></div>
+                   
+                   <div style="text-align:center"><img src="assets/images/badge_locked.png" style="width:36px; opacity:0.3"><div style="font-size:10px; color:#666; margin-top:2px;">全栈大师</div></div>
+                   <div style="text-align:center"><img src="assets/images/badge_locked.png" style="width:36px; opacity:0.3"><div style="font-size:10px; color:#666; margin-top:2px;">算法宗师</div></div>
+                   <div style="text-align:center"><img src="assets/images/badge_locked.png" style="width:36px; opacity:0.3"><div style="font-size:10px; color:#666; margin-top:2px;">开源领袖</div></div>
+                   <div style="text-align:center"><img src="assets/images/badge_locked.png" style="width:36px; opacity:0.3"><div style="font-size:10px; color:#666; margin-top:2px;">卓越贡献</div></div>
+                </div>
+            `;
+            // 注意：不初始化 echarts 实例
+
+            // Global Resize
+            window.addEventListener('resize', () => {
+                [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15].forEach(c => c.resize());
+            });
+        }
+
+        // --- BOOT Logic (Updated Auth) ---
+        function checkState() {
+            const manager = window.SubscriptionManager;
+            VanillaTilt.init(document.querySelector(".redeem-mini"), { max: 50, speed: 400, glare: false });
+
+            let user = manager?.user;
+            let profile = manager?.profile;
+            let isVIP = manager?.isSubscribed();
+
+            const authBtn = document.getElementById('authBtn');
+
+            if (!user) {
+                // GUEST MODE
+                const local = localStorage.getItem('current_user_email');
+                if (local) {
+                    document.getElementById('uName').innerText = local.split('@')[0];
+                    document.getElementById('uRole').innerText = '离线模式';
+                    if (authBtn) {
+                        authBtn.innerText = '安全退出 / LOGOUT';
+                        authBtn.onclick = logout;
                     }
                 } else {
-                    // Only show "Not Logged In" if we fail the fallback check too
-                    if (!localStorage.getItem('current_user_email')) {
-                        document.getElementById('uAvatar').innerHTML = `<img src="assets/images/bot_avatar_guest.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
-                        document.getElementById('uName').innerText = '游客 (未登录)';
-                        document.getElementById('uRole').innerText = '点击兑换登录';
-
-                        const btn = document.querySelector('.logout-btn');
-                        btn.innerText = '去登录 / 注册';
-                        btn.onclick = function () {
-                            // If SubscriptionManager is available, show modal
-                            if (window.SubscriptionManager) {
-                                window.SubscriptionManager.showAuthModal();
-                            } else {
-                                window.location.href = 'index.html';
-                            }
-                        };
-
-                        const grid = document.querySelector('.content-grid');
-                        if (grid) grid.style.opacity = '0.5';
+                    document.getElementById('uName').innerText = '访客 (Guest)';
+                    document.getElementById('uRole').innerText = '未注册';
+                    // Show Login Button
+                    if (authBtn) {
+                        authBtn.innerText = '立即登录 / 注册';
+                        authBtn.onclick = handleAuth;
+                        authBtn.style.background = 'var(--primary)';
+                        authBtn.style.color = '#000';
+                        authBtn.style.fontWeight = 'bold';
+                        authBtn.style.borderColor = 'transparent';
                     }
                 }
-            }
+            } else {
+                // USER MODE
+                document.getElementById('uName').innerText = profile?.username || user.email.split('@')[0];
+                document.getElementById('uRole').innerText = isVIP ? '尊享会员 VIP' : '普通用户';
+                if (isVIP) document.getElementById('uAvatar').style.backgroundImage = `url('assets/images/bot_avatar_vip.png')`;
 
-            window.addEventListener('subscription_updated', checkState);
-
-            // Also check immediately in case we missed the event
-            document.addEventListener('DOMContentLoaded', () => {
-                checkState(); // Run strict check
-                setTimeout(checkState, 500); // Wait a bit for Supabase to init
-                setInterval(checkState, 2000); // Polling backup just in case
-            });
-
-            // 2. Button Actions
-            async function redeem() {
-                const btn = document.querySelector('.paywall-btn');
-                const origText = btn.innerText;
-
-                try {
-                    btn.innerText = '处理中...';
-                    btn.disabled = true;
-
-                    if (!window.SubscriptionManager) {
-                        alert('系统组件未加载，请刷新页面重试');
-                        return;
-                    }
-
-                    // If not logged in, prompt login first
-                    if (!window.SubscriptionManager.user) {
-                        window.SubscriptionManager.showPaywall();
-                        return;
-                    }
-
-                    await window.SubscriptionManager.redeemVoucher();
-                } catch (e) {
-                    alert('出错: ' + e.message);
-                } finally {
-                    btn.innerText = origText;
-                    btn.disabled = false;
+                if (authBtn) {
+                    authBtn.innerText = '安全退出系统';
+                    authBtn.onclick = logout;
+                    authBtn.style.background = 'rgba(255,255,255,0.05)';
+                    authBtn.style.color = '#fff';
                 }
             }
 
-            function logout() {
-                // Force UI Feedback immediately
-                const btn = document.querySelector('.logout-btn');
-                btn.innerText = '正在退出...';
-                btn.disabled = true;
+            // Allow charts to init
+            setTimeout(() => initAllCharts(profile), 100);
+        }
 
-                // Clear all local storage credentials immediately
-                localStorage.removeItem('current_user_email');
-                localStorage.removeItem('local_dashboard_data');
-                // Also clear Supabase tokens if possible (by key prefix)
-                Object.keys(localStorage).forEach(key => {
-                    if (key.startsWith('sb-') && key.endsWith('-token')) localStorage.removeItem(key);
-                });
+        async function redeem() {
+            const code = document.getElementById('voucher-code').value;
+            const btn = document.querySelector('.redeem-mini button');
+            if (!code) return alert('请输入卡密');
+            btn.innerText = '正在验证...';
+            try {
+                if (window.SubscriptionManager) await window.SubscriptionManager.redeemVoucher();
+                alert('兑换成功!'); location.reload();
+            } catch (e) { alert(e.message); btn.innerText = '立即激活'; }
+        }
 
-                if (window.SubscriptionManager) {
-                    // Tell manager to sign out properly from Supabase
-                    window.SubscriptionManager.handleLogout();
-                }
+        function handleAuth() {
+            window.location.href = 'index.html';
+        }
 
-                // Hard Redirect to Index after short delay
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 500);
-            }
+        function logout() { localStorage.clear(); location.href = 'index.html'; }
 
-            // 3. Dynamic Data Rendering (Cloud Sync Enabled)
-            async function renderProfileData() {
-                let d = null;
+        document.addEventListener('DOMContentLoaded', checkState);
 
-                // 1. Try Local Bridge First (Fast Preview)
-                const localData = localStorage.getItem('local_dashboard_data');
-                if (localData) {
-                    try { d = JSON.parse(localData); } catch (e) { }
-                }
-
-                // 2. Fetch Cloud Data (Single Source of Truth)
-                if (window.SubscriptionManager && window.SubscriptionManager.user) {
-                    const uEmail = window.SubscriptionManager.user.email;
-                    try {
-                        const { data, error } = await window.SubscriptionManager.client
-                            .from('user_dashboard_data')
-                            .select('*')
-                            .eq('username', uEmail)
-                            .single();
-
-                        if (data) {
-                            d = data; // Override local with cloud
-                            // Update local cache
-                            localStorage.setItem('local_dashboard_data', JSON.stringify(data));
-                            console.log('Profile synced from Cloud:', data);
-                        }
-                    } catch (err) { console.warn('Cloud Fetch Err:', err); }
-                }
-
-                // Default Mock if completely empty
-                if (!d) {
-                    d = {
-                        prog_self: 0, prog_basic: 0, prog_subject: 0, prog_tech: 0, // Reset to 0 to indicate valid fetch needed
-                        skill_math: false, skill_physics: false, skill_info: false,
-                        skill_ai: false, skill_english: false, skill_reading: false
-                    };
-                }
-
-                // 2. Render Core Growth
-                const list = document.getElementById('courseList');
-                const titleEl = document.querySelector('.dash-card h3');
-                if (titleEl && titleEl.innerText.includes('正在学习')) titleEl.innerText = '📊 核心素养成长 | Core Growth';
-
-                const dimensions = [
-                    { name: 'Self Management / 自我管理', val: d.prog_self || 0, icon: '🧠', color: '#3b82f6' },
-                    { name: 'Cognition / 基础思维', val: d.prog_basic || 0, icon: '💡', color: '#a855f7' },
-                    { name: 'Academic / 学科知识', val: d.prog_subject || 0, icon: '📚', color: '#22c55e' },
-                    { name: 'Tech Stack / 技术栈', val: d.prog_tech || 0, icon: '🛠️', color: '#f59e0b' }
-                ];
-
-                if (list) {
-                    list.innerHTML = '';
-                    dimensions.forEach(c => {
-                        const div = document.createElement('div');
-                        div.className = 'course-item';
-                        div.innerHTML = `
-                        <div class="c-icon" style="background:${c.color}20; color:${c.color}">${c.icon}</div>
-                        <div class="c-info">
-                            <div class="c-title">${c.name}</div>
-                            <div class="progress-track">
-                                <div class="progress-fill" style="width: ${c.val}%; background:${c.color}"></div>
-                            </div>
-                            <div class="c-meta">
-                                <span>已完成 ${c.val}%</span>
-                                <span>Status: Active</span>
-                            </div>
-                        </div>
-                     `;
-                        list.appendChild(div);
-                    });
-                }
-
-                // 3. Render Achievements
-                const badgeGrid = document.querySelector('.badge-grid');
-                if (badgeGrid) {
-                    const badges = [
-                        { name: '初生牛犊', img: 'assets/images/badge_novice.png', unlocked: true },
-                        { name: '星际探索', img: 'assets/images/badge_explorer.png', unlocked: true },
-                        { name: '代码猎手', img: 'assets/images/badge_coder.png', unlocked: true },
-                        { name: 'AI 觉醒', img: 'assets/images/badge_locked.png', unlocked: false },
-                        { name: '深度学习', img: 'assets/images/badge_locked.png', unlocked: false },
-                        { name: '机器视觉', img: 'assets/images/badge_locked.png', unlocked: false },
-                        { name: '自然语言', img: 'assets/images/badge_locked.png', unlocked: false },
-                        { name: '强化学习', img: 'assets/images/badge_locked.png', unlocked: false },
-                        { name: '数据挖掘', img: 'assets/images/badge_locked.png', unlocked: false },
-                        { name: '全栈大师', img: 'assets/images/badge_locked.png', unlocked: false }
-                    ];
-
-                    badgeGrid.innerHTML = '';
-                    badges.forEach(b => {
-                        const div = document.createElement('div');
-                        div.className = `badge-item ${b.unlocked ? 'unlocked' : ''}`;
-                        div.innerHTML = `
-                             <img src="${b.img}" style="width: 50px; height: 50px; object-fit: contain; margin-bottom: 8px; filter: drop-shadow(0 0 5px rgba(0,240,255,0.3));">
-                             <span class="badge-name">${b.name}</span>
-                        `;
-                        badgeGrid.appendChild(div);
-                    });
-                }
-            }
-
-            document.addEventListener('DOMContentLoaded', () => {
-                renderProfileData();
-            });
-        </script>
-
-        <!-- Baground Effect (Simple Starfield) -->
-        <!-- Dynamic Background & Tilt Effect -->
-        <script>
-            // 1. Neural Network Background
-            const canvas = document.getElementById('bg-canvas') || (() => {
-                const c = document.createElement('canvas');
-                c.id = 'bg-canvas';
-                c.style.position = 'fixed';
-                c.style.top = '0';
-                c.style.left = '0';
-                c.style.width = '100%';
-                c.style.height = '100%';
-                c.style.zIndex = '-1';
-                document.body.prepend(c);
-                return c;
-            })();
-
-            const ctx = canvas.getContext('2d');
-            let w, h, particles = [];
-
-            function resize() {
-                w = canvas.width = window.innerWidth;
-                h = canvas.height = window.innerHeight;
-                initParticles();
-            }
-            window.addEventListener('resize', resize);
-
-            class Particle {
-                constructor() {
-                    this.x = Math.random() * w;
-                    this.y = Math.random() * h;
-                    this.vx = (Math.random() - 0.5) * 0.5;
-                    this.vy = (Math.random() - 0.5) * 0.5;
-                    this.size = Math.random() * 2;
-                }
-                update() {
-                    this.x += this.vx;
-                    this.y += this.vy;
-                    if (this.x < 0 || this.x > w) this.vx *= -1;
-                    if (this.y < 0 || this.y > h) this.vy *= -1;
-                }
-            }
-
-            function initParticles() {
-                particles = [];
-                for (let i = 0; i < 80; i++) particles.push(new Particle());
-            }
-
-            function animate() {
-                ctx.clearRect(0, 0, w, h);
-                ctx.fillStyle = 'rgba(0,0,0,0)'; // Transparent clear
-
-                // Draw connections
-                ctx.lineWidth = 0.5;
-                for (let i = 0; i < particles.length; i++) {
-                    let p1 = particles[i];
-                    p1.update();
-
-                    // Draw particle
-                    ctx.fillStyle = 'rgba(0, 240, 255, 0.5)'; // Cyan particles
-                    ctx.beginPath();
-                    ctx.arc(p1.x, p1.y, p1.size, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Connect
-                    for (let j = i + 1; j < particles.length; j++) {
-                        let p2 = particles[j];
-                        let dx = p1.x - p2.x;
-                        let dy = p1.y - p2.y;
-                        let dist = Math.sqrt(dx * dx + dy * dy);
-
-                        if (dist < 120) {
-                            ctx.strokeStyle = `rgba(0, 240, 255, ${0.15 - dist / 800})`;
-                            ctx.beginPath();
-                            ctx.moveTo(p1.x, p1.y);
-                            ctx.lineTo(p2.x, p2.y);
-                            ctx.stroke();
-                        }
-                    }
-                }
-                requestAnimationFrame(animate);
-            }
-
-            resize();
-            animate();
-
-            // 2. 3D Tilt Effect for Cards
-            document.querySelectorAll('.dash-card').forEach(card => {
-                card.addEventListener('mousemove', e => {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-
-                    // Calculate rotation (max 3 degrees)
-                    const rotateX = ((y - centerY) / centerY) * -3;
-                    const rotateY = ((x - centerX) / centerX) * 3;
-
-                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
-                });
-
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
-                });
-            });
-
-            // 3. Initial Animation Trigger for Graphs
-            setTimeout(() => {
-                const tracks = document.querySelectorAll('.progress-fill');
-                tracks.forEach(track => {
-                    // Force reflow to ensure transition plays if it was customized
-                    const w = track.style.width;
-                    track.style.width = '0';
-                    setTimeout(() => track.style.width = w, 50);
-                });
-            }, 600);
-        </script>
+    </script>
 </body>
 
 </html>
