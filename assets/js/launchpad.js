@@ -1,7 +1,7 @@
 window.Launchpad = (() => {
     // Configuration
     function getAppsPerPage() {
-        return window.innerWidth < 768 ? 12 : 20; // 12 for Mobile (3x4), 20 for Desktop (5x4)
+        return window.innerWidth < 768 ? 9 : 10; // Reduced to force pagination (Mobile 3x3, Desktop 2x5)
     }
 
     // App Data (Real apps only)
@@ -11,11 +11,12 @@ window.Launchpad = (() => {
         { name: '课程地图', icon: '🧭', link: 'post-6.html', color: '#fff' },
         { name: '竞赛地图', icon: '🏆', link: 'competition-atlas.html', color: '#fbbf24' },
         { name: '认知系统', icon: '🧠', link: 'post-5.html', color: '#fff' },
-        { name: '学科协同', icon: '🧬', link: 'subject-synergy.html', color: '#fff' },
+        { name: '生命科学', icon: '🧬', link: 'life_hub.html', color: '#d946ef' },
         { name: '玩中学习', icon: '🎮', link: 'games.html', color: 'var(--mc-green)' },
         { name: '知识库', icon: '📖', link: 'wiki.html', color: '#fff' },
         { name: '天文宇宙', icon: '🪐', link: 'astronomy.html', color: '#bc13fe' },
         { name: '恐龙世界', icon: '🦖', link: 'dino.html', color: '#4ade80' },
+        { name: '深海探索', icon: '🦑', link: 'ocean.html', color: '#00f0ff' }, // New Ocean
         { name: '地球科学', icon: '🌏', link: 'earth.html', color: '#06b6d4' },
         { name: '读书观影', icon: '📚', link: 'library.html', color: '#ec4899' },
         { name: '论坛', icon: '💬', link: 'forum.html', color: '#06b6d4' },
@@ -24,8 +25,8 @@ window.Launchpad = (() => {
         { name: '实验', icon: '⚗️', link: 'labs.html', color: '#00f3ff' },
         { name: '3D打印', icon: '🖨️', link: '3d-print.html', color: '#FF2D55' },
         { name: '学习', icon: '🚀', link: 'learn.html', color: '#8B5CF6' },
-        { name: '电子电路', icon: '🔌', link: 'circuits.html', color: '#00FF9D' },
-        { name: '人工智能', icon: '🧠', link: 'ai.html', color: '#d946ef' },
+        { name: '电子电路', icon: '🔌', link: 'subject.html?topic=circuits', color: '#00FF9D' },
+        { name: '人工智能', icon: '🤖', link: 'subject.html?topic=ai', color: '#d946ef' },
         { name: '我的世界', icon: '⛏️', link: 'minecraft.html', color: 'var(--mc-green)' },
         { name: '教育日志', icon: '📝', link: 'blog.html', color: '#fff' }
     ];
@@ -76,6 +77,31 @@ window.Launchpad = (() => {
         closeBtn.title = '返回主页';
         closeBtn.addEventListener('click', close);
         overlay.appendChild(closeBtn);
+
+        // --- NEW: Navigation Arrows ---
+        const prevBtn = document.createElement('div');
+        prevBtn.className = 'lp-nav-btn lp-prev';
+        prevBtn.innerHTML = '‹';
+        prevBtn.onclick = (e) => { e.stopPropagation(); if (currentPage > 0) goToPage(currentPage - 1); };
+        overlay.appendChild(prevBtn);
+
+        const nextBtn = document.createElement('div');
+        nextBtn.className = 'lp-nav-btn lp-next';
+        nextBtn.innerHTML = '›';
+        nextBtn.onclick = (e) => {
+            e.stopPropagation();
+            const dots = document.querySelectorAll('.lp-dot');
+            if (currentPage < dots.length - 1) goToPage(currentPage + 1);
+        };
+        overlay.appendChild(nextBtn);
+
+        // Helper to update arrow visibility
+        window.updateArrowState = function (page, total) {
+            prevBtn.style.opacity = page === 0 ? '0' : '1';
+            prevBtn.style.pointerEvents = page === 0 ? 'none' : 'auto';
+            nextBtn.style.opacity = page >= total - 1 ? '0' : '1';
+            nextBtn.style.pointerEvents = page >= total - 1 ? 'none' : 'auto';
+        };
 
         // Click outside to close (Enhanced)
         overlay.addEventListener('click', (e) => {
@@ -345,6 +371,7 @@ window.Launchpad = (() => {
                 });
                 dotsContainer.appendChild(dot);
             }
+            if (window.updateArrowState) window.updateArrowState(0, totalPages);
         }
     }
 
@@ -386,6 +413,9 @@ window.Launchpad = (() => {
         dots.forEach((dot, index) => {
             dot.classList.toggle('active', index === n);
         });
+
+        // Update Arrows
+        if (window.updateArrowState) window.updateArrowState(n, dots.length);
     }
 
     function open() {

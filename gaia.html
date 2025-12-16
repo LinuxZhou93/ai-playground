@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAIA | 地球全息模拟引擎</title>
+
+    <!-- FONTS -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Noto+Sans+SC:wght@300;500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- LIBRARIES -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'gaia-green': '#00ff9d',
+                        'gaia-blue': '#00f0ff',
+                        'gaia-dark': '#050a10',
+                        'gaia-panel': 'rgba(10, 20, 30, 0.8)',
+                    },
+                    fontFamily: {
+                        'scifi': ['Orbitron', 'sans-serif'],
+                        'tech': ['Rajdhani', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- ECharts (for Data Panels) -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- Three.js (The Engine) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Globe.gl (For the Earth) -->
+    <script src="https://unpkg.com/globe.gl"></script>
+
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        /* UI OVERLAYS */
+        .hud-panel {
+            background: rgba(5, 15, 25, 0.75);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.1);
+            position: absolute;
+            border-radius: 4px;
+            pointer-events: auto;
+            transition: 0.3s;
+        }
+
+        .hud-panel:hover {
+            border-color: rgba(0, 255, 157, 0.6);
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.2);
+        }
+
+        /* TEXT STYLES */
+        .scifi-text {
+            font-family: 'Orbitron';
+            letter-spacing: 2px;
+        }
+
+        .tech-text {
+            font-family: 'Rajdhani';
+            letter-spacing: 1px;
+        }
+
+        /* ANIMATIONS */
+        @keyframes scanline {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        .scan-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(0, 255, 157, 0.1), transparent);
+            animation: scanline 8s linear infinite;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* MODE SWITCHER */
+        .mode-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            color: #888;
+            padding: 8px 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: 'Orbitron';
+            font-size: 10px;
+            transition: 0.2s;
+        }
+
+        .mode-btn.active {
+            background: rgba(0, 255, 157, 0.2);
+            border-color: #00ff9d;
+            color: #00ff9d;
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 1. THE 3D ENGINE CONTAINER -->
+    <div id="earth-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;"></div>
+
+    <!-- 2. SCANLINE EFFECT -->
+    <div class="scan-overlay"></div>
+
+    <!-- 3. TOP NAVIGATION (HUD) -->
+    <div class="absolute top-0 left-0 w-full p-6 z-40 pointer-events-none flex justify-between items-start">
+        <!-- Logo Area -->
+        <div class="hud-panel p-4 pointer-events-auto">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 border-2 border-gaia-green rounded-full flex items-center justify-center animate-pulse">
+                    <span class="text-xl">🌍</span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold scifi-text text-white tracking-widest leading-none">GAIA <span
+                            class="text-gaia-green">ENGINE</span></h1>
+                    <div class="text-[10px] text-gaia-green tracking-widest uppercase opacity-70">Planetary Monitor V1.0
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode Switcher -->
+        <div class="hud-panel p-2 flex gap-2 pointer-events-auto">
+            <button class="mode-btn active" onclick="setMode('overview')">全球概览 OVERVIEW</button>
+            <button class="mode-btn" onclick="setMode('tectonic')">板块构造 TECTONIC</button>
+            <button class="mode-btn" onclick="setMode('atmosphere')">大气洋流 ATMOSPHERE</button>
+            <button class="mode-btn" onclick="setMode('human')">人类足迹 ANTHRO</button>
+            <a href="index.html" class="mode-btn" style="border-color:#555; color:#fff;">EXIT 退出</a>
+        </div>
+    </div>
+
+    <!-- 4. LEFT DATA PANEL (SCROLLABLE) -->
+    <div class="absolute left-6 top-32 bottom-6 w-80 z-40 flex flex-col gap-4 pointer-events-none">
+
+        <!-- Live Status -->
+        <div class="hud-panel p-4 flex-1 pointer-events-auto overflow-hidden flex flex-col">
+            <h2 class="scifi-text text-gaia-green text-sm mb-4 border-b border-white/10 pb-2">PLANETARY VITAL SIGNS</h2>
+
+            <div class="space-y-6 overflow-y-auto pr-2 custom-scrollbar">
+
+                <!-- CO2 -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1 text-gray-400">Atmospheric CO2</div>
+                    <div class="text-2xl font-bold tech-text text-white">421.5 <span
+                            class="text-sm text-gray-500">ppm</span></div>
+                    <div class="h-1 w-full bg-gray-800 mt-1">
+                        <div class="h-full bg-red-500 w-[85%]"></div>
+                    </div>
+                </div>
+
+                <!-- Global Temp -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1 text-gray-400">Global Temp Anomaly</div>
+                    <div class="text-2xl font-bold tech-text text-yellow-400">+1.15 <span
+                            class="text-sm text-gray-500">°C</span></div>
+                    <div class="h-1 w-full bg-gray-800 mt-1">
+                        <div class="h-full bg-yellow-500 w-[60%]"></div>
+                    </div>
+                </div>
+
+                <!-- Population -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1 text-gray-400">Human Population</div>
+                    <div class="text-2xl font-bold tech-text text-gaia-blue">8,045,311,442</div>
+                    <div class="text-[10px] text-gray-500 animate-pulse">Live Estimate...</div>
+                </div>
+
+                <!-- Chart Placeholder -->
+                <div class="h-40 bg-black/20 border border-white/5 p-2 rounded relative">
+                    <div class="absolute top-2 left-2 text-[10px] text-gray-500">SEISMIC ACTIVITY (24H)</div>
+                    <div id="seismic-chart" class="w-full h-full"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Mission Log -->
+        <div class="hud-panel p-4 h-40 pointer-events-auto">
+            <h2 class="scifi-text text-gaia-green text-sm mb-2">CURRENT MISSION</h2>
+            <div class="text-xs text-gray-300 leading-relaxed font-mono">
+                <span class="text-yellow-400">[TASK]</span> Locate the "Ring of Fire" (Pacific Plate Boundary). Identify
+                3 major active volcanoes.
+            </div>
+            <button
+                class="mt-3 w-full border border-gaia-green text-gaia-green text-xs font-bold py-2 hover:bg-gaia-green hover:text-black transition uppercase">
+                Start Simulation
+            </button>
+        </div>
+    </div>
+
+    <!-- 5. RIGHT INFO PANEL (CONTEXTUAL) -->
+    <div class="absolute right-6 top-32 bottom-6 w-72 pointer-events-none flex flex-col justify-end">
+        <div id="info-box"
+            class="hud-panel p-5 pointer-events-auto transform translate-x-10 opacity-0 transition-all duration-500">
+            <h3 class="scifi-text text-xl text-white mb-2" id="info-title">PACIFIC OCEAN</h3>
+            <p class="text-xs text-gray-400 leading-relaxed mb-4 text-justify" id="info-desc">
+                The largest and deepest of Earth's oceanic divisions. It extends from the Arctic Ocean in the north to
+                the Southern Ocean in the south.
+            </p>
+            <div class="grid grid-cols-2 gap-2 text-[10px] font-mono text-gray-500">
+                <div class="border border-white/10 p-2 text-center">
+                    <div class="text-gaia-blue text-lg font-bold" id="info-v1">165M</div>
+                    <div>Area (km²)</div>
+                </div>
+                <div class="border border-white/10 p-2 text-center">
+                    <div class="text-gaia-blue text-lg font-bold" id="info-v2">11km</div>
+                    <div>Max Depth</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // --- 1. INITIALIZE EARTH ---
+        const world = Globe()
+            (document.getElementById('earth-container'))
+            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+            .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+            .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+            .atmosphereColor('#00ff9d')
+            .atmosphereAltitude(0.15)
+            .enablePointerInteraction(true);
+
+        // Auto-Rotate
+        world.controls().autoRotate = true;
+        world.controls().autoRotateSpeed = 0.5;
+
+        // --- 2. DATA LAYERS (DUMMY DATA FOR V1) ---
+        const VOLCANOES = [
+            { name: "Mount Fuji", lat: 35.36, lng: 138.72, val: 50, type: 'Stratovolcano' },
+            { name: "Mauna Loa", lat: 19.47, lng: -155.60, val: 80, type: 'Shield' },
+            { name: "Etna", lat: 37.75, lng: 14.99, val: 60, type: 'Stratovolcano' },
+            { name: "Krakatoa", lat: -6.10, lng: 105.42, val: 90, type: 'Caldera' }
+        ];
+
+        const PLATES = []; // To be implemented with GeoJSON
+
+        // --- 3. MODES ---
+        function setMode(mode) {
+            // Reset UI
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Clear Layers
+            world.pointsData([]).arcsData([]).polygonsData([]);
+
+            if (mode === 'overview') {
+                world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+            }
+            else if (mode === 'tectonic') {
+                world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg');
+                // Show Volcanoes
+                world.pointsData(VOLCANOES)
+                    .pointColor(() => '#ff3300')
+                    .pointAltitude(0.1)
+                    .pointRadius(0.5)
+                    .pointLabel('name');
+
+                // Show Info
+                showInfo('RING OF FIRE', 'A major area in the basin of the Pacific Ocean where many earthquakes and volcanic eruptions occur.', '452', 'Volcanoes');
+            }
+            else if (mode === 'atmosphere') {
+                // Pseudo clouds logic or hex grid
+                world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+                const N = 50;
+                const arcsData = [...Array(N).keys()].map(() => ({
+                    startLat: (Math.random() - 0.5) * 180,
+                    startLng: (Math.random() - 0.5) * 360,
+                    endLat: (Math.random() - 0.5) * 180,
+                    endLng: (Math.random() - 0.5) * 360,
+                    color: ['#ffffff', '#0000ff'][Math.round(Math.random())]
+                }));
+                world.arcsData(arcsData)
+                    .arcColor('color')
+                    .arcDashLength(0.4)
+                    .arcDashGap(4)
+                    .arcDashAnimateTime(1000)
+                    .arcStroke(0.5);
+            }
+            else if (mode === 'human') {
+                world.globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg');
+            }
+        }
+
+        // --- 4. INTERACTION ---
+        function showInfo(title, desc, v1, v1_label) {
+            const box = document.getElementById('info-box');
+            document.getElementById('info-title').innerText = title;
+            document.getElementById('info-desc').innerText = desc;
+            if (v1) document.getElementById('info-v1').innerText = v1;
+            box.classList.remove('translate-x-10', 'opacity-0');
+        }
+
+        world.onGlobeClick(({ lat, lng }, event) => {
+            showInfo(`COORDINATES`, `Lat: ${lat.toFixed(2)}, Lng: ${lng.toFixed(2)}`, '-', 'N/A');
+        });
+
+        // --- 5. CHARTS ---
+        setTimeout(() => {
+            const chartDom = document.getElementById('seismic-chart');
+            const myChart = echarts.init(chartDom);
+            const option = {
+                grid: { top: 5, bottom: 5, left: 5, right: 5 },
+                xAxis: { show: false, data: ['0', '4', '8', '12', '16', '20', '24'] },
+                yAxis: { show: false },
+                series: [{
+                    data: [10, 50, 20, 80, 40, 60, 30],
+                    type: 'line',
+                    smooth: true,
+                    lineStyle: { width: 1, color: '#00ff9d' },
+                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(0,255,157,0.5)' }, { offset: 1, color: 'transparent' }]) },
+                    symbol: 'none'
+                }]
+            };
+            myChart.setOption(option);
+            window.addEventListener('resize', () => {
+                world.width(window.innerWidth).height(window.innerHeight);
+                myChart.resize();
+            });
+        }, 1000);
+
+    </script>
+</body>
+
+</html>

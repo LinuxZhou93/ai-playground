@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Hub | Titan Nexus</title>
+
+    <!-- Dependencies -->
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="assets/js/titan-ui.js"></script> <!-- The New Component System -->
+    <!-- Core System -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/subscription.js"></script>
+    <script src="assets/js/tracker.js"></script> <!-- The Learning Tracker -->
+
+    <script>
+        // Colors for Tailwind Config (Dynamic)
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Rajdhani', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar will be injected here by TitanUI -->
+
+    <main class="flex-grow relative z-10 pb-20">
+
+        <!-- HERO SECTION (Dynamic) -->
+        <section
+            class="min-h-[60vh] flex flex-col justify-center items-center text-center px-6 relative overflow-hidden">
+            <!-- Background Gradient/Image Slot -->
+            <div id="hero-bg" class="absolute inset-0 z-0 opacity-30"></div>
+
+            <div class="space-y-6 max-w-4xl relative z-10 animate-float">
+                <div
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border-white/20 text-xs font-bold uppercase tracking-[0.2em] mb-4">
+                    <span id="hero-status-dot" class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    <span id="hero-status-text">SYSTEM ONLINE</span>
+                </div>
+
+                <h1 class="font-display font-bold text-6xl md:text-8xl leading-none uppercase">
+                    <span id="hero-title-main"
+                        class="block text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500">SUBJECT</span>
+                    <span id="hero-title-sub" class="text-white filter drop-shadow-lg">MODULE</span>
+                </h1>
+
+                <p id="hero-desc" class="text-xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
+                    Module description goes here.
+                </p>
+
+                <div class="pt-8" id="hero-actions">
+                    <!-- Action Button -->
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTENT GRID -->
+        <section class="max-w-7xl mx-auto px-6 mt-12">
+            <div class="flex items-center gap-4 mb-8">
+                <div id="section-bar" class="w-1 h-8 bg-white"></div>
+                <h2 class="text-3xl font-display font-bold uppercase tracking-wide">
+                    Research <span class="opacity-50">Modules</span>
+                </h2>
+            </div>
+
+            <!-- Filters -->
+            <div id="filter-container" class="flex gap-4 mb-8 overflow-x-auto pb-2"></div>
+
+            <!-- Grid -->
+            <div id="content-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Items injected here -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer will be injected here by TitanUI -->
+
+    <!-- LOGIC -->
+    <script>
+        // 1. Parse URL Params
+        const params = new URLSearchParams(window.location.search);
+        const topicId = params.get('topic') || 'life'; // Default to life for demo
+
+        // 2. Data Definitions (Eventually can be external JSON files)
+        const db = {
+            'ai': {
+                config: {
+                    title: 'ARTIFICIAL',
+                    subtitle: 'INTELLIGENCE',
+                    desc: 'Train neural networks. Visualize LLMs. Build computer vision models. The future is automated.',
+                    color: 'fuchsia', // Purple/Pink
+                    secondary: 'blue',
+                    bgGradient: 'radial-gradient(circle at 50% 50%, #2e023b 0%, #0f0518 100%)',
+                    status: 'Model Training',
+                    engineUrl: 'https://playground.tensorflow.org/',
+                    engineLabel: '启动神经网络 NODE LAB'
+                },
+                sourceFile: 'assets/js/tech-data.js',
+                dataVar: 'aiExperiments',
+                categories: [
+                    { id: 'All', label: '全部 All' },
+                    { id: 'Machine Learning', label: '机器学习 ML' },
+                    { id: 'LLM & NLP', label: '大语言模型 LLM' },
+                    { id: 'Computer Vision', label: '计算机视觉 CV' },
+                    { id: 'Generative AI', label: '生成式 AIGC' }
+                ]
+            },
+            'circuits': {
+                config: {
+                    title: 'ELECTRONIC',
+                    subtitle: 'CIRCUITS',
+                    desc: 'Design PCBs. Simulate logic gates. Program Microcontrollers. Connect the physical world.',
+                    color: 'cyan',
+                    secondary: 'emerald',
+                    bgGradient: 'radial-gradient(circle at 50% 50%, #064e3b 0%, #022c22 100%)',
+                    status: 'Circuit Live',
+                    engineUrl: 'https://www.falstad.com/circuit/circuitjs.html',
+                    engineLabel: '启动仿真模拟 SIMULATOR'
+                },
+                sourceFile: 'assets/js/tech-data.js',
+                dataVar: 'circuitsExperiments',
+                categories: [
+                    { id: 'All', label: '全部 All' },
+                    { id: 'Basics', label: '基础电路 Basic' },
+                    { id: 'Digital Logic', label: '数字逻辑 Logic' },
+                    { id: 'Microcontrollers', label: '单片机 MCU' }
+                ]
+            },
+            'life': {
+                config: {
+                    title: 'LIFE',
+                    subtitle: 'SCIENCE',
+                    desc: 'Unlock the secrets of biology. From DNA sequences to Neural networks. Step into the Helix Lab.',
+                    color: 'fuchsia', // Tailwind color name
+                    secondary: 'lime',
+                    bgGradient: 'radial-gradient(circle at 50% 50%, #2a0a38 0%, #0f0518 100%)',
+                    status: 'Decoding Sequence',
+                    engineUrl: 'helix.html',
+                    engineLabel: '启动序列器 ENTER SEQUENCER'
+                },
+                sourceFile: 'assets/js/life-data.js', // Where data comes from
+                dataVar: 'lifeExperiments', // Global var name in that file
+                categories: [
+                    { id: 'All', label: '全部 All' },
+                    { id: 'Genetics', label: '遗传学 Genetics' },
+                    { id: 'Cell Bio', label: '细胞生物学 Cell Bio' },
+                    { id: 'Neuro', label: '神经科学 Neuro' },
+                    { id: 'Anatomy', label: '解剖学 Anatomy' },
+                    { id: 'Ecology', label: '生态学 Ecology' }
+                ]
+            },
+            'earth': {
+                config: {
+                    title: 'EARTH',
+                    subtitle: 'SYSTEMS',
+                    desc: 'Explore the geology, atmosphere, and oceans of our home planet. Monitor global change.',
+                    color: 'emerald',
+                    secondary: 'cyan',
+                    bgGradient: 'radial-gradient(circle at 50% 50%, #064e3b 0%, #022c22 100%)',
+                    status: 'Terraforming',
+                    engineUrl: 'gaia.html',
+                    engineLabel: '启动地球引擎 LAUNCH GAIA'
+                },
+                // sourceFile: 'assets/js/earth-data.js', // Pending
+                categories: []
+            }
+        };
+
+        const templateData = db[topicId] || db['life'];
+
+        // 3. Init UI
+        document.addEventListener('DOMContentLoaded', () => {
+            // A. Base UI
+            TitanUI.injectStyles(); // Just in case
+            TitanUI.initNavbar(templateData.config.subtitle);
+            TitanUI.initFooter();
+
+            // B. Hero Section
+            document.body.style.background = '#0f0518'; // Reset
+            document.getElementById('hero-bg').style.background = templateData.config.bgGradient;
+
+            document.getElementById('hero-status-text').innerText = templateData.config.status;
+            document.getElementById('hero-status-dot').className = `w-2 h-2 rounded-full animate-pulse bg-${templateData.config.color}-500`;
+
+            const titleMain = document.getElementById('hero-title-main');
+            titleMain.innerText = templateData.config.title;
+
+            const titleSub = document.getElementById('hero-title-sub');
+            titleSub.innerText = templateData.config.subtitle;
+            // Apply gradient text
+            titleSub.className = `text-transparent bg-clip-text bg-gradient-to-r from-${templateData.config.color}-400 to-${templateData.config.secondary}-400 filter drop-shadow-lg`;
+
+            document.getElementById('hero-desc').innerText = templateData.config.desc;
+            document.getElementById('hero-desc').innerHTML += `<br><span class="text-${templateData.config.color}-400">Step into the Lab.</span>`;
+
+            // Action Button
+            const btnHTML = `
+                <a href="${templateData.config.engineUrl}" class="group relative inline-flex items-center justify-center px-10 py-5 overflow-hidden font-bold text-white transition-all duration-300 bg-${templateData.config.color}-900 rounded-none hover:bg-${templateData.config.color}-800 border border-${templateData.config.color}-500/50">
+                    <span class="absolute right-0 w-8 h-32 -mt-12 transition-all duration-1000 transform translate-x-12 bg-white opacity-10 rotate-12 group-hover:-translate-x-40 ease"></span>
+                    <span class="font-display tracking-[0.2em] text-lg">${templateData.config.engineLabel}</span>
+                    <span class="ml-3 text-xl">🔬</span>
+                </a>
+            `;
+            document.getElementById('hero-actions').innerHTML = btnHTML;
+
+            document.getElementById('section-bar').className = `w-1 h-12 bg-gradient-to-b from-${templateData.config.color}-500 to-${templateData.config.secondary}-400`;
+
+            // C. Load Data
+            if (templateData.sourceFile) {
+                const script = document.createElement('script');
+                script.src = templateData.sourceFile;
+                script.onload = () => {
+                    initGrid(window[templateData.dataVar]);
+                };
+                document.head.appendChild(script);
+            } else {
+                document.getElementById('content-grid').innerHTML = '<div class="col-span-3 text-center text-slate-500">Data Source Pending...</div>';
+            }
+        });
+
+        // 4. Grid Logic
+        let currentFilter = 'All';
+
+        function initGrid(data) {
+            if (!data) return;
+
+            // Render Filters
+            const filterContainer = document.getElementById('filter-container');
+            filterContainer.innerHTML = templateData.categories.map(cat => {
+                const isActive = cat.id === currentFilter;
+                const activeClass = isActive
+                    ? `bg-${templateData.config.color}-600 text-white border-${templateData.config.color}-500`
+                    : `glass-panel text-slate-400 hover:text-${templateData.config.color}-400`;
+
+                return `<button onclick="setFilter('${cat.id}')" 
+                    class="px-6 py-2 font-bold uppercase text-xs tracking-widest border border-transparent transition-all whitespace-nowrap ${activeClass}">
+                    ${cat.label}
+                </button>`;
+            }).join('');
+
+            // Filter logic
+            window.setFilter = (catId) => {
+                currentFilter = catId;
+                // Re-render filters to update active state
+                initGrid(data);
+            };
+
+            // Render Items
+            const grid = document.getElementById('content-grid');
+            const filtered = data.filter(d => currentFilter === 'All' || d.category === currentFilter);
+
+            grid.innerHTML = filtered.map((item, index) => {
+                const delay = index * 50;
+                const cColor = templateData.config.color;
+
+                return `
+                <div class="glass-panel p-1 group relative overflow-hidden h-[360px] animate-fade-in" style="animation-delay:${delay}ms">
+                    <div class="absolute inset-0 bg-gray-900">
+                         <img src="${item.thumbnail}" onerror="this.src='https://images.unsplash.com/photo-1530026405186-ed1f139313f8?q=80'" 
+                             class="w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity duration-700 group-hover:scale-105 transition-transform">
+                    </div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                    <div class="absolute bottom-0 left-0 p-6 w-full z-10 flex flex-col h-full justify-end">
+                        <div class="mb-auto pt-4">
+                            <span class="text-[10px] font-mono border border-${cColor}-500/30 px-2 py-1 rounded text-${cColor}-400 bg-black/40 text-nowrap">
+                                ${(item.category || '').toUpperCase()}
+                            </span>
+                        </div>
+                        <h3 class="text-2xl font-display font-bold mb-2 text-white group-hover:text-${cColor}-400 transition-colors leading-tight">
+                            ${item.title}
+                        </h3>
+                        <p class="text-slate-400 text-sm mb-6 line-clamp-2">${item.desc}</p>
+                        <button onclick="Tracker.log('${topicId}'); window.open('${item.url}', '_blank')" 
+                            class="w-full py-3 border border-${cColor}-500/50 hover:bg-${cColor}-500 hover:text-black text-${cColor}-400 text-xs font-bold uppercase transition-all tracking-widest bg-black/20">
+                            启动 Start
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+    </script>
+</body>
+
+</html>
