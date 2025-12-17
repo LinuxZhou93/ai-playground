@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const db = require('./db');
 
+const axios = require('axios');
 const app = express();
 const PORT = 3000;
 
@@ -11,6 +12,40 @@ const PORT = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '../'))); // Serve frontend static files
+
+// AI Proxy Route
+app.post('/v1/chat/completions', async (req, res) => {
+    try {
+        console.log('🤖 Proxying AI Request...');
+        const response = await axios({
+            method: 'post',
+            url: 'https://api.deepseek.com/v1/chat/completions',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': req.headers.authorization
+            },
+            data: req.body,
+            responseType: 'stream'
+        });
+
+        // Set headers for streaming
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        // Pipe the stream directly to the response
+        response.data.pipe(res);
+
+        response.data.on('end', () => {
+            console.log('✅ AI Response Complete');
+        });
+
+    } catch (error) {
+        console.error('❌ Proxy Error:', error.response?.data || error.message);
+        const statusCode = error.response?.status || 500;
+        res.status(statusCode).json(error.response?.data || { error: 'Proxy failed', message: error.message });
+    }
+});
 
 // --- API Routes ---
 

@@ -6,6 +6,8 @@ window.Launchpad = (() => {
 
     // App Data (Real apps only)
     const apps = [
+        { name: '科技英语', icon: '🚀', link: 'english.html', color: '#00F5FF' },
+        { name: '设计空间', icon: '🎨', link: 'design.html', color: '#7000FF' },
         { name: '个人中心', icon: '👤', link: 'profile.html', color: 'var(--mc-cyan)' },
         { name: '培养图谱', icon: '🗺️', link: 'post-4.html', color: '#fff' },
         { name: '课程地图', icon: '🧭', link: 'post-6.html', color: '#fff' },
