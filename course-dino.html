@@ -125,6 +125,24 @@
                         <span class="hidden sm:inline">知识星系</span>
                     </a>
                     <a href="learn.html" class="text-sm text-slate-400 hover:text-white transition-colors">← 返回课程列表</a>
+
+                    <!-- Right Tools -->
+                    <div class="flex items-center gap-2 border-l border-white/10 pl-4 ml-2">
+                        <!-- AI Toggle -->
+                        <button @click="showAI = !showAI" class="p-2 rounded-lg transition-all flex items-center gap-2"
+                            :class="showAI ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:text-white'">
+                            <span class="text-lg">🤖</span>
+                            <span class="hidden sm:inline text-xs font-bold">AI 助手</span>
+                        </button>
+
+                        <!-- Notes Toggle -->
+                        <button @click="showNotes = !showNotes"
+                            class="p-2 rounded-lg transition-all flex items-center gap-2"
+                            :class="showNotes ? 'bg-yellow-500/20 text-yellow-300' : 'text-gray-400 hover:text-white'">
+                            <span class="text-lg">📝</span>
+                            <span class="hidden sm:inline text-xs font-bold">学习笔记</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -377,113 +395,134 @@
             </main>
 
             <!-- Right Sidebar: AI 助教 -->
-            <aside class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 transform"
-                :class="sidebarOpen ? 'translate-x-0' : 'translate-x-full absolute right-0 h-full lg:relative lg:translate-x-0'">
+            <!-- Sidebar: AI Assistant -->
+            <aside v-show="showAI"
+                class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 fixed right-0 top-0 h-full z-40 lg:relative lg:z-0 lg:h-auto">
 
-                <!-- 标题栏 -->
-                <div class="p-4 border-b border-white/10 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <!-- 精美的AI机器人头像 -->
-                        <div
-                            class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-0.5 relative animate-pulse-slow">
-                            <div class="w-full h-full rounded-full overflow-hidden bg-gray-900">
-                                <img src="assets/images/ai-robot-avatar.png" alt="FutureAI"
-                                    class="w-full h-full object-cover">
-                            </div>
-                            <!-- 在线状态指示灯 -->
+                <!-- Title Bar -->
+                <div class="h-16 border-b border-indigo-500/20 flex items-center justify-between px-4 bg-black/20">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 p-0.5 relative">
                             <div
-                                class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900 animate-pulse">
+                                class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                                <span class="text-lg">🤖</span>
+                            </div>
+                            <div
+                                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black">
                             </div>
                         </div>
                         <div>
-                            <h3 class="font-bold text-sm">AI 课程助教</h3>
-                            <p class="text-xs text-gray-400">FutureAI 2.0</p>
+                            <h3 class="font-bold text-sm">AI 学习助手</h3>
+                            <p class="text-[10px] text-gray-400">Powered by FutureAI</p>
                         </div>
                     </div>
-                    <button @click="sidebarOpen = false" class="lg:hidden p-1 hover:bg-white/10 rounded">
-                        ✕
-                    </button>
+                    <button @click="showAI = false" class="lg:hidden p-1 hover:bg-white/10 rounded">✕</button>
                 </div>
 
-                <!-- 聊天历史 -->
-                <div class="flex-1 overflow-y-auto p-4 space-y-4" id="ai-chat-history" ref="chatContainer">
+                <!-- Chat History -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="chatContainer">
+                    <!-- Welcome Message -->
+                    <div class="flex gap-3">
+                        <div class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]">
+                        </div>
+                        <div
+                            class="bg-indigo-500/20 p-3 rounded-2xl rounded-tl-none border border-indigo-500/30 text-sm text-gray-200">
+                            你好！我是你的专属 AI 助教。关于该课程的任何问题，随时问我！
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Messages -->
                     <div v-for="(msg, index) in aiMessages" :key="index" class="flex gap-3"
                         :class="{'flex-row-reverse': msg.role === 'user'}">
-                        <!-- 头像 -->
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs relative p-0.5"
-                            :class="msg.role === 'user' ? 'bg-gray-700' : 'bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500'">
-                            <template v-if="msg.role === 'user'">
-                                <div class="w-full h-full rounded-full bg-gray-700 flex items-center justify-center">
-                                    👤
-                                </div>
-                            </template>
-                            <template v-else>
-                                <div class="w-full h-full rounded-full overflow-hidden bg-gray-900">
-                                    <img src="assets/images/ai-robot-avatar.png" alt="AI"
-                                        class="w-full h-full object-cover">
-                                </div>
-                            </template>
+
+                        <!-- AI Avatar -->
+                        <div v-if="msg.role === 'assistant'" class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(139,92,246,0.5)] transform scale-x-100">
                         </div>
+
+                        <!-- User Avatar -->
+                        <div v-if="msg.role === 'user'"
+                            class="w-10 h-10 flex-shrink-0 rounded-full overflow-hidden border border-white/20">
+                            <img :src="userAvatar" class="w-full h-full object-cover transform -scale-x-100">
+                        </div>
+
                         <div class="p-3 rounded-2xl text-sm max-w-[85%] leading-relaxed"
-                            :class="msg.role === 'user' ? 'bg-gray-700 rounded-tr-none text-white' : 'bg-indigo-500/20 border border-indigo-500/30 rounded-tl-none text-gray-200'"
-                            v-html="formatMessage(msg.content)">
+                            :class="msg.role === 'user' ? 'bg-gray-700 text-white rounded-tr-none' : 'bg-indigo-500/20 text-gray-200 border border-indigo-500/30 rounded-tl-none'"
+                            v-html="renderMarkdown(msg.content)">
                         </div>
                     </div>
 
-                    <!-- 加载动画 -->
+                    <!-- Loading Indicator -->
                     <div v-if="aiLoading" class="flex gap-3">
-                        <div
-                            class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-0.5 flex items-center justify-center flex-shrink-0 relative">
-                            <div class="w-full h-full rounded-full overflow-hidden bg-gray-900 opacity-70">
-                                <img src="assets/images/ai-robot-avatar.png" alt="AI"
-                                    class="w-full h-full object-cover animate-pulse">
-                            </div>
+                        <div class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain animate-pulse">
                         </div>
                         <div
-                            class="bg-indigo-500/20 p-3 rounded-2xl rounded-tl-none text-sm text-gray-200 border border-indigo-500/30 flex gap-1 items-center">
+                            class="bg-indigo-500/20 p-3 rounded-2xl rounded-tl-none border border-indigo-500/30 flex items-center gap-1">
                             <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                style="animation-delay: 0.1s"></span>
-                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                style="animation-delay: 0.2s"></span>
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
                         </div>
                     </div>
                 </div>
 
-                <!-- 输入区 -->
-                <div class="p-4 border-t border-white/10">
-                    <div class="relative flex gap-2">
-                        <!-- 语音输入按钮 -->
-                        <button @click="toggleVoiceInput"
-                            :class="isRecording ? 'bg-red-500 animate-pulse' : 'bg-indigo-500/20 hover:bg-indigo-500/40'"
-                            class="w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0"
-                            :disabled="aiLoading">
-                            <span v-if="isRecording">⏹</span>
-                            <span v-else>🎤</span>
+                <!-- Input Area -->
+                <div class="p-4 border-t border-indigo-500/20 bg-black/20">
+                    <div class="relative">
+                        <textarea v-model="userInput" @keydown.enter.prevent="sendMessage" placeholder="输入你的问题..."
+                            class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:border-indigo-500 transition-colors resize-none h-12 max-h-32"
+                            rows="1"></textarea>
+                        <button @click="sendMessage" :disabled="!userInput.trim() || aiLoading"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            ➤
                         </button>
-
-                        <!-- 文字输入框 -->
-                        <div class="flex-1 relative">
-                            <input type="text" v-model="aiInput" @keyup.enter="sendAiMessage"
-                                placeholder="输入问题或点击🎤语音输入..."
-                                class="w-full bg-black/50 border border-white/20 rounded-full py-2 px-4 pr-10 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
-                            <button @click="sendAiMessage"
-                                class="absolute right-2 top-1.5 text-gray-400 hover:text-white transition-colors disabled:opacity-30"
-                                :disabled="aiLoading || !aiInput.trim()">
-                                ➤
-                            </button>
-                        </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2 text-center">
-                        由 FutureAI 2.0 驱动
-                    </p>
+                </div>
+            </aside>
+
+            <!-- Sidebar: Study Notes -->
+            <aside v-show="showNotes"
+                class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 fixed right-0 top-0 h-full z-40 lg:relative lg:z-0 lg:h-auto">
+                <!-- Title Bar -->
+                <div class="h-16 border-b border-yellow-500/20 flex items-center justify-between px-4 bg-black/20">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">📝</span>
+                        <h3 class="font-bold text-sm text-yellow-100">学习笔记</h3>
+                    </div>
+                    <button @click="showNotes = false" class="lg:hidden p-1 hover:bg-white/10 rounded">✕</button>
+                </div>
+
+                <!-- Notes Content -->
+                <div class="flex-1 p-4 flex flex-col gap-4">
+                    <div class="text-xs text-gray-400 flex justify-between">
+                        <span>Lesson {{ currentLesson?.id }}</span>
+                        <span>{{ currentLesson?.title ? currentLesson.title.substring(0, 15) + '...' : '' }}</span>
+                    </div>
+                    <textarea v-model="currentNote"
+                        class="flex-1 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:border-yellow-500/50 resize-none leading-relaxed font-mono"
+                        placeholder="在此记录您的学习心得... &#10;内容将自动保存至本地。"></textarea>
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs transition-colors"
+                            :class="notesStatus ? 'text-green-400' : 'text-gray-600'">
+                            {{ notesStatus || '支持自动保存' }}
+                        </span>
+                        <button @click="saveNote"
+                            class="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-300 text-sm font-bold rounded-lg transition-colors border border-yellow-500/30">
+                            保存笔记
+                        </button>
+                    </div>
                 </div>
             </aside>
         </div>
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+        const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
         const app = createApp({
             setup() {
@@ -504,126 +543,95 @@
                 const quizScore = ref(0);
                 const correctAnswersCount = ref(0);
 
-                // AI 助教状态
-                const sidebarOpen = ref(false);
-                const chatContainer = ref(null);
-                const aiInput = ref('');
-                const aiMessages = ref([
-                    {
-                        role: 'assistant',
-                        content: `你好！我是 **FutureAI 2.0**，你的智能课程助教。\n\n我可以帮你：\n- 📚 解答课程内容相关问题\n- 💡 提供学习建议和思路\n- 🔍 深入解释知识点\n- 🎯 推荐相关学习资源\n\n有什么问题随时问我！`
-                    }
-                ]);
+                // AI Chat State
+                // UI State
+                const showAI = ref(window.innerWidth >= 1024);
+                const showNotes = ref(false);
+                const sidebarOpen = showAI; // Compatibility alias
+
+                // Notes State
+                const currentNote = ref('');
+                const notesStatus = ref('');
+                const userInput = ref('');
+                const userAvatar = ref(localStorage.getItem('user_avatar') || 'assets/images/bot_avatar_vip.png');
+                const aiMessages = ref([]);
                 const aiLoading = ref(false);
+                const chatContainer = ref(null);
 
-                // 语音输入状态
-                const isRecording = ref(false);
-                let recognition = null;
-
-                // 初始化语音识别
-                const initSpeechRecognition = () => {
-                    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                        recognition = new SpeechRecognition();
-                        recognition.lang = 'zh-CN';
-                        recognition.continuous = false;
-                        recognition.interimResults = false;
-
-                        recognition.onresult = (event) => {
-                            const transcript = event.results[0][0].transcript;
-                            aiInput.value = transcript;
-                            isRecording.value = false;
-                        };
-
-                        recognition.onerror = (event) => {
-                            console.error('语音识别错误:', event.error);
-                            isRecording.value = false;
-                            if (event.error === 'no-speech') {
-                                aiMessages.value.push({
-                                    role: 'assistant',
-                                    content: '⚠️ 没有检测到语音，请重试。'
-                                });
-                            }
-                        };
-
-                        recognition.onend = () => {
-                            isRecording.value = false;
-                        };
-                    }
-                };
-
-                // 切换语音输入
-                const toggleVoiceInput = () => {
-                    if (!recognition) {
-                        aiMessages.value.push({
-                            role: 'assistant',
-                            content: '⚠️ 您的浏览器不支持语音识别功能。\n\n建议使用 Chrome、Edge 或 Safari 浏览器。'
-                        });
-                        return;
-                    }
-
-                    if (isRecording.value) {
-                        recognition.stop();
-                        isRecording.value = false;
-                    } else {
-                        recognition.start();
-                        isRecording.value = true;
-                    }
-                };
-
-                // 页面加载时初始化语音识别
-                onMounted(() => {
-                    initSpeechRecognition();
-                });
-
-                // Dify API 配置（推荐）
+                // Dify Configuration
                 const DIFY_CONFIG = {
-                    // 您的 Dify API Key（需要在 Dify 中创建应用并获取）
-                    apiKey: 'app-YOUR_DIFY_API_KEY',
-                    // Dify API 地址
-                    apiUrl: 'http://localhost/v1/chat-messages',  // 本地 Dify
-                    // 或使用云端 Dify
-                    // apiUrl: 'https://api.dify.ai/v1/chat-messages',
-                    user: 'course-student-' + Date.now()
+                    apiKey: 'sk-21128a0cda4e4cc39f7c05c330f355ce',
+                    apiUrl: 'http://localhost/v1/chat-messages',
+                    user: 'student-dino-' + Date.now()
                 };
 
-                // 备用：DeepSeek 直接调用（需要本地代理）
+                // DeepSeek Configuration (Local Proxy)
                 const DEEPSEEK_CONFIG = {
-                    apiKey: 'sk-abb5d221fe624678ad545f2469b66419',
+                    apiKey: 'sk-21128a0cda4e4cc39f7c05c330f355ce',
                     apiUrl: 'http://localhost:3000/v1/chat/completions',
                     model: 'deepseek-chat'
                 };
 
-                // 当前使用的配置（可切换）
-                const USE_DIFY = true;  // true: 使用 Dify, false: 使用 DeepSeek
+                // Notes Methods
+                const loadNote = () => {
+                    if (!currentLesson.value) return;
+                    const courseTitle = course.value.title || 'course';
+                    const key = `note_${courseTitle}_${currentLesson.value.id}`;
+                    currentNote.value = localStorage.getItem(key) || '';
+                    notesStatus.value = '';
+                };
 
-                // AI 助教方法
-                const sendAiMessage = async () => {
-                    const message = aiInput.value.trim();
+                const saveNote = () => {
+                    if (!currentLesson.value) return;
+                    const courseTitle = course.value.title || 'course';
+                    const key = `note_${courseTitle}_${currentLesson.value.id}`;
+                    localStorage.setItem(key, currentNote.value);
+                    notesStatus.value = '已保存';
+                    setTimeout(() => notesStatus.value = '', 2000);
+                };
+
+                watch(currentLesson, () => {
+                    loadNote();
+                });
+
+                // AI Chat Methods
+                const sendMessage = async () => {
+                    const message = userInput.value.trim();
                     if (!message || aiLoading.value) return;
 
-                    // 添加用户消息
+                    // Add User Message
                     aiMessages.value.push({ role: 'user', content: message });
-                    aiInput.value = '';
+                    userInput.value = '';
                     aiLoading.value = true;
 
-                    // 滚动到底部
+                    // Scroll to bottom
                     await nextTick();
                     if (chatContainer.value) {
                         chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
                     }
 
                     try {
-                        if (USE_DIFY) {
-                            // 使用 Dify API
-                            await callDifyAPI(message);
-                        } else {
-                            // 使用 DeepSeek API
+                        // Intelligent Routing: Check Key Format
+                        if (DIFY_CONFIG.apiKey.startsWith('sk-')) {
+                            console.log('Detected sk- key, using DeepSeek Direct Mode');
                             await callDeepSeekAPI(message);
+                        } else {
+                            console.log('Detected App key, using Dify Mode');
+                            await callDifyAPI(message);
                         }
                     } catch (error) {
-                        console.error('AI 调用失败:', error);
-                        handleAPIError(error);
+                        console.error('AI Error:', error);
+                        let tip = '';
+                        if (error.message.includes('401')) {
+                            tip = '\n💡 提示: 401 错误通常意味着 API Key 无效。';
+                        } else if (error.message.includes('Failed to fetch')) {
+                            tip = '\n💡 提示: 连接不到服务。请确认 deepseek-proxy.js (端口3000) 或 Dify (端口80) 正在运行。';
+                        }
+
+                        aiMessages.value.push({
+                            role: 'assistant',
+                            content: `⚠️ 出错了: ${error.message}${tip}`
+                        });
                     } finally {
                         aiLoading.value = false;
                         await nextTick();
@@ -633,9 +641,10 @@
                     }
                 };
 
-                // Dify API 调用
+                // Option 1: Dify API
                 const callDifyAPI = async (message) => {
-                    const contextMessage = `当前课程：${course.value.title || '未知课程'}\n当前章节：${currentLesson.value?.title || '未选择'}\n\n${message}`;
+                    const context = `当前正在学习课程：${course.value.title}\n当前章节：${currentLesson.value?.title || '未开始'}`;
+                    const fullQuery = `${context}\n\n用户问题：${message}`;
 
                     const response = await fetch(DIFY_CONFIG.apiUrl, {
                         method: 'POST',
@@ -645,82 +654,24 @@
                         },
                         body: JSON.stringify({
                             inputs: {},
-                            query: contextMessage,
+                            query: fullQuery,
                             response_mode: "streaming",
-                            conversation_id: "",
                             user: DIFY_CONFIG.user
                         })
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`Dify API 错误: ${response.status}`);
-                    }
-
-                    // 创建 AI 回复消息
-                    const aiMessageIndex = aiMessages.value.length;
-                    aiMessages.value.push({ role: 'assistant', content: '' });
-
-                    // 处理 Dify 流式响应
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-                    let buffer = '';
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        buffer += decoder.decode(value, { stream: true });
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop() || '';
-
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                const data = line.slice(6);
-                                if (data === '[DONE]') continue;
-
-                                try {
-                                    const parsed = JSON.parse(data);
-
-                                    // Dify 返回格式
-                                    if (parsed.event === 'message' || parsed.event === 'agent_message') {
-                                        const delta = parsed.answer;
-                                        if (delta) {
-                                            aiMessages.value[aiMessageIndex].content += delta;
-                                            await nextTick();
-                                            if (chatContainer.value) {
-                                                chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-                                            }
-                                        }
-                                    }
-                                } catch (e) {
-                                    console.warn('解析 Dify SSE 数据失败:', e);
-                                }
-                            }
-                        }
-                    }
-
-                    if (!aiMessages.value[aiMessageIndex].content) {
-                        aiMessages.value[aiMessageIndex].content = '抱歉，我没有收到完整的回复。请重试。';
-                    }
+                    if (!response.ok) throw new Error(`Dify API Error ${response.status}: ${response.statusText}`);
+                    await handleStreamResponse(response);
                 };
 
-                // DeepSeek API 调用
+                // Option 2: DeepSeek API (via Local Proxy)
                 const callDeepSeekAPI = async (message) => {
-                    const contextMessage = `当前课程：${course.value.title || '未知课程'}\n当前章节：${currentLesson.value?.title || '未选择'}\n\n`;
+                    const context = `你是一位专业的恐龙与古生物学课程助教。当前学生正在学习：${course.value.title}。章节：${currentLesson.value?.title || '概览'}。请用生动、科学的语言回答关于恐龙、化石和生物进化的问题。`;
 
                     const messages = [
-                        {
-                            role: 'system',
-                            content: `你是 FutureAI 2.0，一位专业的课程助教，正在帮助学生学习「${course.value.title}」课程。请用简洁、友好的方式回答问题，必要时可以使用 Markdown 格式来组织内容。`
-                        },
-                        ...aiMessages.value.slice(0, -1).map(msg => ({
-                            role: msg.role,
-                            content: msg.content
-                        })),
-                        {
-                            role: 'user',
-                            content: contextMessage + message
-                        }
+                        { role: 'system', content: context },
+                        ...aiMessages.value.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+                        { role: 'user', content: message }
                     ];
 
                     const response = await fetch(DEEPSEEK_CONFIG.apiUrl, {
@@ -732,93 +683,57 @@
                         body: JSON.stringify({
                             model: DEEPSEEK_CONFIG.model,
                             messages: messages,
-                            stream: true,
-                            temperature: 0.7,
-                            max_tokens: 2000
+                            stream: true
                         })
                     });
 
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error?.message || `API 错误: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`DeepSeek API Error ${response.status}: ${response.statusText}`);
+                    await handleStreamResponse(response, 'deepseek');
+                };
 
-                    // 创建 AI 回复消息
-                    const aiMessageIndex = aiMessages.value.length;
-                    aiMessages.value.push({ role: 'assistant', content: '' });
+                // Shared Stream Handler
+                const handleStreamResponse = async (response, provider = 'dify') => {
+                    let assistantMsg = { role: 'assistant', content: '' };
+                    aiMessages.value.push(assistantMsg);
+                    const msgIndex = aiMessages.value.length - 1;
 
-                    // 处理 DeepSeek 流式响应
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
-                    let buffer = '';
 
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
 
-                        buffer += decoder.decode(value, { stream: true });
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop() || '';
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
 
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
-                                const data = line.slice(6);
-                                if (data === '[DONE]') continue;
-
+                                const dataStr = line.slice(6);
+                                if (dataStr === '[DONE]') continue;
                                 try {
-                                    const parsed = JSON.parse(data);
-                                    const delta = parsed.choices?.[0]?.delta?.content;
+                                    const data = JSON.parse(dataStr);
+                                    let text = '';
 
-                                    if (delta) {
-                                        aiMessages.value[aiMessageIndex].content += delta;
-                                        await nextTick();
+                                    if (provider === 'dify' && (data.event === 'message' || data.event === 'agent_message')) {
+                                        text = data.answer;
+                                    } else if (provider === 'deepseek') {
+                                        text = data.choices?.[0]?.delta?.content || '';
+                                    }
+
+                                    if (text) {
+                                        aiMessages.value[msgIndex].content += text;
                                         if (chatContainer.value) {
                                             chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
                                         }
                                     }
-                                } catch (e) {
-                                    console.warn('解析 DeepSeek SSE 数据失败:', e);
-                                }
+                                } catch (e) { }
                             }
                         }
                     }
-
-                    if (!aiMessages.value[aiMessageIndex].content) {
-                        aiMessages.value[aiMessageIndex].content = '抱歉，我没有收到完整的回复。请重试。';
-                    }
                 };
 
-                // 错误处理
-                const handleAPIError = (error) => {
-                    let errorMessage = '抱歉，我遇到了一些问题。';
 
-                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                        errorMessage = '⚠️ 网络连接失败\n\n可能的原因：\n- 网络不稳定\n- API 服务暂时不可用\n- 请检查 Dify 是否正在运行\n\n请稍后重试。';
-                    } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
-                        errorMessage = '⚠️ API 密钥无效\n\n请检查 Dify API Key 是否正确配置。';
-                    } else if (error.message.includes('429')) {
-                        errorMessage = '⚠️ 请求过于频繁\n\n请稍等片刻后再试。';
-                    } else if (error.message.includes('500') || error.message.includes('503')) {
-                        errorMessage = '⚠️ 服务器错误\n\nAPI 服务暂时不可用，请稍后重试。';
-                    }
-
-                    aiMessages.value.push({
-                        role: 'assistant',
-                        content: errorMessage
-                    });
-                };
-
-                // 格式化消息（支持 Markdown）
-                const formatMessage = (text) => {
-                    if (!text) return '';
-
-                    // 简单的 Markdown 支持
-                    return text
-                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                        .replace(/`(.+?)`/g, '<code class="bg-black/30 px-1 rounded">$1</code>')
-                        .replace(/\n/g, '<br>');
-                };
 
                 // 切换侧边栏
                 const toggleSidebar = () => {
@@ -872,331 +787,183 @@
                             description: data.description || 'Course Description'
                         };
 
-                        // 默认加载恐龙课程 (无需URL参数)
-                        course.value.title = '恐龙星球：第一章 - 史前霸主的崛起';
-                        course.value.description = '从三叠纪到白垩纪，探索恐龙统治地球1.6亿年的传奇历史，揭秘化石背后的科学真相。';
+                        // 默认加载课程 (无需URL参数)
+                        course.value.title = '地球生命史诗：从寒武纪到恐龙时代';
+                        course.value.description = '跨越5亿年的时空旅程。从寒武纪的海洋霸主奇虾，到古生代的见证者三叶虫，再到中生代的地球统治者恐龙，探索生命演化的宏伟篇章。';
 
                         data.lessons = [
                             {
                                 id: 1,
-                                title: '第一课：恐龙时代 - 地球的中生代',
+                                title: '第一课：霸主的起源 - 寒武纪与奇虾',
                                 type: 'video',
                                 duration_seconds: 720,
                                 completed: false,
-                                // Bilibili: BBC恐龙星球 (Verified: BV1Wx411H7pS)
-                                content_url: 'https://www.bilibili.com/video/BV1Wx411H7pS'
+                                // Bilibili: 芳斯塔芙 - 奇虾 (Verified: BV1wb41127jT)
+                                content_url: 'https://www.bilibili.com/video/BV1wb41127jT'
                             },
                             {
                                 id: 2,
-                                title: '第二课：恐龙的起源与演化',
+                                title: '第二课：寒武纪大爆发 - 生命的黎明',
                                 type: 'reading',
                                 completed: false,
                                 content: `
-# 恐龙的起源：从小型爬行动物到地球霸主
+# 寒武纪大爆发：演化的奇迹 (5.41亿年前)
 
-## 三叠纪：恐龙的黎明 (2.52亿 - 2.01亿年前)
+## 生命的"宇宙大爆炸"
+在地球46亿年的历史中，寒武纪大爆发（Cambrian Explosion）是最为震撼的时刻。在短短2000多万年的时间里，绝大多数现代动物门类的祖先突然同时出现在海洋中。
 
-### 最早的恐龙
-大约2.3亿年前，在今天的阿根廷，一种小型、双足行走的爬行动物悄然出现——**始盗龙** (Eoraptor)。
+### 海洋霸主：奇虾 (Anomalocaris)
+- **名字含义**："奇怪的虾"
+- **体型**：长达2米（当时其他生物大多只有几厘米）
+- **武器**：口部有一对巨大的捕捉附肢，用来捕捉猎物
+- **视力**：拥有巨大的复眼，视力极佳，是寒武纪海洋的顶级掠食者
 
-- **体型**：仅1米长，体重约10公斤
-- **特征**：杂食性，既吃植物也捕食小动物
-- **意义**：最接近恐龙祖先的物种之一
+### 演化的军备竞赛
+奇虾的出现引发了生命史上第一场"军备竞赛"：
+1. **捕食者**：进化出更好的视力、更快的游泳速度和更强的捕捉器官。
+2. **猎物**：进化出坚硬的外壳（如三叶虫）、尖刺或伪装能力。
 
-### 恐龙的定义
-什么是恐龙？科学家通过以下特征识别恐龙：
-
-1. **直立步态**：腿部垂直于身体下方（不像鳄鱼那样向外伸展）
-2. **髋关节结构**：特殊的球窝关节
-3. **开孔头骨**：颞窝和眶前孔减轻头骨重量
-4. **三趾或四趾足**：适应不同的生活方式
-
-## 侏罗纪：恐龙的黄金时代 (2.01亿 - 1.45亿年前)
-
-这是恐龙真正统治地球的开始。超大陆盘古大陆开始分裂，气候温暖湿润，植被茂盛。
-
-### 巨型蜥脚类的崛起
-- **腕龙** (Brachiosaurus)：高达13米，相当于4层楼
-- **梁龙** (Diplodocus)：长达27米，尾巴像鞭子
-- **马门溪龙**：中国发现，脖子长达9米
-
-### 顶级掠食者
-- **异特龙** (Allosaurus)：侏罗纪的霸主，长达9米
-- **角鼻龙**：头上有独特的角状突起
-
-## 白垩纪：多样性的巅峰 (1.45亿 - 6600万年前)
-
-恐龙演化出了最多样化的形态。
-
-### 新兴霸主
-- **霸王龙** (Tyrannosaurus rex)：史上最强咬合力
-- **棘龙** (Spinosaurus)：最大的肉食恐龙，可能半水生
-- **南方巨兽龙**：比霸王龙更大的掠食者
-
-### 防御大师
-- **三角龙**：巨大的头盾和三根角
-- **甲龙**：全身覆盖骨质装甲，尾巴末端有骨锤
-
-## 🌍 为什么恐龙能统治地球？
-
-1. **高效的呼吸系统**：类似现代鸟类的气囊系统
-2. **快速生长**：从蛋到成年仅需10-20年
-3. **适应性强**：从沙漠到森林，从两极到赤道
-4. **多样化的食性**：植食、肉食、杂食全覆盖
+## 怪诞虫与欧巴宾海蝎
+寒武纪的生物形态各异，宛如外星生物：
+- **怪诞虫**：背上长刺，腹部有腿，科学家最初甚至把它的头尾搞反了。
+- **欧巴宾海蝎**：长着5只眼睛，吻部像吸尘器管子一样。
 
 ---
-**思考题**：如果恐龙没有灭绝，今天的地球会是什么样子？
+**思考**：为什么生命沉寂了数十亿年后，会突然在寒武纪爆发式增长？
                                 `
                             },
                             {
                                 id: 3,
-                                title: '第三课：肉食恐龙 - 史前顶级掠食者',
+                                title: '第三课：演化的见证 - 三叶虫的传奇',
                                 type: 'video',
                                 duration_seconds: 900,
                                 completed: false,
-                                // Bilibili: 霸王龙科普 (Verified: BV1Es411q7cP)
-                                content_url: 'https://www.bilibili.com/video/BV1Es411q7cP'
+                                // Bilibili: 芳斯塔芙 - 三叶虫 (Verified: BV1jb411H7aa)
+                                content_url: 'https://www.bilibili.com/video/BV1jb411H7aa'
                             },
                             {
                                 id: 4,
-                                title: '第四课：[互动] 恐龙分类大挑战',
+                                title: '第四课：古生代的兴衰 - 三叶虫档案',
                                 type: 'reading',
                                 completed: false,
                                 content: `
-# 恐龙分类实验室：你能认出这些恐龙吗？
+# 三叶虫：地球上最成功的生物之一
 
-## 恐龙的两大阵营
+## 穿越两亿年的见证者
+三叶虫（Trilobites）是古生代的标志性生物。它们在地球上生存了近3亿年，经历了寒武纪、奥陶纪、志留纪、泥盆纪、石炭纪，最终在二叠纪大灭绝中消失。
 
-所有恐龙根据**髋骨结构**分为两大类：
+### 身体结构
+- **三叶之名**：身体纵向分为三个部分（中叶和左右侧叶），因此得名。
+- **复眼**：已知最早拥有复杂复眼的动物，晶体由方解石（碳酸钙）构成。
+- **防御**：遇到危险时可以将身体卷成球状，保护柔软的腹部。
 
-### 1. 蜥臀目 (Saurischia) - "蜥蜴臀"
-髋骨结构类似蜥蜴，耻骨向前指。
+### 多样性的巅峰
+三叶虫演化出了超过20,000个物种！
+- **有的像碟子**：适合在海底淤泥中滑翔。
+- **有的满身尖刺**：防御掠食者。
+- **有的眼睛竖起**：像潜望镜一样观察周围。
 
-#### 兽脚类 (Theropoda) - 肉食为主
-- **霸王龙家族**：暴龙科，白垩纪晚期的霸主
-- **迅猛龙家族**：驰龙科，聪明的群体猎手
-- **异特龙家族**：侏罗纪的顶级掠食者
-- **特殊成员**：鸟类！（是的，鸟类是恐龙的后代）
-
-#### 蜥脚类 (Sauropoda) - 植食巨兽
-- **腕龙**：前腿比后腿长，像长颈鹿
-- **梁龙**：超长的脖子和尾巴
-- **阿根廷龙**：史上最大的陆地动物（重达70-100吨）
-
-### 2. 鸟臀目 (Ornithischia) - "鸟臀"
-髋骨结构类似鸟类，耻骨向后指。全部是植食性！
-
-#### 装甲坦克 - 甲龙类
-- **甲龙**：全身骨质装甲 + 尾锤
-- **包头龙**：头骨厚达25厘米
-
-#### 角龙家族 - 头盾战士
-- **三角龙**：最著名的角龙
-- **戟龙**：头盾边缘有尖刺
-
-#### 鸭嘴龙家族 - 植食专家
-- **副栉龙**：头上有巨大的骨质冠
-- **埃德蒙顿龙**：可能有数千颗牙齿
-
-#### 剑龙家族 - 背板战士
-- **剑龙**：背上有两排骨板，尾巴有尖刺
-
-## 🎯 分类挑战
-
-根据以下特征，判断恐龙类型：
-
-**特征A**：
-- 双足行走
-- 锋利的牙齿和爪子
-- 中空骨骼
-→ 答案：兽脚类（肉食恐龙）
-
-**特征B**：
-- 四足行走
-- 超长的脖子
-- 柱状腿骨
-→ 答案：蜥脚类（植食巨兽）
-
-**特征C**：
-- 头上有角或头盾
-- 喙状嘴
-- 四足行走
-→ 答案：角龙类（鸟臀目）
-
-## 🦴 化石侦探
-
-古生物学家如何仅凭几块骨头就能判断恐龙类型？
-
-1. **牙齿**：
-   - 锯齿状 = 肉食
-   - 扁平磨牙 = 植食
-
-2. **爪子**：
-   - 弯曲锋利 = 掠食者
-   - 钝圆 = 植食者
-
-3. **髋骨**：
-   - 蜥臀 or 鸟臀？
-
-4. **颈椎数量**：
-   - 15个以上 = 可能是蜥脚类
+## 二叠纪大灭绝：至暗时刻 (2.52亿年前)
+地球历史上最严重的灭绝事件。
+- **原因**：西伯利亚暗色岩火山爆发，导致全球变暖、海洋缺氧和酸化。
+- **后果**：96%的海洋生物和70%的陆地脊椎动物灭绝。
+- **结局**：辉煌了3亿年的三叶虫彻底退出了历史舞台，为恐龙的登场腾出了空间。
 
 ---
-**挑战**：下次去博物馆，试着自己分类恐龙骨架！
+**知识点**：即使是最成功的物种，如果不能适应环境的剧烈变化，也终将灭绝。
                                 `
                             },
                             {
                                 id: 5,
-                                title: '第五课：植食恐龙 - 温柔的巨兽',
+                                title: '第五课：恐龙的崛起 - 让恐龙再次伟大',
                                 type: 'video',
                                 duration_seconds: 840,
                                 completed: false,
-                                // Bilibili: 三角龙科普 (Verified: BV1Ps411D7mj)
-                                content_url: 'https://www.bilibili.com/video/BV1Ps411D7mj'
+                                // Bilibili: 芳斯塔芙 - 让恐龙再次伟大 (Verified: BV1nA411q7VG)
+                                content_url: 'https://www.bilibili.com/video/BV1nA411q7VG'
                             },
                             {
                                 id: 6,
-                                title: '第六课：恐龙的生活方式',
+                                title: '第六课：中生代霸主 - 恐龙的黄金时代',
                                 type: 'reading',
                                 completed: false,
                                 content: `
-# 恐龙的日常：它们如何生活？
+# 恐龙：统治地球1.6亿年
 
-## 🍖 饮食习惯
+## 三叠纪：在夹缝中求生
+二叠纪大灭绝后，地球一片荒凉。早期的恐龙（如始盗龙）体型很小，生活在像鳄鱼一样的"伪鳄类"的阴影之下。
+- **转折点**：三叠纪末灭绝事件（卡尼期洪积事件）打击了伪鳄类，适应力更强的恐龙开始崛起。
 
-### 肉食恐龙的狩猎策略
+## 侏罗纪：巨兽的时代
+- **蜥脚类**：演化出了地球历史上最大的陆地动物（如腕龙、梁龙）。
+- **优势**：长脖子可以吃到高处的植物；巨大的体型本身就是最好的防御。
 
-#### 霸王龙 - 伏击大师
-- **咬合力**：史上最强，达6吨（相当于3辆小汽车的重量）
-- **狩猎方式**：可能既主动捕猎，也吃腐肉
-- **食物**：三角龙、鸭嘴龙等大型植食恐龙
-- **特殊能力**：嗅觉极其灵敏，能闻到数公里外的血腥味
+## 白垩纪：多样性的巅峰
+恐龙演化出了最极致的形态：
+- **霸王龙**：陆地最强咬合力。
+- **三角龙**：最强的防御装备。
+- **甲龙**：行走的坦克。
 
-#### 迅猛龙 - 团队猎手
-- **体型**：仅火鸡大小（电影中被夸大了）
-- **武器**：后肢第二趾有巨大的镰刀爪
-- **策略**：群体合作，围攻大型猎物
-- **智商**：相对较高，可能有简单的沟通
-
-### 植食恐龙的进食技巧
-
-#### 蜥脚类 - 不停进食的巨兽
-- **每日食量**：可能需要吃掉200-400公斤植物
-- **进食方式**：不咀嚼，直接吞咽
-- **消化系统**：胃中有胃石（鹅卵石）帮助研磨食物
-- **进食时间**：每天16-18小时都在吃
-
-#### 鸭嘴龙 - 植物粉碎机
-- **牙齿**：口中有数百颗牙齿，排列成"牙齿电池"
-- **更新速度**：磨损的牙齿会不断被新牙替换
-- **食物**：坚硬的植物，如松柏、蕨类
-
-## 🏃 运动能力
-
-### 速度之王
-- **似鸟龙**：时速可达70公里（高速公路速度）
-- **迅猛龙**：时速约40公里
-- **霸王龙**：时速约27公里（比人类快，但追不上汽车）
-
-### 慢行者
-- **蜥脚类**：时速仅5-8公里（散步速度）
-- **甲龙**：时速约6公里
-
-## 🌡️ 体温调节
-
-### 恐龙是温血还是冷血？
-
-最新研究表明：**中温动物**（介于两者之间）
-
-证据：
-1. **生长速度**：比冷血爬行动物快，但比哺乳动物慢
-2. **骨骼结构**：有类似哺乳动物的快速生长痕迹
-3. **地理分布**：在极地也有恐龙化石（需要一定的体温调节能力）
-
-## 🥚 繁殖与育幼
-
-### 恐龙如何繁殖？
-
-#### 筑巢行为
-- **慈母龙**：群体筑巢，照顾幼崽
-- **窃蛋龙**：实际上不偷蛋，而是在孵蛋（名字是误会）
-- **蜥脚类**：可能不照顾幼崽，采用"数量战术"
-
-#### 蛋的特征
-- **大小**：最大的恐龙蛋直径约60厘米
-- **形状**：多为椭圆形或圆形
-- **孵化**：需要2-6个月
-
-### 成长速度
-- **霸王龙**：从孵化到成年需要20年
-- **蜥脚类**：10-15年达到性成熟
-- **小型恐龙**：3-5年
-
-## 🧠 智力水平
-
-### 聪明的恐龙
-1. **伤齿龙**：脑容量相对体型最大
-2. **迅猛龙**：可能有简单的社交行为
-3. **鸟类祖先**：智力逐渐提升
-
-### 笨拙的恐龙
-- **剑龙**：脑容量仅核桃大小
-- **蜥脚类**：脑容量相对体型极小
+## 什么是真正的"恐龙"？
+并不是所有带"龙"字的都是恐龙：
+- ❌ **翼龙**：是飞行爬行动物，恐龙的近亲，但不是恐龙。
+- ❌ **沧龙/蛇颈龙/鱼龙**：是海生爬行动物，完全不是恐龙。
+- ✅ **鸟类**：是兽脚类恐龙的直系后代（现在的学术界认为鸟类就是活着的恐龙）。
 
 ---
-**有趣事实**：剑龙的大脑重量仅占体重的0.001%，而人类是2%！
+**思考**：如果不是小行星撞击，智人（人类）还有机会出现吗？
                                 `
                             },
                             {
                                 id: 7,
-                                title: '第七课：恐龙灭绝之谜',
+                                title: '第七课：中生代的终结 - 恐龙灭绝',
                                 type: 'video',
                                 duration_seconds: 1020,
                                 completed: false,
-                                // Bilibili: 恐龙灭绝科普 (Verified: BV1Ks411D7oi)
-                                content_url: 'https://www.bilibili.com/video/BV1Ks411D7oi'
+                                // Bilibili: 芳斯塔芙 - 让恐龙再次伟大 (Extinction Part)
+                                content_url: 'https://www.bilibili.com/video/BV1nA411q7VG'
                             },
                             {
                                 id: 8,
-                                title: '第八课：[考核] 恐龙星球第一章测验',
+                                title: '第八课：[考核] 地球生命史诗测验',
                                 type: 'quiz',
                                 content: {
                                     questions: [
                                         {
                                             id: 1,
-                                            text: "恐龙统治地球大约多少年？",
-                                            options: ["6500万年", "1.6亿年", "10亿年", "1000万年"],
+                                            text: "寒武纪海洋的顶级掠食者是？",
+                                            options: ["三叶虫", "奇虾", "霸王龙", "巨齿鲨"],
                                             correctIndex: 1
                                         },
                                         {
                                             id: 2,
-                                            text: "霸王龙生活在哪个地质时期？",
-                                            options: ["三叠纪", "侏罗纪", "白垩纪晚期", "新生代"],
-                                            correctIndex: 2
-                                        },
-                                        {
-                                            id: 3,
-                                            text: "根据髋骨结构，恐龙分为哪两大类？",
-                                            options: ["肉食和植食", "蜥臀目和鸟臀目", "大型和小型", "陆生和水生"],
+                                            text: "三叶虫最早拥有的复杂器官是？",
+                                            options: ["肺", "复眼", "翅膀", "声带"],
                                             correctIndex: 1
                                         },
                                         {
-                                            id: 4,
-                                            text: "以下哪种恐龙是植食性的？",
-                                            options: ["霸王龙", "迅猛龙", "三角龙", "异特龙"],
+                                            id: 3,
+                                            text: "下列哪种生物不属于恐龙？",
+                                            options: ["霸王龙", "三角龙", "翼龙", "梁龙"],
                                             correctIndex: 2
                                         },
                                         {
+                                            id: 4,
+                                            text: "地球历史上最严重的灭绝事件发生在哪个时期末？",
+                                            options: ["寒武纪", "二叠纪", "白垩纪", "侏罗纪"],
+                                            correctIndex: 1
+                                        },
+                                        {
                                             id: 5,
-                                            text: "现代鸟类是哪类恐龙的后代？",
-                                            options: ["蜥脚类", "兽脚类", "角龙类", "甲龙类"],
+                                            text: "恐龙是在哪次事件后开始真正统治地球的？",
+                                            options: ["寒武纪大爆发", "三叠纪末灭绝", "白垩纪大灭绝", "冰河时期"],
                                             correctIndex: 1
                                         },
                                         {
                                             id: 6,
-                                            text: "恐龙灭绝发生在大约多少年前？",
-                                            options: ["6600万年", "1亿年", "2.5亿年", "1000万年"],
-                                            correctIndex: 0
+                                            text: "现代鸟类的祖先是？",
+                                            options: ["翼龙", "始祖鸟（兽脚类恐龙）", "蝙蝠", "蜻蜓"],
+                                            correctIndex: 1
                                         }
                                     ]
                                 }
@@ -1909,16 +1676,22 @@
                     // AI 助教
                     sidebarOpen,
                     chatContainer,
-                    aiInput,
+                    userInput,
+                    userAvatar,
                     aiMessages,
                     aiLoading,
-                    sendAiMessage,
-                    formatMessage,
+                    sendMessage,
+                    sendMessage,
                     toggleSidebar,
 
-                    // 语音输入
-                    isRecording,
-                    toggleVoiceInput,
+                    // UI & Notes
+                    showAI,
+                    showNotes,
+                    currentNote,
+                    saveNote,
+                    notesStatus,
+
+
 
                     // Game Logic
                     checkGalaxySort, selectGalaxyCard, unsortedGalaxies, selectedGalaxy, sortingFeedback

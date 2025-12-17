@@ -17,10 +17,9 @@
     <script src="libs/hls.min.js"></script>
     <script src="libs/marked.min.js"></script>
 
-    <!-- 专业动画库 -->
+    <!-- Animation -->
     <script src="https://cdn.jsdelivr.net/npm/fireworks-js@2.x/dist/index.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-    <script src="libs/three.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -85,7 +84,7 @@
             display: none;
         }
 
-        /* 烟花容器 */
+        /* Fireworks */
         #fireworks-container {
             position: fixed;
             top: 0;
@@ -105,9 +104,7 @@
 </head>
 
 <body class="bg-black text-white">
-    <!-- 烟花特效容器 -->
     <canvas id="fireworks-container"></canvas>
-
     <div id="app" class="h-screen flex flex-col" v-cloak>
         <!-- Navigation -->
         <nav class="h-16 glass border-b border-indigo-500/20 flex-shrink-0">
@@ -119,20 +116,30 @@
                     <span class="font-bold text-xl">Tech <span class="text-indigo-400">Odyssey</span></span>
                 </div>
                 <div class="flex items-center gap-4">
-                    <!-- 笔记按钮 -->
-                    <button @click="toggleNotes" class="px-4 py-2 rounded-lg transition-all flex items-center gap-2"
-                        :class="notesOpen ? 'bg-indigo-500 text-white' : 'bg-white/10 hover:bg-white/20'">
-                        📝 笔记
-                    </button>
+                    <a href="wiki.html"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/40 hover:text-white transition-all text-xs font-bold group">
+                        <span class="group-hover:animate-spin">🌌</span>
+                        <span class="hidden sm:inline">知识星系</span>
+                    </a>
+                    <a href="learn.html" class="text-sm text-slate-400 hover:text-white transition-colors">← 返回课程列表</a>
 
-                    <!-- AI助教按钮 -->
-                    <button @click="toggleSidebar" class="px-4 py-2 rounded-lg transition-all flex items-center gap-2"
-                        :class="sidebarOpen ? 'bg-purple-500 text-white' : 'bg-white/10 hover:bg-white/20'">
-                        🤖 AI助教
-                    </button>
+                    <!-- Right Tools -->
+                    <div class="flex items-center gap-2 border-l border-white/10 pl-4 ml-2">
+                        <!-- AI Toggle -->
+                        <button @click="showAI = !showAI" class="p-2 rounded-lg transition-all flex items-center gap-2"
+                            :class="showAI ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:text-white'">
+                            <span class="text-lg">🤖</span>
+                            <span class="hidden sm:inline text-xs font-bold">AI 助手</span>
+                        </button>
 
-                    <a href="index.html"
-                        class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">返回首页</a>
+                        <!-- Notes Toggle -->
+                        <button @click="showNotes = !showNotes"
+                            class="p-2 rounded-lg transition-all flex items-center gap-2"
+                            :class="showNotes ? 'bg-yellow-500/20 text-yellow-300' : 'text-gray-400 hover:text-white'">
+                            <span class="text-lg">📝</span>
+                            <span class="hidden sm:inline text-xs font-bold">学习笔记</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -209,13 +216,7 @@
                         </div>
 
                         <div>
-                            <div class="flex justify-between items-start mb-3">
-                                <h1 class="text-3xl font-bold">{{ currentLesson.title }}</h1>
-                                <button @click="toggleSidebar"
-                                    class="lg:hidden px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-sm font-bold hover:scale-105 transition-transform flex items-center gap-2">
-                                    🤖 AI助教
-                                </button>
-                            </div>
+                            <h1 class="text-3xl font-bold mb-3">{{ currentLesson.title }}</h1>
                             <div class="flex items-center gap-4 text-sm text-gray-400 mb-6">
                                 <span>📺 视频课程</span>
                                 <span>⏱️ {{ formatDuration(currentLesson.duration_seconds) }}</span>
@@ -243,73 +244,11 @@
                     <!-- Reading Lesson -->
                     <div v-else-if="currentLesson?.type === 'reading'" class="glass rounded-2xl p-8">
                         <h1 class="text-3xl font-bold mb-6">{{ currentLesson.title }}</h1>
-                        <div class="prose prose-invert max-w-none mb-8" v-html="renderMarkdown(currentLesson.content)">
-                        </div>
-
-                        <!-- Interactive Module: Galaxy Sorting (Lesson 4) -->
-                        <div v-if="currentLesson.id === 4"
-                            class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 mb-8">
-                            <h3 class="text-xl font-bold mb-4 text-purple-400 flex items-center gap-2">
-                                🔭 星系分类挑战 <span class="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">互动实验</span>
-                            </h3>
-                            <p class="mb-6 text-gray-300 text-sm">点击下方星系卡片，将其分配到正确的分类框中。</p>
-
-                            <!-- Drop Zones -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                <div @click="checkGalaxySort('spiral')"
-                                    class="border-2 border-dashed border-gray-600 rounded-lg p-4 min-h-[120px] flex flex-col items-center justify-center transition hover:border-blue-400 hover:bg-blue-500/10 cursor-pointer relative group">
-                                    <span
-                                        class="text-blue-300 font-bold mb-2 group-hover:scale-110 transition-transform">🌀
-                                        旋涡星系</span>
-                                    <div class="text-xs text-gray-500">点击归类</div>
-                                </div>
-                                <div @click="checkGalaxySort('elliptical')"
-                                    class="border-2 border-dashed border-gray-600 rounded-lg p-4 min-h-[120px] flex flex-col items-center justify-center transition hover:border-yellow-400 hover:bg-yellow-500/10 cursor-pointer relative group">
-                                    <span
-                                        class="text-yellow-300 font-bold mb-2 group-hover:scale-110 transition-transform">🥚
-                                        椭圆星系</span>
-                                    <div class="text-xs text-gray-500">点击归类</div>
-                                </div>
-                                <div @click="checkGalaxySort('irregular')"
-                                    class="border-2 border-dashed border-gray-600 rounded-lg p-4 min-h-[120px] flex flex-col items-center justify-center transition hover:border-green-400 hover:bg-green-500/10 cursor-pointer relative group">
-                                    <span
-                                        class="text-green-300 font-bold mb-2 group-hover:scale-110 transition-transform">💥
-                                        不规则星系</span>
-                                    <div class="text-xs text-gray-500">点击归类</div>
-                                </div>
-                            </div>
-
-                            <!-- Galaxy Cards Source -->
-                            <div v-if="unsortedGalaxies.length > 0"
-                                class="flex flex-wrap justify-center gap-6 bg-gray-950/50 p-6 rounded-xl border border-white/5">
-                                <div v-for="galaxy in unsortedGalaxies" :key="galaxy.id"
-                                    @click="selectGalaxyCard(galaxy)"
-                                    class="cursor-pointer transition-all duration-300 hover:scale-105"
-                                    :class="selectedGalaxy?.id === galaxy.id ? 'ring-4 ring-purple-500 scale-105' : 'opacity-90 hover:opacity-100'">
-                                    <div class="w-28 h-28 bg-cover bg-center rounded-full border-2 border-white/20 shadow-lg mb-2 mx-auto"
-                                        :style="{ backgroundImage: `url(${galaxy.image})` }"></div>
-                                    <div class="text-center text-xs font-bold text-gray-300">{{ galaxy.name }}</div>
-                                </div>
-                            </div>
-
-                            <!-- Success State -->
-                            <div v-else class="text-center py-8">
-                                <div class="text-5xl mb-4 animate-bounce">🏆</div>
-                                <h4 class="text-2xl font-bold text-green-400 mb-2">挑战完成！</h4>
-                                <p class="text-gray-400">你已经掌握了哈勃星系分类法。</p>
-                            </div>
-
-                            <!-- Feedback Area -->
-                            <div class="mt-6 text-center h-8 font-bold transition-all duration-300"
-                                :class="sortingFeedback.type === 'success' ? 'text-green-400' : 'text-red-400'">
-                                {{ sortingFeedback.message }}
-                            </div>
-                        </div>
-
-                        <div class="mt-8 flex justify-end">
+                        <div class="prose prose-invert max-w-none" v-html="renderMarkdown(currentLesson.content)"></div>
+                        <div class="mt-8">
                             <button @click="markAsCompleted"
-                                class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold hover:scale-105 transition-transform shadow-lg shadow-purple-900/20">
-                                {{ currentLesson.completed ? '✓ 已完成' : '标记为完成' }}
+                                class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold">
+                                标记为完成
                             </button>
                         </div>
                     </div>
@@ -384,178 +323,126 @@
                 </div>
             </main>
 
-            <!-- Right Sidebar: AI 助教 -->
-            <aside class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 transform"
-                :class="sidebarOpen ? 'translate-x-0' : 'translate-x-full absolute right-0 h-full lg:relative lg:translate-x-0'">
+            <!-- Sidebar: AI Assistant -->
+            <aside v-show="showAI"
+                class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 fixed right-0 top-0 h-full z-40 lg:relative lg:z-0 lg:h-auto">
 
-                <!-- 标题栏 -->
-                <div class="p-4 border-b border-white/10 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <!-- 精美的AI机器人头像 -->
-                        <div
-                            class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-0.5 relative animate-pulse-slow">
-                            <div class="w-full h-full rounded-full overflow-hidden bg-gray-900">
-                                <img src="assets/images/ai-robot-avatar.png" alt="FutureAI"
-                                    class="w-full h-full object-cover">
-                            </div>
-                            <!-- 在线状态指示灯 -->
+                <!-- Title Bar -->
+                <div class="h-16 border-b border-indigo-500/20 flex items-center justify-between px-4 bg-black/20">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 p-0.5 relative">
                             <div
-                                class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900 animate-pulse">
+                                class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                                <span class="text-lg">🤖</span>
+                            </div>
+                            <div
+                                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black">
                             </div>
                         </div>
                         <div>
-                            <h3 class="font-bold text-sm">AI 课程助教</h3>
-                            <p class="text-xs text-gray-400">FutureAI 2.0</p>
+                            <h3 class="font-bold text-sm">AI 学习助手</h3>
+                            <p class="text-[10px] text-gray-400">Powered by FutureAI</p>
                         </div>
                     </div>
-                    <button @click="sidebarOpen = false" class="lg:hidden p-1 hover:bg-white/10 rounded">
-                        ✕
-                    </button>
+                    <button @click="showAI = false" class="lg:hidden p-1 hover:bg-white/10 rounded">✕</button>
                 </div>
 
-                <!-- 聊天历史 -->
-                <div class="flex-1 overflow-y-auto p-4 space-y-4" id="ai-chat-history" ref="chatContainer">
+                <!-- Chat History -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="chatContainer">
+                    <!-- Welcome Message -->
+                    <div class="flex gap-3">
+                        <div class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]">
+                        </div>
+                        <div
+                            class="bg-indigo-500/20 p-3 rounded-2xl rounded-tl-none border border-indigo-500/30 text-sm text-gray-200">
+                            你好！我是你的专属 AI 助教。关于天文课程的任何问题，随时问我！
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Messages -->
                     <div v-for="(msg, index) in aiMessages" :key="index" class="flex gap-3"
                         :class="{'flex-row-reverse': msg.role === 'user'}">
-                        <!-- 头像 -->
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs relative p-0.5"
-                            :class="msg.role === 'user' ? 'bg-gray-700' : 'bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500'">
-                            <template v-if="msg.role === 'user'">
-                                <div class="w-full h-full rounded-full bg-gray-700 flex items-center justify-center">
-                                    👤
-                                </div>
-                            </template>
-                            <template v-else>
-                                <div class="w-full h-full rounded-full overflow-hidden bg-gray-900">
-                                    <img src="assets/images/ai-robot-avatar.png" alt="AI"
-                                        class="w-full h-full object-cover">
-                                </div>
-                            </template>
+
+                        <!-- AI Avatar -->
+                        <div v-if="msg.role === 'assistant'" class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(139,92,246,0.5)] transform scale-x-100">
                         </div>
+
+                        <!-- User Avatar -->
+                        <div v-if="msg.role === 'user'"
+                            class="w-10 h-10 flex-shrink-0 rounded-full overflow-hidden border border-white/20">
+                            <img :src="userAvatar" class="w-full h-full object-cover transform -scale-x-100">
+                        </div>
+
                         <div class="p-3 rounded-2xl text-sm max-w-[85%] leading-relaxed"
-                            :class="msg.role === 'user' ? 'bg-gray-700 rounded-tr-none text-white' : 'bg-indigo-500/20 border border-indigo-500/30 rounded-tl-none text-gray-200'"
-                            v-html="formatMessage(msg.content)">
+                            :class="msg.role === 'user' ? 'bg-gray-700 text-white rounded-tr-none' : 'bg-indigo-500/20 text-gray-200 border border-indigo-500/30 rounded-tl-none'"
+                            v-html="renderMarkdown(msg.content)">
                         </div>
                     </div>
 
-                    <!-- 加载动画 -->
+                    <!-- Loading Indicator -->
                     <div v-if="aiLoading" class="flex gap-3">
-                        <div
-                            class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-0.5 flex items-center justify-center flex-shrink-0 relative">
-                            <div class="w-full h-full rounded-full overflow-hidden bg-gray-900 opacity-70">
-                                <img src="assets/images/ai-robot-avatar.png" alt="AI"
-                                    class="w-full h-full object-cover animate-pulse">
-                            </div>
+                        <div class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain animate-pulse">
                         </div>
                         <div
-                            class="bg-indigo-500/20 p-3 rounded-2xl rounded-tl-none text-sm text-gray-200 border border-indigo-500/30 flex gap-1 items-center">
+                            class="bg-indigo-500/20 p-3 rounded-2xl rounded-tl-none border border-indigo-500/30 flex items-center gap-1">
                             <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                style="animation-delay: 0.1s"></span>
-                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                style="animation-delay: 0.2s"></span>
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
                         </div>
                     </div>
                 </div>
 
-                <!-- 输入区 -->
-                <div class="p-4 border-t border-white/10">
-                    <div class="relative flex gap-2">
-                        <!-- 语音输入按钮 -->
-                        <button @click="toggleVoiceInput"
-                            :class="isRecording ? 'bg-red-500 animate-pulse' : 'bg-indigo-500/20 hover:bg-indigo-500/40'"
-                            class="w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0"
-                            :disabled="aiLoading">
-                            <span v-if="isRecording">⏹</span>
-                            <span v-else>🎤</span>
+                <!-- Input Area -->
+                <div class="p-4 border-t border-indigo-500/20 bg-black/20">
+                    <div class="relative">
+                        <textarea v-model="userInput" @keydown.enter.prevent="sendMessage" placeholder="输入你的问题..."
+                            class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:border-indigo-500 transition-colors resize-none h-12 max-h-32"
+                            rows="1"></textarea>
+                        <button @click="sendMessage" :disabled="!userInput.trim() || aiLoading"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            ➤
                         </button>
-
-                        <!-- 文字输入框 -->
-                        <div class="flex-1 relative">
-                            <input type="text" v-model="aiInput" @keyup.enter="sendAiMessage"
-                                placeholder="输入问题或点击🎤语音输入..."
-                                class="w-full bg-black/50 border border-white/20 rounded-full py-2 px-4 pr-10 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
-                            <button @click="sendAiMessage"
-                                class="absolute right-2 top-1.5 text-gray-400 hover:text-white transition-colors disabled:opacity-30"
-                                :disabled="aiLoading || !aiInput.trim()">
-                                ➤
-                            </button>
-                        </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2 text-center">
-                        由 FutureAI 2.0 驱动
-                    </p>
                 </div>
             </aside>
 
-            <!-- Right Sidebar: 笔记面板 -->
-            <aside class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 transform"
-                :class="notesOpen ? 'translate-x-0' : 'translate-x-full absolute right-0 h-full lg:relative lg:translate-x-0'"
-                v-show="notesOpen">
-
-                <!-- 标题栏 -->
-                <div class="p-4 border-b border-white/10 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div
-                            class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center">
-                            📝
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-sm">课程笔记</h3>
-                            <p class="text-xs text-gray-400">{{ currentLesson?.title || '未选择课程' }}</p>
-                        </div>
+            <!-- Sidebar: Study Notes -->
+            <aside v-show="showNotes"
+                class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 fixed right-0 top-0 h-full z-40 lg:relative lg:z-0 lg:h-auto">
+                <!-- Title Bar -->
+                <div class="h-16 border-b border-yellow-500/20 flex items-center justify-between px-4 bg-black/20">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">📝</span>
+                        <h3 class="font-bold text-sm text-yellow-100">学习笔记</h3>
                     </div>
-                    <button @click="notesOpen = false" class="lg:hidden p-1 hover:bg-white/10 rounded">
-                        ✕
-                    </button>
+                    <button @click="showNotes = false" class="lg:hidden p-1 hover:bg-white/10 rounded">✕</button>
                 </div>
 
-                <!-- 笔记编辑区 -->
-                <div class="flex-1 flex flex-col overflow-hidden">
-                    <!-- 工具栏 -->
-                    <div class="p-2 border-b border-white/10 flex items-center gap-2">
-                        <button @click="noteMode = 'edit'"
-                            :class="noteMode === 'edit' ? 'bg-indigo-500 text-white' : 'bg-white/10'"
-                            class="px-3 py-1 rounded text-xs transition-colors">
-                            ✏️ 编辑
-                        </button>
-                        <button @click="noteMode = 'preview'"
-                            :class="noteMode === 'preview' ? 'bg-indigo-500 text-white' : 'bg-white/10'"
-                            class="px-3 py-1 rounded text-xs transition-colors">
-                            👁️ 预览
-                        </button>
-                        <div class="flex-1"></div>
+                <!-- Notes Content -->
+                <div class="flex-1 p-4 flex flex-col gap-4">
+                    <div class="text-xs text-gray-400 flex justify-between">
+                        <span>Lesson {{ currentLesson?.id }}</span>
+                        <span>{{ currentLesson?.title ? currentLesson.title.substring(0, 15) + '...' : '' }}</span>
+                    </div>
+                    <textarea v-model="currentNote"
+                        class="flex-1 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:border-yellow-500/50 resize-none leading-relaxed font-mono"
+                        placeholder="在此记录您的学习心得... &#10;内容将自动保存至本地。"></textarea>
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs transition-colors"
+                            :class="notesStatus ? 'text-green-400' : 'text-gray-600'">
+                            {{ notesStatus || '支持自动保存' }}
+                        </span>
                         <button @click="saveNote"
-                            class="px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-xs transition-colors">
-                            💾 保存
+                            class="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-300 text-sm font-bold rounded-lg transition-colors border border-yellow-500/30">
+                            保存笔记
                         </button>
-                    </div>
-
-                    <!-- 编辑模式 -->
-                    <div v-show="noteMode === 'edit'" class="flex-1 p-4">
-                        <textarea v-model="currentNote"
-                            placeholder="在这里记录你的学习笔记...&#10;&#10;支持 Markdown 格式：&#10;# 标题&#10;**粗体** *斜体*&#10;- 列表项&#10;`代码`"
-                            class="w-full h-full bg-black/30 border border-white/20 rounded-lg p-3 text-sm resize-none focus:outline-none focus:border-indigo-500 transition-colors"
-                            style="font-family: 'Monaco', 'Menlo', monospace;">
-                        </textarea>
-                    </div>
-
-                    <!-- 预览模式 -->
-                    <div v-show="noteMode === 'preview'" class="flex-1 p-4 overflow-y-auto">
-                        <div v-if="currentNote" class="prose prose-invert prose-sm max-w-none"
-                            v-html="renderMarkdown(currentNote)">
-                        </div>
-                        <div v-else class="text-gray-500 text-sm text-center mt-8">
-                            暂无笔记内容
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 笔记统计 -->
-                <div class="p-3 border-t border-white/10 text-xs text-gray-400">
-                    <div class="flex justify-between">
-                        <span>字数: {{ currentNote.length }}</span>
-                        <span v-if="lastSaved">最后保存: {{ lastSaved }}</span>
                     </div>
                 </div>
             </aside>
@@ -563,7 +450,7 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+        const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
         const app = createApp({
             setup() {
@@ -574,198 +461,103 @@
                 const currentLesson = ref(null);
                 const videoPlayer = ref(null);
 
-                // Quiz State
-                const quizStarted = ref(false);
-                const quizCompleted = ref(false);
-                const quizQuestions = ref([]);
-                const currentQuestionIndex = ref(0);
-                const selectedOptionIndex = ref(null);
-                const hasAnsweredCurrent = ref(false);
-                const quizScore = ref(0);
-                const correctAnswersCount = ref(0);
+                // AI Chat State
+                // UI State
+                const showAI = ref(window.innerWidth >= 1024);
+                const showNotes = ref(false);
+                const sidebarOpen = showAI; // Compatibility alias
 
-                // AI 助教状态
-                const sidebarOpen = ref(false);
-                const chatContainer = ref(null);
-                const aiInput = ref('');
-                const aiMessages = ref([
-                    {
-                        role: 'assistant',
-                        content: `你好！我是 **FutureAI 2.0**，你的智能课程助教。\n\n我可以帮你：\n- 📚 解答课程内容相关问题\n- 💡 提供学习建议和思路\n- 🔍 深入解释知识点\n- 🎯 推荐相关学习资源\n\n有什么问题随时问我！`
-                    }
-                ]);
-                const aiLoading = ref(false);
-
-                // 语音输入状态
-                const isRecording = ref(false);
-                let recognition = null;
-
-                // 笔记功能状态
-                const notesOpen = ref(false);
-                const noteMode = ref('edit'); // 'edit' or 'preview'
+                // Notes State
                 const currentNote = ref('');
-                const lastSaved = ref('');
-                const notes = ref({}); // { lessonId: noteContent }
+                const notesStatus = ref('');
+                const userInput = ref('');
+                const userAvatar = ref(localStorage.getItem('user_avatar') || 'assets/images/bot_avatar_vip.png');
+                const aiMessages = ref([]);
+                const aiLoading = ref(false);
+                const chatContainer = ref(null);
 
-                // 切换笔记面板
-                const toggleNotes = () => {
-                    notesOpen.value = !notesOpen.value;
-                    if (notesOpen.value && sidebarOpen.value) {
-                        sidebarOpen.value = false; // 关闭 AI 助教
-                    }
-                    loadNote();
-                };
-
-                // 加载当前课程的笔记
-                const loadNote = () => {
-                    if (!currentLesson.value) return;
-
-                    const lessonId = currentLesson.value.id;
-                    const courseId = course.value.id;
-                    const storageKey = `note_${courseId}_${lessonId}`;
-
-                    // 从 localStorage 加载
-                    const savedNote = localStorage.getItem(storageKey);
-                    currentNote.value = savedNote || '';
-
-                    // 从内存加载
-                    if (notes.value[lessonId]) {
-                        currentNote.value = notes.value[lessonId];
-                    }
-                };
-
-                // 保存笔记
-                const saveNote = async () => {
-                    if (!currentLesson.value) return;
-
-                    const lessonId = currentLesson.value.id;
-                    const courseId = course.value.id;
-                    const storageKey = `note_${courseId}_${lessonId}`;
-
-                    // 保存到内存
-                    notes.value[lessonId] = currentNote.value;
-
-                    // 保存到 localStorage
-                    localStorage.setItem(storageKey, currentNote.value);
-
-                    // 更新保存时间
-                    const now = new Date();
-                    lastSaved.value = now.toLocaleTimeString('zh-CN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-
-                    // TODO: 保存到云端（Supabase）
-                    // await saveNoteToCloud(courseId, lessonId, currentNote.value);
-
-                    // 显示保存成功提示
-                    console.log('笔记已保存');
-                };
-
-                // 初始化语音识别
-                const initSpeechRecognition = () => {
-                    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                        recognition = new SpeechRecognition();
-                        recognition.lang = 'zh-CN';
-                        recognition.continuous = false;
-                        recognition.interimResults = false;
-
-                        recognition.onresult = (event) => {
-                            const transcript = event.results[0][0].transcript;
-                            aiInput.value = transcript;
-                            isRecording.value = false;
-                        };
-
-                        recognition.onerror = (event) => {
-                            console.error('语音识别错误:', event.error);
-                            isRecording.value = false;
-                            if (event.error === 'no-speech') {
-                                aiMessages.value.push({
-                                    role: 'assistant',
-                                    content: '⚠️ 没有检测到语音，请重试。'
-                                });
-                            }
-                        };
-
-                        recognition.onend = () => {
-                            isRecording.value = false;
-                        };
-                    }
-                };
-
-                // 切换语音输入
-                const toggleVoiceInput = () => {
-                    if (!recognition) {
-                        aiMessages.value.push({
-                            role: 'assistant',
-                            content: '⚠️ 您的浏览器不支持语音识别功能。\n\n建议使用 Chrome、Edge 或 Safari 浏览器。'
-                        });
-                        return;
-                    }
-
-                    if (isRecording.value) {
-                        recognition.stop();
-                        isRecording.value = false;
-                    } else {
-                        recognition.start();
-                        isRecording.value = true;
-                    }
-                };
-
-                // 页面加载时初始化语音识别
-                onMounted(() => {
-                    initSpeechRecognition();
-                });
-
-                // Dify API 配置（推荐）
+                // Dify Configuration
                 const DIFY_CONFIG = {
-                    // 您的 Dify API Key（需要在 Dify 中创建应用并获取）
-                    apiKey: 'app-YOUR_DIFY_API_KEY',
-                    // Dify API 地址
-                    apiUrl: 'http://localhost/v1/chat-messages',  // 本地 Dify
-                    // 或使用云端 Dify
-                    // apiUrl: 'https://api.dify.ai/v1/chat-messages',
-                    user: 'course-student-' + Date.now()
+                    apiKey: 'sk-21128a0cda4e4cc39f7c05c330f355ce',
+                    apiUrl: 'http://localhost/v1/chat-messages',
+                    user: 'student-astro-' + Date.now()
                 };
 
-                // 备用：DeepSeek 直接调用（需要本地代理）
+                // DeepSeek Configuration (Local Proxy)
                 const DEEPSEEK_CONFIG = {
-                    apiKey: 'sk-abb5d221fe624678ad545f2469b66419',
-                    apiUrl: 'http://localhost:3000/v1/chat/completions',
+                    apiKey: 'sk-21128a0cda4e4cc39f7c05c330f355ce', // Re-using the key provided
+                    apiUrl: 'http://localhost:3000/v1/chat/completions', // Uses local proxy
                     model: 'deepseek-chat'
                 };
 
-                // 当前使用的配置（可切换）
-                const USE_DIFY = true;  // true: 使用 Dify, false: 使用 DeepSeek
+                // Notes Methods
+                const loadNote = () => {
+                    if (!currentLesson.value) return;
+                    // Safe key generation
+                    const courseTitle = course.value.title || 'course';
+                    const key = `note_${courseTitle}_${currentLesson.value.id}`;
+                    currentNote.value = localStorage.getItem(key) || '';
+                    notesStatus.value = '';
+                };
 
-                // AI 助教方法
-                const sendAiMessage = async () => {
-                    const message = aiInput.value.trim();
+                const saveNote = () => {
+                    if (!currentLesson.value) return;
+                    const courseTitle = course.value.title || 'course';
+                    const key = `note_${courseTitle}_${currentLesson.value.id}`;
+                    localStorage.setItem(key, currentNote.value);
+                    notesStatus.value = '已保存';
+                    setTimeout(() => notesStatus.value = '', 2000);
+                };
+
+                // Watchers
+                watch(currentLesson, () => {
+                    loadNote();
+                });
+
+                // Initial Load
+                onMounted(() => {
+                    // Slight delay to ensure course data is loaded if needed, though watcher handles lesson change
+                    setTimeout(loadNote, 500);
+                });
+
+                // AI Chat Methods
+                const sendMessage = async () => {
+                    const message = userInput.value.trim();
                     if (!message || aiLoading.value) return;
 
-                    // 添加用户消息
+                    // Add User Message
                     aiMessages.value.push({ role: 'user', content: message });
-                    aiInput.value = '';
+                    userInput.value = '';
                     aiLoading.value = true;
 
-                    // 滚动到底部
+                    // Scroll to bottom
                     await nextTick();
                     if (chatContainer.value) {
                         chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
                     }
 
                     try {
-                        if (USE_DIFY) {
-                            // 使用 Dify API
-                            await callDifyAPI(message);
-                        } else {
-                            // 使用 DeepSeek API
+                        // Intelligent Routing: Check Key Format
+                        if (DIFY_CONFIG.apiKey.startsWith('sk-')) {
+                            console.log('Detected sk- key, using DeepSeek Direct Mode');
                             await callDeepSeekAPI(message);
+                        } else {
+                            console.log('Detected App key, using Dify Mode');
+                            await callDifyAPI(message);
                         }
                     } catch (error) {
-                        console.error('AI 调用失败:', error);
-                        handleAPIError(error);
+                        console.error('AI Error:', error);
+                        let tip = '';
+                        if (error.message.includes('401')) {
+                            tip = '\n💡 提示: 401 错误通常意味着 API Key 无效。';
+                        } else if (error.message.includes('Failed to fetch')) {
+                            tip = '\n💡 提示: 连接不到服务。请确认 deepseek-proxy.js (端口3000) 或 Dify (端口80) 正在运行。';
+                        }
+
+                        aiMessages.value.push({
+                            role: 'assistant',
+                            content: `⚠️ 出错了: ${error.message}${tip}`
+                        });
                     } finally {
                         aiLoading.value = false;
                         await nextTick();
@@ -775,9 +567,10 @@
                     }
                 };
 
-                // Dify API 调用
+                // Option 1: Dify API
                 const callDifyAPI = async (message) => {
-                    const contextMessage = `当前课程：${course.value.title || '未知课程'}\n当前章节：${currentLesson.value?.title || '未选择'}\n\n${message}`;
+                    const context = `当前正在学习课程：${course.value.title}\n当前章节：${currentLesson.value?.title || '未开始'}`;
+                    const fullQuery = `${context}\n\n用户问题：${message}`;
 
                     const response = await fetch(DIFY_CONFIG.apiUrl, {
                         method: 'POST',
@@ -787,82 +580,24 @@
                         },
                         body: JSON.stringify({
                             inputs: {},
-                            query: contextMessage,
+                            query: fullQuery,
                             response_mode: "streaming",
-                            conversation_id: "",
                             user: DIFY_CONFIG.user
                         })
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`Dify API 错误: ${response.status}`);
-                    }
-
-                    // 创建 AI 回复消息
-                    const aiMessageIndex = aiMessages.value.length;
-                    aiMessages.value.push({ role: 'assistant', content: '' });
-
-                    // 处理 Dify 流式响应
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-                    let buffer = '';
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        buffer += decoder.decode(value, { stream: true });
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop() || '';
-
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                const data = line.slice(6);
-                                if (data === '[DONE]') continue;
-
-                                try {
-                                    const parsed = JSON.parse(data);
-
-                                    // Dify 返回格式
-                                    if (parsed.event === 'message' || parsed.event === 'agent_message') {
-                                        const delta = parsed.answer;
-                                        if (delta) {
-                                            aiMessages.value[aiMessageIndex].content += delta;
-                                            await nextTick();
-                                            if (chatContainer.value) {
-                                                chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-                                            }
-                                        }
-                                    }
-                                } catch (e) {
-                                    console.warn('解析 Dify SSE 数据失败:', e);
-                                }
-                            }
-                        }
-                    }
-
-                    if (!aiMessages.value[aiMessageIndex].content) {
-                        aiMessages.value[aiMessageIndex].content = '抱歉，我没有收到完整的回复。请重试。';
-                    }
+                    if (!response.ok) throw new Error(`Dify API Error ${response.status}: ${response.statusText}`);
+                    await handleStreamResponse(response);
                 };
 
-                // DeepSeek API 调用
+                // Option 2: DeepSeek API (via Local Proxy)
                 const callDeepSeekAPI = async (message) => {
-                    const contextMessage = `当前课程：${course.value.title || '未知课程'}\n当前章节：${currentLesson.value?.title || '未选择'}\n\n`;
+                    const context = `你是一位专业的天文学课程助教。当前学生正在学习：${course.value.title}。章节：${currentLesson.value?.title || '概览'}。请用生动、科学的语言回答学生的问题。`;
 
                     const messages = [
-                        {
-                            role: 'system',
-                            content: `你是 FutureAI 2.0，一位专业的课程助教，正在帮助学生学习「${course.value.title}」课程。请用简洁、友好的方式回答问题，必要时可以使用 Markdown 格式来组织内容。`
-                        },
-                        ...aiMessages.value.slice(0, -1).map(msg => ({
-                            role: msg.role,
-                            content: msg.content
-                        })),
-                        {
-                            role: 'user',
-                            content: contextMessage + message
-                        }
+                        { role: 'system', content: context },
+                        ...aiMessages.value.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+                        { role: 'user', content: message }
                     ];
 
                     const response = await fetch(DEEPSEEK_CONFIG.apiUrl, {
@@ -874,98 +609,63 @@
                         body: JSON.stringify({
                             model: DEEPSEEK_CONFIG.model,
                             messages: messages,
-                            stream: true,
-                            temperature: 0.7,
-                            max_tokens: 2000
+                            stream: true
                         })
                     });
 
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error?.message || `API 错误: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`DeepSeek API Error ${response.status}: ${response.statusText}`);
+                    await handleStreamResponse(response, 'deepseek');
+                };
 
-                    // 创建 AI 回复消息
-                    const aiMessageIndex = aiMessages.value.length;
-                    aiMessages.value.push({ role: 'assistant', content: '' });
+                // Shared Stream Handler
+                const handleStreamResponse = async (response, provider = 'dify') => {
+                    let assistantMsg = { role: 'assistant', content: '' };
+                    aiMessages.value.push(assistantMsg);
+                    const msgIndex = aiMessages.value.length - 1;
 
-                    // 处理 DeepSeek 流式响应
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
-                    let buffer = '';
 
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
 
-                        buffer += decoder.decode(value, { stream: true });
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop() || '';
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
 
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
-                                const data = line.slice(6);
-                                if (data === '[DONE]') continue;
-
+                                const dataStr = line.slice(6);
+                                if (dataStr === '[DONE]') continue;
                                 try {
-                                    const parsed = JSON.parse(data);
-                                    const delta = parsed.choices?.[0]?.delta?.content;
+                                    const data = JSON.parse(dataStr);
+                                    let text = '';
 
-                                    if (delta) {
-                                        aiMessages.value[aiMessageIndex].content += delta;
-                                        await nextTick();
+                                    if (provider === 'dify' && (data.event === 'message' || data.event === 'agent_message')) {
+                                        text = data.answer;
+                                    } else if (provider === 'deepseek') {
+                                        text = data.choices?.[0]?.delta?.content || '';
+                                    }
+
+                                    if (text) {
+                                        aiMessages.value[msgIndex].content += text;
                                         if (chatContainer.value) {
                                             chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
                                         }
                                     }
-                                } catch (e) {
-                                    console.warn('解析 DeepSeek SSE 数据失败:', e);
-                                }
+                                } catch (e) { }
                             }
                         }
                     }
-
-                    if (!aiMessages.value[aiMessageIndex].content) {
-                        aiMessages.value[aiMessageIndex].content = '抱歉，我没有收到完整的回复。请重试。';
-                    }
                 };
-
-                // 错误处理
-                const handleAPIError = (error) => {
-                    let errorMessage = '抱歉，我遇到了一些问题。';
-
-                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                        errorMessage = '⚠️ 网络连接失败\n\n可能的原因：\n- 网络不稳定\n- API 服务暂时不可用\n- 请检查 Dify 是否正在运行\n\n请稍后重试。';
-                    } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
-                        errorMessage = '⚠️ API 密钥无效\n\n请检查 Dify API Key 是否正确配置。';
-                    } else if (error.message.includes('429')) {
-                        errorMessage = '⚠️ 请求过于频繁\n\n请稍等片刻后再试。';
-                    } else if (error.message.includes('500') || error.message.includes('503')) {
-                        errorMessage = '⚠️ 服务器错误\n\nAPI 服务暂时不可用，请稍后重试。';
-                    }
-
-                    aiMessages.value.push({
-                        role: 'assistant',
-                        content: errorMessage
-                    });
-                };
-
-                // 格式化消息（支持 Markdown）
-                const formatMessage = (text) => {
-                    if (!text) return '';
-
-                    // 简单的 Markdown 支持
-                    return text
-                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                        .replace(/`(.+?)`/g, '<code class="bg-black/30 px-1 rounded">$1</code>')
-                        .replace(/\n/g, '<br>');
-                };
-
-                // 切换侧边栏
-                const toggleSidebar = () => {
-                    sidebarOpen.value = !sidebarOpen.value;
-                };
+                const quizStarted = ref(false);
+                const quizCompleted = ref(false);
+                const quizQuestions = ref([]);
+                const currentQuestionIndex = ref(0);
+                const selectedOptionIndex = ref(null);
+                const hasAnsweredCurrent = ref(false);
+                const quizScore = ref(0);
+                const correctAnswersCount = ref(0);
 
                 // Computed
                 const totalLessons = computed(() => lessons.value.length);
@@ -1044,8 +744,8 @@
                                     type: 'video',
                                     duration_seconds: 840,
                                     completed: false,
-                                    // Bilibili: 大爆炸 (Verified Active: BV1Tt411v7qP)
-                                    content_url: 'https://www.bilibili.com/video/BV1Tt411v7qP'
+                                    // Bilibili: 大爆炸 (Verified BV1ks411H7y7)
+                                    content_url: 'https://www.bilibili.com/video/BV1ks411H7y7'
                                 },
                                 {
                                     id: 3,
@@ -1053,41 +753,15 @@
                                     type: 'video',
                                     duration_seconds: 1200,
                                     completed: false,
-                                    // Bilibili: 恒星的一生 Collection (Verified Active: BV1Ga411A71Z)
-                                    content_url: 'https://www.bilibili.com/video/BV1Ga411A71Z'
+                                    // Bilibili: 恒星的一生 (Verified BV13W411j7rA)
+                                    content_url: 'https://www.bilibili.com/video/BV13W411j7rA'
                                 },
                                 {
                                     id: 4,
                                     title: '第四课：[练习] 星系分类与识别',
                                     type: 'reading',
-                                    duration_seconds: 600,
                                     completed: false,
-                                    content: `
-# 星系分类实验室：哈勃序列
-
-埃德温·哈勃（Edwin Hubble）在1926年提出了一套星系形态分类法，被称为“哈勃序列”或“哈勃音叉图”。今天，我们将学习如何像天文学家一样识别宇宙中的巨型岛屿。
-
-## 1. 旋涡星系 (Spiral Galaxies, S)
-像我们的银河系一样，这类星系呈现扁平的盘状，有明显的旋臂结构。
-- **特征**：中央有明亮的核球，周围环绕着富含气体和尘埃的旋臂。
-- **恒星**：旋臂中正在诞生大量年轻、炙热的蓝色恒星。
-- **代表**：仙女座大星系 (M31), 银河系。
-
-## 2. 椭圆星系 (Elliptical Galaxies, E)
-看起来像巨大的发光球体或橄榄球。
-- **特征**：外观平滑，没有旋臂，几乎没有气体和灰尘。
-- **恒星**：主要由年老的红色恒星组成，几乎没有新恒星诞生。
-- **代表**：M87 (室女座星系团中心的巨型椭圆星系)。
-
-## 3. 不规则星系 (Irregular Galaxies, Irr)
-没有固定形状的星系，通常看起来混乱无序。
-- **特征**：缺乏明显的核球或旋臂，形状不对称。
-- **成因**：通常是因为引力相互作用（被大星系拉扯）或碰撞形成的。
-- **代表**：大麦哲伦云 (LMC)。
-
----
-**👇 接下来，请在下方的互动实验中应用这些知识！**
-                                    `
+                                    content: '## 星系分类练习\n\n请观察以下星系特征并进行分类...\n\n### 1. 旋涡星系 (Spiral Galaxies)\n特点：具有明显的旋臂结构...\n\n### 2. 椭圆星系 (Elliptical Galaxies)\n特点：外观呈椭圆形，缺乏尘埃...'
                                 },
                                 {
                                     id: 5,
@@ -1095,42 +769,23 @@
                                     type: 'video',
                                     duration_seconds: 960,
                                     completed: false,
-                                    // Bilibili: 广义相对论 (Verified BV1LKcceQEYM)
+                                    // Bilibili: 广义相对论 (Verified BV1ds411J7zL)
                                     content_url: 'https://www.bilibili.com/video/BV1LKcceQEYM'
                                 },
                                 {
                                     id: 6,
-                                    title: '第六课：黑洞：时空的终极深渊',
+                                    title: '第六课：黑洞：时空的终极深渊 (From Stars to Black Holes)',
                                     type: 'video',
                                     duration_seconds: 1100,
                                     completed: false,
-                                    // Bilibili: 黑洞 (Verified Active: BV18s411q7KB)
-                                    content_url: 'https://www.bilibili.com/video/BV18s411q7KB'
+                                    // Bilibili: Reuse Star Life cycle as it ends in Black Hole (Standard fallback)
+                                    content_url: 'https://www.bilibili.com/video/BV13W411j7rA'
                                 },
                                 {
                                     id: 7,
                                     title: '第七课：系外行星与地外生命搜索',
                                     type: 'reading',
-                                    completed: false,
-                                    content: `
-# 寻找第二个地球：系外行星探索
-
-自从1995年发现第一颗围绕类日恒星旋转的系外行星（飞马座51b）以来，人类的视野被彻底打开。目前，我们已经确认了超过 5000 个遥远的世界。
-
-## 宜居带 (Goldilocks Zone)
-寻找生命的关键在于液态水。"宜居带"是指恒星周围的一个特定距离范围：
-- **太近**：像水星一样，水会被蒸发。
-- **太远**：像冥王星一样，水会冻结成冰。
-- **刚刚好**：温度适宜，液态水可以存在于星球表面。
-
-## 我们如何发现它们？
-行星本身不发光，要发现它们非常困难。天文学家主要使用两种方法：
-1.  **凌日法 (Transit Method)**：当行星经过恒星表面时，恒星亮度会微微下降（就像日食）。这是目前发现行星最多的方法（如开普勒望远镜）。
-2.  **径向速度法 (Wobble Method)**：行星的引力会拉扯恒星，导致恒星在太空中发生微小的摆动。
-
-## 生物特征 (Biosignatures)
-韦伯望远镜 (JWST) 等新一代设备可以通过分析行星大气的光谱，寻找氧气、甲烷、二氧化碳等可能由生命产生的气体。
-                                    `
+                                    content: '## 寻找第二个地球\n\n自从1995年发现第一颗系外行星以来，我们已经确认了数千个世界...\n\n### 宜居带 (Goldilocks Zone)\n恒星周围液态水可以存在的区域...'
                                 },
                                 {
                                     id: 8,
@@ -1207,21 +862,11 @@
                     hasAnsweredCurrent.value = false;
                     correctAnswersCount.value = 0;
 
-                    // 加载当前课程的笔记
-                    loadNote();
-
-                    // Initialize Game if Lesson 4
-                    if (lesson.id === 4) {
-                        initGalaxyGame();
-                    }
-
                     // Initialize video player if needed
                     if (lesson.type === 'video' && lesson.content_url) {
                         nextTick(() => initVideoPlayer(lesson.content_url));
                     }
                 };
-
-                // ... (rest of the code)
 
                 const initVideoPlayer = (url) => {
                     if (!videoPlayer.value) return;
@@ -1232,6 +877,23 @@
                         hls.attachMedia(videoPlayer.value);
                     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
                         videoPlayer.value.src = url;
+                    }
+                };
+
+                const markAsCompleted = () => {
+                    if (currentLesson.value) currentLesson.value.completed = true;
+
+                    // Trigger fireworks
+                    const container = document.getElementById('fireworks-container');
+                    if (container && window.Fireworks) {
+                        const fw = new Fireworks.Fireworks(container, { opacity: 0.5, particles: 50 });
+                        container.classList.add('active');
+                        fw.start();
+                        setTimeout(() => { fw.stop(); container.classList.remove('active'); }, 3000);
+                    }
+                    // Auto-advance to next lesson
+                    if (nextLesson.value) {
+                        setTimeout(() => selectLesson(nextLesson.value), 1000);
                     }
                 };
 
@@ -1342,353 +1004,18 @@
                     quizStarted.value = false;
                 };
 
-                // --- Galaxy Sorting Game Logic ---
-                const unsortedGalaxies = ref([]);
-                const selectedGalaxy = ref(null);
-                const sortingFeedback = ref({ message: '', type: '' });
-
-                const initGalaxyGame = () => {
-                    unsortedGalaxies.value = [
-                        { id: 1, name: 'NGC 4414', type: 'spiral', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/NGC_4414_%28NASA-med%29.jpg/240px-NGC_4414_%28NASA-med%29.jpg' },
-                        { id: 2, name: 'M87', type: 'elliptical', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/M87_jet.jpg/240px-M87_jet.jpg' },
-                        { id: 3, name: '大麦哲伦云', type: 'irregular', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Large_Magellanic_Cloud_%28ESO%29.jpg/240px-Large_Magellanic_Cloud_%28ESO%29.jpg' }
-                    ];
-                    selectedGalaxy.value = null;
-                    sortingFeedback.value = { message: '', type: '' };
-                };
-
-                const selectGalaxyCard = (galaxy) => {
-                    selectedGalaxy.value = galaxy;
-                    sortingFeedback.value = { message: '已选中，请选择上方的分类框', type: 'info' };
-                };
-
-                const checkGalaxySort = (targetType) => {
-                    if (!selectedGalaxy.value) {
-                        sortingFeedback.value = { message: '请先点击下方选择一个星系', type: 'error' };
-                        return;
-                    }
-
-                    if (selectedGalaxy.value.type === targetType) {
-                        // Correct
-                        sortingFeedback.value = { message: '✅ 分类正确！Excellent!', type: 'success' };
-                        unsortedGalaxies.value = unsortedGalaxies.value.filter(g => g.id !== selectedGalaxy.value.id);
-                        selectedGalaxy.value = null;
-
-                        // Check Win
-                        if (unsortedGalaxies.value.length === 0) {
-                            if (currentLesson.value) currentLesson.value.completed = true;
-                        }
-                    } else {
-                        // Wrong
-                        sortingFeedback.value = { message: '❌ 错误！请重新观察特征', type: 'error' };
-                    }
-                };
-                // ---------------------------------
-
                 const getOptionClass = (index) => {
                     if (!hasAnsweredCurrent.value) {
-                        return selectedOptionIndex.value === index
-                            ? 'bg-indigo-500/30 border-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                            : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-indigo-400/50 cursor-pointer';
+                        return 'bg-white/5 border-white/10 hover:bg-white/10 cursor-pointer';
                     }
-
                     const correctIndex = quizQuestions.value[currentQuestionIndex.value].correctIndex;
-
-                    // Always highlight the correct answer Green
                     if (index === correctIndex) {
-                        return 'bg-green-500/20 border-green-500 text-green-300 shadow-[0_0_15px_rgba(34,197,94,0.3)] font-bold';
+                        return 'bg-green-500/20 border-green-500 text-green-300';
                     }
-
-                    // Highlight the wrong selected answer Red
                     if (index === selectedOptionIndex.value && index !== correctIndex) {
-                        return 'bg-red-500/20 border-red-500 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.3)] shake-animation';
+                        return 'bg-red-500/20 border-red-500 text-red-300';
                     }
-
-                    // Dim others
-                    return 'bg-white/5 border-white/5 opacity-30 blur-[0.5px]';
-                };
-
-                // 🎆 顶级庆祝特效系统 (双层特效)
-                const celebrateCompletion = (isModuleComplete = false) => {
-                    return new Promise((resolve) => {
-                        if (isModuleComplete) {
-                            // 模块完成 - 顶级3D粒子爆炸特效
-                            launch3DParticleExplosion().then(resolve);
-                        } else {
-                            // 单课完成 - 烟花特效
-                            launchFireworks().then(resolve);
-                        }
-                    });
-                };
-
-                // 🎇 单课完成 - 烟花特效
-                const launchFireworks = () => {
-                    return new Promise((resolve) => {
-                        const container = document.getElementById('fireworks-container');
-                        if (!container || typeof Fireworks === 'undefined' || typeof gsap === 'undefined') {
-                            resolve();
-                            return;
-                        }
-
-                        container.classList.add('active');
-                        const fireworks = new Fireworks.Fireworks(container, {
-                            autoresize: true,
-                            opacity: 0.5,
-                            acceleration: 1.05,
-                            friction: 0.97,
-                            gravity: 1.5,
-                            particles: 100,
-                            traceLength: 3,
-                            traceSpeed: 10,
-                            explosion: 5,
-                            intensity: 20,
-                            flickering: 50,
-                            lineStyle: 'round',
-                            hue: { min: 0, max: 360 },
-                            delay: { min: 30, max: 60 },
-                            rocketsPoint: { min: 50, max: 50 },
-                            lineWidth: {
-                                explosion: { min: 1, max: 3 },
-                                trace: { min: 1, max: 2 }
-                            },
-                            brightness: { min: 50, max: 80 },
-                            decay: { min: 0.015, max: 0.03 },
-                            mouse: { click: false, move: false, max: 1 }
-                        });
-
-                        const celebrationText = document.createElement('div');
-                        celebrationText.innerHTML = `
-                            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; text-align: center; pointer-events: none;">
-                                <div class="celebration-title" style="font-size: 56px; font-weight: 900; background: linear-gradient(45deg, #6366f1, #8b5cf6, #ec4899); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; opacity: 0; transform: scale(0.5);">
-                                    ✨ 完成！
-                                </div>
-                            </div>
-                        `;
-                        document.body.appendChild(celebrationText);
-
-                        fireworks.start();
-
-                        gsap.timeline({
-                            onComplete: () => {
-                                setTimeout(() => {
-                                    fireworks.stop();
-                                    container.classList.remove('active');
-                                    celebrationText.remove();
-                                    resolve();
-                                }, 300);
-                            }
-                        })
-                            .to('.celebration-title', { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.7)' })
-                            .to({}, { duration: 1.5 })
-                            .to('.celebration-title', { opacity: 0, scale: 1.3, duration: 0.4 });
-                    });
-                };
-
-                // 🌟 模块完成 - 顶级3D粒子爆炸特效
-                const launch3DParticleExplosion = () => {
-                    return new Promise((resolve) => {
-                        if (typeof THREE === 'undefined' || typeof gsap === 'undefined') {
-                            resolve();
-                            return;
-                        }
-
-                        // 创建3D场景
-                        const scene = new THREE.Scene();
-                        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-
-                        renderer.setSize(window.innerWidth, window.innerHeight);
-                        renderer.setClearColor(0x000000, 0);
-                        renderer.domElement.style.position = 'fixed';
-                        renderer.domElement.style.top = '0';
-                        renderer.domElement.style.left = '0';
-                        renderer.domElement.style.zIndex = '10000';
-                        renderer.domElement.style.pointerEvents = 'none';
-                        document.body.appendChild(renderer.domElement);
-
-                        camera.position.z = 5;
-
-                        // 创建粒子系统
-                        const particleCount = 3000;
-                        const particles = new THREE.BufferGeometry();
-                        const positions = new Float32Array(particleCount * 3);
-                        const colors = new Float32Array(particleCount * 3);
-                        const velocities = [];
-
-                        for (let i = 0; i < particleCount; i++) {
-                            // 初始位置（中心）
-                            positions[i * 3] = 0;
-                            positions[i * 3 + 1] = 0;
-                            positions[i * 3 + 2] = 0;
-
-                            // 随机颜色
-                            const hue = Math.random();
-                            const color = new THREE.Color().setHSL(hue, 1.0, 0.6);
-                            colors[i * 3] = color.r;
-                            colors[i * 3 + 1] = color.g;
-                            colors[i * 3 + 2] = color.b;
-
-                            // 随机速度（球形爆炸）
-                            const theta = Math.random() * Math.PI * 2;
-                            const phi = Math.acos(2 * Math.random() - 1);
-                            const speed = 0.02 + Math.random() * 0.04;
-
-                            velocities.push({
-                                x: speed * Math.sin(phi) * Math.cos(theta),
-                                y: speed * Math.sin(phi) * Math.sin(theta),
-                                z: speed * Math.cos(phi)
-                            });
-                        }
-
-                        particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                        particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-                        const particleMaterial = new THREE.PointsMaterial({
-                            size: 0.05,
-                            vertexColors: true,
-                            transparent: true,
-                            opacity: 1,
-                            blending: THREE.AdditiveBlending
-                        });
-
-                        const particleSystem = new THREE.Points(particles, particleMaterial);
-                        scene.add(particleSystem);
-
-                        // 创建震撼文字
-                        const moduleTitle = course.value.title || '本模块';
-                        const celebrationText = document.createElement('div');
-                        celebrationText.innerHTML = `
-                            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; text-align: center; pointer-events: none; width: 90vw;">
-                                <div class="module-complete-title" style="
-                                    font-size: clamp(48px, 8vw, 96px);
-                                    font-weight: 900;
-                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
-                                    background-size: 400% 400%;
-                                    -webkit-background-clip: text;
-                                    -webkit-text-fill-color: transparent;
-                                    background-clip: text;
-                                    text-shadow: 0 0 60px rgba(102, 126, 234, 0.8);
-                                    opacity: 0;
-                                    transform: scale(0.3) rotateY(90deg);
-                                    animation: gradientShift 3s ease infinite;
-                                ">
-                                    🎊 恭喜你完成
-                                </div>
-                                <div class="module-name" style="
-                                    font-size: clamp(24px, 4vw, 48px);
-                                    font-weight: 700;
-                                    color: #fff;
-                                    margin-top: 20px;
-                                    text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 60px rgba(102, 126, 234, 0.6);
-                                    opacity: 0;
-                                    transform: translateY(50px);
-                                ">
-                                    ${moduleTitle}
-                                </div>
-                                <div class="module-subtitle" style="
-                                    font-size: clamp(16px, 2vw, 28px);
-                                    color: #a78bfa;
-                                    margin-top: 30px;
-                                    opacity: 0;
-                                    transform: translateY(30px);
-                                ">
-                                    🚀 继续探索，成就更好的自己！
-                                </div>
-                            </div>
-                            <style>
-                                @keyframes gradientShift {
-                                    0%, 100% { background-position: 0% 50%; }
-                                    50% { background-position: 100% 50%; }
-                                }
-                            </style>
-                        `;
-                        document.body.appendChild(celebrationText);
-
-                        // 动画循环
-                        let frame = 0;
-                        const maxFrames = 180;
-
-                        const animate = () => {
-                            if (frame >= maxFrames) {
-                                scene.remove(particleSystem);
-                                renderer.domElement.remove();
-                                celebrationText.remove();
-                                resolve();
-                                return;
-                            }
-
-                            frame++;
-                            const positions = particles.attributes.position.array;
-
-                            for (let i = 0; i < particleCount; i++) {
-                                positions[i * 3] += velocities[i].x;
-                                positions[i * 3 + 1] += velocities[i].y;
-                                positions[i * 3 + 2] += velocities[i].z;
-
-                                // 重力
-                                velocities[i].y -= 0.0008;
-                            }
-
-                            particles.attributes.position.needsUpdate = true;
-                            particleMaterial.opacity = 1 - (frame / maxFrames);
-
-                            particleSystem.rotation.y += 0.002;
-                            renderer.render(scene, camera);
-                            requestAnimationFrame(animate);
-                        };
-
-                        // GSAP 文字动画
-                        gsap.timeline()
-                            .to('.module-complete-title', {
-                                opacity: 1,
-                                scale: 1,
-                                rotateY: 0,
-                                duration: 1.2,
-                                ease: 'elastic.out(1, 0.5)'
-                            })
-                            .to('.module-name', {
-                                opacity: 1,
-                                y: 0,
-                                duration: 0.8,
-                                ease: 'power3.out'
-                            }, '-=0.6')
-                            .to('.module-subtitle', {
-                                opacity: 1,
-                                y: 0,
-                                duration: 0.6,
-                                ease: 'power2.out'
-                            }, '-=0.4')
-                            .to({}, { duration: 2 })
-                            .to(['.module-complete-title', '.module-name', '.module-subtitle'], {
-                                opacity: 0,
-                                y: -50,
-                                duration: 0.8,
-                                stagger: 0.1
-                            });
-
-                        animate();
-                    });
-                };
-
-                const markAsCompleted = async () => {
-                    // 检查是否完成整个模块
-                    const allCompleted = lessons.value.every(l => l.completed || l.id === currentLesson.value?.id);
-                    const isModuleComplete = allCompleted && lessons.value.length >= 7; // 至少7节课才算模块
-
-                    // 触发对应特效
-                    await celebrateCompletion(isModuleComplete);
-
-                    // 标记课程完成
-                    if (currentLesson.value) {
-                        currentLesson.value.completed = true;
-                    }
-
-                    // 延迟跳转到下一课
-                    if (nextLesson.value) {
-                        setTimeout(() => {
-                            selectLesson(nextLesson.value);
-                        }, 500);
-                    }
+                    return 'bg-white/5 border-white/10 opacity-50';
                 };
 
                 // Lifecycle
@@ -1729,32 +1056,23 @@
                     getOptionClass,
                     isNativeVideo,
                     getEmbedUrl,
+                    // UI
+                    showAI,
+                    showNotes,
 
-                    // AI 助教
+                    // Notes
+                    currentNote,
+                    saveNote,
+                    notesStatus,
+
+                    // AI Chat
                     sidebarOpen,
-                    chatContainer,
-                    aiInput,
+                    userInput,
+                    userAvatar,
                     aiMessages,
                     aiLoading,
-                    sendAiMessage,
-                    formatMessage,
-                    toggleSidebar,
-
-                    // 语音输入
-                    isRecording,
-                    toggleVoiceInput,
-
-                    // 笔记功能
-                    notesOpen,
-                    noteMode,
-                    currentNote,
-                    lastSaved,
-                    toggleNotes,
-                    loadNote,
-                    saveNote,
-
-                    // Game Logic
-                    checkGalaxySort, selectGalaxyCard, unsortedGalaxies, selectedGalaxy, sortingFeedback
+                    chatContainer,
+                    sendMessage
                 };
             }
         });

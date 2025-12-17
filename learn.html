@@ -715,6 +715,56 @@
             </div>
         </footer>
 
+        <!-- AI Sidebar (Integrated) -->
+        <aside
+            class="fixed right-0 top-16 bottom-0 w-80 glass border-l border-white/10 z-40 transform transition-transform duration-300 flex flex-col"
+            :class="showAI ? 'translate-x-0' : 'translate-x-full'">
+
+            <!-- Header -->
+            <div class="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🤖</span>
+                    <h3 class="font-bold text-gray-200">课程推荐顾问</h3>
+                </div>
+                <button @click="showAI = false" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="chatContainer">
+                <div v-for="(msg, i) in aiMessages" :key="i" class="flex gap-3"
+                    :class="{'flex-row-reverse': msg.role === 'user'}">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                        :class="msg.role === 'assistant' ? 'bg-odyssey-purple/20 border border-odyssey-purple/50' : 'bg-gray-700'">
+                        <span v-if="msg.role === 'assistant'">AI</span>
+                        <span v-else>Me</span>
+                    </div>
+                    <div class="p-3 rounded-2xl text-sm max-w-[85%]"
+                        :class="msg.role === 'assistant' ? 'bg-odyssey-purple/10 text-gray-200 border border-odyssey-purple/20' : 'bg-white text-black'">
+                        {{ msg.content }}
+                    </div>
+                </div>
+                <div v-if="aiLoading" class="flex gap-2 text-gray-500 text-xs items-center">
+                    <span class="animate-spin">⏳</span> 思考中...
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="p-4 border-t border-white/10 bg-black/40">
+                <div class="relative">
+                    <input v-model="userInput" @keyup.enter="sendMessage" type="text" placeholder="推荐一些编程课..."
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:border-odyssey-purple text-white">
+                    <button @click="sendMessage"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 text-odyssey-purple hover:scale-110 transition-transform">➤</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- AI Toggle Button -->
+        <button v-if="!showAI" @click="showAI = true"
+            class="fixed right-6 bottom-6 w-14 h-14 rounded-full bg-gradient-to-r from-odyssey-purple to-odyssey-pink flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-50">
+            <span class="text-2xl">🤖</span>
+        </button>
+
     </div>
 
     <script>
@@ -727,6 +777,16 @@
             setup() {
                 const user = ref(null);
                 const scrolled = ref(false);
+
+                // AI Assistant State
+                const showAI = ref(true);
+                const userInput = ref('');
+                const aiMessages = ref([{
+                    role: 'assistant',
+                    content: '你好！我是课程推荐顾问。想学点什么？我可以根据你的兴趣为你推荐课程，比如“我喜欢机器人”或“我想学生物”。'
+                }]);
+                const aiLoading = ref(false);
+                const chatContainer = ref(null);
 
                 // Course Data
                 const courses = ref([]);
@@ -942,9 +1002,9 @@
                             },
                             {
                                 id: 101,
-                                title: '恐龙星球：第一章 - 史前霸主的崛起',
-                                description: '从三叠纪到白垩纪，探索恐龙统治地球1.6亿年的传奇历史，揭秘化石背后的科学真相。',
-                                category: 'dino',
+                                title: '地球生命史诗：从寒武纪到恐龙时代',
+                                description: '跨越5亿年的时空旅程。从寒武纪奇虾到古生代三叶虫，再到恐龙的崛起与灭绝，探索生命演化的宏伟篇章。',
+                                category: 'biology',
                                 difficulty: 'beginner',
                                 lesson_count: 8,
                                 student_count: 220,
@@ -972,6 +1032,28 @@
                                 student_count: 180,
                                 rating: 4.8,
                                 thumbnail_url: null
+                            },
+                            {
+                                id: 104,
+                                title: 'HELIX: 基因与生命编码',
+                                description: '探索生命源代码，从 DNA 双螺旋到 CRISPR 基因编辑。',
+                                category: 'science',
+                                difficulty: 'advanced',
+                                lesson_count: 7,
+                                student_count: 88,
+                                rating: 5.0,
+                                thumbnail_url: 'assets/images/dna_thumb.jpg'
+                            },
+                            {
+                                id: 105,
+                                title: '军事科技：铁甲雄师',
+                                description: '解析主战坦克、隐身战机与现代战争背后的硬核科技。坦克组装实验室。',
+                                category: 'robotics',
+                                difficulty: 'intermediate',
+                                lesson_count: 10,
+                                student_count: 150,
+                                rating: 4.8,
+                                thumbnail_url: null
                             }
                         ];
                         coursesLoading.value = false;
@@ -987,18 +1069,19 @@
                             .limit(12);
 
                         if (error && error.code !== 'PGRST116') {
-                            console.error('Error fetching courses:', error);
+                            console.warn('Supabase courses table not found, using mock data:', error);
+                            courses.value = []; // 确保是空数组
                         } else {
                             courses.value = data || [];
                         }
 
-                        // Always append Mock Data for Demo purposes (Dino, Astronomy, Ocean)
+                        // Always append Mock Data for Demo purposes (Dino, Astronomy, Ocean, Life, Military)
                         const mockCourses = [
                             {
                                 id: 101,
-                                title: '恐龙星球：第一章 - 史前霸主的崛起',
-                                description: '从三叠纪到白垩纪，探索恐龙统治地球1.6亿年的传奇历史，揭秘化石背后的科学真相。',
-                                category: 'dino',
+                                title: '地球生命史诗：从寒武纪到恐龙时代',
+                                description: '跨越5亿年的时空旅程。从寒武纪奇虾到古生代三叶虫，再到恐龙的崛起与灭绝，探索生命演化的宏伟篇章。',
+                                category: 'biology',
                                 difficulty: 'beginner',
                                 lesson_count: 8,
                                 student_count: 220,
@@ -1024,6 +1107,28 @@
                                 difficulty: 'intermediate',
                                 lesson_count: 12,
                                 student_count: 180,
+                                rating: 4.8,
+                                thumbnail_url: null
+                            },
+                            {
+                                id: 104,
+                                title: 'HELIX: 基因与生命编码',
+                                description: '探索生命源代码，从 DNA 双螺旋到 CRISPR 基因编辑。',
+                                category: 'science',
+                                difficulty: 'advanced',
+                                lesson_count: 7,
+                                student_count: 88,
+                                rating: 5.0,
+                                thumbnail_url: 'assets/images/dna_thumb.jpg'
+                            },
+                            {
+                                id: 105,
+                                title: '军事科技：铁甲雄师',
+                                description: '解析主战坦克、隐身战机与现代战争背后的硬核科技。坦克组装实验室。',
+                                category: 'robotics',
+                                difficulty: 'intermediate',
+                                lesson_count: 10,
+                                student_count: 150,
                                 rating: 4.8,
                                 thumbnail_url: null
                             }
@@ -1045,9 +1150,16 @@
                 };
 
                 const goToCourse = (courseId) => {
-                    // 恐龙课程使用专门的页面
-                    if (courseId === 101) {
-                        window.location.href = 'course-dino.html';
+                    // Specific Course Redirects
+                    const redirects = {
+                        101: 'course-dino.html',
+                        103: 'course-ocean.html',
+                        104: 'course-life.html',
+                        105: 'course-military.html'
+                    };
+
+                    if (redirects[courseId]) {
+                        window.location.href = redirects[courseId];
                     } else {
                         window.location.href = `course.html?id=${courseId}`;
                     }
@@ -1092,6 +1204,56 @@
                     return colors[categoryId] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
                 };
 
+                // AI Chat Methods
+                const sendMessage = async () => {
+                    const message = userInput.value.trim();
+                    if (!message || aiLoading.value) return;
+
+                    aiMessages.value.push({ role: 'user', content: message });
+                    userInput.value = '';
+                    aiLoading.value = true;
+
+                    // Auto-scroll
+                    setTimeout(() => {
+                        if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                    }, 100);
+
+                    try {
+                        const context = `你是一个科技教育平台的课程顾问。已有课程包括：AI人工智能、编程基础、机器人、设计、科学、游戏开发、古生物(恐龙)、天文、海洋、生命科学、军事科技。请根据用户兴趣推荐最合适的课程。用亲切、专业的语气回答。`;
+
+                        // Using DeepSeek Proxy (Standardized)
+                        const response = await fetch('http://localhost:3000/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer sk-21128a0cda4e4cc39f7c05c330f355ce'
+                            },
+                            body: JSON.stringify({
+                                model: 'deepseek-chat',
+                                messages: [
+                                    { role: 'system', content: context },
+                                    ...aiMessages.value.map(m => ({ role: m.role, content: m.content })).slice(-5), // Keep context small
+                                    { role: 'user', content: message }
+                                ],
+                                stream: false
+                            })
+                        });
+
+                        const data = await response.json();
+                        const answer = data.choices[0].message.content;
+
+                        aiMessages.value.push({ role: 'assistant', content: answer });
+
+                    } catch (e) {
+                        aiMessages.value.push({ role: 'assistant', content: '抱歉，我现在有点忙，请稍后再试。' });
+                    } finally {
+                        aiLoading.value = false;
+                        setTimeout(() => {
+                            if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                        }, 100);
+                    }
+                };
+
                 onMounted(async () => {
                     // Use shared getCurrentUser helper to get profile data including avatar
                     if (window.SupabaseClient) {
@@ -1131,6 +1293,13 @@
                     getDifficultyLabel,
                     getCategoryName,
                     getCategoryColor,
+                    // AI
+                    showAI,
+                    userInput,
+                    aiMessages,
+                    aiLoading,
+                    sendMessage,
+                    chatContainer
                 };
             }
         }).mount('#app');
@@ -1220,12 +1389,9 @@
     </script>
 
     <!-- AI客服助手 -->
-    <script src="assets/js/ai-assistant.js"></script>
+    <!-- AI客服助手 (Legacy Removed) -->
     <script>
-        // 初始化AI助手 - 在线学习上下文
-        document.addEventListener('DOMContentLoaded', () => {
-            initAIAssistant('learn');
-        });
+        // AI Assistant Logic is now integrated into the main app
     </script>
 </body>
 

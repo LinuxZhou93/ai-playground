@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HELIX: 生命科学实验室 | Tech Odyssey</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="libs/hls.min.js"></script>
+    <script src="libs/marked.min.js"></script>
+
+    <!-- Animation -->
+    <script src="https://cdn.jsdelivr.net/npm/fireworks-js@2.x/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        odyssey: {
+                            purple: '#d946ef', // Fuchsia
+                            lime: '#06B6D4',
+                            pink: '#10b981',   // Emerald
+                            amber: '#F59E0B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: white;
+        }
+
+        .glass {
+            background: rgba(15, 15, 25, 0.7);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.6), rgba(6, 182, 212, 0.6));
+            border-radius: 4px;
+        }
+
+        .lesson-item {
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .lesson-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(2px);
+        }
+
+        .lesson-item.active {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.1));
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        /* Fireworks */
+        #fireworks-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #fireworks-container.active {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white">
+    <canvas id="fireworks-container"></canvas>
+    <div id="app" class="h-screen flex flex-col" v-cloak>
+        <!-- Navigation -->
+        <nav class="h-16 glass border-b border-fuchsia-500/20 flex-shrink-0">
+            <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 rounded bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center font-bold">
+                        T</div>
+                    <span class="font-bold text-xl">Tech <span class="text-fuchsia-400">Odyssey</span></span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="wiki.html"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-300 hover:bg-fuchsia-500/40 hover:text-white transition-all text-xs font-bold group">
+                        <span class="group-hover:animate-spin">🌌</span>
+                        <span class="hidden sm:inline">知识星系</span>
+                    </a>
+                    <a href="learn.html" class="text-sm text-slate-400 hover:text-white transition-colors">← 返回课程列表</a>
+
+                    <!-- Right Tools -->
+                    <div class="flex items-center gap-2 border-l border-white/10 pl-4 ml-2">
+                        <!-- AI Toggle -->
+                        <button @click="showAI = !showAI" class="p-2 rounded-lg transition-all flex items-center gap-2"
+                            :class="showAI ? 'bg-fuchsia-500/20 text-fuchsia-300' : 'text-gray-400 hover:text-white'">
+                            <span class="text-lg">🤖</span>
+                            <span class="hidden sm:inline text-xs font-bold">AI 助手</span>
+                        </button>
+
+                        <!-- Notes Toggle -->
+                        <button @click="showNotes = !showNotes"
+                            class="p-2 rounded-lg transition-all flex items-center gap-2"
+                            :class="showNotes ? 'bg-yellow-500/20 text-yellow-300' : 'text-gray-400 hover:text-white'">
+                            <span class="text-lg">📝</span>
+                            <span class="hidden sm:inline text-xs font-bold">学习笔记</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar: Lesson List -->
+            <aside class="w-80 glass border-r border-white/10 overflow-y-auto">
+                <div class="p-6">
+                    <h2 class="text-2xl font-bold mb-2">{{ course.title }}</h2>
+                    <p class="text-sm text-gray-400 mb-6">{{ course.description }}</p>
+
+                    <!-- Progress -->
+                    <div class="mb-6">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span>学习进度</span>
+                            <span>{{ completedLessons }}/{{ totalLessons }}</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-odyssey-purple to-odyssey-lime transition-all duration-500"
+                                :style="{ width: progressPercentage + '%' }"></div>
+                        </div>
+                    </div>
+
+                    <!-- Lesson List -->
+                    <div class="space-y-2">
+                        <div v-for="(lesson, index) in lessons" :key="lesson.id" @click="selectLesson(lesson)"
+                            class="lesson-item p-4 rounded-xl cursor-pointer"
+                            :class="{ 'active': currentLesson?.id === lesson.id }">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                    :class="lesson.completed ? 'bg-green-500' : 'bg-gray-700'">
+                                    {{ lesson.completed ? '✓' : index + 1 }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-semibold text-sm mb-1">{{ lesson.title }}</h4>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                        <span>{{ getLessonTypeLabel(lesson.type) }}</span>
+                                        <span v-if="lesson.duration_seconds">• {{
+                                            formatDuration(lesson.duration_seconds) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main: Content Area -->
+            <main class="flex-1 overflow-y-auto bg-[#0a0a0a]">
+                <div class="max-w-5xl mx-auto p-8">
+                    <!-- Loading State -->
+                    <div v-if="loading" class="flex justify-center py-20">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-fuchsia-500"></div>
+                    </div>
+
+                    <!-- Video Lesson -->
+                    <div v-else-if="currentLesson?.type === 'video'" class="space-y-6">
+                        <div class="aspect-video bg-black rounded-2xl overflow-hidden relative group">
+                            <!-- Native Video Player (MP4/M3U8) -->
+                            <video v-if="isNativeVideo(currentLesson.content_url)" ref="videoPlayer"
+                                class="w-full h-full" controls @timeupdate="handleTimeUpdate" @ended="handleVideoEnded">
+                                您的浏览器不支持视频播放。
+                            </video>
+
+                            <!-- External Embed Player (Bilibili/YouTube) -->
+                            <iframe v-else :src="getEmbedUrl(currentLesson.content_url)" class="w-full h-full"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen
+                                sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
+                                referrerpolicy="no-referrer">
+                            </iframe>
+                        </div>
+
+                        <div>
+                            <h1 class="text-3xl font-bold mb-3">{{ currentLesson.title }}</h1>
+                            <div class="flex items-center gap-4 text-sm text-gray-400 mb-6">
+                                <span>📺 视频课程</span>
+                                <span>⏱️ {{ formatDuration(currentLesson.duration_seconds) }}</span>
+                                <span v-if="currentLesson.completed" class="text-green-400">✓ 已完成</span>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <button v-if="previousLesson" @click="selectLesson(previousLesson)"
+                                    class="px-6 py-3 rounded-xl glass hover:bg-white/10 transition-colors">
+                                    ← 上一课
+                                </button>
+                                <button @click="markAsCompleted"
+                                    class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold hover:scale-105 transition-transform"
+                                    :disabled="currentLesson.completed">
+                                    {{ currentLesson.completed ? '✓ 已完成' : '标记为完成' }}
+                                </button>
+                                <button v-if="nextLesson" @click="selectLesson(nextLesson)"
+                                    class="px-6 py-3 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform">
+                                    下一课 →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reading Lesson -->
+                    <div v-else-if="currentLesson?.type === 'reading'" class="glass rounded-2xl p-8">
+                        <h1 class="text-3xl font-bold mb-6">{{ currentLesson.title }}</h1>
+                        <div class="prose prose-invert max-w-none" v-html="renderMarkdown(currentLesson.content)"></div>
+                        <div class="mt-8">
+                            <button @click="markAsCompleted"
+                                class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold">
+                                标记为完成
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Lesson -->
+                    <div v-else-if="currentLesson?.type === 'quiz'" class="max-w-3xl mx-auto">
+                        <div v-if="!quizStarted" class="text-center py-12">
+                            <h2 class="text-3xl font-bold mb-4">准备好接受挑战了吗？</h2>
+                            <p class="text-gray-400 mb-8">本测验将检查您对本节课知识的掌握程度。</p>
+                            <button @click="startQuiz"
+                                class="px-8 py-3 bg-gradient-to-r from-odyssey-purple to-odyssey-pink rounded-full text-white font-bold">
+                                开始测验
+                            </button>
+                        </div>
+
+                        <div v-else-if="!quizCompleted" class="space-y-6">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-bold text-gray-500">问题 {{ currentQuestionIndex + 1 }} / {{
+                                    quizQuestions.length }}</span>
+                                <div class="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                    <div class="h-full bg-odyssey-purple transition-all"
+                                        :style="{ width: ((currentQuestionIndex + 1) / quizQuestions.length * 100) + '%' }">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass rounded-2xl p-8">
+                                <h3 class="text-xl font-bold mb-6">{{ quizQuestions[currentQuestionIndex].text }}</h3>
+                                <div class="space-y-3">
+                                    <div v-for="(option, idx) in quizQuestions[currentQuestionIndex].options" :key="idx"
+                                        @click="selectOption(idx)"
+                                        class="p-4 rounded-xl border transition-all cursor-pointer"
+                                        :class="getOptionClass(idx)">
+                                        {{ option }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="hasAnsweredCurrent" class="flex justify-end">
+                                <button @click="nextQuestion"
+                                    class="px-6 py-2 bg-white text-black font-bold rounded-lg">
+                                    {{ currentQuestionIndex < quizQuestions.length - 1 ? '下一题' : '查看结果' }} </button>
+                            </div>
+                        </div>
+
+                        <div v-else class="text-center py-12">
+                            <div
+                                class="w-24 h-24 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center mx-auto mb-6">
+                                <span class="text-4xl font-black">{{ quizScore }}</span>
+                            </div>
+                            <h2 class="text-3xl font-bold mb-2">测验完成!</h2>
+                            <p class="text-gray-400 mb-8">您答对了 {{ correctAnswersCount }} / {{ quizQuestions.length }}
+                                道题目</p>
+                            <div class="flex justify-center gap-4">
+                                <button @click="resetQuiz"
+                                    class="px-6 py-2 border border-white/20 rounded-lg hover:bg-white/5">再试一次</button>
+                                <button @click="markAsCompleted"
+                                    class="px-6 py-2 bg-white text-black font-bold rounded-lg">完成课程</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Code Lesson Placeholder -->
+                    <div v-else-if="currentLesson?.type === 'code'" class="glass rounded-2xl p-8 text-center">
+                        <h2 class="text-2xl font-bold mb-4">{{ currentLesson.title }}</h2>
+                        <p class="text-gray-400 mb-6">编程练习功能即将推出...</p>
+                        <button @click="markAsCompleted"
+                            class="px-6 py-3 rounded-xl bg-gradient-to-r from-odyssey-purple to-odyssey-pink text-white font-bold">
+                            标记为完成
+                        </button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Sidebar: AI Assistant -->
+            <aside v-show="showAI"
+                class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 fixed right-0 top-0 h-full z-40 lg:relative lg:z-0 lg:h-auto">
+
+                <!-- Title Bar -->
+                <div class="h-16 border-b border-fuchsia-500/20 flex items-center justify-between px-4 bg-black/20">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-pink-500 p-0.5 relative">
+                            <div
+                                class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                                <span class="text-lg">🤖</span>
+                            </div>
+                            <div
+                                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black">
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm">AI 学习助手</h3>
+                            <p class="text-[10px] text-gray-400">Powered by FutureAI</p>
+                        </div>
+                    </div>
+                    <button @click="showAI = false" class="lg:hidden p-1 hover:bg-white/10 rounded">✕</button>
+                </div>
+
+                <!-- Chat History -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="chatContainer">
+                    <!-- Welcome Message -->
+                    <div class="flex gap-3">
+                        <div class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]">
+                        </div>
+                        <div
+                            class="bg-fuchsia-500/20 p-3 rounded-2xl rounded-tl-none border border-fuchsia-500/30 text-sm text-gray-200">
+                            你好！我是你的专属 AI 助教。关于本课程的任何问题，随时问我！
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Messages -->
+                    <div v-for="(msg, index) in aiMessages" :key="index" class="flex gap-3"
+                        :class="{'flex-row-reverse': msg.role === 'user'}">
+
+                        <!-- AI Avatar -->
+                        <div v-if="msg.role === 'assistant'" class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(139,92,246,0.5)] transform scale-x-100">
+                        </div>
+
+                        <!-- User Avatar -->
+                        <div v-if="msg.role === 'user'"
+                            class="w-10 h-10 flex-shrink-0 rounded-full overflow-hidden border border-white/20">
+                            <img :src="userAvatar" class="w-full h-full object-cover transform -scale-x-100">
+                        </div>
+
+                        <div class="p-3 rounded-2xl text-sm max-w-[85%] leading-relaxed"
+                            :class="msg.role === 'user' ? 'bg-gray-700 text-white rounded-tr-none' : 'bg-fuchsia-500/20 text-gray-200 border border-fuchsia-500/30 rounded-tl-none'"
+                            v-html="renderMarkdown(msg.content)">
+                        </div>
+                    </div>
+
+                    <!-- Loading Indicator -->
+                    <div v-if="aiLoading" class="flex gap-3">
+                        <div class="w-10 h-10 flex-shrink-0">
+                            <img src="assets/images/ai-robot-glass.png"
+                                class="w-full h-full object-contain animate-pulse">
+                        </div>
+                        <div
+                            class="bg-fuchsia-500/20 p-3 rounded-2xl rounded-tl-none border border-fuchsia-500/30 flex items-center gap-1">
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
+                            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="p-4 border-t border-fuchsia-500/20 bg-black/20">
+                    <div class="relative">
+                        <textarea v-model="userInput" @keydown.enter.prevent="sendMessage" placeholder="输入你的问题..."
+                            class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:border-fuchsia-500 transition-colors resize-none h-12 max-h-32"
+                            rows="1"></textarea>
+                        <button @click="sendMessage" :disabled="!userInput.trim() || aiLoading"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-fuchsia-400 hover:text-fuchsia-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            ➤
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Sidebar: Study Notes -->
+            <aside v-show="showNotes"
+                class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 fixed right-0 top-0 h-full z-40 lg:relative lg:z-0 lg:h-auto">
+                <!-- Title Bar -->
+                <div class="h-16 border-b border-yellow-500/20 flex items-center justify-between px-4 bg-black/20">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">📝</span>
+                        <h3 class="font-bold text-sm text-yellow-100">学习笔记</h3>
+                    </div>
+                    <button @click="showNotes = false" class="lg:hidden p-1 hover:bg-white/10 rounded">✕</button>
+                </div>
+
+                <!-- Notes Content -->
+                <div class="flex-1 p-4 flex flex-col gap-4">
+                    <div class="text-xs text-gray-400 flex justify-between">
+                        <span>Lesson {{ currentLesson?.id }}</span>
+                        <span>{{ currentLesson?.title ? currentLesson.title.substring(0, 15) + '...' : '' }}</span>
+                    </div>
+                    <textarea v-model="currentNote"
+                        class="flex-1 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:border-yellow-500/50 resize-none leading-relaxed font-mono"
+                        placeholder="在此记录您的学习心得... &#10;内容将自动保存至本地。"></textarea>
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs transition-colors"
+                            :class="notesStatus ? 'text-green-400' : 'text-gray-600'">
+                            {{ notesStatus || '支持自动保存' }}
+                        </span>
+                        <button @click="saveNote"
+                            class="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-300 text-sm font-bold rounded-lg transition-colors border border-yellow-500/30">
+                            保存笔记
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                // State
+                const loading = ref(true);
+                // Life Science Theme Data (Default)
+                const course = ref({
+                    title: 'HELIX: 基因与生命编码',
+                    description: '从双螺旋结构到 CRISPR 基因编辑，探索生命的最底层源代码。'
+                });
+
+                const lessons = ref([
+                    { id: 1, title: '双螺旋：DNA 的结构之美', type: 'video', duration: '12:00', completed: true },
+                    { id: 2, title: '细胞分裂：有丝分裂与减数分裂', type: 'article', duration: '阅读', completed: false },
+                    { id: 3, title: '中心法则：从 RNA 到蛋白质', type: 'video', duration: '15:00', completed: false },
+                    { id: 4, title: 'CRISPR：上帝的手术刀', type: 'video', duration: '18:00', completed: false },
+                    { id: 5, title: '神经科学：大脑的电化学网络', type: 'article', duration: '阅读', completed: false },
+                    { id: 6, title: '病毒学：入侵与防御', type: 'video', duration: '14:00', completed: false },
+                    { id: 7, title: '[考核] 首席生物工程师', type: 'quiz', duration: '测验', completed: false }
+                ]);
+                const currentLesson = ref(null);
+                const videoPlayer = ref(null);
+
+                // AI Chat State
+                // UI State
+                const showAI = ref(window.innerWidth >= 1024);
+                const showNotes = ref(false);
+                const sidebarOpen = showAI; // Compatibility alias
+
+                // Notes State
+                const currentNote = ref('');
+                const notesStatus = ref('');
+                const userInput = ref('');
+                const userAvatar = ref(localStorage.getItem('user_avatar') || 'assets/images/bot_avatar_vip.png');
+                const aiMessages = ref([]);
+                const aiLoading = ref(false);
+                const chatContainer = ref(null);
+
+                // Dify Configuration
+                const DIFY_CONFIG = {
+                    apiKey: 'sk-21128a0cda4e4cc39f7c05c330f355ce',
+                    apiUrl: 'http://localhost/v1/chat-messages',
+                    user: 'student-astro-' + Date.now()
+                };
+
+                // DeepSeek Configuration (Local Proxy)
+                const DEEPSEEK_CONFIG = {
+                    apiKey: 'sk-21128a0cda4e4cc39f7c05c330f355ce', // Re-using the key provided
+                    apiUrl: 'http://localhost:3000/v1/chat/completions', // Uses local proxy
+                    model: 'deepseek-chat'
+                };
+
+                // Notes Methods
+                const loadNote = () => {
+                    if (!currentLesson.value) return;
+                    // Safe key generation
+                    const courseTitle = course.value.title || 'course';
+                    const key = `note_${courseTitle}_${currentLesson.value.id}`;
+                    currentNote.value = localStorage.getItem(key) || '';
+                    notesStatus.value = '';
+                };
+
+                const saveNote = () => {
+                    if (!currentLesson.value) return;
+                    const courseTitle = course.value.title || 'course';
+                    const key = `note_${courseTitle}_${currentLesson.value.id}`;
+                    localStorage.setItem(key, currentNote.value);
+                    notesStatus.value = '已保存';
+                    setTimeout(() => notesStatus.value = '', 2000);
+                };
+
+                // Watchers
+                watch(currentLesson, () => {
+                    loadNote();
+                });
+
+                // Initial Load
+                onMounted(() => {
+                    loadMockData(); // Ensure data load
+                    setTimeout(loadNote, 500);
+                });
+
+                // AI Chat Methods
+                const sendMessage = async () => {
+                    const message = userInput.value.trim();
+                    if (!message || aiLoading.value) return;
+
+                    // Add User Message
+                    aiMessages.value.push({ role: 'user', content: message });
+                    userInput.value = '';
+                    aiLoading.value = true;
+
+                    // Scroll to bottom
+                    await nextTick();
+                    if (chatContainer.value) {
+                        chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                    }
+
+                    try {
+                        // Intelligent Routing: Check Key Format
+                        if (DIFY_CONFIG.apiKey.startsWith('sk-')) {
+                            console.log('Detected sk- key, using DeepSeek Direct Mode');
+                            await callDeepSeekAPI(message);
+                        } else {
+                            console.log('Detected App key, using Dify Mode');
+                            await callDifyAPI(message);
+                        }
+                    } catch (error) {
+                        console.error('AI Error:', error);
+                        let tip = '';
+                        if (error.message.includes('401')) {
+                            tip = '\n💡 提示: 401 错误通常意味着 API Key 无效。';
+                        } else if (error.message.includes('Failed to fetch')) {
+                            tip = '\n💡 提示: 连接不到服务。请确认 deepseek-proxy.js (端口3000) 或 Dify (端口80) 正在运行。';
+                        }
+
+                        aiMessages.value.push({
+                            role: 'assistant',
+                            content: `⚠️ 出错了: ${error.message}${tip}`
+                        });
+                    } finally {
+                        aiLoading.value = false;
+                        await nextTick();
+                        if (chatContainer.value) {
+                            chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                        }
+                    }
+                };
+
+                // Option 1: Dify API
+                const callDifyAPI = async (message) => {
+                    const context = `当前正在学习课程：${course.value.title}\n当前章节：${currentLesson.value?.title || '未开始'}`;
+                    const fullQuery = `${context}\n\n用户问题：${message}`;
+
+                    const response = await fetch(DIFY_CONFIG.apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${DIFY_CONFIG.apiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            inputs: {},
+                            query: fullQuery,
+                            response_mode: "streaming",
+                            user: DIFY_CONFIG.user
+                        })
+                    });
+
+                    if (!response.ok) throw new Error(`Dify API Error ${response.status}: ${response.statusText}`);
+                    await handleStreamResponse(response);
+                };
+
+                // Option 2: DeepSeek API (via Local Proxy)
+                const callDeepSeekAPI = async (message) => {
+                    const context = `你是一位专业的课程助教。当前学生正在学习：${course.value.title}。章节：${currentLesson.value?.title || '概览'}。请用生动、科学的语言回答学生的问题。`;
+
+                    const messages = [
+                        { role: 'system', content: context },
+                        ...aiMessages.value.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+                        { role: 'user', content: message }
+                    ];
+
+                    const response = await fetch(DEEPSEEK_CONFIG.apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${DEEPSEEK_CONFIG.apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: DEEPSEEK_CONFIG.model,
+                            messages: messages,
+                            stream: true
+                        })
+                    });
+
+                    if (!response.ok) throw new Error(`DeepSeek API Error ${response.status}: ${response.statusText}`);
+                    await handleStreamResponse(response, 'deepseek');
+                };
+
+                // Shared Stream Handler
+                const handleStreamResponse = async (response, provider = 'dify') => {
+                    let assistantMsg = { role: 'assistant', content: '' };
+                    aiMessages.value.push(assistantMsg);
+                    const msgIndex = aiMessages.value.length - 1;
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.slice(6);
+                                if (dataStr === '[DONE]') continue;
+                                try {
+                                    const data = JSON.parse(dataStr);
+                                    let text = '';
+
+                                    if (provider === 'dify' && (data.event === 'message' || data.event === 'agent_message')) {
+                                        text = data.answer;
+                                    } else if (provider === 'deepseek') {
+                                        text = data.choices?.[0]?.delta?.content || '';
+                                    }
+
+                                    if (text) {
+                                        aiMessages.value[msgIndex].content += text;
+                                        if (chatContainer.value) {
+                                            chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+                                        }
+                                    }
+                                } catch (e) { }
+                            }
+                        }
+                    }
+                };
+                const quizStarted = ref(false);
+                const quizCompleted = ref(false);
+                const quizQuestions = ref([]);
+                const currentQuestionIndex = ref(0);
+                const selectedOptionIndex = ref(null);
+                const hasAnsweredCurrent = ref(false);
+                const quizScore = ref(0);
+                const correctAnswersCount = ref(0);
+
+                // Computed
+                const totalLessons = computed(() => lessons.value.length);
+                const completedLessons = computed(() => lessons.value.filter(l => l.completed).length);
+                const progressPercentage = computed(() => {
+                    if (totalLessons.value === 0) return 0;
+                    return Math.round((completedLessons.value / totalLessons.value) * 100);
+                });
+
+                const previousLesson = computed(() => {
+                    if (!currentLesson.value) return null;
+                    const idx = lessons.value.findIndex(l => l.id === currentLesson.value.id);
+                    return idx > 0 ? lessons.value[idx - 1] : null;
+                });
+
+                const nextLesson = computed(() => {
+                    if (!currentLesson.value) return null;
+                    const idx = lessons.value.findIndex(l => l.id === currentLesson.value.id);
+                    return idx < lessons.value.length - 1 ? lessons.value[idx + 1] : null;
+                });
+
+                // Methods
+                const loadMockData = async () => {
+                    loading.value = true;
+                    // Life Theme Data
+                    course.value = {
+                        title: 'HELIX: 基因与生命编码',
+                        description: '从双螺旋结构到 CRISPR 基因编辑，探索生命的最底层源代码。'
+                    };
+
+                    lessons.value = [
+                        { id: 1, title: '双螺旋：DNA 的结构之美', type: 'video', duration_seconds: 720, completed: true, content_url: 'https://www.bilibili.com/video/BV1hs411H7y7' },
+                        { id: 2, title: '细胞分裂：有丝分裂与减数分裂', type: 'reading', completed: false, content: '## 细胞周期\n\n细胞分裂是生命延续的基础...' },
+                        { id: 3, title: '中心法则：从 RNA 到蛋白质', type: 'video', duration_seconds: 900, completed: false, content_url: 'https://www.bilibili.com/video/BV1ks411H7y7' },
+                        { id: 4, title: 'CRISPR：上帝的手术刀', type: 'video', duration: '1080', completed: false, content_url: 'https://www.bilibili.com/video/BV1ds411J7zL' },
+                        { id: 5, title: '神经科学：大脑的电化学网络', type: 'reading', completed: false, content: '## 神经元\n\n大脑包含约860亿个神经元...' },
+                        { id: 6, title: '病毒学：入侵与防御', type: 'video', duration_seconds: 840, completed: false, content_url: 'https://www.bilibili.com/video/BV1LKcceQEYM' },
+                        {
+                            id: 7,
+                            title: '[考核] 首席生物工程师',
+                            type: 'quiz',
+                            content: {
+                                questions: [
+                                    { id: 1, text: "DNA 的结构被称为什么？", options: ["单螺旋", "双螺旋", "三螺旋", "环状结构"], correctIndex: 1 },
+                                    { id: 2, text: "负责将遗传信息从 DNA 转录出来的分子是？", options: ["蛋白质", "RNA", "脂质", "糖类"], correctIndex: 1 },
+                                    { id: 3, text: "CRISPR 技术主要用于？", options: ["基因编辑", "细胞培养", "蛋白质折叠", "病毒检测"], correctIndex: 0 }
+                                ]
+                            }
+                        }
+                    ];
+
+                    if (lessons.value.length > 0) {
+                        currentLesson.value = lessons.value[0];
+                    }
+                    loading.value = false;
+                };
+
+                const selectLesson = (lesson) => {
+                    currentLesson.value = lesson;
+
+                    // Reset quiz state
+                    quizStarted.value = false;
+                    quizCompleted.value = false;
+                    currentQuestionIndex.value = 0;
+                    selectedOptionIndex.value = null;
+                    hasAnsweredCurrent.value = false;
+                    correctAnswersCount.value = 0;
+
+                    // Initialize video player if needed
+                    if (lesson.type === 'video' && lesson.content_url) {
+                        nextTick(() => initVideoPlayer(lesson.content_url));
+                    }
+                };
+
+                const initVideoPlayer = (url) => {
+                    if (!videoPlayer.value) return;
+
+                    if (Hls.isSupported()) {
+                        const hls = new Hls();
+                        hls.loadSource(url);
+                        hls.attachMedia(videoPlayer.value);
+                    } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
+                        videoPlayer.value.src = url;
+                    }
+                };
+
+                const markAsCompleted = () => {
+                    if (currentLesson.value) currentLesson.value.completed = true;
+
+                    // Trigger fireworks
+                    const container = document.getElementById('fireworks-container');
+                    if (container && window.Fireworks) {
+                        const fw = new Fireworks.Fireworks(container, { opacity: 0.5, particles: 50 });
+                        container.classList.add('active');
+                        fw.start();
+                        setTimeout(() => { fw.stop(); container.classList.remove('active'); }, 3000);
+                    }
+                    // Auto-advance to next lesson
+                    if (nextLesson.value) {
+                        setTimeout(() => selectLesson(nextLesson.value), 1000);
+                    }
+                };
+
+                const handleTimeUpdate = () => {
+                    // Track video progress if needed
+                };
+
+                const handleVideoEnded = () => {
+                    markAsCompleted();
+                };
+
+                const formatDuration = (seconds) => {
+                    if (!seconds) return '0:00';
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                };
+
+                const getLessonTypeLabel = (type) => {
+                    const labels = {
+                        'video': '📺 视频',
+                        'reading': '📖 阅读',
+                        'quiz': '📝 测验',
+                        'code': '💻 编程'
+                    };
+                    return labels[type] || type;
+                };
+
+                const renderMarkdown = (text) => {
+                    return marked.parse(text || '');
+                };
+
+                // Video Helper Methods
+                const isNativeVideo = (url) => {
+                    if (!url) return true;
+                    return url.endsWith('.mp4') || url.endsWith('.m3u8') || url.endsWith('.webm') || url.includes('.mux.dev');
+                };
+
+                const getEmbedUrl = (url) => {
+                    if (!url) return '';
+
+                    // Bilibili Handling
+                    if (url.includes('bilibili.com')) {
+                        // Extract BV ID
+                        const bvMatch = url.match(/BV[a-zA-Z0-9]+/);
+                        if (bvMatch) {
+                            return `https://player.bilibili.com/player.html?bvid=${bvMatch[0]}&high_quality=1&danmaku=0&autoplay=0&t=0`;
+                        }
+                    }
+
+                    // YouTube Handling
+                    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                        let videoId = '';
+                        if (url.includes('youtu.be')) {
+                            videoId = url.split('/').pop();
+                        } else if (url.includes('v=')) {
+                            videoId = url.split('v=')[1].split('&')[0];
+                        }
+                        if (videoId) {
+                            return `https://www.youtube-nocookie.com/embed/${videoId}?modestbranding=1&rel=0&showinfo=0&iv_load_policy=3`;
+                        }
+                    }
+
+                    return url;
+                };
+
+                // Quiz Methods
+                const startQuiz = () => {
+                    if (currentLesson.value.type !== 'quiz') return;
+                    try {
+                        let content = currentLesson.value.content;
+                        if (typeof content === 'string') content = JSON.parse(content);
+                        if (content && content.questions) {
+                            quizQuestions.value = content.questions;
+                            quizStarted.value = true;
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse quiz content', e);
+                    }
+                };
+
+                const selectOption = (index) => {
+                    if (hasAnsweredCurrent.value) return;
+                    selectedOptionIndex.value = index;
+                    hasAnsweredCurrent.value = true;
+                    if (index === quizQuestions.value[currentQuestionIndex.value].correctIndex) {
+                        correctAnswersCount.value++;
+                    }
+                };
+
+                const nextQuestion = () => {
+                    if (currentQuestionIndex.value < quizQuestions.value.length - 1) {
+                        currentQuestionIndex.value++;
+                        selectedOptionIndex.value = null;
+                        hasAnsweredCurrent.value = false;
+                    } else {
+                        quizScore.value = Math.round((correctAnswersCount.value / quizQuestions.value.length) * 100);
+                        quizCompleted.value = true;
+                    }
+                };
+
+                const resetQuiz = () => {
+                    currentQuestionIndex.value = 0;
+                    selectedOptionIndex.value = null;
+                    hasAnsweredCurrent.value = false;
+                    quizCompleted.value = false;
+                    correctAnswersCount.value = 0;
+                    quizStarted.value = false;
+                };
+
+                const getOptionClass = (index) => {
+                    if (!hasAnsweredCurrent.value) {
+                        return 'bg-white/5 border-white/10 hover:bg-white/10 cursor-pointer';
+                    }
+                    const correctIndex = quizQuestions.value[currentQuestionIndex.value].correctIndex;
+                    if (index === correctIndex) {
+                        return 'bg-green-500/20 border-green-500 text-green-300';
+                    }
+                    if (index === selectedOptionIndex.value && index !== correctIndex) {
+                        return 'bg-red-500/20 border-red-500 text-red-300';
+                    }
+                    return 'bg-white/5 border-white/10 opacity-50';
+                };
+
+                // Lifecycle
+                onMounted(async () => {
+                    await loadMockData();
+                });
+
+                return {
+                    loading,
+                    course,
+                    lessons,
+                    currentLesson,
+                    videoPlayer,
+                    totalLessons,
+                    completedLessons,
+                    progressPercentage,
+                    previousLesson,
+                    nextLesson,
+                    selectLesson,
+                    markAsCompleted,
+                    handleTimeUpdate,
+                    handleVideoEnded,
+                    formatDuration,
+                    getLessonTypeLabel,
+                    renderMarkdown,
+                    quizStarted,
+                    quizCompleted,
+                    quizQuestions,
+                    currentQuestionIndex,
+                    selectedOptionIndex,
+                    hasAnsweredCurrent,
+                    quizScore,
+                    correctAnswersCount,
+                    startQuiz,
+                    selectOption,
+                    nextQuestion,
+                    resetQuiz,
+                    getOptionClass,
+                    isNativeVideo,
+                    getEmbedUrl,
+                    // UI
+                    showAI,
+                    showNotes,
+
+                    // Notes
+                    currentNote,
+                    saveNote,
+                    notesStatus,
+
+                    // AI Chat
+                    sidebarOpen,
+                    userInput,
+                    userAvatar,
+                    aiMessages,
+                    aiLoading,
+                    chatContainer,
+                    sendMessage
+                };
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+
+</html>
