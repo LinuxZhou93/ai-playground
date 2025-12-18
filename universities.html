@@ -4,902 +4,855 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACADEMIA INFINITY | 全球名校情报图谱</title>
+    <title>ACADEMIA INFINITY V3.0 | 全球名校数据库</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Noto+Sans+SC:wght@300;400;700&family=Space+Grotesk:wght@300;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Noto+Sans+SC:wght@300;400;700&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --tech-cyan: #00f3ff;
             --tech-gold: #ffd700;
-            --tech-purple: #7000ff;
-            --tech-pink: #ff00ff;
             --bg-dark: #020205;
             --panel-glass: rgba(10, 15, 30, 0.95);
             --border-glass: rgba(0, 243, 255, 0.25);
-            --glow: 0 0 20px rgba(0, 243, 255, 0.4);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            user-select: none;
         }
 
         body {
-            background-color: var(--bg-dark);
+            background: linear-gradient(135deg, #0a0e27 0%, #020205 100%);
             color: #fff;
             font-family: 'Noto Sans SC', sans-serif;
-            overflow: hidden;
-            height: 100vh;
+            min-height: 100vh;
         }
 
-        #viewport {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        .scanlines {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
-            z-index: 1000;
-            opacity: 0.1;
-        }
-
-        /* --- NAVIGATION --- */
-        .top-nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
+        .header {
+            background: var(--panel-glass);
+            border-bottom: 2px solid var(--tech-gold);
             padding: 20px 40px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 2000;
-            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
-            border-bottom: 1px solid var(--border-glass);
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
-        .icon-btns {
-            display: flex;
-            gap: 12px;
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--tech-gold);
+            letter-spacing: 2px;
         }
 
-        .circle-btn {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            border: 1.5px solid var(--border-glass);
-            background: var(--panel-glass);
-            color: var(--tech-cyan);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.3s;
-            backdrop-filter: blur(10px);
-            pointer-events: auto;
+        .search-container {
+            flex: 1;
+            max-width: 600px;
+            position: relative;
         }
 
-        .circle-btn:hover {
-            background: var(--tech-cyan);
-            color: #000;
-            box-shadow: 0 0 15px var(--tech-cyan);
-            transform: translateY(-3px);
-        }
-
-        .view-toggle {
-            background: var(--panel-glass);
+        .search-input {
+            width: 100%;
+            padding: 12px 50px 12px 20px;
+            background: rgba(255, 255, 255, 0.05);
             border: 1.5px solid var(--border-glass);
             border-radius: 30px;
-            padding: 4px;
-            display: flex;
-            gap: 4px;
-            pointer-events: auto;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
         }
 
-        .toggle-tab {
-            padding: 8px 18px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-family: 'Orbitron';
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.4);
-            text-transform: uppercase;
-            transition: 0.3s;
-            letter-spacing: 1px;
+        .search-input:focus {
+            border-color: var(--tech-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
         }
 
-        .toggle-tab.active {
-            background: var(--tech-gold);
-            color: #000;
-            font-weight: 800;
-            box-shadow: 0 0 10px var(--tech-gold);
-        }
-
-        /* --- VIEWS --- */
-        .view-frame {
+        .search-icon {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            display: none;
-            padding-top: 100px;
-            opacity: 0;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--tech-gold);
         }
 
-        .view-frame.active {
-            display: block;
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        /* CAROUSEL */
-        #view-carousel {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            perspective: 3000px;
-            overflow: hidden;
-        }
-
-        #view-carousel.active {
-            display: flex;
-        }
-
-        .carousel {
-            position: relative;
-            width: 100%;
-            height: 600px;
-            transform-style: preserve-3d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .card {
-            position: absolute;
-            width: 380px;
-            height: 560px;
-            background: var(--panel-glass);
-            border: 1.5px solid var(--border-glass);
-            border-radius: 24px;
-            padding: 35px;
-            cursor: pointer;
-            transition: transform 0.6s, opacity 0.6s;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            overflow: hidden;
-        }
-
-        .card.focused {
-            border-color: var(--tech-gold);
-            border-width: 2.5px;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
-            z-index: 100;
-        }
-
-        .badge-box {
-            width: 120px;
-            height: 120px;
-            background: #fff;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 15px;
-            border: 4px solid var(--tech-gold);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-            overflow: hidden;
-        }
-
-        .badge-box img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        /* GRID MATRIX */
-        #view-grid {
-            padding: 130px 60px 60px;
-            overflow-y: scroll;
-            scroll-behavior: smooth;
-            height: 100%;
-        }
-
-        .filter-bar {
+        .filters {
             display: flex;
             gap: 10px;
-            margin-bottom: 50px;
             flex-wrap: wrap;
-            justify-content: center;
-            max-width: 1400px;
-            margin-left: auto;
-            margin-right: auto;
         }
 
         .filter-btn {
-            padding: 8px 18px;
-            border-radius: 30px;
-            border: 1px solid var(--border-glass);
+            padding: 8px 16px;
             background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
             color: #fff;
-            font-family: 'Orbitron';
-            font-size: 10px;
+            font-size: 12px;
             cursor: pointer;
-            transition: 0.3s;
-            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
         }
 
         .filter-btn:hover,
         .filter-btn.active {
             background: var(--tech-gold);
             color: #000;
-            box-shadow: 0 0 15px var(--tech-gold);
+            border-color: var(--tech-gold);
         }
 
-        .grid-matrix {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 30px;
-            width: 100%;
-            max-width: 1800px;
+        .stats {
+            text-align: center;
+            padding: 30px 20px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        .grid-item {
+        .stats-number {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--tech-cyan);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .stats-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+
+        .grid-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .university-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .uni-card {
             background: var(--panel-glass);
             border: 1px solid var(--border-glass);
-            border-radius: 20px;
-            padding: 25px;
+            border-radius: 15px;
+            padding: 20px;
             cursor: pointer;
-            transition: 0.4s;
+            transition: all 0.3s;
             position: relative;
-            text-align: center;
-        }
-
-        .grid-item:hover {
-            transform: translateY(-10px);
-            border-color: var(--tech-gold);
-            box-shadow: 0 15px 40px rgba(255, 215, 0, 0.15);
-        }
-
-        .grid-item .badge-mini {
-            width: 70px;
-            height: 70px;
-            margin: 0 auto 15px;
-            background: #fff;
-            border-radius: 50%;
-            padding: 8px;
-            border: 2px solid var(--tech-gold);
-        }
-
-        .grid-item .badge-mini img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        /* ATLAS MAP */
-        #view-map {
-            padding-top: 0;
-            background: radial-gradient(circle at center, #0a1128 0%, #000 100%);
-            position: relative;
-        }
-
-        #canvas-map {
-            width: 100%;
-            height: 100%;
-        }
-
-        .pin {
-            position: absolute;
-            width: 36px;
-            height: 36px;
-            transform: translate(-50%, -50%);
-            cursor: pointer;
-            pointer-events: auto;
-            z-index: 100;
-            transition: 0.3s;
-        }
-
-        .pin-dot {
-            width: 100%;
-            height: 100%;
-            border: 2px solid var(--tech-gold);
-            border-radius: 50%;
-            background: #000;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 10px var(--tech-gold);
-        }
-
-        .pin-dot img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            background: #fff;
-            border-radius: 50%;
-        }
-
-        .pin:hover {
-            z-index: 1000;
-        }
-
-        .pin:hover .pin-dot {
-            transform: scale(1.8);
-            background: #fff;
-            box-shadow: 0 0 25px var(--tech-gold);
-        }
-
-        /* --- DEEP DIVE OVERLAY --- */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 3000;
-            opacity: 0;
-            visibility: hidden;
-            display: grid;
-            grid-template-rows: auto 1fr;
-            transform: translateY(50px);
-            transition: 0.5s;
-        }
-
-        .overlay.open {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .ov-head {
-            padding: 25px 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--tech-gold);
-            background: #050510;
-        }
-
-        .ov-body {
-            display: grid;
-            grid-template-columns: 1.3fr 1.7fr;
-            height: 100%;
             overflow: hidden;
         }
 
-        .ov-l {
-            padding: 40px 60px;
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-            overflow-y: auto;
-            background: #080a1c;
+        .uni-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--tech-cyan), var(--tech-gold));
+            transform: scaleX(0);
+            transition: transform 0.3s;
         }
 
-        .ov-r {
-            padding: 40px 60px;
-            overflow-y: auto;
-            background: #030308;
-        }
-
-        .ov-lbl {
-            font-family: 'Orbitron';
-            font-size: 11px;
-            color: var(--tech-gold);
-            margin-top: 25px;
-            margin-bottom: 8px;
-            display: block;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .ov-val {
-            font-size: 24px;
-            font-weight: 900;
-            color: #fff;
-            font-family: 'Space Grotesk';
-            border-left: 5px solid var(--tech-gold);
-            padding-left: 20px;
-            margin-bottom: 10px;
-        }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .stat-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 12px;
-        }
-
-        .stat-title {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.5);
-            font-family: 'Orbitron';
-            margin-bottom: 5px;
-        }
-
-        .stat-num {
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--tech-cyan);
-            font-family: 'Space Grotesk';
-        }
-
-        .rank-card {
-            background: #111;
-            border: 1.5px solid rgba(255, 215, 0, 0.1);
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 20px;
-        }
-
-        .rank-header {
-            border-bottom: 1px solid #333;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .cat-tag {
-            padding: 4px 12px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-family: 'Orbitron';
-            font-weight: 800;
-            border: 1px solid;
-        }
-
-        .cat-ivy {
-            background: rgba(0, 100, 0, 0.1);
-            border-color: green;
-            color: #90ee90;
-        }
-
-        .cat-g5 {
-            background: rgba(255, 215, 0, 0.1);
+        .uni-card:hover {
+            transform: translateY(-5px);
             border-color: var(--tech-gold);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .uni-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .uni-name {
+            font-size: 18px;
+            font-weight: 700;
             color: var(--tech-gold);
+            margin-bottom: 10px;
+            font-family: 'Orbitron', sans-serif;
         }
 
-        .cat-985 {
-            background: rgba(255, 0, 0, 0.1);
-            border-color: #ff4d4d;
-            color: #ff4d4d;
+        .uni-country {
+            font-size: 12px;
+            color: var(--tech-cyan);
+            margin-bottom: 8px;
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(0, 243, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid var(--tech-cyan);
         }
 
-        .controls {
-            position: fixed;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 30px;
-            z-index: 1000;
-            pointer-events: none;
+        .uni-domain {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'Courier New', monospace;
         }
 
-        .ctrl-btn {
-            width: 65px;
-            height: 65px;
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 18px;
+            color: var(--tech-cyan);
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 243, 255, 0.1);
+            border-top: 3px solid var(--tech-cyan);
             border-radius: 50%;
-            border: 2.5px solid var(--border-glass);
-            background: var(--panel-glass);
-            color: #fff;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .back-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: var(--tech-gold);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            pointer-events: auto;
-            transition: 0.3s;
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+            transition: all 0.3s;
+            z-index: 999;
         }
 
-        .ctrl-btn:hover {
-            border-color: var(--tech-gold);
-            color: var(--tech-gold);
-            box-shadow: 0 0 20px var(--tech-gold);
+        .back-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.6);
         }
 
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 8px;
         }
 
         ::-webkit-scrollbar-thumb {
             background: var(--tech-gold);
             border-radius: 10px;
         }
+
+        /* 详情弹窗样式 */
+        .detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s;
+            overflow-y: auto;
+        }
+
+        .detail-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .detail-container {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 40px;
+            background: var(--panel-glass);
+            border: 2px solid var(--tech-gold);
+            border-radius: 20px;
+            position: relative;
+            transform: translateY(50px);
+            transition: transform 0.4s;
+        }
+
+        .detail-overlay.active .detail-container {
+            transform: translateY(0);
+        }
+
+        .detail-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-glass);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .detail-close:hover {
+            background: var(--tech-gold);
+            transform: rotate(90deg);
+        }
+
+        .detail-close:hover i {
+            color: #000;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid var(--tech-gold);
+        }
+
+        .detail-logo {
+            width: 120px;
+            height: 120px;
+            background: #fff;
+            border-radius: 50%;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid var(--tech-gold);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .detail-logo img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .detail-title {
+            flex: 1;
+        }
+
+        .detail-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--tech-gold);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .detail-subtitle {
+            font-size: 14px;
+            color: var(--tech-cyan);
+            opacity: 0.8;
+        }
+
+        .detail-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .detail-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .detail-section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: var(--tech-gold);
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .detail-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .detail-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-info-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+        }
+
+        .detail-info-value {
+            font-size: 14px;
+            color: var(--tech-cyan);
+            font-weight: 600;
+        }
+
+        .detail-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: var(--tech-gold);
+            color: #000;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .detail-link-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+        }
+
+        .detail-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--tech-cyan);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--tech-cyan);
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .action-btn {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 243, 255, 0.1);
+            border-color: var(--tech-cyan);
+        }
+
+        @media (max-width: 768px) {
+            .detail-body {
+                grid-template-columns: 1fr;
+            }
+
+            .detail-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .detail-name {
+                font-size: 24px;
+            }
+        }
     </style>
 </head>
 
 <body>
-    <div class="scanlines"></div>
-    <div id="viewport"></div>
-
-    <div class="top-nav">
-        <div class="icon-btns">
-            <div class="circle-btn" onclick="location.href='index.html'"><i data-lucide="home"></i></div>
-            <div class="circle-btn" onclick="history.back()"><i data-lucide="arrow-left"></i></div>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">ACADEMIA INFINITY V3.0</div>
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="搜索大学名称、国家或域名...">
+                <i data-lucide="search" class="search-icon"></i>
+            </div>
+            <div class="filters">
+                <button class="filter-btn active" data-country="all">全部</button>
+                <button class="filter-btn" data-country="China">中国</button>
+                <button class="filter-btn" data-country="United States">美国</button>
+                <button class="filter-btn" data-country="United Kingdom">英国</button>
+                <button class="filter-btn" data-country="Canada">加拿大</button>
+                <button class="filter-btn" data-country="Australia">澳大利亚</button>
+            </div>
         </div>
-        <div class="view-toggle">
-            <div class="toggle-tab active" data-v="grid" onclick="switchView('grid')">MATRIX GRID</div>
-            <div class="toggle-tab" data-v="carousel" onclick="switchView('carousel')">CAROUSEL</div>
-            <div class="toggle-tab" data-v="map" onclick="switchView('map')">WORLD ATLAS</div>
-        </div>
-        <div style="font-family:'Space Grotesk'; font-size:11px; color:var(--tech-gold); letter-spacing:2px;">[
-            ACADEMIA_INFINITY_V1.0_BETA ]</div>
     </div>
 
-    <!-- VIEWS -->
-    <div class="view-frame active" id="view-grid">
-        <div class="filter-bar">
-            <!-- SEARCH HUB -->
-            <div style="width:100%; display:flex; justify-content:center; margin-bottom:30px;">
-                <div style="position:relative; width:100%; max-width:650px;">
-                    <i data-lucide="search"
-                        style="position:absolute; left:25px; top:50%; transform:translateY(-50%); color:var(--tech-gold); width:20px;"></i>
-                    <input type="text" id="uni-search" placeholder="SEARCH 600+ GLOBAL ACADEMIES..."
-                        onkeyup="renderMatrix()"
-                        style="width:100%; padding:18px 20px 18px 65px; background:rgba(255,255,255,0.05); border:1.5px solid var(--border-glass); border-radius:40px; color:#fff; font-family:'Orbitron'; font-size:12px; letter-spacing:1.5px; outline:none; transition:0.3s; backdrop-filter:blur(15px); box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+    <div class="stats">
+        <div class="stats-number" id="statsNumber">0</div>
+        <div class="stats-label">全球大学数据库</div>
+    </div>
+
+    <div class="grid-container">
+        <div id="loadingIndicator" class="loading">
+            <div class="spinner"></div>
+            <div>正在加载全球大学数据...</div>
+        </div>
+        <div id="universityGrid" class="university-grid" style="display: none;"></div>
+        <div id="noResults" class="no-results" style="display: none;">
+            <i data-lucide="search-x" style="width: 60px; height: 60px; margin: 0 auto 20px; opacity: 0.3;"></i>
+            <div>未找到匹配的大学</div>
+        </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div id="detailOverlay" class="detail-overlay">
+        <div class="detail-container">
+            <div class="detail-close" onclick="closeDetail()">
+                <i data-lucide="x" style="color: var(--tech-cyan);"></i>
+            </div>
+
+            <div class="detail-header">
+                <div class="detail-logo" id="detailLogo">
+                    <img src="" alt="University Logo">
+                </div>
+                <div class="detail-title">
+                    <div class="detail-name" id="detailName">University Name</div>
+                    <div class="detail-subtitle" id="detailSubtitle">// GLOBAL ACADEMIC INSTITUTION //</div>
                 </div>
             </div>
-            <div class="filter-btn active" onclick="setFilter('all')">ALL UNIVERSITIES</div>
-            <div class="filter-btn" onclick="setFilter('CHINA')">CHINA TOP 100</div>
-            <div class="filter-btn" onclick="setFilter('USA')">NORTH AMERICA</div>
-            <div class="filter-btn" onclick="setFilter('UK')">UK (G5 & ELITE)</div>
-            <div class="filter-btn" onclick="setFilter('EUROPE')">EUROPEAN UNION</div>
-            <div class="filter-btn" onclick="setFilter('ASIA')">ASIA PACIFIC</div>
-        </div>
-        <div class="grid-matrix" id="grid-stage"></div>
-    </div>
 
-    <div class="view-frame" id="view-carousel">
-        <div class="carousel" id="carousel-stage"></div>
-        <div class="controls">
-            <div class="ctrl-btn" onclick="move(-1)"><i data-lucide="chevron-left"></i></div>
-            <div class="ctrl-btn" onclick="move(1)"><i data-lucide="chevron-right"></i></div>
-        </div>
-    </div>
-
-    <div class="view-frame" id="view-map">
-        <canvas id="canvas-map"></canvas>
-        <div id="pin-layer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
-        </div>
-    </div>
-
-    <!-- DEEP DIVE OVERLAY -->
-    <div class="overlay" id="overlay">
-        <div class="ov-head">
-            <div style="display:flex; align-items:center; gap:30px;">
-                <div id="ov-badge-mini"
-                    style="width:60px; height:60px; background:#fff; padding:8px; border-radius:50%; border:2px solid var(--tech-gold);">
-                    <img src="" style="width:100%; height:100%; object-fit:contain;">
+            <div class="detail-body">
+                <div class="detail-section">
+                    <div class="detail-section-title">基本信息 / Basic Information</div>
+                    <div class="detail-info-row">
+                        <span class="detail-info-label">国家 / Country</span>
+                        <span class="detail-info-value" id="detailCountry">-</span>
+                    </div>
+                    <div class="detail-info-row">
+                        <span class="detail-info-label">官方域名 / Domain</span>
+                        <span class="detail-info-value" id="detailDomain">-</span>
+                    </div>
+                    <div class="detail-info-row">
+                        <span class="detail-info-label">学校排名 / Ranking</span>
+                        <span class="detail-info-value" id="detailRank">-</span>
+                    </div>
+                    <a href="#" id="detailWebLink" class="detail-link-btn" target="_blank">
+                        <i data-lucide="external-link"></i>
+                        访问官方网站
+                    </a>
                 </div>
-                <div>
-                    <h2 id="ov-name" style="font-family:Orbitron; letter-spacing:4px; font-size:32px;">UNIVERSITY</h2>
-                    <p style="color:var(--tech-gold); font-size:11px; margin-top:5px;">// ACADEMIC DATA DECRYPTED //
-                        WORLD RANKING // PERSPECTIVE V1.0</p>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">学校简介 / Introduction</div>
+                    <p id="detailIntro"
+                        style="font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.9); margin-bottom: 25px;">
+                        加载中...
+                    </p>
+
+                    <div class="detail-section-title">强势专业 / Top Majors</div>
+                    <p id="detailMajors"
+                        style="font-size: 14px; line-height: 1.8; color: var(--tech-cyan); font-weight: 600; margin-bottom: 25px;">
+                        加载中...
+                    </p>
+
+                    <div class="detail-section-title">快速操作 / Quick Actions</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                        <button onclick="searchGoogle()" class="action-btn">
+                            <i data-lucide="search" style="width: 16px; height: 16px;"></i>
+                            Google 搜索该大学
+                        </button>
+                        <button onclick="copyDomain()" class="action-btn">
+                            <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
+                            复制域名
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="circle-btn" onclick="closeDeep()"><i data-lucide="x"></i></div>
         </div>
-        <div class="ov-body">
-            <div class="ov-l" id="ov-l"></div>
-            <div class="ov-r" id="ov-r"></div>
-        </div>
+    </div>
+
+    <div class="back-btn" onclick="location.href='index.html'">
+        <i data-lucide="home" style="color: #000;"></i>
     </div>
 
     <script>
-        // --- TITAN ACADEMIA BULK ENGINE ---
-        const detailedUnis = [
-            { name: 'Tsinghua University (清华大学)', domain: 'tsinghua.edu.cn', region: 'CHINA', cat: 'C9 / 985', motto: '自强不息，厚德载物', philosophy: '价值塑造、能力培养、知识传授“三位一体”。', specialties: '计算机, 土木, 核科学, 建筑', highlights: '中国工科巅峰，顶尖人才培养基地', rank: { qs: 20 }, img: 'https://images.unsplash.com/photo-1590483736622-39da43743ec9' },
-            { name: 'Peking University (北京大学)', domain: 'pku.edu.cn', region: 'CHINA', cat: 'C9 / 985', motto: '循思想自由原则，取兼容并包主义', philosophy: '以学生为中心，交叉学科引领。', specialties: '数学, 物理, 哲学, 经济', highlights: '中国近现代教育摇篮，人文精神高地', rank: { qs: 14 }, img: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3' },
-            { name: 'Zhejiang University (浙江大学)', domain: 'zju.edu.cn', region: 'CHINA', cat: 'C9 / 985', motto: '求是创新', philosophy: '整合培养，追求卓越。', specialties: '能源, 光电, 农学, AI', highlights: '东方剑桥，综合实力极强的科创航母', rank: { qs: 47 }, img: 'https://images.unsplash.com/photo-1514580322573-636c7cfc5784' },
-            { name: 'Shanghai Jiao Tong Uni (上海交通大学)', domain: 'sjtu.edu.cn', region: 'CHINA', cat: 'C9 / 985', motto: '饮水思源，爱国荣校', philosophy: '起点高、基础厚、要求严、重实践。', specialties: '船舶, 机械, 医学, 商科', highlights: '硬核工业母机，顶尖实干人才基地', rank: { qs: 45 }, img: 'https://images.unsplash.com/photo-1523050853064-dbad350e01ca' },
-            { name: 'Fudan University (复旦大学)', domain: 'fudan.edu.cn', region: 'CHINA', cat: 'C9 / 985', motto: '博学而笃志，切问而近思', philosophy: '通识优先，博雅教育。', specialties: '文史, 政治, 微电子, 基础医学', highlights: '自由之灵魂，江南学术重镇', rank: { qs: 39 }, img: 'https://images.unsplash.com/photo-1592285334235-759d57a41981' },
-            { name: 'Nanjing University (南京大学)', domain: 'nju.edu.cn', region: 'CHINA', cat: 'C9 / 985', motto: '诚朴雄伟，励学敦行', philosophy: '科学研究与教学融通。', specialties: '天文, 物理, 地学, 大气', highlights: '低调务实的科学重镇，基础研究巅峰', rank: { qs: 145 }, img: 'https://images.unsplash.com/photo-1544717297-fa20d1c79872' },
-            { name: 'USTC (中国科学技术大学)', domain: 'ustc.edu.cn', region: 'CHINA', cat: 'C9 / 985', motto: '红专并进，理实交融', philosophy: '精品办学，英才教育。', specialties: '量子科学, 物理, 空间科技', highlights: '千生一院士，纯粹的科学殿堂', rank: { qs: 137 }, img: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d' },
-            { name: 'Harvard University', domain: 'harvard.edu', region: 'USA', cat: 'IVY LEAGUE', motto: 'Veritas', philosophy: 'Global impact leadership.', specialties: 'Law, Med, MBA, CS', highlights: 'The world\'s academic gold standard', rank: { qs: 4 }, img: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158' },
-            { name: 'Stanford University', domain: 'stanford.edu', region: 'USA', cat: 'TOP ELITE', motto: 'Die Luft der Freiheit weht', philosophy: 'Real-world application of thought.', specialties: 'AI, Entrepreneurship, Psychology', highlights: 'Silicon Valley engine, innovation core', rank: { qs: 5 }, img: 'https://images.unsplash.com/photo-1533664488202-6af66d26c44a' },
-            { name: 'MIT', domain: 'mit.edu', region: 'USA', cat: 'TOP ELITE', motto: 'Mens et Manus', philosophy: 'Mind and Hand.', specialties: 'STEM, Engineering, Econ', highlights: 'Cutting-edge future technologies', rank: { qs: 1 }, img: 'https://images.unsplash.com/photo-1564981797816-1043664bf78d' },
-            { name: 'Uni of Oxford', domain: 'ox.ac.uk', region: 'UK', cat: 'G5 GROUP', motto: 'Dominus Illuminatio Mea', philosophy: 'Mentorship and leadership.', specialties: 'Politics, Med, Law, Classics', highlights: 'The oldest and most prestigious heritage', rank: { qs: 3 }, img: 'https://images.unsplash.com/photo-1544717297-fa20d1c79872' },
-            { name: 'Uni of Cambridge', domain: 'cam.ac.uk', region: 'UK', cat: 'G5 GROUP', motto: 'Hinc lucem et pocula sacra', philosophy: 'Rigorous inquiry.', specialties: 'Math, Physics, Biology', highlights: 'Scientific revolution birthplace', rank: { qs: 2 }, img: 'https://images.unsplash.com/photo-1514580322573-636c7cfc5784' }
-        ];
+        let allUniversities = [];
+        let filteredUniversities = [];
+        let currentCountry = 'all';
+        let currentUniversity = null;
 
-        // Compact list for mass loading: [Name, Domain, Region, Cat, Rank]
-        const bulkRaw = [
-            // --- CHINA TOP 100 (985/211 Focus) ---
-            "Wuhan University;whu.edu.cn;CHINA;985;194", "Huazhong UST;hust.edu.cn;CHINA;985;300", "Sun Yat-sen Uni;sysu.edu.cn;CHINA;985;267", "Xi'an Jiao Tong;xjtu.edu.cn;CHINA;C9/985;350", "Harbin Inst Tech;hit.edu.cn;CHINA;C9/985;250", "Sichuan Uni;scu.edu.cn;CHINA;985;350", "Tianjin Uni;tju.edu.cn;CHINA;985;400", "Nankai Uni;nankai.edu.cn;CHINA;985;400", "Beihang Uni;buaa.edu.cn;CHINA;985;450", "Tongji Uni;tongji.edu.cn;CHINA;985;450", "SEU;seu.edu.cn;CHINA;985;450", "Xiamen Uni;xmu.edu.cn;CHINA;985;450", "Shandong Uni;sdu.edu.cn;CHINA;985;500", "Central S. Uni;csu.edu.cn;CHINA;985;500", "Jilin Uni;jlu.edu.cn;CHINA;985;500", "South China UT;scut.edu.cn;CHINA;985;550", "Lanzhou Uni;lzu.edu.cn;CHINA;985;600", "Hunan Uni;hnu.edu.cn;CHINA;985;600", "NEU China;neu.edu.cn;CHINA;985;650", "Chongqing Uni;cqu.edu.cn;CHINA;985;650", "NW Unipoly;nwpu.edu.cn;CHINA;985;600", "Ocean Uni China;ouc.edu.cn;CHINA;985;700", "CUST;cust.edu.cn;CHINA;211;800", "SUFE;sufe.edu.cn;CHINA;211;800", "SW Jiao Tong;swjtu.edu.cn;CHINA;211;800",
-            "Beijing Normal;bnu.edu.cn;CHINA;985;300", "East China Normal;ecnu.edu.cn;CHINA;985;400", "Renmin Uni China;ruc.edu.cn;CHINA;985;350", "China Agricultural;cau.edu.cn;CHINA;985;500", "BIT Beijing;bit.edu.cn;CHINA;985;350",
+        // 大学信息智能匹配数据库
+        const universityInfo = {
+            // 中国 C9 + 985
+            'Tsinghua': { rank: 'QS #20', intro: '中国工科第一学府，以严谨学风和工程教育闻名，被誉为"红色工程师的摇篮"。', majors: '计算机科学、土木工程、建筑学、电子工程' },
+            'Peking': { rank: 'QS #14', intro: '中国综合性大学的典范，人文社科实力雄厚，思想自由、兼容并包的学术传统。', majors: '数学、物理、哲学、经济学、中文' },
+            'Fudan': { rank: 'QS #39', intro: '江南学术重镇，以文理医见长，博雅教育理念深入人心。', majors: '新闻传播、国际关系、数学、医学' },
+            'Zhejiang': { rank: 'QS #47', intro: '东方剑桥，综合实力极强的研究型大学，"求是创新"精神引领发展。', majors: '计算机、控制科学、光学工程、农学' },
+            'Shanghai Jiao Tong': { rank: 'QS #45', intro: '百年名校，以工科和医科著称，培养了大批工业界领军人才。', majors: '船舶海洋、机械工程、临床医学、工商管理' },
+            'Nanjing': { rank: 'QS #145', intro: '低调务实的科学重镇，基础学科研究实力深厚。', majors: '天文学、地质学、大气科学、物理学' },
+            'USTC': { rank: 'QS #137', intro: '中国科学院直属，精品办学典范，"千生一院士"的科学殿堂。', majors: '量子信息、核科学、物理学、化学' },
 
-            // --- NORTH AMERICA (Ivy & Elite) ---
-            "Columbia Uni;columbia.edu;USA;IVY;23", "UPenn;upenn.edu;USA;IVY;12", "Cornell Uni;cornell.edu;USA;IVY;13", "Brown Uni;brown.edu;USA;IVY;73", "Dartmouth;dartmouth.edu;USA;IVY;237", "Princeton Uni;princeton.edu;USA;IVY;17", "UC Berkeley;berkeley.edu;USA;PUBLIC IVY;10", "UCLA;ucla.edu;USA;PUBLIC IVY;42", "Caltech;caltech.edu;USA;ELITE;15", "Chicago Uni;uchicago.edu;USA;ELITE;21", "Johns Hopkins;jhu.edu;USA;ELITE;28", "Northwestern;northwestern.edu;USA;ELITE;47", "Duke University;duke.edu;USA;ELITE;57", "Ann Arbor;umich.edu;USA;PUBLIC;44", "Georgia Tech;gatech.edu;USA;TECH;100", "UIUC;illinois.edu;USA;TECH;120", "UT Austin;utexas.edu;USA;PUBLIC;60", "UW Seattle;washington.edu;USA;PUBLIC;80", "Uni of Toronto;utoronto.ca;USA;CANADA;21", "McGill Uni;mcgill.ca;USA;CANADA;30", "UBC;ubc.ca;USA;CANADA;34",
+            // 美国常春藤 + 顶尖
+            'Harvard': { rank: 'QS #4', intro: '世界学术金标准，培养了8位美国总统和160位诺贝尔奖得主。', majors: '法学、医学、商学、政治学' },
+            'MIT': { rank: 'QS #1', intro: '理工科殿堂，"Mind and Hand"理念引领科技创新。', majors: '计算机、工程学、物理、经济学' },
+            'Stanford': { rank: 'QS #5', intro: '硅谷心脏，创新创业精神的发源地，科技巨头的摇篮。', majors: '计算机、人工智能、创业学、心理学' },
+            'Yale': { rank: 'QS #16', intro: '常春藤盟校，以人文教育和法学院闻名，培养了5位美国总统。', majors: '法学、历史、政治、戏剧' },
+            'Princeton': { rank: 'QS #17', intro: '精英本科教育典范，数学和理论物理研究世界领先。', majors: '数学、物理、经济学、公共政策' },
+            'Columbia': { rank: 'QS #23', intro: '纽约心脏的常春藤名校，新闻学院和商学院享誉全球。', majors: '新闻学、国际关系、金融、法学' },
+            'Berkeley': { rank: 'QS #10', intro: '公立常春藤旗舰，自由思想和学术卓越的象征。', majors: '计算机、工程、经济、化学' },
 
-            // --- UK & EUROPE (G5 & LERU) ---
-            "Imperial London;imperial.ac.uk;UK;G5;2", "UCL;ucl.ac.uk;UK;G5;9", "LSE;lse.ac.uk;UK;G5;45", "King's College;kcl.ac.uk;UK;ELITE;40", "Uni of Edinburgh;ed.ac.uk;UK;ELITE;22", "Uni of Manchester;manchester.ac.uk;UK;ELITE;32", "ETH Zurich;ethz.ch;EUROPE;SWISS;7", "EPFL;epfl.ch;EUROPE;SWISS;36", "TUM;tum.de;EUROPE;GERMAN;37", "Heidelberg;uni-heidelberg.de;EUROPE;GERMAN;84", "LMU Munich;lmu.de;EUROPE;GERMAN;54", "Paris PSL;psl.eu;EUROPE;FRANCE;24", "Sorbonne;sorbonne-universite.fr;EUROPE;FRANCE;60", "Delft Tech;tudelft.nl;EUROPE;DUTCH;47", "KU Leuven;kuleuven.be;EUROPE;BELGIUM;63",
+            // 英国 G5
+            'Oxford': { rank: 'QS #3', intro: '英语世界最古老的大学，800年学术传统，培养了28位英国首相。', majors: '人文、法学、医学、PPE（哲政经）' },
+            'Cambridge': { rank: 'QS #2', intro: '科学革命的发源地，牛顿、达尔文、霍金的母校。', majors: '数学、物理、工程、自然科学' },
+            'Imperial': { rank: 'QS #2', intro: '英国理工科翘楚，专注科学、工程、医学和商学。', majors: '工程、医学、商学、物理' },
+            'UCL': { rank: 'QS #9', intro: '伦敦大学学院，英国第一所不分宗教和性别的大学。', majors: '建筑、教育、神经科学、经济' },
+            'LSE': { rank: 'QS #45', intro: '社会科学领域的全球领导者，16位诺贝尔经济学奖得主。', majors: '经济学、政治、社会学、法学' },
 
-            // --- ASIA PACIFIC ---
-            "NUS;nus.edu.sg;ASIA;SG;8", "NTU Singapore;ntu.edu.sg;ASIA;SG;26", "Uni of Tokyo;u-tokyo.ac.jp;ASIA;JP;28", "Kyoto Uni;kyoto-u.ac.jp;ASIA;JP;54", "Seoul Nat. Uni;snu.ac.kr;ASIA;KR;31", "KAIST;kaist.ac.kr;ASIA;KR;53", "HKU;hku.hk;ASIA;HK;17", "CUHK;cuhk.edu.hk;ASIA;HK;36", "HKUST;ust.hk;ASIA;HK;47", "Uni of Melbourne;unimelb.edu.au;ASIA;AUS;14", "Uni of Sydney;sydney.edu.au;ASIA;AUS;18", "UNSW Sydney;unsw.edu.au;ASIA;AUS;19", "Uni of Queensland;uq.edu.au;ASIA;AUS;40", "Monash Uni;monash.edu;ASIA;AUS;37", "ANU;anu.edu.au;ASIA;AUS;30"
-        ];
+            // 其他知名大学
+            'Toronto': { rank: 'QS #21', intro: '加拿大第一学府，多元文化和学术卓越的典范。', majors: '工程、医学、商学、计算机' },
+            'Melbourne': { rank: 'QS #14', intro: '澳洲八大名校之首，南半球学术重镇。', majors: '医学、法学、教育、商学' },
+            'Tokyo': { rank: 'QS #28', intro: '亚洲顶尖学府，日本最高学术殿堂。', majors: '工程、物理、化学、医学' },
+            'NUS': { rank: 'QS #8', intro: '亚洲第一学府，全球化教育和研究的典范。', majors: '工程、计算机、商学、法学' },
+            'ETH': { rank: 'QS #7', intro: '欧洲大陆理工科翘楚，爱因斯坦的母校。', majors: '工程、物理、数学、计算机' }
+        };
 
-        // FILLER TO REACH 600+ (Generating real-patterned placeholders)
-        for (let i = 0; i < 450; i++) {
-            const types = ['State', 'Tech', 'Scientific', 'Global', 'National'];
-            const cities = ['London', 'NewYork', 'Sydney', 'Berlin', 'Tokyo', 'Shanghai', 'Shenzhen', 'Boston', 'Paris', 'Singapore'];
-            const name = `${cities[i % 10]} ${types[i % 5]} University ${i}`;
-            const dom = `uni-${i}.edu`;
-            const regs = ['USA', 'UK', 'EUROPE', 'ASIA', 'CHINA'];
-            const reg = regs[i % 5];
-            bulkRaw.push(`${name};${dom};${reg};GLOBAL;${400 + i}`);
+        // 智能匹配大学信息
+        function getUniversityInfo(name, country) {
+            // 尝试精确匹配
+            for (let key in universityInfo) {
+                if (name.includes(key)) {
+                    return universityInfo[key];
+                }
+            }
+
+            // 根据国家返回通用信息
+            const countryDefaults = {
+                'China': {
+                    rank: 'Top 500',
+                    intro: '中国高等教育体系的重要组成部分，致力于培养高素质人才和推动科技创新。',
+                    majors: '工程、理学、管理学、人文社科'
+                },
+                'United States': {
+                    rank: 'Accredited',
+                    intro: '美国高等教育机构，提供多元化的学术项目和研究机会。',
+                    majors: 'Liberal Arts, Engineering, Business, Sciences'
+                },
+                'United Kingdom': {
+                    rank: 'UK Recognized',
+                    intro: '英国高等教育体系成员，秉承严谨的学术传统。',
+                    majors: 'Humanities, Sciences, Engineering, Business'
+                },
+                'Canada': {
+                    rank: 'Canadian Accredited',
+                    intro: '加拿大高等教育机构，以包容性和学术质量著称。',
+                    majors: 'Engineering, Sciences, Business, Arts'
+                },
+                'Australia': {
+                    rank: 'Australian Accredited',
+                    intro: '澳大利亚高等教育体系成员，国际化程度高。',
+                    majors: 'Engineering, Medicine, Business, Sciences'
+                }
+            };
+
+            return countryDefaults[country] || {
+                rank: 'Recognized',
+                intro: '全球高等教育机构，致力于学术研究和人才培养。',
+                majors: 'Various Academic Programs'
+            };
         }
 
-        const uniData = detailedUnis;
-        bulkRaw.forEach(raw => {
-            const [name, dom, reg, cat, rank] = raw.split(';');
-            if (!uniData.some(u => u.name === name)) {
-                uniData.push({
-                    name, domain: dom, region: reg, cat,
-                    motto: 'Discover Your Future / 探索你的未来',
-                    philosophy: `一流的${reg === 'CHINA' ? '研究型大学' : 'Global University'}，致力于跨学科创新与卓越教学。`,
-                    specialties: '科学研究, 技术创新, 人文艺术, 全球领导力',
-                    highlights: `位于${name.split(' ')[0]}，拥有世界级的实验设备与学术声誉。`,
-                    rank: { qs: parseInt(rank), the: '-', us: '-', arwu: '-' },
-                    loc: { x: 0.1 + Math.random() * 0.8, y: 0.2 + Math.random() * 0.6 },
-                    img: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3'
+        async function loadUniversities() {
+            try {
+                const response = await fetch('https://raw.githubusercontent.com/Hipo/university-domains-list/master/world_universities_and_domains.json');
+                const data = await response.json();
+
+                allUniversities = data.map(uni => ({
+                    name: uni.name,
+                    country: uni.country,
+                    domain: uni.domains[0] || 'N/A',
+                    web_page: uni.web_pages[0] || '#',
+                    alpha_two_code: uni.alpha_two_code || ''
+                }));
+
+                filteredUniversities = allUniversities;
+                renderUniversities();
+                updateStats();
+
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('universityGrid').style.display = 'grid';
+            } catch (error) {
+                console.error('数据加载失败:', error);
+                document.getElementById('loadingIndicator').innerHTML = '<div>数据加载失败，请刷新页面重试</div>';
+            }
+        }
+
+        function getLogo(domain) {
+            const clearbitUrl = `https://logo.clearbit.com/${domain}`;
+            const googleUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+            return `<img src="${clearbitUrl}" onerror="this.src='${googleUrl}'; this.onerror=function(){this.src='https://www.logo.wine/favicon.ico'};">`;
+        }
+
+        function renderUniversities() {
+            const grid = document.getElementById('universityGrid');
+            const noResults = document.getElementById('noResults');
+
+            if (filteredUniversities.length === 0) {
+                grid.style.display = 'none';
+                noResults.style.display = 'block';
+                lucide.createIcons();
+                return;
+            }
+
+            grid.style.display = 'grid';
+            noResults.style.display = 'none';
+
+            const displayLimit = Math.min(filteredUniversities.length, 500);
+            grid.innerHTML = filteredUniversities.slice(0, displayLimit).map((uni, index) => `
+                <div class="uni-card" onclick="openDetail(${index})">
+                    <div class="uni-name">${uni.name}</div>
+                    <div class="uni-country">${uni.country}</div>
+                    <div class="uni-domain">${uni.domain}</div>
+                </div>
+            `).join('');
+
+            if (filteredUniversities.length > displayLimit) {
+                grid.innerHTML += `<div class="uni-card" style="opacity: 0.5; cursor: default;">
+                    <div class="uni-name">+ ${filteredUniversities.length - displayLimit} 更多</div>
+                    <div class="uni-domain">使用搜索或筛选功能查看更多结果</div>
+                </div>`;
+            }
+        }
+
+        function openDetail(index) {
+            currentUniversity = filteredUniversities[index];
+            const overlay = document.getElementById('detailOverlay');
+            const info = getUniversityInfo(currentUniversity.name, currentUniversity.country);
+
+            document.getElementById('detailLogo').innerHTML = getLogo(currentUniversity.domain);
+            document.getElementById('detailName').textContent = currentUniversity.name;
+            document.getElementById('detailSubtitle').textContent = `// ${info.rank} //`;
+            document.getElementById('detailCountry').textContent = currentUniversity.country;
+            document.getElementById('detailDomain').textContent = currentUniversity.domain;
+            document.getElementById('detailRank').textContent = info.rank;
+            document.getElementById('detailIntro').textContent = info.intro;
+            document.getElementById('detailMajors').textContent = info.majors;
+            document.getElementById('detailWebLink').href = currentUniversity.web_page;
+
+            const tags = [
+                currentUniversity.country,
+                currentUniversity.alpha_two_code,
+                '高等教育',
+                '学术研究'
+            ].filter(tag => tag);
+
+            document.getElementById('detailTags').innerHTML = tags.map(tag =>
+                `<span class="detail-badge">${tag}</span>`
+            ).join('');
+
+            overlay.classList.add('active');
+            lucide.createIcons();
+        }
+
+        function closeDetail() {
+            document.getElementById('detailOverlay').classList.remove('active');
+        }
+
+        function searchGoogle() {
+            if (currentUniversity) {
+                window.open(`https://www.google.com/search?q=${encodeURIComponent(currentUniversity.name)}`, '_blank');
+            }
+        }
+
+        function copyDomain() {
+            if (currentUniversity) {
+                navigator.clipboard.writeText(currentUniversity.domain).then(() => {
+                    alert('域名已复制到剪贴板: ' + currentUniversity.domain);
                 });
+            }
+        }
+
+        function updateStats() {
+            const statsNumber = document.getElementById('statsNumber');
+            const target = filteredUniversities.length;
+            let current = 0;
+            const increment = Math.ceil(target / 50);
+
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                statsNumber.textContent = current.toLocaleString();
+            }, 20);
+        }
+
+        function filterUniversities() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredUniversities = allUniversities.filter(uni => {
+                const matchesSearch = uni.name.toLowerCase().includes(searchTerm) ||
+                    uni.country.toLowerCase().includes(searchTerm) ||
+                    uni.domain.toLowerCase().includes(searchTerm);
+                const matchesCountry = currentCountry === 'all' || uni.country === currentCountry;
+                return matchesSearch && matchesCountry;
+            });
+
+            renderUniversities();
+            updateStats();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', filterUniversities);
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentCountry = this.getAttribute('data-country');
+                filterUniversities();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeDetail();
             }
         });
 
-        let currIdx = 0;
-        let cFilter = 'all';
-
-        function init() {
-            renderMatrix(); updateCarousel(); renderMap(); lucide.createIcons();
-        }
-
-        // --- ENHANCED LOGO LOGIC ---
-        function getSimpleIconSlug(name) {
-            const map = { 'Tsinghua': 'tsinghuauniversity', 'Peking': 'pekinguniversity', 'Oxford': 'oxford', 'Cambridge': 'cambridge', 'MIT': 'mit', 'Stanford': 'stanford', 'Harvard': 'harvard', 'Yale': 'yale' };
-            for (let key in map) if (name.includes(key)) return map[key];
-            return name.toLowerCase().replace(/\(.*\)/g, '').replace(/ /g, '').replace(/[^a-z0-9]/g, '');
-        }
-
-        function getBadge(c) {
-            const slug = getSimpleIconSlug(c.name);
-            const siUrl = `https://cdn.simpleicons.org/${slug}`;
-            const cbUrl = `https://logo.clearbit.com/${c.domain}`;
-            const googleUrl = `https://www.google.com/s2/favicons?domain=${c.domain}&sz=128`;
-            return `<img src="${siUrl}" onerror="if(!this.dataset.step) { this.dataset.step=1; this.src='${cbUrl}'; } else if(this.dataset.step=='1') { this.dataset.step=2; this.src='${googleUrl}'; } else { this.src='https://www.logo.wine/favicon.ico'; }">`;
-        }
-
-        function renderMatrix() {
-            const car = document.getElementById('carousel-stage'); car.innerHTML = '';
-            const grd = document.getElementById('grid-stage'); grd.innerHTML = '';
-            const pins = document.getElementById('pin-layer'); pins.innerHTML = '';
-
-            const searchVal = document.getElementById('uni-search')?.value.toLowerCase() || '';
-            const filtered = uniData.filter(c => {
-                const matchFilt = (cFilter === 'all' || c.region === cFilter);
-                const matchSearch = c.name.toLowerCase().includes(searchVal) || c.cat.toLowerCase().includes(searchVal);
-                return matchFilt && matchSearch;
-            });
-
-            // For map, we only show top 200 or filtered to avoid lag
-            const mapSubset = filtered.slice(0, 150);
-
-            uniData.slice(0, 100).forEach((c, i) => { // Carousel only shows top 100
-                const card = document.createElement('div'); card.className = 'card';
-                card.innerHTML = `<div class="badge-box">${getBadge(c)}</div>
-                    <div style="text-align:center;"><span class="ov-lbl" style="margin-top:0">${c.cat}</span>
-                    <h2 style="font-family:Orbitron; font-size:24px; margin-bottom:10px;">${c.name}</h2>
-                    <p style="font-size:12px; font-style:italic; opacity:0.6;">"${c.motto}"</p></div>
-                    <div class="stat-grid">
-                        <div class="stat-box"><div class="stat-title">QS RANK</div><div class="stat-num">#${c.rank.qs}</div></div>
-                        <div class="stat-box"><div class="stat-title">CAT</div><div class="stat-num" style="font-size:14px;">${c.cat}</div></div>
-                    </div>`;
-                card.onclick = () => { if (currIdx === i) openDeep(i); else jump(i); };
-                car.appendChild(card);
-            });
-
-            mapSubset.forEach(c => {
-                const pin = document.createElement('div'); pin.className = 'pin';
-                pin.style.left = (c.loc.x * 100) + '%'; pin.style.top = (c.loc.y * 100) + '%';
-                pin.innerHTML = `<div class="pin-dot">${getBadge(c)}</div>`;
-                pin.onclick = () => openDeep(uniData.indexOf(c));
-                pins.appendChild(pin);
-            });
-
-            filtered.forEach(c => {
-                const item = document.createElement('div'); item.className = 'grid-item';
-                item.innerHTML = `<div class="badge-mini">${getBadge(c)}</div>
-                    <div style="font-family:Orbitron; font-size:16px; color:var(--tech-gold);">${c.name}</div>
-                    <div style="font-size:10px; color:#555; margin-top:5px; font-family:Space Grotesk;">${c.cat} / ${c.region}</div>`;
-                item.onclick = () => openDeep(uniData.indexOf(c));
-                grd.appendChild(item);
-            });
-        }
-
-        function jump(i) { currIdx = i; updateCarousel(); }
-        function move(v) { currIdx = (currIdx + v + uniData.length) % uniData.length; updateCarousel(); }
-
-        function updateCarousel() {
-            const cards = document.querySelectorAll('.card');
-            cards.forEach((card, i) => {
-                let d = i - currIdx;
-                if (d < -3) d += uniData.length; if (d > 3) d -= uniData.length;
-                const active = (d === 0);
-                card.classList.toggle('focused', active);
-                gsap.set(card, { x: d * 420, z: active ? 250 : Math.abs(d) * -600, rotateY: -d * 20, scale: active ? 1.2 : 0.8, opacity: Math.abs(d) > 3 ? 0 : 1 - Math.abs(d) * 0.4 });
-            });
-        }
-
-        function switchView(mode) {
-            document.querySelectorAll('.toggle-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`[data-v="${mode}"]`).classList.add('active');
-            document.querySelectorAll('.view-frame').forEach(f => {
-                gsap.to(f, { opacity: 0, scale: 0.95, duration: 0.3, onComplete: () => f.classList.remove('active') });
-            });
-            const target = document.getElementById('view-' + mode);
-            setTimeout(() => { target.classList.add('active'); gsap.to(target, { opacity: 1, scale: 1, duration: 0.4 }); if (mode === 'map') renderMap(); }, 300);
-        }
-
-        function setFilter(f) {
-            cFilter = f; renderMatrix();
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.innerText.includes(f) || (f === 'all' && b.innerText === 'ALL UNIVERSITIES')));
-        }
-
-        function openDeep(i) {
-            const c = uniData[i]; const o = document.getElementById('overlay');
-            document.getElementById('ov-badge-mini').innerHTML = getBadge(c);
-            document.getElementById('ov-name').innerHTML = `${c.name} <span style="font-size:14px; color:var(--tech-gold); border:1px solid; padding:2px 8px; border-radius:4px; margin-left:15px;">RANK #${c.rank.qs}</span>`;
-
-            // Process Specialties into Chips
-            const specs = c.specialties.split(',').map(s => `<span style="background:rgba(0,243,255,0.1); color:var(--tech-cyan); border:1px solid var(--tech-cyan); padding:4px 12px; border-radius:20px; font-size:12px; display:inline-block; margin:0 8px 8px 0;">${s.trim()}</span>`).join('');
-
-            document.getElementById('ov-l').innerHTML = `
-                <span class="ov-lbl">PHILOSOPHY / 办学理念</span>
-                <p style="font-size:18px; font-weight:700; color:var(--tech-gold); line-height:1.4; margin-bottom:20px;">${c.philosophy}</p>
-                
-                <span class="ov-lbl">SPECIALTIES / 特色专业</span>
-                <div style="margin-bottom:20px;">${specs}</div>
-
-                <span class="ov-lbl">VISIT HIGHLIGHTS / 浏览看点</span>
-                <p style="font-size:14px; opacity:0.9; line-height:1.6; border-left:2px solid var(--tech-cyan); padding-left:15px; margin-bottom:20px;">${c.highlights}</p>
-
-                <div class="stat-grid">
-                    <div class="stat-box"><div class="stat-title">REGION</div><div class="stat-num">${c.region}</div></div>
-                    <div class="stat-box"><div class="stat-title">CATEGORY</div><div class="stat-num" style="font-size:14px;">${c.cat}</div></div>
-                </div>
-                
-                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass); padding:20px; border-radius:15px; margin-top:30px;">
-                    <h4 style="font-family:Orbitron; font-size:12px; color:var(--tech-cyan); border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:15px;">ACADEMIC ENCYCLOPEDIA</h4>
-                    <p style="font-size:13px; opacity:0.8; line-height:1.6;"><b>什么是${c.cat}?</b><br>
-                    ${getGlossary(c.cat)}</p>
-                </div>
-            `;
-
-            document.getElementById('ov-r').innerHTML = `
-                <h3 style="font-family:Orbitron; letter-spacing:2px; color:var(--tech-gold); border-bottom:2px solid var(--tech-gold); padding-bottom:15px; margin-bottom:30px;">GLOBAL BENCHMARKING / 全球对标</h3>
-                <div class="stat-grid" style="grid-template-columns: repeat(2, 1fr);">
-                    <div class="stat-box"><div class="stat-title">QS WORLD 2025</div><div class="stat-num">#${c.rank.qs || 'N/A'}</div></div>
-                    <div class="stat-box"><div class="stat-title">THE (TIMES)</div><div class="stat-num">#${c.rank.the || 'N/A'}</div></div>
-                    <div class="stat-box"><div class="stat-title">US NEWS</div><div class="stat-num">#${c.rank.us || 'N/A'}</div></div>
-                    <div class="stat-box"><div class="stat-title">ARWU (软科)</div><div class="stat-num">#${c.rank.arwu || 'N/A'}</div></div>
-                </div>
-                <div style="margin-top:40px; border:1px solid rgba(255,255,255,0.1); border-radius:20px; overflow:hidden; box-shadow:0 0 30px rgba(0,0,0,0.5);">
-                    <img src="${c.img}" style="width:100%; height:320px; object-fit:cover;">
-                </div>
-                <p style="font-size:11px; color:#555; text-align:right; margin-top:10px;">IMAGE: AUTHENTIC CAMPUS PERSPECTIVE - ${c.name}</p>
-            `;
-            o.classList.add('open'); lucide.createIcons();
-        }
-
-        function getGlossary(cat) {
-            const list = {
-                'C9': '中国首批985大学中的顶尖9所。',
-                '985': '由中国教育部实施的重点建设高水平大学工程，标志着中国高等教育的最高水平。',
-                'IVY': '常春藤联盟，由美国东北部8所顶级私立名校组成，代表了精英教育和顶尖声誉。',
-                'G5': '英国金三角名校，包括牛津、剑桥、帝理、UCL和LSE，代表英国最高学术成就。',
-                '211': '面向21世纪，重点建设的100所左右的高等学校。',
-                'GLOBAL': '在特定学科或综合实力上进入全球前400/500名的世界知名学府。'
-            };
-            for (let k in list) if (cat.includes(k)) return list[k];
-            return "顶级国际学术机构，致力于卓越的研究与教学。";
-        }
-
-        function closeDeep() { document.getElementById('overlay').classList.remove('open'); }
-
-        function renderMap() {
-            const canvas = document.getElementById('canvas-map');
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'rgba(0, 243, 255, 0.15)';
-            // Matrix style points
-            for (let i = 0; i < 3500; i++) {
-                let x = Math.random() * canvas.width;
-                let y = Math.random() * canvas.height;
-                ctx.beginPath();
-                ctx.arc(x, y, 0.8, 0, Math.PI * 2);
-                ctx.fill();
+        document.getElementById('detailOverlay').addEventListener('click', (e) => {
+            if (e.target.id === 'detailOverlay') {
+                closeDetail();
             }
-        }
-
-        function initStars() {
-            const viewport = document.getElementById('viewport');
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 3000);
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            viewport.appendChild(renderer.domElement);
-
-            const starGeo = new THREE.BufferGeometry();
-            const pts = [];
-            for (let i = 0; i < 4000; i++) pts.push((Math.random() - 0.5) * 3000, (Math.random() - 0.5) * 3000, (Math.random() - 0.5) * 3000);
-            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-            const starMat = new THREE.PointsMaterial({ color: 0xffd700, size: 1.0 });
-            const stars = new THREE.Points(starGeo, starMat);
-            scene.add(stars); camera.position.z = 1000;
-
-            function animate() {
-                requestAnimationFrame(animate);
-                stars.rotation.y += 0.0003;
-                renderer.render(scene, camera);
-            }
-            animate();
-        }
+        });
 
         window.onload = () => {
-            init();
-            initStars();
-            const fallbackImgs = [
-                'https://images.unsplash.com/photo-1541339907198-e08756ebafe3',
-                'https://images.unsplash.com/photo-1592285334235-759d57a41981',
-                'https://images.unsplash.com/photo-1523050853064-dbad350e01ca',
-                'https://images.unsplash.com/photo-1514580322573-636c7cfc5784'
-            ];
-            uniData.forEach((u, i) => {
-                if (i >= detailedUnis.length) {
-                    u.img = fallbackImgs[u.name.length % fallbackImgs.length] + '?q=80&w=1200';
-                }
-            });
-        };
-        window.onresize = () => { if (document.getElementById('view-map').classList.contains('active')) renderMap(); };
-        window.onkeydown = (e) => {
-            if (e.key === 'ArrowLeft') move(-1);
-            if (e.key === 'ArrowRight') move(1);
-            if (e.key === 'Escape') closeDeep();
+            lucide.createIcons();
+            loadUniversities();
         };
     </script>
 </body>
 
 </html>
-```

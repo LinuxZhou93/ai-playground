@@ -13,10 +13,10 @@
         rel="stylesheet">
     <style>
         :root {
-            --sound-bg: #020617;
+            --sound-bg: #030816;
             --sound-cyan: #22d3ee;
             --sound-purple: #818cf8;
-            --sound-pink: #f472b6;
+            --sound-accent: #f43f5e;
         }
 
         body {
@@ -24,48 +24,109 @@
             color: #fff;
             font-family: 'Plus Jakarta Sans', sans-serif;
             overflow-x: hidden;
-        }
-
-        .mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        /* Waveform Animation Background */
-        .wave-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background:
-                radial-gradient(circle at 10% 20%, rgba(34, 211, 238, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(129, 140, 248, 0.05) 0%, transparent 40%);
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-
-        .glass-card:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: var(--sound-cyan);
-            transform: translateY(-5px);
-            box-shadow: 0 0 30px rgba(34, 211, 238, 0.2);
-        }
-
-        .cyan-glow {
-            text-shadow: 0 0 15px rgba(34, 211, 238, 0.5);
+            background-image:
+                radial-gradient(circle at 50% -20%, rgba(34, 211, 238, 0.15), transparent 60%),
+                radial-gradient(circle at 0% 100%, rgba(129, 140, 248, 0.1), transparent 40%);
         }
 
         [v-cloak] {
             display: none !important;
         }
 
-        /* Animation class */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        /* Suno-style Side Players */
+        .side-player {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 280px;
+            height: 400px;
+            z-index: 40;
+            border-radius: 32px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .side-player-left {
+            left: -220px;
+        }
+
+        .side-player-left:hover {
+            left: 20px;
+        }
+
+        .side-player-right {
+            right: -220px;
+        }
+
+        .side-player-right:hover {
+            right: 20px;
+        }
+
+        .player-cover {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 20px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .play-btn-circle {
+            width: 54px;
+            height: 54px;
+            background: var(--sound-cyan);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .play-btn-circle:hover {
+            transform: scale(1.1);
+        }
+
+        /* Neon Text Focus */
+        .hero-text {
+            text-shadow: 0 0 40px rgba(34, 211, 238, 0.3);
+            letter-spacing: -0.04em;
+        }
+
+        .glow-button {
+            background: linear-gradient(135deg, var(--sound-cyan), var(--sound-purple));
+            box-shadow: 0 10px 30px rgba(34, 211, 238, 0.2);
+            transition: all 0.3s;
+        }
+
+        .glow-button:hover {
+            box-shadow: 0 15px 40px rgba(34, 211, 238, 0.4);
+            transform: translateY(-2px) scale(1.02);
+        }
+
+        /* Waveform Animation */
+        .wave-bar {
+            width: 4px;
+            background: var(--sound-cyan);
+            border-radius: 2px;
+            margin: 0 1px;
+            transition: height 0.2s;
+        }
+
         .reveal {
             opacity: 0;
             transform: translateY(30px);
@@ -75,93 +136,174 @@
 
 <body class="selection:bg-cyan-500/30">
     <div id="app" v-cloak>
-        <div class="wave-bg"></div>
-
-        <!-- Header -->
-        <nav class="fixed top-0 w-full z-50 py-6 px-10 flex justify-between items-center glass-card">
-            <div class="flex items-center gap-4">
-                <div
-                    class="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center text-black font-black text-xl">
+        <!-- Nav -->
+        <nav
+            class="fixed top-0 w-full z-50 py-6 px-10 flex justify-between items-center bg-black/20 backdrop-blur-md border-b border-white/5">
+            <div class="flex items-center gap-4 cursor-pointer" @click="goHome">
+                <div class="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center text-black font-black">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path
                             d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                     </svg>
                 </div>
                 <div>
-                    <h1 class="font-black text-xs tracking-[0.3em] uppercase opacity-50">TITAN SOUND LAB</h1>
-                    <p class="font-bold text-sm cyan-glow">泰坦音频实验室</p>
+                    <h1 class="font-black text-[10px] tracking-[0.4em] uppercase opacity-50">TITAN SOUND</h1>
+                    <p class="font-bold text-sm tracking-tight">音频实验室</p>
                 </div>
             </div>
-            <button @click="goHome"
-                class="mono text-[10px] font-black border border-white/10 px-6 py-2 rounded-full hover:bg-white hover:text-black transition-all">EXIT_SESSION</button>
+            <div class="flex items-center gap-8">
+                <a v-for="link in navLinks" :href="link.url"
+                    class="text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity">{{
+                    link.name }}</a>
+                <button @click="goHome"
+                    class="bg-white/5 hover:bg-white/10 px-5 py-2 rounded-full text-[10px] font-black tracking-widest border border-white/10 transition-all">EXIT</button>
+            </div>
         </nav>
 
-        <main class="pt-40 px-10 max-w-7xl mx-auto space-y-32 pb-40">
-            <!-- Hero -->
-            <section class="flex flex-col lg:flex-row items-center gap-20">
-                <div class="flex-1 space-y-8 reveal">
-                    <div
-                        class="inline-flex items-center gap-2 px-4 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[10px] font-black tracking-widest text-cyan-400">
-                        <span class="animate-pulse">●</span> SONIC_ENGINE_ACTIVE
-                    </div>
-                    <h2 class="text-6xl md:text-8xl font-black leading-none italic tracking-tighter">
-                        SOUND IS <br><span class="text-cyan-400">SCIENCE.</span>
-                    </h2>
-                    <p class="text-xl text-white/40 leading-relaxed max-w-xl font-medium">
-                        欢迎来到音频科技的最前沿。在这里，音符是由代码编写的，旋律是神经网络的涌现，节奏是物理波动的结果。
-                    </p>
-                    <div class="flex gap-4">
-                        <button
-                            class="bg-cyan-500 text-black px-12 py-5 rounded-2xl font-black text-xs tracking-widest hover:scale-105 transition-all">开启共鸣
-                            / HARMONIZE</button>
+        <!-- Left Side Player (Suno Style) -->
+        <div class="side-player side-player-left glass-card">
+            <div class="flex justify-between items-start">
+                <div class="mono text-[8px] tracking-[0.2em] opacity-40 uppercase">Top Trending</div>
+                <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+            </div>
+            <div class="player-cover"
+                style="background-image: url('https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=400&auto=format&fit=crop')">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                    <p class="text-xs font-bold tracking-wide">Cyber Symphony #402</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] opacity-50 mb-1 italic">Atmospheric Trap</p>
+                    <div class="flex gap-1 h-4 items-end">
+                        <div v-for="n in 12" :key="n" class="w-0.5 bg-cyan-400"
+                            :style="{height: Math.random()*100+'%'}"></div>
                     </div>
                 </div>
-                <div class="flex-1 reveal">
-                    <div class="relative group">
-                        <img src="/Users/zhoulin/.gemini/antigravity/brain/36507a07-2eed-4e8b-a428-935c7555323e/titan_sound_lab_hero_1766017553290.png"
-                            class="w-full rounded-[40px] shadow-2xl border border-white/10 transition-transform duration-700 group-hover:scale-[1.02]"
-                            alt="Sound Lab Hero">
-                        <div class="absolute -bottom-10 -left-10 glass-card p-6 rounded-3xl border-cyan-500/30">
-                            <div class="mono text-[10px] opacity-40 mb-1 tracking-widest">FREQUENCY_SPECTRUM</div>
-                            <div class="flex gap-1 h-8 items-end">
-                                <div v-for="n in 8" :key="n" class="w-1 bg-cyan-400 animate-pulse"
-                                    :style="{height: Math.random()*100+'%', animationDelay: n*0.1+'s'}"></div>
-                            </div>
-                        </div>
+                <div class="play-btn-circle" @click="togglePlay('left')">
+                    <svg v-if="!playingLeft" class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                    </svg>
+                    <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side Player (Suno Style) -->
+        <div class="side-player side-player-right glass-card">
+            <div class="flex justify-between items-start">
+                <div class="mono text-[8px] tracking-[0.2em] opacity-40 uppercase">Recent Generation</div>
+                <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+            </div>
+            <div class="player-cover"
+                style="background-image: url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=400&auto=format&fit=crop')">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                    <p class="text-xs font-bold tracking-wide">Lunar Lullaby v2</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] opacity-50 mb-1 italic">Lo-Fi Science</p>
+                    <div class="flex gap-1 h-4 items-end">
+                        <div v-for="n in 12" :key="n" class="w-0.5 bg-rose-400"
+                            :style="{height: Math.random()*100+'%'}"></div>
+                    </div>
+                </div>
+                <div class="play-btn-circle !bg-rose-500 !text-white" @click="togglePlay('right')">
+                    <svg v-if="!playingRight" class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                    </svg>
+                    <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <main class="pt-40 px-10 max-w-7xl mx-auto space-y-40 pb-40">
+            <!-- Hero Section -->
+            <section class="text-center space-y-12">
+                <div class="reveal space-y-6">
+                    <div
+                        class="inline-flex items-center gap-3 px-5 py-2 glass-card rounded-full border-cyan-500/20 text-[10px] font-black tracking-[0.3em] text-cyan-400">
+                        <span class="relative flex h-2 w-2">
+                            <span
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                        </span>
+                        NEURAL_CORE_v4.5_ONLINE
+                    </div>
+                    <h2
+                        class="hero-text text-7xl md:text-[140px] font-black leading-[0.85] italic uppercase tracking-tighter">
+                        Make a <span
+                            class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">Science</span>
+                        <br> Song about AI
+                    </h2>
+                    <p class="text-xl text-white/50 max-w-2xl mx-auto font-medium leading-relaxed">
+                        从简单的文字描述开始，利用最先进的生成式神经网络，创造属于你的科幻旋律。音频实验室带你探索声音、算法与物理的交界。
+                    </p>
+                </div>
+
+                <div class="reveal flex justify-center items-center gap-6">
+                    <div class="relative w-full max-w-xl group">
+                        <input type="text" placeholder="输入灵感，例如: 一首关于量子力学的大提琴独奏..."
+                            class="w-full bg-white/5 border border-white/10 rounded-full py-6 px-10 text-lg focus:outline-none focus:border-cyan-500 focus:bg-white/10 transition-all font-medium pr-32">
+                        <button
+                            class="absolute right-3 top-3 bottom-3 px-8 rounded-full glow-button text-black font-black text-xs tracking-widest">
+                            CREATE
+                        </button>
+                    </div>
+                </div>
+
+                <div class="reveal flex justify-center gap-12 pt-4">
+                    <div v-for="brand in partners"
+                        class="opacity-30 hover:opacity-100 transition-opacity grayscale hover:grayscale-0 cursor-pointer text-xl font-bold tracking-tighter mono">
+                        {{ brand }}
                     </div>
                 </div>
             </section>
 
-            <!-- Tech Tracks -->
-            <section class="space-y-16">
-                <div class="flex flex-col items-center text-center space-y-4 reveal">
-                    <h3 class="text-4xl font-black tracking-tight">音频科技研究赛道 / RESEARCH_TRACKS</h3>
-                    <div class="w-20 h-1 bg-cyan-400 rounded-full"></div>
-                </div>
+            <!-- Research Tracks -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div v-for="track in tracks" :key="track.id"
+                    class="glass-card group p-10 rounded-[48px] reveal hover:border-cyan-500/40 relative overflow-hidden cursor-pointer"
+                    @click="selectTrack(track.id)">
+                    <div
+                        class="absolute -top-10 -right-10 w-40 h-40 bg-cyan-500/5 rounded-full blur-3xl group-hover:bg-cyan-500/10 transition-all">
+                    </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <!-- Track Cards -->
-                    <div v-for="track in tracks" :key="track.id" @click="selectTrack(track.id)"
-                        class="glass-card p-10 rounded-[48px] reveal cursor-pointer group">
-                        <div class="text-5xl mb-8 group-hover:scale-110 transition-transform">{{ track.icon }}</div>
-                        <h4 class="text-2xl font-black mb-4">{{ track.title }}</h4>
-                        <p class="text-sm text-white/40 leading-relaxed mb-10 h-20">{{ track.desc }}</p>
+                    <div class="text-6xl mb-10 group-hover:scale-110 transition-transform duration-500">{{ track.icon }}
+                    </div>
+                    <div class="space-y-4">
+                        <h4 class="text-2xl font-black uppercase tracking-tight">{{ track.title }}</h4>
+                        <p class="text-sm text-white/40 leading-relaxed">{{ track.desc }}</p>
+                    </div>
 
-                        <div class="space-y-3">
-                            <div v-for="res in track.resources" :key="res.name" @click.stop="openLink(res.url)"
-                                class="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-cyan-500 hover:text-black cursor-pointer transition-all border border-transparent hover:border-cyan-500/30">
-                                <span class="text-[10px] font-black tracking-widest uppercase">{{ res.name }}</span>
-                                <span class="text-lg">→</span>
-                            </div>
+                    <div class="mt-12 flex items-center justify-between">
+                        <div class="flex gap-1.5 items-center">
+                            <span v-for="tag in track.tags"
+                                class="text-[8px] font-black border border-white/10 px-2 py-1 rounded bg-white/5 opacity-60 uppercase">{{
+                                tag }}</span>
+                        </div>
+                        <div
+                            class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-cyan-500 group-hover:text-black transition-all">
+                            →
                         </div>
                     </div>
                 </div>
             </section>
         </main>
 
-        <footer class="py-20 text-center glass-card">
-            <p class="mono text-[10px] font-black tracking-[0.5em] opacity-20 uppercase">Decoding Synchronicity... Titan
-                Sound v2.0</p>
+        <footer class="py-20 text-center glass-card border-t-0 space-y-6">
+            <div class="flex justify-center gap-8 mb-4">
+                <div v-for="icon in ['Discord', 'X', 'YouTube', 'GitHub']"
+                    class="text-[10px] font-black tracking-widest opacity-40 hover:opacity-100 cursor-pointer">{{ icon
+                    }}</div>
+            </div>
+            <p class="mono text-[10px] font-black tracking-[0.6em] opacity-20 uppercase">DECODING SONIC INTELLIGENCE...
+                TITAN LABS 2024</p>
         </footer>
     </div>
 
@@ -171,47 +313,85 @@
         createApp({
             data() {
                 return {
+                    playingLeft: false,
+                    playingRight: false,
+                    audioLeft: null,
+                    audioRight: null,
+                    navLinks: [
+                        { name: 'Explore', url: '#' },
+                        { name: 'Library', url: '#' },
+                        { name: 'Create', url: '#' }
+                    ],
+                    partners: ['SUNO', 'UDIO', 'MAGENTA', 'DOLBY', 'SONIC_PI'],
                     tracks: [
                         {
                             id: 'ai-composition',
                             title: '神经网络作曲',
                             icon: '🧠',
-                            desc: '驾驭 Suno, Udio 与 Google Magenta。探索当神经网络开始理解旋律与情感。',
-                            resources: [
-                                { name: 'Suno AI', url: 'https://suno.com' },
-                                { name: 'Udio Music', url: 'https://udio.com' }
-                            ]
+                            desc: '深入 AIGC 音乐最前沿。学习如何利用 Prompt 控制神经网络生成具有复杂旋律与丰富情感的完整音乐作品。',
+                            tags: ['Neural', 'LLM', 'Creative']
                         },
                         {
                             id: 'physics',
-                            title: '声音物理与波形',
+                            title: '声音物理仿真',
                             icon: '🌊',
-                            desc: '深入物理底层。通过可视化工具理解倍音、频率、波形以及合成器的运作原理。',
-                            resources: [
-                                { name: 'Music Lab', url: 'https://musiclab.chromeexperiments.com/' },
-                                { name: 'Blob Opera', url: 'https://artsandculture.google.com/experiment/blob-opera/AAH93Al_B_M8wQ' }
-                            ]
+                            desc: '从波形、频率到倍音序列。利用交互式数学模型理解声音的本质，并在虚拟实验室中复刻经典合成器。',
+                            tags: ['Physics', 'Wave', 'Math']
                         },
                         {
                             id: 'coding',
-                            title: '算法音乐与编程',
+                            title: '算法节奏编程',
                             icon: '💻',
-                            desc: '用代码“写”出交响乐。学习 Sonic Pi 与 EarSketch，将逻辑转化为律动。',
-                            resources: [
-                                { name: 'Sonic Pi', url: 'https://sonic-pi.net/' },
-                                { name: 'EarSketch', url: 'https://earsketch.gatech.edu/' }
-                            ]
+                            desc: '将逻辑转化为律动。通过 Sonic Pi 等实时编码环境，体验用纯算法构建动态音乐系统的无限快感。',
+                            tags: ['Code', 'Algorithmic', 'Realtime']
                         }
                     ]
                 }
             },
             methods: {
-                selectTrack(id) {
-                    gsap.to("body", { opacity: 0, duration: 0.5, onComplete: () => {
-                        window.location.href = `course-music.html?track=${id}`;
-                    }});
+                togglePlay(side) {
+                    const tracks = {
+                        left: 'https://cdn.pixabay.com/audio/2022/03/15/audio_7366368d4f.mp3', // Sci-fi ambient
+                        right: 'https://cdn.pixabay.com/audio/2021/11/25/audio_91b131f42e.mp3' // Techno loop
+                    };
+
+                    if (side === 'left') {
+                        if (!this.audioLeft) {
+                            this.audioLeft = new Audio(tracks.left);
+                            this.audioLeft.loop = true;
+                            this.audioLeft.onended = () => this.playingLeft = false;
+                        }
+
+                        if (this.playingLeft) {
+                            this.audioLeft.pause();
+                        } else {
+                            if (this.audioRight) { this.audioRight.pause(); this.playingRight = false; }
+                            this.audioLeft.play();
+                        }
+                        this.playingLeft = !this.playingLeft;
+                    } else {
+                        if (!this.audioRight) {
+                            this.audioRight = new Audio(tracks.right);
+                            this.audioRight.loop = true;
+                            this.audioRight.onended = () => this.playingRight = false;
+                        }
+
+                        if (this.playingRight) {
+                            this.audioRight.pause();
+                        } else {
+                            if (this.audioLeft) { this.audioLeft.pause(); this.playingLeft = false; }
+                            this.audioRight.play();
+                        }
+                        this.playingRight = !this.playingRight;
+                    }
                 },
-                openLink(url) { window.open(url, '_blank'); },
+                selectTrack(id) {
+                    gsap.to("body", {
+                        opacity: 0, duration: 0.5, onComplete: () => {
+                            window.location.href = `course-music.html?track=${id}`;
+                        }
+                    });
+                },
                 goHome() { window.location.href = 'index.html'; }
             },
             mounted() {
@@ -219,8 +399,20 @@
                     opacity: 1,
                     y: 0,
                     duration: 1.2,
-                    stagger: 0.15,
+                    stagger: 0.2,
                     ease: "power4.out"
+                });
+
+                // Parallax for side players
+                document.addEventListener('mousemove', (e) => {
+                    const movementX = (e.clientX - window.innerWidth / 2) / 50;
+                    const movementY = (e.clientY - window.innerHeight / 2) / 50;
+                    gsap.to(".side-player", {
+                        x: movementX,
+                        y: movementY - 10, // Base offset for centering logic
+                        duration: 1.5,
+                        ease: "power2.out"
+                    });
                 });
             }
         }).mount('#app');

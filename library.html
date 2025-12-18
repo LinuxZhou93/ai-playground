@@ -4,767 +4,621 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Archive | 读书观影区</title>
+    <title>Neural Archive | 科技特长生数字图书馆</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="assets/js/library-data.js"></script>
 
     <style>
         :root {
             --neon-blue: #00f3ff;
             --neon-pink: #bc13fe;
             --neon-green: #0aff0a;
-            --bg-dark: #050510;
-            --panel-bg: rgba(10, 20, 40, 0.7);
+            --bg-dark: #020617;
+            --app-bg: #050510;
+            --panel-bg: rgba(15, 23, 42, 0.8);
         }
 
         body {
             margin: 0;
-            overflow: hidden;
             background-color: var(--bg-dark);
             color: #fff;
-            font-family: 'Share Tech Mono', 'Noto Sans SC', monospace;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-blue) #111;
         }
 
-        /* 3D Canvas Background */
-        #bg-canvas {
+        /* --- Scrollbar Customization --- */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #050510;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-blue);
+        }
+
+        /* --- Layout --- */
+        .app-container {
+            min-height: 100vh;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg-dark) 70%);
+        }
+
+        header {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
-        }
-
-        /* UI Layer */
-        .ui-container {
-            position: relative;
-            z-index: 10;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            backdrop-filter: blur(2px);
-        }
-
-        /* Header */
-        header {
+            width: 100%;
+            z-index: 100;
+            background: linear-gradient(to bottom, rgba(2, 6, 23, 0.9), transparent);
+            backdrop-filter: blur(10px);
+            padding: 20px 50px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 40px;
-            background: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 243, 255, 0.1) 50%, rgba(0, 0, 0, 0) 100%);
-            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .logo {
             font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
-            color: var(--neon-blue);
-            text-shadow: 0 0 10px var(--neon-blue);
+            font-weight: 900;
+            font-size: 1.5rem;
             letter-spacing: 2px;
+            background: linear-gradient(90deg, #fff, var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .back-btn {
-            color: var(--neon-pink);
-            text-decoration: none;
-            border: 1px solid var(--neon-pink);
-            padding: 8px 16px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-        }
-
-        .back-btn:hover {
-            background: var(--neon-pink);
-            color: #fff;
-            box-shadow: 0 0 15px var(--neon-pink);
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: var(--neon-blue) rgba(0, 0, 0, 0.3);
-        }
-
-        .main-content::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .main-content::-webkit-scrollbar-thumb {
-            background-color: var(--neon-blue);
-            border-radius: 3px;
-        }
-
-        /* Controls */
-        .mode-switch {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 40px;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 5px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .mode-btn {
-            background: transparent;
-            border: none;
-            color: rgba(255, 255, 255, 0.6);
-            padding: 10px 30px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            border-radius: 25px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .mode-btn.active {
-            color: #000;
-            background: var(--neon-green);
-            box-shadow: 0 0 15px var(--neon-green);
-            font-weight: bold;
-        }
-
-        .mode-btn:hover:not(.active) {
-            color: #fff;
-            text-shadow: 0 0 5px #fff;
-        }
-
-        /* Grid */
-        .media-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 30px;
+        /* --- Billboard (Hero) --- */
+        .billboard {
             width: 100%;
-            max-width: 1400px;
-            padding: 20px;
-            perspective: 1000px;
-        }
-
-        .media-card {
-            background: var(--panel-bg);
-            border: 1px solid rgba(0, 243, 255, 0.2);
-            border-radius: 10px;
-            overflow: hidden;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s;
+            height: 70vh;
             position: relative;
-            cursor: pointer;
-            height: 380px;
             display: flex;
-            flex-direction: column;
-        }
-
-        .media-card:hover {
-            transform: translateY(-10px) scale(1.02);
-            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.2);
-            border-color: var(--neon-blue);
-            z-index: 10;
-        }
-
-        .media-thumb {
-            height: 220px;
-            background-color: #000;
-            background-size: cover;
-            background-position: center;
-            position: relative;
+            align-items: center;
+            padding: 0 8% 50px;
             overflow: hidden;
+            margin-bottom: -50px;
         }
 
-        .media-thumb::after {
-            content: '';
+        .billboard-bg {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(to bottom, transparent 60%, var(--bg-dark));
+            object-fit: cover;
+            z-index: -1;
+            filter: brightness(0.4);
+            transition: 1s ease;
         }
 
-        .media-info {
-            padding: 15px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .media-title {
-            font-size: 1.1rem;
-            color: var(--neon-blue);
-            margin-bottom: 5px;
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .media-type {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .media-desc {
-            font-size: 0.9rem;
-            color: #ddd;
-            margin-bottom: 15px;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            opacity: 0.8;
-        }
-
-        .action-btn {
-            background: transparent;
-            border: 1px solid var(--neon-blue);
-            color: var(--neon-blue);
-            padding: 8px;
+        .billboard-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            text-align: center;
-            font-family: 'Share Tech Mono', monospace;
-            transition: 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            height: 100%;
+            background: linear-gradient(to top, var(--bg-dark) 5%, transparent 40%),
+                linear-gradient(to right, var(--bg-dark) 0%, transparent 60%);
+            z-index: 0;
         }
 
-        .media-card:hover .action-btn {
+        .billboard-info {
+            position: relative;
+            z-index: 10;
+            max-width: 600px;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .billboard-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            line-height: 1.1;
+        }
+
+        .billboard-desc {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        /* --- Swimlanes --- */
+        .content-area {
+            padding: 0 4% 100px;
+            position: relative;
+            z-index: 20;
+        }
+
+        .swimlane {
+            margin-bottom: 40px;
+        }
+
+        .swimlane-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 4px solid var(--neon-blue);
+        }
+
+        .swimlane-row {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding: 10px 0 30px;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Flip Card --- */
+        .media-card {
+            flex: 0 0 180px;
+            height: 260px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #111;
+        }
+
+        .media-card:hover {
+            transform: scale(1.1) translateY(-10px);
+            z-index: 50;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 243, 255, 0.3);
+        }
+
+        .movie-card {
+            flex: 0 0 280px;
+            height: 160px;
+        }
+
+        .card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: 0.5s;
+        }
+
+        .card-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .media-card:hover .card-info {
+            opacity: 1;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .card-meta {
+            font-size: 0.7rem;
+            color: var(--neon-blue);
+        }
+
+        /* --- Difficulty Badges --- */
+        .diff-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 2px 6px;
+            font-size: 0.6rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        .diff-Legendary {
+            background: #ffd700;
+            color: #000;
+            box-shadow: 0 0 10px #ffd700;
+        }
+
+        .diff-Advanced {
+            background: #ff0055;
+            color: #fff;
+        }
+
+        .diff-Intermediate {
             background: var(--neon-blue);
             color: #000;
-            box-shadow: 0 0 10px var(--neon-blue);
         }
 
-        /* Modal Viewer */
-        .viewer-modal {
-            display: none;
+        .diff-Beginner {
+            background: var(--neon-green);
+            color: #000;
+        }
+
+        /* --- Controls --- */
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-btn.active {
+            background: var(--neon-blue);
+            color: #000;
+            border-color: var(--neon-blue);
+        }
+
+        /* --- Detail Modal --- */
+        .modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 1000;
+            display: none;
             justify-content: center;
             align-items: center;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
         }
 
-        .viewer-content {
+        .modal-content {
             width: 90%;
-            height: 90%;
-            background: #000;
-            border: 2px solid var(--neon-blue);
-            box-shadow: 0 0 30px var(--neon-blue);
+            max-width: 1000px;
+            background: var(--bg-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: flex;
+            overflow: hidden;
             position: relative;
-            display: flex;
-            flex-direction: column;
         }
 
-        .viewer-header {
-            padding: 10px 20px;
-            background: rgba(0, 243, 255, 0.1);
-            border-bottom: 1px solid var(--neon-blue);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .close-btn {
-            color: #ff0055;
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .close-btn:hover {
-            transform: scale(1.2);
-            text-shadow: 0 0 10px #ff0055;
-        }
-
-        /* Hero Section */
-        .hero-section {
-            width: 100%;
-            max-width: 1400px;
-            height: 300px;
-            margin-bottom: 30px;
-            border-radius: 10px;
-            background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)), url('https://www.hello-algo.com/assets/images/cover_light.png');
-            background-size: cover;
-            background-position: center 30%;
+        .modal-left {
+            flex: 0 0 40%;
             position: relative;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
-            border: 1px solid var(--neon-blue);
-            display: flex;
-            align-items: flex-end;
-            padding: 30px;
-            transition: all 0.5s;
         }
 
-        .hero-section:hover {
-            box-shadow: 0 0 40px rgba(0, 243, 255, 0.4);
-        }
-
-        .hero-content {
-            background: rgba(0, 10, 20, 0.85);
-            padding: 20px;
-            border-left: 4px solid var(--neon-blue);
-            backdrop-filter: blur(5px);
-            max-width: 600px;
-        }
-
-        .hero-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
-            color: var(--neon-blue);
-            margin: 0 0 10px 0;
-            text-shadow: 0 0 10px var(--neon-blue);
-        }
-
-        .hero-desc {
-            color: #ddd;
-            margin-bottom: 20px;
-        }
-
-        .hero-btn {
-            background: var(--neon-blue);
-            color: #000;
-            border: none;
-            padding: 10px 25px;
-            font-family: 'Share Tech Mono', monospace;
-            font-weight: bold;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .hero-btn:hover {
-            background: #fff;
-            box-shadow: 0 0 15px #fff;
-        }
-
-        /* Search & Controls */
-        .controls-bar {
-            width: 100%;
-            max-width: 1400px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .search-bar {
-            display: flex;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--neon-blue);
-            border-radius: 25px;
-            padding: 5px 15px;
-            width: 300px;
-        }
-
-        .search-bar input {
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 1rem;
-            width: 100%;
-            outline: none;
-        }
-
-        .search-icon {
-            font-size: 1.2rem;
-        }
-
-        .cyber-select {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--neon-blue);
-            color: var(--neon-blue);
-            padding: 10px 20px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 1rem;
-            border-radius: 5px;
-            cursor: pointer;
-            outline: none;
-        }
-
-        /* Tags & Badges */
-        .diff-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-
-        .media-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-
-        .tag {
-            background: rgba(255, 255, 255, 0.1);
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-
-        .viewer-body {
+        .modal-right {
             flex: 1;
-            position: relative;
+            padding: 50px;
         }
 
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        /* Category Filter */
-        .category-filter {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .cat-chip {
-            padding: 5px 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s;
+            z-index: 10;
+            transition: 0.3s;
         }
 
-        .cat-chip:hover,
-        .cat-chip.active {
-            border-color: var(--neon-blue);
-            background: rgba(0, 243, 255, 0.1);
-            color: var(--neon-blue);
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        .close-modal:hover {
+            color: var(--neon-pink);
+            transform: rotate(90deg);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Desktop / Mobile optimization --- */
+        @media (max-width: 768px) {
+            .billboard-title {
+                font-size: 2rem;
+            }
+
+            .modal-content {
+                flex-direction: column;
+                width: 95%;
+                height: 90%;
+                overflow-y: auto;
+            }
+
+            .modal-left {
+                height: 300px;
+            }
+
+            .media-card {
+                flex: 0 0 140px;
+                height: 200px;
+            }
+
+            .movie-card {
+                flex: 0 0 240px;
+                height: 135px;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <canvas id="bg-canvas"></canvas>
-
-    <div class="ui-container">
+    <div class="app-container">
         <header>
-            <div class="logo">
-                NEURAL_ARCHIVE <span style="font-size:0.8em; color:var(--neon-green)">// SUPREME_EDITION</span>
+            <div class="logo">NEURAL_ARCHIVE</div>
+            <div class="controls">
+                <div class="nav-btn active" onclick="switchTab('all', this)">全部</div>
+                <div class="nav-btn" onclick="switchTab('read', this)">读书区</div>
+                <div class="nav-btn" onclick="switchTab('watch', this)">观影区</div>
             </div>
-            <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="SEARCH DATABASE..." oninput="handleSearch()">
-                <div class="search-icon">🔍</div>
+            <div class="flex items-center gap-6">
+                <input type="text" id="searchInput" oninput="handleSearch()" placeholder="搜索 700+ 科技资源..."
+                    class="bg-white/5 border border-white/10 rounded-full px-6 py-2 outline-none focus:border-cyan-500 transition w-64">
+                <a href="index.html" class="text-pink-500 hover:text-white transition font-bold">退出系统</a>
             </div>
-            <a href="index.html" class="back-btn">EXIT SYSTEM</a>
         </header>
 
-        <div class="main-content">
-
-            <!-- Hero Section -->
-            <div class="hero-section" id="hero-section">
-                <div class="hero-content">
-                    <h1 class="hero-title">本周推荐: HELLO 算法</h1>
-                    <p class="hero-desc">《Hello 算法》：动画图解、一键运行。专为新手打造的数据结构与算法入门神书。全中文开源，免费阅读。</p>
-                    <button class="hero-btn" onclick="openViewer(allResources.find(r=>r.id==='b_hello_algo'))">立即阅读
-                        (READ NOW)</button>
-                </div>
+        <!-- Billboard -->
+        <section class="billboard" id="billboard">
+            <img id="bb-bg" class="billboard-bg" src="https://picsum.photos/seed/bb/1920/1080" alt="">
+            <div class="billboard-overlay"></div>
+            <div class="billboard-info" id="bb-info">
+                <h1 class="billboard-title">神作速递</h1>
+                <p class="billboard-desc">正在加载 Neural 实验室推荐内容...</p>
+                <button
+                    class="bg-cyan-500 text-black px-10 py-4 font-black rounded-lg hover:bg-white transition uppercase tracking-widest">
+                    立即接入 (Access Now)
+                </button>
             </div>
+        </section>
 
-            <!-- Controls -->
-            <div class="controls-bar">
-                <div class="mode-switch">
-                    <button class="mode-btn active" id="btn-read" onclick="switchMode('read')">📖 LIBRARY</button>
-                    <button class="mode-btn" id="btn-watch" onclick="switchMode('watch')">🎬 CINEMA</button>
-                </div>
-
-                <div class="filter-group">
-                    <select id="difficultyFilter" onchange="handleSearch()" class="cyber-select">
-                        <option value="all">ANY DIFFICULTY</option>
-                        <option value="Beginner">BEGINNER</option>
-                        <option value="Intermediate">INTERMEDIATE</option>
-                        <option value="Advanced">ADVANCED</option>
-                        <option value="Legendary">LEGENDARY</option>
-                    </select>
-
-                    <select id="ageFilter" onchange="handleSearch()" class="cyber-select"
-                        style="border-color: var(--neon-pink); color: var(--neon-pink);">
-                        <option value="all">ALL AGES (全龄)</option>
-                        <option value="Primary">PRIMARY (小学)</option>
-                        <option value="Secondary">SECONDARY (中学)</option>
-                        <option value="University">UNIVERSITY (大学+)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="category-filter" id="category-filter">
-                <!-- Javascript will populate this -->
-            </div>
-
-            <div class="media-grid" id="media-grid">
-                <!-- Content will be injected here -->
-            </div>
-        </div>
+        <!-- Main Content Swimlanes -->
+        <main class="content-area" id="main-content">
+            <!-- Swimlanes will be injected by JavaScript -->
+        </main>
     </div>
 
-    <!-- Viewer Modal -->
-    <div class="viewer-modal" id="viewer-modal">
-        <div class="viewer-content">
-            <div class="viewer-header">
-                <span id="viewer-title" style="font-family: 'Orbitron'; color: var(--neon-blue);">TITLE_HERE</span>
-                <span class="close-btn" onclick="closeViewer()">✖</span>
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">✕</span>
+            <div class="modal-left" id="modalLeft">
+                <img id="modalImg" src="" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
             </div>
-            <div class="viewer-body" id="viewer-body">
-                <!-- Iframe or Content placeholder -->
+            <div class="modal-right">
+                <p id="modalCategory" class="text-cyan-400 font-bold mb-2 tracking-widest uppercase text-sm"></p>
+                <h2 id="modalTitle" class="text-4xl font-black mb-4 leading-tight"></h2>
+                <div class="flex gap-4 mb-6">
+                    <span id="modalDiff" class="px-3 py-1 bg-slate-800 rounded text-xs font-bold"></span>
+                    <span id="modalRating" class="text-yellow-400 font-bold">⭐ 9.8</span>
+                    <span id="modalYear" class="text-slate-400">2024</span>
+                </div>
+                <p id="modalDesc" class="text-slate-300 leading-relaxed mb-8 text-lg"></p>
+                <div class="flex gap-4">
+                    <a id="modalAction" href="#" target="_blank"
+                        class="bg-white text-black px-8 py-3 font-bold rounded hover:bg-cyan-500 transition">
+                        开始阅读 / 观看
+                    </a>
+                    <button class="border border-white/20 px-8 py-3 font-bold rounded hover:bg-white/10 transition">
+                        加入收藏
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 3D Background Setup (Simulated Neural Network) ---
-        const canvas = document.querySelector('#bg-canvas');
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 30;
-
-        // Particles
-        const geometry = new THREE.BufferGeometry();
-        const particleCount = 400;
-        const positions = new Float32Array(particleCount * 3);
-
-        for (let i = 0; i < particleCount; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 100;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 60;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
-        }
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const material = new THREE.PointsMaterial({ color: 0x00f3ff, size: 0.2, transparent: true, opacity: 0.8 });
-        const particles = new THREE.Points(geometry, material);
-        scene.add(particles);
-
-        // Lines
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.15 });
-        const lineGeometry = new THREE.BufferGeometry();
-        // We will update lines in animate loop if needed, for now just simple drift
-        // To keep performance high, let's just rotate the particle cloud
-
-        function animate() {
-            requestAnimationFrame(animate);
-            particles.rotation.y += 0.0005;
-            particles.rotation.x += 0.0002;
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-
-        // --- App Logic ---
-
-        let currentMode = 'read';
-        let allResources = [];
-
-        // Mock Data Loading (Replace with fetch in real app)
-        async function loadResources() {
-            try {
-                const response = await fetch('assets/data/media_resources.json');
-                if (!response.ok) throw new Error("Failed to load resources");
-                allResources = await response.json();
-                renderGrid();
-                renderCategories();
-            } catch (e) {
-                console.error(e);
-                // Fallback / Initial Empty State
-                document.getElementById('media-grid').innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #555;">[ SYSTEM OFFLINE: CHECKING DATABANKS... ]<br>Please create assets/data/media_resources.json</div>`;
-            }
-        }
-
-        function switchMode(mode) {
-            currentMode = mode;
-            document.getElementById('btn-read').classList.toggle('active', mode === 'read');
-            document.getElementById('btn-watch').classList.toggle('active', mode === 'watch');
-            renderCategories();
-            renderGrid();
-        }
-
-        function renderCategories() {
-            const container = document.getElementById('category-filter');
-            const relData = allResources.filter(r => r.type === currentMode);
-            const categories = [...new Set(relData.map(r => r.category))];
-
-            let html = `<div class="cat-chip active" onclick="filterCat('all')">ALL</div>`;
-            categories.forEach(cat => {
-                html += `<div class="cat-chip" onclick="filterCat('${cat}')">${cat}</div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        let activeFilter = 'all';
+        let currentFilter = 'all';
         let searchQuery = '';
-        let difficultyFilter = 'all';
-        let ageFilter = 'all';
 
-        window.filterCat = function (cat) {
-            activeFilter = cat;
-            document.querySelectorAll('.cat-chip').forEach(el => {
-                el.classList.toggle('active', el.innerText === cat || (cat === 'all' && el.innerText === 'ALL'));
-            });
-            renderGrid();
+        function init() {
+            // Pick a random highlight for Billboard
+            updateBillboard(window.libraryData.find(d => d.difficulty === 'Legendary') || window.libraryData[0]);
+            renderSwimlanes();
         }
 
-        window.handleSearch = function () {
-            searchQuery = document.getElementById('searchInput').value.toLowerCase();
-            difficultyFilter = document.getElementById('difficultyFilter').value;
-            ageFilter = document.getElementById('ageFilter').value;
-            renderGrid();
+        function updateBillboard(item) {
+            document.getElementById('bb-bg').src = item.thumbnail;
+            document.getElementById('bb-info').innerHTML = `
+                <div class="text-cyan-400 font-black mb-2 tracking-[0.5rem] uppercase text-sm">${item.category}</div>
+                <h1 class="billboard-title">${item.title}</h1>
+                <p class="billboard-desc">${item.description}</p>
+                <div class="flex gap-4">
+                    <button onclick='openDetail(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="bg-cyan-400 text-black px-10 py-3 font-black rounded hover:bg-white transition uppercase">
+                        详情 (Details)
+                    </button>
+                    <a href="${item.url}" target="_blank" class="bg-white/10 backdrop-filter blur-md border border-white/20 text-white px-10 py-3 font-black rounded hover:bg-white/20 transition uppercase">
+                        快速预览
+                    </a>
+                </div>
+            `;
         }
 
-        function renderGrid() {
-            const grid = document.getElementById('media-grid');
-            grid.innerHTML = '';
+        function renderSwimlanes() {
+            const container = document.getElementById('main-content');
+            container.innerHTML = '';
 
-            const filtered = allResources.filter(r => {
-                const matchesMode = r.type === currentMode;
-                const matchesCat = activeFilter === 'all' || r.category === activeFilter;
-                const matchesSearch = r.title.toLowerCase().includes(searchQuery) ||
-                    r.description.toLowerCase().includes(searchQuery) ||
-                    (r.tags && r.tags.some(t => t.toLowerCase().includes(searchQuery)));
-                const matchesDiff = difficultyFilter === 'all' || r.difficulty === difficultyFilter;
+            let data = window.libraryData;
 
-                // Age Filter Logic: "All" items show in all filters, specific items only show in specific filters
-                // OR: If filter is "all", show everything. If filter is "Primary", show "Primary" AND "All".
-                let matchesAge = true;
-                if (ageFilter !== 'all') {
-                    matchesAge = (r.age_group === ageFilter) || (r.age_group === 'All');
-                }
+            // Apply global filter
+            if (currentFilter !== 'all') {
+                data = data.filter(d => d.type === currentFilter);
+            }
 
-                return matchesMode && matchesCat && matchesSearch && matchesDiff && matchesAge;
+            // Apply search
+            if (searchQuery) {
+                data = data.filter(d =>
+                    d.title.toLowerCase().includes(searchQuery) ||
+                    d.category.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            // Group by category
+            const grouped = {};
+            data.forEach(item => {
+                if (!grouped[item.category]) grouped[item.category] = [];
+                grouped[item.category].push(item);
             });
 
-            if (filtered.length === 0) {
-                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #555; font-size: 1.5rem; margin-top: 50px;">NO MATCHING DATA FOUND IN ARCHIVE</div>`;
+            // If empty
+            if (Object.keys(grouped).length === 0) {
+                container.innerHTML = '<div class="text-center py-20 text-slate-500 text-2xl">未找到相关资源 [NO DATA FOUND]</div>';
                 return;
             }
 
-            filtered.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'media-card';
-                card.dataset.difficulty = item.difficulty || 'Normal';
-                card.onclick = () => openViewer(item);
+            // Sort categories to show Legendary/Classics first
+            const sortedCats = Object.keys(grouped).sort((a, b) => {
+                if (a.includes('神作') || a.includes('核心')) return -1;
+                return 0;
+            });
 
-                // Difficulty Color
-                let diffColor = 'var(--neon-blue)';
-                if (item.difficulty === 'Legendary') diffColor = '#ffd700'; // Gold
-                if (item.difficulty === 'Advanced') diffColor = '#ff0055'; // Red
-                if (item.difficulty === 'Beginner') diffColor = '#0aff0a'; // Green
-
-                // Age Badge Color
-                let ageColor = '#fff';
-                let ageText = item.age_group || 'All';
-                if (ageText === 'Primary') ageColor = '#0aff0a';
-                if (ageText === 'Secondary') ageColor = '#00f3ff';
-                if (ageText === 'University') ageColor = '#bc13fe';
-
-                // Tags HTML
-                const tagsHtml = item.tags ? item.tags.map(t => `<span class="tag">${t}</span>`).join('') : '';
-
-                card.innerHTML = `
-                    <div class="media-thumb" style="background-image: url('${item.thumbnail || ''}'); border-bottom: 2px solid ${diffColor};">
-                        <div class="diff-badge" style="color:${diffColor}; border-color:${diffColor}">${item.difficulty || 'General'}</div>
-                        <div class="diff-badge" style="top:auto; bottom:10px; right:10px; border-color:${ageColor}; color:${ageColor}">${ageText}</div>
-                    </div>
-                    <div class="media-info">
-                        <div>
-                            <div class="media-title" style="${item.difficulty === 'Legendary' ? 'color:#ffd700; text-shadow:0 0 5px #ffd700' : ''}">${item.title}</div>
-                            <div class="media-type">${item.category}</div>
-                            <div class="media-tags">${tagsHtml}</div>
-                            <div class="media-desc">${item.description}</div>
-                        </div>
-                        <button class="action-btn" style="border-color:${diffColor}; color:${diffColor}">
-                            ${currentMode === 'read' ? 'ACCESS DATA' : 'INITIATE VISUAL'}
-                        </button>
-                    </div>
+            sortedCats.forEach(cat => {
+                const section = document.createElement('div');
+                section.className = 'swimlane';
+                section.innerHTML = `
+                    <h2 class="swimlane-title">${cat}</h2>
+                    <div class="swimlane-row" id="row-${cat}"></div>
                 `;
+                container.appendChild(section);
 
-                // Add Legendary Effect
-                if (item.difficulty === 'Legendary') {
-                    card.style.boxShadow = "0 0 15px rgba(255, 215, 0, 0.2)";
-                    card.style.border = "1px solid rgba(255, 215, 0, 0.5)";
-                }
-
-                grid.appendChild(card);
+                const row = section.querySelector('.swimlane-row');
+                grouped[cat].forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = `media-card ${item.type === 'watch' ? 'movie-card' : ''}`;
+                    card.innerHTML = `
+                        <div class="diff-tag diff-${item.difficulty}">${item.difficulty}</div>
+                        <img class="card-img" src="${item.thumbnail}" loading="lazy">
+                        <div class="card-info">
+                            <div class="card-title">${item.title}</div>
+                            <div class="card-meta">Rating: ${item.rating} • ${item.year}</div>
+                        </div>
+                    `;
+                    card.onclick = () => openDetail(item);
+                    row.appendChild(card);
+                });
             });
         }
 
-        function openViewer(item) {
-            const modal = document.getElementById('viewer-modal');
-            const title = document.getElementById('viewer-title');
-            const body = document.getElementById('viewer-body');
+        function switchTab(type, btn) {
+            currentFilter = type;
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            renderSwimlanes();
+        }
 
-            title.innerText = item.title;
-            modal.style.display = 'flex';
+        function handleSearch() {
+            searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            renderSwimlanes();
+        }
 
-            if (item.type === 'read') {
-                // For PDF, we can use an iframe if it's a URL, or a simple text display if description
-                if (item.url.endsWith('.pdf')) {
-                    body.innerHTML = `<iframe src="${item.url}" width="100%" height="100%"></iframe>`;
-                } else {
-                    // Generic iframe for websites or online readers
-                    body.innerHTML = `<iframe src="${item.url}" width="100%" height="100%" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>`;
-                }
+        function openDetail(item) {
+            const modal = document.getElementById('detailModal');
+            document.getElementById('modalImg').src = item.thumbnail;
+            document.getElementById('modalTitle').innerText = item.title;
+            document.getElementById('modalDesc').innerText = item.description;
+            document.getElementById('modalCategory').innerText = item.category;
+            document.getElementById('modalYear').innerText = item.year;
+            document.getElementById('modalRating').innerText = `⭐ ${item.rating}`;
+
+            const diffSpan = document.getElementById('modalDiff');
+            diffSpan.innerText = item.difficulty;
+            diffSpan.className = `px-3 py-1 rounded text-xs font-bold diff-${item.difficulty}`;
+
+            const action = document.getElementById('modalAction');
+
+            // --- NEW: CONTENT ENGINE ---
+            if (item.url && item.url !== '#' && !item.url.includes('google.com')) {
+                action.innerText = item.type === 'read' ? '沉浸式阅读' : '立即开始观看';
+                action.onclick = (e) => {
+                    e.preventDefault();
+                    startViewing(item);
+                };
             } else {
-                // Video
-                if (item.url.includes('bilibili')) {
-                    // Bilibili iframe optimization
-                    body.innerHTML = `<iframe src="${item.url}&high_quality=1&as_wide=1&allowfullscreen=true" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>`;
-                } else {
-                    body.innerHTML = `<iframe src="${item.url}" allowfullscreen></iframe>`;
-                }
+                action.innerText = item.type === 'read' ? '搜寻副本' : '等待同步';
+                action.href = item.url;
+                action.onclick = null;
             }
+
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
         }
 
-        window.closeViewer = function () {
-            document.getElementById('viewer-modal').style.display = 'none';
-            document.getElementById('viewer-body').innerHTML = ''; // Stop playback
+        function startViewing(item) {
+            // Create a temporary Full Screen Viewer
+            const viewer = document.createElement('div');
+            viewer.className = 'fixed inset-0 z-[2000] bg-black animate-in fade-in duration-500';
+            viewer.id = 'fullViewer';
+
+            let contentHtml = '';
+            if (item.type === 'watch') {
+                // Bilibili / Video Iframe
+                contentHtml = `<iframe src="${item.url}&high_quality=1&danmaku=1" allowfullscreen="true" class="w-full h-full border-none"></iframe>`;
+            } else {
+                // Reader Iframe
+                contentHtml = `<iframe src="${item.url}" class="w-full h-full border-none bg-white"></iframe>`;
+            }
+
+            viewer.innerHTML = `
+                <div class="absolute top-4 left-4 z-10 flex gap-4">
+                    <button onclick="document.getElementById('fullViewer').remove()" 
+                        class="bg-black/50 hover:bg-red-600 text-white px-6 py-2 rounded-full backdrop-blur-md transition">
+                        ✕ 退出观看
+                    </button>
+                    <div class="bg-black/50 text-cyan-400 px-6 py-2 rounded-full backdrop-blur-md">
+                        正在加载: ${item.title}
+                    </div>
+                </div>
+                ${contentHtml}
+            `;
+            document.body.appendChild(viewer);
         }
 
-        // Init
-        loadResources();
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
 
+        // Close modal on background click
+        window.onclick = function (event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target == modal) closeModal();
+        }
+
+        // Initialize on load
+        window.onload = init;
     </script>
 </body>
 

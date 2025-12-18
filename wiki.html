@@ -16,7 +16,7 @@
     <script src="https://unpkg.com/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
     <script src="assets/js/wiki-data.js"></script>
     <script src="assets/js/synergy-data.js"></script>
-    <script src="assets/data/course.json"></script>
+
 
     <style>
         :root {
@@ -717,7 +717,7 @@
     </div>
 
     <!-- Import Data -->
-    <script src="assets/js/wiki-data.js?v=3.0.1"></script>
+
 
     <script>
         // Initialize Lucide icons
@@ -727,6 +727,7 @@
         let currentFilter = 'all';
         let currentData = []; // Store the currently filtered dataset
         let renderedCount = 0; // Track how many items are currently on screen
+        const BATCH_SIZE = 50; // Items per batch for infinite scroll
         // Graph Categories (Dynamic)
         let graphCategories = ['concept', 'tool', 'course', 'competition', 'school', 'book', 'career', 'frontier', 'project', 'pathway'];
 
@@ -782,14 +783,7 @@
             'university': '大学'
         };
 
-        function initWiki() {
-            currentData = wikiData; // Initial load: all data
-            renderCards(true); // true = reset container
 
-            // Add scroll listener for infinite scroll
-            const mainContent = document.querySelector('.main-content');
-            mainContent.addEventListener('scroll', handleScroll);
-        }
 
         function handleScroll() {
             const mainContent = document.querySelector('.main-content');
@@ -1312,7 +1306,9 @@
             const dataMode = urlParams.get('data');
 
             // Switch Data Source
-            let activeData = window.wikiData; // Default
+            // Try to find wikiData from window or global scope
+            let activeData = window.wikiData || (typeof wikiData !== 'undefined' ? wikiData : []);
+
             if (dataMode === 'synergy' && window.synergyData) {
                 console.log("Loading Synergy Data...");
                 activeData = window.synergyData;
@@ -1322,17 +1318,34 @@
                 graphCategories = ['math', 'physics', 'chemistry', 'biology', 'cs', 'science'];
             }
 
+            if (!activeData || activeData.length === 0) {
+                console.error("No data found! Please check wiki-data.js");
+                return;
+            }
+
             // Load Data
             currentData = activeData;
-            renderCards(currentData);
-            updateGalaxyData(activeData); // Pass activeData directly
+            renderCards(true); // Reset and render
+
+            // Safe call to updateGalaxyData if it exists
+            if (typeof updateGalaxyData === 'function') {
+                updateGalaxyData(activeData);
+            }
+
+            // Add scroll listener for infinite scroll
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.addEventListener('scroll', handleScroll);
+            }
 
             // Add resize listener
             window.addEventListener('resize', () => {
-                if (Graph) {
+                if (typeof Graph !== 'undefined' && Graph) {
                     const elem = document.getElementById('galaxy-graph');
-                    Graph.width(elem.clientWidth);
-                    Graph.height(elem.clientHeight);
+                    if (elem) {
+                        Graph.width(elem.clientWidth);
+                        Graph.height(elem.clientHeight);
+                    }
                 }
             });
         }
