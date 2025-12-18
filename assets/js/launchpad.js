@@ -6,6 +6,9 @@ window.Launchpad = (() => {
 
     // App Data (Real apps only)
     const apps = [
+        { name: '金融科技', icon: '💰', link: 'fintech.html', color: '#fbbf24' },
+        { name: '音频科技', icon: '🎵', link: 'music.html', color: '#22d3ee' },
+        { name: 'AI 艺术', icon: '🎨', link: 'ai-art.html', color: '#FF00E5' },
         { name: '科技英语', icon: '🚀', link: 'english.html', color: '#00F5FF' },
         { name: '设计空间', icon: '🎨', link: 'design.html', color: '#7000FF' },
         { name: '个人中心', icon: '👤', link: 'profile.html', color: 'var(--mc-cyan)' },
