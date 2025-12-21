@@ -56,6 +56,7 @@ window.Launchpad = (() => {
         { name: '太空射击', icon: '🚀', link: 'space-shooter.html', color: '#9c27b0', category: 'discovery' },
 
         { name: '航空航天', icon: '🚀', link: 'aerospace.html', color: '#6366f1', category: 'labs' },
+        { name: '汽车世界', icon: '🏎️', link: 'car-world.html', color: '#ef4444', category: 'labs' },
         { name: '个人中心', icon: '👤', link: 'profile.html', color: 'var(--mc-cyan)', category: 'system' },
         { name: '培养图谱', icon: '🗺️', link: 'roadmap.html', color: '#fff', category: 'system' },
         { name: '课程地图', icon: '🧭', link: 'post-6.html', color: '#fff', category: 'system' },
