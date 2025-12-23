@@ -6,69 +6,48 @@ window.Launchpad = (() => {
         SYSTEM: { id: 'system', title: 'SYSTEM & TOOLS / 系统与规划', icon: '🛠️' }
     };
 
-    // App Data (Full List)
+    // App Data (Full List - Ordered for DOCK)
     const apps = [
-        // --- TITAN LABS (Tools & Core Tech) ---
-        { name: '金融科技', icon: '💰', link: 'fintech.html', color: '#fbbf24', category: 'labs' },
-        { name: '音频科技', icon: '🎵', link: 'music.html', color: '#22d3ee', category: 'labs' },
-        { name: 'AI 艺术', icon: '🎨', link: 'ai-art.html', color: '#FF00E5', category: 'labs' },
-        { name: '科技英语', icon: '🛰️', link: 'english.html', color: '#00F5FF', category: 'labs' },
-        { name: '设计空间', icon: '🎨', link: 'design.html', color: '#7000FF', category: 'labs' },
-        { name: '编程中心', icon: '💻', link: 'coding.html', color: '#FFAB19', category: 'labs' },
-        { name: '人工智能', icon: '🤖', link: 'course-ai.html', color: '#d946ef', category: 'labs' },
-        { name: '无人机', icon: '🚁', link: 'drone.html', color: '#0ea5e9', category: 'labs' },
-        { name: '科学实验', icon: '⚗️', link: 'labs.html', color: '#00f3ff', category: 'labs' },
-        { name: '3D打印', icon: '🖨️', link: '3d-print.html', color: '#FF2D55', category: 'labs' },
-        { name: '电子电路', icon: '🔌', link: 'circuits.html', color: '#00FF9D', category: 'labs' },
-        { name: '数字教材', icon: '📚', link: 'textbook.html', color: '#fff', category: 'labs' },
-        // IDEs
-        { name: 'Python IDE', icon: '🐍', link: 'ide-python.html', color: '#3776AB', category: 'labs' },
-        { name: 'Scratch', icon: '🐱', link: 'ide-scratch.html', color: '#F5A623', category: 'labs' },
-        { name: 'C++ IDE', icon: '🇨', link: 'ide-cpp.html', color: '#00599C', category: 'labs' },
-        { name: 'Java IDE', icon: '☕', link: 'ide-java.html', color: '#f89820', category: 'labs' },
-        { name: 'Web IDE', icon: '🌐', link: 'ide-html.html', color: '#E34F26', category: 'labs' },
-        { name: '打字训练', icon: '⌨️', link: 'typing.html', color: '#fff', category: 'labs' },
+        // --- CORE SYSTEM (Items 1-7 in user order) ---
+        // Note: Rocket (Launchpad) is handled specifically as it opens the overlay
+        { name: '系统说明', icon: 'ℹ️', link: 'system-intro.html', color: 'var(--mc-cyan)', category: 'system' },
+        { name: '个人中心', icon: '👤', link: 'profile.html', color: 'var(--mc-cyan)', category: 'system' },
+        { name: '培养图谱', icon: '🗺️', link: 'map.html', color: '#fff', category: 'system' },
+        { name: '课程地图', icon: '📚', link: 'course.html', color: '#fff', category: 'system' },
+        { name: '竞赛地图', icon: '🏆', link: 'competition-atlas.html', color: '#fbbf24', category: 'system' },
+        { name: '认知系统', icon: '🧠', link: 'assessment.html', color: '#fff', category: 'system' },
+        { name: '学习中心', icon: '🏫', link: 'learn.html', color: '#8B5CF6', category: 'system' },
 
-        // --- DISCOVERY (Exploration & Sims) ---
+        // --- SUBJECT MODULES (Items 8-25 in user order) ---
+        { name: '编程中心', icon: '💻', link: 'coding.html', color: '#FFAB19', category: 'labs' },
+        { name: 'AI 艺术', icon: '🎨', link: 'ai-art.html', color: '#FF00E5', category: 'labs' },
+        { name: '电子电路', icon: '🔋', link: 'circuits.html', color: '#00FF9D', category: 'labs' },
+        { name: '3D 打印', icon: '🖨️', link: '3d-print.html', color: '#FF2D55', category: 'labs' },
+        { name: '航天航空', icon: '🛸', link: 'aerospace.html', color: '#6366f1', category: 'labs' },
+        { name: '虚拟实验', icon: '🧪', link: 'labs.html', color: '#00f3ff', category: 'labs' },
+        { name: '天文宇宙', icon: '🌌', link: 'astronomy.html', color: '#bc13fe', category: 'discovery' },
+        { name: '生命科学', icon: '🧬', link: 'course-life.html', color: '#d946ef', category: 'discovery' },
+        { name: '恐龙世界', icon: '🦖', link: 'dino.html', color: '#4ade80', category: 'discovery' },
+        { name: '深海探索', icon: '🌊', link: 'ocean.html', color: '#00f0ff', category: 'discovery' },
+        { name: '地球科学', icon: '🌍', link: 'earth.html', color: '#06b6d4', category: 'discovery' },
+        { name: '读书观影', icon: '📖', link: 'library.html', color: '#ec4899', category: 'discovery' },
+        { name: '知识库', icon: '📂', link: 'wiki.html', color: '#fff', category: 'discovery' },
+        { name: '打字训练', icon: '⌨️', link: 'typing.html', color: '#fff', category: 'labs' },
+        { name: '无人机', icon: '🚁', link: 'drone.html', color: '#0ea5e9', category: 'labs' },
+        { name: '人工智能', icon: '🤖', link: 'ai.html', color: '#d946ef', category: 'labs' },
+        { name: '科技英语', icon: '🔤', link: 'english.html', color: '#00F5FF', category: 'labs' },
+        { name: '金融科技', icon: '💰', link: 'fintech.html', color: '#fbbf24', category: 'labs' },
+
+        // --- LEGACY/OTHER (Still in Launchpad Search) ---
         { name: '军事科技', icon: '🛡️', link: 'military.html', color: '#4caf50', category: 'discovery' },
         { name: '数学视界', icon: '📐', link: 'math.html', color: '#F44336', category: 'discovery' },
         { name: 'GAIA引擎', icon: '🌍', link: 'gaia.html', color: '#4CAF50', category: 'discovery' },
         { name: 'DNA模拟', icon: '🧬', link: 'helix.html', color: '#E91E63', category: 'discovery' },
         { name: '物理仿真', icon: '⚛️', link: 'walter_fendt.html', color: '#FFC107', category: 'discovery' },
-        { name: '虚拟实验', icon: '🔬', link: 'cc_vlabs.html', color: '#00BCD4', category: 'discovery' },
-        { name: '全球好课', icon: '🌎', link: 'global-class.html', color: '#2196F3', category: 'discovery' },
-        { name: '全球资源', icon: '🌍', link: 'fintech-global-resources.html', color: '#8B5CF6', category: 'discovery' },
-        { name: '知识库', icon: '📖', link: 'wiki.html', color: '#fff', category: 'discovery' },
-        { name: '读书观影', icon: '🎬', link: 'library.html', color: '#ec4899', category: 'discovery' },
-        { name: '生命科学', icon: '🌱', link: 'life_hub.html', color: '#d946ef', category: 'discovery' },
-        { name: '天文宇宙', icon: '🪐', link: 'astronomy.html', color: '#bc13fe', category: 'discovery' },
-        { name: '恐龙世界', icon: '🦖', link: 'dino.html', color: '#4ade80', category: 'discovery' },
-        { name: '深海探索', icon: '🦑', link: 'ocean.html', color: '#00f0ff', category: 'discovery' },
-        { name: '地球科学', icon: '🌏', link: 'earth.html', color: '#06b6d4', category: 'discovery' },
-        { name: '强权图谱', icon: '🌐', link: 'tech-giants.html', color: '#ff9f43', category: 'discovery' },
+        { name: '虚拟实验(旧)', icon: '🔬', link: 'cc_vlabs.html', color: '#00BCD4', category: 'discovery' },
         { name: '智慧星图', icon: '🌌', link: 'synergy-galaxy.html', color: '#6366f1', category: 'discovery' },
-        { name: '玩中学习', icon: '🎮', link: 'games.html', color: 'var(--mc-green)', category: 'discovery' },
         { name: '我的世界', icon: '⛏️', link: 'minecraft.html', color: 'var(--mc-green)', category: 'discovery' },
-        { name: '世界名校', icon: '🎓', link: 'universities.html', color: '#ff9f43', category: 'discovery' },
-        // Games
-        { name: '打砖块', icon: '🧱', link: 'breakout.html', color: '#FF5722', category: 'discovery' },
-        { name: '极速赛车', icon: '🏎️', link: 'racing.html', color: '#f44336', category: 'discovery' },
-        { name: '太空射击', icon: '🚀', link: 'space-shooter.html', color: '#9c27b0', category: 'discovery' },
-
-        { name: '航空航天', icon: '🚀', link: 'aerospace.html', color: '#6366f1', category: 'labs' },
-        { name: '汽车世界', icon: '🏎️', link: 'car-world.html', color: '#ef4444', category: 'labs' },
-        { name: '个人中心', icon: '👤', link: 'profile.html', color: 'var(--mc-cyan)', category: 'system' },
-        { name: '培养图谱', icon: '🗺️', link: 'roadmap.html', color: '#fff', category: 'system' },
-        { name: '课程地图', icon: '🧭', link: 'post-6.html', color: '#fff', category: 'system' },
-        { name: '竞赛地图', icon: '🏆', link: 'competition-atlas.html', color: '#fbbf24', category: 'system' },
-        { name: '认知系统', icon: '🧠', link: 'post-5.html', color: '#fff', category: 'system' },
-        { name: '专业选择', icon: '⚖️', link: 'majors.html', color: '#ff9f43', category: 'system' },
-        { name: '教育日志', icon: '📝', link: 'blog.html', color: '#fff', category: 'system' },
-        { name: '学习中心', icon: '🚀', link: 'learn.html', color: '#8B5CF6', category: 'system' },
-        { name: '社区论坛', icon: '💬', link: 'forum.html', color: '#06b6d4', category: 'system' },
-        { name: '后台管理', icon: '⚙️', link: 'admin.html', color: '#607d8b', category: 'system' },
-        { name: '能力测评', icon: '📊', link: 'assessment.html', color: '#4caf50', category: 'system' },
-        { name: '联系我们', icon: '📞', link: 'contact.html', color: '#009688', category: 'system' }
+        { name: '社区论坛', icon: '💬', link: 'forum.html', color: '#06b6d4', category: 'system' }
     ];
 
     function init() {
@@ -125,9 +104,9 @@ window.Launchpad = (() => {
         // Listen for subscription updates
         window.addEventListener('subscription_updated', () => {
             renderPages();
-            updateDock();
+            // updateDock(); // Keep locks updated but don't rebuild
         });
-        setTimeout(updateDock, 500);
+        // setTimeout(updateDock, 500); // Disabling dynamic dock override
     }
 
     function injectStyles() {
@@ -441,6 +420,13 @@ window.Launchpad = (() => {
             item.style.opacity = '0';
             item.style.animation = `dockFadeIn 0.5s forwards ${i * 20}ms`;
 
+            // Special Styling for System Intro
+            if (app.name === '系统说明') {
+                item.style.borderColor = 'var(--secondary)';
+                item.style.background = 'rgba(112, 0, 255, 0.1)';
+                item.style.boxShadow = '0 0 15px rgba(112, 0, 255, 0.3)';
+            }
+
             // Click Handler
             item.onclick = function () {
                 window.location.href = app.link;
@@ -450,6 +436,7 @@ window.Launchpad = (() => {
             const iconBg = document.createElement('div');
             iconBg.className = 'dock-icon-bg';
             iconBg.innerHTML = app.icon;
+
             // Add subtle glow based on app color
             if (app.color && app.color !== '#fff') {
                 iconBg.style.textShadow = `0 0 10px ${app.color}`;
@@ -460,6 +447,10 @@ window.Launchpad = (() => {
             const label = document.createElement('div');
             label.className = 'dock-label';
             label.innerText = app.name;
+            if (app.name === '系统说明') {
+                label.style.color = 'var(--secondary)';
+                label.style.fontWeight = 'bold';
+            }
             item.appendChild(label);
 
             dock.appendChild(item);

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞象老师 | 中国首个教育类 AI Agent 说明</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Outfit:wght@300;400;600;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="libs/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --secondary: #06b6d4;
+            --bg-dark: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: #f8fafc;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .nav-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: -1px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 0;
+            background: var(--primary);
+            border-radius: 0 4px 4px 0;
+            transition: all 0.3s;
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: white;
+            padding-left: 1.5rem;
+        }
+
+        .nav-item.active::before {
+            height: 60%;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #818cf8 0%, #22d3ee 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-glow {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+        }
+
+        .scroll-custom::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scroll-custom::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scroll-custom::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .scroll-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col">
+    <div id="app" class="flex-1 flex overflow-hidden" v-v-cloak>
+        <!-- Sidebar Navigation -->
+        <aside class="w-72 glass-panel border-r border-white/5 flex flex-col z-20">
+            <div class="p-8">
+                <div class="flex items-center gap-3 mb-10">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                        <i data-lucide="zap" class="text-white w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-xl tracking-tight">飞象老师</h1>
+                        <p class="text-[10px] uppercase tracking-widest text-indigo-400 font-bold">AI Edu Agent</p>
+                    </div>
+                </div>
+
+                <nav class="space-y-1">
+                    <button v-for="section in sections" :key="section.id" @click="activeSection = section.id"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 font-medium hover:text-white group"
+                        :class="{ 'active': activeSection === section.id }">
+                        <i :data-lucide="section.icon" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                        <span>{{ section.title }}</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="mt-auto p-6">
+                <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4">
+                    <div class="flex items-center gap-2 mb-2 text-indigo-300">
+                        <i data-lucide="lightbulb" class="w-4 h-4"></i>
+                        <span class="text-xs font-bold uppercase">Small Tips</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        飞象老师不仅是工具，更是您的教学创意伙伴。一句话生成互动课件，让课堂活起来。
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 relative overflow-hidden flex flex-col bg-[#0a0f1d]">
+            <!-- Top Header -->
+            <header
+                class="h-20 flex items-center justify-between px-10 border-b border-white/5 bg-slate-900/30 backdrop-blur-md">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-3">
+                    <i :data-lucide="getCurrentSection.icon" class="text-indigo-400"></i>
+                    {{ getCurrentSection.title }}
+                </h2>
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full border border-white/5">
+                        <i data-lucide="database" class="w-4 h-4 text-amber-400"></i>
+                        <span class="text-sm font-medium">积分余额: <span class="text-white font-bold">30</span></span>
+                    </div>
+                    <button @click="window.close()" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content Content -->
+            <div class="flex-1 overflow-y-auto scroll-custom p-10">
+                <transition name="fade" mode="out-in">
+                    <div :key="activeSection" class="max-w-4xl">
+                        <!-- SECTION 1: INTRODUCTION -->
+                        <div v-if="activeSection === 'intro'" class="space-y-8">
+                            <div class="relative group">
+                                <div
+                                    class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000">
+                                </div>
+                                <div class="relative glass-panel rounded-2xl p-8">
+                                    <h3 class="text-3xl font-extrabold mb-4 gradient-text">什么是飞象老师？</h3>
+                                    <p class="text-slate-300 text-lg leading-relaxed mb-6">
+                                        飞象老师（Feixiang Laoshi）是国内首个教育专用 AI Agent。旨在通过大模型技术，让每一位老师都能通过“一句话”创造出专业、互动的教学动画。
+                                    </p>
+                                    <div class="grid grid-cols-2 gap-6">
+                                        <div
+                                            class="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                                            <div
+                                                class="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="mouse-pointer-2" class="text-indigo-400"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-white mb-1">零门槛交互</h4>
+                                                <p class="text-xs text-slate-400">无需掌握复杂的动画软件，对话即创作。</p>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                                            <div
+                                                class="w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="code" class="text-cyan-400"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-white mb-1">原生 HTML 引擎</h4>
+                                                <p class="text-xs text-slate-400">生成基于 Web 的轻量化课件，跨平台分发。</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel rounded-2xl p-8 border-l-4 border-l-indigo-500">
+                                <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                                    <i data-lucide="help-circle" class="text-indigo-400"></i>
+                                    为什么选择 HTML 而非 PPT？
+                                </h3>
+                                <div class="space-y-6">
+                                    <div class="flex gap-6">
+                                        <div class="w-1/2 p-6 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
+                                            <h4 class="text-indigo-300 font-bold mb-3 flex items-center gap-2">
+                                                <i data-lucide="zap" class="w-4 h-4"></i> 极致交互性
+                                            </h4>
+                                            <p class="text-sm text-slate-400 leading-relaxed">
+                                                不同于点击翻页的 PPT，HTML 允许学生直接操控。拖动滑块查看洋流、点击按钮引爆火山——这种“实验感”是传统课件无法比拟的。
+                                            </p>
+                                        </div>
+                                        <div class="w-1/2 p-6 rounded-xl bg-cyan-500/5 border border-cyan-500/10">
+                                            <h4 class="text-cyan-300 font-bold mb-3 flex items-center gap-2">
+                                                <i data-lucide="monitor" class="w-4 h-4"></i> 沉浸式演示
+                                            </h4>
+                                            <p class="text-sm text-slate-400 leading-relaxed">
+                                                平滑的物理引擎和流畅的转场，让复杂概念（如能量守恒、天体运行）能够以“连续过程”而非“静态切片”形式呈现。
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="p-6 rounded-xl bg-slate-800/40 border border-white/5">
+                                        <p class="text-slate-300 italic text-sm">
+                                            "我们不是要取代 PPT，而是要通过 HTML 为 PPT 注入灵魂。您可以将生成的 HTML 链接无缝嵌入到希沃或 PPT 中使用。"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2: QUICK START -->
+                        <div v-if="activeSection === 'quickstart'" class="space-y-12">
+                            <div class="text-center mb-10">
+                                <h3 class="text-4xl font-extrabold mb-4">3分钟快速上手</h3>
+                                <p class="text-slate-400">只需三步，开启您的 AI 教学之旅</p>
+                            </div>
+
+                            <div class="relative">
+                                <div
+                                    class="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-indigo-500 to-transparent">
+                                </div>
+
+                                <div class="space-y-12">
+                                    <div class="flex items-center gap-10">
+                                        <div class="w-1/2 text-right">
+                                            <h4 class="text-xl font-bold text-white mb-2">步骤一：下达指令</h4>
+                                            <p class="text-sm text-slate-400">在输入框中输入您想要课件内容，如：“生成一个模拟浮力实验的交互工具”。</p>
+                                        </div>
+                                        <div
+                                            class="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center z-10 shadow-lg shadow-indigo-500/40">
+                                            <span class="font-bold text-white">1</span>
+                                        </div>
+                                        <div class="w-1/2">
+                                            <div class="glass-panel p-4 rounded-xl rotate-2">
+                                                <img src="https://images.unsplash.com/photo-1620712943543-bcc4628c6bb3?w=800&auto=format&fit=crop&q=60"
+                                                    class="rounded-lg shadow-2xl" alt="AI Agent Interface">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-10 flex-row-reverse">
+                                        <div class="w-1/2 text-left">
+                                            <h4 class="text-xl font-bold text-white mb-2">步骤二：AI 实时构思</h4>
+                                            <p class="text-sm text-slate-400">AI 会瞬间根据物理逻辑、图形美学为您构建交互模型并自动编写代码。</p>
+                                        </div>
+                                        <div
+                                            class="w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center z-10 shadow-lg shadow-cyan-500/40">
+                                            <span class="font-bold text-white">2</span>
+                                        </div>
+                                        <div class="w-1/2">
+                                            <div class="glass-panel p-4 rounded-xl -rotate-2">
+                                                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&auto=format&fit=crop&q=60"
+                                                    class="rounded-lg shadow-2xl" alt="Code Generation">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-10">
+                                        <div class="w-1/2 text-right">
+                                            <h4 class="text-xl font-bold text-white mb-2">步骤三：预览与部署</h4>
+                                            <p class="text-sm text-slate-400">立即在浏览器中预览，一键获取链接或保存为本地 HTML 文件，随取随用。</p>
+                                        </div>
+                                        <div
+                                            class="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center z-10 shadow-lg shadow-amber-500/40">
+                                            <span class="font-bold text-white">3</span>
+                                        </div>
+                                        <div class="w-1/2">
+                                            <div class="glass-panel p-4 rounded-xl rotate-1">
+                                                <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=60"
+                                                    class="rounded-lg shadow-2xl" alt="Output Preview">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3: RULES -->
+                        <div v-if="activeSection === 'rules'" class="space-y-6">
+                            <div class="glass-panel rounded-2xl overflow-hidden">
+                                <div class="bg-indigo-500 px-8 py-4">
+                                    <h3 class="text-xl font-bold text-white">积分系统说明</h3>
+                                </div>
+                                <div class="p-8 space-y-8">
+                                    <div class="flex gap-8">
+                                        <div
+                                            class="flex-1 p-6 rounded-2xl bg-slate-800/50 border border-white/5 text-center">
+                                            <div
+                                                class="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <i data-lucide="refresh-cw" class="text-indigo-400 w-8 h-8"></i>
+                                            </div>
+                                            <h4 class="font-bold text-white mb-2">每日积分</h4>
+                                            <p class="text-3xl font-black text-indigo-400 mb-2">30 pts</p>
+                                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">每日凌晨 2:00 重置
+                                            </p>
+                                        </div>
+                                        <div
+                                            class="flex-1 p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
+                                            <div
+                                                class="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <i data-lucide="award" class="text-amber-400 w-8 h-8"></i>
+                                            </div>
+                                            <h4 class="font-bold text-white mb-2">永久积分</h4>
+                                            <p class="text-2xl font-black text-amber-400 mb-2">按需获取</p>
+                                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">通过分享、作品获赞获得
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 class="font-bold text-white mb-4 flex items-center gap-2">
+                                            <i data-lucide="trending-up" class="w-4 h-4 text-indigo-400"></i>
+                                            积分如何消耗？
+                                        </h4>
+                                        <ul class="space-y-3">
+                                            <li
+                                                class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                                                <span class="text-slate-300">通过 Prompt 生成课件</span>
+                                                <span class="font-mono text-indigo-300">-5 pts / 次</span>
+                                            </li>
+                                            <li
+                                                class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                                                <span class="text-slate-300">保存作品到本地</span>
+                                                <span class="font-mono text-indigo-300">-2 pts / 次</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 4: FAQ -->
+                        <div v-if="activeSection === 'faq'" class="space-y-4">
+                            <div v-for="(q, idx) in faqs" :key="idx" class="glass-panel rounded-xl overflow-hidden">
+                                <details class="group">
+                                    <summary class="flex items-center justify-between p-6 cursor-pointer list-none">
+                                        <span class="font-bold text-indigo-300">{{ q.question }}</span>
+                                        <i data-lucide="chevron-down"
+                                            class="w-5 h-5 text-slate-500 group-open:rotate-180 transition-transform"></i>
+                                    </summary>
+                                    <div
+                                        class="px-6 pb-6 text-slate-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                                        {{ q.answer }}
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
+            </div>
+
+            <!-- Background Decoration -->
+            <div class="absolute top-0 right-0 -z-10 w-96 h-96 bg-indigo-500/10 blur-[120px] rounded-full"></div>
+            <div class="absolute bottom-0 left-0 -z-10 w-64 h-64 bg-cyan-500/10 blur-[100px] rounded-full"></div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const activeSection = ref('intro');
+
+                const sections = [
+                    { id: 'intro', title: '什么是飞象老师？', icon: 'info' },
+                    { id: 'quickstart', title: '3分钟快速上手', icon: 'zap' },
+                    { id: 'rules', title: '积分与规则', icon: 'list-checks' },
+                    { id: 'faq', title: '常见问题', icon: 'help-circle' }
+                ];
+
+                const faqs = [
+                    {
+                        question: '生成的文件可以放在 PPT 里吗？',
+                        answer: '当然可以！您可以直接在 PPT 中插入一个 Web 浏览器组件并填入链接；或者在 Seewo 希沃白板中使用“插入网页”功能，体验无缝集成。'
+                    },
+                    {
+                        question: '除了 HTML，还可以生成视频吗？',
+                        answer: '目前我们专注于 HTML 交互格式，因为它能提供视频无法提供的实时互动性。不过，您可以使用屏幕录制工具将交互过程录制为视频。'
+                    },
+                    {
+                        question: '手机端可以打开生成的课件吗？',
+                        answer: '是的。飞象老师生成的 HTML 完全基于标准 Web 技术，在 iPhone、Android 以及 Pad 设备的浏览器中都能流畅运行。'
+                    },
+                    {
+                        question: '我的积分用完了怎么办？',
+                        answer: '每日系统会自动赠送 30 个积分。如果您需要更多，可以去广场为优秀作品点赞，或者分享自己的作品获得他人的认可。'
+                    }
+                ];
+
+                const getCurrentSection = computed(() => {
+                    return sections.find(s => s.id === activeSection.value);
+                });
+
+                onMounted(() => {
+                    lucide.createIcons();
+                });
+
+                // Re-initialize icons on section change
+                Vue.watch(activeSection, () => {
+                    nextTick(() => {
+                        lucide.createIcons();
+                    });
+                });
+
+                return {
+                    activeSection,
+                    sections,
+                    getCurrentSection,
+                    faqs
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
