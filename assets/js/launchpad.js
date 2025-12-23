@@ -16,6 +16,8 @@ window.Launchpad = (() => {
         { name: '课程地图', icon: '📚', link: 'course.html', color: '#fff', category: 'system' },
         { name: '竞赛地图', icon: '🏆', link: 'competition-atlas.html', color: '#fbbf24', category: 'system' },
         { name: '认知系统', icon: '🧠', link: 'assessment.html', color: '#fff', category: 'system' },
+        { name: '神经进化', icon: '🧬', link: 'psyche_x_system/index.html', color: 'var(--accent)', category: 'system' },
+        { name: '学习方法', icon: '🧠', link: 'study-methods.html', color: '#8b5cf6', category: 'system' },
         { name: '学习中心', icon: '🏫', link: 'learn.html', color: '#8B5CF6', category: 'system' },
 
         // --- SUBJECT MODULES (Items 8-25 in user order) ---
@@ -35,18 +37,29 @@ window.Launchpad = (() => {
         { name: '打字训练', icon: '⌨️', link: 'typing.html', color: '#fff', category: 'labs' },
         { name: '无人机', icon: '🚁', link: 'drone.html', color: '#0ea5e9', category: 'labs' },
         { name: '人工智能', icon: '🤖', link: 'ai.html', color: '#d946ef', category: 'labs' },
+        { name: 'AI 音乐', icon: '🎵', link: 'music.html', color: '#ff4d4d', category: 'labs' },
+        { name: '智力挑战', icon: '🧩', link: 'brain.html', color: '#10b981', category: 'labs' },
         { name: '科技英语', icon: '🔤', link: 'english.html', color: '#00F5FF', category: 'labs' },
         { name: '金融科技', icon: '💰', link: 'fintech.html', color: '#fbbf24', category: 'labs' },
+        { name: '科技新闻', icon: '📰', link: 'news.html', color: '#00F0FF', category: 'system' },
 
         // --- LEGACY/OTHER (Still in Launchpad Search) ---
         { name: '军事科技', icon: '🛡️', link: 'military.html', color: '#4caf50', category: 'discovery' },
         { name: '数学视界', icon: '📐', link: 'math.html', color: '#F44336', category: 'discovery' },
+        { name: '全球课堂', icon: '🌍', link: 'global-class.html', color: '#0ea5e9', category: 'discovery' },
+        { name: '学科协同', icon: '🔗', link: 'subject-synergy.html', color: '#8b5cf6', category: 'discovery' },
+        { name: '汽车世界', icon: '🏎️', link: 'car-world.html', color: '#f43f5e', category: 'discovery' },
         { name: 'GAIA引擎', icon: '🌍', link: 'gaia.html', color: '#4CAF50', category: 'discovery' },
         { name: 'DNA模拟', icon: '🧬', link: 'helix.html', color: '#E91E63', category: 'discovery' },
         { name: '物理仿真', icon: '⚛️', link: 'walter_fendt.html', color: '#FFC107', category: 'discovery' },
         { name: '虚拟实验(旧)', icon: '🔬', link: 'cc_vlabs.html', color: '#00BCD4', category: 'discovery' },
         { name: '智慧星图', icon: '🌌', link: 'synergy-galaxy.html', color: '#6366f1', category: 'discovery' },
         { name: '我的世界', icon: '⛏️', link: 'minecraft.html', color: 'var(--mc-green)', category: 'discovery' },
+        { name: '大学先修', icon: '🎓', link: 'universities.html', color: '#f59e0b', category: 'system' },
+        { name: '荣誉殿堂', icon: '🏆', link: 'trophy.html', color: '#fbbf24', category: 'system' },
+        { name: '教材中心', icon: '📚', link: 'textbook.html', color: '#fff', category: 'system' },
+        { name: '信息课程', icon: '🖥️', link: 'senior-infotech-curriculum.html', color: '#FFAB19', category: 'system' },
+        { name: '科学课程', icon: '🔬', link: 'science-curriculum.html', color: '#10b981', category: 'system' },
         { name: '社区论坛', icon: '💬', link: 'forum.html', color: '#06b6d4', category: 'system' }
     ];
 

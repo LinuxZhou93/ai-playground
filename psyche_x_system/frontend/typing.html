@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Typing Speed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #64748b;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #text-area {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            line-height: 2.2rem;
+            max-width: 900px;
+            outline: none;
+        }
+
+        .correct {
+            color: white;
+        }
+
+        .wrong {
+            color: #ef4444;
+            border-bottom: 2px solid #ef4444;
+        }
+
+        .cursor {
+            border-left: 2px solid #eab308;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                border-color: transparent;
+            }
+        }
+    </style>
+</head>
+
+<body class="flex flex-col items-center justify-center">
+
+    <div class="fixed top-8 left-8 flex gap-4">
+        <button onclick="history.back()" class="p-3 bg-white/10 rounded-full hover:bg-white/20"><i
+                data-lucide="arrow-left"></i></button>
+        <div>
+            <h1 class="text-xl font-bold text-white" id="title-text">Typing Speed</h1>
+            <p class="text-xs text-gray-500">WPM: <span id="wpm" class="text-yellow-500">0</span> </p>
+        </div>
+    </div>
+
+    <!-- Text Display -->
+    <div class="relative">
+        <div id="text-area">
+            <!-- JS Injected Letters -->
+        </div>
+        <!-- Hidden Input -->
+        <input type="text" id="hidden-input" class="absolute opacity-0 top-0 left-0 h-full w-full cursor-default">
+    </div>
+
+    <div id="result-overlay"
+        class="hidden absolute inset-0 bg-black/90 flex flex-col items-center justify-center text-white z-50">
+        <h1 class="text-6xl font-black mb-4" id="final-wpm">0 WPM</h1>
+        <p class="text-xl text-gray-400 mb-8" id="final-acc">100% Accuracy</p>
+        <button onclick="resetGame()"
+            class="px-6 py-2 border border-white/20 rounded hover:bg-white/10">RESTART</button>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        const TITLE = urlParams.get('title') || "Typing Speed";
+        document.getElementById('title-text').innerText = decodeURIComponent(TITLE);
+
+        const PARAGRAPH = "The quick brown fox jumps over the lazy dog. Programming is the art of telling another human being what one wants the computer to do. Simplicity is the soul of efficiency. Before software can be reusable it first has to be usable.";
+
+        let words = PARAGRAPH.split(' ');
+        let charArray = PARAGRAPH.split('');
+        let globalCharIndex = 0; // Absolute index in string
+
+        let startTime = null;
+        let errors = 0;
+        let correctChars = 0;
+        let completed = false;
+
+        function init() {
+            const area = document.getElementById('text-area');
+            area.innerHTML = '';
+
+            // Logic change: We render as simple spans for now to match strict index logic
+            // (Simpler than word grouping for this precise cursor implementation)
+            charArray.forEach((char, idx) => {
+                const s = document.createElement('span');
+                s.innerText = char;
+                s.id = 'char-' + idx;
+                // Dim future text
+                s.style.opacity = '0.5';
+                s.style.transition = 'color 0.1s, opacity 0.1s';
+                area.appendChild(s);
+            });
+
+            // Initial Cursor
+            updateCursor(0);
+
+            document.addEventListener('click', () => document.getElementById('hidden-input').focus());
+            document.getElementById('hidden-input').focus();
+        }
+
+        function updateCursor(idx) {
+            // Remove old cursor
+            document.querySelectorAll('.cursor').forEach(el => el.classList.remove('cursor'));
+
+            // Add new
+            const el = document.getElementById('char-' + idx);
+            if (el) {
+                el.classList.add('cursor');
+                el.style.opacity = '1'; // Highlight current
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (completed) return;
+
+            // System Keys Override
+            if (e.key === 'Backspace') {
+                if (globalCharIndex > 0) {
+                    globalCharIndex--;
+                    const prevEl = document.getElementById('char-' + globalCharIndex);
+
+                    // Reset styling
+                    prevEl.className = ''; // Remove correct/wrong/cursor
+                    prevEl.style.opacity = '1';
+                    prevEl.style.color = ''; // Reset color
+
+                    updateCursor(globalCharIndex);
+                }
+                return;
+            }
+
+            if (e.ctrlKey || e.metaKey || e.altKey || e.key.length > 1) return;
+
+            // Start Timer
+            if (!startTime) startTime = Date.now();
+
+            const targetChar = charArray[globalCharIndex];
+            const currentEl = document.getElementById('char-' + globalCharIndex);
+
+            if (e.key === targetChar) {
+                currentEl.classList.add('correct');
+                currentEl.style.color = '#eee'; // Bright White
+                correctChars++;
+            } else {
+                currentEl.classList.add('wrong');
+                errors++;
+            }
+
+            // Move Cursor
+            globalCharIndex++;
+
+            if (globalCharIndex >= charArray.length) {
+                finishGame();
+            } else {
+                updateCursor(globalCharIndex);
+            }
+
+            // Live WPM
+            const timeMin = (Date.now() - startTime) / 60000;
+            const wpm = Math.round((globalCharIndex / 5) / (timeMin || 0.001)); // Avoid div/0
+            document.getElementById('wpm').innerText = wpm;
+        });
+
+        function finishGame() {
+            completed = true;
+            const timeMin = (Date.now() - startTime) / 60000;
+            const grossWPM = (charArray.length / 5) / timeMin;
+            const netWPM = Math.round(grossWPM - (errors / timeMin));
+            const acc = Math.round(((charArray.length - errors) / charArray.length) * 100);
+
+            document.getElementById('result-overlay').classList.remove('hidden');
+            document.getElementById('final-wpm').innerText = netWPM + ' WPM';
+            document.getElementById('final-acc').innerText = acc + '% Accuracy';
+
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'MOTOR',
+                    score: netWPM,
+                    metrics: { wpm: netWPM, accuracy: acc }
+                });
+            }
+        }
+
+        function resetGame() {
+            location.reload(); // Simple reset
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

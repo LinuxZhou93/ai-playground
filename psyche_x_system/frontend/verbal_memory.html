@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Verbal Retention</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .word-card {
+            font-size: 4rem;
+            font-weight: 800;
+            text-align: center;
+            transition: all 0.2s;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-game {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 12px;
+            transition: all 0.1s;
+            min-width: 160px;
+        }
+
+        .btn-game:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-game:active {
+            transform: translateY(1px);
+        }
+
+        .btn-seen {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .btn-seen:hover {
+            background: rgba(245, 158, 11, 0.1);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+        }
+
+        .btn-new {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .btn-new:hover {
+            background: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Feedback Flash */
+        @keyframes flashGreen {
+            0% {
+                background-color: rgba(16, 185, 129, 0.2);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        @keyframes flashRed {
+            0% {
+                background-color: rgba(239, 68, 68, 0.2);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        .flash-correct {
+            animation: flashGreen 0.3s ease-out;
+        }
+
+        .flash-wrong {
+            animation: flashRed 0.3s ease-out;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen items-center justify-center relative">
+
+    <!-- Header -->
+    <div class="fixed top-8 left-8 flex gap-4 z-50">
+        <button onclick="history.back()" class="p-3 bg-white/10 rounded-full hover:bg-white/20 backdrop-blur">
+            <i data-lucide="arrow-left"></i>
+        </button>
+        <div>
+            <h1 class="text-xl font-bold text-white">Verbal Retention</h1>
+            <p class="text-xs text-yellow-500 font-mono tracking-wider">MEMORY PROTOCOL</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="fixed top-8 right-8 text-right font-mono">
+        <div class="text-4xl font-bold text-white" id="score-disp">0</div>
+        <div class="text-sm text-gray-500">LIVES: <span id="lives-disp" class="text-red-500">3</span></div>
+    </div>
+
+    <!-- Main Game Area -->
+    <div class="flex flex-col items-center gap-12" id="game-stage">
+
+        <div id="word-display" class="word-card">READY</div>
+
+        <div class="flex gap-8">
+            <button class="btn-game btn-seen" onclick="handleInput('SEEN')">SEEN</button>
+            <button class="btn-game btn-new" onclick="handleInput('NEW')">NEW</button>
+        </div>
+
+        <div class="text-gray-500 text-xs font-mono mt-8">
+            Tip: Use <span class="border border-gray-600 px-1 rounded">◄</span> for SEEN, <span
+                class="border border-gray-600 px-1 rounded">►</span> for NEW
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById('title-text').innerText = decodeURIComponent(TITLE);
+
+        // Simple dictionary
+        const DICTIONARY = ["HOUSE", "TIME", "PERSON", "YEAR", "WAY", "DAY", "THING", "MAN", "WORLD", "LIFE", "HAND", "PART", "CHILD", "EYE", "WOMAN", "PLACE", "WORK", "WEEK", "CASE", "POINT", "GOVERNMENT", "COMPANY", "NUMBER", "GROUP", "PROBLEM", "FACT", "IDEA", "WATER", "ROOM", "MOTHER", "AREA", "MONEY", "STORY", "FACT", "MONTH", "LOT", "RIGHT", "STUDY", "BOOK", "EYE", "JOB", "WORD", "BUSINESS", "ISSUE", "SIDE", "KIND", "HEAD", "HOUSE", "SERVICE", "FRIEND", "FATHER", "POWER", "HOUR", "GAME", "LINE", "END", "MEMBER", "LAW", "CAR", "CITY", "COMMUNITY", "NAME", "PRESIDENT", "TEAM", "MINUTE", "IDEA", "KID", "BODY", "INFORMATION", "BACK", "PARENT", "FACE", "OTHERS", "LEVEL", "OFFICE", "DOOR", "HEALTH", "PERSON", "ART", "WAR", "HISTORY", "PARTY", "RESULT", "CHANGE", "MORNING", "REASON", "RESEARCH", "GIRL", "GUY", "FOOD", "MOMENT", "AIR", "TEACHER", "FORCE", "EDUCATION"];
+
+        let seenWords = new Set();
+        let score = 0;
+        let lives = 3;
+        let currentWord = "";
+        let isCurrentSeen = false;
+
+        function nextWord() {
+            if (lives <= 0) {
+                finishSession();
+                return;
+            }
+
+            // Algorithm: 
+            // - If seenWords is empty, must show NEW.
+            // - Else, 40% chance to show SEEN word.
+
+            if (seenWords.size > 0 && Math.random() < 0.4) {
+                // Show SEEN
+                const list = Array.from(seenWords);
+                currentWord = list[Math.floor(Math.random() * list.length)];
+                isCurrentSeen = true;
+            } else {
+                // Show NEW
+                let w = DICTIONARY[Math.floor(Math.random() * DICTIONARY.length)];
+                // Ensure it's not actually seen
+                while (seenWords.has(w)) {
+                    w = DICTIONARY[Math.floor(Math.random() * DICTIONARY.length)];
+                }
+                currentWord = w;
+                isCurrentSeen = false;
+            }
+
+            document.getElementById('word-display').innerText = currentWord;
+        }
+
+        function handleChoice(choice) {
+            let correct = false;
+            if (choice === 'seen' && isCurrentSeen) correct = true;
+            if (choice === 'new' && !isCurrentSeen) correct = true;
+
+            if (correct) {
+                score++;
+                document.getElementById('score').innerText = score;
+                if (!isCurrentSeen) seenWords.add(currentWord);
+            } else {
+                lives--;
+                document.getElementById('lives').innerText = lives;
+            }
+
+            nextWord();
+        }
+
+        function start() {
+            score = 0;
+            lives = 3;
+            seenWords.clear();
+            document.getElementById('controls').style.display = 'flex';
+            nextWord();
+        }
+
+        function finishSession() {
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('word-display').innerText = "GAME OVER";
+
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'MEMORY',
+                    score: score,
+                    metrics: { words: score }
+                });
+            }
+
+            if (confirm(`Score: ${score}\n\nView Analytics?`)) {
+                window.location.href = 'report_global.html';
+            } else {
+                start();
+            }
+        }
+
+        setTimeout(start, 1000);
+
+    </script>
+</body>
+
+</html>

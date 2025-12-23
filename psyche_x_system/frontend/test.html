@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>API Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #000;
+            color: #0f0;
+        }
+
+        button {
+            background: #0f0;
+            color: #000;
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #log {
+            border: 1px solid #0f0;
+            padding: 10px;
+            margin-top: 20px;
+            min-height: 200px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Psyche-X API Diagnostic Tool</h1>
+
+    <button onclick="testStatus()">Test /api/status</button>
+    <button onclick="testCreateUser()">Test /users/ (POST)</button>
+    <button onclick="testSubmit()">Test /exam/submit (POST)</button>
+
+    <div id="log"></div>
+
+    <script>
+        const API = 'http://127.0.0.1:8000';
+        const log = (msg) => {
+            document.getElementById('log').innerHTML += `<div>${new Date().toLocaleTimeString()}: ${msg}</div>`;
+        };
+
+        async function testStatus() {
+            try {
+                const res = await fetch(`${API}/api/status`);
+                const data = await res.json();
+                log(`✅ Status: ${JSON.stringify(data)}`);
+            } catch (e) {
+                log(`❌ Status Error: ${e.message}`);
+            }
+        }
+
+        async function testCreateUser() {
+            try {
+                const res = await fetch(`${API}/users/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'diagnostic_' + Date.now(),
+                        email: `test${Date.now()}@test.com`,
+                        password: 'pwd'
+                    })
+                });
+                const data = await res.json();
+                log(`✅ User Created: ID ${data.id}`);
+                window.testUserId = data.id;
+            } catch (e) {
+                log(`❌ Create User Error: ${e.message}`);
+            }
+        }
+
+        async function testSubmit() {
+            if (!window.testUserId) {
+                log('⚠️ Please create user first');
+                return;
+            }
+            try {
+                const res = await fetch(`${API}/exam/submit?user_id=${window.testUserId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        task_type: 'n-back',
+                        raw_data: { score: 100, trials: [{ res: 1, rt: 500 }] * 20 }
+                    })
+                });
+                const data = await res.json();
+                log(`✅ Exam Submitted: Result ID ${data.id}`);
+            } catch (e) {
+                log(`❌ Submit Error: ${e.message}`);
+            }
+        }
+    </script>
+</body>
+
+</html>

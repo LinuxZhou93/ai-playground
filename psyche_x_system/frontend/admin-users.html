@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 | Psyche-X™ Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0066CC;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-600: #4B5563;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            padding: 20px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 30px;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            margin: 4px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--gray-900);
+        }
+
+        .nav-item:hover {
+            background: var(--gray-100);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0052a3;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--gray-50);
+        }
+
+        th {
+            padding: 16px 24px;
+            text-align: left;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-600);
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.875rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-200);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="logo">Psyche-X™</div>
+        <nav>
+            <a href="admin-dashboard.html" class="nav-item">
+                <span>📊</span>
+                <span>仪表板</span>
+            </a>
+            <a href="admin-users.html" class="nav-item active">
+                <span>👥</span>
+                <span>用户管理</span>
+            </a>
+            <div class="nav-item">
+                <span>📝</span>
+                <span>测评管理</span>
+            </div>
+            <div class="nav-item">
+                <span>📈</span>
+                <span>数据分析</span>
+            </div>
+            <div class="nav-item">
+                <span>📄</span>
+                <span>报告中心</span>
+            </div>
+            <div class="nav-item">
+                <span>⚙️</span>
+                <span>系统设置</span>
+            </div>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>用户管理</h1>
+            <button class="btn btn-primary" onclick="openAddUserModal()">+ 添加用户</button>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="搜索用户名、邮箱..." id="search-input">
+            <button class="btn btn-primary" onclick="searchUsers()">搜索</button>
+            <button class="btn btn-success" onclick="exportUsers()">导出 Excel</button>
+        </div>
+
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>年龄</th>
+                        <th>年级</th>
+                        <th>测评次数</th>
+                        <th>最后测评</th>
+                        <th>注册时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table">
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 40px;">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal" id="add-user-modal">
+        <div class="modal-content">
+            <h2>添加新用户</h2>
+            <form onsubmit="addUser(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="new-username" required>
+                </div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="email" id="new-email" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label>年龄</label>
+                    <input type="number" id="new-age">
+                </div>
+                <div class="form-group">
+                    <label>年级</label>
+                    <input type="text" id="new-grade">
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary">创建</button>
+                    <button type="button" class="btn" onclick="closeAddUserModal()"
+                        style="background: var(--gray-200);">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000';
+        let currentPage = 1;
+        let totalUsers = 0;
+
+        async function loadUsers(page = 1) {
+            try {
+                const res = await fetch(`${API_BASE}/admin/users?skip=${(page - 1) * 50}&limit=50`);
+                if (res.ok) {
+                    const data = await res.json();
+                    totalUsers = data.total;
+                    renderUsersTable(data.users);
+                    renderPagination(page);
+                }
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                renderDemoUsers();
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('users-table');
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px;">暂无用户</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(u => `
+            <tr>
+                <td>#${u.id}</td>
+                <td><strong>${u.username}</strong></td>
+                <td>${u.email}</td>
+                <td>${u.age || '-'}</td>
+                <td>${u.grade || '-'}</td>
+                <td><span class="badge badge-success">${u.assessment_count}</span></td>
+                <td>${u.last_assessment}</td>
+                <td>${u.created_at}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn btn-primary btn-sm" onclick="viewUser(${u.id})">查看</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">删除</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        }
+
+        function renderDemoUsers() {
+            const demoUsers = [
+                { id: 1, username: 'student001', email: 'student001@example.com', age: 15, grade: '高一', assessment_count: 12, last_assessment: '2024-12-10', created_at: '2024-11-01' },
+                { id: 2, username: 'student002', email: 'student002@example.com', age: 16, grade: '高二', assessment_count: 8, last_assessment: '2024-12-09', created_at: '2024-11-05' },
+                { id: 3, username: 'student003', email: 'student003@example.com', age: 14, grade: '初三', assessment_count: 15, last_assessment: '2024-12-10', created_at: '2024-10-20' }
+            ];
+            renderUsersTable(demoUsers);
+        }
+
+        function renderPagination(currentPage) {
+            const totalPages = Math.ceil(totalUsers / 50);
+            const pagination = document.getElementById('pagination');
+
+            let html = '';
+            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="loadUsers(${i})">${i}</button>`;
+            }
+            pagination.innerHTML = html;
+        }
+
+        function openAddUserModal() {
+            document.getElementById('add-user-modal').classList.add('active');
+        }
+
+        function closeAddUserModal() {
+            document.getElementById('add-user-modal').classList.remove('active');
+        }
+
+        async function addUser(event) {
+            event.preventDefault();
+
+            const userData = {
+                username: document.getElementById('new-username').value,
+                email: document.getElementById('new-email').value,
+                password: document.getElementById('new-password').value,
+                age: parseInt(document.getElementById('new-age').value) || null,
+                grade: document.getElementById('new-grade').value || null
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/users/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+
+                if (res.ok) {
+                    alert('用户创建成功！');
+                    closeAddUserModal();
+                    loadUsers(currentPage);
+                } else {
+                    alert('创建失败，请检查输入');
+                }
+            } catch (error) {
+                console.error('Failed to create user:', error);
+                alert('创建失败：' + error.message);
+            }
+        }
+
+        function viewUser(userId) {
+            window.location.href = `user-detail.html?id=${userId}`;
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('确定要删除此用户吗？此操作不可恢复！')) return;
+
+            alert('删除功能待实现');
+        }
+
+        function searchUsers() {
+            const query = document.getElementById('search-input').value;
+            alert('搜索功能待实现: ' + query);
+        }
+
+        function exportUsers() {
+            alert('Excel 导出功能待实现');
+        }
+
+        // Initialize
+        loadUsers(1);
+    </script>
+</body>
+
+</html>

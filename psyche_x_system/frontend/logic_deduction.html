@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Deductive Logic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .grid-stage {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+            width: 400px;
+            height: 400px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: #3b82f6;
+            width: 100%;
+            transition: width 1s linear;
+        }
+
+        .hint {
+            color: #64748b;
+            font-family: monospace;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen items-center justify-center">
+
+    <div class="timer-bar">
+        <div class="timer-fill" id="timer"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="fixed top-8 left-8 flex gap-4 z-50">
+        <button onclick="history.back()" class="p-3 bg-white/10 rounded-full hover:bg-white/20 backdrop-blur">
+            <i data-lucide="arrow-left"></i>
+        </button>
+        <div>
+            <h1 class="text-xl font-bold text-white">Deductive Logic</h1>
+            <p class="text-xs text-blue-400 font-mono tracking-wider">ODD ONE OUT PROTOCOL</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="fixed top-8 right-8 text-right font-mono">
+        <div class="text-4xl font-bold text-white" id="score-disp">0</div>
+        <div class="text-sm text-gray-500">TIME: <span id="time-disp" class="text-white">60</span>s</div>
+    </div>
+
+    <div class="hint">Identify the outlier.</div>
+
+    <!-- Game -->
+    <div class="grid-stage" id="grid">
+        <!-- JS Injected -->
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        const TITLE = urlParams.get('title') || "Deductive Logic";
+
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let oddIndex = -1;
+
+        // Features
+        const SHAPES = ['circle', 'square', 'triangle', 'diamond']; // We can use Lucide icons
+        const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#eab308'];
+        // Lucide Icons mapping
+        const ICONS = ['circle', 'square', 'triangle', 'hexagon'];
+
+        function initGame() {
+            score = 0;
+            timeLeft = 60;
+            updateStats();
+            startTimer();
+            nextRound();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateStats();
+                document.getElementById('timer').style.width = (timeLeft / 60 * 100) + '%';
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishGame();
+                }
+            }, 1000);
+        }
+
+        function nextRound() {
+            // Logic: 9 items. 8 share common features. 1 has a diff feature.
+
+            // Pick Common Features
+            const commonShape = ICONS[Math.floor(Math.random() * ICONS.length)];
+            const commonColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+            // Pick Odd Feature Type (Shape or Color?)
+            const diffType = Math.random() > 0.5 ? 'SHAPE' : 'COLOR';
+
+            let oddShape = commonShape;
+            let oddColor = commonColor;
+
+            if (diffType === 'SHAPE') {
+                do { oddShape = ICONS[Math.floor(Math.random() * ICONS.length)]; } while (oddShape === commonShape);
+            } else {
+                do { oddColor = COLORS[Math.floor(Math.random() * COLORS.length)]; } while (oddColor === commonColor);
+            }
+
+            // Generate items
+            const items = [];
+            oddIndex = Math.floor(Math.random() * 9);
+
+            for (let i = 0; i < 9; i++) {
+                if (i === oddIndex) {
+                    items.push({ shape: oddShape, color: oddColor });
+                } else {
+                    items.push({ shape: commonShape, color: commonColor });
+                }
+            }
+
+            renderGrid(items);
+        }
+
+        function renderGrid(items) {
+            const el = document.getElementById('grid');
+            el.innerHTML = '';
+            items.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                // Icon
+                div.innerHTML = `<i data-lucide="${item.shape}" style="color: ${item.color}; width: 48px; height: 48px;"></i>`;
+                div.onclick = () => handleChoice(idx);
+                el.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function handleChoice(idx) {
+            if (idx === oddIndex) {
+                score += 15;
+                playSound('pop');
+            } else {
+                score = Math.max(0, score - 20);
+                playSound('error');
+            }
+            nextRound();
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('score-disp').innerText = score;
+            document.getElementById('time-disp').innerText = timeLeft;
+        }
+
+        function playSound(type) {
+            if (window.Kernel) {
+                if (type === 'pop') window.Kernel.audio.playTone(600, 'sine', 0.1);
+                if (type === 'error') window.Kernel.audio.playTone(150, 'sawtooth', 0.2);
+            }
+        }
+
+        function finishGame() {
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'LOGIC',
+                    score: score,
+                    metrics: { correct: score / 15 }
+                });
+            }
+            if (confirm(`Time's Up!\nScore: ${score}\n\nView Analytics?`)) {
+                window.location.href = 'report_global.html';
+            } else {
+                initGame();
+            }
+        }
+
+        initGame();
+
+    </script>
+</body>
+
+</html>

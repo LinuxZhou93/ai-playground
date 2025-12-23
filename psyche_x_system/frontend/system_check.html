@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Psyche-X System Diagnostics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/auth_manager.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #050505;
+            color: #fff;
+            font-family: monospace;
+            padding: 2rem;
+        }
+
+        .status {
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            border: 1px solid #333;
+            background: #111;
+        }
+
+        .pass {
+            color: #4ade80;
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .fail {
+            color: #f87171;
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .warn {
+            color: #fbbf24;
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="text-2xl font-bold mb-6 text-blue-500">PSYCHE-X DIAGNOSTICS MODULE</h1>
+
+    <div id="logs"></div>
+
+    <script>
+        const log = (msg, type = 'info') => {
+            const div = document.createElement('div');
+            div.className = 'status';
+            if (type === 'pass') div.classList.add('pass');
+            if (type === 'fail') div.classList.add('fail');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('logs').appendChild(div);
+        };
+
+        async function runDiagnostics() {
+            log("Initializing System Check...", 'info');
+
+            // 1. Check Dependencies
+            if (window.supabase && window.DataClient && window.AuthManager) {
+                log("✔ Libraries Loaded", 'pass');
+            } else {
+                log("✖ Critical Libraries Missing", 'fail');
+                return;
+            }
+
+            // 2. Check Auth Session
+            const session = AuthManager.getSession();
+            if (session && session.user) {
+                log(`✔ Valid Local Session Detected (User: ${session.user.email})`, 'pass');
+            } else {
+                log("⚠ No Active Session found. Please Login first.", 'fail');
+                log("Redirecting to login in 3 seconds...", 'warn');
+                setTimeout(() => window.location.href = 'login.html?redirect=system_check.html', 3000);
+                return;
+            }
+
+            // 3. Test Supabase Connectivity
+            if (DataClient.useCloud) {
+                try {
+                    const { count, error } = await DataClient.supabase
+                        .from('profiles')
+                        .select('*', { count: 'exact', head: true });
+
+                    if (error) throw error;
+                    log(`✔ Supabase Connection OK (Ping Successful)`, 'pass');
+                } catch (e) {
+                    log(`✖ Supabase Connection Failed: ${e.message}`, 'fail');
+                }
+            } else {
+                log("⚠ Cloud Mode is OFF (Using LocalStorage Only)", 'warn');
+            }
+
+            // 4. Verification Test: Write & Read
+            log("Running Data Consistency Test...", 'info');
+            const testId = 'TEST-' + Math.floor(Math.random() * 10000);
+
+            try {
+                // Submit
+                const result = await DataManager.submitResult({
+                    title: 'System Diagnostic',
+                    domain: 'LOGIC',
+                    score: 999,
+                    metrics: { test_id: testId },
+                    difficulty: 'Hard'
+                });
+                log(`✔ Write Operation: Record ${testId} submitted locally.`, 'pass');
+
+                // Wait for sync (if cloud)
+                if (DataClient.useCloud) {
+                    log("Verifying Cloud Sync (Waiting 2s)...", 'info');
+                    await new Promise(r => setTimeout(r, 2000));
+
+                    const history = await DataClient.getHistory();
+                    const found = history.find(h => h.metrics && h.metrics.test_id === testId);
+
+                    if (found) {
+                        log(`✔ Read Operation: Record ${testId} verified from Cloud!`, 'pass');
+                    } else {
+                        log(`✖ Read Operation: Record ${testId} NOT found in Cloud (Sync Issue or RLS).`, 'fail');
+                    }
+                }
+
+            } catch (e) {
+                log(`✖ Data Test Error: ${e.message}`, 'fail');
+            }
+
+            log("DIAGNOSTICS COMPLETE", 'info');
+        }
+
+        runDiagnostics();
+    </script>
+</body>
+
+</html>

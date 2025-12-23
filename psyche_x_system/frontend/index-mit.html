@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | MIT Cognitive & Learning Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="mit-theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="lang.js"></script>
+</head>
+
+<body>
+    <!-- MIT Header -->
+    <div class="mit-header">
+        <div>
+            <div class="mit-logo">MIT</div>
+            <div style="font-size: 0.75rem; color: #666;">Cognitive & Learning Lab</div>
+        </div>
+        <div class="lab-title">
+            <div id="institution-name">Psyche-X Cognitive Training Platform</div>
+            <button class="lang-switch" onclick="toggleLang()" id="lang-btn">中文</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Login Panel -->
+        <div id="login-panel" class="panel">
+            <h1 id="title">PSYCHE-X</h1>
+            <p id="subtitle">Dual N-Back Cognitive Training</p>
+
+            <!-- Tutorial -->
+            <div class="tutorial">
+                <h3 id="tutorial-title">How to Play</h3>
+                <ol id="tutorial-steps">
+                    <li>Watch the grid - a square will light up</li>
+                    <li>Listen to the letter being spoken</li>
+                    <li>Press 'A' if current POSITION matches N steps back</li>
+                    <li>Press 'L' if current LETTER matches N steps back</li>
+                    <li>You can press both keys if both match</li>
+                </ol>
+            </div>
+
+            <div style="margin: 30px 0;">
+                <input type="text" id="agent-name" placeholder="Participant ID"
+                    style="padding: 12px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; width: 250px;">
+                <br><br>
+                <button onclick="Game.init()" id="init-btn"
+                    style="font-size: 1.1rem; padding: 15px 40px;">START</button>
+            </div>
+            <div id="status-msg" style="margin-top: 15px; color: #666; font-size: 0.9rem;">SYSTEM READY</div>
+        </div>
+
+        <!-- Game UI -->
+        <div id="game-ui" class="panel hidden">
+            <div style="display: flex; justify-content: space-around; margin-bottom: 30px;">
+                <div>
+                    <div style="font-size: 0.8rem; color: #999;" id="protocol-label">PROTOCOL</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #0066CC;">DUAL-N</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: #999;" id="score-label">SCORE</div>
+                    <div style="font-size: 1.5rem; font-weight: bold;" id="score">0</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: #999;" id="load-label">Level</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #A31F34;" id="level-display">2-Back</div>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="cell" id="c0"></div>
+                <div class="cell" id="c1"></div>
+                <div class="cell" id="c2"></div>
+                <div class="cell" id="c3"></div>
+                <div class="cell" id="c4"></div>
+                <div class="cell" id="c5"></div>
+                <div class="cell" id="c6"></div>
+                <div class="cell" id="c7"></div>
+                <div class="cell" id="c8"></div>
+            </div>
+
+            <div id="feedback" style="font-size: 2rem; font-weight: bold; margin: 20px 0; min-height: 40px;"></div>
+
+            <div class="controls" style="margin-top: 30px;">
+                <div style="display: flex; gap: 40px; justify-content: center;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #0066CC; font-weight: bold;">A</div>
+                        <div id="pos-match-label" style="font-size: 0.9rem; color: #666;">POSITION MATCH</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; color: #0066CC; font-weight: bold;">L</div>
+                        <div id="audio-match-label" style="font-size: 0.9rem; color: #666;">AUDIO MATCH</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div id="results-panel" class="panel hidden">
+            <h2 id="complete-title">SESSION COMPLETE</h2>
+            <div style="font-size: 3rem; font-weight: bold; color: #0066CC; margin: 20px 0;">
+                <span id="final-score">0</span>
+            </div>
+            <div style="width: 500px; height: 250px; margin: 30px auto;">
+                <canvas id="grade-chart"></canvas>
+            </div>
+            <button onclick="Game.upload()" id="btn-upload">SUBMIT DATA</button>
+            <button onclick="Game.showReport()" class="secondary" id="btn-report">VIEW REPORT</button>
+            <button onclick="location.reload()" class="secondary" id="btn-restart">NEW SESSION</button>
+        </div>
+
+        <!-- Report Panel -->
+        <div id="report-panel" class="panel hidden">
+            <h2 id="report-title">COGNITIVE ASSESSMENT REPORT</h2>
+            <div id="report-summary" style="margin: 20px 0; line-height: 1.8; color: #666;"></div>
+
+            <div style="width: 500px; height: 400px; margin: 30px auto;">
+                <canvas id="radar-chart"></canvas>
+            </div>
+
+            <div id="grades-display" style="display: flex; justify-content: space-around; margin: 30px 0;"></div>
+
+            <div id="recommendations" style="text-align: left; max-width: 700px; margin: 30px auto; line-height: 1.8;">
+            </div>
+
+            <button onclick="Game.backToResults()" class="secondary">BACK</button>
+            <button onclick="location.reload()">NEW SESSION</button>
+        </div>
+    </div>
+
+    <!-- Consent Footer -->
+    <div class="consent-footer" id="consent-footer">
+        By participating, you consent to data collection for research purposes. |
+        Supported by MIT Cognitive & Learning Lab
+    </div>
+
+    <script>
+        // Initialize language
+        const currentLang = getCurrentLang();
+
+        function toggleLang() {
+            const newLang = currentLang === 'en' ? 'zh' : 'en';
+            setLanguage(newLang);
+        }
+
+        function updateUI() {
+            document.getElementById('title').innerText = t('title');
+            document.getElementById('subtitle').innerText = t('subtitle');
+            document.getElementById('tutorial-title').innerText = t('tutorialTitle');
+
+            const steps = t('tutorialSteps');
+            const ol = document.getElementById('tutorial-steps');
+            ol.innerHTML = '';
+            steps.forEach(step => {
+                const li = document.createElement('li');
+                li.innerText = step;
+                ol.appendChild(li);
+            });
+
+            document.getElementById('agent-name').placeholder = t('callsign');
+            document.getElementById('init-btn').innerText = t('initialize');
+            document.getElementById('protocol-label').innerText = t('protocol');
+            document.getElementById('score-label').innerText = t('score');
+            document.getElementById('load-label').innerText = t('load');
+            document.getElementById('pos-match-label').innerText = t('posMatch');
+            document.getElementById('audio-match-label').innerText = t('audioMatch');
+            document.getElementById('complete-title').innerText = t('complete');
+            document.getElementById('btn-upload').innerText = t('upload');
+            document.getElementById('btn-report').innerText = t('viewReport');
+            document.getElementById('btn-restart').innerText = t('restart');
+            document.getElementById('report-title').innerText = t('reportTitle');
+            document.getElementById('consent-footer').innerHTML = t('consent') + ' | ' + t('institution');
+            document.getElementById('lang-btn').innerText = currentLang === 'en' ? '中文' : 'English';
+        }
+
+        updateUI();
+    </script>
+
+    <script src="game.js"></script>
+    <script>
+        // Update level display
+        const originalAdaptiveLevel = Game.adaptiveLevel;
+        Game.adaptiveLevel = function () {
+            originalAdaptiveLevel.call(this);
+            document.getElementById('level-display').innerText = `${this.nLevel}-Back`;
+        };
+    </script>
+</body>
+
+</html>

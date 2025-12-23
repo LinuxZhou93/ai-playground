@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Reaction Time</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .phase-wait {
+            background-color: #ce2636;
+            color: white;
+            cursor: pointer;
+        }
+
+        .phase-click {
+            background-color: #4bdb6a;
+            color: white;
+            cursor: pointer;
+        }
+
+        .phase-result {
+            background-color: #2b87d1;
+            color: white;
+            cursor: pointer;
+        }
+
+        .phase-early {
+            background-color: #fce83a;
+            color: black;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col">
+
+    <div id="game-area"
+        class="flex-1 flex flex-col items-center justify-center p-8 transition-colors duration-100 phase-result"
+        onclick="handleClick()">
+
+        <div class="fixed top-8 left-8 flex gap-4 z-10">
+            <button onclick="event.stopPropagation(); history.back()"
+                class="p-3 bg-white/10 rounded-full hover:bg-white/20"><i data-lucide="arrow-left"></i></button>
+        </div>
+
+        <h1 class="text-6xl font-black mb-4 pointer-events-none text-center" id="main-text">Reaction Time</h1>
+        <p class="text-2xl opacity-80 pointer-events-none text-center" id="sub-text">Click anywhere to start.</p>
+
+        <div class="absolute bottom-10 font-mono opacity-50 pointer-events-none">
+            TRY <span id="try-count">0</span>/5
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        const TITLE = urlParams.get('title') || "Reaction Time Benchmark";
+
+        const state = {
+            phase: 'start', // start, waiting, early, click, result, done
+            startTime: 0,
+            timeout: null,
+            times: []
+        };
+
+        const ui = {
+            area: document.getElementById('game-area'),
+            main: document.getElementById('main-text'),
+            sub: document.getElementById('sub-text'),
+            count: document.getElementById('try-count')
+        };
+
+        function setPhase(phase) {
+            state.phase = phase;
+            ui.area.className = `flex-1 flex flex-col items-center justify-center p-8 transition-colors duration-100 phase-${phase}`;
+
+            if (phase === 'wait') {
+                ui.main.innerText = "Wait for Green";
+                ui.sub.innerText = "...";
+                const delay = 1500 + Math.random() * 3000;
+                state.timeout = setTimeout(() => setPhase('click'), delay);
+            } else if (phase === 'click') {
+                state.startTime = performance.now();
+                ui.main.innerText = "CLICK!";
+                ui.sub.innerText = "";
+            } else if (phase === 'early') {
+                clearTimeout(state.timeout);
+                ui.main.innerText = "Too Soon!";
+                ui.sub.innerText = "Click to try again.";
+            }
+        }
+
+        function handleClick() {
+            if (state.phase === 'start' || state.phase === 'result' || state.phase === 'early') {
+                if (state.times.length >= 5) {
+                    finishSession();
+                    return;
+                }
+                setPhase('wait');
+            } else if (state.phase === 'wait') {
+                setPhase('early');
+            } else if (state.phase === 'click') {
+                const time = Math.round(performance.now() - state.startTime);
+                state.times.push(time);
+                ui.count.innerText = state.times.length;
+
+                ui.main.innerText = `${time} ms`;
+
+                if (state.times.length >= 5) {
+                    ui.sub.innerText = "Session Complete. Saving...";
+                    setPhase('result');
+                    // Auto-finish to ensure data capture
+                    setTimeout(finishSession, 800);
+                } else {
+                    ui.sub.innerText = "Click to keep going.";
+                    setPhase('result');
+                }
+            }
+        }
+
+        function finishSession() {
+            const avg = Math.round(state.times.reduce((a, b) => a + b, 0) / state.times.length);
+            const finalScore = Math.max(0, 1000 - avg);
+
+            let rankData = { current: { name: 'NOVICE' }, progress: 0 };
+            let xpGained = Math.min(100, Math.round(finalScore / 10));
+
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'PERCEPTION',
+                    score: finalScore,
+                    metrics: { avgMs: avg }
+                });
+                rankData = window.DataManager.getRank();
+            }
+
+            // Show Unified Debrief
+            if (window.Kernel && window.Kernel.ui) {
+                window.Kernel.ui.showMissionDebrief({
+                    title: "REACTION TIME",
+                    score: finalScore,
+                    xp: xpGained,
+                    accuracy: "100",
+                    rank: rankData,
+                    highscore: 900 // Mock highscore for now
+                });
+            } else {
+                if (confirm(`Benchmark Complete: ${avg} ms\n\nView Analytics?`)) {
+                    window.location.href = 'report_global.html';
+                }
+            }
+        }
+
+    </script>
+</body>
+
+</html>

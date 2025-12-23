@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Visual Search | Psyche-X™</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: sans-serif;
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .tile {
+            width: 60px;
+            height: 60px;
+            background: #1e293b;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .tile:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold mb-2">Visual Search</h1>
+        <p class="text-gray-400">Find the unique item as fast as possible.</p>
+        <div class="mt-4 text-xl font-mono text-blue-400">Score: <span id="score">0</span> | Time: <span
+                id="time">30</span>s</div>
+    </div>
+
+    <div id="game-area" class="grid-container">
+        <!-- Grid Generated Here -->
+    </div>
+
+    <div id="start-btn" class="absolute inset-0 bg-black/80 flex items-center justify-center">
+        <button onclick="startGame()" class="bg-blue-600 px-8 py-3 rounded text-xl font-bold hover:bg-blue-500">Start
+            Game</button>
+    </div>
+
+    <script>
+        let score = 0;
+        let timeLeft = 30;
+        let timerInterval;
+
+        const TARGETS = [
+            { normal: 'O', odd: '0' },
+            { normal: '6', odd: '9' },
+            { normal: 'E', odd: 'F' },
+            { normal: 'Q', odd: 'O' },
+            { normal: 'M', odd: 'W' },
+            { normal: 'Xx', odd: 'X' } // Simple shape diff sim
+        ];
+
+        function startGame() {
+            document.getElementById('start-btn').classList.add('hidden');
+            score = 0;
+            timeLeft = 30;
+            updateHUD();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateHUD();
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+            nextRound();
+        }
+
+        function updateHUD() {
+            document.getElementById('score').innerText = score;
+            document.getElementById('time').innerText = timeLeft;
+        }
+
+        function nextRound() {
+            const gridEl = document.getElementById('game-area');
+            gridEl.innerHTML = '';
+
+            // Difficulty scaling
+            const size = Math.min(8, 3 + Math.floor(score / 3)); // Grid grows 3x3 -> 8x8
+            gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+
+            const pair = TARGETS[Math.floor(Math.random() * TARGETS.length)];
+            const total = size * size;
+            const targetIdx = Math.floor(Math.random() * total);
+
+            for (let i = 0; i < total; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile text-gray-300';
+                if (i === targetIdx) {
+                    tile.innerText = pair.odd;
+                    tile.onclick = () => { score++; nextRound(); };
+                } else {
+                    tile.innerText = pair.normal;
+                    // Penalty for clicking wrong?
+                    tile.onclick = () => { timeLeft -= 2; updateHUD(); tile.classList.add('bg-red-900'); };
+                }
+                gridEl.appendChild(tile);
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            alert(`Time's up! Final Score: ${score}`);
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>

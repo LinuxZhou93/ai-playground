@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 神经数据库 - 存储用户核心数据与题库
+  db:
+    image: postgres:15-alpine
+    container_name: psyche_x_db
+    restart: always
+    environment:
+      POSTGRES_USER: iron_wind
+      POSTGRES_PASSWORD: secure_password_123
+      POSTGRES_DB: psyche_x_core
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 快速缓存 - 用于 Session 与 实时状态
+  redis:
+    image: redis:7-alpine
+    container_name: psyche_x_cache
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # 后端服务
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: psyche_x_api
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgresql://iron_wind:secure_password_123@db:5432/psyche_x_core
+
+volumes:
+  postgres_data:

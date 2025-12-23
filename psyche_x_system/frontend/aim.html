@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Aim Trainer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        .target {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 20%, #ef4444 30%, #ef4444 60%, transparent 62%);
+            cursor: pointer;
+            transition: transform 0.05s;
+        }
+
+        .target:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen relative">
+
+    <div class="fixed top-8 left-8 flex gap-4 pointer-events-none">
+        <div class="p-3 bg-white/10 rounded-full"><i data-lucide="crosshair"></i></div>
+        <div>
+            <h1 class="text-xl font-bold" id="title-text">Aim Trainer</h1>
+            <p class="text-xs text-gray-500">REMAINING: <span id="count">30</span></p>
+        </div>
+    </div>
+
+    <!-- Start Overlay -->
+    <div id="overlay" class="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div class="text-center cursor-default">
+            <h1 class="text-4xl font-black mb-4">PRECISION</h1>
+            <button onclick="startGame()"
+                class="px-8 py-3 bg-white text-black font-bold rounded-full hover:scale-110 transition">START</button>
+        </div>
+    </div>
+
+    <div id="game-area" class="absolute inset-0"></div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        const TITLE = urlParams.get('title') || "Aim Trainer";
+        document.getElementById('title-text').innerText = decodeURIComponent(TITLE);
+
+        const TOTAL_TARGETS = 30;
+        let remaining = TOTAL_TARGETS;
+        let startTime = 0;
+        let combo = 0; // Current streak
+        let maxCombo = 0;
+        let score = 0;
+
+        function startGame() {
+            document.getElementById('overlay').classList.add('hidden');
+            document.getElementById('game-area').innerHTML = ''; // Clear old debris
+
+            remaining = TOTAL_TARGETS;
+            combo = 0;
+            score = 0;
+            updateUI();
+
+            startTime = performance.now();
+            spawnTarget();
+
+            // Background click listener for misses
+            document.getElementById('game-area').onclick = (e) => {
+                if (e.target.id === 'game-area') {
+                    // Miss
+                    combo = 0;
+                    if (window.Kernel) window.Kernel.audio.playTone(150, 'sawtooth', 0.2); // Error Buzz
+                    updateUI();
+                    showFloatText(e.clientX, e.clientY, "MISS", "red");
+                }
+            };
+        }
+
+        function updateUI() {
+            document.getElementById('count').innerText = remaining;
+            // Maybe add combo UI later if needed, for now just logic
+        }
+
+        function spawnTarget() {
+            if (remaining <= 0) {
+                finish();
+                return;
+            }
+
+            const area = document.getElementById('game-area');
+            const t = document.createElement('div');
+            t.className = 'target';
+
+            // Dynamic Difficulty: Smaller as combo increases
+            const size = Math.max(20, 50 - (combo * 2));
+            t.style.width = size + 'px';
+            t.style.height = size + 'px';
+
+            // Random Pos (Padding)
+            const x = 50 + Math.random() * (window.innerWidth - 100);
+            const y = 50 + Math.random() * (window.innerHeight - 100);
+
+            t.style.left = x + 'px';
+            t.style.top = y + 'px';
+
+            t.onmousedown = (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Prevent bg click
+
+                // Hit Logic
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                remaining--;
+
+                // Audio: Pitch scales up with combo
+                if (window.Kernel) {
+                    const freq = 400 + (combo * 50);
+                    window.Kernel.audio.playTone(Math.min(freq, 1200), 'sine', 0.1);
+                }
+
+                // VFX
+                t.style.transform = "scale(1.5)";
+                t.style.opacity = "0";
+
+                showFloatText(x, y, combo > 1 ? `${combo}x` : "HIT", "#4ade80");
+
+                setTimeout(() => t.remove(), 100);
+
+                updateUI();
+                spawnTarget();
+            };
+
+            area.appendChild(t);
+        }
+
+        function showFloatText(x, y, text, color) {
+            const el = document.createElement('div');
+            el.innerText = text;
+            el.style.position = 'absolute';
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            el.style.color = color;
+            el.style.fontWeight = 'bold';
+            el.style.fontSize = '1.5rem';
+            el.style.pointerEvents = 'none';
+            el.style.transition = 'all 0.5s ease-out';
+            el.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
+
+            document.body.appendChild(el);
+
+            // Animate
+            requestAnimationFrame(() => {
+                el.style.transform = 'translateY(-50px) scale(1.2)';
+                el.style.opacity = '0';
+            });
+
+            setTimeout(() => el.remove(), 500);
+        }
+
+        function finish() {
+            const endTime = performance.now();
+            const timeTaken = (endTime - startTime) / 1000; // in seconds
+            const avg = timeTaken / TOTAL_TARGETS * 1000; // ms per target
+
+            // Calculate score based on time and combo
+            score = Math.max(0, Math.round(10000 / avg + (maxCombo * 50)));
+
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'AIM',
+                    score: score,
+                    metrics: {
+                        timeTaken: timeTaken,
+                        avgTimePerTarget: avg,
+                        maxCombo: maxCombo
+                    }
+                });
+            }
+
+            if (window.Kernel && window.Kernel.ui) {
+                window.Kernel.ui.showMissionDebrief({
+                    title: TITLE.toUpperCase(),
+                    score: Math.max(0, 1000 - avg + (maxCombo * 10)),
+                    xp: 120,
+                    accuracy: 100, // Aim trainer is 100% hits if finished
+                    rank: window.DataManager.getRank(),
+                    highscore: 1500
+                });
+            } else {
+                if (confirm(`Average: ${avg} ms\nMax Combo: ${maxCombo}\n\nView Analytics?`)) {
+                    window.location.href = 'report_global.html';
+                } else {
+                    location.reload();
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

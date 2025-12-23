@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Feature Match</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .panel-container {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .grid-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            width: 300px;
+            height: 300px;
+        }
+
+        .icon-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-choice {
+            padding: 1rem 3rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            border-radius: 16px;
+            transition: all 0.1s;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            width: 200px;
+        }
+
+        .btn-yes {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border-color: #059669;
+        }
+
+        .btn-yes:hover {
+            background: rgba(16, 185, 129, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-no {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border-color: #b91c1c;
+        }
+
+        .btn-no:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: #eab308;
+            width: 100%;
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen items-center justify-center">
+
+    <div class="timer-bar">
+        <div class="timer-fill" id="timer"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="fixed top-8 left-8 flex gap-4 z-50">
+        <button onclick="history.back()" class="p-3 bg-white/10 rounded-full hover:bg-white/20 backdrop-blur">
+            <i data-lucide="arrow-left"></i>
+        </button>
+        <div>
+            <h1 class="text-xl font-bold text-white">Feature Match</h1>
+            <p class="text-xs text-yellow-400 font-mono tracking-wider">ATTENTION PROTOCOL</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="fixed top-8 right-8 text-right font-mono">
+        <div class="text-4xl font-bold text-white" id="score-disp">0</div>
+        <div class="text-sm text-gray-500">TIME: <span id="time-disp" class="text-white">60</span>s</div>
+    </div>
+
+    <!-- Game -->
+    <div class="panel-container">
+        <div class="grid-panel" id="grid-left"></div>
+        <div class="grid-panel" id="grid-right"></div>
+    </div>
+
+    <div class="flex gap-8">
+        <button class="btn-choice btn-yes" onclick="handleChoice(true)">MATCH</button>
+        <button class="btn-choice btn-no" onclick="handleChoice(false)">MISMATCH</button>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        const TITLE = urlParams.get('title') || "Feature Match";
+
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let isMatch = false;
+
+        const ICONS = ['activity', 'anchor', 'aperture', 'archive', 'award', 'box', 'briefcase', 'camera', 'cast', 'circle', 'cloud', 'code', 'coffee', 'cpu', 'disc', 'droplet', 'eye', 'feather', 'flag', 'globe', 'hash', 'heart', 'home', 'image', 'key', 'layers', 'layout', 'life-buoy', 'link', 'lock', 'mail', 'map', 'mic', 'moon', 'music', 'package', 'pen-tool', 'phone', 'pie-chart', 'play', 'power', 'printer', 'radio', 'refresh-cw', 'save', 'scissors', 'search', 'server', 'settings', 'share', 'shield', 'shopping-bag', 'shopping-cart', 'shuffle', 'sidebar', 'slash', 'sliders', 'smartphone', 'smile', 'speaker', 'star', 'sun', 'sunrise', 'sunset', 'tablet', 'tag', 'target', 'terminal', 'thermometer', 'thumbs-up', 'toggle-left', 'toggle-right', 'tool', 'trash-2', 'trello', 'trending-up', 'triangle', 'truck', 'tv', 'twitch', 'twitter', 'type', 'umbrella', 'underline', 'unlock', 'upload', 'upload-cloud', 'user', 'user-check', 'user-minus', 'user-plus', 'user-x', 'users', 'video', 'voicemail', 'volume', 'volume-1', 'volume-2', 'volume-x', 'watch', 'wifi', 'wifi-off', 'wind', 'x', 'x-circle', 'x-octagon', 'x-square', 'youtube', 'zap', 'zap-off', 'zoom-in', 'zoom-out'];
+
+        function initGame() {
+            score = 0;
+            timeLeft = 60;
+            updateStats();
+            startTimer();
+            nextRound();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateStats();
+                document.getElementById('timer').style.width = (timeLeft / 60 * 100) + '%';
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishGame();
+                }
+            }, 1000);
+        }
+
+        function nextRound() {
+            // Generate Grid 1
+            const items = [];
+            for (let i = 0; i < 16; i++) {
+                items.push(ICONS[Math.floor(Math.random() * ICONS.length)]);
+            }
+
+            // Decide Match
+            isMatch = Math.random() > 0.5;
+
+            // Generate Grid 2
+            const items2 = [...items];
+            if (!isMatch) {
+                // Change one icon
+                const idx = Math.floor(Math.random() * 16);
+                let newIcon;
+                do { newIcon = ICONS[Math.floor(Math.random() * ICONS.length)]; } while (newIcon === items[idx]);
+                items2[idx] = newIcon;
+            }
+
+            renderGrid('grid-left', items);
+            renderGrid('grid-right', items2);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderGrid(id, items) {
+            const el = document.getElementById(id);
+            el.innerHTML = '';
+            items.forEach(icon => {
+                const div = document.createElement('div');
+                div.className = 'icon-cell';
+                div.innerHTML = `<i data-lucide="${icon}" class="w-8 h-8 text-gray-300"></i>`;
+                el.appendChild(div);
+            });
+        }
+
+        function handleChoice(userSaysMatch) {
+            if (userSaysMatch === isMatch) {
+                score += 15;
+                playSound('pop');
+            } else {
+                score = Math.max(0, score - 20);
+                playSound('error');
+            }
+            nextRound();
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('score-disp').innerText = score;
+            document.getElementById('time-disp').innerText = timeLeft;
+        }
+
+        function playSound(type) {
+            if (window.Kernel) {
+                if (type === 'pop') window.Kernel.audio.playTone(600, 'sine', 0.1);
+                if (type === 'error') window.Kernel.audio.playTone(150, 'sawtooth', 0.2);
+            }
+        }
+
+        function finishGame() {
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'ATTENTION',
+                    score: score,
+                    metrics: { correct: score / 15 }
+                });
+            }
+            if (confirm(`Time's Up!\nScore: ${score}\n\nView Analytics?`)) {
+                window.location.href = 'report_global.html';
+            } else {
+                initGame();
+            }
+        }
+
+        initGame();
+
+    </script>
+</body>
+
+</html>

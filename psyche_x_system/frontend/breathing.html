@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Meditation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #breathe-circle {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(96, 165, 250, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
+            border: 2px solid rgba(96, 165, 250, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            letter-spacing: 0.2em;
+            box-shadow: 0 0 50px rgba(59, 130, 246, 0.3);
+            transform: scale(0.5);
+        }
+
+        .instruction {
+            position: absolute;
+            bottom: 100px;
+            font-size: 0.9rem;
+            color: #aaa;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white font-inter flex flex-col items-center justify-center min-h-screen">
+
+    <div class="fixed top-8 left-8 flex gap-4">
+        <button onclick="history.back()" class="p-3 bg-white/10 rounded-full hover:bg-white/20"><i
+                data-lucide="arrow-left"></i></button>
+    </div>
+
+    <div class="fixed top-8 right-8">
+        <button onclick="finishSession()"
+            class="px-6 py-2 bg-blue-600 rounded-full text-sm font-bold hover:bg-blue-500 transition">FINISH
+            SESSION</button>
+    </div>
+
+    <h1 id="breath-title" class="absolute top-24 text-2xl font-bold tracking-widest opacity-50">RESONANCE BREATH</h1>
+
+    <div id="breathe-circle">INHALE</div>
+    <div class="instruction" id="status-text">Synchronize your breath</div>
+
+    <div class="fixed bottom-10 font-mono text-gray-500" id="timer">00:00</div>
+
+    <script>
+        lucide.createIcons();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const INHALE = parseInt(urlParams.get('in')) || 4;
+        const HOLD = parseInt(urlParams.get('hold')) || 7;
+        const EXHALE = parseInt(urlParams.get('out')) || 8;
+        const TITLE = urlParams.get('title') || "Resonance Breath";
+
+        document.getElementById('breath-title').innerText = decodeURIComponent(TITLE);
+
+        const circle = document.getElementById('breathe-circle');
+        const status = document.getElementById('status-text');
+
+        let startTime = Date.now();
+        let active = true;
+
+        setInterval(() => {
+            if (!active) return;
+            const diff = Math.floor((Date.now() - startTime) / 1000);
+            const m = Math.floor(diff / 60).toString().padStart(2, '0');
+            const s = (diff % 60).toString().padStart(2, '0');
+            document.getElementById('timer').innerText = `${m}:${s}`;
+        }, 1000);
+
+        function runCycle() {
+            if (!active) return;
+            // Inhale
+            circle.innerText = "INHALE";
+            status.innerText = `Breathe in for ${INHALE}s`;
+            gsap.to(circle, { duration: INHALE, scale: 1.2, opacity: 1, ease: "power1.inOut" });
+
+            setTimeout(() => {
+                if (!active) return;
+                // Hold
+                circle.innerText = "HOLD";
+                status.innerText = `Hold for ${HOLD}s`;
+
+                setTimeout(() => {
+                    if (!active) return;
+                    // Exhale
+                    circle.innerText = "EXHALE";
+                    status.innerText = `Release for ${EXHALE}s`;
+                    gsap.to(circle, { duration: EXHALE, scale: 0.5, opacity: 0.6, ease: "power1.inOut" });
+
+                    setTimeout(runCycle, EXHALE * 1000);
+                }, HOLD * 1000);
+
+            }, INHALE * 1000);
+        }
+
+        function finishSession() {
+            active = false;
+            const durationSec = Math.floor((Date.now() - startTime) / 1000);
+
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'RELAX',
+                    score: durationSec, // Score is duration
+                    metrics: { duration: durationSec }
+                });
+            }
+
+            if (confirm(`Session Complete: ${Math.floor(durationSec / 60)}m ${durationSec % 60}s\n\nLog this session?`)) {
+                window.location.href = 'report_global.html';
+            } else {
+                window.history.back();
+            }
+        }
+
+        setTimeout(runCycle, 1000);
+
+    </script>
+</body>
+
+</html>

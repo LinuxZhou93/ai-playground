@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Double Trouble</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .stroop-stage {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            align-items: center;
+            margin-bottom: 4rem;
+        }
+
+        .word-card {
+            font-size: 5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .instruction {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-weight: bold;
+        }
+
+        .highlight {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .btn-choice {
+            padding: 1.5rem 4rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            border-radius: 16px;
+            transition: all 0.1s;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            min-width: 220px;
+        }
+
+        .btn-match {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border-color: #2563eb;
+        }
+
+        .btn-match:hover {
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-mismatch {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border-color: #b91c1c;
+        }
+
+        .btn-mismatch:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: #ec4899;
+            width: 100%;
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen items-center justify-center">
+
+    <div class="timer-bar">
+        <div class="timer-fill" id="timer"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="fixed top-8 left-8 flex gap-4 z-50">
+        <button onclick="history.back()" class="p-3 bg-white/10 rounded-full hover:bg-white/20 backdrop-blur">
+            <i data-lucide="arrow-left"></i>
+        </button>
+        <div>
+            <h1 class="text-xl font-bold text-white">Double Trouble</h1>
+            <p class="text-xs text-pink-500 font-mono tracking-wider">INHIBITION PROTOCOL</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="fixed top-8 right-8 text-right font-mono">
+        <div class="text-4xl font-bold text-white" id="score-disp">0</div>
+        <div class="text-sm text-gray-500">TIME: <span id="time-disp" class="text-white">90</span>s</div>
+    </div>
+
+    <!-- Game -->
+    <div class="instruction">
+        Does Top <span class="highlight">COLOR</span> match Bottom <span class="highlight">TEXT</span>?
+    </div>
+
+    <div class="stroop-stage">
+        <div class="word-card" id="word-top">RED</div>
+        <div class="word-card" id="word-bot">BLUE</div>
+    </div>
+
+    <div class="flex gap-8">
+        <button class="btn-choice btn-match" onclick="handleChoice(true)">MATCH</button>
+        <button class="btn-choice btn-mismatch" onclick="handleChoice(false)">MISMATCH</button>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        const TITLE = urlParams.get('title') || "Double Trouble";
+
+        let score = 0;
+        let timeLeft = 90;
+        let timerInterval;
+        let isMatch = false;
+
+        const COLORS = [
+            { text: 'RED', hex: '#ef4444' },
+            { text: 'BLUE', hex: '#3b82f6' },
+            { text: 'GREEN', hex: '#22c55e' }
+        ];
+
+        function initGame() {
+            score = 0;
+            timeLeft = 90;
+            updateStats();
+            startTimer();
+            nextRound();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateStats();
+                document.getElementById('timer').style.width = (timeLeft / 90 * 100) + '%';
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishGame();
+                }
+            }, 1000);
+        }
+
+        function nextRound() {
+            isMatch = Math.random() > 0.5;
+            const topColorObj = COLORS[Math.floor(Math.random() * COLORS.length)];
+            let bottomTextObj;
+            if (isMatch) {
+                bottomTextObj = topColorObj;
+            } else {
+                do {
+                    bottomTextObj = COLORS[Math.floor(Math.random() * COLORS.length)];
+                } while (bottomTextObj.text === topColorObj.text);
+            }
+            const topTextObj = COLORS[Math.floor(Math.random() * COLORS.length)];
+            const bottomColorObj = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+            const topEl = document.getElementById('word-top');
+            const botEl = document.getElementById('word-bot');
+
+            topEl.innerText = topTextObj.text;
+            topEl.style.color = topColorObj.hex;
+
+            botEl.innerText = bottomTextObj.text;
+            botEl.style.color = bottomColorObj.hex;
+        }
+
+        function handleChoice(userSaysMatch) {
+            if (userSaysMatch === isMatch) {
+                score += 15;
+                playSound('pop');
+            } else {
+                score = Math.max(0, score - 20);
+                playSound('error');
+            }
+            nextRound();
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('score-disp').innerText = score;
+            document.getElementById('time-disp').innerText = timeLeft;
+        }
+
+        function playSound(type) {
+            if (window.Kernel) {
+                if (type === 'pop') window.Kernel.audio.playTone(800, 'square', 0.05);
+                if (type === 'error') window.Kernel.audio.playTone(150, 'sawtooth', 0.2);
+            }
+        }
+
+        function finishGame() {
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'ATTENTION',
+                    score: score,
+                    metrics: { correct: score / 15 }
+                });
+            }
+            if (confirm(`Time's Up!\nScore: ${score}\n\nView Analytics?`)) {
+                window.location.href = 'report_global.html';
+            } else {
+                initGame();
+            }
+        }
+
+        setTimeout(initGame, 100);
+
+    </script>
+</body>
+
+</html>

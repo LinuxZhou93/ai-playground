@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSYCHE-X | DUAL N-BACK</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
+    <style>
+        /* CSS INJECTION */
+        :root {
+            --bg-color: #050505;
+            --primary: #00f3ff;
+            --secondary: #ff0055;
+            --surface: #111;
+            --grid-line: #222;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary);
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .glitch {
+            font-size: 4rem;
+            font-weight: 800;
+            position: relative;
+            text-shadow: 2px 2px var(--secondary);
+        }
+
+        .panel {
+            text-align: center;
+            background: rgba(10, 10, 10, 0.9);
+            padding: 40px;
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        input {
+            background: #000;
+            border: 1px solid #333;
+            color: white;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 1.2rem;
+            width: 200px;
+            text-align: center;
+        }
+
+        button {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 10px;
+        }
+
+        button:hover {
+            background: white;
+            box-shadow: 0 0 15px white;
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        /* Game Grid */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 8px;
+            margin: 40px 0;
+        }
+
+        .cell {
+            background: var(--surface);
+            border: 1px solid var(--grid-line);
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .cell.active {
+            background: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+            transform: scale(0.95);
+            border-color: #fff;
+        }
+
+        /* HUD */
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            width: 320px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-box .label {
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .stat-box .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Feedback */
+        #feedback {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 5rem;
+            font-weight: 800;
+            pointer-events: none;
+            text-shadow: 0 0 10px black;
+        }
+
+        .feedback-hit {
+            color: var(--primary);
+        }
+
+        .feedback-miss {
+            color: var(--secondary);
+        }
+
+        .highlight {
+            color: var(--secondary);
+        }
+
+        .key-hint {
+            font-size: 0.8rem;
+            color: #888;
+            text-align: center;
+        }
+
+        .key-hint div {
+            font-size: 1.5rem;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            margin: 0 auto 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Login Panel -->
+        <div id="login-panel" class="panel">
+            <h1 class="glitch" data-text="PSYCHE-X">PSYCHE-X</h1>
+            <p>DUAL COGNITIVE PROTOCOL</p>
+            <div class="input-group">
+                <input type="text" id="agent-name" placeholder="CALLSIGN" value="Agent">
+                <button onclick="Game.init()">INITIALIZE</button>
+            </div>
+            <div id="status-msg" class="status">SYSTEM STANDBY</div>
+        </div>
+
+        <!-- Game HUD -->
+        <div id="game-ui" class="hidden">
+            <div class="hud-top">
+                <div class="stat-box">
+                    <span class="label">PROTOCOL</span>
+                    <span class="value">DUAL-N</span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">SCORE</span>
+                    <span class="value" id="score">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">Load</span>
+                    <span class="value">2-Level</span>
+                </div>
+            </div>
+
+            <!-- The Matrix -->
+            <div class="grid-container">
+                <div class="cell" id="c0"></div>
+                <div class="cell" id="c1"></div>
+                <div class="cell" id="c2"></div>
+                <div class="cell" id="c3"></div>
+                <div class="cell" id="c4"></div>
+                <div class="cell" id="c5"></div>
+                <div class="cell" id="c6"></div>
+                <div class="cell" id="c7"></div>
+                <div class="cell" id="c8"></div>
+            </div>
+
+            <!-- Feedback Overlay -->
+            <div id="feedback" class=""></div>
+
+            <div class="hud-bottom">
+                <div class="controls">
+                    <!-- JS will populate -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div id="results-panel" class="panel hidden">
+            <h2>SEQUENCE COMPLETE</h2>
+            <div class="final-score">SCORE: <span id="final-score">0</span></div>
+            <button onclick="Game.upload()" id="btn-upload">UPLOAD TO CORE</button>
+            <button onclick="location.reload()" class="secondary">RESTART</button>
+        </div>
+    </div>
+
+    <script>
+        // API Route fix for standalone file
+        const API_PREFIX = "http://127.0.0.1:8000/api"; // Assuming backend uses /api prefix now? Let's check main.py
+        // Actually main.py uses root /users/ and /exam/submit without /api prefix in the last edit.
+        // Wait, let's just use relative paths if hosted, or absolute if standalone.
+        // Since we open this file via file://, we need absolute URL.
+
+        const Game = {
+            apiBase: "http://127.0.0.1:8000",
+            nLevel: 2,
+            trials: 20,
+            duration: 2500, // slower for dual task
+            letters: ['C', 'H', 'K', 'L', 'Q', 'R', 'S', 'T'],
+
+            // State
+            isRunning: false,
+            score: 0,
+            currentTrial: 0,
+            stream: [],
+            userId: null,
+
+            // Input State (per trial)
+            inputState: {
+                posInput: false,
+                audioInput: false,
+                posMatch: false,
+                audioMatch: false
+            },
+
+            // --- AUDIO SYSTEM ---
+            speak: function (char) {
+                if (!window.speechSynthesis) return;
+                const u = new SpeechSynthesisUtterance(char);
+                u.rate = 1.2;
+                u.pitch = 1.0;
+                u.lang = 'en-US';
+                window.speechSynthesis.speak(u);
+            },
+
+            // --- CORE LOGIC ---
+            init: async function () {
+                // Unlock Audio Context
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance("System Initialized");
+                    u.volume = 0.5;
+                    window.speechSynthesis.speak(u);
+                }
+
+                const name = document.getElementById('agent-name').value;
+                const btn = document.querySelector('#login-panel button');
+                btn.innerText = "INITIALIZING CORE...";
+
+                try {
+                    // Register
+                    const res = await fetch(`${this.apiBase}/users/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: name + "_" + Math.floor(Math.random() * 9999),
+                            email: `${name.toLowerCase()}@psyche.io`,
+                            password: "pwd"
+                        })
+                    });
+                    const data = await res.json();
+                    this.userId = data.id || 1;
+
+                    // Switch Scene
+                    document.getElementById('login-panel').classList.add('hidden');
+                    document.getElementById('game-ui').classList.remove('hidden');
+
+                    // Warmup Audio
+                    this.speak("");
+                    this.start();
+                } catch (e) {
+                    console.warn("Offline");
+                    document.getElementById('login-panel').classList.add('hidden');
+                    document.getElementById('game-ui').classList.remove('hidden');
+                    this.userId = 999;
+                    this.start();
+                }
+            },
+
+            start: function () {
+                this.isRunning = true;
+                this.score = 0;
+                this.currentTrial = 0;
+
+                // Update UI info
+                const controlsDiv = document.querySelector('.controls');
+                controlsDiv.innerHTML = `
+                <div style="display:flex; gap:20px; justify-content:center;">
+                    <div class="key-hint"><div>A</div>POSITION MATCH</div>
+                    <div class="key-hint"><div>L</div>AUDIO MATCH</div>
+                </div>
+            `;
+
+                this.generateStream();
+                this.updateHUD();
+                this.loop();
+
+                window.onkeydown = (e) => {
+                    if (!this.isRunning) return;
+                    const code = e.code;
+                    if (code === 'KeyA') this.registerInput('position');
+                    if (code === 'KeyL') this.registerInput('audio');
+                };
+            },
+
+            generateStream: function () {
+                this.stream = [];
+                for (let i = 0; i < this.trials; i++) {
+                    let pos = Math.floor(Math.random() * 9);
+                    let charIndex = Math.floor(Math.random() * this.letters.length);
+
+                    // N-Back Logic (30% chance each)
+                    if (i >= this.nLevel) {
+                        if (Math.random() < 0.3) pos = this.stream[i - this.nLevel].pos;
+                        if (Math.random() < 0.3) charIndex = this.stream[i - this.nLevel].charIndex;
+                    }
+
+                    this.stream.push({
+                        pos: pos,
+                        charIndex: charIndex,
+                        char: this.letters[charIndex]
+                    });
+                }
+            },
+
+            loop: function () {
+                if (!this.isRunning) return;
+                if (this.currentTrial >= this.trials) {
+                    this.end();
+                    return;
+                }
+
+                this.inputState = { posInput: false, audioInput: false, posMatch: false, audioMatch: false };
+                this.clearFeedback();
+
+                const trial = this.stream[this.currentTrial];
+
+                if (this.currentTrial >= this.nLevel) {
+                    const prev = this.stream[this.currentTrial - this.nLevel];
+                    if (trial.pos === prev.pos) this.inputState.posMatch = true;
+                    if (trial.charIndex === prev.charIndex) this.inputState.audioMatch = true;
+                }
+
+                this.activateCell(trial.pos);
+                this.speak(trial.char);
+
+                // Timeline
+                setTimeout(() => {
+                    this.deactivateCell(trial.pos);
+                    this.evaluateTrial();
+                    setTimeout(() => {
+                        this.currentTrial++;
+                        this.updateHUD();
+                        this.loop();
+                    }, 500);
+                }, 2000);
+            },
+
+            registerInput: function (type) {
+                if (type === 'position' && !this.inputState.posInput) {
+                    this.inputState.posInput = true;
+                    this.showFeedback("POS LOGGED", "blue");
+                }
+                if (type === 'audio' && !this.inputState.audioInput) {
+                    this.inputState.audioInput = true;
+                    this.showFeedback("AUDIO LOGGED", "purple");
+                }
+            },
+
+            evaluateTrial: function () {
+                if (this.inputState.posMatch) {
+                    if (this.inputState.posInput) this.score += 10;
+                    else this.score -= 5;
+                } else {
+                    if (this.inputState.posInput) this.score -= 5;
+                }
+
+                if (this.inputState.audioMatch) {
+                    if (this.inputState.audioInput) this.score += 10;
+                    else this.score -= 5;
+                } else {
+                    if (this.inputState.audioInput) this.score -= 5;
+                }
+            },
+
+            activateCell: function (idx) { document.getElementById('c' + idx).classList.add('active'); },
+            deactivateCell: function (idx) { document.getElementById('c' + idx).classList.remove('active'); },
+
+            showFeedback: function (text, color) {
+                const el = document.getElementById('feedback');
+                el.innerText = text;
+                el.style.color = color || "white";
+                el.style.opacity = 1;
+            },
+
+            clearFeedback: function () {
+                document.getElementById('feedback').style.opacity = 0;
+            },
+
+            updateHUD: function () { document.getElementById('score').innerText = this.score; },
+
+            end: function () {
+                this.isRunning = false;
+                document.getElementById('game-ui').classList.add('hidden');
+                document.getElementById('results-panel').classList.remove('hidden');
+                document.getElementById('final-score').innerText = this.score;
+                window.onkeydown = null;
+            },
+
+            upload: async function () {
+                const btn = document.getElementById('btn-upload');
+                btn.innerText = "UPLOADING...";
+                try {
+                    const res = await fetch(`${this.apiBase}/exam/submit?user_id=${this.userId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            task_type: "dual-n-back",
+                            raw_data: { score: this.score, trials: [] }
+                        })
+                    });
+                    if (res.ok) {
+                        btn.innerText = "UPLOAD SUCCESS";
+                        btn.style.background = "#0f0";
+                    }
+                } catch (e) {
+                    btn.innerText = "FAILED";
+                    btn.style.background = "red";
+                }
+            }
+        };
+    </script>
+</body>
+
+</html>

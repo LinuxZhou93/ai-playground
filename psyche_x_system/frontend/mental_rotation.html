@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Mental Rotation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .rotation-stage {
+            display: flex;
+            gap: 4rem;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+        }
+
+        .shape-panel {
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shape-svg {
+            width: 180px;
+            height: 180px;
+            filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.4));
+            transition: transform 0.3s;
+        }
+
+        .btn-choice {
+            padding: 1.5rem 3rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            border-radius: 16px;
+            transition: all 0.1s;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            min-width: 200px;
+        }
+
+        .btn-match {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border-color: #059669;
+        }
+
+        .btn-match:hover {
+            background: rgba(16, 185, 129, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-mirror {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border-color: #b91c1c;
+        }
+
+        .btn-mirror:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: #a855f7;
+            width: 100%;
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen items-center justify-center">
+
+    <div class="timer-bar">
+        <div class="timer-fill" id="timer"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="fixed top-8 left-8 flex gap-4 z-50">
+        <button onclick="history.back()" class="p-3 bg-white/10 rounded-full hover:bg-white/20 backdrop-blur">
+            <i data-lucide="arrow-left"></i>
+        </button>
+        <div>
+            <h1 class="text-xl font-bold text-white">Mental Rotation</h1>
+            <p class="text-xs text-purple-400 font-mono tracking-wider">SPATIAL PROTOCOL</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="fixed top-8 right-8 text-right font-mono">
+        <div class="text-4xl font-bold text-white" id="score-disp">0</div>
+        <div class="text-sm text-gray-500">TIME: <span id="time-disp" class="text-white">60</span>s</div>
+    </div>
+
+    <!-- Game -->
+    <div class="rotation-stage">
+        <div class="shape-panel" id="panel-left"></div>
+        <div class="shape-panel" id="panel-right"></div>
+    </div>
+
+    <div class="flex gap-8">
+        <button class="btn-choice btn-match" onclick="handleChoice(true)">MATCH</button>
+        <button class="btn-choice btn-mirror" onclick="handleChoice(false)">MIRROR</button>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        const TITLE = urlParams.get('title') || "Mental Rotation";
+
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let isMatch = false;
+
+        // Simple Polyomino-like paths
+        const SHAPES = [
+            'M 10 10 H 90 V 50 H 50 V 90 H 10 Z', // L-shape
+            'M 10 10 H 50 V 50 H 90 V 90 H 50 V 50 H 10 Z', // T-shape equivalentish
+            'M 10 50 H 50 V 10 H 90 V 50 H 130 V 90 H 90 V 50 H 50 V 90 H 10 Z', // Cross
+            'M 10 90 V 50 H 50 V 10 H 90 V 50 H 130 V 90 H 10 Z', // Tetris T
+            'M 10 10 H 50 V 90 H 90 V 10 H 130 V 130 H 10 Z', // U-shape
+            'M 10 10 H 130 L 90 50 H 50 L 10 10 Z' // Trapezoid
+        ];
+
+        const COLORS = ['#a855f7', '#3b82f6', '#10b981', '#ef4444', '#eab308'];
+
+        function initGame() {
+            score = 0;
+            timeLeft = 60;
+            updateStats();
+            startTimer();
+            nextRound();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateStats();
+                document.getElementById('timer').style.width = (timeLeft / 60 * 100) + '%';
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishGame();
+                }
+            }, 1000);
+        }
+
+        function nextRound() {
+            // 1. Pick Shape
+            const pathData = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+            // 2. Decide Match or Mirror
+            isMatch = Math.random() > 0.5;
+
+            // 3. Transformations
+            // Left: Base Rotation (0-360)
+            const rotLeft = Math.floor(Math.random() * 4) * 90;
+
+            // Right: 
+            // If Match: rotLeft + random rotation
+            // If Mirror: Flip X, then random rotation
+            let rotRight = (Math.floor(Math.random() * 4) * 90);
+
+            // We implement transformations via CSS transform on the SVG
+            // But wait, "Mirror" means ScaleX(-1).
+
+            // Render Left
+            renderShape('panel-left', pathData, color, rotLeft, 1);
+
+            // Render Right
+            const scaleX = isMatch ? 1 : -1;
+            renderShape('panel-right', pathData, color, rotRight, scaleX);
+        }
+
+        function renderShape(id, path, color, rotation, scaleX) {
+            const el = document.getElementById(id);
+            // We use a container for rotation/scale
+            // Center the path? The paths are fixed coord roughly 0-100 zone.
+            // ViewBox 0 0 140 140 covers most.
+
+            // Transform logic:
+            // rotation is simple rotate(deg).
+            // scaleX is scale(1, 1) or scale(-1, 1).
+            // Combine: transform="rotate(R) scale(S, 1)" center?
+            // CSS transform-origin is center.
+
+            const transform = `rotate(${rotation}deg) scale(${scaleX}, 1)`;
+
+            el.innerHTML = `
+                <svg viewBox="0 0 140 140" class="shape-svg" style="transform: ${transform}; fill: ${color}; stroke: rgba(255,255,255,0.5); stroke-width: 2;">
+                    <path d="${path}" />
+                </svg>
+            `;
+        }
+
+        function handleChoice(userSaysMatch) {
+            if (userSaysMatch === isMatch) {
+                score += 15;
+                playSound('pop');
+            } else {
+                score = Math.max(0, score - 20);
+                playSound('error');
+            }
+            nextRound();
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('score-disp').innerText = score;
+            document.getElementById('time-disp').innerText = timeLeft;
+        }
+
+        function playSound(type) {
+            if (window.Kernel) {
+                if (type === 'pop') window.Kernel.audio.playTone(600, 'sine', 0.1);
+                if (type === 'error') window.Kernel.audio.playTone(150, 'sawtooth', 0.2);
+            }
+        }
+
+        function finishGame() {
+            const finalScore = score;
+            let rankData = { current: { name: 'INITIATE' }, progress: 0 };
+
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'LOGIC',
+                    score: finalScore,
+                    metrics: { correct: score / 15 }
+                });
+                rankData = window.DataManager.getRank();
+            }
+
+            if (window.Kernel && window.Kernel.ui) {
+                window.Kernel.ui.showMissionDebrief({
+                    title: "MENTAL ROTATION",
+                    score: finalScore,
+                    xp: 100,
+                    accuracy: 100,
+                    rank: rankData,
+                    highscore: 1200
+                });
+            } else {
+                if (confirm(`Time's Up!\nScore: ${score}\n\nView Analytics?`)) {
+                    window.location.href = 'report_global.html';
+                } else {
+                    initGame();
+                }
+            }
+        }
+
+        initGame();
+
+    </script>
+</body>
+
+</html>

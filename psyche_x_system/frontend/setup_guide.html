@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X : Backend Initialization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        .sql-block {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            white-space: pre;
+            color: #7ee787;
+        }
+
+        .btn {
+            background: #238636;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            background: #2ea043;
+        }
+
+        .step-num {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: #30363d;
+            border-radius: 50%;
+            font-size: 12px;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+
+        .guide-link {
+            color: #58a6ff;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+        }
+
+        .guide-link:hover {
+            border-color: #58a6ff;
+        }
+    </style>
+</head>
+
+<body class="p-8 max-w-4xl mx-auto">
+
+    <div class="mb-8 border-b border-gray-800 pb-4 flex items-center gap-4">
+        <i data-lucide="database" class="w-8 h-8 text-blue-400"></i>
+        <div>
+            <h1 class="text-2xl font-bold text-white">Psyche-X Backend Setup</h1>
+            <p class="text-xs text-gray-500 mt-1">Initialize Supabase Database Schema</p>
+        </div>
+    </div>
+
+    <div class="space-y-8">
+        <!-- Message -->
+        <div class="bg-yellow-900/20 border border-yellow-700/50 p-4 rounded text-sm text-yellow-200">
+            <div class="flex gap-2">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                <div>
+                    <strong>Local Environment Limitation Detected</strong><br>
+                    Node.js was not found in your terminal execution path. To ensure a 100% successful deployment, we
+                    will perform a manual SQL injection via the Supabase Dashboard.
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1 -->
+        <div>
+            <div class="flex items-center mb-4">
+                <span class="step-num">1</span>
+                <h2 class="text-lg font-bold">Copy SQL Schema</h2>
+            </div>
+            <p class="mb-4 text-sm text-gray-400">Click the button below to copy the complete database initialisation
+                script to your clipboard.</p>
+
+            <div class="relative group">
+                <div id="sql-content"
+                    class="sql-block text-xs h-64 overflow-y-auto mb-2 opacity-80 group-hover:opacity-100 transition">
+                    create table public.profiles (
+                    id uuid references auth.users not null primary key,
+                    username text unique,
+                    tier text default 'FREE',
+                    avatar_url text,
+                    xp_total bigint default 0,
+                    updated_at timestamp with time zone default timezone('utc'::text, now())
+                    );
+                    alter table public.profiles enable row level security;
+                    create policy "Public profiles are viewable by everyone." on public.profiles for select using
+                    (true);
+                    create policy "Users can insert their own profile." on public.profiles for insert with check
+                    (auth.uid() = id);
+                    create policy "Users can update own profile." on public.profiles for update using (auth.uid() = id);
+
+                    create table public.game_results (
+                    id uuid default uuid_generate_v4() primary key,
+                    user_id uuid references public.profiles(id) not null,
+                    game_title text not null,
+                    game_domain text not null,
+                    score int not null,
+                    metrics jsonb,
+                    created_at timestamp with time zone default timezone('utc'::text, now())
+                    );
+                    alter table public.game_results enable row level security;
+                    create policy "Users can upload own results" on public.game_results for insert with check
+                    (auth.uid() = user_id);
+                    create policy "Users view own results" on public.game_results for select using (auth.uid() =
+                    user_id);
+
+                    create table public.licenses (
+                    code text primary key,
+                    plan_type text not null,
+                    status text default 'Active',
+                    created_at timestamp with time zone default timezone('utc'::text, now()),
+                    redeemed_by uuid references public.profiles(id),
+                    redeemed_at timestamp with time zone
+                    );
+                    alter table public.licenses enable row level security;
+                    create policy "View active licenses" on public.licenses for select using (status = 'Active');
+                    create policy "Redeem license" on public.licenses for update using (status = 'Active') with check
+                    (status = 'Redeemed');
+
+                    create or replace function public.handle_new_user() returns trigger as $$
+                    begin
+                    insert into public.profiles (id, username, tier)
+                    values (new.id, new.raw_user_meta_data->>'username', 'FREE');
+                    return new;
+                    end;
+                    $$ language plpgsql security definer;
+
+                    create trigger on_auth_user_created after insert on auth.users for each row execute procedure
+                    public.handle_new_user();</div>
+
+                <button onclick="copySQL()" class="btn w-full justify-center py-3">
+                    <i data-lucide="copy"></i> Copy SQL to Clipboard
+                </button>
+            </div>
+            <div id="copy-msg" class="text-green-400 text-xs mt-2 hidden text-center font-bold">✅ Copied to clipboard!
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div>
+            <div class="flex items-center mb-4">
+                <span class="step-num">2</span>
+                <h2 class="text-lg font-bold">Execute in Dashboard</h2>
+            </div>
+            <p class="mb-4 text-sm text-gray-400">
+                Open the Supabase SQL Editor for your project <span
+                    class="bg-gray-800 px-1 rounded font-mono text-xs">mucdbfmxweuminwljlyr</span>.
+            </p>
+            <a href="https://supabase.com/dashboard/project/mucdbfmxweuminwljlyr/sql/new" target="_blank"
+                class="block bg-[#161b22] border border-[#30363d] p-4 rounded hover:bg-[#1f242c] transition flex justify-between items-center group">
+                <div>
+                    <span class="font-bold text-white">Open SQL Editor</span>
+                    <span class="block text-xs text-gray-500 mt-1">External Link &nearr;</span>
+                </div>
+                <i data-lucide="external-link" class="w-5 h-5 text-gray-500 group-hover:text-white transition"></i>
+            </a>
+            <div class="mt-4 text-xs text-gray-400 bg-black/30 p-3 rounded">
+                <strong>Instructions:</strong><br>
+                1. Paste the code into the editor.<br>
+                2. Click the green <strong>"Run"</strong> button.<br>
+                3. Wait for "Success" message.
+            </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div>
+            <div class="flex items-center mb-4">
+                <span class="step-num">3</span>
+                <h2 class="text-lg font-bold">Verification</h2>
+            </div>
+            <p class="text-sm text-gray-400 mb-4">Once executed, you can return to the Hub.</p>
+            <a href="hub.html" class="btn bg-blue-600 hover:bg-blue-500 w-full justify-center">
+                Launch Psyche-X Hub
+            </a>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function copySQL() {
+            const sql = document.getElementById('sql-content').innerText;
+            navigator.clipboard.writeText(sql).then(() => {
+                document.getElementById('copy-msg').classList.remove('hidden');
+                setTimeout(() => document.getElementById('copy-msg').classList.add('hidden'), 3000);
+            });
+        }
+    </script>
+</body>
+
+</html>

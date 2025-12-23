@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Access Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/auth_manager.js"></script>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .bg-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08), transparent 25%);
+            z-index: 0;
+        }
+
+        /* Grid Pattern */
+        .bg-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
+
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-field {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(37, 99, 235, 0.5);
+        }
+
+        .tab-btn {
+            color: #94a3b8;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+
+    <div class="glass-panel w-full max-w-md p-8 rounded-2xl relative z-10 animate-fade-in-up">
+
+        <!-- Language Switcher -->
+        <div class="absolute top-4 right-4 flex gap-2 text-[10px] font-bold text-gray-400">
+            <button onclick="setLanguage('EN')" class="lang-btn hover:text-white transition" id="btn-en">EN</button>
+            <span class="opacity-30">|</span>
+            <button onclick="setLanguage('CN')" class="lang-btn hover:text-white transition" id="btn-cn">CN</button>
+        </div>
+
+        <!-- Header -->
+        <div class="mb-8 text-center">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <i data-lucide="brain-circuit" class="w-8 h-8 text-blue-500"></i>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight" data-i18n="title">Psyche-X System</h1>
+            <p class="text-xs text-gray-500 font-mono mt-1" data-i18n="subtitle">SECURE NEURAL INTERFACE</p>
+        </div>
+
+        <!-- Msg -->
+        <div id="msg-box" class="hidden mb-4 p-3 rounded-lg text-sm text-center"></div>
+
+        <!-- Tabs -->
+        <div class="flex mb-6 border-b border-white/10">
+            <button class="tab-btn active w-1/2 pb-3 font-medium text-sm" onclick="switchTab('login')"
+                data-i18n="tab_login">IDENTIFY</button>
+            <button class="tab-btn w-1/2 pb-3 font-medium text-sm" onclick="switchTab('register')"
+                data-i18n="tab_register">INITIALIZE</button>
+        </div>
+
+        <!-- Form -->
+        <form id="auth-form" onsubmit="handleAuth(event)">
+
+            <div id="field-username" class="mb-4 hidden">
+                <label class="block text-xs text-gray-400 font-mono mb-1" data-i18n="label_codename">CODENAME</label>
+                <div class="relative">
+                    <i data-lucide="user" class="absolute left-3 top-3 w-4 h-4 text-gray-500"></i>
+                    <input type="text" id="username" class="input-field w-full rounded-lg py-2.5 pl-10 pr-4 text-sm"
+                        placeholder="e.g. Neo">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs text-gray-400 font-mono mb-1" data-i18n="label_email">EMAIL</label>
+                <div class="relative">
+                    <i data-lucide="mail" class="absolute left-3 top-3 w-4 h-4 text-gray-500"></i>
+                    <input type="email" id="email" class="input-field w-full rounded-lg py-2.5 pl-10 pr-4 text-sm"
+                        placeholder="researcher@psyche-x.com" required>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-xs text-gray-400 font-mono mb-1" data-i18n="label_key">ACCESS KEY</label>
+                <div class="relative">
+                    <i data-lucide="lock" class="absolute left-3 top-3 w-4 h-4 text-gray-500"></i>
+                    <input type="password" id="password" class="input-field w-full rounded-lg py-2.5 pl-10 pr-4 text-sm"
+                        placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit"
+                class="btn-primary w-full py-3 rounded-lg font-bold text-sm tracking-wide flex items-center justify-center gap-2">
+                <span id="btn-text" data-i18n="btn_login">ESTABLISH LINK</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+
+        </form>
+
+        <div class="mt-6 text-center">
+            <p class="text-[10px] text-gray-600 font-mono" data-i18n="disclaimer">
+                BY ACCESSING THIS TERMINAL, YOU CONSENT TO<br>NEURAL DATA COLLECTION PROTOCOLS.
+            </p>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let mode = 'login'; // 'login' or 'register'
+        let currentLang = 'EN';
+
+        // Dictionary
+        const I18N = {
+            EN: {
+                title: "Psyche-X System",
+                subtitle: "SECURE NEURAL INTERFACE",
+                tab_login: "IDENTIFY",
+                tab_register: "INITIALIZE",
+                label_codename: "CODENAME",
+                label_email: "EMAIL",
+                label_key: "ACCESS KEY",
+                btn_login: "ESTABLISH LINK",
+                btn_register: "INITIALIZE SUBJECT",
+                disclaimer: "BY ACCESSING THIS TERMINAL, YOU CONSENT TO<br>NEURAL DATA COLLECTION PROTOCOLS."
+            },
+            CN: {
+                title: "Psyche-X 系统",
+                subtitle: "安全神经接口",
+                tab_login: "身份验证",
+                tab_register: "初始注册",
+                label_codename: "代号",
+                label_email: "电子邮箱",
+                label_key: "访问密钥",
+                btn_login: "建立连接",
+                btn_register: "初始化受试者",
+                disclaimer: "访问此终端即表示您同意<br>神经数据收集协议。"
+            }
+        };
+
+        // Check language persistence
+        if (localStorage.getItem('psyche_lang')) {
+            setLanguage(localStorage.getItem('psyche_lang'));
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('psyche_lang', lang);
+
+            // UI Toggle
+            document.getElementById('btn-en').style.color = lang === 'EN' ? '#fff' : '';
+            document.getElementById('btn-cn').style.color = lang === 'CN' ? '#fff' : '';
+
+            // Replace Text
+            const dict = I18N[lang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (key === 'btn_login' && mode === 'register') return; // Special handling for button text
+                if (dict[key]) el.innerHTML = dict[key];
+            });
+
+            // Re-sync button text
+            updateButtonText();
+        }
+
+        // Check if coming from redirect
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('redirect')) {
+            showMsg('Access Restricted. Login Required.', 'error');
+        }
+
+        function switchTab(newMode) {
+            mode = newMode;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (mode === 'login') {
+                document.querySelector('button[onclick="switchTab(\'login\')"]').classList.add('active');
+                document.getElementById('field-username').classList.add('hidden');
+            } else {
+                document.querySelector('button[onclick="switchTab(\'register\')"]').classList.add('active');
+                document.getElementById('field-username').classList.remove('hidden');
+            }
+            updateButtonText();
+        }
+
+        function updateButtonText() {
+            const dict = I18N[currentLang];
+            const btnText = document.getElementById('btn-text');
+            if (mode === 'login') {
+                btnText.innerText = dict.btn_login;
+            } else {
+                btnText.innerText = dict.btn_register;
+            }
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+
+            const btn = document.querySelector('button[type="submit"]');
+            const originalBtnText = document.getElementById('btn-text').innerText;
+            btn.disabled = true;
+            document.getElementById('btn-text').innerText = "PROCESSING...";
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value;
+            const am = window.AuthManager;
+
+            try {
+                if (mode === 'login') {
+                    // Added AWAIT
+                    const res = await am.login(email, password);
+                    if (res.success) {
+                        showMsg('Identity Verified. Redirecting...', 'success');
+                        setTimeout(() => {
+                            const r = params.get('redirect') || 'hub.html';
+                            window.location.href = r;
+                        }, 1000);
+                    } else {
+                        let msg = res.message;
+                        if (msg.includes('Database error')) {
+                            msg += (currentLang === 'CN' ? ' (系统维护中，请稍后再试)' : ' (System Maintenance)');
+                        } else if (msg.includes('Invalid login')) {
+                            msg = (currentLang === 'CN' ? '邮箱或密码错误' : 'Invalid email or password');
+                        }
+                        showMsg(msg, 'error');
+                        btn.disabled = false;
+                        document.getElementById('btn-text').innerText = originalBtnText;
+                    }
+                } else {
+                    // Added AWAIT
+                    const res = await am.register(email, password, username);
+                    if (res.success) {
+                        showMsg('User Initialized. Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'hub.html';
+                        }, 1000);
+                    } else {
+                        let msg = res.message;
+                        if (msg.includes('Database error') || msg.includes('unique constraint')) {
+                            msg += (currentLang === 'CN' ? ' (可能是代号已存在，请更换)' : ' (Username might be taken)');
+                        }
+                        showMsg(msg, 'error');
+                        btn.disabled = false;
+                        document.getElementById('btn-text').innerText = originalBtnText;
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                showMsg('System Error. Check Console.', 'error');
+                btn.disabled = false;
+                document.getElementById('btn-text').innerText = originalBtnText;
+            }
+        }
+
+        function showMsg(text, type) {
+            const el = document.getElementById('msg-box');
+            el.innerText = text;
+            el.classList.remove('hidden', 'bg-red-500/10', 'text-red-400', 'bg-green-500/10', 'text-green-400');
+
+            if (type === 'error') {
+                el.classList.add('bg-red-500/10', 'text-red-400');
+            } else {
+                el.classList.add('bg-green-500/10', 'text-green-400');
+            }
+            el.classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>

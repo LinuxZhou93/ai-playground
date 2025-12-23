@@ -16,6 +16,7 @@
     <script src="assets/js/subscription.js?v=2025.12.12"></script>
     <!-- <script src="assets/js/modules/auth-module.js"></script> -->
     <script src="assets/js/modules/sound-module.js"></script>
+    <script src="assets/js/news-data.js"></script>
 
     <!-- INLINE EMERGENCY HANDLER -->
     <!-- INLINE EMERGENCY HANDLER (DEVELOPER MODE) -->
@@ -274,7 +275,7 @@
             height: 100%;
             align-items: center;
             white-space: nowrap;
-            animation: marquee 80s linear infinite;
+            animation: marquee 180s linear infinite;
         }
 
         .news-item {
@@ -1058,9 +1059,12 @@
                         <!-- Badges injected via JS -->
                     </div>
                 </div>
-                <button class="plan-btn" style="background:var(--secondary); color:white; margin-top:auto;"
-                    onclick="handleProfileClick()">ACCOUNT
-                    CENTER</button>
+                <div class="row-btns" style="display:flex; gap:10px; margin-top:auto;">
+                    <button class="plan-btn" style="background:var(--secondary); color:white; flex:1;"
+                        onclick="handleProfileClick()">ACCOUNT CENTER</button>
+                    <button class="plan-btn" style="background:var(--primary); color:black; flex:1;"
+                        onclick="window.location.href='news.html'">TECH NEWS</button>
+                </div>
             </div>
         </div>
 
@@ -2060,7 +2064,13 @@
             <div class="dock-label">认知系统</div>
         </div>
 
-        <!-- 7. 学习中心 -->
+        <!-- 7. 学习方法 -->
+        <div class="dock-icon-box" onclick="location.href='study-methods.html'">
+            <div class="dock-icon-bg">🧠</div>
+            <div class="dock-label">学习方法</div>
+        </div>
+
+        <!-- 8. 学习中心 -->
         <div class="dock-icon-box" onclick="location.href='learn.html'">
             <div class="dock-icon-bg">🏫</div>
             <div class="dock-label">学习中心</div>
@@ -2292,115 +2302,57 @@
 
 
 
-        // --- DYNAMIC NEWS TICKER (SCIENTIFIC FRONTIERS) ---
-        async function initNewsTicker() {
-            const CACHE_KEY = 'science_news_cache_v2'; // Changed key to force refresh
-            const TIME_KEY = 'science_news_ts_v2';
-            const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 Hours
-
+        // --- DYNAMIC NEWS TICKER (TITAN NEWS) ---
+        function initNewsTicker() {
             const container = document.getElementById('news-ticker-content');
             if (!container) return;
 
             // Update Label
             const labelEl = document.querySelector('.news-label');
-            if (labelEl) labelEl.innerText = 'SCIENTIFIC FRONTIERS';
+            if (labelEl) labelEl.innerText = 'TEEN TECH NEWS';
 
-            // Fallback Data (Hardcore Science / National Equipment)
-            const fallbackNews = [
-                "嫦娥六号：人类首次月球背面采样返回任务取得圆满成功",
-                "中国“人造太阳”环流器 HL-3 再次刷新运行纪录，聚变能不再遥远",
-                "九章三号发布：中国量子计算原型机再次刷新世界纪录",
-                "深中通道正式通车，展示大国基建与智能制造最高水平",
-                "SpaceX 星舰第四次试飞成功，人类跨行星生存迈出关键一步",
-                "中国科学院发现新矿物“嫦娥石”，解读月球地质演化奥秘",
-                "C919 国产大飞机开启东南亚演示飞行，迈向国际市场",
-                "北斗系统再升级：下一代导航卫星将在精度上实现厘米级突破",
-                "我国深海载人潜水器“奋斗者”号完成万米深潜科考任务",
-                "华为发布“纯血鸿蒙” HarmonyOS NEXT，全栈自研底座正式商用",
-                "中国天眼 FAST 发现脉冲星数量突破 900 颗，持续领跑全球",
-                "Nature：AlphaFold 3 成功预测生物分子相互作用，药物研发迎来革命"
+            // Add click listener to whole ticker area
+            const tickerWrap = document.querySelector('.news-ticker-wrap');
+            if (tickerWrap) {
+                tickerWrap.style.cursor = 'pointer';
+                tickerWrap.title = 'Click to view full news';
+                tickerWrap.onclick = () => { window.location.href = 'news.html'; };
+            }
+
+            // Use data from news-data.js (TITAN_NEWS)
+            const newsItems = (typeof TITAN_NEWS !== 'undefined') ? TITAN_NEWS : [
+                { title: "月背科研新发现：嫦娥六号采集样本揭示月球地质演化奥秘", category: "科学发现" },
+                { title: "DeepSeek-V3 发布：打破大模型性能边界", category: "人工智能" }
             ];
 
-            async function fetchRealNews() {
-                try {
-                    // Using ScienceNet.cn (Scientific News) or Solidot for concise reliable tech/science
-                    // Attempting ScienceNet via RSS2JSON
-                    const rssUrl = 'http://www.sciencenet.cn/xml/news.aspx?news=0';
-                    // Backup: https://www.solidot.org/index.rss
-
-                    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
-                    const data = await res.json();
-
-                    if (data.status === 'ok' && data.items.length > 0) {
-                        return data.items.map(item => {
-                            // Clean title (ScienceNet sometimes has prefixes)
-                            return item.title.replace(/\[.*?\]/g, '').trim();
-                        });
-                    }
-                    throw new Error("News API failed");
-                } catch (e) {
-                    console.warn("News Fetch Failed, using fallback:", e);
-                    return null;
-                }
-            }
-
             function renderNews(items) {
-                // Shuffle slightly
-                const displayed = items.slice(0, 15);
                 let html = '';
-
-                // Helper to determine prefix
-                const getPrefix = (text) => {
-                    if (/嫦娥|空间|卫星|星舰|火箭|月球|火星|SpaceX/.test(text)) return '航天';
-                    if (/AI|GPT|智能|模型|Alpha|算法|DeepMind/.test(text)) return 'AI';
-                    if (/聚变|能源|电池|光伏|太阳|核电/.test(text)) return '能源';
-                    if (/量子|芯片|物理|超导|纠缠/.test(text)) return '硬核';
-                    if (/基建|大桥|铁路|隧道|大飞机|C919|航母/.test(text)) return '工程';
-                    if (/生物|基因|细胞|脑机|神经|Medicine/.test(text)) return '生命';
-                    return '前沿';
+                const getPrefix = (cat) => {
+                    const map = {
+                        '科学发现': '前沿',
+                        '人工智能': 'AI',
+                        '大国重器': '工程',
+                        '科技进步': '技术',
+                        '科技人物': '人物'
+                    };
+                    return map[cat] || '前方';
                 };
 
-                displayed.forEach(item => {
-                    const tag = getPrefix(item);
-                    // Cycle colors based on tag for variety
+                items.forEach(item => {
+                    const tag = getPrefix(item.category);
                     let color = 'var(--primary)';
-                    if (tag === '航天') color = '#3b82f6'; // Blue
-                    if (tag === 'AI') color = '#8b5cf6'; // Purple
-                    if (tag === '能源') color = '#f59e0b'; // Amber
-                    if (tag === '硬核') color = '#ef4444'; // Red
+                    if (tag === 'AI') color = '#8b5cf6';
+                    if (tag === '工程') color = '#f59e0b';
+                    if (tag === '人物') color = '#ef4444';
 
-                    html += `<div class="news-item"><span style="color:${color}; margin-right:8px; font-weight:bold;">[${tag}]</span> ${item}</div>`;
+                    html += `<div class="news-item"><span style="color:${color}; margin-right:8px; font-weight:bold;">[${tag}]</span> ${item.title}</div>`;
                 });
+
                 // Duplicate for infinite scroll
-                container.innerHTML = html + html;
+                container.innerHTML = html + html + html;
             }
 
-            // 1. Check Cache
-            const cachedData = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(TIME_KEY);
-            const now = Date.now();
-
-            let newsToDisplay = null;
-
-            if (cachedData && cachedTime && (now - parseInt(cachedTime) < CACHE_DURATION)) {
-                console.log("Using Cached Science News");
-                try { newsToDisplay = JSON.parse(cachedData); } catch (e) { }
-            }
-
-            // 2. Fetch if needed
-            if (!newsToDisplay) {
-                console.log("Fetching Fresh Science News...");
-                newsToDisplay = await fetchRealNews();
-
-                if (newsToDisplay) {
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(newsToDisplay));
-                    localStorage.setItem(TIME_KEY, now.toString());
-                } else {
-                    newsToDisplay = fallbackNews;
-                }
-            }
-
-            renderNews(newsToDisplay);
+            renderNews(newsItems);
         }
 
         // Init News on Load

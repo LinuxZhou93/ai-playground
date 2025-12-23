@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Schulte Grid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .schulte-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            width: 500px;
+            height: 500px;
+        }
+
+        .cell {
+            background: #111;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.1s;
+        }
+
+        .cell:hover {
+            background: #222;
+        }
+
+        .cell:active {
+            transform: scale(0.95);
+        }
+
+        .cell.correct {
+            background: #10b981;
+            color: black;
+            border-color: #10b981;
+        }
+
+        .cell.wrong {
+            background: #ef4444;
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen p-8">
+
+    <header class="flex justify-between items-center mb-8">
+        <div class="flex items-center gap-4">
+            <button onclick="history.back()" class="p-2 rounded-full hover:bg-white/10"><i
+                    data-lucide="arrow-left"></i></button>
+            <div>
+                <h1 class="text-2xl font-bold">Schulte Grid</h1>
+                <p class="text-xs text-gray-500 font-mono">PERIPHERAL VISION • SEEK 1-25</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <div class="text-3xl font-mono font-bold text-blue-400" id="timer">0.00</div>
+            <div class="text-xs text-gray-500">SECONDS</div>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-center">
+        <div class="schulte-grid" id="grid"></div>
+
+        <div id="overlay"
+            class="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-50">
+            <div class="text-6xl font-black mb-4" id="final-time">READY</div>
+            <button onclick="initGame()"
+                class="px-8 py-3 bg-white text-black rounded-full font-bold tracking-widest hover:scale-110 transition">START</button>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        let nextNum = 1;
+        let startTime = 0;
+        let timerInterval = null;
+        let isPlaying = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const SIZE = parseInt(urlParams.get('size')) || 5; // Default 5x5
+        const TOTAL_CELLS = SIZE * SIZE;
+        const TITLE = urlParams.get('title') || `Schulte Grid ${SIZE}x${SIZE}`;
+
+        // UPDATE HEADER
+        document.querySelector('h1').innerText = decodeURIComponent(TITLE);
+
+        function initGame() {
+            document.getElementById('overlay').classList.add('hidden');
+            nextNum = 1;
+            generateGrid();
+            startTime = performance.now();
+            isPlaying = true;
+            timerInterval = setInterval(updateTimer, 30);
+
+            // Adjust grid CSS
+            const grid = document.getElementById('grid');
+            grid.style.gridTemplateColumns = `repeat(${SIZE}, 1fr)`;
+        }
+
+        function generateGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            const nums = Array.from({ length: TOTAL_CELLS }, (_, i) => i + 1);
+
+            // Fisher-Yates Shuffle
+            for (let i = nums.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [nums[i], nums[j]] = [nums[j], nums[i]];
+            }
+
+            nums.forEach((n, idx) => {
+                const el = document.createElement('div');
+                el.className = 'cell';
+                if (SIZE > 6) el.style.fontSize = '1.2rem';
+
+                el.innerText = n;
+                el.onclick = () => handleClick(el, n);
+
+                // Entrance Animation
+                el.style.opacity = '0';
+                el.style.transform = 'scale(0.5)';
+                grid.appendChild(el);
+
+                // Staggered Fade In
+                setTimeout(() => {
+                    el.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    el.style.opacity = '1';
+                    el.style.transform = 'scale(1)';
+                }, idx * 20);
+            });
+        }
+
+        function handleClick(el, num) {
+            if (!isPlaying) return;
+
+            if (num === nextNum) {
+                // Correct
+                // BLIND MODE EFFECT: Fade out the correct number to declutter
+                // (Or if we want Hard Blind Mode, we could hide ALL numbers after N seconds, but "Disappearing" is a good step)
+                // Let's implement Disappearing for clarity
+
+                el.classList.add('correct'); // Highlights
+
+                // Add Ripple/Fade
+                el.style.transform = 'scale(1.1)';
+                el.style.opacity = '0.2'; // Fade out
+
+                if (window.Kernel) window.Kernel.audio.playTone(600 + (num * 20), 'sine', 0.1);
+
+                nextNum++;
+                if (nextNum > TOTAL_CELLS) {
+                    endGame();
+                }
+            } else {
+                // Wrong
+                el.classList.add('wrong');
+                // Shake Animation provided by CSS in future or keyframes, for now simple class add/remove
+                el.style.transform = 'translateX(5px)';
+                setTimeout(() => el.style.transform = 'translateX(-5px)', 50);
+                setTimeout(() => {
+                    el.classList.remove('wrong');
+                    el.style.transform = 'scale(1)';
+                }, 100);
+            }
+        }
+
+        function updateTimer() {
+            const t = (performance.now() - startTime) / 1000;
+            document.getElementById('timer').innerText = t.toFixed(2);
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            isPlaying = false;
+            const t = (performance.now() - startTime) / 1000;
+            const timeStr = t.toFixed(2);
+            document.getElementById('final-time').innerText = timeStr + 's';
+            document.getElementById('overlay').classList.remove('hidden');
+
+            const score = Math.max(0, 1000 - Math.round(t * 10));
+            let rankData = { current: { name: 'INITIATE' }, progress: 0 };
+
+            // Data Submit
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'PERCEPTION',
+                    score: score,
+                    metrics: { time: timeStr, size: SIZE }
+                });
+                rankData = window.DataManager.getRank();
+            }
+
+            if (window.Kernel && window.Kernel.ui) {
+                window.Kernel.ui.showMissionDebrief({
+                    title: "SCHULTE GRID",
+                    score: score,
+                    xp: 100,
+                    accuracy: 100,
+                    rank: rankData,
+                    highscore: 2000
+                });
+            } else {
+                setTimeout(() => {
+                    if (confirm(`Grid Cleared in ${timeStr}s\n\nView Analytics?`)) {
+                        window.location.href = 'report_global.html';
+                    }
+                }, 500);
+            }
+        }
+    </script>
+</body>
+
+</html>

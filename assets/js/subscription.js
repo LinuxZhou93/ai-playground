@@ -9,7 +9,8 @@ const SubscriptionManager = {
     FREE_PAGES: [
         'blog.html', 'post-4.html', 'post-6.html', 'competition-atlas.html',
         'subject-synergy.html', 'wiki.html', 'forum.html', 'index.html', 'profile.html',
-        'english.html', 'design.html', 'ai-art.html', 'music.html', 'fintech.html', '#', '/'
+        'english.html', 'design.html', 'ai-art.html', 'music.html', 'fintech.html',
+        'psyche_x_system/index.html', 'psyche_x_system/hub.html', '#', '/'
     ],
 
     init: async function () {

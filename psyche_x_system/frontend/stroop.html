@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Stroop Pro</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/jspsych.js"></script>
+    <script src="js/plugin-html-keyboard-response.js"></script>
+    <script src="js/plugin-html-button-response.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script> <!-- Keep for data submission -->
+
+    <link rel="stylesheet" href="css/jspsych.css">
+
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .jspsych-content-wrapper {
+            background-color: #000;
+        }
+
+        .stroop-word {
+            font-size: 6rem;
+            font-weight: 900;
+        }
+
+        .key-legend {
+            position: fixed;
+            bottom: 20px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            width: 100%;
+            opacity: 0.5;
+        }
+
+        .key-badge {
+            border: 1px solid #333;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="key-legend">
+        <div class="key-badge text-red-500">[R] RED</div>
+        <div class="key-badge text-green-500">[G] GREEN</div>
+        <div class="key-badge text-blue-500">[B] BLUE</div>
+        <div class="key-badge text-yellow-500">[Y] YELLOW</div>
+    </div>
+
+    <div id="jspsych-target"></div>
+
+    <script>
+        // CONFIG
+        const urlParams = new URLSearchParams(window.location.search);
+        const MODE = urlParams.get('mode') || 'normal';
+        const SPEED = urlParams.get('speed') === 'fast' ? 1000 : 2000;
+
+        const jsPsych = initJsPsych({
+            display_element: 'jspsych-target',
+            on_finish: function () {
+                // Submit Data
+                const data = jsPsych.data.get().filter({ task: 'response' });
+                const correct_trials = data.filter({ correct: true });
+                const accuracy = Math.round(correct_trials.count() / data.count() * 100);
+                const rt = Math.round(correct_trials.select('rt').mean());
+
+                const score = Math.max(0, 1000 - rt + (accuracy * 5));
+                let rankData = { current: { name: 'INITIATE' }, progress: 0 };
+
+                if (window.DataManager) {
+                    window.DataManager.submitResult({
+                        title: `Stroop (${MODE})`,
+                        domain: 'ATTENTION',
+                        score: score,
+                        metrics: { accuracy: accuracy, rt: rt }
+                    });
+                    rankData = window.DataManager.getRank();
+                }
+
+                if (window.Kernel && window.Kernel.ui) {
+                    window.Kernel.ui.showMissionDebrief({
+                        title: `STROOP PROTOCOL (${MODE.toUpperCase()})`,
+                        score: score,
+                        xp: Math.min(100, score / 10),
+                        accuracy: accuracy,
+                        rank: rankData,
+                        highscore: 1500
+                    });
+                } else {
+                    window.location.href = 'report_global.html';
+                }
+            }
+        });
+
+        // STIMULI
+        const colors = [
+            { word: 'RED', color: '#ef4444', key: 'r' },
+            { word: 'GREEN', color: '#22c55e', key: 'g' },
+            { word: 'BLUE', color: '#3b82f6', key: 'b' },
+            { word: 'YELLOW', color: '#eab308', key: 'y' }
+        ];
+
+        let timeline = [];
+
+        // Localize
+        const lang = new URLSearchParams(window.location.search).get('lang') || 'EN';
+        const txt = {
+            EN: { h1: "Stroop Protocol", p: "Respond to the **INK COLOR**, not the word.", btn: "BEGIN" },
+            CN: { h1: "Stroop 干扰测试", p: "请根据文字的 **墨水颜色** 作答，忽略文字本身的含义。", btn: "开始挑战" }
+        }[lang] || { h1: "Stroop Protocol", p: "Respond to the **INK COLOR**, not the word.", btn: "BEGIN" };
+
+        // Intro
+        timeline.push({
+            type: jsPsychHtmlButtonResponse,
+            stimulus: `<h1 class="text-4xl font-bold mb-4">${txt.h1}</h1><p>${txt.p}</p>`,
+            choices: [txt.btn]
+        });
+
+        // Loop
+        for (let i = 0; i < 20; i++) {
+            // Logic: Random Word, Random Ink
+            const w = colors[Math.floor(Math.random() * colors.length)];
+            const c = colors[Math.floor(Math.random() * colors.length)];
+
+            timeline.push({
+                type: jsPsychHtmlKeyboardResponse,
+                stimulus: `<div class="stroop-word" style="color: ${c.color}">${w.word}</div>`,
+                choices: ['r', 'g', 'b', 'y'],
+                trial_duration: SPEED,
+                data: {
+                    task: 'response',
+                    correct_response: c.key
+                },
+                on_finish: function (data) {
+                    data.correct = jsPsych.pluginAPI.compareKeys(data.response, data.correct_response);
+                }
+            });
+
+            // Fixation Cross
+            timeline.push({
+                type: jsPsychHtmlKeyboardResponse,
+                stimulus: '<div style="font-size:3rem; color:#333;">+</div>',
+                choices: "NO_KEYS",
+                trial_duration: 500
+            });
+        }
+
+        jsPsych.run(timeline);
+    </script>
+</body>
+
+</html>

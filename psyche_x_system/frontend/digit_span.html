@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Digit Span | Psyche-X™</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: sans-serif;
+            user-select: none;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col items-center justify-center h-screen">
+
+    <div id="game-ui" class="text-center">
+        <div class="text-6xl font-mono font-bold mb-8 h-24 flex items-center justify-center" id="display-area">
+            <!-- Digits appear here -->
+        </div>
+
+        <div id="input-area" class="hidden">
+            <p class="text-gray-400 mb-4">Enter the sequence:</p>
+            <div class="flex gap-2 justify-center mb-8" id="input-display"></div>
+
+            <div class="grid grid-cols-3 gap-2 w-64 mx-auto">
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(1)">1</button>
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(2)">2</button>
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(3)">3</button>
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(4)">4</button>
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(5)">5</button>
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(6)">6</button>
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(7)">7</button>
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(8)">8</button>
+                <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(9)">9</button>
+                <div class="col-span-3 grid grid-cols-2 gap-2">
+                    <button class="bg-red-900/50 p-4 rounded text-sm hover:bg-red-900"
+                        onclick="clearInput()">DEL</button>
+                    <button class="bg-gray-800 p-4 rounded text-xl hover:bg-gray-700" onclick="inputDigit(0)">0</button>
+                </div>
+            </div>
+            <button class="mt-6 bg-blue-600 w-64 py-3 rounded font-bold hover:bg-blue-500"
+                onclick="submitSequence()">SUBMIT</button>
+        </div>
+
+        <button id="start-btn" class="bg-blue-600 px-12 py-4 rounded-xl text-xl font-bold hover:bg-blue-500"
+            onclick="startGame()">Start Digit Span</button>
+    </div>
+
+    <script>
+        let sequence = [];
+        let userSequence = [];
+        let level = 3;
+        let lives = 2;
+
+        function startGame() {
+            document.getElementById('start-btn').classList.add('hidden');
+            nextLevel();
+        }
+
+        function nextLevel() {
+            sequence = [];
+            for (let i = 0; i < level; i++) sequence.push(Math.floor(Math.random() * 10));
+            playSequence();
+        }
+
+        async function playSequence() {
+            document.getElementById('input-area').classList.add('hidden');
+            const disp = document.getElementById('display-area');
+
+            await new Promise(r => setTimeout(r, 500));
+
+            for (let digit of sequence) {
+                disp.innerText = digit;
+                await new Promise(r => setTimeout(r, 800)); // Show duration
+                disp.innerText = '';
+                await new Promise(r => setTimeout(r, 200)); // Gap
+            }
+
+            document.getElementById('input-area').classList.remove('hidden');
+            userSequence = [];
+            updateInputDisplay();
+        }
+
+        function inputDigit(d) {
+            if (userSequence.length < sequence.length) {
+                userSequence.push(d);
+                updateInputDisplay();
+            }
+        }
+
+        function clearInput() {
+            userSequence.pop();
+            updateInputDisplay();
+        }
+
+        function updateInputDisplay() {
+            const el = document.getElementById('input-display');
+            el.innerHTML = '';
+            userSequence.forEach(d => {
+                const s = document.createElement('span');
+                s.className = 'w-10 h-12 border-b-2 border-gray-600 flex items-center justify-center text-2xl';
+                s.innerText = d;
+                el.appendChild(s);
+            });
+        }
+
+        function submitSequence() {
+            // Compare
+            const correct = JSON.stringify(sequence) === JSON.stringify(userSequence);
+            if (correct) {
+                level++;
+                document.getElementById('display-area').innerHTML = '<span class="text-green-500">Correct!</span>';
+                setTimeout(nextLevel, 1000);
+            } else {
+                lives--;
+                if (lives > 0) {
+                    document.getElementById('display-area').innerHTML = '<span class="text-red-500">Incorrect</span>';
+                    setTimeout(nextLevel, 1000); // Retry new sequence at same level
+                } else {
+                    alert('Game Over! Max Span: ' + (level - 1));
+                    location.reload();
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

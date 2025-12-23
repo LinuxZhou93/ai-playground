@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TITAN NEWS | 青少年科技情报站</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;600;800&family=Orbitron:wght@900&family=Noto+Sans+SC:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="assets/js/news-data.js"></script>
+    <style>
+        :root {
+            --bg-dark: #020617;
+            --primary: #00f0ff;
+            --glass: rgba(15, 23, 42, 0.85);
+            /* Increased opacity and dark tint */
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --card-hover: rgba(30, 41, 59, 0.95);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #f8fafc;
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Animated Background */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
+        }
+
+        /* --- Header --- */
+        .nav-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 80px;
+            background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            padding: 0 5vw;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-weight: 900;
+            font-size: 32px;
+            letter-spacing: -1px;
+            cursor: pointer;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 300;
+            font-size: 14px;
+            color: var(--primary);
+            letter-spacing: 4px;
+        }
+
+        /* --- Main Content --- */
+        .page-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 120px 5vw 100px;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 50px;
+        }
+
+        /* Category Filter Bar */
+        .filter-scroller {
+            grid-column: 1 / -1;
+            margin-bottom: 40px;
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding: 10px 0;
+            scrollbar-width: none;
+        }
+
+        .filter-scroller::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-tab {
+            padding: 10px 25px;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: #94a3b8;
+            cursor: pointer;
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        .filter-tab:hover {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .filter-tab.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.25);
+        }
+
+        /* --- Hero Big Story --- */
+        .hero-banner {
+            grid-column: 1 / 2;
+            position: relative;
+            height: 550px;
+            border-radius: 32px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 50px;
+            cursor: pointer;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .hero-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .hero-banner:hover .hero-img {
+            transform: scale(1.05);
+        }
+
+        .hero-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 60px;
+            background: linear-gradient(to top, rgba(2, 6, 23, 1) 0%, rgba(2, 6, 23, 0.8) 40%, transparent 100%);
+        }
+
+        .hero-title {
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 48px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin: 20px 0;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- News Grid --- */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+            gap: 30px;
+        }
+
+        .news-card {
+            background: var(--glass);
+            border-radius: 28px;
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            cursor: pointer;
+            transition: 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .news-card:hover {
+            transform: translateY(-12px);
+            background: var(--card-hover);
+            border-color: var(--theme-color);
+            box-shadow: 0 20px 40px -15px var(--theme-color);
+        }
+
+        .card-img-wrap {
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .news-card:hover .card-img {
+            transform: scale(1.15);
+        }
+
+        .card-tag {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 5px 14px;
+            background: var(--theme-color);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            font-family: 'Orbitron';
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-content {
+            padding: 30px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-meta {
+            font-size: 12px;
+            color: #64748b;
+            font-family: 'Orbitron';
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1.35;
+            margin: 0 0 18px 0;
+            color: #f1f5f9;
+        }
+
+        /* --- Sidebar: The Download --- */
+        .sidebar {
+            position: sticky;
+            top: 110px;
+            height: fit-content;
+        }
+
+        .sidebar-title {
+            font-family: 'Orbitron';
+            font-size: 16px;
+            color: var(--primary);
+            margin-bottom: 35px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        .download-item {
+            padding: 24px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border-left: 4px solid #334155;
+            margin-bottom: 25px;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #334155;
+        }
+
+        .download-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-left-color: var(--primary);
+            transform: translateX(10px);
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+
+        .dl-num {
+            font-size: 11px;
+            color: #475569;
+            font-family: 'Orbitron';
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+
+        .dl-title {
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
+        /* --- Article Modal --- */
+        #reader-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            color: #000;
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .reader-nav {
+            padding: 20px 5vw;
+            border-bottom: 1px solid #eee;
+            background: #fff;
+            position: sticky;
+            top: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reader-content {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .reader-cat {
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .reader-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 52px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 40px;
+        }
+
+        .reader-hero-img {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 40px;
+        }
+
+        .reader-body {
+            font-size: 20px;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .back-nav {
+            position: fixed;
+            bottom: 30px;
+            left: 5vw;
+            cursor: pointer;
+            background: #000;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'Orbitron';
+            font-size: 11px;
+            letter-spacing: 2px;
+            transition: 0.3s;
+        }
+
+        .back-nav:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        @media (max-width: 1024px) {
+            .page-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <nav class="nav-header">
+        <a href="index.html" class="logo">TITAN <span>INTELLIGENCE</span></a>
+        <div style="font-family: 'Orbitron'; font-size: 11px; opacity: 0.5;">WORLD DATA FEED / 青少年情报港</div>
+    </nav>
+
+    <div class="back-nav" onclick="window.location.href='index.html'">RETURN TO BASE</div>
+
+    <div class="page-container">
+        <!-- Categories -->
+        <div class="filter-scroller" id="filter-bar">
+            <!-- Dynamic Categories -->
+        </div>
+
+        <!-- Main Feed -->
+        <div id="main-flow">
+            <div id="hero-mount" class="hero-banner"></div>
+            <div id="grid-mount" class="news-grid"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-title"><i data-lucide="zap" size="16"></i> THE DOWNLOAD / 热门快讯</div>
+            <div id="download-mount"></div>
+        </aside>
+    </div>
+
+    <!-- Full Reader -->
+    <div id="reader-modal">
+        <div class="reader-nav">
+            <div class="logo" style="color:#000; font-size: 24px;">TITAN<span>INTEL</span></div>
+            <div style="cursor:pointer; font-weight:900;" onclick="closeReader()">[ CLOSE X ]</div>
+        </div>
+        <div class="reader-content">
+            <span class="reader-cat" id="r-cat">AI & CODING</span>
+            <h1 class="reader-title" id="r-title">Welcome to Future</h1>
+            <img src="" class="reader-hero-img" id="r-img">
+            <div class="reader-body" id="r-body"></div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let currentCategory = 'All';
+
+        function init() {
+            renderFilters();
+            renderEverything();
+            animateBackground();
+        }
+
+        function renderFilters() {
+            const categories = ['全部情报', ...new Set(TITAN_NEWS.map(n => n.category))];
+            const bar = document.getElementById('filter-bar');
+            bar.innerHTML = categories.map(cat => `
+                <div class="filter-tab ${cat === (currentCategory === 'All' ? '全部情报' : currentCategory) ? 'active' : ''}" 
+                     onclick="setFilter('${cat}')">
+                    ${cat}
+                </div>
+            `).join('');
+        }
+
+        function setFilter(cat) {
+            currentCategory = cat === '全部情报' ? 'All' : cat;
+            renderFilters();
+            renderEverything();
+        }
+
+        function renderEverything() {
+            const data = currentCategory === 'All' ? TITAN_NEWS : TITAN_NEWS.filter(n => n.category === currentCategory);
+
+            // Hero Story (First item of filtered data)
+            const heroData = data[0];
+            const gridData = data.slice(1);
+
+            document.getElementById('hero-mount').innerHTML = `
+                <div onclick="openReader('${heroData.id}')">
+                    <img src="${heroData.image}" class="hero-img">
+                    <div class="hero-overlay">
+                        <div style="font-family:'Orbitron'; font-size:12px; color:var(--primary); font-weight:900;">★ TOP STORY / 头条焦点</div>
+                        <h1 class="hero-title">${heroData.title}</h1>
+                        <p style="color:#ccc; font-size:16px; margin:0;">${heroData.summary}</p>
+                    </div>
+                </div>
+            `;
+
+            // Grid
+            document.getElementById('grid-mount').innerHTML = gridData.map(n => `
+                <div class="news-card" style="--theme-color: ${n.color || '#00f0ff'}" onclick="openReader('${n.id}')">
+                    <div class="card-img-wrap">
+                        <img src="${n.image}" class="card-img">
+                        <div class="card-tag">${n.tag}</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-meta">${n.date} // ${n.id}</div>
+                        <h2 class="card-title">${n.title}</h2>
+                        <div style="font-size:12px; font-weight:800; color:var(--theme-color); margin-top:auto;">EXPLORE →</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Sidebar (Fixed top 5 from all news)
+            document.getElementById('download-mount').innerHTML = TITAN_NEWS.slice(10, 15).map((n, i) => `
+                <div class="download-item" onclick="openReader('${n.id}')">
+                    <div class="dl-num">INF-${(i + 1).toString().padStart(2, '0')}</div>
+                    <div class="dl-title">${n.title}</div>
+                </div>
+            `).join('');
+
+            gsap.from('.news-card', { opacity: 0, y: 20, stagger: 0.05, duration: 0.5 });
+        }
+
+        function openReader(id) {
+            const n = TITAN_NEWS.find(item => item.id === id);
+            if (!n) return;
+            document.getElementById('r-cat').innerText = n.category;
+            document.getElementById('r-cat').style.color = n.color;
+            document.getElementById('r-title').innerText = n.title;
+            document.getElementById('r-img').src = n.image;
+            document.getElementById('r-body').innerHTML = `
+                <p><strong>情报详情：</strong></p>
+                <p>${n.summary}</p>
+                <div style="margin-top:40px; padding:30px; background:#f9f9f9; border-left:4px solid ${n.color};">
+                    ${n.content || "正在从 TITAN 卫星链路同步完整情报流... 更多深度分析请前往学习中心 (Learning Center) 咨询 AI 导师。"}
+                </div>
+            `;
+
+            const modal = document.getElementById('reader-modal');
+            modal.style.display = 'flex';
+            gsap.fromTo(modal, { y: '100%', opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power4.out' });
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeReader() {
+            const modal = document.getElementById('reader-modal');
+            gsap.to(modal, {
+                y: '100%', opacity: 0, duration: 0.4, ease: 'power3.in', onComplete: () => {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        function animateBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let w, h, particles = [];
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * w;
+                    this.y = Math.random() * h;
+                    this.vx = (Math.random() - 0.5) * 0.2;
+                    this.vy = (Math.random() - 0.5) * 0.2;
+                    this.size = Math.random() * 1.2;
+                }
+                update() {
+                    this.x += this.vx; this.y += this.vy;
+                    if (this.x < 0 || this.x > w) this.vx *= -1;
+                    if (this.y < 0 || this.y > h) this.vy *= -1;
+                }
+                draw() {
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            for (let i = 0; i < 60; i++) particles.push(new Particle());
+
+            function loop() {
+                ctx.clearRect(0, 0, w, h);
+                particles.forEach(p => { p.update(); p.draw(); });
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

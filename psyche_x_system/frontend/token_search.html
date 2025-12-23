@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Paired Associates</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s;
+        }
+
+        .box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .box:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .box.revealed {
+            background: #fff;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .box-icon {
+            color: #000;
+            width: 60%;
+            height: 60%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .box.revealed .box-icon {
+            opacity: 1;
+        }
+
+        .cue-stage {
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #94a3b8;
+        }
+
+        .cue-icon {
+            width: 64px;
+            height: 64px;
+            color: #fff;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: #8b5cf6;
+            width: 100%;
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col h-screen items-center justify-center">
+
+    <div class="timer-bar">
+        <div class="timer-fill" id="timer"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="fixed top-8 left-8 flex gap-4 z-50">
+        <button onclick="history.back()" class="p-3 bg-white/10 rounded-full hover:bg-white/20 backdrop-blur">
+            <i data-lucide="arrow-left"></i>
+        </button>
+        <div>
+            <h1 class="text-xl font-bold text-white">Paired Associates</h1>
+            <p class="text-xs text-violet-400 font-mono tracking-wider">MEMORY PROTOCOL</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="fixed top-8 right-8 text-right font-mono">
+        <div class="text-4xl font-bold text-white" id="level-disp">LVL 1</div>
+        <div class="text-sm text-gray-500">LIVES: <span id="lives-disp" class="text-white">3</span></div>
+    </div>
+
+    <!-- Game -->
+    <div class="grid-container" id="grid">
+        <!-- Injected -->
+    </div>
+
+    <div class="cue-stage" id="cue-stage">
+        Watch the sequence...
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlParams = new URLSearchParams(window.location.search);
+        const TITLE = urlParams.get('title') || "Paired Associates";
+
+        let level = 1;
+        let lives = 3;
+        let pairs = [];
+        let currentTarget = 0;
+        let isPhaseRecall = false;
+
+        const ICONS = ['anchor', 'aperture', 'archive', 'award', 'battery', 'bell', 'bluetooth', 'book', 'bookmark', 'box', 'briefcase', 'calendar', 'camera', 'cast', 'chrome', 'circle', 'clipboard', 'cloud', 'code', 'coffee', 'compass', 'cpu', 'credit-card', 'database', 'disc', 'dollar-sign', 'droplet', 'eye', 'feather', 'flag', 'folder', 'gift', 'globe', 'hard-drive', 'headphones', 'heart', 'image', 'key', 'layers', 'layout', 'life-buoy', 'link', 'lock', 'map', 'mic', 'monitor', 'moon', 'music', 'package', 'pen-tool', 'phone', 'pie-chart', 'play', 'power', 'printer', 'radio', 'refresh-cw', 'save', 'scissors', 'search', 'server', 'settings', 'shield', 'shopping-bag', 'shopping-cart', 'smartphone', 'smile', 'speaker', 'star', 'sun', 'tablet', 'tag', 'target', 'terminal', 'thermometer', 'thumbs-up', 'tool', 'trash', 'truck', 'tv', 'twitter', 'umbrella', 'unlock', 'upload', 'user', 'video', 'voicemail', 'volume', 'watch', 'wifi', 'wind', 'zap'];
+
+        function initGame() {
+            level = 1;
+            lives = 3;
+            updateStats();
+            startLevel();
+        }
+
+        function startLevel() {
+            isPhaseRecall = false;
+            currentTarget = 0;
+            document.getElementById('cue-stage').innerHTML = "<span>Memorize...</span>";
+
+            // Config
+            let boxes = 4;
+            let items = 2;
+
+            if (level > 2) { boxes = 9; items = 3; }
+            if (level > 4) { boxes = 9; items = 4; }
+            if (level > 6) { boxes = 16; items = 4; }
+            if (level > 8) { boxes = 16; items = 5; }
+            if (level > 10) { boxes = 20; items = 6; }
+
+            // Grid Layout
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            let cols = Math.ceil(Math.sqrt(boxes));
+            grid.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
+            grid.style.gridTemplateRows = `repeat(${Math.ceil(boxes / cols)}, 80px)`;
+
+            // Create Boxes
+            for (let i = 0; i < boxes; i++) {
+                const el = document.createElement('div');
+                el.className = 'box';
+                el.dataset.idx = i;
+                el.onclick = () => handleBoxClick(i);
+                el.innerHTML = `<i data-lucide="help-circle" class="box-icon"></i>`;
+                grid.appendChild(el);
+            }
+
+            // Pick Pairs
+            pairs = [];
+            let usedBoxes = new Set();
+            let usedIcons = new Set();
+
+            for (let k = 0; k < items; k++) {
+                let bIdx;
+                do { bIdx = Math.floor(Math.random() * boxes); } while (usedBoxes.has(bIdx));
+                usedBoxes.add(bIdx);
+
+                let icon;
+                do { icon = ICONS[Math.floor(Math.random() * ICONS.length)]; } while (usedIcons.has(icon));
+                usedIcons.add(icon);
+
+                pairs.push({ boxIdx: bIdx, icon: icon });
+            }
+
+            // SEQUENCE SHOW
+            let step = 0;
+            const interval = setInterval(() => {
+                if (step >= pairs.length) {
+                    clearInterval(interval);
+                    setTimeout(startRecall, 500);
+                    return;
+                }
+                const pair = pairs[step];
+                showBox(pair.boxIdx, pair.icon);
+                setTimeout(() => { hideBox(pair.boxIdx); }, 1000);
+                step++;
+            }, 1500);
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function showBox(idx, iconName) {
+            const el = document.getElementById('grid').children[idx];
+            el.innerHTML = `<i data-lucide="${iconName}" class="box-icon"></i>`;
+            el.classList.add('revealed');
+            playSound('flip');
+            lucide.createIcons();
+        }
+
+        function hideBox(idx) {
+            const el = document.getElementById('grid').children[idx];
+            el.classList.remove('revealed');
+        }
+
+        function startRecall() {
+            isPhaseRecall = true;
+            document.getElementById('cue-stage').innerText = "Find:";
+            pairs.sort(() => Math.random() - 0.5);
+            currentTarget = 0;
+            showNextCue();
+        }
+
+        function showNextCue() {
+            if (currentTarget >= pairs.length) {
+                level++;
+                updateStats();
+                playSound('success');
+                setTimeout(startLevel, 1000);
+                return;
+            }
+            const pair = pairs[currentTarget];
+            document.getElementById('cue-stage').innerHTML = `<i data-lucide="${pair.icon}" class="cue-icon"></i>`;
+            lucide.createIcons();
+        }
+
+        function handleBoxClick(idx) {
+            if (!isPhaseRecall) return;
+            const correctPair = pairs[currentTarget];
+
+            if (idx === correctPair.boxIdx) {
+                showBox(idx, correctPair.icon);
+                playSound('pop');
+                setTimeout(() => {
+                    hideBox(idx);
+                    currentTarget++;
+                    showNextCue();
+                }, 500);
+            } else {
+                lives--;
+                updateStats();
+                playSound('error');
+                const el = document.getElementById('grid').children[idx];
+                el.classList.add('border-red-500');
+                setTimeout(() => el.classList.remove('border-red-500'), 300);
+                if (lives <= 0) { finishGame(); }
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('level-disp').innerText = "LVL " + level;
+            document.getElementById('lives-disp').innerText = lives;
+        }
+
+        function playSound(type) {
+            if (window.Kernel) {
+                if (type === 'pop') window.Kernel.audio.playTone(600, 'sine', 0.1);
+                if (type === 'flip') window.Kernel.audio.playTone(400, 'triangle', 0.1);
+                if (type === 'success') window.Kernel.audio.playTone(800, 'square', 0.2);
+                if (type === 'error') window.Kernel.audio.playTone(150, 'sawtooth', 0.2);
+            }
+        }
+
+        function finishGame() {
+            if (window.DataManager) {
+                window.DataManager.submitResult({
+                    title: decodeURIComponent(TITLE),
+                    domain: 'MEMORY',
+                    score: (level * 100),
+                    metrics: { maxLevel: level }
+                });
+            }
+            if (confirm(`Game Over at Level ${level}.\nView Analytics?`)) {
+                window.location.href = 'report_global.html';
+            } else {
+                initGame();
+            }
+        }
+
+        setTimeout(initGame, 100);
+
+    </script>
+</body>
+
+</html>

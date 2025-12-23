@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSYCHE-X | EMERGENCY MODE</title>
+    <style>
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            justify-content: center;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            gap: 5px;
+            margin: 20px;
+        }
+
+        .cell {
+            width: 80px;
+            height: 80px;
+            border: 1px solid #333;
+            background: #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .active {
+            background: #0f0;
+            color: black;
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        button {
+            background: #0f0;
+            color: black;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        #login {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 99;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input {
+            padding: 10px;
+            margin: 10px;
+            background: #222;
+            border: 1px solid #0f0;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Login Layer -->
+    <div id="login">
+        <h1>PSYCHE-X</h1>
+        <p>SYSTEM STATUS: STANDALONE</p>
+        <button onclick="enterSystem()">CLICK TO ENTER</button>
+    </div>
+
+    <!-- Game Layer -->
+    <div id="hud">SCORE: <span id="s">0</span> | TRIAL: <span id="t">0</span></div>
+    <div class="grid">
+        <div class="cell" id="c0"></div>
+        <div class="cell" id="c1"></div>
+        <div class="cell" id="c2"></div>
+        <div class="cell" id="c3"></div>
+        <div class="cell" id="c4"></div>
+        <div class="cell" id="c5"></div>
+        <div class="cell" id="c6"></div>
+        <div class="cell" id="c7"></div>
+        <div class="cell" id="c8"></div>
+    </div>
+    <div id="msg" style="height: 30px; color: yellow;"></div>
+    <div style="margin-top:20px;">
+        <button onclick="startGame()" id="btn-start">START N-BACK</button>
+        <button onclick="uploadScore()" id="btn-upload"
+            style="display:none; border-color: yellow; color: yellow;">UPLOAD TO CORE</button>
+    </div>
+
+    <script>
+        console.log("PSYCHE-X LOADED");
+        const API = "http://127.0.0.1:8000";
+
+        async function uploadScore() {
+            const btn = document.getElementById('btn-upload');
+            btn.innerText = "CONNECTING...";
+            
+            try {
+                // 0. CHECK HEALTH
+                try {
+                    await fetch(API + "/", {signal: AbortSignal.timeout(2000)});
+                } catch(e) { throw new Error("SERVER DOWN"); }
+
+                // 1. ENSURE USER EXISTS (Auto-Register)
+                btn.innerText = "REGISTERING AGENT...";
+                let uid = 1;
+                try {
+                    // Try to create standard agent
+                    const reg = await fetch(API + "/users/", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            username: "Agent001", 
+                            email: "agent001@psyche.io", 
+                            password: "pwd",
+                            grade: "Classified"
+                        })
+                    });
+                    const userData = await reg.json();
+                    if(userData.id) uid = userData.id;
+                } catch(e) {
+                    // User might already exist, which is fine, we assume ID 1 or the one returned
+                    console.log("User might exist, proceeding...");
+                }
+
+                // 2. UPLOAD DATA
+                btn.innerText = "UPLOADING...";
+                const res = await fetch(API + `/exam/submit?user_id=${uid}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        task_type: "n-back",
+                        raw_data: { score: score, trials: [] }
+                    })
+                });
+                
+                if(res.ok) {
+                    const json = await res.json();
+                    // Show High Scores (Mock logic) or just Success
+                    btn.innerText = `UPLOADED (ID: ${json.id})`;
+                    btn.style.color = "#0f0";
+                    btn.style.borderColor = "#0f0";
+                } else {
+                    throw new Error("API REJECTED");
+                }
+            } catch(e) {
+                console.error(e);
+                btn.innerText = "OFFLINE: " + e.message;
+                btn.style.color = "red";
+                btn.style.borderColor = "red";
+            }
+        }
+
+        // 1. Enter System
+        function enterSystem() {
+            console.log("Entering system...");
+            document.getElementById('login').style.display = 'none';
+        }
+
+        // 2. Game Logic
+        let stream = [];
+        let current = 0;
+        let score = 0;
+        let isRunning = false;
+        const N = 2; // 2-Back
+
+        function startGame() {
+            if (isRunning) return;
+            isRunning = true;
+            document.getElementById('btn-start').style.display = 'none';
+            score = 0; current = 0;
+            updateHud();
+
+            // Generate Stream
+            stream = [];
+            for (let i = 0; i < 20; i++) {
+                // 30% match chance
+                let pos = Math.floor(Math.random() * 9);
+                if (i >= N && Math.random() < 0.3) pos = stream[i - N].pos;
+                stream.push({ pos });
+            }
+
+            nextTrial();
+        }
+
+        function nextTrial() {
+            if (current >= stream.length) {
+                // Game Over
+                isRunning = false;
+                document.getElementById('btn-start').style.display = 'block';
+                document.getElementById('btn-upload').style.display = 'inline-block'; // Show Upload
+                document.getElementById('msg').innerText = "GAME OVER. SCORE: " + score;
+                return;
+            }
+
+            // Show
+            const pos = stream[current].pos;
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(c => c.className = 'cell'); // reset
+            document.getElementById('c' + pos).classList.add('active');
+
+            // Hide after 1.5s
+            setTimeout(() => {
+                document.getElementById('c' + pos).classList.remove('active');
+
+                // Gap 0.5s
+                setTimeout(() => {
+                    current++;
+                    updateHud();
+                    nextTrial();
+                }, 500);
+            }, 1000); // stimulus duration
+        }
+
+        function updateHud() {
+            document.getElementById('s').innerText = score;
+            document.getElementById('t').innerText = current + '/20';
+        }
+
+        // Input
+        window.addEventListener('keydown', (e) => {
+            if (!isRunning) return;
+            if (e.key.toLowerCase() === 'a') {
+                if (current < N) return;
+                const nowPos = stream[current].pos;
+                const targetPos = stream[current - N].pos;
+                const msg = document.getElementById('msg');
+
+                if (nowPos === targetPos) {
+                    score += 10;
+                    msg.innerText = "HIT!";
+                    msg.style.color = "#0f0";
+                } else {
+                    score -= 5;
+                    msg.innerText = "MISS!";
+                    msg.style.color = "red";
+                }
+                updateHud();
+                setTimeout(() => msg.innerText = "", 500);
+            }
+        });
+
+    </script>
+</body>
+
+</html>

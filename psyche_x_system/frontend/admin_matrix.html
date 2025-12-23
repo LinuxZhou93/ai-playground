@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Mission Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- CORE SYSTEMS -->
+    <script src="kernel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/data_client.js"></script>
+    <script src="js/data_manager.js"></script>
+    <script src="js/auth_manager.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            background-color: #0d1117;
+            /* GitHub Dark Dimmed style */
+            color: #c9d1d9;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .font-mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .sidebar {
+            background-color: #010409;
+            border-right: 1px solid #30363d;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            color: #8b949e;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: #21262d;
+            color: #f0f6fc;
+        }
+
+        .nav-item.active {
+            border-left: 3px solid #f778ba;
+            /* Pink accent */
+        }
+
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .log-entry {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            padding: 8px 0;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            gap: 12px;
+        }
+
+        .log-time {
+            color: #8b949e;
+            min-width: 60px;
+        }
+
+        .log-type.info {
+            color: #58a6ff;
+        }
+
+        .log-type.warn {
+            color: #d29922;
+        }
+
+        .log-type.error {
+            color: #ff7b72;
+        }
+
+        .log-type.success {
+            color: #3fb950;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+
+        .btn-small {
+            padding: 4px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid #30363d;
+            background: #21262d;
+            color: #c9d1d9;
+            transition: 0.2s;
+        }
+
+        .btn-small:hover {
+            background: #30363d;
+            color: white;
+        }
+
+        .btn-green {
+            background: #238636;
+            color: white;
+            border: none;
+        }
+
+        .btn-green:hover {
+            background: #2ea043;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen">
+
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 flex flex-col p-4 z-20">
+        <div class="flex items-center gap-3 px-2 mb-8 mt-2">
+            <div class="bg-white text-black p-1.5 rounded font-bold">
+                <i data-lucide="command" class="w-5 h-5"></i>
+            </div>
+            <span class="font-bold text-lg tracking-tight text-white">Mission Control</span>
+        </div>
+
+        <nav class="flex-1 space-y-1">
+            <div class="nav-item active" onclick="switchView('overview')">
+                <i data-lucide="activity" class="w-4 h-4"></i> Overview
+            </div>
+            <div class="nav-item" onclick="switchView('users')">
+                <i data-lucide="users" class="w-4 h-4"></i> User Directory
+            </div>
+            <div class="nav-item" onclick="switchView('data')">
+                <i data-lucide="database" class="w-4 h-4"></i> Neural Data
+            </div>
+            <!-- Spacer -->
+            <div class="h-px bg-gray-800 my-4"></div>
+            <div class="nav-item" onclick="switchView('security')">
+                <i data-lucide="shield-alert" class="w-4 h-4"></i> Security Events
+            </div>
+            <div class="nav-item" onclick="switchView('licenses')">
+                <i data-lucide="key" class="w-4 h-4"></i> License Keys
+            </div>
+        </nav>
+
+        <div class="mt-auto px-2">
+            <div class="flex items-center gap-3 p-3 bg-gray-900 rounded-lg border border-gray-800">
+                <div
+                    class="w-8 h-8 rounded-full bg-purple-900/50 flex items-center justify-center text-xs font-bold text-purple-400">
+                    AD
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-white">Administrator</div>
+                    <div class="text-[10px] text-gray-500">root@psyche-x.io</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        <!-- Top Bar -->
+        <header class="h-16 border-b border-[#30363d] flex items-center justify-between px-8 bg-[#0d1117]">
+            <div class="flex items-center gap-2 text-sm text-gray-500">
+                <span>Psyche-X</span>
+                <span>/</span>
+                <span>Production</span>
+                <span>/</span>
+                <div
+                    class="flex items-center gap-1.5 text-green-400 bg-green-900/20 px-2 py-0.5 rounded-full border border-green-900/50">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                    <span class="text-xs font-bold">Live</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="btn-small" onclick="window.location.href='hub.html'">Exit to Hub</button>
+                <button class="btn-small btn-green">Deploy Config</button>
+            </div>
+        </header>
+
+        <!-- Dashboard View -->
+        <!-- Dashboard View -->
+        <div id="view-overview" class="view-section flex-1 overflow-y-auto p-8">
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="card p-5">
+                    <div class="stat-label mb-2">Total Sessions</div>
+                    <div class="text-3xl stat-value mb-1" id="kpi-sessions">--</div>
+                    <div class="text-xs text-green-400 flex items-center gap-1">
+                        <i data-lucide="trending-up" class="w-3 h-3"></i> <span id="kpi-sessions-growth">--%</span>
+                    </div>
+                </div>
+                <div class="card p-5">
+                    <div class="stat-label mb-2">Avg Reaction Time</div>
+                    <div class="text-3xl stat-value mb-1" id="kpi-reaction">--</div>
+                    <div class="text-xs text-blue-400">Global Average</div>
+                </div>
+                <div class="card p-5">
+                    <div class="stat-label mb-2">Registered Users</div>
+                    <div class="text-3xl stat-value mb-1" id="kpi-users">--</div>
+                    <div class="text-xs text-purple-400">Active Nodes</div>
+                </div>
+                <div class="card p-5">
+                    <div class="stat-label mb-2">System Health</div>
+                    <div class="text-3xl stat-value mb-1 text-green-400">99.9%</div>
+                    <div class="text-xs text-gray-500">Optimal</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- Main Chart -->
+                <div class="card p-6 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-bold text-sm">Global Ingestion Traffic (Sessions)</h3>
+                        <div class="flex gap-2">
+                            <span class="text-xs px-2 py-1 bg-[#21262d] rounded cursor-pointer text-white">1h</span>
+                            <span class="text-xs px-2 py-1 rounded cursor-pointer hover:bg-[#21262d]">24h</span>
+                            <span class="text-xs px-2 py-1 rounded cursor-pointer hover:bg-[#21262d]">7d</span>
+                        </div>
+                    </div>
+                    <div class="w-full h-64">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Event Log -->
+                <div class="card p-6 flex flex-col h-[380px]">
+                    <h3 class="font-bold text-sm mb-4">Real-Time Event Log</h3>
+                    <div class="flex-1 overflow-y-auto space-y-1" id="event-log-container">
+                        <!-- JS Injected -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="card overflow-hidden">
+                <div class="p-4 border-b border-[#30363d] flex justify-between items-center">
+                    <h3 class="font-bold text-sm">Recent Participants</h3>
+                    <input type="text" placeholder="Filter email..."
+                        class="bg-[#0d1117] border border-[#30363d] rounded px-3 py-1 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-400">
+                        <thead class="bg-[#21262d] text-gray-300 font-bold uppercase text-xs">
+                            <tr>
+                                <th class="px-6 py-3">User</th>
+                                <th class="px-6 py-3">Tier</th>
+                                <th class="px-6 py-3">Latest Protocol</th>
+                                <th class="px-6 py-3">Score</th>
+                                <th class="px-6 py-3 text-right">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- JS Injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="view-users" class="view-section hidden flex-1 p-8 text-center text-gray-500 mt-20">
+            <i data-lucide="lock" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+            <h2 class="text-xl font-bold text-white mb-2">Restricted Access</h2>
+            <p>User Directory module is currently locked for maintenance.</p>
+        </div>
+
+        <div id="view-licenses" class="view-section hidden flex-1 overflow-y-auto p-8">
+            <h2 class="text-2xl font-bold text-white mb-6">License Management</h2>
+
+            <!-- Generator -->
+            <div class="card p-6 mb-8 bg-[#161b22] border border-[#30363d]">
+                <h3 class="font-bold text-sm mb-4 text-gray-300">Generate New Keys</h3>
+                <div class="flex gap-4 items-end">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Plan Type</label>
+                        <select id="lic-type"
+                            class="bg-[#0d1117] border border-[#30363d] text-white rounded px-3 py-2 text-sm w-48">
+                            <option value="MONTHLY">Monthly ($9.99)</option>
+                            <option value="SEMI">Semi-Annual ($49.99)</option>
+                            <option value="YEARLY">Annual Elite ($89.99)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Quantity</label>
+                        <input type="number" id="lic-count" value="1" min="1" max="50"
+                            class="bg-[#0d1117] border border-[#30363d] text-white rounded px-3 py-2 text-sm w-24">
+                    </div>
+                    <button onclick="generateKeys()" class="btn-small btn-green h-[38px] px-6">Generate</button>
+                </div>
+            </div>
+
+            <!-- License List -->
+            <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-400">
+                        <thead class="bg-[#21262d] text-gray-300 font-bold uppercase text-xs">
+                            <tr>
+                                <th class="px-6 py-3">License Key</th>
+                                <th class="px-6 py-3">Plan</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lic-table-body">
+                            <!-- JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // --- REAL DATA INTEGRATION ---
+
+        function initDashboard() {
+            // 1. Fetch Data
+            const localHistory = window.DataManager ? window.DataManager.getHistory() : [];
+            const userDBStr = localStorage.getItem('psyche_x_users_v1');
+            const users = userDBStr ? JSON.parse(userDBStr) : [];
+            const currentUser = window.AuthManager ? window.AuthManager.getSession() : null;
+
+            // 2. Calculate KPI: Sessions
+            const totalSessions = localHistory.length;
+            document.getElementById('kpi-sessions').innerText = totalSessions.toLocaleString();
+            document.getElementById('kpi-sessions-growth').innerText = `+${localHistory.filter(h => new Date(h.timestamp) > new Date(Date.now() - 86400000)).length} today`;
+
+            // 3. Calculate KPI: Avg Reaction
+            // Filter tasks that measured 'ms'
+            const reactionTasks = localHistory.filter(h => h.taskID.includes('Reaction') || h.taskID.includes('Stroop'));
+            let avgMs = 0;
+            if (reactionTasks.length > 0) {
+                const sum = reactionTasks.reduce((acc, curr) => acc + (parseInt(curr.score) || 0), 0);
+                avgMs = Math.round(sum / reactionTasks.length);
+            }
+            document.getElementById('kpi-reaction').innerText = avgMs > 0 ? `${avgMs}ms` : '--';
+
+            // 4. Calculate KPI: Users
+            document.getElementById('kpi-users').innerText = users.length.toLocaleString();
+
+            // 5. Render Chart (Sessions over time in last 24h)
+            // Group by hour
+            const last24h = Array(24).fill(0);
+            const now = new Date();
+            localHistory.forEach(h => {
+                const d = new Date(h.timestamp);
+                const diffMs = now - d;
+                const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                if (diffHrs < 24 && diffHrs >= 0) {
+                    last24h[23 - diffHrs]++;
+                }
+            });
+
+            // Labels for chart
+            const labels = [];
+            for (let i = 23; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+                labels.push(`${d.getHours()}:00`);
+            }
+
+            renderChart(labels, last24h);
+
+            // 6. Render Event Log (Reverse Chronological)
+            const logContainer = document.getElementById('event-log-container');
+            logContainer.innerHTML = '';
+
+            // Artificial "System" Logs mixed with Real User Logs
+            const logs = [];
+
+            // Add real history as logs
+            localHistory.slice(-20).forEach(h => {
+                logs.push({
+                    time: new Date(h.timestamp),
+                    type: 'info',
+                    msg: `User ${currentUser?.username || 'Guest'} completed ${h.taskID}`
+                });
+            });
+
+            // Add simulated system logs
+            logs.push({ time: new Date(), type: 'success', msg: 'Dashboard modules loaded' });
+            logs.push({ time: new Date(Date.now() - 10000), type: 'info', msg: 'System check: Optimal' });
+
+            // Sort by time desc
+            logs.sort((a, b) => b.time - a.time);
+
+            logs.forEach(log => {
+                const d = log.time;
+                const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+
+                let typeClass = 'info';
+                if (log.msg.includes('completed')) typeClass = 'success';
+
+                const el = document.createElement('div');
+                el.className = 'log-entry';
+                el.innerHTML = `
+                    <span class="log-type ${typeClass}">[${typeClass.toUpperCase()}]</span>
+                    <span class="text-gray-300">${log.msg}</span>
+                    <span class="log-time ml-auto text-right">${timeStr}</span>
+                `;
+                logContainer.appendChild(el);
+            });
+
+            // 7. Render Recent Participants Table
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+
+            // Since this is a client-side app, "Recent Participants" is mostly just the current user doing different things.
+            // But we can show the last 5 sessions as "rows".
+            localHistory.slice().reverse().slice(0, 5).forEach(h => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-[#30363d] hover:bg-[#21262d] transition';
+
+                // Get user info (mock match based heavily on local assumption)
+                const uName = currentUser ? currentUser.username : 'Anonymous';
+                const uTier = currentUser ? currentUser.tier : 'FREE';
+                const uEmail = currentUser ? currentUser.email : 'guest@local';
+                const timeAgo = Math.floor((new Date() - new Date(h.timestamp)) / 60000) + 'm ago';
+
+                row.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold">${uName.substring(0, 2).toUpperCase()}</div>
+                            <div>
+                                <div class="font-bold text-white">${uName}</div>
+                                <div class="text-[10px] text-gray-500">${uEmail}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded-full text-[10px] bg-purple-900/30 text-purple-400 border border-purple-800 font-mono">${uTier}</span>
+                    </td>
+                    <td class="px-6 py-4 font-medium text-white">${h.taskID}</td>
+                    <td class="px-6 py-4 font-mono text-green-400">${h.score}</td>
+                    <td class="px-6 py-4 text-right text-xs">${timeAgo}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderChart(labels, data) {
+            const ctx = document.getElementById('trafficChart').getContext('2d');
+
+            // Gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(35, 134, 54, 0.4)'); // GitHub Green
+            gradient.addColorStop(1, 'rgba(35, 134, 54, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ingestion Volume',
+                        data: data,
+                        borderColor: '#3fb950',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#161b22',
+                            titleColor: '#c9d1d9',
+                            bodyColor: '#c9d1d9',
+                            borderColor: '#30363d',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: '#8b949e', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: '#30363d', drawBorder: false },
+                            ticks: { color: '#8b949e', font: { size: 10 }, stepSize: 1 }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        async function switchView(viewId) {
+            // Hide all
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-r-2', 'border-blue-500');
+                el.classList.add('text-gray-400');
+            });
+
+            // Show selected
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            const navEl = document.getElementById(`nav-${viewId}`);
+            if (navEl) {
+                navEl.classList.remove('text-gray-400');
+                navEl.classList.add('bg-blue-600/20', 'text-blue-400', 'border-r-2', 'border-blue-500');
+            }
+
+            // Load Data
+            if (viewId === 'users') {
+                // Mock users for now
+                renderUsers();
+            } else if (viewId === 'licenses') {
+                await renderLicenses();
+            }
+        }
+
+        function renderUsers() {
+            // ... (Keep existing mock logic or update later)
+            const tbody = document.getElementById('user-table-body');
+            // ...
+        }
+
+        async function renderLicenses() {
+            const tbody = document.getElementById('lic-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Loading...</td></tr>';
+
+            const licenses = await window.AuthManager.getLicenses();
+            tbody.innerHTML = '';
+
+            if (licenses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">No licenses generated yet.</td></tr>';
+                return;
+            }
+
+            licenses.forEach(l => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-800 hover:bg-white/5';
+
+                let statusBadge = `<span class="px-2 py-1 rounded text-xs bg-green-900/50 text-green-400">Active</span>`;
+                if (l.status !== 'Active') statusBadge = `<span class="px-2 py-1 rounded text-xs bg-gray-700 text-gray-400">Redeemed</span>`;
+
+                tr.innerHTML = `
+                <td class="p-4 font-mono text-xs text-blue-300 select-all">${l.code}</td>
+                <td class="p-4 text-sm">${l.plan_type || l.type}</td>
+                <td class="p-4">${statusBadge}</td>
+                <td class="p-4 text-xs text-gray-500">${l.redeemed_by || l.usedBy || '-'}</td>
+                <td class="p-4 text-xs text-gray-500">${new Date(l.created_at || l.generatedAt).toLocaleDateString()}</td>
+            `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function generateKeys() {
+            const type = document.getElementById('lic-type').value;
+            const qty = parseInt(document.getElementById('lic-count').value);
+
+            const btn = document.querySelector('button[onclick="generateKeys()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Processing...';
+            btn.disabled = true;
+
+            await window.AuthManager.generateLicense(type, qty);
+            await renderLicenses();
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        // Run
+        window.addEventListener('DOMContentLoaded', initDashboard);
+
+    </script>
+</body>
+
+</html>

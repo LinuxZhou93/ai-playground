@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Neural Interface</title>
+
+    <!-- HIGH END LIBRARIES -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="kernel.js"></script> <!-- THE KERNEL -->
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@300;500&display=swap');
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            cursor: none;
+            /* Custom Cursor */
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            /* Let clicks pass to 3D if needed, but we have interactive elements */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            items-center;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* Cinematic Text */
+        .title-display {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: 5vw;
+            letter-spacing: -0.05em;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0;
+            /* GSAP will handle */
+            transform: translateY(20px);
+        }
+
+        .subtitle-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: #64748b;
+            margin-top: 1rem;
+            letter-spacing: 0.2em;
+            opacity: 0;
+        }
+
+        /* Enter Button (Magnetic High-End Feel) */
+        .enter-btn-wrapper {
+            margin-top: 4rem;
+            opacity: 0;
+        }
+
+        .enter-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 1.5rem 4rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            cursor: pointer;
+            border-radius: 999px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .enter-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .enter-btn:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+            transform: scale(1.05);
+            /* Slight grow */
+        }
+
+        .enter-btn:hover::before {
+            left: 100%;
+        }
+
+        /* Custom Cursor */
+        #cursor {
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, background-color 0.3s;
+        }
+
+        #cursor-dot {
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+        }
+
+        .loading-bar {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: #3b82f6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Custom Cursor -->
+    <div id="cursor"></div>
+    <div id="cursor-dot"></div>
+
+    <!-- WebGL Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        <h1 class="title-display">PSYCHE-X</h1>
+        <div class="subtitle-display">ADVANCED COGNITIVE ARCHITECTURE</div>
+
+        <div class="enter-btn-wrapper interactive">
+            <button class="enter-btn" id="enterBtn" onclick="enterSystem()">
+                Initialize System
+            </button>
+        </div>
+
+        <div class="loading-bar">
+            <div class="loading-progress" id="loader"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. THREE.JS PARTICLE NEURAL NETWORK ---
+        const initThreeJS = () => {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.0008); // Deep space fog
+
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.z = 1000;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            // Particles Geometry
+            const geometry = new THREE.BufferGeometry();
+            const particles = 1500; // Count
+            const positions = [];
+            const colors = [];
+            const colorObj = new THREE.Color();
+
+            // Create a "Brain" shape or cloud
+            for (let i = 0; i < particles; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 1500;
+                const z = (Math.random() - 0.5) * 2000;
+                positions.push(x, y, z);
+
+                // Gradient Colors (Blue to Cyan)
+                const vx = (x / 2000) + 0.5;
+                const vy = (y / 1500) + 0.5;
+                const vz = (z / 2000) + 0.5;
+
+                colorObj.setRGB(0.1 + vx * 0.5, 0.3 + vy * 0.5, 1);
+                colors.push(colorObj.r, colorObj.g, colorObj.b);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 3,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                sizeAttenuation: true
+            });
+
+            const particlesMesh = new THREE.Points(geometry, material);
+            scene.add(particlesMesh);
+
+            // Connections (Lines) - Only connect close particles for "Neural" look
+            // Too expensive to verify all in standard JS loop for 1500 nodes every frame.
+            // We serve a static look or use a smaller set for lines.
+
+            // Interaction logic
+            let mouseX = 0;
+            let mouseY = 0;
+
+            function onPointerMove(event) {
+                if (event.isPrimary === false) return;
+                mouseX = event.clientX - window.innerWidth / 2;
+                mouseY = event.clientY - window.innerHeight / 2;
+            }
+            document.addEventListener('pointermove', onPointerMove);
+
+            // Animate
+            function animate() {
+                requestAnimationFrame(animate);
+
+                const time = Date.now() * 0.00005;
+
+                // Subtle rotation
+                camera.position.x += (mouseX - camera.position.x) * 0.02; // Smooth follow
+                camera.position.y += (- mouseY - camera.position.y) * 0.02;
+                camera.lookAt(scene.position);
+
+                // Rotate cloud
+                particlesMesh.rotation.y = time * 2;
+                particlesMesh.rotation.z = time * 0.5;
+
+                // Twinkle effect (mock)
+                // material.size = 3 + Math.sin(Date.now() * 0.003); 
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+
+        // --- 2. GSAP ANIMATIONS ---
+        const initAnimations = () => {
+            const tl = gsap.timeline();
+
+            // Loading Bar
+            tl.to("#loader", { width: "100%", duration: 1.5, ease: "power2.inOut" })
+                .to(".loading-bar", { opacity: 0, duration: 0.5 })
+
+                // Text Stagger
+                .to(".title-display", { opacity: 1, y: 0, duration: 1, ease: "power4.out" })
+                .to(".subtitle-display", { opacity: 1, duration: 1 }, "-=0.5")
+                .to(".enter-btn-wrapper", { opacity: 1, marginTop: "2rem", duration: 1 }, "-=0.5");
+        };
+
+        // --- 3. CUSTOM CURSOR ---
+        const initCursor = () => {
+            const cursor = document.getElementById("cursor");
+            const dot = document.getElementById("cursor-dot");
+
+            document.addEventListener("mousemove", (e) => {
+                gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.1 }); // Laggy circle
+                gsap.to(dot, { x: e.clientX, y: e.clientY, duration: 0 }); // Instant dot
+            });
+
+            // Hover effects
+            const interactables = document.querySelectorAll(".interactive button");
+            interactables.forEach(el => {
+                el.addEventListener("mouseenter", () => {
+                    gsap.to(cursor, { scale: 3, borderColor: "rgba(59, 130, 246, 0.5)", duration: 0.3 });
+                });
+                el.addEventListener("mouseleave", () => {
+                    gsap.to(cursor, { scale: 1, borderColor: "rgba(255,255,255,0.5)", duration: 0.3 });
+                });
+            });
+        };
+
+        // --- 4. SYSTEM ENTRY ---
+        window.enterSystem = () => {
+            // Audio Feedback via Kernel
+            if (window.Kernel) {
+                window.Kernel.audio.playTone(600, 'square', 0.1);
+                setTimeout(() => window.Kernel.audio.playTone(1200, 'sine', 0.3), 100);
+            }
+
+            // Exit Animation
+            gsap.to("#ui-layer", { opacity: 0, scale: 1.1, duration: 1, ease: "power2.in" });
+            gsap.to("canvas", {
+                opacity: 0, scale: 2, duration: 1.5, ease: "power2.in", onComplete: () => {
+                    window.location.href = 'hub.html';
+                }
+            });
+        };
+
+        // Init
+        window.addEventListener('load', () => {
+            initThreeJS();
+            initAnimations();
+            initCursor();
+        });
+
+    </script>
+</body>
+
+</html>

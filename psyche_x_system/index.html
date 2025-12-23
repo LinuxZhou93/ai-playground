@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psyche-X | Human Augmentation Interface</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-text {
+            font-size: 4rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(30px);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .sub-text {
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-top: 1rem;
+            opacity: 0;
+            transform: translateY(20px);
+            letter-spacing: 0.2em;
+            color: #aaa;
+        }
+
+        .enter-btn {
+            margin-top: 3rem;
+            padding: 1rem 3rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            pointer-events: auto;
+            opacity: 0;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .enter-btn:hover {
+            background: #fff;
+            color: #000;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="canvas-container"></div>
+    <div id="ui-layer">
+        <div class="hero-text">Psyche-X</div>
+        <div class="sub-text">COGNITIVE AUGMENTATION PROTOCOL</div>
+        <button class="enter-btn" onclick="enterSystem()">Initialize</button>
+        <button class="enter-btn" style="margin-top: 1rem; font-size: 0.8rem; padding: 0.5rem 1.5rem;"
+            onclick="location.href='../index.html'">Back to Base</button>
+    </div>
+
+    <script src="js/kernel.js"></script>
+    <script>
+        // Scenic Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Particles
+        const geometry = new THREE.BufferGeometry();
+        const particlesCount = 5000;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 50; // Spread
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const material = new THREE.PointsMaterial({ size: 0.02, color: 0x4cc9f0, transparent: true, opacity: 0.8 });
+        const particlesMesh = new THREE.Points(geometry, material);
+        scene.add(particlesMesh);
+
+        camera.position.z = 15;
+
+        // Animation
+        const clock = new THREE.Clock();
+        function animate() {
+            const elapsedTime = clock.getElapsedTime();
+            particlesMesh.rotation.y = elapsedTime * 0.05;
+            particlesMesh.rotation.x = elapsedTime * 0.02;
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // GSAP Intro
+        window.addEventListener('load', () => {
+            gsap.to('.hero-text', { duration: 1.5, opacity: 1, y: 0, ease: 'power4.out', delay: 0.5 });
+            gsap.to('.sub-text', { duration: 1.5, opacity: 1, y: 0, ease: 'power4.out', delay: 0.8 });
+            gsap.to('.enter-btn', { duration: 1.5, opacity: 1, ease: 'power4.out', delay: 1.2 });
+        });
+
+        function enterSystem() {
+            gsap.to('#ui-layer', { duration: 1, opacity: 0, scale: 1.1, ease: 'power2.in' });
+            gsap.to(camera.position, {
+                duration: 2, z: 0, ease: 'power2.in', onComplete: () => {
+                    window.location.href = 'frontend/hub.html';
+                }
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
