@@ -285,7 +285,11 @@ async function callAI(prompt, isWelcome = false) {
         });
 
         if (!response.ok) {
-            throw new Error(`API错误: ${response.statusText}`);
+            console.warn(`API暂时不可用 (${response.statusText})，启动离线知识库模式。`);
+            // 移除加载提示
+            document.getElementById(loadingId).remove();
+            mockLocalAI(prompt);
+            return;
         }
 
         // 移除加载提示
@@ -345,26 +349,51 @@ async function callAI(prompt, isWelcome = false) {
         }
 
     } catch (error) {
-        console.error('AI调用失败:', error);
+        console.warn('网络连接失败，切换至离线智能助手模式。', error);
 
         // 移除加载提示
         const loadingEl = document.getElementById(loadingId);
         if (loadingEl) loadingEl.remove();
 
-        // 显示错误消息
-        const errorHtml = `
-            <div class="ai-message assistant error">
-                <div class="ai-message-avatar">⚠️</div>
-                <div class="ai-message-content">
-                    抱歉,AI服务暂时不可用。<br>
-                    错误信息: ${error.message}<br>
-                    请稍后再试或联系管理员。
-                </div>
-            </div>
-        `;
-        contentDiv.insertAdjacentHTML('beforeend', errorHtml);
-        contentDiv.scrollTop = contentDiv.scrollHeight;
+        // 启动本地 Mock 响应，避免显示红字错误
+        mockLocalAI(prompt);
     }
+}
+
+/**
+ * 本地 Mock AI 响应 (离线模式降级)
+ */
+function mockLocalAI(prompt) {
+    const contentDiv = document.getElementById('ai-assistant-content');
+    const context = AI_PAGE_CONTEXTS[currentContext] || AI_PAGE_CONTEXTS['default'];
+
+    // 简单的离线关键词匹配逻辑
+    let responseText = `[离线连接模式] 抱歉，我目前由于网络波动无法实时联网。但基于本页面的上下文（${context.title}），我可以告诉你：${context.prompt.substring(0, 100)}... 建议你检查网络连接或稍后再试。`;
+
+    if (prompt.includes('你好') || prompt.includes('在吗')) {
+        responseText = `你好！我是离线模式下的${context.title}。虽然暂时无法联网，但我依然可以为你提供本页面的基本导览建议。`;
+    } else if (prompt.includes('功能') || prompt.includes('做什么')) {
+        responseText = `在本页面中，你可以探索：${context.title} 相关的核心内容。具体建议查看页面顶部的导航或核心板块。`;
+    }
+
+    // 模拟打字效果
+    const messageId = 'ai-mock-' + Date.now();
+    const messageHtml = `
+        <div class="ai-message assistant">
+            <div class="ai-message-avatar">🤖</div>
+            <div class="ai-message-content" id="${messageId}"></div>
+        </div>
+    `;
+    contentDiv.insertAdjacentHTML('beforeend', messageHtml);
+    const target = document.getElementById(messageId);
+
+    let i = 0;
+    const timer = setInterval(() => {
+        target.innerHTML = responseText.substring(0, i);
+        contentDiv.scrollTop = contentDiv.scrollHeight;
+        i++;
+        if (i > responseText.length) clearInterval(timer);
+    }, 20);
 }
 
 /**
