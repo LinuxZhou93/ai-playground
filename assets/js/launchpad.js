@@ -46,10 +46,17 @@ window.Launchpad = (() => {
         { name: '金融科技', icon: '💰', link: 'fintech.html', color: '#fbbf24', category: 'labs' },
 
         // --- ACADEMIC CENTER ---
-        { name: '语文课程', icon: '🏮', link: 'chinese-curriculum.html', color: '#ff4d4d', category: 'academic' },
-        { name: '数学课程', icon: '📐', link: 'math-curriculum.html', color: '#3b82f6', category: 'academic' },
-        { name: '英语课程', icon: '🔤', link: 'english.html', color: '#10b981', category: 'academic' },
-        { name: '科学课程', icon: '🔬', link: 'science-curriculum.html', color: '#a855f7', category: 'academic' },
+        { name: '语文中心', icon: '🏮', link: 'chinese-hub.html', color: '#ff4d4d', category: 'academic' },
+        { name: '数学中心', icon: '📐', link: 'math-hub.html', color: '#3b82f6', category: 'academic' },
+        { name: '英语中心', icon: '🔤', link: 'english-hub.html', color: '#10b981', category: 'academic' },
+        { name: '科学中心', icon: '🔬', link: 'science-hub.html', color: '#a855f7', category: 'academic' },
+        { name: '物理中心', icon: '⚛️', link: 'physics-hub.html', color: '#3b82f6', category: 'academic' },
+        { name: '化学中心', icon: '🧪', link: 'chemistry-hub.html', color: '#00f3ff', category: 'academic' },
+        { name: '生物中心', icon: '🧬', link: 'biology-hub.html', color: '#4ade80', category: 'academic' },
+        { name: '思政中心', icon: '🛡️', link: 'politics-hub.html', color: '#ff4d4d', category: 'academic' },
+        { name: '历史中心', icon: '📜', link: 'history-hub.html', color: '#fbbf24', category: 'academic' },
+        { name: '地理中心', icon: '🌍', link: 'geography-hub.html', color: '#10b981', category: 'academic' },
+        { name: '信息科技中心', icon: '🖥️', link: 'infotech-hub.html', color: '#8b5cf6', category: 'academic' },
         { name: '科技新闻', icon: '📰', link: 'news.html', color: '#00F0FF', category: 'system' },
 
         // --- LEGACY/OTHER (Still in Launchpad Search) ---
@@ -67,8 +74,6 @@ window.Launchpad = (() => {
         { name: '大学先修', icon: '🎓', link: 'universities.html', color: '#f59e0b', category: 'system' },
         { name: '荣誉殿堂', icon: '🏆', link: 'trophy.html', color: '#fbbf24', category: 'system' },
         { name: '教材中心', icon: '📚', link: 'textbook.html', color: '#fff', category: 'system' },
-        { name: '信息课程', icon: '🖥️', link: 'senior-infotech-curriculum.html', color: '#FFAB19', category: 'system' },
-        { name: '科学课程', icon: '🔬', link: 'science-curriculum.html', color: '#10b981', category: 'system' },
         { name: '社区论坛', icon: '💬', link: 'forum.html', color: '#06b6d4', category: 'system' }
     ];
 
