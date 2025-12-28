@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国家语文课程全景图 - 科技特长生人文底座</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #030712;
+            color: #f3f4f6;
+            font-family: 'Inter', 'Noto Serif SC', serif;
+        }
+
+        .font-chinese {
+            font-family: 'Ma Shan Zheng', cursive;
+        }
+
+        .glass-card {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(17, 24, 39, 0.9);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .text-glow-red {
+            text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+
+        .ink-splash {
+            background: radial-gradient(circle at center, rgba(239, 68, 68, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Feather = (props) => <IconBase {...props}><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" /><line x1="16" y1="8" x2="2" y2="22" /><line x1="17.5" y1="15" x2="9" y2="15" /></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconBase>;
+        const Scroll = (props) => <IconBase {...props}><path d="M19 17V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2Z" /><path d="M15 21v-4a2 2 0 0 1 2-2h2" /></IconBase>;
+        const Brain = (props) => <IconBase {...props}><path d="M9.5 2t5 5a4 4 0 0 1 0 8l-5 5" /><path d="M14.5 2s-5 5-4 10 5 10 5 10" /><path d="M9.5 22s-5-5-4-10 5-10 5-10" /></IconBase>;
+        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+
+        const stages = [
+            { id: "primary", label: "小学阶段 (K1-6)", subtitle: "蒙学启智 · 文学萌芽", color: "bg-red-500", text: "text-red-400", border: "border-red-500/30", glow: "from-red-600/20" },
+            { id: "junior", label: "初中阶段 (K7-9)", subtitle: "博览古今 · 逻辑构建", color: "bg-orange-500", text: "text-orange-400", border: "border-orange-500/30", glow: "from-orange-600/20" },
+            { id: "senior", label: "高中阶段 (K10-12)", subtitle: "哲学思考 · 文化脊梁", color: "bg-amber-600", text: "text-amber-400", border: "border-amber-600/30", glow: "from-amber-700/20" }
+        ];
+
+        const tracks = [
+            { id: "foundation", title: "基础语用", desc: "识字识词 · 表达基础", icon: Feather, color: "text-red-400" },
+            { id: "literature", title: "文学鉴赏", desc: "经典阅读 · 审美感知", icon: BookOpen, color: "text-blue-400" },
+            { id: "heritage", title: "古籍经典", desc: "古文诗词 · 文言修养", icon: Scroll, color: "text-emerald-400" },
+            { id: "logic", title: "思维表达", desc: "议论写作 · 逻辑思辨", icon: Brain, color: "text-purple-400" },
+            { id: "tech", title: "科技融合", desc: "信息素养 · 科学说明", icon: Zap, color: "text-cyan-400" }
+        ];
+
+        const curriculumData = {
+            foundation: {
+                primary: {
+                    title: "文字的起源与运用",
+                    core: ["常用汉字3500字", "拼音系统与语流音变", "基础语法与组词造句", "书法艺术启蒙"],
+                    desc: "重点在于汉字的形体美、规律性及准确运用，建立中华文化的初步认同感。",
+                    tech_tip: "AI识别：使用OCR技术辅助汉字结构分析。",
+                    future: "数字书法：在压力感应设备上体验汉字间的笔墨逻辑。"
+                },
+                junior: {
+                    title: "修辞与精准表达",
+                    core: ["复杂语法结构分析", "多种修辞手法的运用", "应用文体写作规范", "口语交际艺术"],
+                    desc: "从感性认知转向工具性运用，强调语言的严谨性与沟通效率。",
+                    tech_tip: "文本分析：利用自然语言处理工具进行遣词造句的频率优化。",
+                    future: "精准沟通：模拟跨国社交场景下的跨文化语言适配。"
+                },
+                senior: {
+                    title: "语言学与文化深度",
+                    core: ["汉语言演变历史", "文本互涉与多义性分析", "修辞哲学与符号学", "学术规范与引注格式"],
+                    desc: "在哲学层面理解人类语言作为认知媒介的本质及其历史变迁。",
+                    tech_tip: "语料库：利用大规模中文语料库（BCC/MLC）进行词汇演化研究。",
+                    future: "元语言思维：为未来人工智能设计更加精密的Prompt描述逻辑。"
+                }
+            },
+            literature: {
+                primary: {
+                    title: "故事里的世界",
+                    core: ["童话、寓言与民间故事", "现代诗歌初探", "整本书阅读导引", "中外名著缩写版"],
+                    desc: "激发创造性想象，通过文学作品初步认识人类的情感世界与文明差异。",
+                    tech_tip: "数字绘本：通过多媒体交互手段重构故事情境。",
+                    future: "沉浸阅读：结合VR技术进入文学作品的地理空间（如鲁迅的百草园）。"
+                },
+                junior: {
+                    title: "现代精神的洗礼",
+                    core: ["鲁迅、朱自清等现代大家", "世界短篇小说经典", "戏剧文学初步", "电影艺术与文学关系"],
+                    desc: "培养独立的批判性审美，理解现代文学中关于人性、民族与社会的共鸣。",
+                    tech_tip: "情感计算：尝试用NLP工具分析文学作品的情感起伏曲线。",
+                    future: "交互敘事：在互动式小说平台中体验经典文学冲突的多重走向。"
+                },
+                senior: {
+                    title: "伟大的思想殿堂",
+                    core: ["现实主义与浪漫主义鸿篇", "意识流与现代主义探索", "中外思想名著导读", "深度文学批评概论"],
+                    desc: "进入世界顶级文学大师的精神领域，构建宏阔的人文视角与复杂的共情能力。",
+                    tech_tip: "知识大模型：辅助扫描复杂文本中的隐喻关联与互文逻辑。",
+                    future: "文明对话：跨时空模拟文学家沙龙（如：苏格拉底对话庄子）。"
+                }
+            },
+            heritage: {
+                primary: {
+                    title: "诗教与蒙学",
+                    core: ["唐诗宋词精华（100首）", "《三字经》《弟子规》精华", "成语故事典故", "神话故事（山海经普及版）"],
+                    desc: "建立中华文化的母语直觉，通过韵律与意象感知古人的生活美学。",
+                    tech_tip: "声韵律动：使用音频可视化技术展示古诗词的平仄之美。",
+                    future: "智能创作：利用AI模型协助生成符合格律要求的对仗联语。"
+                },
+                junior: {
+                    title: "文言的逻辑与骨架",
+                    core: ["先秦两汉散文精选", "《史记》等史传文学", "文言虚词与基础文法", "儒道法思想入门"],
+                    desc: "掌握研读古籍的工具，在史学与哲学的交汇处汲取民族智慧。",
+                    tech_tip: "古籍数字化：利用OCR与NER技术参与古文碎片拼接与识别。",
+                    future: "全息历史：利用全息影像还原历史现场（如：鸿门宴）。"
+                },
+                senior: {
+                    title: "经正民淳：中华文脉",
+                    core: ["《论语》《老子》原典详读", "唐宋八大家散文研究", "魏晋名士风度与玄学", "明清小说巅峰（红楼梦）"],
+                    desc: "触碰中华文明的皇皇正脉，理解中国人的处世逻辑与审美品格，构建文化自尊。",
+                    tech_tip: "关系图谱：构建《红楼梦》或《左传》的海量人物知识图谱。",
+                    future: "思想考古：基于大数据分析中国核心文化词（如“仁/义”）的历史演变。"
+                }
+            },
+            logic: {
+                primary: {
+                    title: "观察与表述",
+                    core: ["写实性状物作文", "写人记事基础", "逻辑分类初步", "观点陈述与理由"],
+                    desc: "学会忠实地观察世界，锻炼清晰、连贯地表达具体感知的技能。",
+                    tech_tip: "结构思维：使用思维导图工具（XMind）规划作文骨架。",
+                    future: "共创写作：AI协作工具辅助拓宽词汇与句式边界。"
+                },
+                junior: {
+                    title: "议论与思辨",
+                    core: ["说明文写作逻辑", "议论文基本三要素", "逻辑漏洞识别", "辩论性表达"],
+                    desc: "强调理性，训练严密的逻辑推理能力，学会从多角度解剖复杂社会议题。",
+                    tech_tip: "逻辑检测：使用语义分析工具检查论证中的逻辑断环。",
+                    future: "模拟决策：在高阶逻辑博弈系统中撰写政策建议书或辩护词。"
+                },
+                senior: {
+                    title: "学术思考与文化自信",
+                    core: ["学术小论文写作", "跨媒介表达与传播", "批判性思维深度训练", "个人核心价值体系论述"],
+                    desc: "将语文作为终身思考的武器，能够独立生产具有深刻洞察力的原创思想文本。",
+                    tech_tip: "同行评议：在去中心化学术社区中进行匿名互评与反馈循环。",
+                    future: "全球影响力：构建个人多语种、跨媒介的思想传播平台矩阵。"
+                }
+            },
+            tech: {
+                primary: {
+                    title: "信息的眼睛",
+                    core: ["图文解读与关键信息提取", "数字礼仪与安全表达", "观察日记数字化"],
+                    desc: "在数字时代学会甄别有效信息，练习多模态语言表达。",
+                    tech_tip: "多模态学习：将诗词转化为相应的AI绘画提示词。",
+                    future: "元宇宙教室：与数字化诗人NPC进行实时学问探讨。"
+                },
+                junior: {
+                    title: "解释与连接",
+                    core: ["科普小品文研读", "技术手册说明书撰写", "互联网辟谣与事实核查", "程序员式沟通逻辑"],
+                    desc: "强调语文的实用科技属性，训练将复杂技术转化为人性化语言的能力。",
+                    tech_tip: "Markdown规范：掌握轻量化标记语言，体验结构化文档写作。",
+                    future: "自动文档生成：为机器人编写行为逻辑文档与安全指令集。"
+                },
+                senior: {
+                    title: "科学人文的交汇位点",
+                    core: ["硬核科幻文学分析", "科学假说与论证报告", "AI伦理文集研读", "数字化文明的未来构思"],
+                    desc: "在高能科技背景下思考人类的生存状况，探索科技与文明的终极连接路径。",
+                    tech_tip: "知识建模：将整本经典名著转化为具备逻辑规则的知识库。",
+                    future: "脑机写作：探索脑电信号转化为语言意象的新型创作范式。"
+                }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stage }) => {
+            if (!isOpen || !data) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in" onClick={onClose}>
+                    <div className="bg-gray-900 border border-red-500/20 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-8 ${stage.color.replace('bg-', 'bg-')} bg-opacity-20 border-b border-red-500/20 flex justify-between items-start sticky top-0 backdrop-blur-xl z-20`}>
+                            <div>
+                                <h3 className="text-3xl font-chinese text-red-500 text-glow-red truncate">{data.title}</h3>
+                                <p className="text-gray-400 mt-2 text-sm">{stage.label} · {stage.subtitle}</p>
+                            </div>
+                            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                <X className="w-8 h-8 text-gray-500" />
+                            </button>
+                        </div>
+                        <div className="p-8 space-y-8">
+                            <section>
+                                <h4 className="text-red-400 font-bold mb-4 flex items-center gap-2">
+                                    <BookOpen className="w-5 h-5" /> 核心教纲与素养
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {data.core.map((item, i) => (
+                                        <div key={i} className="flex items-center gap-3 bg-white/5 p-4 rounded-xl border border-white/5">
+                                            <div className={`w-2 h-2 rounded-full ${stage.color}`}></div>
+                                            <span className="text-gray-300 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                            <section className="bg-gray-800/50 p-6 rounded-2xl border border-white/5">
+                                <h4 className="text-blue-400 font-bold mb-3 italic">课程导引 Desc</h4>
+                                <p className="text-gray-400 leading-relaxed">{data.desc}</p>
+                            </section>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-purple-500/10 p-5 rounded-2xl border border-purple-500/20">
+                                    <h4 className="text-purple-400 font-bold mb-3 flex items-center gap-2">
+                                        <Zap className="w-4 h-4" /> 科技特长生赋能
+                                    </h4>
+                                    <p className="text-purple-300/80 text-sm font-mono leading-relaxed">{data.tech_tip}</p>
+                                </div>
+                                <div className="bg-emerald-500/10 p-5 rounded-2xl border border-emerald-500/20">
+                                    <h4 className="text-emerald-400 font-bold mb-3 flex items-center gap-2">
+                                        <Feather className="w-4 h-4" /> 未来愿景 Future
+                                    </h4>
+                                    <p className="text-emerald-300/80 text-sm leading-relaxed">{data.future}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStage, setSelectedStage] = useState(null);
+
+            return (
+                <div className="min-h-screen relative overflow-x-hidden">
+                    <div className="ink-splash absolute inset-0 z-0"></div>
+                    
+                    {/* Navigation */}
+                    <nav className="fixed top-0 left-0 w-full p-6 flex justify-between items-center z-50 backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-red-600/30">语</div>
+                            <div>
+                                <h2 className="text-white font-bold tracking-widest text-lg">语文全景课程</h2>
+                                <p className="text-xs text-red-500 font-mono">NATIONAL LANGUAGE ARTS V1.0</p>
+                            </div>
+                        </div>
+                        <a href="index.html" className="group flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-2.5 rounded-full transition-all">
+                            <Home className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                            <span className="text-sm font-medium text-gray-400 group-hover:text-white">返回主控台</span>
+                        </a>
+                    </nav>
+
+                    <header className="pt-32 pb-12 px-6 text-center">
+                        <h1 className="text-5xl md:text-7xl font-chinese text-white mb-6 animate-float text-glow-red">
+                            中国国家学科课程 · 语文
+                        </h1>
+                        <p className="text-gray-400 max-w-3xl mx-auto text-lg leading-relaxed">
+                            构建科技特长生的文化脊梁。从文字起源、经典赏析到跨学科思辨，<br/>
+                            为您打造全周期的语文学科能力矩阵。
+                        </p>
+                        <div className="mt-8 flex justify-center gap-4">
+                            <div className="px-4 py-1.5 rounded-full border border-red-500/20 bg-red-500/5 text-red-400 text-xs font-mono">核心素养导向</div>
+                            <div className="px-4 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 text-blue-400 text-xs font-mono">数字科技融合</div>
+                            <div className="px-4 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-400 text-xs font-mono">K12全周期覆盖</div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-[1400px] mx-auto px-6 pb-24">
+                        <div className="overflow-x-auto pb-8 custom-scrollbar">
+                            <div className="min-w-[1200px] space-y-12">
+                                {/* Stage Headings */}
+                                <div className="grid grid-cols-[200px_1fr_1fr_1fr] gap-8">
+                                    <div className="flex items-end justify-end p-6 border-r border-white/5 text-gray-600 font-bold uppercase tracking-widest text-xs">
+                                        维度 / 阶段 Dimension
+                                    </div>
+                                    {stages.map(s => (
+                                        <div key={s.id} className="text-center group">
+                                            <div className={`mb-4 inline-block px-8 py-3 rounded-2xl ${s.color} bg-opacity-10 border ${s.border} group-hover:bg-opacity-20 transition-all`}>
+                                                <h3 className={`text-xl font-bold ${s.text} mb-1 tracking-wider`}>{s.label}</h3>
+                                                <p className="text-[10px] text-gray-500 uppercase font-mono">{s.subtitle}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {tracks.map(track => (
+                                    <div key={track.id} className="grid grid-cols-[200px_1fr_1fr_1fr] gap-8 group">
+                                        <div className="flex flex-col items-end justify-center p-6 text-right border-r border-white/5 pr-8">
+                                            <track.icon className={`w-8 h-8 ${track.color} mb-4`} />
+                                            <h4 className="text-2xl font-chinese text-white mb-2">{track.title}</h4>
+                                            <p className="text-[10px] text-gray-500 font-mono tracking-widest uppercase">{track.desc}</p>
+                                        </div>
+                                        {stages.map(stage => {
+                                            const data = curriculumData[track.id]?.[stage.id];
+                                            return (
+                                                <div 
+                                                    key={`${track.id}-${stage.id}`}
+                                                    onClick={() => { setSelectedNode(data); setSelectedStage(stage); }}
+                                                    className="glass-card rounded-[2rem] p-8 cursor-pointer relative overflow-hidden group/card"
+                                                >
+                                                    <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stage.glow} to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity`}></div>
+                                                    <h5 className="text-xl font-bold text-gray-100 mb-4 group-hover/card:text-red-400 transition-colors">{data?.title || "规划中..."}</h5>
+                                                    <div className="space-y-4">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {data?.core.slice(0, 2).map((c, i) => (
+                                                                <span key={i} className="text-[10px] bg-white/5 px-2 py-1 rounded-md text-gray-400 border border-white/5">{c}</span>
+                                                            ))}
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 line-clamp-3 leading-loose">{data?.desc}</p>
+                                                    </div>
+                                                    <div className="mt-8 flex items-center justify-between">
+                                                        <div className="flex gap-1.5">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-30"></div>
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 opacity-30"></div>
+                                                        </div>
+                                                        <span className="text-[10px] text-gray-600 font-mono">EXPLORE →</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal 
+                        isOpen={!!selectedNode} 
+                        onClose={() => { setSelectedNode(null); setSelectedStage(null); }} 
+                        data={selectedNode} 
+                        stage={selectedStage} 
+                    />
+
+                    <footer className="py-20 border-t border-white/5 bg-black/50 backdrop-blur-md">
+                        <div className="max-w-7xl mx-auto px-6 text-center">
+                            <p className="text-gray-600 text-sm mb-4">© TITAN OS ACADEMIC CENTER · 科技特长生人文底座规划</p>
+                            <div className="flex justify-center gap-8 text-gray-400 text-xs font-chinese">
+                                <span>博学之</span><span>审问之</span><span>慎思之</span><span>明辨之</span><span>笃行之</span>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+</html>

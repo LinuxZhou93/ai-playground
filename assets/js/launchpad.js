@@ -2,6 +2,7 @@ window.Launchpad = (() => {
     // Configuration
     const CATEGORIES = {
         LABS: { id: 'labs', title: 'TITAN LABS / 核心实验室', icon: '⚡' },
+        ACADEMIC: { id: 'academic', title: 'ACADEMIC / 国家学科中心', icon: '🏮' },
         DISCOVERY: { id: 'discovery', title: 'DISCOVERY / 探索与发现', icon: '🌏' },
         SYSTEM: { id: 'system', title: 'SYSTEM & TOOLS / 系统与规划', icon: '🛠️' }
     };
@@ -43,6 +44,12 @@ window.Launchpad = (() => {
         { name: '智力挑战', icon: '🧩', link: 'brain.html', color: '#10b981', category: 'labs' },
         { name: '科技英语', icon: '🔤', link: 'english.html', color: '#00F5FF', category: 'labs' },
         { name: '金融科技', icon: '💰', link: 'fintech.html', color: '#fbbf24', category: 'labs' },
+
+        // --- ACADEMIC CENTER ---
+        { name: '语文课程', icon: '🏮', link: 'chinese-curriculum.html', color: '#ff4d4d', category: 'academic' },
+        { name: '数学课程', icon: '📐', link: 'math-curriculum.html', color: '#3b82f6', category: 'academic' },
+        { name: '英语课程', icon: '🔤', link: 'english.html', color: '#10b981', category: 'academic' },
+        { name: '科学课程', icon: '🔬', link: 'science-curriculum.html', color: '#a855f7', category: 'academic' },
         { name: '科技新闻', icon: '📰', link: 'news.html', color: '#00F0FF', category: 'system' },
 
         // --- LEGACY/OTHER (Still in Launchpad Search) ---
@@ -242,7 +249,7 @@ window.Launchpad = (() => {
         const filterText = filterT.toLowerCase();
 
         // Group apps
-        const groups = { labs: [], discovery: [], system: [] };
+        const groups = { labs: [], academic: [], discovery: [], system: [] };
 
         apps.forEach(app => {
             if (!app.name) return; // Skip invalid
