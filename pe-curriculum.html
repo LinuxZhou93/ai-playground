@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K12 体育与健康核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(34, 197, 94, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#020617] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-green-900/30 border-t-green-500 rounded-full animate-spin"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-center text-xs text-green-500 font-bold animate-pulse">
+                ATHLETE</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Activity = (props) => <IconBase {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></IconBase>;
+        const ShieldCheck = (props) => <IconBase {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></IconBase>;
+        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></IconBase>;
+        const Trophy = (props) => <IconBase {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            { id: "p_low", label: "小学低", subtitle: "1-2年级 · 性趣", color: "bg-green-500", textColor: "text-green-400", borderColor: "border-green-500/30", bgSoft: "bg-green-500/10" },
+            { id: "p_mid", label: "小学中", subtitle: "3-4年级 · 基础", color: "bg-green-500", textColor: "text-green-400", borderColor: "border-green-500/30", bgSoft: "bg-green-500/10" },
+            { id: "p_high", label: "小学高", subtitle: "5-6年级 · 技能", color: "bg-green-500", textColor: "text-green-400", borderColor: "border-green-500/30", bgSoft: "bg-green-500/10" },
+            { id: "j_7", label: "七年级", subtitle: "初一 · 规律", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "j_8", label: "八年级", subtitle: "初二 · 挑战", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "j_9", label: "九年级", subtitle: "初三 · 突破", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "s_1", label: "高一", subtitle: "高一 · 专业", color: "bg-sky-600", textColor: "text-sky-400", borderColor: "border-sky-600/30", bgSoft: "bg-sky-600/10" },
+            { id: "s_2", label: "高二", subtitle: "高二 · 竞技", color: "bg-sky-600", textColor: "text-sky-400", borderColor: "border-sky-600/30", bgSoft: "bg-sky-600/10" },
+            { id: "s_3", label: "高三", subtitle: "高三 · 终身", color: "bg-sky-600", textColor: "text-sky-400", borderColor: "border-sky-600/30", bgSoft: "bg-sky-600/10" }
+        ];
+
+        const tracks = [
+            { id: "movement", title: "运动能力", desc: "体能 · 专项技术 · 战术", icon: Activity, color: "text-green-400", gradient: "from-green-500/20 to-green-900/5" },
+            { id: "health", title: "健康行为", desc: "习惯 · 营养 · 心理", icon: ShieldCheck, color: "text-emerald-400", gradient: "from-emerald-500/20 to-emerald-900/5" },
+            { id: "spirit", title: "体育精神", desc: "意志 · 合作 · 规则", icon: Trophy, color: "text-sky-400", gradient: "from-sky-500/20 to-sky-900/5" },
+            { id: "advanced", title: "专项竞技", desc: "足球 · 篮球 · 田径", icon: Zap, color: "text-yellow-400", gradient: "from-yellow-500/20 to-yellow-900/5" }
+        ];
+
+        const curriculumData = {
+            movement: {
+                p_low: { title: "身体总动员", core: ["基本走跑跳", "模仿操", "趣味小游戏"], literacy: "协调性", detail: "通过游戏化活动培养基础动作模式，建立对运动的初步喜爱。", example: "例：学螃蟹走，看谁走得稳。", practical: "【活动】班级趣味运动会。", ai_integration: "【AI】动作捕捉识别基础姿态。" },
+                p_mid: { title: "体能加速器", core: ["长短距离跑", "投掷初步", "柔韧性训练"], literacy: "体能素质", detail: "有针对性地提升耐力、速度与柔韧性，掌握基础田径动作逻辑。", example: "例：50米加速跑接力。", practical: "【活动】体测数据周。", ai_integration: "【AI】评估跑步步幅与频率的适配度。" },
+                p_high: { title: "专项初体验", core: ["小球类基础", "武术基本功", "游泳技能初步"], literacy: "技能掌握", detail: "正式接触专项体育门类，掌握基础的球感与套路动作。", example: "例：足球的原地运球。", practical: "【活动】校园联赛选拔赛。", ai_integration: "【AI】模拟展示球类运动的理想飞行轨迹。" },
+                j_7: { title: "运动力学规律", core: ["发力结构分析", "重心调节", "有声体育理论"], literacy: "科学素养", detail: "从生物力学角度理解运动，掌握动作背后的生理逻辑。", example: "例：分析跳远时起跳角度对成绩的影响。", practical: "【活动】“寻找最佳起跳点”实验。", ai_integration: "【AI】实时分析跳远瞬间的骨架关键点。" },
+                j_8: { title: "战术思维雏形", core: ["团队配合位置", "防守反击意识", "裁判法初探"], literacy: "战术素养", detail: "不仅是单纯的技术，更学习如何通过位置感与策略获取优势。", example: "例：篮球赛中的三二联防策略。", practical: "【活动】“我是主教练”对抗赛。", ai_integration: "【AI】基于位置数据可视化复盘比赛录像。" },
+                j_9: { title: "体能极限挑战", core: ["间歇性训练", "核心力量强化", "中考体育攻关"], literacy: "突破力", detail: "针对高强度目标进行系统训练，掌握调节训练量的科学方法。", example: "例：1000米/800米冲刺后的身体恢复逻辑。", practical: "【活动】毕业季体能长龙赛。", ai_integration: "【AI】根据心率变化动态调整训练负荷建议。" },
+                s_1: { title: "专项化深化必修", core: ["选定一到两项专项", "高密度技战术练", "运动生理学基础"], literacy: "专业技能", detail: "高中学段核心，致力于某一运动领域的专业度提升。", example: "例：足球专项中的区域防守战术演练。", practical: "【活动】专项联赛（月度）。", ai_integration: "【AI】利用高频摄像头分析球员跑位覆盖图。" },
+                s_2: { title: "竞技战术巅峰", core: ["复杂战术编排", "动态应变能力", "高强度对抗实战"], literacy: "竞技智慧", detail: "在高对抗环境下保持清晰的技战术执行力，追求竞技平衡。", example: "例：针对特定对手设计的针对性战术方案。", practical: "【活动】“巅峰对决”全校联赛。", ai_integration: "【AI】模拟对手战术并寻找防御漏洞。" },
+                s_3: { title: "终身运动管理", core: ["运动处方制定", "运动损伤康复", "体育与社会领导力"], literacy: "自主管理", detail: "在最高维度思考运动与健康的关系，建立终身参与体育的价值观。", example: "例：为自己的一生制定一份可动态调整的运动方案。", practical: "【活动】撰写《我的体育人生规划（毕业版）》。", ai_integration: "【AI】基于数万条体质数据预测不同运动习惯的长期健康收益。" }
+            },
+            health: {
+                p_low: { title: "干净的小天使", core: ["洗手七步法", "保护视力操", "蔬菜肉肉都爱"], literacy: "卫生习惯", detail: "建立最基础的身体卫生与营养意识，培养自我保护能力。", example: "例：展示正确的刷牙姿势。", practical: "【活动】我是卫生小标兵。", ai_integration: "【AI】扫码识别食物营养成分展示。" },
+                p_mid: { title: "情绪气象站", core: ["认识坏心情", "运动解压法", "珍爱生命启蒙"], literacy: "心理健康", detail: "初步理解情绪波动的生理基础，掌握通过体育活动调节心情的方法。", example: "例：心情不好时去跑两圈的感觉。", practical: "【活动】心情日记记录周。", ai_integration: "【AI】分析孩子笑脸背后的压力指数。" },
+                p_high: { title: "青春期门槛", core: ["认识第二性征", "男女生社交边界", "初级急救知识"], literacy: "安全意识", detail: "科学面对身体变化，掌握简单的擦伤、中暑处理方法。", example: "例：模拟处理校园里的突发流鼻血。", practical: "【活动】校园红十字急救演练。", ai_integration: "【AI】语音引导异物卡喉的急救步骤。" },
+                j_7: { title: "营养与能量平衡", core: ["BMI指数监控", "合理膳食宝塔", "拒绝成瘾行为"], literacy: "科学生活", detail: "掌握能量摄入与消耗的定量逻辑，理解不良习惯对器官的损伤。", example: "例：计算一瓶含糖饮料需要的运动抵消量。", practical: "【活动】“我的营养午餐”设计大赛。", ai_integration: "【AI】自动化监测每日摄入热量与动态消耗对比。" },
+                j_8: { title: "心理韧性强化", core: ["压力应对机制", "抗挫折能力", "自我认同建立"], literacy: "心理素质", detail: "通过对抗性体育项目磨炼心智，建立积极向上的自我画像。", example: "例：在一场输掉的比赛后进行深度复盘。", practical: "【活动】校园心理素质拓展周。", ai_integration: "【AI】情绪陪伴机器人提供非专业疏导建议。" },
+                j_9: { title: "备考心理疏导", core: ["考前焦虑管理", "充足深度睡眠", "社会适应能力"], literacy: "自我调控", detail: "在学业高压下保持身心平衡，学习在复杂社交环境中的沟通逻辑。", example: "例：制订考前一周的“减压运动表”。", practical: "【活动】毕业季‘互助小组’活动。", ai_integration: "【AI】通过睡眠监测优化深度睡眠质量模型。" },
+                s_1: { title: "生命科学与健康必修", core: ["运动中的生物学原理", "慢性病预防初步", "心理健康专业维护"], literacy: "知识体系", detail: "高中学段核心，系统构建现代健康知识图谱，理解健康的全面性指标。", example: "例：研讨‘久坐不动对青少年脊柱的生物力学影响’。", practical: "【活动】健康科普创意大赛。", ai_integration: "【AI】利用生成式技术展示人体内部的实时代谢动态。" },
+                s_2: { title: "高阶健康管理", core: ["公共卫生政策调研", "运动康复专业法", "复杂情境应急指挥"], literacy: "社会参与", detail: "探讨群体健康问题，掌握运动伤害的高级现场处置流程。", example: "例：策划一场针对社区老人的普适性运动方案。", practical: "【活动】“校园急救员”认证训练。", ai_integration: "【AI】多灾种环境下虚拟生存与救援逃生训练系统。" },
+                s_3: { title: "人类世下的健康哲学", core: ["数字文明下的身体异化", "生态健康价值观", "终极幸福感探讨"], literacy: "终极关怀", detail: "在最高维度反思技术时代人的主体性与身体完整性。", example: "例：策论：‘数字分身能否替代肉体运动’的伦理辩论。", practical: "【活动】撰写《我的健康生命宣言（毕业版）》。", ai_integration: "【AI】由于AI自身参与讨论而产生的奇妙逻辑冲突现象分析。" }
+            },
+            spirit: {
+                p_low: { title: "排队不插队", core: ["遵守游戏规则", "跌倒了不哭", "赢了不骄傲"], literacy: "诚信自律", detail: "通过体育活动初步建立契约意识与抗挫折意识。", example: "例：和同学玩丢沙包，被击中主动下场。", practical: "【活动】“寻找最诚实运动员”。", ai_integration: "【AI】识别不合理的运动轨迹并进行提示。" },
+                p_mid: { title: "我的小伙伴", core: ["接力赛里的配合", "不埋怨队友", "互相鼓励的口号"], literacy: "合作精神", detail: "理解团队合作大于个人英雄主义，学会情绪克制。", example: "例：拔河比赛中所有人的步调一致。", practical: "【活动】团队协作游戏周。", ai_integration: "【AI】分析团队协作中成员贡献度的社会网络图。" },
+                p_high: { title: "奥林匹克之光", core: ["了解五环含义", "尊敬裁判", "公平竞争基础"], literacy: "体育感知", detail: "感知体育背后的人类共同文明价值——更快、更高、更强、更团结。", example: "例：讲述一个让你感动的残奥会故事。", practical: "【活动】校园奥林匹克知识普查。", ai_integration: "【AI】生成专属的个人奖牌与精神图腾。" },
+                j_7: { title: "意志力熔炉", core: ["长短距离磨炼", "逆境下的顽强", "公平性底线认知"], literacy: "坚毅品质", detail: "通过高强度体能项目体验生理与心理的双重挑战，突破自我极限。", example: "例：在最后一圈精疲力竭时坚持加速。", practical: "【活动】校园‘铁人计划’活动。", ai_integration: "【AI】实时抓取表情包分析疲劳时的执行意志系数。" },
+                j_8: { title: "规则的捍卫者", core: ["理解裁判法精髓", "对争议的理性表达", "体育法制意识"], literacy: "法制意识", detail: "深入学习各项目的正式规则，培养尊重程序、敬畏规则的现代公民精神。", example: "例：模拟一场关于‘越位’判罚的现场辩论。", practical: "【活动】“我是小裁判”实操训练。", ai_integration: "【AI】利用VAR辅助判罚系统的算法逻辑分析。" },
+                j_9: { title: "社会体育责任", core: ["引领低年级学弟妹", "体育精神进社区", "民族自豪感激发"], literacy: "领导力", detail: "不仅是个人成长，更学习如何通过体育正向影响他人和社会。", example: "例：作为高年级代表组织一场班级对抗赛并致辞。", practical: "【活动】毕业季公益体育支教。", ai_integration: "【AI】多语种多渠道传播校园体育精神故事。" },
+                s_1: { title: "体育精神必修", core: ["体育哲学概论", "全球体育地缘博弈", "公平正义的终极追求"], literacy: "批判力", detail: "高中学段核心，建立宏大的体育文明史观，理解体育与国家命运的羁绊。", example: "例：撰写论文：‘百年奥运与中国崛起的美学共振’。", practical: "【活动】专题艺术节主题策展方案。", ai_integration: "【AI】可视化展示全球运动数据的流动与文明互动图谱。" },
+                s_2: { title: "团队领导力巅峰", core: ["队长职责与牺牲", "复杂团队危管理", "组织文化构建"], literacy: "领导素养", detail: "深度掌控团队的心理动态，在高压竞争中保持文明的组织风貌。", example: "例：负责整合一个由于战绩不佳而散乱的校队文化。", practical: "【活动】“超级校园联赛”组织委员会。", ai_integration: "【AI】基于数万条交互数据优化团队的文化粘性度建议。" },
+                s_3: { title: "文明的身体基石", core: ["后人类时代的身体正义", "超越胜负的生命哲学", "全球体育共同体"], literacy: "未来哲学力", detail: "在最高维度思考由于技术变革导致的身体异化，回归体育的原始神圣性。", example: "例：研讨‘赛博格运动员是否违背体育精神’的伦理辩论。", practical: "【活动】撰写《我的体育精神宣言（毕业版）》。", ai_integration: "【AI】由于AI自身参与讨论而产生的奇妙逻辑冲突现象分析。" }
+            },
+            advanced: {
+                p_low: { title: "足球小将起航", core: ["熟悉球性", "带球绕桩", "小门射门"], literacy: "技能启蒙", detail: "建立与器材的初步连接感。", example: "例：看谁带球转弯最快。", practical: "【活动】班级点球大赛。", ai_integration: "【AI】识别球感动作等级。" },
+                p_mid: { title: "篮球公园", core: ["运球基本功", "投篮姿势固定", "传切配合"], literacy: "专项技能", detail: "掌握基础的攻防动作逻辑。", example: "例：原地V字运球100次。", practical: "【活动】三对三小型对抗。", ai_integration: "【AI】实时提供投篮角度修正建议。" },
+                p_high: { title: "田径风暴", core: ["短跑起跑技术", "跳远腾空步", "实心球投掷技巧"], literacy: "发力精度", detail: "追求动作的规范化与爆发力的释放。", example: "例：蹲踞式起步的爆发训练。", practical: "【活动】全校运动会田径单项。", ai_integration: "【AI】高速捕捉并慢速回放起跑瞬间姿态。" },
+                j_7: { title: "排球纵贯线", core: ["垫球稳定性", "传球手型纠正", "低位发球"], literacy: "控制力", detail: "掌握球类运动中的控制力与缓冲逻辑。", example: "例：连续对墙垫球不着地。", practical: "【活动】班级排球垫球耐力赛。", ai_integration: "【AI】通过声学传感器识别垫球声音的均匀度。" },
+                j_8: { title: "羽球闪电战", core: ["握拍与步法", "高远球击球点", "发球多变性"], literacy: "敏捷反映", detail: "追求身体灵活性与手眼配合的极致平衡。", example: "例：米字步移动回球训练。", practical: "【活动】羽球公开赛。", ai_integration: "【AI】基于热度图分析步法覆盖的盲区。" },
+                j_9: { title: "武术魂与柔韧", core: ["长拳基本功", "防身术初步", "核心稳定性专项"], literacy: "文化表现力", detail: "在攻防转换中体会中华武术的力与美。", example: "例：完成一套标准的少年长拳。", practical: "【活动】校庆武术表演。", ai_integration: "【AI】与虚拟AR师傅进行拳术同步练。" },
+                s_1: { title: "专项竞技必修", core: ["单项竞技水平突破", "高阶技战术解析", "职业生涯模拟"], literacy: "专业技能", detail: "针对高阶赛事要求进行系统训练。", example: "例：执行一套复杂的外围掩护配合战术。", practical: "【活动】全城高中生巡回联赛。", ai_integration: "【AI】自动化分析对手球队的阵型弱点。" },
+                s_2: { title: "巅峰对抗战术", core: ["全场紧逼与破解", "关键球处置能力", "心理抗压专项训练"], literacy: "竞技心态", detail: "在极端压力环境下做出最优竞技决策。", example: "例：落后两分时最后一秒的进攻布置。", practical: "【活动】“巅峰决战”直播联赛。", ai_integration: "【AI】基于胜率预测算法提供场边实时战术建议。" },
+                s_3: { title: "裁判与教练进阶", core: ["高阶裁判证书考取", "基层教练员练习", "赛事策划与组织"], literacy: "综合领导力", detail: "不仅是参与竞技，更能组织与裁判竞技，理解规则边界。", example: "例：独立完成一场区域性运动会的竞赛规程编写。", practical: "【活动】撰写《校园体育赛事白皮书》。", ai_integration: "【AI】基于数万条历史判决数据训练AI辅助裁判模型。" }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-3xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-slate-700 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Activity className="w-4 h-4" /> 运动要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-slate-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-slate-300 font-bold mb-2">🔭 深度解读</h4>
+                                    <p className="text-slate-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-green-900/10 p-4 rounded-xl border border-green-500/20">
+                                    <h4 className="text-green-300 font-bold mb-2">🏆 竞赛原型/挑战</h4>
+                                    <p className="text-green-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20">
+                                        <h4 className="text-emerald-300 font-bold mb-2 flex items-center gap-2">
+                                            <ShieldCheck className="w-4 h-4" /> 实战应用
+                                        </h4>
+                                        <p className="text-emerald-200/80 text-sm">{data.practical}</p>
+                                    </div>
+                                    <div className="bg-sky-900/10 p-4 rounded-xl border border-sky-500/20">
+                                        <h4 className="text-sky-300 font-bold mb-2 flex items-center gap-2">
+                                            <Zap className="w-4 h-4" /> AI技术增项
+                                        </h4>
+                                        <p className="text-sky-200/80 text-sm">{data.ai_integration}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            // Filter logic
+            const queryParams = new URLSearchParams(window.location.search);
+            const stageFilter = queryParams.get('stage'); // 'p', 'j', 's'
+
+            let filteredStages = stages;
+            let stageTitle = "";
+
+            if (stageFilter === 'p') {
+                filteredStages = stages.filter(s => s.id.startsWith('p_'));
+                stageTitle = " - 小学阶段";
+            } else if (stageFilter === 'j') {
+                filteredStages = stages.filter(s => s.id.startsWith('j_'));
+                stageTitle = " - 初中阶段";
+            } else if (stageFilter === 's') {
+                filteredStages = stages.filter(s => s.id.startsWith('s_'));
+                stageTitle = " - 高中阶段";
+            }
+
+            const gridClass = `grid grid-cols-[200px_repeat(${filteredStages.length},300px)] gap-6`;
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#020617] text-slate-100 pb-20 font-[Inter]">
+                    {/* Navigation */}
+                    <a href="pe-hub.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-green-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回体育中心</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-green-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-500 to-sky-600 mb-4 relative z-10">
+                            K12 体育与健康芯课标核心素养全景图{stageTitle}
+                        </h1>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-lg">
+                            从身体活动到精神卓越的人生冠军矩阵
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-slate-500 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="w-fit">
+                                {/* Stage Headers */}
+                                <div className={`${gridClass} mb-8 sticky top-0 bg-[#020617]/95 backdrop-blur z-30 py-4 border-b border-slate-800`}>
+                                    <div className="flex items-end justify-end px-4 pb-2 text-slate-500 font-bold text-sm uppercase tracking-widest text-right">
+                                        体育维度 / 学习阶段
+                                    </div>
+                                    {filteredStages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-slate-400 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className={`${gridClass} group`}>
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-slate-500 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {filteredStages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                                                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                                                            bg-slate-900/40 border border-slate-800
+                                                            hover:bg-slate-800 hover:border-slate-600 hover:shadow-xl hover:-translate-y-1
+                                                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                                                        `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-slate-200 mb-2 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-1.5 mb-4 flex-grow text-xs text-slate-400">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-slate-700 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded bg-slate-900 ${stage.textColor}`}>
+                                                                    {stage.label.split(' ')[0]}
+                                                                </span>
+                                                                <span className="text-xs text-slate-500 group-hover/card:text-green-400 transition-colors flex items-center gap-1">
+                                                                    爆发 <Check className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

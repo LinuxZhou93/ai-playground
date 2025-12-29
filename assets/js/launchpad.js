@@ -57,6 +57,11 @@ window.Launchpad = (() => {
         { name: '历史中心', icon: '📜', link: 'history-hub.html', color: '#fbbf24', category: 'academic' },
         { name: '地理中心', icon: '🌍', link: 'geography-hub.html', color: '#10b981', category: 'academic' },
         { name: '信息科技中心', icon: '🖥️', link: 'infotech-hub.html', color: '#8b5cf6', category: 'academic' },
+        { name: '艺术中心', icon: '🎨', link: 'arts-hub.html', color: '#f472b6', category: 'academic' },
+        { name: '体育与健康', icon: '🏃', link: 'pe-hub.html', color: '#10b981', category: 'academic' },
+        { name: '劳动实践中心', icon: '⚒️', link: 'labor-hub.html', color: '#f59e0b', category: 'academic' },
+        { name: '通用技术中心', icon: '⚙️', link: 'tech-hub.html', color: '#3b82f6', category: 'academic' },
+        { name: '全球智慧中心', icon: '🌐', link: 'international-hub.html', color: '#fbbf24', category: 'academic' },
         { name: '科技新闻', icon: '📰', link: 'news.html', color: '#00F0FF', category: 'system' },
 
         // --- LEGACY/OTHER (Still in Launchpad Search) ---

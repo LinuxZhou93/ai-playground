@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K12 劳动实践核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #0c0a09;
+            color: #f5f5f4;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1c1917;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #44403c;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #57534e;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(28, 25, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(245, 158, 11, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#0c0a09] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-amber-900/30 border-t-amber-500 rounded-full animate-spin"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-center text-xs text-amber-500 font-bold animate-pulse">
+                LABOR</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const Utensils = (props) => <IconBase {...props}><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></IconBase>;
+        const Leaf = (props) => <IconBase {...props}><path d="m5 21 7-7 7 7" /><path d="M9 14h10a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z" /><path d="M12 2v12" /></IconBase>;
+        const Hammer = (props) => <IconBase {...props}><path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9" /><path d="m18 15 4-4" /><path d="m15 18 4-4" /><path d="m12 12 6 6" /><path d="m9 9 6 6" /></IconBase>;
+        const Heart = (props) => <IconBase {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            { id: "p_low", label: "小学低", subtitle: "1-2年级 · 生活", color: "bg-amber-500", textColor: "text-amber-400", borderColor: "border-amber-500/30", bgSoft: "bg-amber-500/10" },
+            { id: "p_mid", label: "小学中", subtitle: "3-4年级 · 劳动", color: "bg-amber-500", textColor: "text-amber-400", borderColor: "border-amber-500/30", bgSoft: "bg-amber-500/10" },
+            { id: "p_high", label: "小学高", subtitle: "5-6年级 · 实践", color: "bg-amber-500", textColor: "text-amber-400", borderColor: "border-amber-500/30", bgSoft: "bg-amber-500/10" },
+            { id: "j_7", label: "七年级", subtitle: "初一 · 技能", color: "bg-orange-500", textColor: "text-orange-400", borderColor: "border-orange-500/30", bgSoft: "bg-orange-500/10" },
+            { id: "j_8", label: "八年级", subtitle: "初二 · 服务", color: "bg-orange-500", textColor: "text-orange-400", borderColor: "border-orange-500/30", bgSoft: "bg-orange-500/10" },
+            { id: "j_9", label: "九年级", subtitle: "初三 · 综合", color: "bg-orange-500", textColor: "text-orange-400", borderColor: "border-orange-500/30", bgSoft: "bg-orange-500/10" },
+            { id: "s_1", label: "高一", subtitle: "高一 · 专业", color: "bg-yellow-600", textColor: "text-yellow-400", borderColor: "border-yellow-600/30", bgSoft: "bg-yellow-600/10" },
+            { id: "s_2", label: "高二", subtitle: "高二 · 创新", color: "bg-yellow-600", textColor: "text-yellow-400", borderColor: "border-yellow-600/30", bgSoft: "bg-yellow-600/10" },
+            { id: "s_3", label: "高三", subtitle: "高三 · 奉献", color: "bg-yellow-600", textColor: "text-yellow-400", borderColor: "border-yellow-600/30", bgSoft: "bg-yellow-600/10" }
+        ];
+
+        const tracks = [
+            { id: "daily", title: "日常生活劳动", desc: "整理 · 烹饪 · 收纳", icon: Utensils, color: "text-amber-400", gradient: "from-amber-500/20 to-amber-900/5" },
+            { id: "produce", title: "生产劳动", desc: "农业 · 工艺 · 维修", icon: Leaf, color: "text-orange-400", gradient: "from-orange-500/20 to-orange-900/5" },
+            { id: "service", title: "服务性劳动", desc: "志愿 · 社区 · 公益", icon: Heart, color: "text-yellow-400", gradient: "from-yellow-500/20 to-yellow-900/5" },
+            { id: "creative", title: "创造性劳动", desc: "木工 · 电子 · 文创", icon: Hammer, color: "text-red-400", gradient: "from-red-500/20 to-red-900/5" }
+        ];
+
+        const curriculumData = {
+            daily: {
+                p_low: { title: "自己事情自己做", core: ["穿衣服扣子", "整理小书包", "学会扫地"], literacy: "自理能力", detail: "掌握最基本的自我服务技能，建立初步的劳动成就感。", example: "例：自己叠好红领巾和外套。", practical: "【活动】班级整理达人挑战赛。", ai_integration: "【AI】识别衣物折叠的规整度。" },
+                p_mid: { title: "我是家务小能手", core: ["洗自己的袜子", "简单的水果拼盘", "垃圾分类投放"], literacy: "家庭责任", detail: "参与分担简单的家务，理解劳动的辛苦与快乐。", example: "例：帮爸爸妈妈洗一次碗。", practical: "【活动】周末劳动打卡周。", ai_integration: "【AI】模拟展示正确的垃圾分类逻辑。" },
+                p_high: { title: "烹饪初体验", core: ["认识厨房工具", "西红柿炒鸡蛋", "收纳整理逻辑"], literacy: "生活智慧", detail: "学习基本的烹饪技能，掌握衣柜与书架的系统化收纳方法。", example: "例：独立完成一道简单的家常菜。", practical: "【活动】“我是小小厨房长”。", ai_integration: "【AI】语音识别食材提供菜谱与安全提示。" },
+                j_7: { title: "生活美学与收纳", core: ["家庭空间布局", "布艺与修补", "基础营养学"], literacy: "生活素养", detail: "从审美角度提升日常生活质量，学习衣物的洗涤与基础维护。", example: "例：策划并实施一次书房的空间优化。", practical: "【活动】班级卫生区美化设计。", ai_integration: "【AI】AR实景模拟空间家具摆放效果。" },
+                j_8: { title: "厨艺进阶专题", core: ["面食制作基础", "食品保存技术", "节约粮食计划"], literacy: "生存技能", detail: "深入学习南北方饮食文化，掌握各种食材的特性与保存方法。", example: "例：亲手包一顿象征团圆的饺子。", practical: "【活动】校园‘美食品鉴’周。", ai_integration: "【AI】大数据分析家庭厨余垃圾的减量方案。" },
+                j_9: { title: "独立生活预演", core: ["个人收支预算", "家用电器简易维修", "急教常识实操"], literacy: "自主管理", detail: "为即将到来的高中/大学生活做准备，学习基本的金钱管理与设备维护。", example: "例：制定一份为期一周的‘千元生存挑战’预算表。", practical: "【活动】毕业季搬家/打包模拟。", ai_integration: "【AI】自动构建财务收支平衡的预测模型。" },
+                s_1: { title: "现代家庭管理必修", core: ["家居智能化规划", "家庭理财哲学", "职场礼仪与沟通"], literacy: "战略批判力", detail: "高中学段核心，将劳动提升到家庭治理与职业前瞻的高度。", example: "例：设计一套完整的智能家庭节水节电方案。", practical: "【活动】“未来管家”综合素质挑战。", ai_integration: "【AI】基于数万条数据优化家庭能源配置建议。" },
+                s_2: { title: "精湛技艺与生活", core: ["高阶烹饪艺术", "服装设计与改造", "家庭植物工厂"], literacy: "审美造诣", detail: "在最高维度追求生活艺术化，掌握复杂的家庭生态系统维护技能。", example: "例：利用废弃衣物重新设计并制作一件具有设计感的成衣。", practical: "【活动】“匠心生活”作品集展示。", ai_integration: "【AI】利用生成式设计重构衣物裁剪图纸。" },
+                s_3: { title: "终身劳动哲学", core: ["劳动法基础意识", "劳动与人类本质探讨", "奉献型人格养成"], literacy: "终极关怀", detail: "在最高维度思考劳动对人类文明的意义，建立终身爱劳动的价值观。", example: "例：策论：‘如果不劳动，人类是否会丧失其天性’。", practical: "【活动】撰写《我的劳动心得录（毕业篇）》。", ai_integration: "【AI】由于AI自身参与讨论而产生的奇妙逻辑冲突现象分析。" }
+            },
+            produce: {
+                p_low: { title: "种子发芽了", core: ["认识各种种子", "给小花浇水", "观察我的小苗"], literacy: "自然感知", detail: "通过简单的种植活动感知生命周期，培养对大自然的爱心。", example: "例：写一篇大豆发芽观察日记。", practical: "【活动】认领一盆校园绿植。", ai_integration: "【AI】识别植物种类并播报养护常识。" },
+                p_mid: { title: "泥土的馈赠", core: ["认识农具", "拔草与松土", "采摘的快乐"], literacy: "辛勤意识", detail: "亲身参与农事活动，理解‘谁知盘中餐，粒粒皆辛苦’。", example: "例：在学校农场参与一次集体的红薯收获。", practical: "【活动】校园农耕节体验。", ai_integration: "【AI】卫星遥感数据展示庄稼生长过程图。" },
+                p_high: { title: "小小手办师", core: ["简单的木工工具", "泥塑与捏陶", "认识身边的工业"], literacy: "工艺启蒙", detail: "学习硬质材料的处理，感知传统与现代制造的差异。", example: "例：做一个实木的动物摆件。", practical: "【活动】“我是小小创客”。", ai_integration: "【AI】3D打印预览设计稿的成品效果。" },
+                j_7: { title: "传统农业技术", core: ["二十四节气与农事", "简单的育种知识", "传统农具改良"], literacy: "文化传承", detail: "将节气与生产挂钩，理解中国传统农业的智慧体系。", example: "例：根据节气规律在校园菜地进行接种。", practical: "【活动】“寻找失落的老种子”。", ai_integration: "【AI】跨时空对比古今农作物的产量变迁。" },
+                j_8: { title: "工业生产初探", core: ["工厂流水线逻辑", "产品质量分析", "标准化基础"], literacy: "系统意识", detail: "走进工厂，理解现代工业化大规模生产的协作与标准流程。", example: "例：分析一支圆珠笔的生产工艺链条。", practical: "【活动】校园‘模拟工厂’活动环节。", ai_integration: "【AI】利用机器人流程自动化（RPA）展示工序流转。" },
+                j_9: { title: "智慧农业前沿", core: ["自动喷灌系统", "水培与气培", "农业无人机感官"], literacy: "先进视野", detail: "感受科技如何重塑古老行业，探讨数字化对粮食安全的贡献。", example: "例：设计并搭建一个基于Arduino的自动浇花装置方案。", practical: "【活动】“未来农场”全能策划案。", ai_integration: "【AI】利用多光谱摄影检测作物的病虫害风险情况。" },
+                s_1: { title: "现代工业设计必修", core: ["材料的物理性能研究", "CNC精密加工流程", "精益生产理论"], literacy: "专业造诣", detail: "高中学段核心，致力于某一工艺领域的专业化产出，追求标准化与精度。", example: "例：撰写一份由于材料硬度不足导致的零件失效分析报告。", practical: "【活动】“大国小工匠”技能大赛。", ai_integration: "【AI】生成复杂的零件排布排样优化算法。" },
+                s_2: { title: "集成制造巅峰", core: ["工业机器人编程", "复合材料深度加工", "柔性制造系统架构"], literacy: "集成能力", detail: "在最高维度思考人、机器、控制系统的协同，解决高难度制造目标。", example: "例：负责编写一架开源无人机的所有碳纤维切割与装配说明书。", practical: "【活动】“我是总工程师”集成挑战赛。", ai_integration: "【AI】利用数字孪生技术模拟生产线的最优工况响应。" },
+                s_3: { title: "技术与文明博弈", core: ["自动化农业对就业影响", "能源生产与双碳目标", "人机协作的终极边界"], literacy: "战略批判力", detail: "在最高维度思考生产方式的变迁如何重塑人类文明的形态。", example: "例：研讨‘假如AI接管了所有农业，人类将做什么’。", practical: "【活动】撰写《我的生产哲学观（毕业版）》。", ai_integration: "【AI】基于数万条数据预测不同技术选择的社会收益模型分析。" }
+            },
+            service: {
+                p_low: { title: "我是值日生", core: ["整理好讲台", "帮老师拿粉笔", "校园寻宝找垃圾"], literacy: "责任意识", detail: "通过简单的公共服务，建立‘我为集体做贡献’的光荣感。", example: "例：每天走后检查教室的电灯是否关闭。", practical: "【活动】“我是红领巾值日生”。", ai_integration: "【AI】实时抓取表情包点赞积极劳动的行为。" },
+                p_mid: { title: "社区小帮手", core: ["去敬老院送温暖", "图书角的整理员", "红绿灯下的守望"], literacy: "利他精神", detail: "走出校园，感知不同社会群体的需求，培养同情心与服务技能。", example: "例：教奶奶用智能手机视频通话。", practical: "【活动】“学雷锋”社会实践周。", ai_integration: "【AI】自动匹配离家最近的志愿者服务岗位。" },
+                p_high: { title: "公益解述员", core: ["为校博会当解说", "制作普法小报", "寻找身边的最美劳动者"], literacy: "沟通素养", detail: "通过知识传递与故事传播进行服务，提升逻辑表达与公共精神。", example: "例：向低年级学弟介绍校园植物的名称与特性。", practical: "【活动】“寻找校园之星”访谈录。", ai_integration: "【AI】自动识别讲解内容并辅助生成对应的多媒体演示PPT。" },
+                j_7: { title: "志愿服务专门化", core: ["环境监测志愿", "大型赛事引导", "基础急救员实践"], literacy: "专业技能", detail: "从单纯的劳动转向带有技术含量的专业服务，学习服务礼仪。", example: "例：在校园运动会中担任专业终点计时员及秩序维护。", practical: "【活动】认证志愿服务工时累计计划。", ai_integration: "【AI】自动化采集志愿服务的轨迹数据并生成分析报告。" },
+                j_8: { title: "调研与策划服务", core: ["社区垃圾现状调查", "为社区养老提方案", "文化遗产保护倡议"], literacy: "决策智慧", detail: "不仅是出力，更学习如何通过科学调研发现并解决社会痛点。", example: "例：为提高小区电梯利用率撰写一份建议书。", practical: "【活动】“小小政协委员”提案周环节。", ai_integration: "【AI】大数据辅助分析居民对不同社区服务的满意度差异。" },
+                j_9: { title: "跨界服务公益", core: ["编程支教项目", "艺术疗愈志愿者", "心理互助小组长"], literacy: "领导力", detail: "利用自身的优势（如信息技术、艺术）进行高价值的社会回馈。", example: "例：发起并运行一个‘旧书流转’的校内自动循环系统。", practical: "【活动】毕业季公益捐赠与交接仪式。", ai_integration: "【AI】多语种多渠道传播校园公益故事及反馈系统。" },
+                s_1: { title: "社会服务必修", core: ["社会治理与创新", "非营利组织运作逻辑", "危机管理与动员"], literacy: "战略格局", detail: "高中学段核心，理解社会毛细血管的运作，建立职业级的公共意识。", example: "例：分析一个成功的NGO（非营利组织）背后的运营逻辑。", practical: "【活动】“青年公益创投”大赛。", ai_integration: "【AI】可视化展示全球公益数据的流动与文明互动图谱情况。" },
+                s_2: { title: "全球视野下的服务", core: ["国际志愿者项目分析", "边远地区远程支教", "跨境文化交流服务"], literacy: "全球竞争力", detail: "将服务的触角伸向边疆与海外，理解人类命运共同体的实操意义。", example: "例：负责设计一套针对非洲儿童的中文在线启蒙教程。", practical: "【活动】“链接全球”青年领导力论坛。", ai_integration: "【AI】利用实时翻译接口打破服务的语言障碍壁垒。" },
+                s_3: { title: "服务的终极美学", core: ["无私奉献与人格完善", "后人类时代的慈悲意愿", "文明守护者宣言"], literacy: "终极关怀", detail: "在最高维度思考服务对他人的意义及其对个人灵魂的重塑价值。", example: "例：研讨‘如果我们什么都可以自动化，服务的本质还是什么’的辩论。", practical: "【活动】撰写《我的公益人生路线图（毕业版）》。", ai_integration: "【AI】由于AI自身参与讨论而产生的奇妙逻辑冲突现象分析。 " }
+            },
+            creative: {
+                p_low: { title: "我的第一个小发明", core: ["各种吸管大派对", "给瓶子穿新衣", "我想象中的车"], literacy: "好奇心", detail: "鼓励打破原有功能，尝试对日常废弃物进行重组与再定义。", example: "例：用吸管和纸板做一个可以被风吹动的轮子。", practical: "【活动】“变废为宝”创意展环节。", ai_integration: "【AI】基于文字描述自动生成奇妙的物品原型结构。" },
+                p_mid: { title: "简单的机械手", core: ["认识齿轮与杠杆", "组装第一辆小车", "我的影子实验室"], literacy: "逻辑建构力", detail: "在动手做中理解基本的力学传动与光影规律，掌握简单的逻辑组合。", example: "例：做一个能伸缩的机械夹子抓取物体。", practical: "【活动】校园机器人足球预演。", ai_integration: "【AI】模拟展示力在复杂齿轮组中的传递过程图。" },
+                p_high: { title: "电路魔法师", core: ["连通我的亮眼睛", "电动机转起来了", "自制指南针"], literacy: "系统集成", detail: "引入电能作为动力，初步体验硬件与物理逻辑的融合魅力。", example: "例：做一个带灯光且轮子会转的越野车模型。", practical: "【活动】“寻找校园特斯拉”。", ai_integration: "【AI】AR实感显示电路中的电流流动方向示意图。" },
+                j_7: { title: "木艺与榫卯结构", core: ["三视图绘图基础", "各种锯子的进阶操作", "传统榫卯结构复现"], literacy: "工匠精神", detail: "追求精密与力量的统一，在木屑纷飞中感悟传统结构的智慧。", example: "例：不借助胶水，亲手复刻出一把鲁班锁。", practical: "【活动】“我为班级添桌椅”行动周环节。", ai_integration: "【AI】多维度展示榫卯咬合的动态演示系统动画。" },
+                j_8: { title: "电子与编程艺术", core: ["Arduino入门实操", "各种传感器调用", "模块化拼装挑战"], literacy: "软硬结合力", detail: "让作品‘活’起来，掌握从算法逻辑到机械执行的完整链条。", example: "例：编写代码根据不同光线控制舵机的偏转。", practical: "【活动】“创客马拉松”24小时作品。 ", ai_integration: "【AI】辅助纠错代码逻辑并提供最佳布线路径推测报告。" },
+                j_9: { title: "品牌化创意实验室", core: ["用户调研与反馈", "众筹计划书撰写", "文创周边产品设计"], literacy: "全链条产出力", detail: "不仅是做一个东西，更学习如何将其产品化、市场化及传播。", example: "例：为学校足球队设计并制作一整套包含周边、队章的品牌包。", practical: "【活动】“寻找校园创业家”展示路演。", ai_integration: "【AI】利用生成式技术快速生成品牌视觉符号及其场景样图。" },
+                s_1: { title: "技术设计与工程必修", core: ["结构系统的稳定性分析", "流程设计逻辑", "决策方案优选哲学"], literacy: "战略批判力", detail: "高中学段核心，将零散制作提升到综合性工程设计的高度，建立系统观。", example: "例：策论：‘由于系统冗余而产生的安全性提升与成本博弈’。", practical: "【活动】“未来市长”城市规划决策模拟演练环节。", ai_integration: "【AI】基于数万条模拟数据预测不同流程选择的最优路径及风险点分析报告。" },
+                s_2: { title: "智能控制系统深度自设", core: ["高级语言对底层驱动", "工业级PCB布线进阶", "复杂机电一体化"], literacy: "底层掌控力", detail: "深度研读现代电子工业的骨干，追求系统级别的可靠性与极限性能。", example: "例：独立完成一个基于WiFi协议的校园实时环境数据监测基站制作。", practical: "【活动】“硬核创客”极限性能巅峰挑战赛。", ai_integration: "【AI】利用机器学习预测电路布线中的信号干扰可能性并修正算法。" },
+                s_3: { title: "跨次元制造与未来文明", core: ["元宇宙物联原型设计", "生物智造可能性探讨", "终极文明技术公约库"], literacy: "战略眼光", detail: "在最高维度思考数字化与现实物理世界的边界，定义新时代的艺术范式。", example: "例：研讨‘如果我们拥有了纳米级制造机，人类的劳动将有何改变’。", practical: "【活动】撰写《我的造物主宣言（毕业版）》。", ai_integration: "【AI】由于AI自身参与讨论而产生的奇妙逻辑冲突现象分析。 " }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-stone-900 border border-stone-700 rounded-3xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-stone-700 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-stone-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Hammer className="w-4 h-4" /> 劳动要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-stone-800/50 p-3 rounded-lg border border-stone-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-stone-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-stone-800/30 p-4 rounded-xl border border-stone-700/50">
+                                    <h4 className="text-stone-300 font-bold mb-2">🔭 深度解读</h4>
+                                    <p className="text-stone-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-amber-900/10 p-4 rounded-xl border border-amber-500/20">
+                                    <h4 className="text-amber-300 font-bold mb-2">🏆 实践原型/挑战</h4>
+                                    <p className="text-amber-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-orange-900/10 p-4 rounded-xl border border-orange-500/20">
+                                        <h4 className="text-orange-300 font-bold mb-2 flex items-center gap-2">
+                                            <Leaf className="w-4 h-4" /> 项目落地
+                                        </h4>
+                                        <p className="text-orange-200/80 text-sm">{data.practical}</p>
+                                    </div>
+                                    <div className="bg-red-900/10 p-4 rounded-xl border border-red-500/20">
+                                        <h4 className="text-red-300 font-bold mb-2 flex items-center gap-2">
+                                            <Hammer className="w-4 h-4" /> AI劳动融合
+                                        </h4>
+                                        <p className="text-red-200/80 text-sm">{data.ai_integration}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            // Filter logic
+            const queryParams = new URLSearchParams(window.location.search);
+            const stageFilter = queryParams.get('stage'); // 'p', 'j', 's'
+
+            let filteredStages = stages;
+            let stageTitle = "";
+
+            if (stageFilter === 'p') {
+                filteredStages = stages.filter(s => s.id.startsWith('p_'));
+                stageTitle = " - 小学阶段";
+            } else if (stageFilter === 'j') {
+                filteredStages = stages.filter(s => s.id.startsWith('j_'));
+                stageTitle = " - 初中阶段";
+            } else if (stageFilter === 's') {
+                filteredStages = stages.filter(s => s.id.startsWith('s_'));
+                stageTitle = " - 高中阶段";
+            }
+
+            const gridClass = `grid grid-cols-[200px_repeat(${filteredStages.length},300px)] gap-6`;
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#0c0a09] text-stone-100 pb-20 font-[Inter]">
+                    {/* Navigation */}
+                    <a href="labor-hub.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-stone-800/80 backdrop-blur border border-stone-700 rounded-full text-stone-400 hover:text-white hover:bg-amber-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回劳动实践</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-amber-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 mb-4 relative z-10">
+                            K12 劳动实践芯课标核心素养全景图{stageTitle}
+                        </h1>
+                        <p className="text-stone-400 max-w-2xl mx-auto text-sm md:text-lg">
+                            从日常生活到创造性劳动的文明基石进化矩阵
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-stone-500 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="w-fit">
+                                {/* Stage Headers */}
+                                <div className={`${gridClass} mb-8 sticky top-0 bg-[#0c0a09]/95 backdrop-blur z-30 py-4 border-b border-stone-800`}>
+                                    <div className="flex items-end justify-end px-4 pb-2 text-stone-500 font-bold text-sm uppercase tracking-widest text-right">
+                                        劳动维度 / 学习阶段
+                                    </div>
+                                    {filteredStages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-stone-400 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className={`${gridClass} group`}>
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-stone-500 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {filteredStages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                                                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                                                            bg-stone-900/40 border border-stone-800
+                                                            hover:bg-stone-800 hover:border-stone-600 hover:shadow-xl hover:-translate-y-1
+                                                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                                                        `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-slate-200 mb-2 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-1.5 mb-4 flex-grow text-xs text-stone-400">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-stone-700 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-stone-700/50 flex items-center justify-between">
+                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded bg-stone-900 ${stage.textColor}`}>
+                                                                    {stage.label.split(' ')[0]}
+                                                                </span>
+                                                                <span className="text-xs text-stone-500 group-hover/card:text-amber-400 transition-colors flex items-center gap-1">
+                                                                    收获 <Check className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>墨影书法实验室 | Ink-Flow Digital Calligraphy Lab</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Hanzi Writer (The Essence we are 'swallowing') -->
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Zhi+Mang+Xing&family=Ma+Shan+Zheng&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --ink-black: #1a1a1b;
+            --paper-white: #f4f1de;
+            --cinnabar: #bc4749;
+            --accent-gold: #d4a373;
+        }
+
+        body {
+            background-color: var(--ink-black);
+            color: var(--paper-white);
+            font-family: 'Inter', 'Noto Serif SC', serif;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(188, 71, 73, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(212, 163, 115, 0.05) 0%, transparent 50%);
+        }
+
+        .font-ink {
+            font-family: 'Zhi Mang Xing', cursive;
+        }
+
+        .font-brush {
+            font-family: 'Ma Shan Zheng', cursive;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--accent-gold);
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+        }
+
+        .ink-stroke {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: strokeDraw 3s ease-out forwards;
+        }
+
+        @keyframes strokeDraw {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .paper-texture {
+            position: relative;
+        }
+
+        .paper-texture::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/handmade-paper.png');
+            opacity: 0.1;
+            pointer-events: none;
+        }
+
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .character-glow {
+            text-shadow: 0 0 20px rgba(212, 163, 115, 0.3);
+        }
+
+        .brush-cursor {
+            cursor: crosshair;
+        }
+
+        /* 模拟毛笔笔触效果 */
+        .canvas-container {
+            position: relative;
+            background: #fff;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Brush = (props) => <IconBase {...props}><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08" /><path d="M7.07 14.94c-3.91 3.91-4.63 9.06-4.63 9.06s5.15-.73 9.06-4.63" /><path d="m9.06 11.9 3.04 3.04" /></IconBase>;
+        const Pen = (props) => <IconBase {...props}><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconBase>;
+        const Award = (props) => <IconBase {...props}><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const LayoutGrid = (props) => <IconBase {...props}><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></IconBase>;
+        const Sparkles = (props) => <IconBase {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" /></IconBase>;
+        const ArrowRight = (props) => <IconBase {...props}><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></IconBase>;
+        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></IconBase>;
+        const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></IconBase>;
+        const History = (props) => <IconBase {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></IconBase>;
+
+        const Nav = () => (
+            <div className="fixed top-8 left-0 right-0 z-50 flex justify-center px-6 pointer-events-none">
+                <nav className="glass-card rounded-full px-8 py-4 flex items-center gap-10 border border-white/10 shadow-2xl pointer-events-auto">
+                    <a href="chinese-hub.html" className="text-stone-400 hover:text-white transition-colors group">
+                        <Home className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    </a>
+                    <div className="w-px h-5 bg-white/10"></div>
+                    <a href="#standards" className="text-stone-300 hover:text-[#d4a373] text-sm font-bold tracking-widest uppercase">课标要求</a>
+                    <a href="#hard-pen" className="text-stone-300 hover:text-[#d4a373] text-sm font-bold tracking-widest uppercase">硬笔实践</a>
+                    <a href="#brush" className="text-[#d4a373] text-sm font-bold tracking-widest uppercase border-b border-[#d4a373]">软笔传承</a>
+                    <a href="#ai-evaluation" className="text-stone-300 hover:text-[#d4a373] text-sm font-bold tracking-widest uppercase">AI测评</a>
+                </nav>
+            </div>
+        );
+
+        const StandardCard = ({ grade, content, goals }) => (
+            <div className="glass-card rounded-3xl p-8 border-l-4 border-cinnabar">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-full bg-cinnabar/20 flex items-center justify-center text-cinnabar">
+                        <BookOpen className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-xl font-bold">{grade}</h3>
+                </div>
+                <div className="space-y-4">
+                    <div>
+                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest block mb-2">学段内容要求</span>
+                        <p className="text-stone-300 text-sm leading-relaxed">{content}</p>
+                    </div>
+                    <div className="pt-4 border-t border-white/5">
+                        <span className="text-[10px] font-bold text-accent-gold uppercase tracking-widest block mb-2">发展目标</span>
+                        <p className="text-stone-400 text-xs italic">{goals}</p>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const PracticeModule = ({ type, title, subtitle, icon: Icon, features, color }) => (
+            <div className={`glass-card rounded-[2.5rem] p-10 relative overflow-hidden group`}>
+                <div className={`absolute -top-10 -right-10 w-64 h-64 opacity-5 group-hover:opacity-10 transition-all duration-1000 transform group-hover:rotate-12 ${color}`}>
+                    <Icon className="w-full h-full" />
+                </div>
+                <div className="relative z-10">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white ${color} shadow-2xl`}>
+                            <Icon className="w-7 h-7" />
+                        </div>
+                        <div>
+                            <span className="text-xs font-bold text-stone-500 uppercase tracking-[0.2em]">{type}</span>
+                            <h3 className="text-3xl font-ink font-bold character-glow">{title}</h3>
+                        </div>
+                    </div>
+                    <p className="text-stone-400 mb-8 leading-relaxed font-light">{subtitle}</p>
+                    <div className="grid grid-cols-2 gap-4 mb-10">
+                        {features.map((f, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm text-stone-300">
+                                <Sparkles className="w-3 h-3 text-accent-gold" /> {f}
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => document.getElementById(type === 'Hard Pen Calligraphy' ? 'hanzi-engine' : 'workshop').scrollIntoView({ behavior: 'smooth' })}
+                        className={`w-full py-4 rounded-2xl font-bold transition-all border border-white/10 hover:border-white/30 flex items-center justify-center gap-3 group-hover:bg-white group-hover:text-black`}
+                    >
+                        进入学习终端 <ArrowRight className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
+
+        const InternalHanziWriter = ({ character }) => {
+            const writerRef = useRef(null);
+            const containerRef = useRef(null);
+
+            useEffect(() => {
+                if (containerRef.current) {
+                    containerRef.current.innerHTML = '';
+                    const writer = HanziWriter.create(containerRef.current, character, {
+                        width: 200,
+                        height: 200,
+                        padding: 5,
+                        strokeAnimationSpeed: 1,
+                        delayBetweenStrokes: 200,
+                        strokeColor: '#bc4749', // Cinnabar
+                        outlineColor: '#2d2d2d',
+                        showOutline: true
+                    });
+                    writerRef.current = writer;
+                    writer.animateCharacter();
+                }
+            }, [character]);
+
+            const handleReplay = () => {
+                if (writerRef.current) writerRef.current.animateCharacter();
+            };
+
+            const handleQuiz = () => {
+                if (writerRef.current) writerRef.current.quiz();
+            };
+
+            return (
+                <div className="flex flex-col items-center gap-4">
+                    <div ref={containerRef} className="bg-stone-900/50 rounded-2xl border border-white/10 p-4 relative">
+                        <div className="absolute inset-0 paper-texture opacity-5 pointer-events-none"></div>
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={handleReplay} className="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors uppercase border border-white/5">Replay</button>
+                        <button onClick={handleQuiz} className="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-cinnabar/20 text-cinnabar hover:bg-cinnabar/30 transition-colors uppercase border border-cinnabar/20">Start Quiz</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [searchChar, setSearchChar] = useState('永');
+            const [inputValue, setInputValue] = useState('');
+
+            return (
+                <div className="min-h-screen pb-32">
+                    <Nav />
+
+                    {/* Hero Section */}
+                    <header className="relative pt-48 pb-32 px-6 overflow-hidden">
+                        <div className="container mx-auto text-center relative z-10">
+                            <div className="inline-block px-4 py-1.5 rounded-full bg-accent-gold/10 border border-accent-gold/20 text-accent-gold text-xs font-bold tracking-[0.3em] uppercase mb-12 animate-fade-in">
+                                National Calligraphy Standard Integration
+                            </div>
+                            <h1 className="text-7xl md:text-9xl font-ink mb-8 leading-none character-glow">
+                                墨影<span className="text-cinnabar">传薪</span>
+                            </h1>
+                            <p className="text-xl md:text-2xl text-stone-400 font-light max-w-3xl mx-auto leading-relaxed mb-12">
+                                将汉字的筋骨，刻入数字时代的脉络。<br />
+                                遵循国家课程标准，打造硬笔与软笔相结合的沉浸式书法研习系统。
+                            </p>
+                            <div className="flex justify-center gap-6">
+                                <button className="bg-white text-stone-950 px-10 py-4 rounded-2xl font-bold shadow-2xl hover:bg-stone-200 transition-all active:scale-95">开始智慧临摹</button>
+                                <button
+                                    onClick={() => document.getElementById('gallery').scrollIntoView({ behavior: 'smooth' })}
+                                    className="glass-card px-10 py-4 rounded-2xl font-bold text-white hover:bg-white/5 transition-all"
+                                >
+                                    观摩全息名帖
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Background Ink Art */}
+                        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-5xl h-full opacity-10 pointer-events-none select-none">
+                            <span className="absolute top-0 left-0 text-[30rem] font-brush rotate-12 -translate-x-1/2">龍</span>
+                            <span className="absolute bottom-0 right-0 text-[20rem] font-brush -rotate-12 translate-x-1/4">韵</span>
+                        </div>
+                    </header>
+
+                    <main className="container mx-auto px-6 space-y-32">
+                        {/* Standards Section */}
+                        <section id="standards" className="scroll-reveal active">
+                            <div className="mb-16">
+                                <h2 className="text-4xl font-bold flex items-center gap-4">
+                                    <div className="w-2 h-10 bg-cinnabar"></div>
+                                    课标指引 <span className="text-stone-500 font-serif font-light text-xl">Standard Guidance</span>
+                                </h2>
+                                <p className="text-stone-400 mt-4 max-w-2xl">根据《中小学书法教育指导纲要》，系统化构建从识字到审美的进阶路径。</p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <StandardCard
+                                    grade="第一学段 (1-2年级)"
+                                    content="掌握正确的执笔方法和写字姿势，学习使用铅笔写字，做到规范、端正、整洁。"
+                                    goals="培养基本书写习惯，感受汉字形态美。"
+                                />
+                                <StandardCard
+                                    grade="第二学段 (3-4年级)"
+                                    content="开始学习使用钢笔写字，用圆珠笔写字做到熟练。开始学习毛笔临摹名家楷书字帖。"
+                                    goals="初步掌握运笔节奏，理解结构基本法则。"
+                                />
+                                <StandardCard
+                                    grade="第三学段 (5-6年级)"
+                                    content="硬笔书写力求美观。毛笔书法能体会汉字的优美，并能进行简单的临帖创作。"
+                                    goals="提升艺术审美力，领略书法文化的深厚底蕴。"
+                                />
+                            </div>
+                        </section>
+
+                        {/* Practice Grid */}
+                        <section id="hard-pen" className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                            <PracticeModule
+                                type="Hard Pen Calligraphy"
+                                title="硬笔·骨法用笔"
+                                subtitle="从铅笔到钢笔的数字化过渡，专注于日常书写的规范性与流畅度训练。包含中小学同步生字库。"
+                                icon={Pen}
+                                color="bg-blue-600"
+                                features={["规范字动态演示", "笔顺错漏追踪", "卷面排版美学", "硬笔行书进阶"]}
+                            />
+                            <PracticeModule
+                                id="brush"
+                                type="Brush Calligraphy"
+                                title="软笔·水墨乾坤"
+                                subtitle="沉浸式模拟文房四宝，深度领悟执笔、运笔、结字、章法等书法核心技法。数字孪生千古名碑。"
+                                icon={Brush}
+                                color="bg-cinnabar"
+                                features={["名帖动态复现", "笔法力度模拟", "章法形式探索", "书法史全景导览"]}
+                            />
+                        </section>
+
+                        {/* Basic Stroke Techniques */}
+                        <section id="strokes" className="scroll-reveal">
+                            <div className="mb-12">
+                                <h2 className="text-3xl font-bold flex items-center gap-4">
+                                    <div className="w-1.5 h-8 bg-accent-gold"></div>
+                                    永字八法：基本笔法 <span className="text-stone-500 font-serif font-light text-lg">Eight Principles of Yong</span>
+                                </h2>
+                                <p className="text-stone-400 mt-2">书法之基。通过数字拆解，深入理解每一个基本笔法的起、行、收。</p>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                                {[
+                                    { name: "点 (侧)", desc: "如鸟翻然下坠" },
+                                    { name: "横 (勒)", desc: "如千里阵云" },
+                                    { name: "竖 (弩)", desc: "如万岁枯藤" },
+                                    { name: "钩 (趯)", desc: "如跳跃之势" },
+                                    { name: "提 (策)", desc: "如策马扬鞭" },
+                                    { name: "撇 (掠)", desc: "如篦之掠发" },
+                                    { name: "短撇 (啄)", desc: "如鸟之啄食" },
+                                    { name: "捺 (磔)", desc: "如波浪起伏" }
+                                ].map((stroke, i) => (
+                                    <div key={i} className="glass-card rounded-2xl p-4 text-center group hover:bg-white/10 transition-colors">
+                                        <div className="text-4xl font-brush text-accent-gold mb-2 group-hover:scale-125 transition-transform">{stroke.name.split(' ')[0]}</div>
+                                        <div className="text-[10px] font-bold text-stone-300 mb-1">{stroke.name}</div>
+                                        <div className="text-[8px] text-stone-500">{stroke.desc}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Masterpiece Gallery */}
+                        <section id="gallery" className="scroll-reveal">
+                            <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                                <div>
+                                    <h2 className="text-4xl font-bold flex items-center gap-4">
+                                        <div className="w-2 h-10 bg-cinnabar"></div>
+                                        名帖大观 <span className="text-stone-500 font-serif font-light text-xl">Famous Masterpieces</span>
+                                    </h2>
+                                    <p className="text-stone-400 mt-4 max-w-2xl">对话古人。通过超清数字复原技术，近距离观察历代书法家的笔墨意趣。</p>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="glass-card rounded-xl px-4 py-2 flex items-center gap-3 border border-white/10">
+                                        <Search className="w-4 h-4 text-stone-500" />
+                                        <input type="text" placeholder="搜索书家/字帖..." className="bg-transparent text-sm focus:outline-none w-40" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {[
+                                    { title: "兰亭集序", author: "王羲之 (晋)", style: "行书", key: "永", img: "masterpiece_lanting.png", desc: "天下第一行书，气韵生动，变化无穷。其'永'字八法最为传神。" },
+                                    { title: "多宝塔碑", author: "颜真卿 (唐)", style: "楷书", key: "宝", img: "masterpiece_yan.png", desc: "颜书早期代表作，规整劲健，法度严谨，初学者必备。" },
+                                    { title: "祭侄文稿", author: "颜真卿 (唐)", style: "行书", key: "臣", img: "masterpiece_sushi.png", desc: "天下第二行书，悲愤交加，笔势圆劲，情感极其浓烈。" },
+                                    { title: "古诗四帖", author: "张旭 (唐)", style: "草书", key: "忽", img: "masterpiece_sushi.png", desc: "狂草巅峰之作，纵横奔放，变幻莫测，如蛟龙入海。" },
+                                    { title: "玄秘塔碑", author: "柳公权 (唐)", style: "楷书", key: "玄", img: "masterpiece_yan.png", desc: "柳体代表作，骨力遒劲，结构严密，体现'书贵瘦硬'。" },
+                                    { title: "寒食帖", author: "苏轼 (宋)", style: "行书", key: "寒", img: "masterpiece_sushi.png", desc: "天下第三行书，情感起伏，意态自然，文人书法之极。" }
+                                ].map((item, i) => (
+                                    <div key={i} className="glass-card rounded-3xl p-6 relative group overflow-hidden border-t border-white/5">
+                                        <div className="h-40 mb-6 rounded-2xl overflow-hidden relative bg-stone-900 border border-white/5 group-hover:border-accent-gold/30 transition-colors">
+                                            {/* CSS-only Abstract Ink Design */}
+                                            <div className="absolute inset-0 opacity-20 paper-texture"></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-9xl font-brush text-accent-gold/10 group-hover:text-accent-gold/20 transition-all duration-700 transform group-hover:scale-125 select-none">
+                                                    {item.key}
+                                                </span>
+                                            </div>
+                                            <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent"></div>
+                                            <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-cinnabar animate-pulse"></div>
+                                                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-tighter">Masterpiece_Ref: #{i + 1}</span>
+                                            </div>
+                                        </div>
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cinnabar/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h3 className="text-2xl font-bold mb-1 font-ink">{item.title}</h3>
+                                                <div className="flex items-center gap-2 text-xs font-bold text-accent-gold/80">
+                                                    <span>{item.author}</span>
+                                                    <span className="w-1 h-1 bg-stone-700 rounded-full"></span>
+                                                    <span>{item.style}</span>
+                                                </div>
+                                            </div>
+                                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white group-hover:text-black transition-colors">
+                                                <History className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                        <p className="text-stone-400 text-sm leading-relaxed mb-8 h-12 overflow-hidden">{item.desc}</p>
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={() => {
+                                                    setSearchChar(item.key);
+                                                    document.getElementById('hanzi-engine').scrollIntoView({ behavior: 'smooth' });
+                                                }}
+                                                className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold transition-all border border-white/10"
+                                            >
+                                                3D全息观摩
+                                            </button>
+                                            <button className="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10">
+                                                <Download className="w-4 h-4 text-stone-500 group-hover:text-white" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* AI Section Card */}
+                        <section id="ai-evaluation" className="relative group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-accent-gold/20 to-cinnabar/20 blur-[100px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                            <div className="glass-card rounded-[3rem] p-12 md:p-20 flex flex-col md:flex-row items-center gap-12 border border-accent-gold/30">
+                                <div className="flex-1">
+                                    <span className="text-accent-gold font-bold text-sm tracking-[0.2em] mb-4 block">AI PERFORMANCE ANALYTICS</span>
+                                    <h2 className="text-5xl font-brush mb-6">灵犀·AI 运笔评测系统</h2>
+                                    <p className="text-stone-300 text-lg leading-relaxed mb-8">
+                                        通过高频采样捕捉书写轨迹，从“笔力、结构、气韵、规范”四个维度进行实时评估，为学生提供精准的改进建议。
+                                    </p>
+                                    <div className="flex gap-4">
+                                        <div className="p-4 glass-card rounded-2xl flex flex-col items-center">
+                                            <span className="text-2xl font-bold text-white">98%</span>
+                                            <span className="text-[10px] text-stone-500">轨迹匹配度</span>
+                                        </div>
+                                        <div className="p-4 glass-card rounded-2xl flex flex-col items-center">
+                                            <span className="text-2xl font-bold text-white">A+</span>
+                                            <span className="text-[10px] text-stone-500">结字等级</span>
+                                        </div>
+                                    </div>
+                                    {/* AI Metrics Breakdown */}
+                                    <div className="mt-8 grid grid-cols-2 gap-4">
+                                        {[
+                                            { label: "笔力 (Force)", value: "85", color: "bg-cinnabar" },
+                                            { label: "气韵 (Spirit)", value: "92", color: "bg-accent-gold" },
+                                            { label: "结构 (Structure)", value: "88", color: "bg-blue-500" },
+                                            { label: "速度 (Speed)", value: "76", color: "bg-emerald-500" }
+                                        ].map((m, i) => (
+                                            <div key={i} className="space-y-1">
+                                                <div className="flex justify-between text-[10px] font-bold">
+                                                    <span className="text-stone-400">{m.label}</span>
+                                                    <span>{m.value}%</span>
+                                                </div>
+                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                                    <div className={`h-full ${m.color} opacity-60`} style={{ width: `${m.value}%` }}></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex-1 w-full bg-stone-900/50 rounded-3xl p-8 aspect-video flex items-center justify-center border border-white/5 relative overflow-hidden">
+                                    {/* Mock AI Interface */}
+                                    <div className="absolute inset-0 opacity-10 paper-texture"></div>
+                                    <div className="relative text-center w-full h-full flex flex-col items-center justify-center">
+                                        <div className="font-ink text-3xl text-accent-gold mb-2">深度学习中...</div>
+                                        <div className="text-[10px] text-stone-500 font-mono">Neural Analysis: Path_Vertex_Correction...</div>
+                                    </div>
+                                    {/* Evaluation Overlay */}
+                                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-[10px] font-mono text-emerald-400">
+                                        LIVE_FEED: TRACE_ACTIVE
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Integrated Hanzi Writer Section (The Swallowed Essence) */}
+                        <section id="hanzi-engine" className="scroll-reveal">
+                            <div className="glass-card rounded-[3rem] p-12 border border-blue-500/20 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px]"></div>
+                                <div className="flex flex-col md:flex-row gap-12 items-center">
+                                    <div className="flex-1">
+                                        <h2 className="text-4xl font-bold flex items-center gap-4 mb-6">
+                                            <div className="w-2 h-10 bg-blue-500"></div>
+                                            万象生辉：笔顺引擎 <span className="text-stone-500 font-serif font-light text-xl">Stroke Engine</span>
+                                        </h2>
+                                        <p className="text-stone-300 text-lg leading-relaxed mb-8">
+                                            集成业界领先的笔顺解析算法，支持上万个汉字的实时笔顺还原与交互测评。每一个起笔与收笔，皆有法可依。
+                                        </p>
+                                        <div className="flex gap-4">
+                                            <div className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 border border-white/10 flex-1">
+                                                <Search className="w-5 h-5 text-stone-500" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="输入任意汉字，开启笔顺推演..."
+                                                    className="bg-transparent text-sm focus:outline-none w-full"
+                                                    value={inputValue}
+                                                    onChange={(e) => setInputValue(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && inputValue.trim()) {
+                                                            setSearchChar(inputValue.trim()[0]);
+                                                            setInputValue('');
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    if (inputValue.trim()) {
+                                                        setSearchChar(inputValue.trim()[0]);
+                                                        setInputValue('');
+                                                    }
+                                                }}
+                                                className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-xl shadow-blue-600/20 hover:scale-105 transition-all"
+                                            >
+                                                推演
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="w-full md:w-auto">
+                                        <InternalHanziWriter character={searchChar} />
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Style Evolution Section (Absorbed from professional dictionaries) */}
+                        <section id="styles-evolution" className="scroll-reveal">
+                            <div className="mb-12">
+                                <h2 className="text-4xl font-bold flex items-center gap-4">
+                                    <div className="w-2 h-10 bg-accent-gold"></div>
+                                    书体溯源：五体演变 <span className="text-stone-500 font-serif font-light text-xl">Script Evolution</span>
+                                </h2>
+                                <p className="text-stone-400 mt-4 max-w-2xl">从甲骨之拙到草书之狂。通过数字拓片技术展示“{searchChar}”字在不同时代的演变与风格差异。</p>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                                {[
+                                    { style: "篆书 (Seal)", era: "秦/周", font: "font-serif", desc: "婉转圆通，古朴厚重" },
+                                    { style: "隶书 (Clerical)", era: "汉", font: "font-serif", desc: "蚕头雁尾，一波三折" },
+                                    { style: "草书 (Cursive)", era: "晋/唐", font: "font-brush", desc: "纵横流连，气韵贯通" },
+                                    { style: "行书 (Running)", era: "魏晋", font: "font-ink", desc: "如云流水，不即不离" },
+                                    { style: "楷书 (Regular)", era: "唐", font: "font-serif", desc: "规整庄重，法度严整" }
+                                ].map((s, i) => (
+                                    <div key={i} className="glass-card rounded-[2rem] p-8 text-center group hover:border-accent-gold/40 transition-all overflow-hidden relative">
+                                        <div className="absolute inset-0 paper-texture opacity-5"></div>
+                                        <span className="text-[10px] font-bold text-stone-600 block mb-2 uppercase tracking-[0.2em]">{s.era}</span>
+                                        <h3 className="text-xl font-bold mb-6">{s.style.split(' ')[0]}</h3>
+                                        <div className={`text-8xl ${s.font} text-accent-gold/20 group-hover:text-accent-gold/80 transition-all duration-700 transform group-hover:scale-110 mb-6 drop-shadow-2xl`}>
+                                            {searchChar}
+                                        </div>
+                                        <p className="text-[10px] text-stone-500 font-light">{s.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Smart Four Treasures & Workshop */}
+                        <section id="workshop" className="scroll-reveal">
+                            <div className="mb-16">
+                                <h2 className="text-4xl font-bold flex items-center gap-4">
+                                    <div className="w-2 h-10 bg-accent-gold"></div>
+                                    智能文房 <span className="text-stone-500 font-serif font-light text-xl">Digital Four Treasures</span>
+                                </h2>
+                                <p className="text-stone-400 mt-4 max-w-2xl">选择您的专属装备。数字化模拟不同材质的毛笔、宣纸与墨色，还原真实的物理书写手感。</p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div className="glass-card rounded-[2rem] p-8 border-b-4 border-cinnabar/40 group">
+                                    <div className="mb-6 flex justify-between items-center text-stone-500">
+                                        <span className="text-[10px] font-bold tracking-widest uppercase">Select Brush</span>
+                                        <Brush className="w-4 h-4" />
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-6">笔 · 毫颖分明</h3>
+                                    <div className="space-y-4">
+                                        {['大楷狼毫', '中锋齐紫', '兼毫白玉'].map((b, i) => (
+                                            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-colors border border-transparent hover:border-white/10 group/item">
+                                                <span className="text-sm text-stone-300 group-hover/item:text-white transition-colors">{b}</span>
+                                                <div className="w-2 h-2 rounded-full bg-stone-700 group-hover/item:bg-cinnabar"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="glass-card rounded-[2rem] p-8 border-b-4 border-accent-gold/40">
+                                    <div className="mb-6 flex justify-between items-center text-stone-500">
+                                        <span className="text-[10px] font-bold tracking-widest uppercase">Select Paper</span>
+                                        <div className="w-4 h-4 border-2 border-current rounded-sm"></div>
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-6">纸 · 宣雅墨匀</h3>
+                                    <div className="space-y-2">
+                                        {['生宣 - 浸淫感', '熟宣 - 挺括感', '半生半熟 - 均衡', '元书纸 - 质朴'].map((p, i) => (
+                                            <div key={i} className="p-3 text-xs text-stone-400 hover:text-white cursor-pointer hover:bg-white/5 rounded-lg transition-colors">
+                                                {p}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="md:col-span-2 glass-card rounded-[2rem] p-8 bg-gradient-to-br from-stone-900 to-transparent flex flex-col justify-center items-center relative overflow-hidden">
+                                    <div className="absolute inset-0 paper-texture opacity-5"></div>
+                                    <h3 className="text-3xl font-ink font-bold mb-4">交互式智慧临摹台</h3>
+                                    <p className="text-stone-400 text-center text-sm mb-8 px-6 text-balance">
+                                        连接您的感压绘图板，在“原贴虚影”与“智能准星”的辅助下，完成跨越千年的时空临摹。
+                                    </p>
+                                    <div className="flex gap-4">
+                                        <button
+                                            onClick={() => alert('压感引擎已就绪，请连接绘图板...')}
+                                            className="bg-cinnabar text-white px-8 py-3 rounded-xl font-bold shadow-xl shadow-cinnabar/20 hover:scale-105 transition-all"
+                                        >
+                                            激活压感引擎
+                                        </button>
+                                        <button
+                                            onClick={() => window.print()}
+                                            className="border border-white/10 px-8 py-3 rounded-xl font-bold text-stone-400 hover:bg-white/5 transition-all"
+                                        >
+                                            打印字帖练习
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+
+                    <footer className="mt-32 pt-20 pb-12 border-t border-white/5 text-center">
+                        <div className="flex justify-center gap-6 mb-8 text-stone-500">
+                            <a href="#" className="hover:text-accent-gold transition-colors">指导纲要</a>
+                            <a href="#" className="hover:text-accent-gold transition-colors">书法史</a>
+                            <a href="#" className="hover:text-accent-gold transition-colors">资源下载</a>
+                        </div>
+                        <p className="text-stone-600 text-sm tracking-widest">© 2025 墨影数字书法实验室 - 给汉字以灵魂</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+
+        // Navigation scroll effect
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.scroll-reveal');
+            sections.forEach(s => {
+                const top = s.getBoundingClientRect().top;
+                if (top < window.innerHeight * 0.8) s.classList.add('active');
+            });
+        });
+    </script>
+</body>
+
+</html>

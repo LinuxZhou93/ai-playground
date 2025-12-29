@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初中化学新课标核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #0f172a;
+            /* Slate 900 */
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#0f172a] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-teal-900/30 border-t-teal-500 rounded-full animate-spin"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-center text-xs text-teal-500 font-bold animate-pulse">
+                LOADING</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Atom = (props) => <IconBase {...props}><circle cx="12" cy="12" r="1" /><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5z" /><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5z" /></IconBase>;
+        const Flask = (props) => <IconBase {...props}><path d="M10 2v7.31" /><path d="M14 2v7.31" /><path d="M8.5 2h7" /><path d="M14 9.3a6.5 6.5 0 1 1-4 0" /><path d="M5.52 16h12.96" /></IconBase>;
+        const Flame = (props) => <IconBase {...props}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.115.385-2.256 1-3.24.268.968 1 2.224 3.25 2.565z" /></IconBase>;
+        const Layers = (props) => <IconBase {...props}><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const Book = (props) => <IconBase {...props}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></IconBase>;
+        const Wrench = (props) => <IconBase {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></IconBase>;
+        const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            { id: "p_low", label: "小学低", subtitle: "1-2年级", color: "bg-teal-400", textColor: "text-teal-400", borderColor: "border-teal-400/30", bgSoft: "bg-teal-400/10" },
+            { id: "p_mid", label: "小学中", subtitle: "3-4年级", color: "bg-cyan-500", textColor: "text-cyan-400", borderColor: "border-cyan-500/30", bgSoft: "bg-cyan-500/10" },
+            { id: "p_high", label: "小学高", subtitle: "5-6年级", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "j_7", label: "七年级", subtitle: "初一", color: "bg-orange-500", textColor: "text-orange-400", borderColor: "border-orange-500/30", bgSoft: "bg-orange-500/10" },
+            { id: "j_8", label: "八年级", subtitle: "初二", color: "bg-teal-600", textColor: "text-teal-300", borderColor: "border-teal-600/30", bgSoft: "bg-teal-600/10" },
+            { id: "j_9", label: "九年级", subtitle: "初三", color: "bg-cyan-600", textColor: "text-cyan-300", borderColor: "border-cyan-600/30", bgSoft: "bg-cyan-600/10" },
+            { id: "s_1", label: "高一", subtitle: "必修", color: "bg-blue-500", textColor: "text-blue-400", borderColor: "border-blue-500/30", bgSoft: "bg-blue-500/10" },
+            { id: "s_2", label: "高二", subtitle: "选修", color: "bg-indigo-500", textColor: "text-indigo-400", borderColor: "border-indigo-500/30", bgSoft: "bg-indigo-500/10" },
+            { id: "s_3", label: "高三", subtitle: "提升", color: "bg-purple-500", textColor: "text-purple-400", borderColor: "border-purple-500/30", bgSoft: "bg-purple-500/10" }
+        ];
+
+        const tracks = [
+            {
+                id: "matter",
+                title: "物质的组成与结构",
+                desc: "空气 · 水 · 原子 · 元素",
+                icon: Atom,
+                color: "text-teal-400",
+                gradient: "from-teal-500/20 to-teal-900/5"
+            },
+            {
+                id: "change",
+                title: "物质的化学变化",
+                desc: "燃烧 · 反应类型 · 守恒",
+                icon: Flame,
+                color: "text-orange-400",
+                gradient: "from-orange-500/20 to-orange-900/5"
+            },
+            {
+                id: "substance",
+                title: "身边的化学物质",
+                desc: "金属 · 酸碱盐 · 溶液",
+                icon: Layers,
+                color: "text-lime-400",
+                gradient: "from-lime-500/20 to-lime-900/5"
+            },
+            {
+                id: "experiment",
+                title: "化学与社会发展",
+                desc: "实验 · 能源 · 环保",
+                icon: Flask,
+                color: "text-cyan-400",
+                gradient: "from-cyan-500/20 to-cyan-900/5"
+            }
+        ];
+
+        const curriculumData = {
+            matter: {
+                p_low: { title: "奇妙的材料", core: ["硬的和软的", "浮与沉", "透明与不透明"], literacy: "物质观念", detail: "观察身边的各种物体，感知不同材料的物理特性。学习简单的分类方法。", example: "例：找一找教室里哪些东西是金属做的。", engineering: "【工程设计】自制不倒翁", math_connection: "【数学应用】按形状对积木分类" },
+                p_mid: { title: "水的秘密", core: ["水的三态变化", "神奇的颜色", "溶解与过滤"], literacy: "变化观念", detail: "探究水的固液气转化。观察不同液体混合的效果。实验感知食盐的溶解。", example: "例：冰糖在热水里还是冷水里化得快？", engineering: "【工程设计】设计一款简易净水装置", math_connection: "【数学应用】测量液体的体积" },
+                p_high: { title: "看不见的粒子", core: ["空气的成分", "气味飘满屋", "蜡烛燃烧"], literacy: "微观探析", detail: "通过直观实验感知空气的存在。初步建立“物质由微小粒子构成”的模型。", example: "例：为什么在屋里的一角能闻到香水味？", engineering: "【工程设计】制作空气炮", math_connection: "【数学应用】计算混合气体的百分比" },
+                j_7: { title: "微观世界初探", core: ["原子结构", "元素周期律", "分子运动论"], literacy: "微观探析", detail: "深入原子的行星模型。掌握常元素符号。理解物理变化与化学变化的本质差异。", example: "例：画出氧原子的结构示意图。", engineering: "【工程设计】利用超轻黏土制作原子模型", math_connection: "【数学应用】根据原子序数寻找规律" },
+                j_8: { title: "化学式的奥秘", core: ["化合价", "化学式书写", "相对分子质量"], literacy: "符号表征", detail: "学习化学的“统一语言”。掌握物质组成的定量表达方法。理解守恒的初步逻辑。", example: "例：计算二氧化碳中碳元素的质量分数。", engineering: "【工程设计】设计化学元素扑克牌", math_connection: "【数学应用】比例与百分数在化学式中的应用" },
+                j_9: { title: "物质的分类体系", core: ["混合物与纯净物", "氧化物", "单质与化合物"], literacy: "分类观", detail: "建立宏观物质分类模型。理解物质在元素层面的统一与特化。", example: "例：区分矿泉水和蒸馏水的组成。", engineering: "【工程设计】策划一场校园化学物质知识竞赛方案", math_connection: "【数学应用】集合论在分类图谱中的表达" },
+                s_1: { title: "原子核外电子演义", core: ["电子云与激发态", "第一电离能", "电负性"], literacy: "微观探析、证据推理", detail: "在更深层次探讨原子的电子排布。理解周期表中性质递变的本质动力。", example: "例：写出铁原子的核外电子排布式。", engineering: "【工程设计】模拟烟花颜色与电子跃迁的关联实验", math_connection: "【数学应用】概率波模型在电子云分布中的体现" },
+                s_2: { title: "分子与晶体结构", core: ["共价键与离子键", "极性与极性", "配合物"], literacy: "微观探析、模型认知", detail: "探索物质如何在空间中构建（VSEPR模型）。理解晶体结构如何决定硬度、沸点等宏观性质。", example: "例：判断氨气分子的空间构型。", engineering: "【工程设计】利用3D打印或模型工具构建金刚石晶胞", math_connection: "【数学应用】几何对称群在晶体结构中的应用" },
+                s_3: { title: "物质结构巅峰", core: ["波粒二象性", "薛定谔方程初步", "现代仪器分析"], literacy: "科学探究、创新实践", detail: "接触量子化学门槛。了解质谱、核磁共振等现代化学分析手段。", example: "例：分析某有机物的红外光谱图。", engineering: "【工程设计】设计基于光谱分析的未知物鉴定流程", math_connection: "【数学应用】线性代数与偏微分方程在能级计算中的体现" }
+            },
+            change: {
+                p_low: { title: "变魔术的现象", core: ["颜色变了", "冒气泡了", "变硬变软"], literacy: "变化观念", detail: "观察生活中的神奇变化。引导孩子提问：为什么会这样？", example: "例：观察切开的苹果变色的过程。", engineering: "【工程设计】制作“变色花实验”", math_connection: "【数学应用】记录变化发生的时间" },
+                p_mid: { title: "火的奥秘", core: ["燃烧条件", "熄灭火焰", "身边的火险"], literacy: "责任态度", detail: "安全探究燃烧的三要素。学习简单的灭火原理。感知化学变化带来的能量。", example: "例：为什么盖上杯子，蜡烛就灭了？", engineering: "【工程设计】制作简易报警器原理图", math_connection: "【数学应用】统计家庭火灾风险点" },
+                p_high: { title: "生活中的酸碱", core: ["柠檬的酸", "洗衣液的碱", "变色的试纸"], literacy: "变化观念", detail: "通过指示剂颜色变化，初步感知物质性质。理解中和在生活中的简单应用。", example: "例：用紫甘蓝汁检测不同水果的酸碱性。", engineering: "【工程设计】制作天然指示剂测试套件", math_connection: "【数学应用】建立5级评分制的酸碱度量表" },
+                j_7: { title: "化学变化三部曲", core: ["反应物与生成物", "变化特征", "催化剂的作用"], literacy: "变化观念", detail: "规范描述化学反应现象。通过实验感知催化剂如何改变反应速度而不改变量。", example: "例：探究过氧化氢制氧气中二氧化锰的作用。", engineering: "【工程设计】设计一款自动吹气球的装置", math_connection: "【数学应用】绘制反应速率随时间变化的曲线" },
+                j_8: { title: "质量守恒万岁", core: ["天平实验", "配平方程式", "原子守恒视角"], literacy: "证据推理", detail: "通过精确称量实验证明质量不灭。学习从原子重新组合的角度解释化学反应。", example: "例：配平煤炭燃烧生成二氧化碳的方程式。", engineering: "【工程设计】模拟密闭仓内的物质循环闭环", math_connection: "【数学应用】解析多元线性方程组在复杂配平中的应用" },
+                j_9: { title: "能量在流动", core: ["放热反应", "吸热反应", "能源的转化"], literacy: "能量观念", detail: "感知化学键断裂与形成的能量差。探讨化石能源利用与全球变暖的关系。", example: "例：感受生石灰加水时的温度变化。", engineering: "【工程设计】制作一个自热小火锅的化学热源模型", math_connection: "【数学应用】效率比值与热值计算" },
+                s_1: { title: "化学反应速率与限度", core: ["活化能", "平衡常数K", "勒夏特列原理"], literacy: "科学思维、变化观念", detail: "从动力学和热力学两个维度研究反应。理解工厂如何通过调控压力温度实现最高产率。", example: "例：分析工业合成氨的最佳反应条件。", engineering: "【工程设计】设计化工生产中能量回收的热交换系统", math_connection: "【数学应用】微积分在反应速率表达中的体现" },
+                s_2: { title: "电化学能量转换", core: ["原电池", "电解池", "锂电池原理"], literacy: "模型认知、社会责任", detail: "将化学变化转化为电能。理解手机电池充放电的微观过程。探讨未来氢燃料电池。", example: "例：制作一个水果电池并点亮LED小灯。", engineering: "【工程设计】设计一款基于生物质材料的超级电容器原型", math_connection: "【数学应用】能斯特方程在电压计算中的应用" },
+                s_3: { title: "合成化学终章", core: ["有机合成路线", "绿色化学思想", "催化剂设计"], literacy: "创新实践、社会责任", detail: "利用已知的反应组合合成特定功能的分子。思考如何实现“零排放”生产。", example: "例：逆合成分析法设计阿司匹林的合成路线。", engineering: "【工程设计】策划一个年产10万吨降解塑料的绿色工厂蓝图", math_connection: "【数学应用】利用拓扑结构分析最优合成路径" }
+            },
+            substance: {
+                p_low: { title: "我爱洗澡水", core: ["肥皂泡泡", "污垢去哪了", "水资源的保护"], literacy: "社会责任", detail: "在玩泡泡中感知表面活性剂的作用。培养节约用水的良好习惯。", example: "例：观察肥皂水和普通水吹出的泡泡有什么不同。", engineering: "【工程设计】制作最耐吹的泡泡液", math_connection: "【数学应用】统计泡泡在空中停留的时间" },
+                p_mid: { title: "厨房里的实验室", core: ["食盐和糖", "醋和碱面", "淀粉变蓝"], literacy: "科学探究", detail: "寻找厨房里的化学物质。观察醋与小苏打混合的喷发现象。探究碘酒遇淀粉变色。", example: "例：在醋里加一点碱面，观察气泡。", engineering: "【工程设计】制作“火山喷发”模型", math_connection: "【数学应用】按不同比例混合醋与碱，记录喷发高度" },
+                p_high: { title: "金属的本领", core: ["导热的勺子", "生锈的铁钉", "合金的韧性"], literacy: "物质观念", detail: "观察不同金属的导电、导热性能。理解生锈需要水和氧气。初步认识钢铁。", example: "例：猜猜不锈钢锅和纯铝锅哪个更容易生锈？", engineering: "【工程设计】设计手机壳的材料加固方案", math_connection: "【数学应用】计算生锈铁钉在不同环境下的增重比例" },
+                j_7: { title: "碳的世界", core: ["石墨导电", "活性炭吸附", "二氧化碳的温室效应"], literacy: "物质观念", detail: "理解同素异形体导致性质差异。掌握二氧化碳的性质与实验室制法。", example: "例：制作活性炭吸附色素的实验。", engineering: "【工程设计】设计一个简易的活性炭口罩", math_connection: "【数学应用】计算碳排放量的简单模型" },
+                j_8: { title: "溶液与溶解度", core: ["饱和溶液", "溶解度曲线", "溶质质量分数"], literacy: "模型认知", detail: "理解物质溶解的极限。掌握定量配制溶液的技能。解析温度对溶解的影响。", example: "例：配制50克6%的氯化钠溶液。", engineering: "【工程设计】设计并运行一个死海漂浮盆模型", math_connection: "【数学应用】函数解析式在溶解度方程中的应用" },
+                j_9: { title: "酸碱盐实战", core: ["浓硫酸的稀释", "酸碱指示剂", "粗盐提纯"], literacy: "实验探究", detail: "深入掌握酸碱中和反应。学习复分解反应发生的条件。在提纯实验中掌握过滤、蒸发。", example: "例：利用稀盐酸除去铁钉表面的锈。", engineering: "【工程设计】改良盐碱地的土壤修复方案", math_connection: "【数学应用】计算滴定实验中的中和点" },
+                s_1: { title: "有机化合物初探", core: ["甲烷与乙烯", "苯的环状结构", "乙醇与乙酸"], literacy: "符号表征", detail: "不仅是无机，更关注碳生命科学。理解同分异构体。掌握基础官能团的反应特性。", example: "例：写出乙醇催化氧化的化学方程式。", engineering: "【工程设计】设计简易的酿酒与醋化反应器", math_connection: "【数学应用】排布组合在有机分子构造中的体现" },
+                s_2: { title: "高分子与材料科学", core: ["加聚反应", "合成纤维", "塑料的降解"], literacy: "社会责任", detail: "理解现代衣食住行的物质基础。探讨白色污染的化学解决方案。关注可穿戴设备材料。", example: "例：对比天然橡胶与合成橡胶的弹性。", engineering: "【工程设计】设计一种自修复材料的微胶囊结构构想", math_connection: "【数学应用】聚合度与分子量分布的统计分布曲线" },
+                s_3: { title: "化学生物学前沿", core: ["蛋白质折叠", "核酸编辑化学", "药物分子靶点"], literacy: "社会责任、创新实践", detail: "从化学的角度看生命。理解药物如何与受体结合。探讨碳基生命的基础逻辑。", example: "例：分析青蒿素分子的过氧桥结构。", engineering: "【工程设计】模拟一种靶向抗癌药物的分子递送系统", math_connection: "【数学应用】拓扑学在蛋白质三维空间折叠计算中的体现" }
+            },
+            experiment: {
+                p_low: { title: "安全实验室", core: ["这是标志", "不要乱喝哦", "戴护目镜"], literacy: "责任态度", detail: "识别常见的实验室安全标志。建立规则意识。学会保护自己。", example: "例：找出这些瓶子哪个代表有危险？", engineering: "【工程设计】重新设计一种防倾倒的烧杯垫", math_connection: "【数学应用】将安全标志按危险等级排序" },
+                p_mid: { title: "度量的仪式", core: ["天平的使用", "量筒读数", "计时器"], literacy: "科学探究", detail: "学习使用基础测量工具。理解数据的准确性对科学的重要性。", example: "例：量出10毫升的水，多一滴都不要。", engineering: "【工程设计】自制天平模型", math_connection: "【数学应用】平均值与误差的初步感知" },
+                p_high: { title: "对照组的神奇", core: ["做两次实验", "只有一个不同", "公平竞赛"], literacy: "科学探究", detail: "理解控制变量法。知道什么是对比实验。学习客观记录实验结果。", example: "例：把一个钉子放在干水里，一个放在湿水里，看谁生锈快。", engineering: "【工程设计】设计针对不同洗涤剂清洁力的对比实验", math_connection: "【数学应用】绘制实验数据对比柱状图" },
+                j_7: { title: "规范操作基石", core: ["托盘天平称量", "液体的取用", "试管的加热"], literacy: "科学探究", detail: "掌握中学化学必备的十项基本功。注重实验过程中的逻辑严谨性。", example: "例：纠正同伴错误的试管夹持动作。", engineering: "【工程设计】设计一种废液回收分装装置", math_connection: "【数学应用】计算精确量取时的视差误差值" },
+                j_8: { title: "气体实验室基地", core: ["发生装置气密性", "多功能瓶", "万能收集法"], literacy: "变化观念", detail: "不仅通过图纸，更通过实操组装二氧化碳与氧气的制取装置。掌握气体的检验与验满。", example: "例：探究不同高度收集二氧化碳的浓度差异。", engineering: "【工程设计】制作移动式微型化学气柜", math_connection: "【数学应用】气压公式在气密性检查原理中的应用" },
+                j_9: { title: "物质鉴定与推断", core: ["离子的检验", "框图推断题", "未知液体鉴定"], literacy: "证据推理", detail: "通过沉淀、变色等现象，像侦探一样锁定物质身份。掌握碳酸根、硫酸根的鉴定。", example: "例：三瓶无色液体分别是酸碱水，如何最快区分？", engineering: "【工程设计】开发一种化学物质现场检测快速试剂盒", math_connection: "【数学应用】决策树逻辑在物质鉴别流程中的应用" },
+                s_1: { title: "定量分析高峰", core: ["酸碱中和滴定", "溶液配制误差", "比色法分析"], literacy: "科学探究、符号表征", detail: "从定性观察转向定量精确测量。掌握滴定管操作。理解有效数字的意义。", example: "例：用已知浓度的盐酸滴定未知浓度的NaOH灯溶液。", engineering: "【工程设计】设计一套自动电位滴定仪的传感器接口方案", math_connection: "【数学应用】利用导数寻找滴定突跃点" },
+                s_2: { title: "物质的分离与提纯", core: ["纸层析", "分馏与蒸馏", "萃取与分液"], literacy: "科学探究", detail: "掌握处理复杂混合物的工业级手段。理解物质在不同溶剂中分配系数。探讨海水淡化技术。", example: "例：演示用CCl4萃取碘水中的碘。", engineering: "【工程设计】设计并组装一种实验室用的简易石油分馏塔模型", math_connection: "【数学应用】分配系数的计算与多级萃取效率模型" },
+                s_3: { title: "综合实验设计", core: ["探究性实验", "文献阅读", "科研报告撰写"], literacy: "创新实践、社会责任", detail: "自主选题，设计完整的科学探究流程（假设、实验、结论）。掌握撰写学术报告的规范。", example: "例：自主设计探究某种植物色素随pH变化的变色域。", engineering: "【工程设计】完成一个从实验室制备到成品封装的微型化工生产线模拟", math_connection: "【数学应用】利用最小二乘法进行实验数据的线性重归拟合" }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-slate-700 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Book className="w-4 h-4" /> 知识要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-slate-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-slate-300 font-bold mb-2">🔭 课标解读</h4>
+                                    <p className="text-slate-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-teal-900/10 p-4 rounded-xl border border-teal-500/20">
+                                    <h4 className="text-teal-300 font-bold mb-2">🧪 典型例题</h4>
+                                    <p className="text-teal-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-orange-900/10 p-4 rounded-xl border border-orange-500/20">
+                                        <h4 className="text-orange-300 font-bold mb-2 flex items-center gap-2">
+                                            <Wrench className="w-4 h-4" /> 工程与设计
+                                        </h4>
+                                        <p className="text-orange-200/80 text-sm">{data.engineering}</p>
+                                    </div>
+                                    <div className="bg-lime-900/10 p-4 rounded-xl border border-lime-500/20">
+                                        <h4 className="text-lime-300 font-bold mb-2 flex items-center gap-2">
+                                            <Calculator className="w-4 h-4" /> 数学与数据
+                                        </h4>
+                                        <p className="text-lime-200/80 text-sm">{data.math_connection}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            // Filter logic
+            const queryParams = new URLSearchParams(window.location.search);
+            const stageFilter = queryParams.get('stage'); // 'p', 'j', 's'
+
+            let filteredStages = stages;
+            let stageTitle = "";
+
+            if (stageFilter === 'p') {
+                filteredStages = stages.filter(s => s.id.startsWith('p_'));
+                stageTitle = " - 小学阶段";
+            } else if (stageFilter === 'j') {
+                filteredStages = stages.filter(s => s.id.startsWith('j_'));
+                stageTitle = " - 初中阶段";
+            } else if (stageFilter === 's') {
+                filteredStages = stages.filter(s => s.id.startsWith('s_'));
+                stageTitle = " - 高中阶段";
+            }
+
+            const gridClass = `grid grid-cols-[200px_repeat(${filteredStages.length},300px)] gap-6`;
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#020617] text-slate-100 pb-20 font-[Inter]">
+                    {/* Navigation */}
+                    <a href="subject-synergy.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-teal-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回学科协同</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-teal-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-emerald-500 to-lime-600 mb-4 relative z-10">
+                            K12 化学芯课标核心素养全景图{stageTitle}
+                        </h1>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-lg">
+                            从物质结构到化学变化的微观探索矩阵
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-slate-500 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="w-fit">
+                                {/* Stage Headers */}
+                                <div className={`${gridClass} mb-8 sticky top-0 bg-[#020617]/95 backdrop-blur z-30 py-4 border-b border-slate-800`}>
+                                    <div className="flex items-end justify-end px-4 pb-2 text-slate-500 font-bold text-sm uppercase tracking-widest text-right">
+                                        化学维度 / 学习阶段
+                                    </div>
+                                    {filteredStages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-slate-400 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className={`${gridClass} group`}>
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-slate-500 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {filteredStages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                                                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                                                            bg-slate-900/40 border border-slate-800
+                                                            hover:bg-slate-800 hover:border-slate-600 hover:shadow-xl hover:-translate-y-1
+                                                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                                                        `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-slate-200 mb-2 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-1.5 mb-4 flex-grow text-xs text-slate-400">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-slate-600 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded bg-slate-950 ${stage.textColor}`}>
+                                                                    {stage.label.split(' ')[0]}
+                                                                </span>
+                                                                <span className="text-xs text-slate-500 group-hover/card:text-teal-400 transition-colors flex items-center gap-1">
+                                                                    详情 <Check className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
