@@ -1,7 +1,44 @@
 // 精诚中医 - 极致极简版逻辑 (上线预览标准)
 const products = [
-    { id: 1, category: "灵芝专区", name: "老板亲选 · 破壁灵芝孢子粉", price: "598", desc: "源头直供 | 破壁率99% | 核心萃取", img: "assets/tcm/lingzhi_banner.png" },
-    { id: 2, category: "灵芝专区", name: "长白山特级灵芝切片 (礼盒装)", price: "128", desc: "野生抚育 | 煲汤首选 | 滋补养生", img: "assets/tcm/article_reishi.png" },
+    {
+        id: 1,
+        category: "灵芝专区",
+        name: "老板亲选 · 破壁灵芝孢子粉",
+        price: "598",
+        desc: "源头直供 | 破壁率99% | 核心萃取",
+        img: "assets/tcm/lingzhi_banner.png",
+        params: [
+            { label: "规格", value: "1g*30袋/盒" },
+            { label: "产地", value: "吉林长白山" },
+            { label: "保质期", value: "24个月" },
+            { label: "破壁率", value: "99.8%" }
+        ],
+        details: [
+            "assets/tcm/lingzhi_detail_1.png",
+            "assets/tcm/lingzhi_detail_2.png",
+            "assets/tcm/lingzhi_detail_3.png"
+        ],
+        richText: `
+            <div style="padding: 10px 0;">
+                <h4 style="color: #8C1C13; border-left: 3px solid #8C1C13; padding-left: 8px; margin-bottom: 10px;">产品优势</h4>
+                <p style="font-size: 13px; color: #666; line-height: 1.8;">采自长白山海拔1000米以上高寒林区，模拟野生环境抚育。采用超低温物理破壁技术，确保灵芝三萜与多糖成分不受损。</p>
+            </div>
+        `
+    },
+    {
+        id: 2,
+        category: "灵芝专区",
+        name: "长白山特级灵芝切片 (礼盒装)",
+        price: "128",
+        desc: "野生抚育 | 煲汤首选 | 滋补养生",
+        img: "assets/tcm/article_reishi.png",
+        params: [
+            { label: "规格", value: "250g/罐" },
+            { label: "产地", value: "长白山核心产区" }
+        ],
+        details: ["assets/tcm/article_reishi.png"],
+        richText: "<p>精选五年以上野生灵芝，手工切片，自然烘干。</p>"
+    },
     { id: 3, category: "养生茶饮", name: "灵芝养生茶饮包 (护肝系列)", price: "59", desc: "上班族首选 | 护肝明目 | 独立包装", img: "assets/tcm/tea_icon.png" },
     { id: 4, category: "参茸滋补", name: "手工东阿阿胶糕 (传统工艺)", price: "198", desc: "补气养血 | 滋味醇厚 | 0添加", img: "assets/tcm/ejiao_icon.png" },
     { id: 5, category: "参茸滋补", name: "美国进口西洋参切片", price: "268", desc: "大比例切片 | 清火生津 | 软枝西洋参", img: "assets/tcm/ginseng_icon.png" },
@@ -98,10 +135,32 @@ window.renderArticles = function () {
 
 window.openProduct = function (id) {
     const p = products.find(prod => prod.id === id);
+    if (!p) return;
+
     document.getElementById('detail-title').innerText = p.name;
     document.getElementById('detail-price').innerText = `¥ ${p.price}`;
     document.getElementById('detail-desc').innerText = p.desc;
     document.getElementById('detail-img-box').style.backgroundImage = `url('${p.img}')`;
+
+    // 渲染参数列表与富文本内容
+    let paramsHtml = '';
+    if (p.params) {
+        paramsHtml = '<div class="list-group" style="margin: 15px 0; border: 1px solid rgba(0,0,0,0.05);">';
+        p.params.forEach(param => {
+            paramsHtml += `<div class="list-item" style="padding: 10px 16px; border-bottom: 1px solid rgba(0,0,0,0.05);"><span style="color: #999; font-size: 13px;">${param.label}</span><span style="font-size: 13px; font-weight: 500;">${param.value}</span></div>`;
+        });
+        paramsHtml += '</div>';
+    }
+
+    let detailHtml = `<div style="padding: 0 16px;">${p.richText || ''}`;
+    if (p.details) {
+        p.details.forEach(img => {
+            detailHtml += `<img src="${img}" style="width: 100%; border-radius: 8px; margin-top: 12px; box-shadow: var(--shadow);">`;
+        });
+    }
+    detailHtml += '</div>';
+
+    document.getElementById('product-full-content').innerHTML = paramsHtml + detailHtml;
     document.getElementById('product-detail').style.display = 'flex';
 };
 
