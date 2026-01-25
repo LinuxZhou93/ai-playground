@@ -23,15 +23,76 @@
 
     <style>
         :root {
-            --primary: #e11d48;
-            --primary-glow: rgba(225, 29, 72, 0.4);
+            --primary: #fb7185;
+            --primary-glow: rgba(251, 113, 133, 0.4);
+            --sidebar-width: 280px;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
             background-color: #020617;
             color: #f8fafc;
-            font-family: 'Inter', 'Noto Serif SC', serif;
-            overflow-x: hidden;
+            font-family: var(--font-main);
+            overflow: hidden;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
+            position: relative;
+        }
+
+        /* Sidebar Styling Sync */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100%;
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            z-index: 40;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 2.5rem 2rem;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-box {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, #be123c 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .main-content {
+            flex: 1;
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            background: transparent;
         }
 
         .font-ink {
@@ -43,17 +104,6 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .glass-card:hover {
-            background: rgba(30, 41, 59, 0.6);
-            border-color: rgba(225, 29, 72, 0.3);
-            transform: translateY(-4px);
-            box-shadow: 0 10px 30px -10px var(--primary-glow);
-        }
-
-        .neon-border {
-            box-shadow: 0 0 15px var(--primary-glow);
         }
 
         .gradient-text {
@@ -68,30 +118,23 @@
             background-size: 30px 30px;
         }
 
-        .scroll-hide::-webkit-scrollbar {
-            display: none;
+        .scroller::-webkit-scrollbar {
+            width: 6px;
         }
 
-        .ink-reveal {
-            animation: inkReveal 2s ease-out forwards;
+        .scroller::-webkit-scrollbar-track {
+            background: transparent;
         }
 
-        @keyframes inkReveal {
-            from {
-                opacity: 0;
-                filter: blur(10px);
-            }
-
-            to {
-                opacity: 1;
-                filter: blur(0);
-            }
+        .scroller::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
         }
     </style>
 </head>
 
 <body>
-    <div id="root"></div>
+    <div id="root" class="app-container"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -164,260 +207,302 @@
             </div>
         );
 
+        const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
+            <div
+                onClick={onClick}
+                className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer transition-all ${active ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+            >
+                <Icon className="w-5 h-5" />
+                <span className="text-sm font-medium">{label}</span>
+            </div>
+        );
+
         const App = () => {
+            const [activeTab, setActiveTab] = useState('home');
+
             return (
-                <div className="min-h-screen relative pb-20 chinese-pattern">
-                    {/* Floating Nav */}
-                    <div className="fixed top-6 left-0 right-0 flex justify-center z-50 pointer-events-none">
-                        <nav className="glass-card rounded-full px-6 py-3 flex items-center gap-8 border border-white/10 shadow-2xl pointer-events-auto">
-                            <a href="index.html" className="text-slate-400 hover:text-white transition-colors"><Home className="w-5 h-5" /></a>
-                            <div className="w-px h-4 bg-slate-700"></div>
-                            <a href="#" className="text-rose-400 font-bold text-sm">首页</a>
-                            <a href="#" className="text-slate-400 hover:text-rose-400 transition-colors text-sm">图书馆</a>
-                            <a href="#" className="text-slate-400 hover:text-rose-400 transition-colors text-sm">创作泉</a>
-                            <a href="#" className="text-slate-400 hover:text-rose-400 transition-colors text-sm">社区</a>
-                        </nav>
-                    </div>
-
-                    {/* Top Right Action */}
-                    <div className="fixed top-6 right-6 z-50">
-                        <a href="chinese-curriculum.html" className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-5 py-2.5 rounded-full font-bold text-sm transition-all shadow-xl hover:scale-105 active:scale-95 group">
-                            查看课标大纲
-                            <LayoutGrid className="w-4 h-4 group-hover:rotate-90 transition-transform" />
-                        </a>
-                    </div>
-
-                    <main className="container mx-auto px-6 pt-32">
-                        {/* Hero Section */}
-                        <div className="flex flex-col md:flex-row items-center gap-12 mb-20 ink-reveal">
-                            <div className="flex-1 text-center md:text-left">
-                                <span className="inline-block px-4 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold tracking-widest uppercase mb-6">
-                                    Traditional Meets Modern
-                                </span>
-                                <h1 className="text-5xl md:text-8xl font-ink mb-6 text-white leading-tight">
-                                    书香<span className="gradient-text">墨意</span>，<br />
-                                    感悟华夏之魂
-                                </h1>
-                                <p className="text-lg text-slate-400 max-w-xl leading-relaxed mb-8">
-                                    在这里，文字不再是枯燥的符号，而是流淌在指尖的历史与情感。探索中文之美，从一撇一捺开始。
-                                </p>
-                                <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                                    <button className="bg-white text-slate-900 px-8 py-3 rounded-full font-bold hover:bg-rose-50 transition-colors shadow-lg">开始探索</button>
-                                    <button className="glass-card px-8 py-3 rounded-full font-bold text-white hover:bg-white/10 transition-colors">每日一诗</button>
+                <div className="flex w-full h-full overflow-hidden">
+                    {/* Sidebar */}
+                    <aside className="sidebar">
+                        <div className="sidebar-header">
+                            <div className="logo-area mb-12">
+                                <div className="logo-box">
+                                    <Book className="text-white w-6 h-6" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-lg tracking-tight">Psyche-X</span>
+                                    <span className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">Chinese Hub</span>
                                 </div>
                             </div>
-                            <div className="flex-1 relative">
-                                <div className="w-full aspect-square max-w-md mx-auto relative">
-                                    {/* Abstract Visual Decor */}
-                                    <div className="absolute inset-0 bg-rose-500/20 rounded-full blur-[100px] animate-pulse"></div>
-                                    <div className="relative z-10 w-full h-full glass-card rounded-[4rem] p-8 flex items-center justify-center overflow-hidden">
-                                        <div className="absolute top-0 left-0 w-full h-full opacity-20 chinese-pattern"></div>
-                                        <span className="text-[12rem] font-ink text-rose-500/30 select-none">语</span>
-                                    </div>
-                                    {/* Floating Badges */}
-                                    <div className="absolute -top-4 -right-4 glass-card p-4 rounded-2xl animate-bounce" style={{ animationDuration: '3s' }}>
-                                        <span className="text-2xl font-ink text-rose-400">水墨丹青</span>
-                                    </div>
-                                    <div className="absolute -bottom-6 -left-6 glass-card p-4 rounded-2xl animate-bounce" style={{ animationDuration: '4s' }}>
-                                        <span className="text-2xl font-ink text-amber-400">词意万千</span>
-                                    </div>
-                                </div>
+
+                            <nav className="space-y-2">
+                                <SidebarItem icon={Home} label="首页" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+                                <SidebarItem icon={Library} label="图书馆" active={activeTab === 'library'} onClick={() => setActiveTab('library')} />
+                                <SidebarItem icon={PenTool} label="创作工坊" active={activeTab === 'writing'} onClick={() => setActiveTab('writing')} />
+                                <SidebarItem icon={Scroll} label="研修课" active={activeTab === 'courses'} onClick={() => setActiveTab('courses')} />
+                            </nav>
+                        </div>
+
+                        <div className="mt-auto p-8 border-t border-white/5">
+                            <button
+                                onClick={() => window.location.href = 'index.html'}
+                                className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-bold transition-all border border-white/10 flex items-center justify-center gap-2"
+                            >
+                                <ArrowRight className="w-4 h-4 rotate-180" />
+                                返回基站
+                            </button>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="main-content scroller">
+                        {/* Sticky Inline Header */}
+                        <header className="h-20 px-12 flex items-center justify-between border-b border-white/5 sticky top-0 bg-slate-950/20 backdrop-blur-xl z-30">
+                            <div className="flex items-center gap-8">
+                                <h2 className="text-sm font-bold tracking-widest text-slate-500 uppercase">Neural Connection: Active</h2>
                             </div>
-                        </div>
-
-                        {/* Feature Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <FeatureCard
-                                icon={Library}
-                                title="思辨研讨区"
-                                desc="就经典议题展开跨时空对话。培养严谨的逻辑表达与批判性思维能力。"
-                                tag="PHILOSOPHY"
-                                color="text-amber-400"
-                            />
-                            <FeatureCard
-                                icon={PenTool}
-                                title="创作工坊"
-                                desc="从创意火花到锦绣文章，AI辅助您的文学创作之路。"
-                                tag="WRITING"
-                                color="text-amber-400"
-                            />
-                            <FeatureCard
-                                icon={Scroll}
-                                title="跨学科技能"
-                                desc="探索语文与其他学科的融合，通过史学语感构建全面认知。"
-                                tag="SYNERGY"
-                                color="text-sky-400"
-                            />
-                        </div>
-
-                        {/* Learning Path Component */}
-                        <LearningPath />
-
-                        {/* Synchronized Classroom (SmartEdu Integration) */}
-                        <section className="mt-20">
-                            <div className="flex items-center justify-between mb-8">
-                                <div>
-                                    <h2 className="text-3xl font-bold flex items-center gap-3">
-                                        <div className="w-1.5 h-8 bg-rose-500 rounded-full"></div>
-                                        国家智慧教育同步课堂
-                                    </h2>
-                                    <p className="text-slate-500 mt-2 text-sm">与国家平台实时同步的权威教学资源</p>
+                            <div className="flex items-center gap-4">
+                                <div className="flex bg-white/5 p-1 rounded-xl">
+                                    <button className="px-3 py-1.5 rounded-lg bg-rose-500 text-white text-[10px] font-bold">CN</button>
+                                    <button className="px-3 py-1.5 rounded-lg text-slate-500 text-[10px] font-bold hover:text-white transition">EN</button>
                                 </div>
-                                <a href="https://basic.smartedu.cn/syncClassroom" target="_blank" className="bg-white/5 hover:bg-white/10 text-rose-400 px-6 py-2 rounded-full font-bold text-sm border border-rose-500/20 transition-all">
-                                    访问国家平台总入口
+                                <a href="chinese-curriculum.html" className="h-10 px-6 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-rose-600/20">
+                                    查看课标 <LayoutGrid className="w-4 h-4" />
                                 </a>
                             </div>
+                        </header>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Textbook Focus */}
-                                <div className="glass-card rounded-[2.5rem] p-8 flex flex-col md:flex-row gap-8 items-center border border-rose-500/10">
-                                    <div className="w-40 h-56 bg-slate-800 rounded-xl shadow-2xl relative overflow-hidden flex-shrink-0 group">
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent z-10"></div>
-                                        <div className="absolute inset-0 flex items-center justify-center p-4 text-center z-20">
-                                            <span className="text-2xl font-ink text-white">语文<br /><span className="text-sm font-sans opacity-60">一年级 上册</span></span>
-                                        </div>
-                                        <div className="absolute top-2 left-2 bg-rose-600 text-[10px] font-bold px-2 py-0.5 rounded text-white z-30">统编版</div>
+                        <div className="px-12 py-12">
+                            {/* Hero Section */}
+                            <div className="flex flex-col xl:flex-row items-center gap-16 mb-24 anim-fade-in">
+                                <div className="flex-1">
+                                    <span className="inline-block px-4 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold tracking-widest uppercase mb-8">
+                                        Traditional Meets Modern
+                                    </span>
+                                    <h1 className="text-6xl md:text-7xl font-ink mb-8 text-white leading-tight">
+                                        书香<span className="gradient-text">墨意</span>，<br />
+                                        感悟华夏之魂
+                                    </h1>
+                                    <p className="text-lg text-slate-400 max-w-xl leading-relaxed mb-10">
+                                        在这里，文字不再是枯燥的符号，而是流淌在指尖的历史与情感。探索中文之美，从一撇一捺开始。
+                                    </p>
+                                    <div className="flex flex-wrap gap-4">
+                                        <button className="bg-rose-600 text-white px-10 py-4 rounded-2xl font-bold hover:bg-rose-500 transition-all shadow-xl shadow-rose-600/20 hover:-translate-y-1">开始探索</button>
+                                        <button className="glass-card px-10 py-4 rounded-2xl font-bold text-white hover:bg-white/10 transition-all">每日一诗</button>
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="inline-block px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[10px] font-bold mb-3">当前学段推荐</div>
-                                        <h3 className="text-2xl font-bold mb-4 font-ink tracking-wider">一年级 · 语文 · 统编版</h3>
-                                        <div className="space-y-3">
-                                            <a href="https://basic.smartedu.cn/syncClassroom?defaultTag=e7bbb2de-0590-11ed-9c79-92fc3b3249d5%2Fe7bbd296-0590-11ed-9c79-92fc3b3249d5%2F6a749654-0772-11ed-ac74-092ab92074e6%2F44bee8bc-54e6-11ed-9c34-850ba61fa9f4%2Fff8080814371757b014390f883db0453%2F5136342961" target="_blank" className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
-                                                <span className="text-sm text-slate-300 group-hover:text-rose-400 transition-colors">第一单元：识字 - 《我是中国人》</span>
-                                                <span className="text-[10px] font-bold text-slate-500">名师视频</span>
-                                            </a>
-                                            <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
-                                                <span className="text-sm text-slate-300 group-hover:text-rose-400 transition-colors">课件资源包 - 第一单元</span>
-                                                <span className="text-[10px] font-bold text-slate-500">资源包</span>
+                                </div>
+                                <div className="flex-1 relative">
+                                    <div className="w-full aspect-square max-w-md mx-auto relative group">
+                                        <div className="absolute inset-0 bg-rose-500/20 rounded-full blur-[100px] animate-pulse"></div>
+                                        <div className="relative z-10 w-full h-full glass-card rounded-[3rem] p-4 flex items-center justify-center overflow-hidden border border-rose-500/20">
+                                            <div className="absolute top-0 left-0 w-full h-full opacity-10 chinese-pattern"></div>
+                                            <span className="text-[14rem] font-ink text-rose-500/30 select-none group-hover:scale-110 transition-transform duration-1000">语</span>
+                                        </div>
+                                        {/* Dynamic Badges */}
+                                        <div className="absolute -top-6 -right-6 glass-card p-5 rounded-3xl shadow-2xl animate-float">
+                                            <span className="text-3xl font-ink text-rose-400">水墨丹青</span>
+                                        </div>
+                                        <div className="absolute -bottom-8 -left-8 glass-card p-5 rounded-3xl shadow-2xl animate-float" style={{ animationDelay: '-2s' }}>
+                                            <span className="text-3xl font-ink text-amber-400">词意万千</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Feature Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <FeatureCard
+                                    icon={Library}
+                                    title="思辨研讨区"
+                                    desc="就经典议题展开跨时空对话。培养严谨的逻辑表达与批判性思维能力。"
+                                    tag="PHILOSOPHY"
+                                    color="text-amber-400"
+                                />
+                                <FeatureCard
+                                    icon={PenTool}
+                                    title="创作工坊"
+                                    desc="从创意火花到锦绣文章，AI辅助您的文学创作之路。"
+                                    tag="WRITING"
+                                    color="text-amber-400"
+                                />
+                                <FeatureCard
+                                    icon={Scroll}
+                                    title="跨学科技能"
+                                    desc="探索语文与其他学科的融合，通过史学语感构建全面认知。"
+                                    tag="SYNERGY"
+                                    color="text-sky-400"
+                                />
+                            </div>
+
+                            {/* Learning Path Component */}
+                            <LearningPath />
+
+                            {/* Synchronized Classroom (SmartEdu Integration) */}
+                            <section className="mt-20">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div>
+                                        <h2 className="text-3xl font-bold flex items-center gap-3">
+                                            <div className="w-1.5 h-8 bg-rose-500 rounded-full"></div>
+                                            国家智慧教育同步课堂
+                                        </h2>
+                                        <p className="text-slate-500 mt-2 text-sm">与国家平台实时同步的权威教学资源</p>
+                                    </div>
+                                    <a href="https://basic.smartedu.cn/syncClassroom" target="_blank" className="bg-white/5 hover:bg-white/10 text-rose-400 px-6 py-2 rounded-full font-bold text-sm border border-rose-500/20 transition-all">
+                                        访问国家平台总入口
+                                    </a>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {/* Textbook Focus */}
+                                    <div className="glass-card rounded-[2.5rem] p-8 flex flex-col md:flex-row gap-8 items-center border border-rose-500/10">
+                                        <div className="w-40 h-56 bg-slate-800 rounded-xl shadow-2xl relative overflow-hidden flex-shrink-0 group">
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent z-10"></div>
+                                            <div className="absolute inset-0 flex items-center justify-center p-4 text-center z-20">
+                                                <span className="text-2xl font-ink text-white">语文<br /><span className="text-sm font-sans opacity-60">一年级 上册</span></span>
+                                            </div>
+                                            <div className="absolute top-2 left-2 bg-rose-600 text-[10px] font-bold px-2 py-0.5 rounded text-white z-30">统编版</div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="inline-block px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[10px] font-bold mb-3">当前学段推荐</div>
+                                            <h3 className="text-2xl font-bold mb-4 font-ink tracking-wider">一年级 · 语文 · 统编版</h3>
+                                            <div className="space-y-3">
+                                                <a href="https://basic.smartedu.cn/syncClassroom?defaultTag=e7bbb2de-0590-11ed-9c79-92fc3b3249d5%2Fe7bbd296-0590-11ed-9c79-92fc3b3249d5%2F6a749654-0772-11ed-ac74-092ab92074e6%2F44bee8bc-54e6-11ed-9c34-850ba61fa9f4%2Fff8080814371757b014390f883db0453%2F5136342961" target="_blank" className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
+                                                    <span className="text-sm text-slate-300 group-hover:text-rose-400 transition-colors">第一单元：识字 - 《我是中国人》</span>
+                                                    <span className="text-[10px] font-bold text-slate-500">名师视频</span>
+                                                </a>
+                                                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
+                                                    <span className="text-sm text-slate-300 group-hover:text-rose-400 transition-colors">课件资源包 - 第一单元</span>
+                                                    <span className="text-[10px] font-bold text-slate-500">资源包</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Resource Mini Grid */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="glass-card rounded-3xl p-6 border-t-2 border-rose-500/50">
+                                            <div className="text-3xl font-ink text-rose-500 mb-2">咏鹅</div>
+                                            <p className="text-xs text-slate-400 mb-4">同步名家诵读解析</p>
+                                            <button className="text-[10px] font-bold text-rose-400 flex items-center gap-1 group">
+                                                立即播放 <span className="group-hover:translate-x-1 transition-transform">→</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="glass-card rounded-3xl p-6 border-t-2 border-amber-500/50">
+                                            <div className="text-3xl font-ink text-amber-500 mb-2">识字</div>
+                                            <p className="text-xs text-slate-400 mb-4">汉字笔画动态展示</p>
+                                            <button className="text-[10px] font-bold text-amber-400 flex items-center gap-1 group">
+                                                进入训练 <span className="group-hover:translate-x-1 transition-transform">→</span>
+                                            </button>
+                                        </div>
+                                        <div className="col-span-2 glass-card rounded-3xl p-6 flex items-center justify-between bg-gradient-to-r from-rose-500/5 to-transparent border-l-4 border-rose-500">
+                                            <div>
+                                                <h4 className="font-bold text-lg">智能同步练习</h4>
+                                                <p className="text-xs text-slate-500 mt-1">基于国家平台知识点图谱生成的自适应练习</p>
+                                            </div>
+                                            <button className="bg-rose-600 text-white px-6 py-2 rounded-full text-xs font-bold shadow-lg shadow-rose-600/20">开始刷题</button>
+                                        </div>
+                                    </div>
                                 </div>
+                            </section>
 
-                                {/* Resource Mini Grid */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="glass-card rounded-3xl p-6 border-t-2 border-rose-500/50">
-                                        <div className="text-3xl font-ink text-rose-500 mb-2">咏鹅</div>
-                                        <p className="text-xs text-slate-400 mb-4">同步名家诵读解析</p>
-                                        <button className="text-[10px] font-bold text-rose-400 flex items-center gap-1 group">
-                                            立即播放 <span className="group-hover:translate-x-1 transition-transform">→</span>
-                                        </button>
-                                    </div>
-
-                                    <div className="glass-card rounded-3xl p-6 border-t-2 border-amber-500/50">
-                                        <div className="text-3xl font-ink text-amber-500 mb-2">识字</div>
-                                        <p className="text-xs text-slate-400 mb-4">汉字笔画动态展示</p>
-                                        <button className="text-[10px] font-bold text-amber-400 flex items-center gap-1 group">
-                                            进入训练 <span className="group-hover:translate-x-1 transition-transform">→</span>
-                                        </button>
-                                    </div>
-                                    <div className="col-span-2 glass-card rounded-3xl p-6 flex items-center justify-between bg-gradient-to-r from-rose-500/5 to-transparent border-l-4 border-rose-500">
-                                        <div>
-                                            <h4 className="font-bold text-lg">智能同步练习</h4>
-                                            <p className="text-xs text-slate-500 mt-1">基于国家平台知识点图谱生成的自适应练习</p>
+                            {/* Existing Resources Section */}
+                            <section className="mt-20">
+                                <div className="flex items-center justify-between mb-10">
+                                    <h2 className="text-3xl font-bold">校本研修资源 <span className="text-slate-500 text-lg font-normal ml-2">School-based Resources</span></h2>
+                                    <button className="text-rose-400 font-bold hover:underline">查看全部</button>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {[
+                                        { title: "《诗经》审美初探", type: "精读课", img: "bg-gradient-to-br from-rose-500/20 to-slate-900" },
+                                        { title: "中国文人画的文学意境", type: "跨学科", img: "bg-gradient-to-br from-amber-500/20 to-slate-900" },
+                                        { title: "现代散文写作指南", type: "实战", img: "bg-gradient-to-br from-indigo-500/20 to-slate-900" },
+                                        { title: "论语中的逻辑思维", type: "哲学", img: "bg-gradient-to-br from-emerald-500/20 to-slate-900" },
+                                    ].map((res, i) => (
+                                        <div key={i} className="glass-card rounded-2xl overflow-hidden group cursor-pointer">
+                                            <div className={`h-32 ${res.img} relative flex items-center justify-center transition-transform duration-500 group-hover:scale-110`}>
+                                                <span className="text-4xl opacity-20 font-ink">研修</span>
+                                            </div>
+                                            <div className="p-4">
+                                                <span className="text-[10px] text-rose-500 font-bold">{res.type}</span>
+                                                <h4 className="font-bold mt-1 group-hover:text-rose-400 transition-colors">{res.title}</h4>
+                                            </div>
                                         </div>
-                                        <button className="bg-rose-600 text-white px-6 py-2 rounded-full text-xs font-bold shadow-lg shadow-rose-600/20">开始刷题</button>
+                                    ))}
+                                </div>
+                            </section>
+
+                            {/* Tech Chest / Applications */}
+                            <section className="mb-20 mt-24">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-3xl font-bold flex items-center gap-3 italic text-white">
+                                        <Box className="w-8 h-8 text-rose-500" />
+                                        科技宝箱 <span className="text-slate-500 font-normal not-italic text-sm tracking-widest uppercase">/ TECH_CHEST</span>
+                                    </h2>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                    <a href="calligraphy.html" className="glass-card rounded-2xl p-6 border border-rose-500/20 hover:border-rose-500/50 group transition-all relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <Brush className="w-16 h-16" />
+                                        </div>
+                                        <div className="relative z-10">
+                                            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 mb-4 group-hover:scale-110 transition-transform">
+                                                <Brush className="w-5 h-5" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-white mb-2">墨影书法实验室</h3>
+                                            <p className="text-slate-500 text-xs mb-4">Level 1: 硬笔/软笔数字研习系统，遵循国家书法教育指导纲要。</p>
+                                            <div className="flex items-center gap-2 text-[10px] font-bold text-orange-400">
+                                                OPEN_WORKBENCH <ArrowRight className="w-3 h-3" />
+                                            </div>
+                                        </div>
+                                    </a>
+
+                                    <a href="library.html" className="glass-card rounded-2xl p-6 border border-rose-500/20 hover:border-rose-500/50 group transition-all relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <BookOpen className="w-16 h-16" />
+                                        </div>
+                                        <div className="relative z-10">
+                                            <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 mb-4 group-hover:scale-110 transition-transform">
+                                                <BookOpen className="w-5 h-5" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-white mb-2">数字珍本馆</h3>
+                                            <p className="text-slate-500 text-xs mb-4">Level 1: 沉浸式阅读经典文献，提供全文检索、注疏对比与动态分析。</p>
+                                            <div className="flex items-center gap-2 text-[10px] font-bold text-rose-400">
+                                                OPEN_ARCHIVE <ArrowRight className="w-3 h-3" />
+                                            </div>
+                                        </div>
+                                    </a>
+
+                                    <div className="glass-card rounded-2xl p-6 border border-white/5 opacity-50 cursor-not-allowed">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600 mb-4">
+                                            <Sparkles className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-slate-600 mb-2">智能诗词创作引擎</h3>
+                                        <p className="text-slate-700 text-xs mb-4">Level 2: 辅助格律检查、意向联想与风格迁移训练，探索诗词的无限可能。</p>
+                                        <div className="text-[10px] font-bold text-slate-700">UNDER_DEVELOPMENT</div>
                                     </div>
                                 </div>
-                            </div>
-                        </section>
+                            </section>
 
-                        {/* Existing Resources Section */}
-                        <section className="mt-20">
-                            <div className="flex items-center justify-between mb-10">
-                                <h2 className="text-3xl font-bold">校本研修资源 <span className="text-slate-500 text-lg font-normal ml-2">School-based Resources</span></h2>
-                                <button className="text-rose-400 font-bold hover:underline">查看全部</button>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {[
-                                    { title: "《诗经》审美初探", type: "精读课", img: "bg-gradient-to-br from-rose-500/20 to-slate-900" },
-                                    { title: "中国文人画的文学意境", type: "跨学科", img: "bg-gradient-to-br from-amber-500/20 to-slate-900" },
-                                    { title: "现代散文写作指南", type: "实战", img: "bg-gradient-to-br from-indigo-500/20 to-slate-900" },
-                                    { title: "论语中的逻辑思维", type: "哲学", img: "bg-gradient-to-br from-emerald-500/20 to-slate-900" },
-                                ].map((res, i) => (
-                                    <div key={i} className="glass-card rounded-2xl overflow-hidden group cursor-pointer">
-                                        <div className={`h-32 ${res.img} relative flex items-center justify-center transition-transform duration-500 group-hover:scale-110`}>
-                                            <span className="text-4xl opacity-20 font-ink">研修</span>
-                                        </div>
-                                        <div className="p-4">
-                                            <span className="text-[10px] text-rose-500 font-bold">{res.type}</span>
-                                            <h4 className="font-bold mt-1 group-hover:text-rose-400 transition-colors">{res.title}</h4>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* Tech Chest / Applications */}
-                        <section className="mb-20 mt-24">
-                            <div className="flex items-center justify-between mb-8">
-                                <h2 className="text-3xl font-bold flex items-center gap-3 italic text-white">
-                                    <Box className="w-8 h-8 text-rose-500" />
-                                    科技宝箱 <span className="text-slate-500 font-normal not-italic text-sm tracking-widest uppercase">/ TECH_CHEST</span>
-                                </h2>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                <a href="calligraphy.html" className="glass-card rounded-2xl p-6 border border-rose-500/20 hover:border-rose-500/50 group transition-all relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <Brush className="w-16 h-16" />
-                                    </div>
-                                    <div className="relative z-10">
-                                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 mb-4 group-hover:scale-110 transition-transform">
-                                            <Brush className="w-5 h-5" />
-                                        </div>
-                                        <h3 className="text-lg font-bold text-white mb-2">墨影书法实验室</h3>
-                                        <p className="text-slate-500 text-xs mb-4">Level 1: 硬笔/软笔数字研习系统，遵循国家书法教育指导纲要。</p>
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-orange-400">
-                                            OPEN_WORKBENCH <ArrowRight className="w-3 h-3" />
-                                        </div>
-                                    </div>
-                                </a>
-
-                                <a href="library.html" className="glass-card rounded-2xl p-6 border border-rose-500/20 hover:border-rose-500/50 group transition-all relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <BookOpen className="w-16 h-16" />
-                                    </div>
-                                    <div className="relative z-10">
-                                        <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 mb-4 group-hover:scale-110 transition-transform">
-                                            <BookOpen className="w-5 h-5" />
-                                        </div>
-                                        <h3 className="text-lg font-bold text-white mb-2">数字珍本馆</h3>
-                                        <p className="text-slate-500 text-xs mb-4">Level 1: 沉浸式阅读经典文献，提供全文检索、注疏对比与动态分析。</p>
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-rose-400">
-                                            OPEN_ARCHIVE <ArrowRight className="w-3 h-3" />
-                                        </div>
-                                    </div>
-                                </a>
-
-                                <div className="glass-card rounded-2xl p-6 border border-white/5 opacity-50 cursor-not-allowed">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600 mb-4">
-                                        <Sparkles className="w-5 h-5" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-slate-600 mb-2">智能诗词创作引擎</h3>
-                                    <p className="text-slate-700 text-xs mb-4">Level 2: 辅助格律检查、意向联想与风格迁移训练，探索诗词的无限可能。</p>
-                                    <div className="text-[10px] font-bold text-slate-700">UNDER_DEVELOPMENT</div>
+                            {/* Call to Action */}
+                            <section className="mt-20">
+                                <div className="glass-card rounded-[3rem] p-12 text-center relative overflow-hidden bg-rose-950/20 border border-rose-500/20">
+                                    <div className="absolute inset-0 opacity-5 pointer-events-none chinese-pattern"></div>
+                                    <h2 className="text-4xl font-bold mb-6">准备好开启文学之旅了吗？</h2>
+                                    <p className="text-slate-400 mb-10 max-w-2xl mx-auto">
+                                        加入我们的社区，与全球数万名文学爱好者一起分享见解、磨砺笔锋。
+                                    </p>
+                                    <button className="bg-rose-600 hover:bg-rose-500 text-white px-12 py-4 rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 active:scale-95">
+                                        立即注册免费体验
+                                    </button>
                                 </div>
-                            </div>
-                        </section>
-                    </main>
+                            </section>
 
-                    {/* Call to Action */}
-                    <section className="mt-20 container mx-auto px-6">
-                        <div className="glass-card rounded-[3rem] p-12 text-center relative overflow-hidden">
-                            <div className="absolute inset-0 opacity-5 pointer-events-none chinese-pattern"></div>
-                            <h2 className="text-4xl font-bold mb-6">准备好开启文学之旅了吗？</h2>
-                            <p className="text-slate-400 mb-10 max-w-2xl mx-auto">
-                                加入我们的社区，与全球数万名文学爱好者一起分享见解、磨砺笔锋。
-                            </p>
-                            <button className="bg-rose-600 hover:bg-rose-500 text-white px-12 py-4 rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105">
-                                立即注册免费体验
-                            </button>
+                            <footer className="mt-24 py-12 border-t border-white/5 text-center text-slate-500 text-sm">
+                                <p>© 2025 语文学习中心 - 构建全息文学认知系统</p>
+                            </footer>
                         </div>
-                    </section>
-
-                    <footer className="mt-20 py-12 border-t border-slate-800 text-center text-slate-500 text-sm">
-                        <p>© 2025 语文学习中心 - 构建全息文学认知系统</p>
-                    </footer>
+                    </main>
                 </div>
             );
         };

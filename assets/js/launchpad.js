@@ -37,6 +37,7 @@ window.Launchpad = (() => {
         { name: '地球科学', icon: '🌍', link: 'earth.html', color: '#06b6d4', category: 'discovery' },
         { name: '读书观影', icon: '📖', link: 'library.html', color: '#ec4899', category: 'discovery' },
         { name: '知识库', icon: '📂', link: 'wiki.html', color: '#fff', category: 'discovery' },
+        { name: '历史探秘', icon: '🏛️', link: 'history.html', color: '#fbbf24', category: 'discovery' },
         { name: '打字训练', icon: '⌨️', link: 'typing.html', color: '#fff', category: 'labs' },
         { name: '无人机战术中心', icon: '🚁', link: 'drone.html', color: '#06B6D4', category: 'labs' },
         { name: '智核研究院', icon: '🤖', link: 'ai.html', color: '#d946ef', category: 'labs' },

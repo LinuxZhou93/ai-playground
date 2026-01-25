@@ -17,8 +17,9 @@
     <!-- 3D Libraries (Stable CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three-spritetext@1.8.1/dist/three-spritetext.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.1/dist/3d-force-graph.min.js"></script>
-    <!-- Note: 3d-force-graph bundles necessary D3 modules internally -->
+    <!-- Note: 3d-force-graph bundles necessary D3 modules internally, but we load D3 for explicit force definitions -->
 
     <style>
         body {
@@ -212,6 +213,8 @@
                                 class="subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">生物</button>
                             <button onclick="filterSubject('计算机')" data-subject="计算机"
                                 class="subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">计算机</button>
+                            <button onclick="filterSubject('人文社科')" data-subject="人文社科"
+                                class="subject-btn px-3 py-1 rounded-md text-[10px] font-bold text-slate-400 hover:bg-slate-800 transition-all uppercase tracking-wider">人文社科</button>
                         </div>
                     </div>
                 </div>
@@ -268,6 +271,8 @@
                 class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-cyan-600 hover:text-white transition-all">计算机</button>
             <button onclick="filterSubject('科学')" data-subject="科学"
                 class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-purple-600 hover:text-white transition-all">科学</button>
+            <button onclick="filterSubject('人文社科')" data-subject="人文社科"
+                class="subject-btn px-4 py-2 rounded-full text-xs md:text-sm font-bold text-slate-400 hover:bg-indigo-600 hover:text-white transition-all">人文社科</button>
         </div>
 
     </div>
@@ -304,8 +309,14 @@
         let currentStage = 'all';
 
         document.addEventListener('DOMContentLoaded', () => {
-            initGalaxy();
-            updateEntryCount();
+            console.log('DOM Content Loaded. Initializing Galaxy...');
+            try {
+                initGalaxy();
+                updateEntryCount();
+            } catch (err) {
+                console.error('CRITICAL: Galaxy Init Failed:', err);
+                document.getElementById('galaxy-graph').innerHTML = `<div class="flex items-center justify-center h-full text-red-500 font-mono">星系引擎初始化失败: ${err.message}</div>`;
+            }
         });
 
         // Computed Data Getter
@@ -351,42 +362,57 @@
             }
         }
 
-        /* === NEURAL NETWORK TOPOLOGY === */
         function initGalaxy() {
+            console.log('Initializing 3D Force Graph...');
             const elem = document.getElementById('galaxy-graph');
+            if (!elem) {
+                console.error('ERROR: galaxy-graph container not found');
+                return;
+            }
 
             // NEURAL VISUALS: Custom Objects (Sphere + Text)
             Graph = ForceGraph3D()
                 (elem)
-                .backgroundColor('#00000000')
+                .backgroundColor('#050b14') // Dark slate background
                 .showNavInfo(false)
-                .nodeLabel('title') // Hover label (keep as backup)
+                .nodeLabel(node => `<div class="p-2 bg-slate-900/80 border border-slate-700 rounded text-cyan-400 font-bold">${node.title}</div>`)
                 .nodeThreeObject(node => {
                     const group = new THREE.Group();
 
-                    // 1. The Neuron (Sphere)
+                    // 1. The Neuron (Sphere/Core)
                     const color = getCategoryColor(node.group);
-                    const geometry = new THREE.SphereGeometry(node.val || 1.5, 8, 8); // Low poly for performance
-                    // Use BasicMaterial for "Self-Illuminated" Neon look (Brighter)
+                    const geometry = new THREE.SphereGeometry(node.val || 1.5, 8, 8);
                     const material = new THREE.MeshBasicMaterial({
                         color: color,
                         transparent: true,
-                        opacity: 1.0 // Fully visible
+                        opacity: node.isHub ? 1.0 : 0.8
                     });
                     const sphere = new THREE.Mesh(geometry, material);
                     group.add(sphere);
 
-                    // 2. The Label (Text)
+                    // 2. The Atmospheric Glow (Point Glow)
+                    if (node.isHub || node.level <= 2) {
+                        const glowGeometry = new THREE.SphereGeometry((node.val || 1.5) * 2.5, 12, 12);
+                        const glowMaterial = new THREE.MeshBasicMaterial({
+                            color: color,
+                            transparent: true,
+                            opacity: 0.2
+                        });
+                        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                        group.add(glow);
+                    }
+
+                    // 3. The Label (Text)
                     const sprite = new SpriteText(node.title);
-                    sprite.material.depthWrite = false; // Prevent occlusion issues
+                    sprite.material.depthWrite = false;
                     sprite.color = color;
-                    sprite.textHeight = node.isHub ? 4 : 1.5; // Hubs get bigger text
-                    sprite.position.set(0, node.isHub ? 10 : 4, 0); // Position above node
+                    sprite.textHeight = node.isHub ? 6 : 2;
+                    sprite.position.set(0, node.isHub ? 12 : 5, 0);
                     group.add(sprite);
 
                     return group;
                 })
-                .nodeRelSize(node => node.val || 1.5) // Fallback
+                .nodeRelSize(4.0)
                 .linkWidth(0.3)
                 .linkOpacity(0.2) // Subtle connections
                 .onNodeClick((node) => {
@@ -410,9 +436,10 @@
                     }
                 })
                 .onNodeDragEnd(node => {
-                    // Butterfly Effect: Re-heat significantly on drop
-                    Graph.d3AlphaTarget(0.3).d3Restart();
-                    setTimeout(() => Graph.d3AlphaTarget(0.01), 3000); // 3s cool down to ambient
+                    if (Graph && Graph.d3AlphaTarget) {
+                        Graph.d3AlphaTarget(0.3).d3Restart();
+                        setTimeout(() => Graph.d3AlphaTarget(0.01), 3000);
+                    }
                 });
 
             // Init Data
@@ -491,74 +518,81 @@
 
             Graph.graphData({ nodes: [...nodes, ...starNodes], links: links });
 
-            // 4. Neural Physics (Organic)
-            Graph.d3AlphaDecay(0.01)
-                .d3VelocityDecay(0.2)
-                .d3AlphaTarget(0.01);
+            // 4. Neural Physics (Organic) - Use proper 3D Force Graph API
+            Graph.d3AlphaDecay(0.01);
+            Graph.d3VelocityDecay(0.2);
 
             Graph.d3Force('charge', d3.forceManyBody().strength(node => {
-                if (node.isHub) return -200; // Hubs
-                return -20; // Uniform weak repulsion for organic clustering
+                if (node.isHub) return -1000; // Galactic Centers push harder
+                if (node.level === 2) return -300;
+                return -50;
             }));
 
-            // Link Forces (Uniform Web) - Stronger
+            // Link Forces (Clustering based on Category)
             Graph.d3Force('link', d3.forceLink().distance(link => {
-                if (link.type === 'structure') return 50;
-                return 150;
-            }).strength(0.2));
+                if (link.type === 'structure') return 30; // Closer ties for internal structure
+                return 100;
+            }).strength(0.5));
 
-            // Visual Styles (Cyber-Neural Super Brain)
-            Graph.nodeRelSize(node => (node.val || 1.5) * 3.0) // 2x Bigger (was 1.5)
-                .nodeColor(node => {
-                    const color = getCategoryColor(node.group);
+            // Radial Force (Prevent massive drift)
+            Graph.d3Force('radial', d3.forceRadial(300).strength(0.01));
+
+            // Visual Styles (High Contrast Cyber Mode)
+            Graph.nodeRelSize(4.0)
+                .nodeColor(node => getCategoryColor(node.group))
+                .linkWidth(link => link.type === 'structure' ? 3.0 : 1.0)
+                .linkOpacity(link => link.type === 'structure' ? 0.9 : 0.2)
+                .linkColor(link => {
+                    const color = getCategoryColor(link.source.group || link.target.group);
                     return color;
                 })
-                .linkWidth(link => link.type === 'structure' ? 2.0 : 0.8) // High Visibility
-                .linkOpacity(link => link.type === 'structure' ? 0.8 : 0.3) // Strong Connections
-                .linkColor(link => {
-                    // Electric Pulse Links
-                    if (link.type === 'structure') return 'rgba(255,255,255,0.8)'; // Bright White
-                    return null; // Inherit source for synapse
-                });
+                .linkDirectionalParticles(link => link.type === 'structure' ? 4 : 0) // Neural pulse
+                .linkDirectionalParticleSpeed(0.01)
+                .linkDirectionalParticleWidth(2);
 
+            console.log('Galaxy Data Loaded. Refreshing simulation...');
             Graph.d3ReheatSimulation();
-        }
 
+            // Initial Camera Positioning
+            Graph.cameraPosition({ x: 0, y: 0, z: 1200 });
+        }
         function getCategoryColor(cat) {
             // Neon Cyber Palette - Expanded for Lifecycle
             const map = {
-                // STEM (Original)
-                'math': '#00FFFF',      // Cyan
-                'physics': '#FF00FF',   // Neon Magenta
-                'chemistry': '#BF00FF', // Electric Purple
-                'biology': '#00FF00',   // Matrix Green
-                'cs': '#FFFF00',        // Cyber Yellow
-                'science': '#FF3333',   // Laser Red
+                // STEM (Vibrant Primary Nebula)
+                'math': '#00dfff',      // Deep Cyan
+                'physics': '#ff007f',   // Rose Pink
+                'chemistry': '#a000ff', // Vivid Purple
+                'biology': '#00ff66',   // Spring Green
+                'cs': '#ffea00',        // Gold Yellow
+                'science': '#ff4d00',   // Burning Orange
+                'Time': '#ffffff',      // Pure White (Center)
 
-                // Stage 1-3 (Early Childhood)
-                'Sensory': '#F472B6',   // Pink
-                'Motor': '#FB923C',     // Orange
-                'Emotion': '#F87171',   // Red
-                'Play': '#FBBF24',      // Amber
-                'Language': '#60A5FA',  // Blue
-                'Nature': '#34D399',    // Emerald
-                'Literacy': '#818CF8',  // Indigo
-                'Social': '#A78BFA',    // Violet
+                // Stage 1-3 (Warm/Pastel Nursery)
+                'Sensory': '#ff71ce',   // Vaporwave Pink
+                'Motor': '#ffcf00',     // Sunshine
+                'Emotion': '#ff4911',   // Lava
+                'Play': '#01cdfe',      // Cyan Blue
+                'Language': '#05ffa1',  // Seafoam
+                'Nature': '#b967ff',    // Amethyst
+                'Literacy': '#fffb96',  // Lemon
+                'Social': '#7ed957',    // Apple Green
 
-                // Stage 4-8 (Academic)
-                'History': '#B45309',   // Ochre
-                'Tech': '#22D3EE',      // Cyan
-                'Major': '#EC4899',     // Pink
+                // Stage 4-8 (Deep Academic)
+                'History': '#C2410C',   // Deep Rust
+                'Tech': '#06B6D4',      // Aqua
+                'Major': '#D946EF',     // Fuchsia
                 'Research': '#6366F1',  // Indigo
                 'Pro': '#10B981',       // Emerald
+                '人文社科': '#4F46E5',   // Royal Indigo
 
-                // Stage 9-10 (Adult/Decline)
-                'Work': '#3B82F6',      // Blue
-                'Life': '#F43F5E',      // Rose
-                'Wisdom': '#D946EF',    // Fuchsia
-                'Memory': '#94A3B8',    // Slate
-                'Processing': '#64748B',// Slate Dark
-                'Essence': '#F1F5F9'    // White
+                // Stage 9-10 (Ashen Legacy)
+                'Work': '#2563EB',      // Royal Blue
+                'Life': '#BE123C',      // Crimson
+                'Wisdom': '#7C3AED',    // Deep Violet
+                'Memory': '#475569',    // Slate Blue
+                'Processing': '#334155',// Deep Slate
+                'Essence': '#F8FAFC'    // Ice White
             };
             return map[cat] || '#FFFFFF'; // White fallbacks
         }
