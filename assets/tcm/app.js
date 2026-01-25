@@ -140,6 +140,84 @@ function openArticle(id) {
     overlay.style.display = 'flex';
 }
 
+// 搜索功能实现
+function handleSearch(query) {
+    const overlay = document.getElementById('search-overlay');
+    const container = document.getElementById('search-results-container');
+
+    if (!query || query.trim() === '') {
+        overlay.style.display = 'none';
+        return;
+    }
+
+    overlay.style.display = 'flex';
+    const q = query.toLowerCase();
+
+    // 过滤商品
+    const filteredProducts = products.filter(p => p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q));
+    // 过滤文章
+    const filteredArticles = articles.filter(a => a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q));
+
+    let html = '';
+
+    if (filteredProducts.length > 0) {
+        html += `<div class="section-title" style="padding:10px 0;"><span>匹配商品</span></div>`;
+        filteredProducts.forEach(p => {
+            html += `
+                <div onclick="openProduct(${p.id}); closeSearch();" style="display:flex; align-items:center; gap:12px; padding:12px; background:white; border-radius:8px; margin-bottom:10px; box-shadow:var(--shadow);">
+                    <img src="${p.img}" style="width:50px; height:50px; border-radius:4px; object-fit:cover;">
+                    <div style="flex:1;">
+                        <div style="font-size:13px; font-weight:600;">${p.name}</div>
+                        <div style="font-size:11px; color:#8C1C13; font-weight:700;">¥ ${p.price}</div>
+                    </div>
+                </div>`;
+        });
+    }
+
+    if (filteredArticles.length > 0) {
+        html += `<div class="section-title" style="padding:10px 0; margin-top:10px;"><span>健康百科</span></div>`;
+        filteredArticles.forEach(a => {
+            html += `
+                <div onclick="openArticle(${a.id}); closeSearch();" style="display:flex; align-items:center; gap:12px; padding:12px; background:white; border-radius:8px; margin-bottom:10px; box-shadow:var(--shadow);">
+                    <img src="${a.cover}" style="width:50px; height:50px; border-radius:4px; object-fit:cover;">
+                    <div style="flex:1;">
+                        <div style="font-size:13px; font-weight:600;">${a.title}</div>
+                        <div style="font-size:11px; color:#999;">阅读全文 ></div>
+                    </div>
+                </div>`;
+        });
+    }
+
+    if (filteredProducts.length === 0 && filteredArticles.length === 0) {
+        html = `<div style="text-align:center; padding:50px 0; color:#999;">未找到与 "${query}" 相关的结果</div>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function closeSearch() {
+    document.getElementById('search-overlay').style.display = 'none';
+    document.getElementById('main-search-input').value = '';
+}
+
+// 个人中心模块展示
+function showModuleDetail(title) {
+    const overlay = document.getElementById('module-detail');
+    document.getElementById('module-detail-title').innerText = title;
+    document.getElementById('module-detail-msg').innerText = `${title} - 即将上线`;
+
+    // 根据标题动态更换图标（可选）
+    const icon = overlay.querySelector('#module-detail-icon');
+    if (title.includes('地址')) icon.className = 'fas fa-map-marked-alt';
+    else if (title.includes('收藏')) icon.className = 'fas fa-heart';
+    else if (title.includes('档案')) icon.className = 'fas fa-id-card-alt';
+    else if (title.includes('历史')) icon.className = 'fas fa-history';
+    else if (title.includes('订单')) icon.className = 'fas fa-receipt';
+    else icon.className = 'fas fa-tools';
+
+    overlay.style.display = 'flex';
+}
+
 function closeOverlay(id) {
     document.getElementById(id).style.display = 'none';
 }
