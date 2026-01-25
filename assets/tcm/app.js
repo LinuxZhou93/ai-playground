@@ -4,7 +4,9 @@ const products = [
     { id: 2, category: "灵芝专区", name: "长白山特级灵芝切片 (礼盒装)", price: "128", desc: "野生抚育 | 煲汤首选 | 滋补养生", img: "assets/tcm/article_reishi.png" },
     { id: 3, category: "养生茶饮", name: "灵芝养生茶饮包 (护肝系列)", price: "59", desc: "上班族首选 | 护肝明目 | 独立包装", img: "assets/tcm/tea_icon.png" },
     { id: 4, category: "参茸滋补", name: "手工东阿阿胶糕 (传统工艺)", price: "198", desc: "补气养血 | 滋味醇厚 | 0添加", img: "assets/tcm/ejiao_icon.png" },
-    { id: 5, category: "参茸滋补", name: "美国进口西洋参切片", price: "268", desc: "大比例切片 | 清火生津 | 软枝西洋参", img: "assets/tcm/ginseng_icon.png" }
+    { id: 5, category: "参茸滋补", name: "美国进口西洋参切片", price: "268", desc: "大比例切片 | 清火生津 | 软枝西洋参", img: "assets/tcm/ginseng_icon.png" },
+    { id: 6, category: "药食同源", name: "宁夏特级红枸杞 (500g)", price: "45", desc: "粒大饱满 | 滋补肝肾 | 煲汤泡茶", img: "assets/tcm/article_soup.png" },
+    { id: 7, category: "灵芝专区", name: "御草堂 · 灵芝浓缩胶囊", price: "398", desc: "浓缩精华 | 方便携带 | 深度滋补", img: "assets/tcm/bottle_icon.png" }
 ];
 
 const articles = [
@@ -15,14 +17,7 @@ const articles = [
         cover: "assets/tcm/article_spring.png",
         author: "张景和 老中医",
         avatar: "assets/tcm/doctor_avatar.png",
-        content: `
-            <p>春天是万物复苏的季节，中医认为"春气通肝"，春季阳气升发，肝气也随之旺盛。如果肝气升发太过，容易出现急躁易怒、失眠多梦。</p>
-            <br>
-            <h3>推荐茶饮：灵芝枸杞菊花茶</h3>
-            <p>灵芝入五脏，补气安神；枸杞滋补肝肾；菊花清肝明目。三者搭配，既能护肝又能养眼，非常适合长期面对电脑的上班族。</p>
-            <br>
-            <p style="background: #F9F7F2; border: 1px solid #D4B185; padding: 15px; border-radius: 8px; color: #8C1C13; font-weight: 500;">专家建议：每天下午3点左右饮用效果最佳。</p>
-        `
+        content: "<p>春天是万物复苏的季节，中医认为\"春气通肝\"，春季阳气升发，肝气也随之旺盛。如果肝气升发太过，容易出现急躁易怒、失眠多梦。</p><br><h3>推荐茶饮：灵芝枸杞菊花茶</h3><p>灵芝入五脏，补气安神；枸杞滋补肝肾；菊花清肝明目。三者搭配，既能护肝又能养眼，非常适合长期面对电脑的上班族。</p><br><p style='background: #F9F7F2; border: 1px solid #D4B185; padding: 15px; border-radius: 8px; color: #8C1C13; font-weight: 500;'>专家建议：每天下午3点左右饮用效果最佳。</p>"
     },
     {
         id: 2,
@@ -31,60 +26,55 @@ const articles = [
         cover: "assets/tcm/article_reishi.png",
         author: "精诚中医 张教授",
         avatar: "assets/tcm/doctor_avatar.png",
-        content: `
-            <h3>三步辨别法</h3>
-            <br>
-            <p><b>1. 看颜色：</b>真正的破壁孢子粉呈深褐色，粉质极其细腻。如果颜色发浅（咖啡色），可能是没破壁或掺杂了木粉。</p>
-            <br>
-            <p><b>2. 闻香气：</b>纯正孢子粉带有一种淡淡的菌香味（类似松茸或枯叶香），不应有油哈味或哈喇味。</p>
-            <br>
-            <p><b>3. 试口感：</b>放一小勺在口中，应该瞬间融化，没有明显的沙砾感，且回味微苦而清香。</p>
-        `
+        content: "<h3>三步辨别法</h3><br><p><b>1. 看颜色：</b>真正的破壁孢子粉呈深褐色，粉质极其细腻。如果颜色发浅（咖啡色），可能是没破壁或掺杂了木粉。</p><br><p><b>2. 闻香气：</b>纯正孢子粉带有一种淡淡的菌香味（类似松茸或枯叶香），不应有油哈味或哈喇味。</p><br><p><b>3. 试口感：</b>放一小勺在口中，应该瞬间融化，没有明显的沙砾感，且回味微苦而清香。</p>"
+    },
+    {
+        id: 3,
+        title: "中医针灸：耳朵上的健康密码",
+        summary: "人体缩小在耳朵上？小小耳穴竟能调控全身健康？带你揭秘耳穴压豆的神奇疗效。",
+        cover: "assets/tcm/article_acupuncture.png",
+        author: "李医师",
+        avatar: "assets/tcm/doctor_avatar.png",
+        content: "<h3>耳诊的神奇</h3><p>中医耳诊有着悠久的历史，耳朵就像一个倒置的胎儿，全身脏腑器官在耳廓上都有相应的反应点。</p><br><p>耳穴贴压（耳穴压豆）是通过在耳穴上贴敷王不留行籽等药物，给予适度的按压刺激，从而达到调理脏腑、平衡阴阳的作用。</p>"
     }
 ];
 
 let activeTab = 'home';
+let cartCount = 0;
 
-function switchTab(tabId) {
+window.switchTab = function (tabId) {
     activeTab = tabId;
-
-    // 隐藏所有主页面
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-
     const target = document.getElementById(tabId);
     if (target) {
         target.classList.add('active');
-
         document.querySelectorAll('.tab-item').forEach(item => {
             item.classList.toggle('active', item.getAttribute('onclick').includes(tabId));
         });
     }
-
     if (tabId === 'category') {
         const firstSidebarItem = document.querySelector('.sidebar-item');
-        if (firstSidebarItem) renderCategory(firstSidebarItem.innerText);
+        if (firstSidebarItem) window.renderCategory(firstSidebarItem.innerText);
     } else if (tabId === 'knowledge') {
-        renderArticles();
+        window.renderArticles();
     }
-}
+    console.log('Tab switched to:', tabId);
+};
 
-function renderCategory(catName) {
+window.renderCategory = function (catName) {
     const container = document.querySelector('.main-cate');
     if (!container) return;
-
     document.querySelectorAll('.sidebar-item').forEach(item => {
         item.classList.toggle('active', item.innerText === catName);
     });
-
     const filtered = products.filter(p => p.category === catName);
-    let html = `<div class="cate-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">`;
-
+    let html = `<div class="cate-grid">`;
     if (filtered.length === 0) {
         html = `<div style="text-align: center; padding: 50px 0; color: #999; font-size: 13px; width: 100%;">精品筹备中...</div>`;
     } else {
         filtered.forEach(p => {
             html += `
-                <div class="cate-item" onclick="openProduct(${p.id})">
+                <div class="cate-item" onclick="window.openProduct(${p.id})">
                     <div class="cate-img-box"><img src="${p.img}" loading="lazy"></div>
                     <span style="font-size: 11px; margin-top: 8px; text-align: center;">${p.name.split(' · ').pop()}</span>
                     <span style="color: #8C1C13; font-weight: 700; font-size: 12px; margin-top: 4px;">¥ ${p.price}</span>
@@ -93,14 +83,14 @@ function renderCategory(catName) {
         html += `</div>`;
     }
     container.innerHTML = html;
-}
+};
 
-function renderArticles() {
+window.renderArticles = function () {
     const container = document.getElementById('knowledge');
     let html = `<div class="article-list">`;
     articles.forEach(art => {
         html += `
-            <div class="article-card" onclick="openArticle(${art.id})">
+            <div class="article-card" onclick="window.openArticle(${art.id})">
                 <div class="art-cover" style="background-image: url('${art.cover}')"></div>
                 <div class="art-content">
                     <div class="art-title">${art.title}</div>
@@ -117,9 +107,9 @@ function renderArticles() {
     });
     html += `<div style="text-align: center; font-size: 11px; color: #999; padding: 10px 0;">- 更多专家专栏持续更新中 -</div></div>`;
     container.innerHTML = html;
-}
+};
 
-function openProduct(id) {
+window.openProduct = function (id) {
     const p = products.find(prod => prod.id === id);
     if (!p) return;
     document.getElementById('detail-title').innerText = p.name;
@@ -127,9 +117,9 @@ function openProduct(id) {
     document.getElementById('detail-desc').innerText = p.desc;
     document.getElementById('detail-img-box').style.backgroundImage = `url('${p.img}')`;
     document.getElementById('product-detail').style.display = 'flex';
-}
+};
 
-function openArticle(id) {
+window.openArticle = function (id) {
     const art = articles.find(a => a.id === id);
     if (!art) return;
     const overlay = document.getElementById('article-detail');
@@ -138,33 +128,25 @@ function openArticle(id) {
     overlay.querySelector('.author-avatar').style.backgroundImage = `url('${art.avatar}')`;
     overlay.querySelector('.detail-body').innerHTML = art.content;
     overlay.style.display = 'flex';
-}
+};
 
-// 搜索功能实现
-function handleSearch(query) {
+window.handleSearch = function (query) {
     const overlay = document.getElementById('search-overlay');
     const container = document.getElementById('search-results-container');
-
     if (!query || query.trim() === '') {
         overlay.style.display = 'none';
         return;
     }
-
     overlay.style.display = 'flex';
     const q = query.toLowerCase();
-
-    // 过滤商品
     const filteredProducts = products.filter(p => p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q));
-    // 过滤文章
     const filteredArticles = articles.filter(a => a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q));
-
     let html = '';
-
     if (filteredProducts.length > 0) {
         html += `<div class="section-title" style="padding:10px 0;"><span>匹配商品</span></div>`;
         filteredProducts.forEach(p => {
             html += `
-                <div onclick="openProduct(${p.id}); closeSearch();" style="display:flex; align-items:center; gap:12px; padding:12px; background:white; border-radius:8px; margin-bottom:10px; box-shadow:var(--shadow);">
+                <div onclick="window.openProduct(${p.id}); window.closeSearch();" style="display:flex; align-items:center; gap:12px; padding:12px; background:white; border-radius:8px; margin-bottom:10px; box-shadow:var(--shadow);">
                     <img src="${p.img}" style="width:50px; height:50px; border-radius:4px; object-fit:cover;">
                     <div style="flex:1;">
                         <div style="font-size:13px; font-weight:600;">${p.name}</div>
@@ -173,12 +155,11 @@ function handleSearch(query) {
                 </div>`;
         });
     }
-
     if (filteredArticles.length > 0) {
         html += `<div class="section-title" style="padding:10px 0; margin-top:10px;"><span>健康百科</span></div>`;
         filteredArticles.forEach(a => {
             html += `
-                <div onclick="openArticle(${a.id}); closeSearch();" style="display:flex; align-items:center; gap:12px; padding:12px; background:white; border-radius:8px; margin-bottom:10px; box-shadow:var(--shadow);">
+                <div onclick="window.openArticle(${a.id}); window.closeSearch();" style="display:flex; align-items:center; gap:12px; padding:12px; background:white; border-radius:8px; margin-bottom:10px; box-shadow:var(--shadow);">
                     <img src="${a.cover}" style="width:50px; height:50px; border-radius:4px; object-fit:cover;">
                     <div style="flex:1;">
                         <div style="font-size:13px; font-weight:600;">${a.title}</div>
@@ -187,26 +168,21 @@ function handleSearch(query) {
                 </div>`;
         });
     }
-
     if (filteredProducts.length === 0 && filteredArticles.length === 0) {
         html = `<div style="text-align:center; padding:50px 0; color:#999;">未找到与 "${query}" 相关的结果</div>`;
     }
-
     container.innerHTML = html;
-}
+};
 
-function closeSearch() {
+window.closeSearch = function () {
     document.getElementById('search-overlay').style.display = 'none';
     document.getElementById('main-search-input').value = '';
-}
+};
 
-// 个人中心模块展示
-function showModuleDetail(title) {
+window.showModuleDetail = function (title) {
     const overlay = document.getElementById('module-detail');
     document.getElementById('module-detail-title').innerText = title;
     document.getElementById('module-detail-msg').innerText = `${title} - 即将上线`;
-
-    // 根据标题动态更换图标（可选）
     const icon = overlay.querySelector('#module-detail-icon');
     if (title.includes('地址')) icon.className = 'fas fa-map-marked-alt';
     else if (title.includes('收藏')) icon.className = 'fas fa-heart';
@@ -214,28 +190,40 @@ function showModuleDetail(title) {
     else if (title.includes('历史')) icon.className = 'fas fa-history';
     else if (title.includes('订单')) icon.className = 'fas fa-receipt';
     else icon.className = 'fas fa-tools';
-
     overlay.style.display = 'flex';
-}
+};
 
-function closeOverlay(id) {
+window.closeOverlay = function (id) {
     document.getElementById(id).style.display = 'none';
-}
+};
 
-function addToCart() {
+window.addToCart = function () {
     const btn = document.querySelector('.btn-primary-action');
     const originalText = btn.innerText;
-    btn.innerText = "已成功加入购物车";
+    cartCount++;
+    window.updateCartCount();
+    btn.innerText = "已加入购物车";
     btn.style.background = "#2F5233";
     setTimeout(() => {
         btn.innerText = originalText;
         btn.style.background = "#8C1C13";
     }, 2000);
-}
+};
+
+window.updateCartCount = function () {
+    const badges = document.querySelectorAll('.cart-count');
+    badges.forEach(b => {
+        b.innerText = cartCount;
+        b.style.display = cartCount > 0 ? 'block' : 'none';
+        b.style.transform = 'scale(1.3)';
+        setTimeout(() => b.style.transform = 'scale(1)', 200);
+    });
+};
 
 window.addEventListener('load', () => {
-    switchTab('home');
+    window.switchTab('home');
     document.querySelectorAll('.sidebar-item').forEach(item => {
-        item.addEventListener('click', () => renderCategory(item.innerText));
+        item.addEventListener('click', () => window.renderCategory(item.innerText));
     });
+    console.log('App Initialized');
 });
