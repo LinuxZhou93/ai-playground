@@ -53,16 +53,60 @@ window.switchTab = function (tabId) {
     if (tabId === 'knowledge') renderArticles();
 };
 
+const banners = [
+    { title: "大医精诚", subtitle: "百年传承核心 · 道地药食专供", img: "assets/tcm/jingcheng_hall.png" },
+    { title: "春季护肝", subtitle: "春木生发 · 顺时养生正当时", img: "assets/tcm/article_spring.png" },
+    { title: "邻里健康计划", subtitle: "进社区 · 送康养 · 惠居民", img: "assets/tcm/lingzhi_hero_premium.png" }
+];
+
+let currentBannerIndex = 0;
+
 function renderHomeComponents() {
     const home = document.getElementById('home');
-    home.querySelectorAll('.health-clock, .solar-term-section').forEach(el => el.remove());
+    home.querySelectorAll('.health-clock, .solar-term-section').forEach(el => {
+        if (!el.classList.contains('solar-term-section') || el.style.background.includes('E8F5E9')) {
+            // 仅保留社区横幅，移除旧的时钟和旧的节气
+            if (!el.onclick || !el.onclick.toString().includes('社区药房')) el.remove();
+        }
+    });
+
+    // 渲染 Banner 轮播
+    const track = document.getElementById('banner-track');
+    const dots = document.getElementById('banner-dots');
+
+    if (track && dots) {
+        track.innerHTML = banners.map(b => `
+            <div class="banner-slide" style="background-image: url('${b.img}')">
+                <div class="banner-overlay">
+                    <h2 style="font-size: 22px; font-weight: 800; letter-spacing: 2px;">${b.title}</h2>
+                    <p style="font-size: 11px; opacity: 0.85;">${b.subtitle}</p>
+                </div>
+            </div>
+        `).join('');
+
+        dots.innerHTML = banners.map((_, i) => `<div class="indicator-dot ${i === 0 ? 'active' : ''}"></div>`).join('');
+
+        if (window.bannerTimer) clearInterval(window.bannerTimer);
+        window.bannerTimer = setInterval(() => {
+            currentBannerIndex = (currentBannerIndex + 1) % banners.length;
+            track.style.transform = `translateX(-${currentBannerIndex * 100}%)`;
+            const allDots = dots.querySelectorAll('.indicator-dot');
+            allDots.forEach((d, i) => d.classList.toggle('active', i === currentBannerIndex));
+        }, 4000);
+    }
+
+    // 1. 渲染养生时钟
     const h = new Date().getHours();
     const curr = mockData.meridians.find(m => {
         const [start, end] = m.time.split('-').map(s => parseInt(s));
         return h >= start && h < (end || 24);
     }) || mockData.meridians[0];
     const clockHtml = `<div class="health-clock"><div class="clock-icon-box"><i class="${curr.icon}"></i></div><div class="clock-content"><div style="font-weight:700;font-size:14px;color:var(--primary-color);">子午流注 · ${curr.name}执事</div><div style="font-size:11px;color:#666;margin-top:4px;">时辰建议：${curr.action}</div></div></div>`;
-    home.querySelector('.banner').insertAdjacentHTML('afterend', clockHtml);
+
+    const bannerContainer = document.getElementById('main-banner');
+    if (!home.querySelector('.health-clock')) {
+        bannerContainer.insertAdjacentHTML('afterend', clockHtml);
+    }
 }
 
 function renderCategory(catName) {
@@ -99,6 +143,8 @@ window.showModuleDetail = function (title) {
     document.getElementById('module-detail-title').innerText = title;
     container.innerHTML = '';
     if (title === '智能导诊') renderTriage(container);
+    else if (title === '社区药房' || title === '邻里服务') renderCommunityPortal(container);
+    else if (title === 'AI 舌诊') renderTongueScan(container);
     else if (title === '健康档案' || title === '我的病历') renderHealthRecords(container);
     else if (title === '预约理疗') renderPhysioServices(container);
     else if (title === '关于精诚') renderBrandStory(container);
@@ -107,6 +153,133 @@ window.showModuleDetail = function (title) {
     else container.innerHTML = `<div class="empty-state"><i class="fas fa-tools"></i><p>${title} 建设中</p></div>`;
     overlay.style.display = 'flex';
 };
+
+function renderCommunityPortal(container) {
+    container.style.padding = '0';
+    container.innerHTML = `
+        <div class="community-portal">
+            <div class="delivery-status">
+                <i class="fas fa-truck-moving"></i>
+                <span>您的订单正在飞速配送，预计15分钟内送达</span>
+            </div>
+
+            <div class="community-banner">
+                <div>
+                    <h3 style="font-size:20px;">邻里精诚 · 社区药房</h3>
+                    <p style="font-size:12px; opacity:0.8; margin-top:5px;">您身边的专业本草管家</p>
+                </div>
+                <i class="fas fa-clinic-medical" style="font-size:40px; opacity:0.2;"></i>
+            </div>
+
+            <div class="section-title"><span>附近门店</span></div>
+            <div class="neighbor-card">
+                <div style="width:50px; height:50px; background:var(--primary-color); border-radius:8px; display:flex; justify-content:center; align-items:center; color:white;">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <div class="neighbor-info">
+                    <h4>精诚中医馆 (静安社区旗舰店)</h4>
+                    <p>距离您 450m | 营业中 08:00-21:00</p>
+                    <div style="margin-top:8px;"><span class="tcm-tag tag-gold" style="font-size:9px;">药剂师在岗</span><span class="tcm-tag" style="font-size:9px; background:#E8F5E9; color:#2E7D32;">支持医保</span></div>
+                </div>
+            </div>
+
+            <div class="section-title"><span>社区常备 · 快捷购药</span></div>
+            <div class="quick-buy-grid">
+                <div class="quick-buy-item" onclick="window.addToCart(3)">
+                    <div style="font-size:18px; color:var(--primary-color);"><i class="fas fa-mug-hot"></i></div>
+                    <div><div style="font-size:13px; font-weight:700;">感冒止咳</div><div style="font-size:10px; color:#999;">本草特配</div></div>
+                </div>
+                <div class="quick-buy-item" onclick="window.addToCart(6)">
+                    <div style="font-size:18px; color:var(--primary-color);"><i class="fas fa-leaf"></i></div>
+                    <div><div style="font-size:13px; font-weight:700;">清火解毒</div><div style="font-size:10px; color:#999;">宁夏枸杞</div></div>
+                </div>
+                <div class="quick-buy-item" onclick="window.addToCart(1)">
+                    <div style="font-size:18px; color:var(--primary-color);"><i class="fas fa-shield-alt"></i></div>
+                    <div><div style="font-size:13px; font-weight:700;">提高免疫</div><div style="font-size:10px; color:#999;">孢子粉特刊</div></div>
+                </div>
+                <div class="quick-buy-item" onclick="window.showModuleDetail('客服咨询')">
+                    <div style="font-size:18px; color:#666; text-align:center; width:100%;"><i class="fas fa-ellipsis-h"></i><div style="font-size:12px; margin-top:5px;">更多建议</div></div>
+                </div>
+            </div>
+
+            <div class="action-footer" style="margin-top:40px;">
+                <button class="btn-primary" onclick="window.showModuleDetail('专家问诊')">连线社区全科中医</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderTongueScan(container) {
+    container.style.padding = '0';
+    container.innerHTML = `
+        <div class="tongue-scan-container">
+            <div class="scan-viewfinder">
+                <div class="scan-frame">
+                    <div id="scan-line-active" style="display:none;" class="scan-line"></div>
+                </div>
+                <div style="position:absolute; top:40px; text-align:center; width:100%;">
+                    <h4 style="letter-spacing:2px;">AI 智能辨证扫描</h4>
+                    <p style="font-size:11px; opacity:0.6; margin-top:8px;">请将舌体对准框内，保持光线充沛</p>
+                </div>
+            </div>
+            <div class="scan-tips">
+                <div id="scan-status-text" style="font-size:13px; margin-bottom:15px;">等待拍摄...</div>
+                <div class="scan-btn-capture" onclick="window.startScanningEffect()"></div>
+                <p style="font-size:10px; color:#666; margin-top:10px;">由 精诚中医AI实验室 提供技术支持</p>
+            </div>
+        </div>
+    `;
+}
+
+window.startScanningEffect = function () {
+    const line = document.getElementById('scan-line-active');
+    const status = document.getElementById('scan-status-text');
+    line.style.display = 'block';
+    status.innerText = '正在提取舌苔特征...';
+
+    setTimeout(() => {
+        status.innerText = '比对《大医精诚》古籍数据库...';
+    }, 1500);
+
+    setTimeout(() => {
+        renderTongueResult(document.querySelector('#module-detail .detail-content'));
+    }, 3500);
+};
+
+function renderTongueResult(container) {
+    container.style.padding = '10px 0';
+    container.innerHTML = `
+        <div class="tongue-result-card" style="animation: slideUp 0.5s ease;">
+            <div style="text-align:center; margin-bottom:20px;">
+                <div class="tcm-tag tag-gold">扫描分析报告</div>
+                <h3 style="font-size:20px; color:var(--primary-color); margin-top:10px;">脾胃湿热 · 辨证参考</h3>
+            </div>
+            
+            <div class="result-stat-grid">
+                <div class="stat-box">
+                    <div style="font-size:11px; color:#999;">舌质</div>
+                    <div style="font-weight:700; margin-top:4px; color:#8C1C13;">偏红</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size:11px; color:#999;">舌苔</div>
+                    <div style="font-weight:700; margin-top:4px; color:#8C1C13;">黄腻</div>
+                </div>
+            </div>
+
+            <div style="margin-top:20px;">
+                <div style="font-weight:800; border-left:3px solid var(--primary-color); padding-left:10px; margin-bottom:10px;">症状解读</div>
+                <p style="font-size:13px; color:#666; line-height:1.6;">AI通过色彩识别分析发现，您的舌质偏红、苔色发黄且略显粘腻，这在中医辨证上常表现为“脾胃湿热”。可能伴有口苦、大便黏滞、困倦等感受。</p>
+            </div>
+
+            <div style="margin-top:20px; padding-top:15px; border-top:1px dashed #DDD;">
+                <div style="font-weight:800; color:var(--secondary-color); margin-bottom:10px;">调理方案</div>
+                <p style="font-size:13px; color:#666; line-height:1.6;">宜清热利湿。建议饮食清淡，可适当饮用薏米芡实水，配合灵芝养生茶饮，辅助运化脾胃。</p>
+            </div>
+
+            <button class="btn-primary" style="margin-top:30px;" onclick="window.showModuleDetail('问诊谈话')">咨询张教授获取精准方案</button>
+        </div>
+    `;
+}
 
 function renderTriage(container) {
     container.innerHTML = `<div style="padding:20px;"><div class="symptom-grid">${mockData.symptoms.map(s => `<div class="symptom-item" onclick="window.selectSymptom(this, '${s.dept}')"><i class="${s.icon} symptom-icon"></i><div style="font-size:11px;">${s.name}</div></div>`).join('')}</div><div id="triage-result"></div></div>`;
