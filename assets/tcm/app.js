@@ -3,15 +3,14 @@ const products = [
     {
         id: 1,
         category: "灵芝专区",
-        name: "老板亲选 · 破壁灵芝孢子粉",
-        price: "598",
-        desc: "源头直供 | 破壁率99% | 核心萃取",
-        img: "assets/tcm/lingzhi_banner.png",
+        name: "精诚 · 破壁灵芝孢子粉 (旗舰版)",
+        price: "698",
+        desc: "【金奖产品】非遗传承工艺 | 灵芝三萜 ≥ 10%",
+        img: "assets/tcm/lingzhi_hero_premium.png",
         params: [
-            { label: "规格", value: "1g*30袋/盒" },
-            { label: "产地", value: "吉林长白山" },
-            { label: "保质期", value: "24个月" },
-            { label: "破壁率", value: "99.8%" }
+            { label: "规格", value: "2g*30袋/木盒" },
+            { label: "产地", value: "长白山核心保护区" },
+            { label: "批次", value: "2026 冬季限量" }
         ],
         details: [
             "assets/tcm/lingzhi_detail_1.png",
@@ -20,8 +19,11 @@ const products = [
         ],
         richText: `
             <div style="padding: 10px 0;">
-                <h4 style="color: #8C1C13; border-left: 3px solid #8C1C13; padding-left: 8px; margin-bottom: 10px;">产品优势</h4>
-                <p style="font-size: 13px; color: #666; line-height: 1.8;">采自长白山海拔1000米以上高寒林区，模拟野生环境抚育。采用超低温物理破壁技术，确保灵芝三萜与多糖成分不受损。</p>
+                <h4 style="color: #8C1C13; border-left: 3px solid #8C1C13; padding-left: 8px; margin-bottom: 10px;">大医精诚 · 选材严苛</h4>
+                <p style="font-size: 13px; color: #666; line-height: 1.8;">“精”于心，“诚”于行。精诚系列孢子粉每一粒均经过人工筛选，确保破壁均匀且无焦苦味。吉林长白山特定纬度抚育，活性成分提升超 30%。</p>
+                <div style="text-align: center; margin-top: 15px;">
+                    <img src="assets/tcm/jingcheng_seal.png" style="width: 40px; opacity: 0.6;">
+                </div>
             </div>
         `
     },
