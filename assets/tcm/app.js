@@ -96,11 +96,47 @@ window.showModuleDetail = function (title) {
         renderPhysioServices(container);
     } else if (title === '健康档案') {
         renderHealthRecords(container);
+    } else if (title === '品牌故事' || title === '关于精诚') {
+        renderBrandStory(container);
     } else {
         container.innerHTML = `<div class="empty-state"><i class="fas fa-tools"></i><p>${title} 建设中</p></div>`;
     }
     overlay.style.display = 'flex';
 };
+
+function renderBrandStory(container) {
+    container.innerHTML = `
+        <div class="brand-story-container">
+            <div class="story-hero" style="background-image: url('assets/tcm/jingcheng_hall.png');"></div>
+            
+            <div class="story-section">
+                <h3>从灵芝骨子里走出的医者</h3>
+                <div class="story-content">
+                    精诚中医馆的创始人，是位深耕长白山灵芝抚育数十载的“林中匠人”。他常说：“药材好，医术才能显神威。”
+                    在多年抚育顶级孢子粉的过程中，他目睹了太多因为药材不地道、辨证不准确而延误病情的案例。
+                </div>
+            </div>
+
+            <div class="story-section">
+                <h3>大医精诚 · 馆开百载心</h3>
+                <div class="story-content">
+                    于是，“精诚中医馆”应运而生。在这里，我们坚持“道地药材，古法炮制”。所有的本草均来自创始人自有的灵芝基地及道地产区。
+                    我们不只是在提供医疗方案，更是在延续一种“精于心、诚于行”的草本医疗文化。
+                </div>
+            </div>
+
+            <div class="vision-card">
+                <i class="fas fa-quote-left"></i>
+                <div style="font-size: 16px; font-weight: 800; color: var(--primary-color); margin-bottom: 8px;">我们的信条</div>
+                <div style="font-size: 13px; color: #666;">凡为医者，侠骨柔情；<br>凡为药者，地道精诚。</div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 40px; opacity: 0.3;">
+                <img src="assets/tcm/jingcheng_seal.png" style="width: 50px;">
+            </div>
+        </div>
+    `;
+}
 
 function renderPhysioServices(container) {
     container.innerHTML = `<div class="service-list-grid">`;
