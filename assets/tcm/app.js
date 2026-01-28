@@ -10,18 +10,18 @@ const products = [
     { id: 4, cat: "文创摆件", name: "微缩基地·灵芝景观玻璃盒", price: 298, desc: "纯手工复刻基地微景观 | 桌面治愈系", img: "assets/tcm/article_spring.png", type: "creative" },
     { id: 5, cat: "研学教育", name: "灵芝科教标本礼包", price: 198, desc: "青少年科创套装 | 含灵艺剪纸与生长观察", img: "assets/tcm/article_soup.png", type: "edu" },
     { id: 6, cat: "研学教育", name: "基地实地研习·半日通票", price: 68, desc: "专业导师讲解 | 实验室参观 | 亲手采摘体验", img: "assets/tcm/article_acupuncture.png", type: "tour" },
-    { id: 7, cat: "睡眠康养", name: "酸枣仁百合舒睡茶", price: 79, desc: "汉方古法配比 | 0糖0卡 | 舒缓助眠", img: "assets/tcm/article_soup.png", type: "sleep" },
-    { id: 8, cat: "睡眠康养", name: "薰衣草灵芝助眠香囊", price: 49, desc: "安神定志 | 随身携带 | 纯天然草本", img: "assets/tcm/jingcheng_hall.png", type: "sleep" },
-    { id: 9, cat: "睡眠康养", name: "磁疗护颈决明子枕", price: 199, desc: "人体工学设计 | 决明子填充 | 深度睡眠", img: "assets/tcm/article_reishi.png", type: "sleep" }
+    { id: 7, cat: "睡眠康养", name: "酸枣仁百合舒睡茶", price: 79, desc: "汉方古法配比 | 0糖0卡 | 舒缓助眠", img: "assets/tcm/tea_icon.png", type: "sleep" },
+    { id: 8, cat: "睡眠康养", name: "薰衣草灵芝助眠香囊", price: 49, desc: "安神定志 | 随身携带 | 纯天然草本", img: "assets/tcm/tcm_herbs_art_v2_1768660271435.png", type: "sleep" },
+    { id: 9, cat: "睡眠康养", name: "磁疗护颈决明子枕", price: 199, desc: "人体工学设计 | 决明子填充 | 深度睡眠", img: "assets/tcm/article_spring.png", type: "sleep" }
 ];
 
 const researchItems = [
-    { id: 1, title: "新型低温破壁技术通过国家专利认证", summary: "精诚实验室历时三年研发，实现了全活性成分保留...", cover: "assets/tcm/article_reishi.png", tag: "研发前沿" },
-    { id: 2, title: "5G+物联网在灵芝种植基地的深度应用", summary: "每一株灵芝都有一个实时监控系统，精准控制温湿光...", cover: "assets/tcm/article_spring.png", tag: "智慧农业" }
+    { id: 1, title: "新型低温破壁技术通过国家专利认证", summary: "精诚实验室历时三年研发，实现了全活性成分保留...", cover: "assets/tcm/lingzhi_detail_1.png", tag: "研发前沿" },
+    { id: 2, title: "5G+物联网在灵芝种植基地的深度应用", summary: "每一株灵芝都有一个实时监控系统，精准控制温湿光...", cover: "assets/tcm/lingzhi_detail_2.png", tag: "智慧农业" }
 ];
 
 const studyTours = [
-    { id: 101, name: "周末亲子·小小科创家营", date: "本周六/日", seats: "余5位", price: 299, img: "assets/tcm/article_spring.png" },
+    { id: 101, name: "周末亲子·小小科创家营", date: "本周六/日", seats: "余5位", price: 299, img: "assets/tcm/lingzhi_banner.png" },
     { id: 102, name: "行业研讨：深加工产业闭门会", date: "2026-03-15", seats: "余20位", price: 0, img: "assets/tcm/jingcheng_hall.png" }
 ];
 
@@ -173,42 +173,68 @@ window.showModuleDetail = function (title) {
     } else if (title === '睡眠康养') {
         content.innerHTML = `
             <div style="padding:20px;">
-                <div style="background:linear-gradient(135deg, #1A237E, #4A148C); border-radius:12px; padding:20px; color:white; text-align:center; box-shadow:0 10px 20px rgba(26,35,126,0.3);">
-                    <i class="fas fa-moon" style="font-size:32px; color:#FFD54F; margin-bottom:10px;"></i>
-                    <h3 style="margin-bottom:5px;">中医情志助眠检测</h3>
-                    <p style="font-size:12px; opacity:0.8;">基于TCM体质辨识 · 定制您的睡眠方案</p>
-                    <button style="margin-top:15px; background:#FFD54F; color:#333; border:none; padding:8px 20px; border-radius:20px; font-weight:700;">开始检测 (约1分钟)</button>
+                <!-- Night Tech Card -->
+                <div style="position:relative; border-radius:16px; overflow:hidden; padding:24px; color:white; box-shadow:0 10px 30px rgba(10,20,50,0.4);">
+                    <!-- Background with Filter -->
+                    <div style="position:absolute; inset:0; background-image:url('assets/tcm/tcm_shanshui_bg_1768660221872.png'); background-size:cover; filter: brightness(0.3) hue-rotate(190deg) saturate(1.5) contrast(1.2);"></div>
+                    <!-- Tech Grid Overlay -->
+                    <div style="position:absolute; inset:0; background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent); background-size:50px 50px;"></div>
+                    
+                    <div style="position:relative; z-index:1; text-align:center;">
+                        <div style="width:60px; height:60px; margin:0 auto 15px; background:rgba(255,255,255,0.1); border-radius:30px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(5px);">
+                            <i class="fas fa-moon" style="font-size:28px; color:#FFD700; text-shadow:0 0 10px rgba(255, 215, 0, 0.5);"></i>
+                        </div>
+                        <h3 style="margin-bottom:8px; font-size:20px; letter-spacing:1px;">中医情志助眠检测</h3>
+                        <p style="font-size:12px; opacity:0.8; font-family:'Songti SC', serif;">“阳入于阴则寐，阳出于阴则寤”</p>
+                        
+                        <div style="margin-top:20px; display:flex; justify-content:center; gap:15px; font-size:11px; opacity:0.9;">
+                            <div style="background:rgba(0,0,0,0.3); padding:5px 10px; border-radius:12px;"><i class="fas fa-fingerprint"></i> 体质辨识</div>
+                            <div style="background:rgba(0,0,0,0.3); padding:5px 10px; border-radius:12px;"><i class="fas fa-wave-square"></i> 脑波分析</div>
+                        </div>
+
+                        <button style="margin-top:25px; background:linear-gradient(90deg, #FFD700, #FFA000); color:#333; border:none; padding:10px 28px; border-radius:25px; font-weight:700; box-shadow:0 4px 15px rgba(255,160,0,0.4);">开始 AI 问诊</button>
+                    </div>
                 </div>
 
                 <div style="margin-top:25px;">
-                    <h4 style="border-left:4px solid var(--primary-color); padding-left:10px; margin-bottom:15px;">好眠推荐</h4>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h4 style="border-left:4px solid var(--primary-color); padding-left:10px;">好眠甄选</h4>
+                        <span style="font-size:12px; color:#999;">院内制剂标准</span>
+                    </div>
                     <div style="display:flex; overflow-x:auto; gap:12px; padding-bottom:10px;">
                         ${products.filter(p => p.type === 'sleep').map(p => `
-                            <div style="flex-shrink:0; width:120px; background:white; border-radius:8px; padding:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05);" onclick="window.openProduct(${p.id})">
-                                <img src="${p.img}" style="width:100%; height:80px; object-fit:cover; border-radius:6px;">
+                            <div style="flex-shrink:0; width:120px; background:white; border-radius:10px; padding:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); position:relative; overflow:hidden;" onclick="window.openProduct(${p.id})">
+                                <img src="${p.img}" style="width:100%; height:90px; object-fit:contain; border-radius:6px; background:#F8F8F8;">
                                 <div style="font-size:12px; font-weight:700; margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
                                 <div style="color:var(--primary-color); font-weight:600; font-size:12px;">¥ ${p.price}</div>
+                                <div style="position:absolute; top:5px; right:5px; width:6px; height:6px; background:#4CAF50; border-radius:50%;"></div>
                             </div>
                         `).join('')}
                     </div>
                 </div>
 
-                <div style="margin-top:10px;">
-                    <h4 style="border-left:4px solid var(--secondary-color); padding-left:10px; margin-bottom:15px;">助眠白噪音</h4>
-                    <div style="background:white; border-radius:12px; padding:10px;">
-                         <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F5F5F5;">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <div style="width:30px; height:30px; background:#EEE; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-water"></i></div>
-                                <span style="font-size:13px;">长白山泉水流声</span>
+                <div style="margin-top:15px;">
+                    <h4 style="border-left:4px solid var(--secondary-color); padding-left:10px; margin-bottom:15px;">五行音乐疗愈</h4>
+                    <div style="background:white; border-radius:12px; padding:6px 16px; box-shadow:var(--shadow-soft);">
+                         <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #F5F5F5;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div style="width:36px; height:36px; background:#E8F5E9; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#2E7D32;"><i class="fas fa-water"></i></div>
+                                <div>
+                                    <div style="font-size:14px; font-weight:600;">羽音 · 长白流水</div>
+                                    <div style="font-size:10px; color:#999;">清凉降火，入肾经</div>
+                                </div>
                             </div>
-                            <i class="fas fa-play-circle" style="color:var(--primary-color); font-size:20px;"></i>
+                            <i class="fas fa-play-circle" style="color:var(--secondary-color); font-size:24px; cursor:pointer; opacity:0.8;"></i>
                          </div>
-                         <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0;">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <div style="width:30px; height:30px; background:#EEE; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-wind"></i></div>
-                                <span style="font-size:13px;">林海松涛</span>
+                         <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 0;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div style="width:36px; height:36px; background:#E3F2FD; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#1565C0;"><i class="fas fa-wind"></i></div>
+                                <div>
+                                    <div style="font-size:14px; font-weight:600;">角音 · 林海松涛</div>
+                                    <div style="font-size:10px; color:#999;">疏肝理气，入肝经</div>
+                                </div>
                             </div>
-                            <i class="fas fa-play-circle" style="color:var(--primary-color); font-size:20px;"></i>
+                            <i class="fas fa-play-circle" style="color:var(--secondary-color); font-size:24px; cursor:pointer; opacity:0.8;"></i>
                          </div>
                     </div>
                 </div>
@@ -216,21 +242,47 @@ window.showModuleDetail = function (title) {
         `;
     } else if (title === '基地实景') {
         content.innerHTML = `
-             <div style="position:relative; width:100%; height:400px; background:#333;">
-                <img src="assets/tcm/tcm_shanshui_bg_1768660221872.png" style="width:100%; height:100%; object-fit:cover; opacity:0.5;">
-                <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white;">
-                    <i class="fas fa-circle-notch fa-spin" style="font-size:40px; margin-bottom:20px;"></i>
-                    <p>正在连接基地 VR 全景...</p>
-                    <p style="font-size:12px; opacity:0.7; margin-top:5px;">5G 信号接入中</p>
-                </div>
-                 <div style="position:absolute; bottom:20px; left:20px; right:20px; background:rgba(0,0,0,0.5); padding:10px; border-radius:8px;">
-                    <div style="color:white; font-size:12px;">当前视角：1号灵芝大棚中心点</div>
-                    <div style="display:flex; justify-content:center; gap:20px; margin-top:10px; color:white;">
-                        <i class="fas fa-arrow-left"></i>
-                        <span style="font-size:10px;">拖动浏览</span>
-                        <i class="fas fa-arrow-right"></i>
+             <div style="position:relative; width:100%; height:450px; background:#000; overflow:hidden;">
+                <!-- Live Feed BG -->
+                <img src="assets/tcm/tcm_shanshui_bg_1768660221872.png" style="width:100%; height:100%; object-fit:cover; opacity:0.6; filter:grayscale(0.4);">
+                
+                <!-- HUD Overlay -->
+                <div style="position:absolute; inset:0; padding:20px; font-family:'Courier New', monospace; color:rgba(100,255,100,0.9); pointer-events:none;">
+                    <!-- Top Corners -->
+                    <div style="display:flex; justify-content:space-between;">
+                        <div style="border:1px solid rgba(100,255,100,0.5); padding:4px 8px; font-size:10px;">CAM_04 [LIVE]</div>
+                        <div style="border:1px solid rgba(100,255,100,0.5); padding:4px 8px; font-size:10px;">REC ● 00:42:15</div>
+                    </div>
+                    
+                    <!-- Center Crosshair -->
+                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:60px; height:60px; border:1px solid rgba(100,255,100,0.3); border-radius:30px; display:flex; justify-content:center; align-items:center;">
+                        <div style="width:4px; height:4px; background:rgba(100,255,100,0.8); border-radius:2px;"></div>
+                    </div>
+
+                    <!-- Sensor Data Grid -->
+                    <div style="position:absolute; bottom:80px; left:20px; font-size:10px; line-height:1.6; text-shadow:0 0 5px rgba(0,255,0,0.5);">
+                        <div>TEMP: <span style="font-size:14px; font-weight:700;">22.4°C</span></div>
+                        <div>HUMID: <span style="font-size:14px; font-weight:700;">68%</span></div>
+                        <div>CO2: <span style="font-size:14px; font-weight:700;">412 ppm</span></div>
+                    </div>
+
+                     <div style="position:absolute; bottom:80px; right:20px; font-size:10px; line-height:1.6; text-align:right;">
+                        <div>SPORE_DENSITY</div>
+                        <div style="font-size:14px; font-weight:700;">HIGH</div>
+                        <div>GROWTH_RATE: +12%</div>
                     </div>
                 </div>
+
+                <div style="position:absolute; bottom:20px; left:20px; right:20px; background:rgba(0,0,0,0.6); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center; backdrop-filter:blur(4px);">
+                    <div style="color:white; font-size:12px;">当前机位：1号大棚 · 核心育种区</div>
+                    <div style="display:flex; gap:15px; color:white;">
+                        <i class="fas fa-expand" style="cursor:pointer;"></i>
+                        <i class="fas fa-camera" style="cursor:pointer;"></i>
+                    </div>
+                </div>
+                
+                <div style="position:absolute; top:50%; width:100%; text-align:center; color:rgba(100,255,100,0.8); font-size:10px; letter-spacing:2px; animation:blink 2s infinite;">System Calibrated</div>
+                <style>@keyframes blink { 0%,100% {opacity:0.3} 50% {opacity:1} }</style>
              </div>
         `;
     } else {
