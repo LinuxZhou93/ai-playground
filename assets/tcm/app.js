@@ -4,7 +4,7 @@
  */
 
 const products = [
-    { id: 1, cat: "核心产品", name: "精诚极选·破壁灵芝孢子粉", price: 898, desc: "科创基地核心产出 | 破壁率>99.9% | 高倍三萜", img: "assets/tcm/lingzhi_hero_premium.png", type: "base" },
+    { id: 1, cat: "核心产品", name: "臻博园·破壁灵芝孢子粉", price: 898, desc: "科创基地核心产出 | 院内制剂级标准 | 高倍三萜", img: "assets/tcm/lingzhi_hero_premium.png", type: "base" },
     { id: 2, cat: "道地药材", name: "原产地特级灵芝切片", price: 158, desc: "长白山基地直供 | 无硫熏蒸 | 足年份采集", img: "assets/tcm/article_reishi.png", type: "base" },
     { id: 3, cat: "文创摆件", name: "活态灵芝盆景·大医精诚", price: 1280, desc: "基地特培活态灵芝 | 招财纳福 | 艺术观赏", img: "assets/tcm/jingcheng_hall.png", type: "creative" },
     { id: 4, cat: "文创摆件", name: "微缩基地·灵芝景观玻璃盒", price: 298, desc: "纯手工复刻基地微景观 | 桌面治愈系", img: "assets/tcm/article_spring.png", type: "creative" },
