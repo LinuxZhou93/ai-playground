@@ -9,7 +9,10 @@ const products = [
     { id: 3, cat: "文创摆件", name: "活态灵芝盆景·大医精诚", price: 1280, desc: "基地特培活态灵芝 | 招财纳福 | 艺术观赏", img: "assets/tcm/jingcheng_hall.png", type: "creative" },
     { id: 4, cat: "文创摆件", name: "微缩基地·灵芝景观玻璃盒", price: 298, desc: "纯手工复刻基地微景观 | 桌面治愈系", img: "assets/tcm/article_spring.png", type: "creative" },
     { id: 5, cat: "研学教育", name: "灵芝科教标本礼包", price: 198, desc: "青少年科创套装 | 含灵艺剪纸与生长观察", img: "assets/tcm/article_soup.png", type: "edu" },
-    { id: 6, cat: "研学教育", name: "基地实地研习·半日通票", price: 68, desc: "专业导师讲解 | 实验室参观 | 亲手采摘体验", img: "assets/tcm/article_acupuncture.png", type: "tour" }
+    { id: 6, cat: "研学教育", name: "基地实地研习·半日通票", price: 68, desc: "专业导师讲解 | 实验室参观 | 亲手采摘体验", img: "assets/tcm/article_acupuncture.png", type: "tour" },
+    { id: 7, cat: "睡眠康养", name: "酸枣仁百合舒睡茶", price: 79, desc: "汉方古法配比 | 0糖0卡 | 舒缓助眠", img: "assets/tcm/article_soup.png", type: "sleep" },
+    { id: 8, cat: "睡眠康养", name: "薰衣草灵芝助眠香囊", price: 49, desc: "安神定志 | 随身携带 | 纯天然草本", img: "assets/tcm/jingcheng_hall.png", type: "sleep" },
+    { id: 9, cat: "睡眠康养", name: "磁疗护颈决明子枕", price: 199, desc: "人体工学设计 | 决明子填充 | 深度睡眠", img: "assets/tcm/article_reishi.png", type: "sleep" }
 ];
 
 const researchItems = [
@@ -100,7 +103,7 @@ function renderResearch() {
 }
 
 function renderMall(activeCat) {
-    const cats = ["核心产品", "道地药材", "文创摆件", "研学教育"];
+    const cats = ["核心产品", "睡眠康养", "道地药材", "文创摆件", "研学教育"];
     const catPanel = document.getElementById('mall-cats');
     catPanel.innerHTML = cats.map(c => `<div class="tip-badge ${c === activeCat ? 'active' : ''}" onclick="window.renderMall('${c}')" style="background:${c === activeCat ? 'var(--primary-color)' : 'rgba(0,0,0,0.05)'}; color:${c === activeCat ? '#FFF' : '#666'}">${c}</div>`).join('');
 
@@ -127,16 +130,18 @@ window.showModuleDetail = function (title) {
     if (title === '智慧种植') {
         content.innerHTML = `
             <div style="padding:24px; text-align:center;">
-                <div style="width:100%; height:200px; background:#000; border-radius:12px; display:flex; justify-content:center; align-items:center; color:white;">
-                    <i class="fas fa-play-circle" style="font-size:48px;"></i>
-                    <span style="margin-left:10px;">连接基地实时监控...</span>
+                <div style="width:100%; height:200px; background:#000; border-radius:12px; display:flex; justify-content:center; align-items:center; color:white; overflow:hidden; position:relative;">
+                    <img src="assets/tcm/tcm_shanshui_bg_1768660221872.png" style="width:100%; height:100%; object-fit:cover; opacity:0.6;">
+                    <div style="position:absolute; top:10px; right:10px; background:rgba(255,0,0,0.7); font-size:10px; padding:3px 6px; border-radius:4px; color:white;">LIVE</div>
+                    <i class="fas fa-play-circle" style="font-size:48px; position:absolute;"></i>
                 </div>
                 <div style="margin-top:20px; text-align:left;">
                     <h4 style="color:var(--primary-color);">您的云认领灵芝：GC-9908</h4>
-                    <p style="font-size:12px; color:#666; margin-top:8px;">状态：生长期 | 下次浇灌：3小时后</p>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px;">
-                        <button class="btn-primary" style="height:36px; padding:0; font-size:12px;">查看生长延时摄影</button>
-                        <button class="btn-primary" style="height:36px; padding:0; font-size:12px; background:var(--secondary-color);">云端除草/防病</button>
+                    <p style="font-size:12px; color:#666; margin-top:8px;">状态：<span style="color:green;">生长期</span> | 土壤湿度：68% | 光照：适宜</p>
+                    <div style="height:4px; background:#EEE; margin-top:10px; border-radius:2px;"><div style="width:70%; height:4px; background:var(--primary-color); border-radius:2px;"></div></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;">
+                        <button class="btn-primary" style="height:36px; padding:0; font-size:12px;">🎥 生长延时摄影</button>
+                        <button class="btn-primary" style="height:36px; padding:0; font-size:12px; background:var(--secondary-color);">🌧️ 远程喷灌</button>
                     </div>
                 </div>
             </div>
@@ -144,17 +149,90 @@ window.showModuleDetail = function (title) {
     } else if (title === '溯源查询') {
         content.innerHTML = `
             <div style="padding:20px; text-align:center;">
-                <i class="fas fa-qrcode" style="font-size:100px; color:#DDD; margin:40px 0;"></i>
+                <div style="position:relative; width:150px; height:150px; margin:20px auto;">
+                    <i class="fas fa-qrcode" style="font-size:150px; color:#DDD;"></i>
+                    <div style="position:absolute; top:0; left:0; width:100%; height:2px; background:var(--primary-color); box-shadow:0 0 4px var(--primary-color); animation: scan 2s infinite linear;"></div>
+                </div>
+                <style>@keyframes scan { 0% {top:0} 100% {top:100%} }</style>
                 <p style="font-size:14px; color:#666;">扫描产品包装上的溯源二维码</p>
-                <div style="margin-top:30px; padding:16px; background:#F9F7F2; border-radius:12px; text-align:left;">
-                    <div style="font-weight:700; border-bottom:1px solid #EEE; padding-bottom:8px;">模拟数据 (GC-8827)</div>
-                    <div style="font-size:11px; color:#999; margin-top:10px;">产地：长白山东麓海拔800米核心产区</div>
-                    <div style="font-size:11px; color:#999;">种植周期：24个月</div>
-                    <div style="font-size:11px; color:#999;">检测合格：2025-12-20</div>
-                    <div style="font-size:11px; color:#999;">基地签章：精诚质量科创中心 (有效)</div>
+                
+                <div style="margin-top:30px; padding:16px; background:#F9F7F2; border-radius:12px; text-align:left; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <i class="fas fa-check-circle" style="color:green;"></i>
+                        <span style="font-weight:700;">正品认证通过</span>
+                    </div>
+                    <div style="font-size:11px; color:#666; line-height:1.8;">
+                        <div>产品名称：臻博园®破壁灵芝孢子粉</div>
+                        <div>溯源编码：8827-1928-3847</div>
+                        <div>采摘日期：2025-09-15</div>
+                        <div>检测报告：<span style="color:blue; text-decoration:underline;">CTI检测合格.pdf</span></div>
+                    </div>
                 </div>
             </div>
          `;
+    } else if (title === '睡眠康养') {
+        content.innerHTML = `
+            <div style="padding:20px;">
+                <div style="background:linear-gradient(135deg, #1A237E, #4A148C); border-radius:12px; padding:20px; color:white; text-align:center; box-shadow:0 10px 20px rgba(26,35,126,0.3);">
+                    <i class="fas fa-moon" style="font-size:32px; color:#FFD54F; margin-bottom:10px;"></i>
+                    <h3 style="margin-bottom:5px;">中医情志助眠检测</h3>
+                    <p style="font-size:12px; opacity:0.8;">基于TCM体质辨识 · 定制您的睡眠方案</p>
+                    <button style="margin-top:15px; background:#FFD54F; color:#333; border:none; padding:8px 20px; border-radius:20px; font-weight:700;">开始检测 (约1分钟)</button>
+                </div>
+
+                <div style="margin-top:25px;">
+                    <h4 style="border-left:4px solid var(--primary-color); padding-left:10px; margin-bottom:15px;">好眠推荐</h4>
+                    <div style="display:flex; overflow-x:auto; gap:12px; padding-bottom:10px;">
+                        ${products.filter(p => p.type === 'sleep').map(p => `
+                            <div style="flex-shrink:0; width:120px; background:white; border-radius:8px; padding:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05);" onclick="window.openProduct(${p.id})">
+                                <img src="${p.img}" style="width:100%; height:80px; object-fit:cover; border-radius:6px;">
+                                <div style="font-size:12px; font-weight:700; margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
+                                <div style="color:var(--primary-color); font-weight:600; font-size:12px;">¥ ${p.price}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <h4 style="border-left:4px solid var(--secondary-color); padding-left:10px; margin-bottom:15px;">助眠白噪音</h4>
+                    <div style="background:white; border-radius:12px; padding:10px;">
+                         <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F5F5F5;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="width:30px; height:30px; background:#EEE; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-water"></i></div>
+                                <span style="font-size:13px;">长白山泉水流声</span>
+                            </div>
+                            <i class="fas fa-play-circle" style="color:var(--primary-color); font-size:20px;"></i>
+                         </div>
+                         <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="width:30px; height:30px; background:#EEE; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-wind"></i></div>
+                                <span style="font-size:13px;">林海松涛</span>
+                            </div>
+                            <i class="fas fa-play-circle" style="color:var(--primary-color); font-size:20px;"></i>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else if (title === '基地实景') {
+        content.innerHTML = `
+             <div style="position:relative; width:100%; height:400px; background:#333;">
+                <img src="assets/tcm/tcm_shanshui_bg_1768660221872.png" style="width:100%; height:100%; object-fit:cover; opacity:0.5;">
+                <div style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; color:white;">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size:40px; margin-bottom:20px;"></i>
+                    <p>正在连接基地 VR 全景...</p>
+                    <p style="font-size:12px; opacity:0.7; margin-top:5px;">5G 信号接入中</p>
+                </div>
+                 <div style="position:absolute; bottom:20px; left:20px; right:20px; background:rgba(0,0,0,0.5); padding:10px; border-radius:8px;">
+                    <div style="color:white; font-size:12px;">当前视角：1号灵芝大棚中心点</div>
+                    <div style="display:flex; justify-content:center; gap:20px; margin-top:10px; color:white;">
+                        <i class="fas fa-arrow-left"></i>
+                        <span style="font-size:10px;">拖动浏览</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+             </div>
+        `;
     } else {
         content.innerHTML = `<div style="text-align:center; padding-top:100px; color:#999;"><i class="fas fa-tools" style="font-size:40px;"></i><p style="margin-top:15px;">${title} 模块升级中</p></div>`;
     }
@@ -166,22 +244,37 @@ window.openProduct = function (id) {
     const content = document.getElementById('module-detail-content');
     content.innerHTML = `
         <div style="padding:0;">
-            <div style="width:100%; height:300px; background-image:url('${p.img}'); background-size:cover;"></div>
-            <div style="padding:20px;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                    <h3 style="font-size:20px;">${p.name}</h3>
-                    <div style="color:var(--primary-color); font-size:22px; font-weight:800;">¥ ${p.price}</div>
+            <div style="width:100%; height:300px; background-image:url('${p.img}'); background-size:cover; position:relative;">
+                <div style="position:absolute; bottom:0; left:0; width:100%; height:60px; background:linear-gradient(to top, rgba(0,0,0,0.6), transparent);"></div>
+            </div>
+            <div style="padding:24px; position:relative; top:-20px; background:white; border-radius:20px 20px 0 0;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <h3 style="font-size:22px; font-weight:700; width:70%;">${p.name}</h3>
+                    <div style="color:var(--primary-color); font-size:24px; font-weight:800;">¥ ${p.price}</div>
                 </div>
-                <p style="color:#666; font-size:13px; margin:10px 0;">${p.desc}</p>
-                <div style="margin-top:20px; padding-top:20px; border-top:1px solid #EEE;">
-                    <div style="font-weight:700;">基地服务</div>
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <span style="font-size:10px; background:#E8F5E9; color:#2E7D32; padding:4px 8px; border-radius:4px;">全程溯源</span>
-                        <span style="font-size:10px; background:#E8F5E9; color:#2E7D32; padding:4px 8px; border-radius:4px;">产地顺丰直达</span>
-                        <span style="font-size:10px; background:#E8F5E9; color:#2E7D32; padding:4px 8px; border-radius:4px;">研习会员特惠</span>
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                    <span style="font-size:10px; background:#F0F0F0; color:#666; padding:2px 6px; border-radius:4px;">${p.cat}</span>
+                    <span style="font-size:10px; background:#FFF0F0; color:var(--primary-color); padding:2px 6px; border-radius:4px;">自营</span>
+                </div>
+                
+                <div style="margin-top:20px; background:#F9F9F9; padding:15px; border-radius:12px;">
+                    <div style="font-size:13px; font-weight:700; margin-bottom:8px;">商品简介</div>
+                    <p style="color:#666; font-size:13px; line-height:1.6;">${p.desc}。本产品源自精诚科创基地，严格遵循GMP标准生产，全程可溯源。</p>
+                </div>
+
+                <div style="margin-top:20px;">
+                    <div style="font-size:13px; font-weight:700; margin-bottom:10px;">基地服务</div>
+                    <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:5px; font-size:12px; color:#555;"><i class="fas fa-check-circle" style="color:var(--primary-color);"></i> 官方直营</div>
+                        <div style="display:flex; align-items:center; gap:5px; font-size:12px; color:#555;"><i class="fas fa-truck-fast" style="color:var(--primary-color);"></i> 顺丰包邮</div>
+                        <div style="display:flex; align-items:center; gap:5px; font-size:12px; color:#555;"><i class="fas fa-shield-alt" style="color:var(--primary-color);"></i> 正品保险</div>
                     </div>
                 </div>
-                <button class="btn-primary" style="margin-top:40px; width:100%;" onclick="alert('已加入基地购药篮')">立即订购</button>
+
+                <div style="margin-top:30px; display:flex; gap:15px;">
+                    <button style="flex:1; height:44px; border:1px solid #DDD; background:white; border-radius:22px; color:#333; font-weight:600;">加入购物车</button>
+                    <button class="btn-primary" style="flex:1; height:44px; border-radius:22px; box-shadow:0 4px 10px rgba(140,28,19,0.3);" onclick="alert('已成功下单！工作人员将尽快联系您。')">立即购买</button>
+                </div>
             </div>
         </div>
     `;
