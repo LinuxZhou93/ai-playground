@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw AI 智能体引擎 | 未来科技特长生</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        claw: {
+                            purple: '#8b5cf6',
+                            blue: '#00f3ff',
+                            dark: '#030712',
+                            panel: 'rgba(15, 23, 42, 0.7)',
+                            border: 'rgba(139, 92, 246, 0.2)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        display: ['Orbitron', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #030712;
+            color: #e2e8f0;
+            overflow: hidden;
+            /* Hacker grid background */
+            background-image:
+                linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .glass-panel {
+            background: var(--tw-colors-claw-panel);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--tw-colors-claw-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Glitch effect for title */
+        .glitch-title {
+            position: relative;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .glitch-title::before,
+        .glitch-title::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.8;
+        }
+
+        .glitch-title::before {
+            left: 2px;
+            text-shadow: -2px 0 #00f3ff;
+            clip: rect(24px, 550px, 90px, 0);
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        }
+
+        .glitch-title::after {
+            left: -2px;
+            text-shadow: -2px 0 #8b5cf6;
+            clip: rect(85px, 550px, 140px, 0);
+            animation: glitch-anim 2.5s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim {
+            0% {
+                clip: rect(10px, 9999px, 83px, 0);
+            }
+
+            20% {
+                clip: rect(65px, 9999px, 13px, 0);
+            }
+
+            40% {
+                clip: rect(4px, 9999px, 88px, 0);
+            }
+
+            60% {
+                clip: rect(72px, 9999px, 34px, 0);
+            }
+
+            80% {
+                clip: rect(2px, 9999px, 90px, 0);
+            }
+
+            100% {
+                clip: rect(89px, 9999px, 20px, 0);
+            }
+        }
+
+        @keyframes glitch-anim-2 {
+            0% {
+                clip: rect(65px, 9999px, 100px, 0);
+            }
+
+            20% {
+                clip: rect(3px, 9999px, 76px, 0);
+            }
+
+            40% {
+                clip: rect(23px, 9999px, 5px, 0);
+            }
+
+            60% {
+                clip: rect(89px, 9999px, 45px, 0);
+            }
+
+            80% {
+                clip: rect(15px, 9999px, 78px, 0);
+            }
+
+            100% {
+                clip: rect(54px, 9999px, 12px, 0);
+            }
+        }
+
+        /* Sidebar items */
+        .lesson-item {
+            transition: all 0.2s;
+            border-left: 2px solid transparent;
+        }
+
+        .lesson-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            border-left-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .lesson-item.active {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), transparent);
+            border-left-color: #8b5cf6;
+        }
+
+        /* Markdown styling for enterprise feel */
+        .md-content h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00f3ff;
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        .md-content h3 {
+            color: #e2e8f0;
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.5rem;
+            font-weight: 600;
+        }
+
+        .md-content p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+            color: #cbd5e1;
+        }
+
+        .md-content ul {
+            list-style-type: square;
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+            color: #94a3b8;
+        }
+
+        .md-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .md-content pre {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+        }
+
+        .md-content code {
+            font-family: 'JetBrains Mono', monospace;
+            color: #34d399;
+            font-size: 0.875rem;
+        }
+
+        .md-content p code {
+            background: #1e293b;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            color: #fcd34d;
+        }
+
+        .md-content blockquote {
+            border-left: 4px solid #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+            color: #e2e8f0;
+        }
+
+        /* Terminal effect */
+        .terminal-header {
+            background: #0f172a;
+            border-bottom: 1px solid #1e293b;
+            padding: 0.5rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .mac-btn {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 2px;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="text-slate-200">
+    <div id="app" class="h-screen flex flex-col" v-cloak>
+
+        <!-- Top Navigation -->
+        <nav class="h-14 glass-panel border-b-0 flex items-center justify-between px-6 z-50 shrink-0">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-8 h-8 rounded bg-gradient-to-br from-claw-purple to-blue-600 flex items-center justify-center font-bold text-white shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+                    OC
+                </div>
+                <div>
+                    <h1 class="font-display font-bold tracking-widest text-[#00f3ff] text-sm">OPENCLAW <span
+                            class="text-slate-500 text-xs">// ENTERPRISE AGENT DEV</span></h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="hidden md:flex gap-4 font-mono text-[10px] text-slate-400">
+                    <span class="flex items-center gap-1"><span
+                            class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> GATEWAY: ONLINE</span>
+                    <span class="flex items-center gap-1"><span
+                            class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> LLM: GEMINI-1.5-PRO</span>
+                </div>
+                <button onclick="window.location.href='index.html'"
+                    class="font-mono text-xs border border-claw-border px-4 py-1.5 rounded hover:bg-white/5 transition-colors">
+                    SYS.EXIT()
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Layout -->
+        <div class="flex-1 flex overflow-hidden">
+
+            <!-- Sidebar: Curriculum -->
+            <aside class="w-80 glass-panel border-r-0 flex flex-col shrink-0 z-40">
+                <div class="p-5 border-b border-claw-border/50">
+                    <div class="flex justify-between items-end mb-2">
+                        <span class="font-mono text-xs text-slate-400">TRAINING_PROGRESS</span>
+                        <span class="font-display font-bold text-claw-purple">{{ progress }}%</span>
+                    </div>
+                    <div class="h-1 w-full bg-slate-800 rounded overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-claw-purple to-claw-blue transition-all duration-1000"
+                            :style="{ width: progress + '%' }"></div>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                    <div v-for="stage in stages" :key="stage.id">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span
+                                class="font-mono text-[9px] px-1.5 py-0.5 rounded bg-claw-purple/20 text-claw-purple border border-claw-purple/30">STAGE_{{
+                                stage.id }}</span>
+                            <h3 class="font-display text-xs font-bold text-slate-300 tracking-wider">{{ stage.title }}
+                            </h3>
+                        </div>
+                        <div class="space-y-1">
+                            <div v-for="(lesson, index) in getLessons(stage.id)" :key="lesson.id"
+                                @click="currentLesson = lesson"
+                                class="lesson-item p-3 rounded cursor-pointer group flex gap-3"
+                                :class="{ 'active': currentLesson?.id === lesson.id }">
+
+                                <div class="w-6 h-6 rounded flex items-center justify-center font-mono text-[10px] border shrink-0 transition-colors"
+                                    :class="lesson.completed ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-500 group-hover:border-claw-purple/50'">
+                                    {{ lesson.completed ? '✓' : String(lesson.id).padStart(2, '0') }}
+                                </div>
+
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="text-sm font-medium truncate"
+                                        :class="currentLesson?.id === lesson.id ? 'text-white' : 'text-slate-400'">
+                                        {{ lesson.title }}
+                                    </h4>
+                                    <div class="flex gap-2 mt-1">
+                                        <span class="font-mono text-[8px] text-claw-blue uppercase">{{ lesson.type
+                                            }}</span>
+                                        <span class="font-mono text-[8px] text-slate-600">EST: {{ lesson.duration
+                                            }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto bg-[#030712] relative">
+
+                <!-- Empty State -->
+                <div v-if="!currentLesson" class="h-full flex flex-col items-center justify-center text-center p-8">
+                    <div
+                        class="w-24 h-24 rounded-full border border-claw-purple/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(139,92,246,0.2)]">
+                        <span class="text-4xl">🤖</span>
+                    </div>
+                    <h2 class="glitch-title font-display text-3xl font-bold text-white mb-4"
+                        data-text="INITIALIZE AGENT PROTOCOL">INITIALIZE AGENT PROTOCOL</h2>
+                    <p class="text-slate-400 max-w-md font-mono text-sm leading-relaxed">
+                        > SYSTEM STANDBY.<br>
+                        > AWAITING USER INPUT.<br>
+                        > PLEASE SELECT A MODULE FROM THE TERMINAL TO BEGIN CALIBRATION.
+                    </p>
+                </div>
+
+                <!-- Lesson Content -->
+                <div v-else
+                    class="max-w-4xl mx-auto p-10 xl:p-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+                    <!-- Header -->
+                    <div class="mb-10 font-mono">
+                        <div class="flex items-center justify-between mb-4">
+                            <span
+                                class="text-[10px] px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                                MODULE // {{ String(currentLesson.id).padStart(2, '0') }}
+                            </span>
+                            <span class="text-[10px] text-claw-blue">INTEGRITY LOG: VERIFIED</span>
+                        </div>
+                        <h1 class="text-3xl md:text-4xl font-display font-bold text-white mb-4 leading-tight">
+                            {{ currentLesson.title }}
+                        </h1>
+                        <p class="text-slate-400 text-sm border-l-2 border-claw-purple pl-4 py-1">
+                            {{ currentLesson.summary }}
+                        </p>
+                    </div>
+
+                    <!-- Video / Visual Placeholder -->
+                    <div
+                        class="w-full aspect-video bg-[#0f172a] rounded-lg border border-slate-800 mb-12 overflow-hidden relative group">
+                        <!-- Simulated Terminal Background -->
+                        <div class="terminal-header">
+                            <div class="mac-btn bg-red-500"></div>
+                            <div class="mac-btn bg-yellow-500"></div>
+                            <div class="mac-btn bg-green-500"></div>
+                            <span class="ml-2 text-[10px] text-slate-500 font-mono">openclaw@titan-macbook ~</span>
+                        </div>
+                        <div class="p-6 h-full flex flex-col justify-end pb-12 font-mono text-sm">
+                            <p class="text-green-400">> npm run start:agent</p>
+                            <p class="text-slate-300">Starting OpenClaw Gateway...</p>
+                            <p class="text-slate-300">Connecting to LLM Provider (Gemini)... [OK]</p>
+                            <p class="text-blue-400 animate-pulse mt-2">_</p>
+                        </div>
+
+                        <!-- Overlay Play Button -->
+                        <div
+                            class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-pointer">
+                            <div
+                                class="w-16 h-16 rounded-full bg-claw-purple text-white flex items-center justify-center pl-1 shadow-[0_0_20px_#8b5cf6]">
+                                ▶
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Markdown Content -->
+                    <div class="md-content" v-html="parsedContent"></div>
+
+                    <!-- Action Bar -->
+                    <div class="mt-16 pt-8 border-t border-slate-800 flex justify-between items-center">
+                        <button
+                            class="font-mono text-sm px-6 py-3 rounded border border-slate-700 hover:bg-slate-800 text-slate-300 transition-colors">
+                            ← PREV_MODULE
+                        </button>
+
+                        <button @click="toggleComplete"
+                            class="font-display font-bold px-8 py-3 rounded transition-all duration-300 flex items-center gap-2"
+                            :class="currentLesson.completed ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-claw-purple hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]'">
+                            {{ currentLesson.completed ? '✓ SYSTEM_VERIFIED' : 'MARK_AS_COMPILED' }}
+                        </button>
+
+                        <button
+                            class="font-mono text-sm px-6 py-3 rounded border border-slate-700 hover:bg-slate-800 text-slate-300 transition-colors">
+                            NEXT_MODULE →
+                        </button>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                const stages = [
+                    { id: 1, title: 'AWAKENING // 部署与骨架' },
+                    { id: 2, title: 'SYNAPSE // 记忆与决策流' },
+                    { id: 3, title: 'TENTACLES // 逆向网络自动化' },
+                    { id: 4, title: 'DEPLOYMENT // 商业级整合' }
+                ];
+
+                const lessons = ref([
+                    // STAGE 1
+                    {
+                        id: 1, stage: 1, title: 'Chatbot 的进化：真正的 Autonomous Agent', type: 'THEORY', duration: '45m', completed: false,
+                        summary: '从被动问答到主动执行，解析 Agent 架构与 OpenClaw 核心理念。',
+                        content: `## 从 LLM 到 Agent\n\n传统的 ChatGPT 是一个被动的对话系统（Prompt-Response）。而 **Autonomous Agent（自主智能体）** 则拥有目标拆解、工具调用和长效记忆能力。\n\n### OpenClaw 核心架构\nOpenClaw 是一个企业级的开源本地智能体框架。它的核心包含：\n- **大脑 (Brain)**: 负责推理的大语言模型 (如 Google Gemini)。\n- **记忆 (Memory)**: 记录上下文的向量数据库。\n- **工具 (Tools)**: 也就是所谓的 \`Gateway\` 插件，赋予 AI 爬取网页、发送邮件、控制电脑的能力。\n\n> "AI 不再只是回答问题，它是帮你解决问题的数字员工。"`
+                    },
+                    {
+                        id: 2, stage: 1, title: '点燃数字引擎：Node.js 与环境部署', type: 'SETUP', duration: '60m', completed: false,
+                        summary: '在本地安全部署 OpenClaw 环境，配置环境变量。',
+                        content: `## 环境依赖配置\n\n要在本地运行 OpenClaw，你需要配置现代的前置环境：\n\n1. **安装 Node.js (>= 18.x)**\n2. **克隆代码库**\n\n\`\`\`bash\ngit clone https://github.com/openclaw/openclaw.git\ncd openclaw\nnpm install\n\`\`\`\n\n### 环境变量 (.env)\n将 \`.env.example\` 重命名为 \`.env\`，这里是存储系统所有关键密钥的安全地带。**永远不要将 \`.env\` 提交到 GitHub！**`
+                    },
+                    {
+                        id: 3, stage: 1, title: '模型神经网接入：Gemini 1.5 Pro 配置', type: 'API', duration: '30m', completed: false,
+                        summary: '获取并配置 Google Gemini API 密钥，唤醒底座大模型。',
+                        content: `## 获取底层算力\n\nOpenClaw 支持多种 LLM，但在兼顾成本与超长上下文（Context Window）时，**Google Gemini 1.5 Pro/Flash** 是目前的绝佳选择。\n\n### 操作步骤\n1. 访问 Google AI Studio 获取 API Key。\n2. 打开 \`.env\` 文件，填入：\n\n\`\`\`env\nGEMINI_API_KEY=your_api_key_here\nDEFAULT_MODEL=gemini-1.5-pro-latest\n\`\`\`\n\n> **注意**：Gemini 1.5 Flash 速度更快且便宜，适合作为日常数据清洗节点；Pro 适合用于复杂的逻辑推理与代码生成。`
+                    },
+                    {
+                        id: 4, stage: 1, title: 'OpenClaw Gateway 基础联通', type: 'NETWORK', duration: '45m', completed: false,
+                        summary: '启动 Gateway 网关，实现本地服务与 AI 大脑的通信握手。',
+                        content: `## 什么是 Gateway？\n\nGateway (网关) 是 OpenClaw 内部组件与外部世界通信的“交通枢纽”。它通过 HTTP/WebSocket 协议将用户的指令路由给大模型，再将大模型的执行命令路由给本地工具。\n\n### 联调测试\n运行启动命令后，应当看到控制台输出：\n\n\`\`\`bash\n[INFO] OpenClaw Gateway initialized on port 8080\n[INFO] LLM Connection: ESTABLISHED\n\`\`\``
+                    },
+
+                    // STAGE 2
+                    {
+                        id: 5, stage: 2, title: 'STM 与 LTM：构建特工的记忆系统', type: 'LOGIC', duration: '60m', completed: false,
+                        summary: '解析长短期记忆机制，让 AI 摆脱“金鱼脑”。',
+                        content: `## 记忆向量化\n\n没有记忆的 AI 是无法完成长期任务的。OpenClaw 使用向量空间来存储记忆。\n\n- **短期记忆 (STM)**: 当前对话的上下文窗口（受限于模型 Token 限制）。\n- **长期记忆 (LTM)**: 利用 ChromaDB 等向量数据库，将重要信息转化为高维向量。当 AI 需要时，通过余弦相似度进行检索 (RAG 机制)。`
+                    },
+                    {
+                        id: 6, stage: 2, title: '系统级 Prompt 级联与底线约束', type: 'PROMPT', duration: '45m', completed: false,
+                        summary: '编写企业级系统提示词，赋予 Agent 身份并约束行为。',
+                        content: `## 身份定义 (System Prompt)\n\nSystem Prompt 决定了 Agent 的智商下限。企业级的 Prompt 通常包含三个部分：\n\n1. **Role (角色)**：你是高级数据分析师系统...\n2. **Constraints (约束)**：绝对不允许执行删除文件的 Shell 命令...\n3. **Format (格式)**：始终以 JSON 格式返回分析结果...`
+                    },
+                    {
+                        id: 7, stage: 2, title: 'Sandboxed 隔离：安全的代码执行域', type: 'SECURITY', duration: '60m', completed: false,
+                        summary: '防范 AI 越权，将代码执行环境隔离在安全沙盒中。',
+                        content: `## 为什么需要沙盒？\n\n当 Agent 拥有了编写并执行代码的能力（比如 Python 脚本），它就有可能破坏主机的底层文件树。OpenClaw 提供沙盒（Docker/VM 级隔离），确保所有的动态测试都在可控环境中运行。`
+                    },
+                    {
+                        id: 8, stage: 2, title: '多步推理：ReAct 范式解析', type: 'THEORY', duration: '45m', completed: false,
+                        summary: '学习 Reason + Act 模式，让 AI 学会“思考-行动-观察”。',
+                        content: `## ReAct 框架\n\nAgent 在遇到复杂问题时，不能直接给出答案。经典的 ReAct 工作流：\n\n- **Thought**: 先思考我需要什么信息。\n- **Action**: 调用 Google 搜索工具。\n- **Observation**: 观察搜索返回的结果。`
+                    },
+
+                    // STAGE 3
+                    {
+                        id: 9, stage: 3, title: '静态触手：HTTP Web Fetching', type: 'DATA', duration: '45m', completed: false,
+                        summary: '利用基础网络请求抓取静态 Web DOM 数据。',
+                        content: `## Web Fetch 能力\n\n对于大部分静态新闻网站，OpenClaw 可以直接发送 HTTP GET 请求获取 HTML 原代码，随后使用内置的解析器剥离广告和无用标签，提取纯文本供 LLM 阅读。`
+                    },
+                    {
+                        id: 10, stage: 3, title: '动态穿透：无头浏览器 (Chromium CDP)', type: 'AUTOMATION', duration: '60m', completed: false,
+                        summary: '接管基于 JavaScript 渲染的现代前端页面。',
+                        content: `## Chromium 控制协议 (CDP)\n\n面对拉勾网、Twitter 这种重度依赖 JS 异步加载的页面，静态爬虫会失效。OpenClaw 通过 CDP 隐藏式唤起 Chromium 浏览器：\n\n- 自动向下滚动触发懒加载。\n- 精准抓取特定类名的 DOM 节点（如价格、职位描述）。`
+                    },
+                    {
+                        id: 11, stage: 3, title: '突破矩阵：反爬机制与 API 对接', type: 'SECURITY', duration: '45m', completed: false,
+                        summary: '对抗 Cloudflare 五秒盾，接入专业打码平台。',
+                        content: `## 验证码与 IP 封禁\n\n真实的商业数据抓取必遭遇反爬。此时需要教会 Agent 调用外部工具：\n- 接入代理池 (Proxy Pool) 隐藏真实 IP。\n- 接入如 Firecrawl 等高级 API 处理验证码 (CAPTCHA)。`
+                    },
+                    {
+                        id: 12, stage: 3, title: '信息提炼：非结构化数据清洗', type: 'AI', duration: '60m', completed: false,
+                        summary: '让 LLM 充当数据清洗机，将网页脏乱数据转化为标准结构。',
+                        content: `## LLM 降噪\n\n抓取到的网页文本通常包含大量版权声明和导航栏废话。通过设置精确的 JSON 抽取 Prompt，让 Gemini Flash 快速过滤冗余信息，提取关键字段存入数据库。`
+                    },
+
+                    // STAGE 4
+                    {
+                        id: 13, stage: 4, title: 'Discord Bot 集成接入', type: 'COMM', duration: '45m', completed: false,
+                        summary: '将 Agent 部署至 Discord 频道，实现多用户并发服务。',
+                        content: `## 社区数字管理员\n\n在 Discord 开发者后台创建 Bot，将 Token 填入 OpenClaw。Agent 即可监听频道消息、自动识别情绪，甚至自主拉取外部资料在群组中进行总结汇报。`
+                    },
+                    {
+                        id: 14, stage: 4, title: 'WhatsApp 私有网关通信', type: 'COMM', duration: '60m', completed: false,
+                        summary: '通过 WhatsApp 协议实现随时随地与 Agent 的即时通讯。',
+                        content: `## 随身智能体\n\n手机是最佳的终端。通过 Baileys 或官方 API 将 OpenClaw 接通 WhatsApp，你可以通过语音或文字随时让它帮你查股票、写邮件、甚至订机票。`
+                    },
+                    {
+                        id: 15, stage: 4, title: 'Cron 定时任务与无人工干预工作流', type: 'SYSTEM', duration: '45m', completed: false,
+                        summary: '设置 Cron Job，将 Agent 打造为 24/7 不知疲倦的员工。',
+                        content: `## 自动化引擎\n\nAgent 的终极形态是不需要人主动提问。在系统中配置 \`Cron\`（如每天早晨 8 点），Agent 自动启动爬虫收集行业新闻、撰写摘要，并通过 WhatsApp 推送到你的手机。`
+                    },
+                    {
+                        id: 16, stage: 4, title: 'Capstone：全自动行业情报分析总署', type: 'PROJECT', duration: '120m', completed: false,
+                        summary: '终极期末大考组合前面所有知识，完成企业级商业项目落地。',
+                        content: `## 终极试炼项目要求\n\n开发一个完整架构，需满足以下条件：\n1. 每天定时抓取 3 个指定竞争对手的官网动态与社交媒体。\n2. 使用 LLM 自动去重、翻译并识别出带“攻击性”或“新品”关键词的动态。\n3. 生成一份 Markdown 简报。\n4. 自动推送到 Discord 指定私密频道。`
+                    }
+                ]);
+
+                const currentLesson = ref(null);
+
+                const progress = computed(() => {
+                    const completed = lessons.value.filter(l => l.completed).length;
+                    return Math.round((completed / lessons.value.length) * 100);
+                });
+
+                const parsedContent = computed(() => {
+                    return currentLesson.value ? marked.parse(currentLesson.value.content) : '';
+                });
+
+                const getLessons = (stageId) => {
+                    return lessons.value.filter(l => l.stage === stageId);
+                };
+
+                const toggleComplete = () => {
+                    if (currentLesson.value) {
+                        currentLesson.value.completed = !currentLesson.value.completed;
+                    }
+                };
+
+                return {
+                    stages,
+                    lessons,
+                    currentLesson,
+                    progress,
+                    parsedContent,
+                    getLessons,
+                    toggleComplete
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

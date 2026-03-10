@@ -29,6 +29,8 @@ window.Launchpad = (() => {
         { name: '智电实验室', icon: '🔋', link: 'circuits.html', color: '#00FF9D', category: 'labs' },
         { name: '智造工场', icon: '🖨️', link: '3d-print.html', color: '#FF2D55', category: 'labs' },
         { name: '航天指挥中心', icon: '🛸', link: 'aerospace.html', color: '#6366f1', category: 'labs' },
+        { name: '探空火箭工程', icon: '🚀', link: 'course-rocketry.html', color: '#F97316', category: 'labs' },
+        { name: 'OpenClaw 开发', icon: '🤖', link: 'course-openclaw.html', color: '#8b5cf6', category: 'labs' },
         { name: '万物实验室', icon: '🧪', link: 'labs.html', color: '#00f3ff', category: 'labs' },
         { name: '寰宇观测站', icon: '🌌', link: 'astronomy.html', color: '#bc13fe', category: 'discovery' },
         { name: '生命科学', icon: '🧬', link: 'course-life.html', color: '#d946ef', category: 'discovery' },

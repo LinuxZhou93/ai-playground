@@ -4,6 +4,9 @@
  */
 
 const TITAN_NEWS = [
+    { id: "AI-2026-OC", title: "全球首发：青少年企业级 AI Agent (OpenClaw) 实战训练营重磅上线", category: "AI & 编程", tag: "Agent", date: "2026-03-10", summary: "突破传统编程边界，涵盖环境部署、Gemini 大模型接入、Chromium 无头浏览器抓取与 Gateway 网关调试。全平台免费开放，教你亲手打造真正的“全天候数字助理”！", image: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=800", color: "#8b5cf6" },
+    { id: "SP-2025-RC", title: "《探空火箭工程实践探究课程》官方版今日上线：从 0 到 1 体验真箭发射全流程", category: "探索宇宙", tag: "航天", date: "2026-03-04", summary: "依托电子科技大学学术背景，课程涵盖 OpenRocket 全弹道仿真、飞控 PCB 自主设计、LoRa 无线遥测及固体火箭实测发射全闭环。", image: "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&q=80&w=800", color: "#f59e0b" },
+
     // --- 1. AI & CODING (电光紫) ---
     { id: "AI-001", title: "DeepSeek-V3 圣诞特别版发布：逻辑推理性能再次提升 15%，完全开源", category: "AI & 编程", tag: "AI", date: "2025-12-24", summary: "DeepSeek 团队在平安夜送出大礼，V3 架构经过深度优化，在数学与编程任务中展现出超越人类专家的水平。", image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800", color: "#8b5cf6" },
     { id: "AI-002", title: "OpenAI 'Sora' 2.0 正式公测：支持 5 分钟长视频生成，物理拟真度突破临界点", category: "AI & 编程", tag: "AI", date: "2025-12-22", summary: "最新的视频生成引擎已经解决了物体遮挡和流体动力学模拟的难题，视频与现实几无二致。", image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800", color: "#8b5cf6" },

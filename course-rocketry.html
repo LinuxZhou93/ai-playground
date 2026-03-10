@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>探空火箭工程实践 | 未来科技特长生</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        rocket: {
+                            orange: '#F97316',
+                            blue: '#3B82F6',
+                            deep: '#0F172A',
+                            accent: '#FCD34D'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #020617;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .rocket-grid {
+            background-image: linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .lesson-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+        }
+
+        .lesson-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.2);
+            transform: translateX(4px);
+        }
+
+        .lesson-item.active {
+            background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), rgba(59, 130, 246, 0.05));
+            border-color: rgba(249, 115, 22, 0.3);
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.1);
+        }
+
+        .badge-stage {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .stage-1 {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .stage-2 {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+        }
+
+        .stage-3 {
+            background: rgba(249, 115, 22, 0.2);
+            color: #fb923c;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        .type-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #f97316;
+            border-left: 4px solid #f97316;
+            padding-left: 1rem;
+        }
+
+        .markdown-content p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+            color: #94a3b8;
+        }
+
+        .markdown-content ul {
+            list-style: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .markdown-content strong {
+            color: #fff;
+        }
+
+        .markdown-content code {
+            font-family: 'JetBrains Mono', monospace;
+            background: #1e293b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fcd34d;
+        }
+    </style>
+</head>
+
+<body class="rocket-grid">
+    <div id="app" class="h-screen flex flex-col" v-cloak>
+        <!-- Top Nav -->
+        <nav class="h-16 glass border-b border-white/5 flex-shrink-0 z-50">
+            <div class="max-w-[1600px] mx-auto h-full px-6 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-10 h-10 bg-rocket-orange rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/20">
+                        🚀
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg tracking-tight">探空火箭工程实践 <span
+                                class="text-xs font-normal text-slate-500 ml-2">v2.5 Spring Term</span></h1>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">Aerospace Research & Engineering
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="hidden md:flex items-center gap-4 text-xs font-medium text-slate-400">
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span>
+                            遥测链路正常</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            加注系统就绪</span>
+                    </div>
+                    <a href="index.html"
+                        class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-all">
+                        ← 返回中心
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Layout -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar: Navigation -->
+            <aside class="w-80 glass border-r border-white/5 flex flex-col overflow-hidden">
+                <div class="p-6 border-b border-white/5">
+                    <div class="flex justify-between items-end mb-4">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mission
+                            Progress</span>
+                        <span class="text-2xl font-black text-rocket-orange">{{ progressPercentage }}%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-rocket-orange to-rocket-blue transition-all duration-1000"
+                            :style="{ width: progressPercentage + '%' }"></div>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                    <!-- Stages Loop -->
+                    <div v-for="stage in stages" :key="stage.id">
+                        <h3 class="px-2 mb-3 flex items-center gap-2">
+                            <span class="badge-stage" :class="'stage-' + stage.id">Phase {{ stage.id }}</span>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-tighter">{{ stage.name
+                                }}</span>
+                        </h3>
+                        <div class="space-y-1">
+                            <div v-for="lesson in getLessonsByStage(stage.id)" :key="lesson.id"
+                                @click="selectLesson(lesson)" class="lesson-item p-3 rounded-xl cursor-pointer group"
+                                :class="{ 'active': currentLesson?.id === lesson.id }">
+                                <div class="flex gap-3">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-colors"
+                                        :class="lesson.completed ? 'bg-green-500/20 text-green-400' : 'bg-slate-800 text-slate-500 group-hover:text-white'">
+                                        {{ lesson.completed ? '✓' : '0' + (lessons.indexOf(lesson) + 1) }}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-bold text-xs truncate mb-1"
+                                            :class="currentLesson?.id === lesson.id ? 'text-white' : 'text-slate-400'">
+                                            {{ lesson.title }}
+                                        </h4>
+                                        <p class="text-[9px] text-slate-600 uppercase tracking-widest font-mono">
+                                            {{ lesson.type }} // {{ lesson.duration || '2 HRS' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="flex-1 overflow-y-auto relative">
+                <div class="max-w-4xl mx-auto p-12">
+                    <div v-if="!currentLesson" class="h-[60vh] flex flex-col items-center justify-center text-center">
+                        <div
+                            class="w-32 h-32 bg-rocket-orange/10 rounded-full flex items-center justify-center mb-8 animate-pulse">
+                            <span class="text-6xl">🚀</span>
+                        </div>
+                        <h2 class="text-4xl font-black mb-4">准备点火</h2>
+                        <p class="text-slate-500 max-w-sm mx-auto">请从左侧任务列表选择一个课时开始您的航天研学之旅。我们将涵盖从物理建模到实装发射的全流程逻辑。</p>
+                    </div>
+
+                    <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <!-- Header -->
+                        <div class="mb-12">
+                            <div class="flex items-center gap-4 mb-4">
+                                <span class="badge-stage" :class="'stage-' + currentLesson.stage">{{
+                                    getStageName(currentLesson.stage) }}</span>
+                                <span class="h-px flex-1 bg-white/5"></span>
+                            </div>
+                            <h2 class="text-5xl font-black mb-6 leading-tight">{{ currentLesson.title }}</h2>
+                            <div class="flex flex-wrap gap-4">
+                                <div class="glass px-4 py-2 rounded-xl flex items-center gap-3">
+                                    <div class="type-icon">⏱️</div>
+                                    <div>
+                                        <p class="text-[9px] text-slate-500 uppercase font-bold">Duration</p>
+                                        <p class="text-xs font-bold">{{ currentLesson.duration }}</p>
+                                    </div>
+                                </div>
+                                <div class="glass px-4 py-2 rounded-xl flex items-center gap-3">
+                                    <div class="type-icon">🛠️</div>
+                                    <div>
+                                        <p class="text-[9px] text-slate-500 uppercase font-bold">Category</p>
+                                        <p class="text-xs font-bold capitalize">{{ currentLesson.type }}</p>
+                                    </div>
+                                </div>
+                                <div class="glass px-4 py-2 rounded-xl flex items-center gap-3"
+                                    v-if="currentLesson.completed">
+                                    <div class="type-icon text-green-400">✓</div>
+                                    <div>
+                                        <p class="text-[9px] text-slate-500 uppercase font-bold">Status</p>
+                                        <p class="text-xs font-bold text-green-400">Deployment Success</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Media/Content -->
+                        <div class="space-y-12">
+                            <!-- Placeholder for Video/Assets -->
+                            <div
+                                class="aspect-video glass rounded-[2rem] overflow-hidden group relative border border-white/10 shadow-2xl">
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-br from-rocket-deep to-transparent opacity-60">
+                                </div>
+                                <img v-if="currentLesson.image" :src="currentLesson.image"
+                                    class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700">
+                                <div v-else
+                                    class="w-full h-full flex flex-col items-center justify-center text-slate-700">
+                                    <span
+                                        class="text-8xl mb-4 group-hover:scale-110 transition-transform duration-500">🛰️</span>
+                                    <p class="font-mono text-[10px] tracking-[0.4em] uppercase">Visual asset pending
+                                        upload</p>
+                                </div>
+                                <div class="absolute bottom-10 left-10">
+                                    <button
+                                        class="bg-white text-black px-8 py-3 rounded-full font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-2xl">
+                                        ▶ START SESSION
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Markdown Body -->
+                            <div class="markdown-content border-t border-white/5 pt-12">
+                                <div v-html="parsedContent"></div>
+                            </div>
+
+                            <!-- Footer Actions -->
+                            <div class="flex items-center justify-between pt-12 border-t border-white/5">
+                                <button @click="markCompleted" class="px-10 py-4 rounded-2xl font-black transition-all"
+                                    :class="currentLesson.completed ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-rocket-orange text-white shadow-xl shadow-orange-500/20 hover:-translate-y-1'">
+                                    {{ currentLesson.completed ? '✓ MISSION COMPLETED' : 'COMPLETE SESSION' }}
+                                </button>
+                                <div class="flex gap-4">
+                                    <button
+                                        class="w-12 h-12 rounded-xl glass flex items-center justify-center hover:text-rocket-orange transition-colors">📄</button>
+                                    <button
+                                        class="w-12 h-12 rounded-xl glass flex items-center justify-center hover:text-rocket-orange transition-colors">💬</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </aside>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                const stages = [
+                    { id: 1, name: '原理溯源与数字化建模' },
+                    { id: 2, name: '电子信息实践与硬件研发' },
+                    { id: 3, name: '系统集成与外场发射演练' }
+                ];
+
+                const lessons = ref([
+                    // Stage 1
+                    { id: 101, stage: 1, title: '项目开题与成电科创氛围感悟', type: 'lecture', duration: '2 HRS', completed: false, content: '## 课程内容\n走进电子工业发展史，建立系统工程意识。学习火箭五大子系统：结构、动力、回收、控制、通信。\n\n## 核心任务\n- 建立工程笔记\n- 签署“安全准则”\n\n## 备忘录\n> 严谨是航天人的底色。' },
+                    { id: 102, stage: 1, title: '空气动力学：揭开飞行的奥秘', type: 'physics', duration: '2 HRS', completed: false, content: '## 课程内容\n由航空专家讲解周围空间、空气动力学及火箭基本原理。分析重心（CG）与压心（CP）的动态平衡。\n\n## 公式引入\n根据 **牛顿第三定律** 探讨推力产生。' },
+                    { id: 103, stage: 1, title: '数字化双胞胎：OpenRocket 仿真模拟', type: 'software', duration: '2 HRS', completed: false, content: '## 课程内容\n学习 OpenRocket 软件。输入 3D 打印材料（PETG/ASA）的物理参数，进行全弹道仿真。\n\n## 核心挑战\n预测火箭最大升限（Apogee）并调整尾翼形状以优化稳定性。' },
+                    { id: 104, stage: 1, title: '动力学深潜：固体燃料发动机原理', type: 'physics', duration: '2 HRS', completed: false, content: '## 课程内容\n分析固体发动机推力曲线。理解总冲与平均推力的概念。初探齐奥尔科夫斯基方程。\n\n## 数学应用\n计算不同质量比下的理论高度。' },
+
+                    // Stage 2
+                    { id: 201, stage: 2, title: '火箭的大脑：Arduino MEGA2560 嵌入式开发', type: 'code', duration: '2 HRS', completed: false, content: '## 课程内容\n环境搭建与核心功能实现。学习控制系统的核心逻辑：传感器初始化与循环检测。\n\n## 硬核逻辑\n理解单片机处理 I/O 信号的实时性要求。' },
+                    { id: 202, stage: 2, title: '电路之魂：PCB 设计基础与 EDA 工具', type: 'hardware', duration: '2 HRS', completed: false, content: '## 课程内容\n学习 PCB 制作与设计流程。了解原理图绘制与布局布线原则。\n\n## 实践环节\n在 EasyEDA 中完成一个简易航电背板的布线设计。' },
+                    { id: 203, stage: 2, title: '空间感知：IMU 惯导模块数据融合', type: 'code', duration: '2 HRS', completed: false, content: '## 课程内容\n集成 MPU6050 传感器，学习加速度与角速度的数据读取。理解 I2C 通信协议。\n\n## 即时反馈\n通过 Processing 软件实时展示 3D 姿态模型。' },
+                    { id: 204, stage: 2, title: '高度解算：高精度气压计应用', type: 'code', duration: '2 HRS', completed: false, content: '## 课程内容\n学习 BMP180/280 气压计原理。通过气压变化实时计算海拔高度，加入滤波算法减少噪声。' },
+                    { id: 205, stage: 2, title: '黑匣子系统：SD 卡存储与日志记录', type: 'code', duration: '2 HRS', completed: false, content: '## 课程内容\n学习 SPI 协议。实现多路传感器数据同步存入 SD 卡。理解断电保护逻辑。' },
+                    { id: 206, stage: 2, title: '航电总装：飞控系统焊接与调试', type: 'workshop', duration: '2 HRS', completed: false, content: '## 课程内容\n进行飞控系统的焊接与组装实操。掌握精密焊接技术与元器件布局优化。\n\n## 核心任务\n整机通电测试，确保传感器通信率 100%。' },
+
+                    // Stage 3
+                    { id: 301, stage: 3, title: '3D 成型：火箭本体结构构建', type: 'design', duration: '2 HRS', completed: false, content: '## 课程内容\n使用轻质高强度 3D 打印材料（PETG/ASA）构建火箭本体结构。设计载荷舱（Payload Bay）与蛋舱保护结构。' },
+                    { id: 302, stage: 3, title: '安全降落：开伞控制与回收算法', type: 'code', duration: '2 HRS', completed: false, content: '## 课程内容\n火箭控制系统课程（开伞控制）。编写基于高度差或加速度突变的智能抛伞算法。\n\n## 实操环节\n伞降系统安装与地面弹出测试。' },
+                    { id: 303, stage: 3, title: '无线空地链路：LoRa 遥测通信', type: 'comms', duration: '2 HRS', completed: false, content: '## 课程内容\n学习无线空地通信模块。实现飞行参数远程回传至地面站接收装置。' },
+                    { id: 304, stage: 3, title: '整箭装配与综合调试', type: 'workshop', duration: '2 HRS', completed: false, content: '## 课程内容\n探空火箭全系统装配。进行系统联调、姿态解算测试与地面拉力实验。\n\n## 管理意识\n签署 Pre-flight Checklist（飞行前检查单）。' },
+                    { id: 305, stage: 3, title: '发射日：实地发射与数据采集', type: 'launch', duration: '4 HRS', completed: false, content: '## 核心目标\n实现火箭从点火、升空、抛伞到平稳回收的完整闭环。在专业实践基地采集仿真数据、姿态数据。' },
+                    { id: 306, stage: 3, title: '科研初探：数据回归与展演汇报', type: 'report', duration: '2 HRS', completed: false, content: '## 课程内容\n对仿真数据与实测数据进行对比分析。撰写汇报展演 PPT，总结项目得失。\n\n## 收官环节\n颁发电子科大官方证书。' }
+                ]);
+
+                const currentLesson = ref(null);
+
+                const getLessonsByStage = (stageId) => lessons.value.filter(l => l.stage === stageId);
+                const getStageName = (id) => stages.find(s => s.id === id)?.name;
+
+                const selectLesson = (lesson) => {
+                    currentLesson.value = lesson;
+                };
+
+                const markCompleted = () => {
+                    if (currentLesson.value) {
+                        currentLesson.value.completed = !currentLesson.value.completed;
+                        // Persistence logic would go here
+                    }
+                };
+
+                const progressPercentage = computed(() => {
+                    const done = lessons.value.filter(l => l.completed).length;
+                    return Math.round((done / lessons.value.length) * 100);
+                });
+
+                const parsedContent = computed(() => {
+                    return currentLesson.value ? marked.parse(currentLesson.value.content) : '';
+                });
+
+                return {
+                    stages, lessons, currentLesson,
+                    getLessonsByStage, getStageName, selectLesson, markCompleted, progressPercentage, parsedContent
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
