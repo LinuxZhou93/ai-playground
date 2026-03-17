@@ -2272,14 +2272,28 @@
         }
 
         async function redeem() {
-            const code = document.getElementById('voucher-code').value;
+            const codeInput = document.getElementById('voucher-code');
+            const code = codeInput.value.trim();
             const btn = document.querySelector('.redeem-mini button');
+            
             if (!code) return alert('请输入卡密');
+            if (btn.disabled) return;
+
             btn.innerText = '正在验证...';
+            btn.disabled = true;
+
             try {
-                if (window.SubscriptionManager) await window.SubscriptionManager.redeemVoucher();
-                alert('兑换成功!'); location.reload();
-            } catch (e) { alert(e.message); btn.innerText = '立即激活'; }
+                if (window.SubscriptionManager) {
+                    await window.SubscriptionManager.redeemVoucher();
+                } else {
+                    throw new Error('系统服务未就绪，请刷新页面重试');
+                }
+            } catch (e) {
+                console.error(e);
+                alert(e.message);
+                btn.innerText = '立即激活';
+                btn.disabled = false;
+            }
         }
 
         function handleAuth() {

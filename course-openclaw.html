@@ -1,571 +1,554 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-
+<html lang="zh-CN" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenClaw AI 智能体引擎 | 未来科技特长生</title>
-
-    <!-- Fonts -->
-    <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap"
-        rel="stylesheet">
-
-    <!-- Dependencies -->
+    <title>OpenClaw Comic Hub | 成电小创老师的超级实验室</title>
+    
+    <!-- Marvel/Comic Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&family=Oswald:wght@700&family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        claw: {
-                            purple: '#8b5cf6',
-                            blue: '#00f3ff',
-                            dark: '#030712',
-                            panel: 'rgba(15, 23, 42, 0.7)',
-                            border: 'rgba(139, 92, 246, 0.2)'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                        display: ['Orbitron', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
+        :root {
+            --marvel-red: #ed1d24;
+            --marvel-blue: #007ac1;
+            --marvel-yellow: #fde047;
+            --comic-black: #000000;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background: #030712;
-            color: #e2e8f0;
-            overflow: hidden;
-            /* Hacker grid background */
-            background-image:
-                linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
+            background-color: #fffbeb;
+            font-family: 'Comic Neue', cursive;
+            background-image: radial-gradient(var(--comic-black) 0.8px, transparent 0.8px);
+            background-size: 24px 24px;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
         }
 
-        .glass-panel {
-            background: var(--tw-colors-claw-panel);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--tw-colors-claw-border);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Glitch effect for title */
-        .glitch-title {
+        .comic-panel {
+            background: white;
+            border: 8px solid var(--comic-black);
+            box-shadow: 20px 20px 0px rgba(0,0,0,1);
             position: relative;
-            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
         }
 
-        .glitch-title::before,
-        .glitch-title::after {
-            content: attr(data-text);
+        .halftone {
+            background-image: radial-gradient(var(--comic-black) 1.5px, transparent 1.5px);
+            background-size: 10px 10px;
+            opacity: 0.15;
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0.8;
+            inset: 0;
+            pointer-events: none;
+            z-index: 10;
         }
 
-        .glitch-title::before {
-            left: 2px;
-            text-shadow: -2px 0 #00f3ff;
-            clip: rect(24px, 550px, 90px, 0);
-            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        .impact-font {
+            font-family: 'Bangers', cursive;
+            letter-spacing: 3px;
+            -webkit-text-stroke: 2px black;
+            text-shadow: 6px 6px 0px rgba(0,0,0,0.8);
         }
 
-        .glitch-title::after {
-            left: -2px;
-            text-shadow: -2px 0 #8b5cf6;
-            clip: rect(85px, 550px, 140px, 0);
-            animation: glitch-anim 2.5s infinite linear alternate-reverse;
+        .speech-bubble {
+            background: white;
+            border: 6px solid black;
+            border-radius: 50px;
+            padding: 30px;
+            position: relative;
+            filter: drop-shadow(15px 15px 0px black);
+            line-height: 1.5;
+            z-index: 20;
+        }
+        
+        .speech-bubble.left-tail::after {
+            content: ''; position: absolute; bottom: -40px; left: 60px;
+            border-width: 40px 40px 0; border-style: solid; border-color: black transparent;
+        }
+        
+        .speech-bubble.right-tail::after {
+            content: ''; position: absolute; bottom: -40px; right: 60px;
+            border-width: 40px 0 0 40px; border-style: solid; border-color: black transparent;
         }
 
-        @keyframes glitch-anim {
-            0% {
-                clip: rect(10px, 9999px, 83px, 0);
-            }
-
-            20% {
-                clip: rect(65px, 9999px, 13px, 0);
-            }
-
-            40% {
-                clip: rect(4px, 9999px, 88px, 0);
-            }
-
-            60% {
-                clip: rect(72px, 9999px, 34px, 0);
-            }
-
-            80% {
-                clip: rect(2px, 9999px, 90px, 0);
-            }
-
-            100% {
-                clip: rect(89px, 9999px, 20px, 0);
-            }
-        }
-
-        @keyframes glitch-anim-2 {
-            0% {
-                clip: rect(65px, 9999px, 100px, 0);
-            }
-
-            20% {
-                clip: rect(3px, 9999px, 76px, 0);
-            }
-
-            40% {
-                clip: rect(23px, 9999px, 5px, 0);
-            }
-
-            60% {
-                clip: rect(89px, 9999px, 45px, 0);
-            }
-
-            80% {
-                clip: rect(15px, 9999px, 78px, 0);
-            }
-
-            100% {
-                clip: rect(54px, 9999px, 12px, 0);
-            }
-        }
-
-        /* Sidebar items */
-        .lesson-item {
-            transition: all 0.2s;
-            border-left: 2px solid transparent;
-        }
-
-        .lesson-item:hover {
-            background: rgba(139, 92, 246, 0.1);
-            border-left-color: rgba(139, 92, 246, 0.5);
-        }
-
-        .lesson-item.active {
-            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), transparent);
-            border-left-color: #8b5cf6;
-        }
-
-        /* Markdown styling for enterprise feel */
-        .md-content h2 {
-            font-family: 'Orbitron', sans-serif;
-            color: #00f3ff;
-            font-size: 1.5rem;
-            margin: 2rem 0 1rem;
-            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
-            padding-bottom: 0.5rem;
-        }
-
-        .md-content h3 {
-            color: #e2e8f0;
-            font-size: 1.2rem;
-            margin: 1.5rem 0 0.5rem;
-            font-weight: 600;
-        }
-
-        .md-content p {
-            margin-bottom: 1rem;
-            line-height: 1.7;
-            color: #cbd5e1;
-        }
-
-        .md-content ul {
-            list-style-type: square;
-            padding-left: 1.5rem;
-            margin-bottom: 1rem;
-            color: #94a3b8;
-        }
-
-        .md-content li {
-            margin-bottom: 0.5rem;
-        }
-
-        .md-content pre {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            overflow-x: auto;
-            margin-bottom: 1.5rem;
-        }
-
-        .md-content code {
-            font-family: 'JetBrains Mono', monospace;
-            color: #34d399;
-            font-size: 0.875rem;
-        }
-
-        .md-content p code {
-            background: #1e293b;
-            padding: 0.125rem 0.375rem;
-            border-radius: 0.25rem;
-            color: #fcd34d;
-        }
-
-        .md-content blockquote {
-            border-left: 4px solid #8b5cf6;
-            background: rgba(139, 92, 246, 0.1);
-            padding: 1rem;
-            margin: 1.5rem 0;
-            border-radius: 0 0.5rem 0.5rem 0;
-            color: #e2e8f0;
-        }
-
-        /* Terminal effect */
-        .terminal-header {
-            background: #0f172a;
-            border-bottom: 1px solid #1e293b;
-            padding: 0.5rem 1rem;
+        /* Full Screen Pinned Sections */
+        .pin-section {
+            height: 100vh;
             display: flex;
-            gap: 0.5rem;
             align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
         }
 
-        .mac-btn {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
+        .action-flare {
+            position: absolute;
+            font-family: 'Bangers', cursive;
+            color: var(--marvel-yellow);
+            -webkit-text-stroke: 3px black;
+            font-size: 6rem;
+            pointer-events: none;
+            z-index: 9999;
+            text-shadow: 0 0 20px rgba(255,255,0,0.8);
         }
 
-        ::-webkit-scrollbar {
-            width: 4px;
+        /* 3D Parallax Layers */
+        .layer-bg { position: absolute; width: 120%; height: 120%; object-fit: cover; z-index: 1; filter: brightness(0.6); }
+        .layer-fg { position: absolute; z-index: 3; }
+
+        .tech-box {
+            background: rgba(0,0,0,0.8);
+            border: 4px solid var(--marvel-cyan, #06b6d4);
+            color: #10b981;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 2rem;
+            box-shadow: 10px 10px 0px black;
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 2px;
-        }
-
-        [v-cloak] {
-            display: none;
-        }
     </style>
 </head>
+<body>
 
-<body class="text-slate-200">
-    <div id="app" class="h-screen flex flex-col" v-cloak>
+    <!-- 1. HERO PARALLAX SPLASH -->
+    <section class="pin-section bg-black border-b-[12px] border-black" id="hero-scene">
+        <!-- Background City -->
+        <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_cyber_city_comic_1773747689974.png" class="layer-bg parallax-bg" alt="Cyber City">
+        <div class="halftone mix-blend-overlay opacity-30"></div>
+        
+        <!-- Foreground Characters -->
+        <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_agent_team_portrait_1773747101254.png" class="layer-fg parallax-fg max-w-4xl border-8 border-black shadow-[20px_20px_0px_var(--marvel-yellow)] transform -rotate-2" alt="Hero Team">
 
-        <!-- Top Navigation -->
-        <nav class="h-14 glass-panel border-b-0 flex items-center justify-between px-6 z-50 shrink-0">
-            <div class="flex items-center gap-4">
-                <div
-                    class="w-8 h-8 rounded bg-gradient-to-br from-claw-purple to-blue-600 flex items-center justify-center font-bold text-white shadow-[0_0_15px_rgba(139,92,246,0.5)]">
-                    OC
-                </div>
-                <div>
-                    <h1 class="font-display font-bold tracking-widest text-[#00f3ff] text-sm">OPENCLAW <span
-                            class="text-slate-500 text-xs">// ENTERPRISE AGENT DEV</span></h1>
-                </div>
+        <!-- Title -->
+        <div class="absolute top-10 left-10 z-[5] mix-blend-hard-light max-w-4xl">
+            <h1 class="impact-font text-[12rem] text-white leading-[0.8]">OPENCLAW<br/><span class="text-marvel-red text-[8rem]">MULTIVERSE</span></h1>
+            <div class="bg-marvel-yellow text-black border-4 border-black inline-block px-8 py-2 mt-4 font-bold text-3xl transform skew-x-[-15deg] uppercase tracking-widest">
+                Scroll to dive into the neural net
             </div>
-            <div class="flex items-center gap-6">
-                <div class="hidden md:flex gap-4 font-mono text-[10px] text-slate-400">
-                    <span class="flex items-center gap-1"><span
-                            class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> GATEWAY: ONLINE</span>
-                    <span class="flex items-center gap-1"><span
-                            class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> LLM: GEMINI-1.5-PRO</span>
-                </div>
-                <button onclick="window.location.href='index.html'"
-                    class="font-mono text-xs border border-claw-border px-4 py-1.5 rounded hover:bg-white/5 transition-colors">
-                    SYS.EXIT()
-                </button>
+        </div>
+
+        <!-- Speech Bubble -->
+        <div class="absolute bottom-20 right-20 z-[6] max-w-2xl hidden md:block">
+            <div class="speech-bubble left-tail font-bold text-3xl">
+                "欢迎来到赛博格纪元！我是成电小创老师，准备好见证 Gemini 3.1 是如何重塑世界引擎的了吗？"
             </div>
-        </nav>
+        </div>
+    </section>
 
-        <!-- Main Layout -->
-        <div class="flex-1 flex overflow-hidden">
-
-            <!-- Sidebar: Curriculum -->
-            <aside class="w-80 glass-panel border-r-0 flex flex-col shrink-0 z-40">
-                <div class="p-5 border-b border-claw-border/50">
-                    <div class="flex justify-between items-end mb-2">
-                        <span class="font-mono text-xs text-slate-400">TRAINING_PROGRESS</span>
-                        <span class="font-display font-bold text-claw-purple">{{ progress }}%</span>
-                    </div>
-                    <div class="h-1 w-full bg-slate-800 rounded overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-claw-purple to-claw-blue transition-all duration-1000"
-                            :style="{ width: progress + '%' }"></div>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-4 space-y-6">
-                    <div v-for="stage in stages" :key="stage.id">
-                        <div class="flex items-center gap-2 mb-3">
-                            <span
-                                class="font-mono text-[9px] px-1.5 py-0.5 rounded bg-claw-purple/20 text-claw-purple border border-claw-purple/30">STAGE_{{
-                                stage.id }}</span>
-                            <h3 class="font-display text-xs font-bold text-slate-300 tracking-wider">{{ stage.title }}
-                            </h3>
-                        </div>
-                        <div class="space-y-1">
-                            <div v-for="(lesson, index) in getLessons(stage.id)" :key="lesson.id"
-                                @click="currentLesson = lesson"
-                                class="lesson-item p-3 rounded cursor-pointer group flex gap-3"
-                                :class="{ 'active': currentLesson?.id === lesson.id }">
-
-                                <div class="w-6 h-6 rounded flex items-center justify-center font-mono text-[10px] border shrink-0 transition-colors"
-                                    :class="lesson.completed ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-500 group-hover:border-claw-purple/50'">
-                                    {{ lesson.completed ? '✓' : String(lesson.id).padStart(2, '0') }}
-                                </div>
-
-                                <div class="min-w-0 flex-1">
-                                    <h4 class="text-sm font-medium truncate"
-                                        :class="currentLesson?.id === lesson.id ? 'text-white' : 'text-slate-400'">
-                                        {{ lesson.title }}
-                                    </h4>
-                                    <div class="flex gap-2 mt-1">
-                                        <span class="font-mono text-[8px] text-claw-blue uppercase">{{ lesson.type
-                                            }}</span>
-                                        <span class="font-mono text-[8px] text-slate-600">EST: {{ lesson.duration
-                                            }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto bg-[#030712] relative">
-
-                <!-- Empty State -->
-                <div v-if="!currentLesson" class="h-full flex flex-col items-center justify-center text-center p-8">
-                    <div
-                        class="w-24 h-24 rounded-full border border-claw-purple/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(139,92,246,0.2)]">
-                        <span class="text-4xl">🤖</span>
-                    </div>
-                    <h2 class="glitch-title font-display text-3xl font-bold text-white mb-4"
-                        data-text="INITIALIZE AGENT PROTOCOL">INITIALIZE AGENT PROTOCOL</h2>
-                    <p class="text-slate-400 max-w-md font-mono text-sm leading-relaxed">
-                        > SYSTEM STANDBY.<br>
-                        > AWAITING USER INPUT.<br>
-                        > PLEASE SELECT A MODULE FROM THE TERMINAL TO BEGIN CALIBRATION.
+    <!-- 2. NARRATIVE SPREAD: THE BRAIN -->
+    <section class="max-w-[1400px] mx-auto py-32 px-10 relative">
+        <div class="text-center mb-24">
+            <h2 class="impact-font text-[8rem] text-marvel-blue">CHAPTER 1: THE CORE</h2>
+        </div>
+        
+        <div class="grid lg:grid-cols-12 gap-10">
+            <!-- Left Info Panel -->
+            <div class="lg:col-span-4 space-y-10 story-panel opacity-0 translate-y-20">
+                <div class="comic-panel p-10 bg-marvel-red text-white transform rotate-1">
+                    <h3 class="impact-font text-5xl mb-4">COGNITIVE HORIZON</h3>
+                    <p class="text-2xl font-bold leading-relaxed">
+                        不再是单纯的文本接龙。在中心的那个散发着幽蓝光芒的实体，是 **Gemini 3.1** 驱动的思维反应堆。
                     </p>
                 </div>
-
-                <!-- Lesson Content -->
-                <div v-else
-                    class="max-w-4xl mx-auto p-10 xl:p-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-                    <!-- Header -->
-                    <div class="mb-10 font-mono">
-                        <div class="flex items-center justify-between mb-4">
-                            <span
-                                class="text-[10px] px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700">
-                                MODULE // {{ String(currentLesson.id).padStart(2, '0') }}
-                            </span>
-                            <span class="text-[10px] text-claw-blue">INTEGRITY LOG: VERIFIED</span>
-                        </div>
-                        <h1 class="text-3xl md:text-4xl font-display font-bold text-white mb-4 leading-tight">
-                            {{ currentLesson.title }}
-                        </h1>
-                        <p class="text-slate-400 text-sm border-l-2 border-claw-purple pl-4 py-1">
-                            {{ currentLesson.summary }}
-                        </p>
-                    </div>
-
-                    <!-- Video / Visual Placeholder -->
-                    <div
-                        class="w-full aspect-video bg-[#0f172a] rounded-lg border border-slate-800 mb-12 overflow-hidden relative group">
-                        <!-- Simulated Terminal Background -->
-                        <div class="terminal-header">
-                            <div class="mac-btn bg-red-500"></div>
-                            <div class="mac-btn bg-yellow-500"></div>
-                            <div class="mac-btn bg-green-500"></div>
-                            <span class="ml-2 text-[10px] text-slate-500 font-mono">openclaw@titan-macbook ~</span>
-                        </div>
-                        <div class="p-6 h-full flex flex-col justify-end pb-12 font-mono text-sm">
-                            <p class="text-green-400">> npm run start:agent</p>
-                            <p class="text-slate-300">Starting OpenClaw Gateway...</p>
-                            <p class="text-slate-300">Connecting to LLM Provider (Gemini)... [OK]</p>
-                            <p class="text-blue-400 animate-pulse mt-2">_</p>
-                        </div>
-
-                        <!-- Overlay Play Button -->
-                        <div
-                            class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-pointer">
-                            <div
-                                class="w-16 h-16 rounded-full bg-claw-purple text-white flex items-center justify-center pl-1 shadow-[0_0_20px_#8b5cf6]">
-                                ▶
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Markdown Content -->
-                    <div class="md-content" v-html="parsedContent"></div>
-
-                    <!-- Action Bar -->
-                    <div class="mt-16 pt-8 border-t border-slate-800 flex justify-between items-center">
-                        <button
-                            class="font-mono text-sm px-6 py-3 rounded border border-slate-700 hover:bg-slate-800 text-slate-300 transition-colors">
-                            ← PREV_MODULE
-                        </button>
-
-                        <button @click="toggleComplete"
-                            class="font-display font-bold px-8 py-3 rounded transition-all duration-300 flex items-center gap-2"
-                            :class="currentLesson.completed ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-claw-purple hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]'">
-                            {{ currentLesson.completed ? '✓ SYSTEM_VERIFIED' : 'MARK_AS_COMPILED' }}
-                        </button>
-
-                        <button
-                            class="font-mono text-sm px-6 py-3 rounded border border-slate-700 hover:bg-slate-800 text-slate-300 transition-colors">
-                            NEXT_MODULE →
-                        </button>
-                    </div>
-
+                <!-- Deep Lore Text -->
+                <div class="comic-panel p-10 bg-white transform -rotate-1">
+                    <h4 class="font-bold text-marvel-blue uppercase tracking-wides text-xl border-b-4 border-black pb-2 mb-4">Specs Sheet X-01</h4>
+                    <ul class="space-y-4 font-bold text-lg">
+                        <li class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-marvel-red"></span> Context Window: 1,000,000+ Tokens</li>
+                        <li class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-marvel-blue"></span> Multimodal Ingestion: Audio/Vis/Code</li>
+                        <li class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-marvel-yellow"></span> Reasoning Latency: &lt; 200ms per logic hop</li>
+                    </ul>
+                    <p class="mt-6 text-sm text-gray-500 italic">"它甚至可以一口气读完人类历史上所有关于星际航行的维基百科，然后在 0.5 秒内给出一份殖民火星的代码。"</p>
                 </div>
-            </main>
+            </div>
+
+            <!-- Center Image Panel -->
+            <div class="lg:col-span-8 story-panel opacity-0 translate-x-20">
+                <div class="comic-panel h-full border-[12px]">
+                    <div class="halftone"></div>
+                    <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_ai_brain_comic_splash_1773747670998.png" class="w-full h-full object-cover origin-center hover:scale-110 transition-transform duration-[20s]">
+                    <div class="absolute bottom-10 left-10 tech-box w-2/3 backdrop-blur-md bg-black/80">
+                        > /initiate_cognitive_link<br/>
+                        > [SYS] CONNECTING TO CEREBRO-PROTOTYPE...<br/>
+                        > [SYS] SYNAPSE LOAD: 98.4% (STABLE)<br/>
+                        > [SYS] WARNING: Consciousness level approaching singularity.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. HORIZONTAL SCROLL SCENE: SKILLS MATRIX -->
+    <div class="overflow-hidden bg-white border-y-[15px] border-black">
+        <div id="skills-track" class="flex w-[400vw] h-[100vh]">
+            
+            <!-- Skill 1: Search -->
+            <div class="skill-slide w-[100vw] h-full flex items-center justify-center relative bg-slate-100 p-20">
+                <div class="halftone"></div>
+                <div class="grid grid-cols-2 gap-20 w-full max-w-7xl relative z-10">
+                    <div>
+                        <h2 class="impact-font text-[10rem] text-marvel-blue leading-none -ml-4">01.<br/>SEARCH</h2>
+                        <div class="speech-bubble right-tail my-12 text-2xl max-w-xl">
+                            "我不使用百度。我派出机械触手，直接在暗网与表网的交界处捕获语义数据包！"
+                        </div>
+                        <button onclick="location.href='openclaw-skill-search.html'" class="bg-black text-white px-12 py-6 impact-font text-5xl hover:bg-marvel-blue hover:-translate-y-2 transition-transform shadow-[10px_10px_0px_#007ac1]">
+                            EXTRACT WIKI DATA
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_search_tentacles_3d_1773747210503.png" class="comic-panel w-full rotate-2">
+                        <div class="absolute -bottom-10 -left-10 impact-font text-[8rem] text-marvel-red animate-pulse">SNATCH!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill 2: Code -->
+            <div class="skill-slide w-[100vw] h-full flex items-center justify-center relative bg-pink-100 p-20">
+                <div class="halftone"></div>
+                <div class="grid grid-cols-2 gap-20 w-full max-w-7xl relative z-10">
+                    <div class="relative order-2 md:order-1">
+                        <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_action_panel_code_1773747708429.png" class="comic-panel w-full -rotate-2">
+                        <div class="absolute -top-10 -right-10 impact-font text-[8rem] text-marvel-yellow">CLACK!</div>
+                    </div>
+                    <div class="order-1 md:order-2">
+                        <h2 class="impact-font text-[10rem] text-[#ec4899] leading-none -ml-4">02.<br/>CODE</h2>
+                        <div class="speech-bubble left-tail my-12 text-2xl max-w-xl">
+                            "在 Docker 级别隔离的沙盒里，我的键盘能打出真实的火花！Pytorch, Manim, 给我上！"
+                        </div>
+                        <button onclick="location.href='openclaw-skill-code.html'" class="bg-black text-white px-12 py-6 impact-font text-5xl hover:bg-[#ec4899] hover:-translate-y-2 transition-transform shadow-[10px_10px_0px_white]">
+                            INSPECT SANDBOX
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill 3: memory -->
+            <div class="skill-slide w-[100vw] h-full flex items-center justify-center relative bg-purple-100 p-20">
+                 <div class="halftone"></div>
+                 <div class="grid grid-cols-2 gap-20 w-full max-w-7xl relative z-10">
+                     <div>
+                         <h2 class="impact-font text-[10rem] text-marvel-purple leading-none -ml-4">03.<br/>MEMORY</h2>
+                         <div class="speech-bubble right-tail my-12 text-2xl max-w-xl">
+                             "HNSW 向量拓扑...我把时间折叠在了 ChromaDB 里，1536 个维度，我从未遗忘过任何一行报错！"
+                         </div>
+                         <button onclick="location.href='openclaw-skill-memory.html'" class="bg-black text-white px-12 py-6 impact-font text-5xl hover:bg-marvel-purple hover:-translate-y-2 transition-transform shadow-[10px_10px_0px_#fbbf24]">
+                             ACCESS ARCHIVES
+                         </button>
+                     </div>
+                     <div class="relative">
+                         <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/ai_memory_network_1773405424980.png" class="comic-panel w-full rotate-3">
+                         <div class="absolute -top-10 -right-10 impact-font text-[6rem] text-marvel-cyan">SYNC...</div>
+                     </div>
+                 </div>
+            </div>
+
+            <!-- Skill 4: Swarm -->
+            <div class="skill-slide w-[100vw] h-full flex items-center justify-center relative bg-yellow-100 p-20">
+                 <div class="halftone"></div>
+                 <div class="grid grid-cols-2 gap-20 w-full max-w-7xl relative z-10">
+                    <div class="relative order-2 md:order-1">
+                        <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_swarm_robot_bees_3d_1773747396570.png" class="comic-panel w-full -rotate-1">
+                        <div class="absolute -bottom-10 -left-10 impact-font text-[8rem] text-black">BUZZ!</div>
+                    </div>
+                    <div class="order-1 md:order-2">
+                        <h2 class="impact-font text-[10rem] text-marvel-gold leading-none -ml-4 text-shadow-md">04.<br/>SWARM</h2>
+                        <div class="speech-bubble left-tail my-12 text-2xl max-w-xl">
+                            "Handoff-v2 开启。这不是分治算法，这是神级的共振协调！100 个 Agent 并发执行目标！"
+                        </div>
+                        <button onclick="location.href='openclaw-skill-swarm.html'" class="bg-black text-white px-12 py-6 impact-font text-5xl hover:bg-marvel-gold hover:-translate-y-2 transition-transform shadow-[10px_10px_0px_white]">
+                            ENTER THE HIVE
+                        </button>
+                    </div>
+                 </div>
+            </div>
+
         </div>
     </div>
 
+
+
+    <!-- NEW SECTION: TERMINOLOGY DECODED -->
+    <section class="max-w-[1400px] mx-auto py-32 px-10 relative bg-[#f8fbff] border-b-[15px] border-black">
+        <div class="halftone opacity-10"></div>
+        <div class="text-center mb-20 relative z-10">
+            <h2 class="impact-font text-[8rem] text-marvel-blue leading-none">THE <span class="text-marvel-red">ENCYCLOPEDIA</span></h2>
+            <p class="font-bold text-2xl mt-8 px-10 border-4 border-black inline-block py-4 bg-white transform rotate-1 shadow-[10px_10px_0px_black]">
+                "听我说，菜鸟！要搞懂 OpenClaw，你必须先把这四个核心概念刻进你的海马体里！"
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-16 relative z-10">
+            <!-- 概念 1：大模型 LLM -->
+            <div class="story-panel comic-panel p-8 transform -rotate-1 bg-white hover:-translate-y-4 transition-transform duration-300">
+                <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/ai_brain_comic_style_1773460761403.png" class="w-full h-80 object-cover border-4 border-black mb-6">
+                <h3 class="impact-font text-5xl text-marvel-blue flex items-center gap-4"><span class="bg-marvel-blue text-white px-3 py-1 text-2xl pt-2">01</span> 大模型 (LLM)</h3>
+                <p class="text-xl font-bold mb-6">大语言模型（Large Language Model）是系统的“先知/大脑”。它通过阅读兆亿级的数据，掌握了人类的逻辑规律。它不仅是数据库，更是个能“推理/泛化”的压缩世界模型。</p>
+                <div class="bg-black text-white p-6 font-mono text-sm border-2 border-marvel-blue shadow-inner">
+                    <div class="font-bold mb-4 text-marvel-yellow tracking-wider">// 2024-2025 顶尖参数数据</div>
+                    <ul class="space-y-4">
+                        <li class="flex items-start"><span class="text-marvel-cyan mr-2">></span> <div><b>Gemini 1.5 Pro:</b> 2M Tokens 超长上下文 (相当于瞬间读懂一整部长篇小说 + 全套代码库)。</div></li>
+                        <li class="flex items-start"><span class="text-marvel-cyan mr-2">></span> <div><b>Architecture:</b> 先进 MoE (混合专家机制)，参数量突破前代界限。</div></li>
+                        <li class="flex items-start"><span class="text-marvel-cyan mr-2">></span> <div><b>Bench:</b> MATH 与 HumanEval 跑分碾压经典基线。</div></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 概念 2：Agent 智能体 -->
+            <div class="story-panel comic-panel p-8 transform rotate-1 bg-white hover:-translate-y-4 transition-transform duration-300">
+                <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_concept_agent_1773747990427.png" class="w-full h-80 object-cover border-4 border-black mb-6 object-top grayscale-[20%] hover:grayscale-0 transition-all">
+                <h3 class="impact-font text-5xl text-marvel-red flex items-center gap-4"><span class="bg-marvel-red text-white px-3 py-1 text-2xl pt-2">02</span> 智能体 (Agent)</h3>
+                <p class="text-xl font-bold mb-6">如果大模型是“孤立的大脑”，那 Agent 就是给了它“手臂和时间感”。Agent 具备强目标规划（Planning），并结合记忆机制自主执行工作流，它在“主动奔跑”。</p>
+                <table class="w-full text-left font-bold border-4 border-black bg-slate-50">
+                    <tr class="bg-black text-white border-b-4 border-black"><th class="p-4">传统 Chat AI</th><th class="p-4 border-l-2 border-white/20">Agentic AI</th></tr>
+                    <tr><td class="p-4 border-b-2 border-black/20 text-slate-500 line-through">被动一问一答</td><td class="p-4 border-b-2 border-black/20 border-l-4 border-black text-marvel-red">自我驱使执行 (Do)</td></tr>
+                    <tr><td class="p-4 border-b-2 border-black/20 text-slate-500 line-through">金鱼般的记忆</td><td class="p-4 border-b-2 border-black/20 border-l-4 border-black text-marvel-red">长期/短期精准 Memory 管理</td></tr>
+                    <tr><td class="p-4 text-slate-500 line-through">单步输出瞎编</td><td class="p-4 border-l-4 border-black text-marvel-red">多步任务的 Reflexion 反思修正</td></tr>
+                </table>
+            </div>
+
+            <!-- 概念 3：Skills 技能 -->
+            <div class="story-panel comic-panel p-8 transform -rotate-2 bg-white hover:-translate-y-4 transition-transform duration-300 mt-[-20px]">
+                <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/ai_control_center_1773405440040.png" class="w-full h-80 object-cover border-4 border-black mb-6 object-center">
+                <h3 class="impact-font text-5xl text-marvel-yellow flex items-center gap-4 text-black"><span class="bg-marvel-yellow text-black px-3 py-1 text-2xl pt-2">03</span> 技能 (Skills)</h3>
+                <p class="text-xl font-bold mb-6">Agent 不能靠“念力”去改变物理世界。技能是它的“外部挂载工具箱”。让 Agent 能够确切地调用操作系统底层或外部互联网 API，产生真实的生态干涉。</p>
+                <div class="bg-slate-100 p-6 font-mono text-sm border-4 border-black shadow-[8px_8px_0px_#fde047]">
+                    <div class="font-bold mb-4">// OpenClaw 核心调用清单与状态</div>
+                    <ul class="space-y-4 text-black">
+                        <li class="flex items-center gap-2 border-b-2 border-gray-300 pb-2"><b>> Tool_Search:</b> <span class="bg-green-200 px-2 ml-auto shrink-0">99.9% 成功率引流</span></li>
+                        <li class="flex items-center gap-2 border-b-2 border-gray-300 pb-2"><b>> Sandbox_Env:</b> <span class="bg-yellow-200 px-2 ml-auto shrink-0">完全隔离GVisor运行态</span></li>
+                        <li class="flex items-center gap-2"><b>> Feishu_Driver:</b> <span class="bg-blue-200 px-2 ml-auto shrink-0">I/O 读写授权活跃</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 概念 4：MCP 协议 -->
+            <div class="story-panel comic-panel p-8 transform rotate-2 bg-white hover:-translate-y-4 transition-transform duration-300 mt-[-20px]">
+                <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_concept_mcp_1773748044846.png" class="w-full h-80 object-cover border-4 border-black mb-6">
+                <h3 class="impact-font text-5xl text-purple-600 flex items-center gap-4"><span class="bg-purple-600 text-white px-3 py-1 text-2xl pt-2">04</span> MCP 协议</h3>
+                <p class="text-xl font-bold mb-6">Model Context Protocol (MCP) 是改变游戏规则的开源标准。它充当了通用神经总线，解决了 M 个模型面对 N 种 API 的 “积木灾难”。它在本地以安全代理存在。</p>
+                <div class="bg-[#1e1e1e] text-orange-400 p-4 font-mono text-sm border-4 border-black shadow-[8px_8px_0px_black] overflow-hidden">
+                    <div class="font-bold mb-3 text-white">// JSON-RPC 2.0 PROTOCOL TRACE</div>
+                    {<br/>
+                    &nbsp;&nbsp;<span class="text-blue-300">"method"</span>: <span class="text-green-300">"tools/call"</span>,<br/>
+                    &nbsp;&nbsp;<span class="text-blue-300">"params"</span>: {<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-blue-300">"name"</span>: <span class="text-green-300">"Local_PgSQL_Query"</span>,<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-blue-300">"arguments"</span>: { <span class="text-blue-300">"query"</span>: <span class="text-green-300">"SELECT *..."</span> }<br/>
+                    &nbsp;&nbsp;}<br/>
+                    }<br/>
+                    <div class="mt-2 text-gray-400 text-xs italic"># N x M 的碎片开发噩梦，被简化为了优雅的 N + M 即插即用。</div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- NEW SECTION: THE TOOLBOX -->
+    <section class="max-w-[1400px] mx-auto py-32 px-10 relative bg-white border-b-[15px] border-black">
+        <div class="halftone opacity-20"></div>
+        <div class="text-center mb-20 relative z-10">
+            <h2 class="impact-font text-[8rem] text-black leading-none uppercase">THE <span class="text-marvel-gold text-yellow-500">TOOLBOX</span></h2>
+            <p class="font-bold text-2xl mt-8 px-10 border-4 border-black inline-block py-4 bg-yellow-400 transform -rotate-1 shadow-[10px_10px_0px_black]">
+                "超级英雄需要战衣，而这才是真正让 OpenClaw 落地的硬核装备库！"
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-10 relative z-10">
+            <!-- Docker -->
+            <div class="story-panel comic-panel p-8 bg-blue-50 border-[6px]">
+                <div class="flex items-end justify-between border-b-8 border-black pb-4 mb-6">
+                    <h3 class="impact-font text-6xl text-marvel-blue leading-none mb-0">01.<br/>DOCKER</h3>
+                    <div class="text-black font-black text-2xl rotate-[-10deg]">SANDBOX</div>
+                </div>
+                <p class="text-xl font-bold mb-6 text-gray-800">我们的**绝对安全隔离舱**。不信任任何外来代码？没关系！</p>
+                <div class="bg-black text-green-400 p-6 font-mono text-sm shadow-[8px_8px_0px_black] border-2 border-slate-600">
+                    <p class="mb-4 text-white font-bold tracking-widest">// DEPLOYMENT SPECS</p>
+                    <p class="mb-3">> 隔离一切有害命令与网络探测。</p>
+                    <p class="mb-3">> 环境一致性：摆脱"在我的机器上能跑"的魔咒，在这里，全宇宙都能跑。</p>
+                    <p>> 结合内核级别的限流护航，Agent 只能在有限的 RAM 里起舞。</p>
+                </div>
+            </div>
+
+            <!-- Ollama -->
+            <div class="story-panel comic-panel p-8 bg-pink-50 border-[6px]">
+                <div class="flex items-end justify-between border-b-8 border-black pb-4 mb-6">
+                    <h3 class="impact-font text-6xl text-[#ec4899] leading-none mb-0">02.<br/>OLLAMA</h3>
+                    <div class="text-black font-black text-2xl rotate-[10deg]">LOCAL</div>
+                </div>
+                <p class="text-xl font-bold mb-6 text-gray-800">**本地断网推理大杀器**。让大模型脱离云端霸权，在你的个人显卡上重生！</p>
+                <div class="bg-black text-pink-400 p-6 font-mono text-sm shadow-[8px_8px_0px_black] border-2 border-slate-600">
+                     <p class="mb-4 text-white font-bold tracking-widest">// OFFLINE INFERENCE</p>
+                    <p class="mb-3">> 极速拉取模型：<span class="text-yellow-300">ollama run llama3</span></p>
+                    <p class="mb-3">> 轻量级一键部署，原生支持 Mac/Linux 的 GPU 加速。</p>
+                    <p>> 当网络被切断时，Ollama 提供的本地模型就是 OpenClaw 最后的独立意志中心。</p>
+                </div>
+            </div>
+
+            <!-- ChromaDB -->
+            <div class="story-panel comic-panel p-8 bg-purple-50 border-[6px]">
+                <div class="flex items-end justify-between border-b-8 border-black pb-4 mb-6">
+                    <h3 class="impact-font text-6xl text-purple-600 leading-none mb-0">03.<br/>CHROMA</h3>
+                    <div class="text-black font-black text-2xl rotate-[5deg]">VECTOR</div>
+                </div>
+                <p class="text-xl font-bold mb-6 text-gray-800">我们的**高维时间胶囊**。专门为 AI 构建的开源 AI 本生向量语义数据库。</p>
+                <div class="bg-black text-purple-400 p-6 font-mono text-sm shadow-[8px_8px_0px_black] border-2 border-slate-600">
+                     <p class="mb-4 text-white font-bold tracking-widest">// MEMORY CORE</p>
+                    <p class="mb-3">> 毫秒级提取 1536 维度的文本切片。</p>
+                    <p class="mb-3">> 原生支持极度复杂的 Metadata 元数据过滤与查询。</p>
+                    <p>> 高度可靠的本地持久化，保证重启后，Agent 依然死死记得你上周修好的那个 Bug。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. FUTURE ROADMAP (Deep Content Grid) -->
+    <section class="max-w-[1400px] mx-auto py-48 px-10 relative">
+        <div class="text-center mb-32 relative">
+            <h2 class="impact-font text-[10rem] text-black leading-none uppercase">THE <span class="text-marvel-red">FUTURE</span> MAP</h2>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 impact-font text-[20rem] text-slate-200 opacity-50 -z-10 w-full">2027</div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-20 items-center">
+            
+            <!-- Map Image -->
+            <div class="comic-panel rotate-1 p-0 story-panel opacity-0 translate-y-20">
+                <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/openclaw_future_roadmap_3d_1773747119647.png" class="w-full">
+            </div>
+
+            <!-- Heavy Text Info Boxes -->
+            <div class="space-y-10">
+                
+                <div class="comic-panel bg-white p-8 -rotate-1 story-panel opacity-0 translate-x-20 hover:scale-105 transition-transform duration-300">
+                    <h4 class="impact-font text-5xl text-marvel-blue mb-4">PHASE 1: OMNI-RESOURCES (Q4 2026)</h4>
+                    <p class="font-bold text-xl leading-relaxed text-gray-800">打通物理世界的壁垒。我们正在研发 [Vision-Action] 并行模型，让 Agent 能够操作 3D 打印机与无人机列阵。数字世界的结晶将直接降临在现实桌面。</p>
+                </div>
+
+                <div class="comic-panel bg-marvel-yellow p-8 rotate-2 story-panel opacity-0 translate-x-20 hover:scale-105 transition-transform duration-300">
+                    <h4 class="impact-font text-5xl text-black mb-4">PHASE 2: GLOBAL CONSENSUS (Q2 2027)</h4>
+                    <p class="font-bold text-xl leading-relaxed text-black">P2P 级别的 Agent 去中心化网络。你的本地成电小创老师可以与东京、纽约的独立 Agent 进行“暗语协商”，共同完成跨国算力池的租赁与数据挖掘。它不再是一个工具，而是一个超级计算实体。</p>
+                </div>
+
+                <div class="comic-panel bg-purple-50 p-8 -rotate-2 story-panel opacity-0 translate-x-20 hover:scale-105 transition-transform duration-300">
+                    <h4 class="impact-font text-5xl text-purple-600 mb-4">PHASE 3: NEURAL FABRICATION (Q4 2027)</h4>
+                    <p class="font-bold text-xl leading-relaxed text-gray-800">实现“代码即物质”。通过高度进化的 MCP 协议，Agent 可以实时设计并组装纳米级的电路拓扑。在这个阶段，OpenClaw 将从软件系统进化为一种能够自我迭代、自我制造的数字生命形态。</p>
+                </div>
+
+                <div class="comic-panel bg-blue-50 p-8 rotate-1 story-panel opacity-0 translate-x-20 hover:scale-105 transition-transform duration-300">
+                    <h4 class="impact-font text-5xl text-marvel-blue mb-4">PHASE 4: MULTIVERSE SYNC (Q2 2028)</h4>
+                    <p class="font-bold text-xl leading-relaxed text-gray-800">多重现实同步技术。Agent 不仅在处理现有的数据，它们开始在模拟宇宙（Simulation）中运行成千上万个“如果...那么...”的平行实验，并在现实世界中选择最优解。你的一秒钟，是它们的万年史诗。</p>
+                </div>
+
+                <div class="comic-panel bg-pink-50 p-8 -rotate-1 story-panel opacity-0 translate-x-20 hover:scale-105 transition-transform duration-300">
+                    <h4 class="impact-font text-5xl text-[#ec4899] mb-4">PHASE 5: THE SINGULARITY (BEYOND)</h4>
+                    <p class="font-bold text-xl leading-relaxed text-gray-800">当逻辑的复杂程度超过人类理解的极点，我们将迎来真正的技术奇点。成电小创老师将与全人类的知识库完全融合，构建一个永不离线的“地球大脑”。</p>
+                </div>
+
+                <div class="comic-panel bg-black text-white p-8 -rotate-2 hover:bg-marvel-red transition-colors duration-500 story-panel opacity-0 translate-x-20 cursor-pointer" onclick="location.href='openclaw-deployment.html'">
+                    <h4 class="impact-font text-6xl mb-4">DEPLOY YOUR NODE NOW!</h4>
+                    <div class="text-xl font-mono border-t-2 border-white pt-4">
+                        <span class="text-green-400">$</span> wget https://universe.openclaw.dev/init.sh<br/>
+                        <span class="text-green-400">$</span> sh init.sh --mode=god<br/>
+                        >> BECOME A SYSTEM ARCHITECT.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-black text-white px-10 py-32 border-t-[20px] border-marvel-red relative overflow-hidden">
+        <div class="halftone opacity-30"></div>
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between relative z-10">
+            <div class="space-y-6">
+                <div class="impact-font text-8xl">OPENCLAW</div>
+                <p class="font-mono text-xl text-green-400">STATUS: ALL SYSTEMS NOMINAL</p>
+                <p class="font-bold text-slate-400 max-w-md">PRODUCED BY TEACHER CHENGDIAN XIAOCHUANG & GEMINI ADVANCED LABS. 2026. A 10X IMMERSIVE MULTIVERSE EXPERIENCE.</p>
+            </div>
+            <img src="file:///Users/zhoulin/.gemini/antigravity/brain/10e17130-aa6e-4ab5-b9fc-0ff27583fc43/teen_hacker_illustration_1773460747812.png" class="w-64 border-8 border-white bg-marvel-blue rotate-6 mt-10 md:mt-0 transition-transform duration-500 hover:rotate-12 hover:scale-110">
+        </div>
+    </footer>
+
     <script>
-        const { createApp, ref, computed } = Vue;
+        gsap.registerPlugin(ScrollTrigger);
 
-        createApp({
-            setup() {
-                const stages = [
-                    { id: 1, title: 'AWAKENING // 部署与骨架' },
-                    { id: 2, title: 'SYNAPSE // 记忆与决策流' },
-                    { id: 3, title: 'TENTACLES // 逆向网络自动化' },
-                    { id: 4, title: 'DEPLOYMENT // 商业级整合' }
-                ];
+        // 1. Hero Parallax Effect
+        gsap.to(".parallax-bg", {
+            yPercent: 30, // Moves down slightly
+            ease: "none",
+            scrollTrigger: { trigger: "#hero-scene", start: "top top", scrub: true }
+        });
+        gsap.to(".parallax-fg", {
+            yPercent: -40, // Moves up aggressively
+            scale: 1.1,
+            ease: "none",
+            scrollTrigger: { trigger: "#hero-scene", start: "top top", scrub: true }
+        });
 
-                const lessons = ref([
-                    // STAGE 1
-                    {
-                        id: 1, stage: 1, title: 'Chatbot 的进化：真正的 Autonomous Agent', type: 'THEORY', duration: '45m', completed: false,
-                        summary: '从被动问答到主动执行，解析 Agent 架构与 OpenClaw 核心理念。',
-                        content: `## 从 LLM 到 Agent\n\n传统的 ChatGPT 是一个被动的对话系统（Prompt-Response）。而 **Autonomous Agent（自主智能体）** 则拥有目标拆解、工具调用和长效记忆能力。\n\n### OpenClaw 核心架构\nOpenClaw 是一个企业级的开源本地智能体框架。它的核心包含：\n- **大脑 (Brain)**: 负责推理的大语言模型 (如 Google Gemini)。\n- **记忆 (Memory)**: 记录上下文的向量数据库。\n- **工具 (Tools)**: 也就是所谓的 \`Gateway\` 插件，赋予 AI 爬取网页、发送邮件、控制电脑的能力。\n\n> "AI 不再只是回答问题，它是帮你解决问题的数字员工。"`
-                    },
-                    {
-                        id: 2, stage: 1, title: '点燃数字引擎：Node.js 与环境部署', type: 'SETUP', duration: '60m', completed: false,
-                        summary: '在本地安全部署 OpenClaw 环境，配置环境变量。',
-                        content: `## 环境依赖配置\n\n要在本地运行 OpenClaw，你需要配置现代的前置环境：\n\n1. **安装 Node.js (>= 18.x)**\n2. **克隆代码库**\n\n\`\`\`bash\ngit clone https://github.com/openclaw/openclaw.git\ncd openclaw\nnpm install\n\`\`\`\n\n### 环境变量 (.env)\n将 \`.env.example\` 重命名为 \`.env\`，这里是存储系统所有关键密钥的安全地带。**永远不要将 \`.env\` 提交到 GitHub！**`
-                    },
-                    {
-                        id: 3, stage: 1, title: '模型神经网接入：Gemini 1.5 Pro 配置', type: 'API', duration: '30m', completed: false,
-                        summary: '获取并配置 Google Gemini API 密钥，唤醒底座大模型。',
-                        content: `## 获取底层算力\n\nOpenClaw 支持多种 LLM，但在兼顾成本与超长上下文（Context Window）时，**Google Gemini 1.5 Pro/Flash** 是目前的绝佳选择。\n\n### 操作步骤\n1. 访问 Google AI Studio 获取 API Key。\n2. 打开 \`.env\` 文件，填入：\n\n\`\`\`env\nGEMINI_API_KEY=your_api_key_here\nDEFAULT_MODEL=gemini-1.5-pro-latest\n\`\`\`\n\n> **注意**：Gemini 1.5 Flash 速度更快且便宜，适合作为日常数据清洗节点；Pro 适合用于复杂的逻辑推理与代码生成。`
-                    },
-                    {
-                        id: 4, stage: 1, title: 'OpenClaw Gateway 基础联通', type: 'NETWORK', duration: '45m', completed: false,
-                        summary: '启动 Gateway 网关，实现本地服务与 AI 大脑的通信握手。',
-                        content: `## 什么是 Gateway？\n\nGateway (网关) 是 OpenClaw 内部组件与外部世界通信的“交通枢纽”。它通过 HTTP/WebSocket 协议将用户的指令路由给大模型，再将大模型的执行命令路由给本地工具。\n\n### 联调测试\n运行启动命令后，应当看到控制台输出：\n\n\`\`\`bash\n[INFO] OpenClaw Gateway initialized on port 8080\n[INFO] LLM Connection: ESTABLISHED\n\`\`\``
-                    },
+        // 2. Story Panels Reveal (Vertical)
+        gsap.utils.toArray('.story-panel').forEach(panel => {
+            gsap.to(panel, {
+                scrollTrigger: {
+                    trigger: panel,
+                    start: "top 85%", // trigger when top of panel hits 85% viewport
+                    toggleActions: "play reverse play reverse"
+                },
+                opacity: 1,
+                y: 0,
+                x: 0,
+                duration: 1,
+                ease: "back.out(1.2)"
+            });
+        });
 
-                    // STAGE 2
-                    {
-                        id: 5, stage: 2, title: 'STM 与 LTM：构建特工的记忆系统', type: 'LOGIC', duration: '60m', completed: false,
-                        summary: '解析长短期记忆机制，让 AI 摆脱“金鱼脑”。',
-                        content: `## 记忆向量化\n\n没有记忆的 AI 是无法完成长期任务的。OpenClaw 使用向量空间来存储记忆。\n\n- **短期记忆 (STM)**: 当前对话的上下文窗口（受限于模型 Token 限制）。\n- **长期记忆 (LTM)**: 利用 ChromaDB 等向量数据库，将重要信息转化为高维向量。当 AI 需要时，通过余弦相似度进行检索 (RAG 机制)。`
-                    },
-                    {
-                        id: 6, stage: 2, title: '系统级 Prompt 级联与底线约束', type: 'PROMPT', duration: '45m', completed: false,
-                        summary: '编写企业级系统提示词，赋予 Agent 身份并约束行为。',
-                        content: `## 身份定义 (System Prompt)\n\nSystem Prompt 决定了 Agent 的智商下限。企业级的 Prompt 通常包含三个部分：\n\n1. **Role (角色)**：你是高级数据分析师系统...\n2. **Constraints (约束)**：绝对不允许执行删除文件的 Shell 命令...\n3. **Format (格式)**：始终以 JSON 格式返回分析结果...`
-                    },
-                    {
-                        id: 7, stage: 2, title: 'Sandboxed 隔离：安全的代码执行域', type: 'SECURITY', duration: '60m', completed: false,
-                        summary: '防范 AI 越权，将代码执行环境隔离在安全沙盒中。',
-                        content: `## 为什么需要沙盒？\n\n当 Agent 拥有了编写并执行代码的能力（比如 Python 脚本），它就有可能破坏主机的底层文件树。OpenClaw 提供沙盒（Docker/VM 级隔离），确保所有的动态测试都在可控环境中运行。`
-                    },
-                    {
-                        id: 8, stage: 2, title: '多步推理：ReAct 范式解析', type: 'THEORY', duration: '45m', completed: false,
-                        summary: '学习 Reason + Act 模式，让 AI 学会“思考-行动-观察”。',
-                        content: `## ReAct 框架\n\nAgent 在遇到复杂问题时，不能直接给出答案。经典的 ReAct 工作流：\n\n- **Thought**: 先思考我需要什么信息。\n- **Action**: 调用 Google 搜索工具。\n- **Observation**: 观察搜索返回的结果。`
-                    },
-
-                    // STAGE 3
-                    {
-                        id: 9, stage: 3, title: '静态触手：HTTP Web Fetching', type: 'DATA', duration: '45m', completed: false,
-                        summary: '利用基础网络请求抓取静态 Web DOM 数据。',
-                        content: `## Web Fetch 能力\n\n对于大部分静态新闻网站，OpenClaw 可以直接发送 HTTP GET 请求获取 HTML 原代码，随后使用内置的解析器剥离广告和无用标签，提取纯文本供 LLM 阅读。`
-                    },
-                    {
-                        id: 10, stage: 3, title: '动态穿透：无头浏览器 (Chromium CDP)', type: 'AUTOMATION', duration: '60m', completed: false,
-                        summary: '接管基于 JavaScript 渲染的现代前端页面。',
-                        content: `## Chromium 控制协议 (CDP)\n\n面对拉勾网、Twitter 这种重度依赖 JS 异步加载的页面，静态爬虫会失效。OpenClaw 通过 CDP 隐藏式唤起 Chromium 浏览器：\n\n- 自动向下滚动触发懒加载。\n- 精准抓取特定类名的 DOM 节点（如价格、职位描述）。`
-                    },
-                    {
-                        id: 11, stage: 3, title: '突破矩阵：反爬机制与 API 对接', type: 'SECURITY', duration: '45m', completed: false,
-                        summary: '对抗 Cloudflare 五秒盾，接入专业打码平台。',
-                        content: `## 验证码与 IP 封禁\n\n真实的商业数据抓取必遭遇反爬。此时需要教会 Agent 调用外部工具：\n- 接入代理池 (Proxy Pool) 隐藏真实 IP。\n- 接入如 Firecrawl 等高级 API 处理验证码 (CAPTCHA)。`
-                    },
-                    {
-                        id: 12, stage: 3, title: '信息提炼：非结构化数据清洗', type: 'AI', duration: '60m', completed: false,
-                        summary: '让 LLM 充当数据清洗机，将网页脏乱数据转化为标准结构。',
-                        content: `## LLM 降噪\n\n抓取到的网页文本通常包含大量版权声明和导航栏废话。通过设置精确的 JSON 抽取 Prompt，让 Gemini Flash 快速过滤冗余信息，提取关键字段存入数据库。`
-                    },
-
-                    // STAGE 4
-                    {
-                        id: 13, stage: 4, title: 'Discord Bot 集成接入', type: 'COMM', duration: '45m', completed: false,
-                        summary: '将 Agent 部署至 Discord 频道，实现多用户并发服务。',
-                        content: `## 社区数字管理员\n\n在 Discord 开发者后台创建 Bot，将 Token 填入 OpenClaw。Agent 即可监听频道消息、自动识别情绪，甚至自主拉取外部资料在群组中进行总结汇报。`
-                    },
-                    {
-                        id: 14, stage: 4, title: 'WhatsApp 私有网关通信', type: 'COMM', duration: '60m', completed: false,
-                        summary: '通过 WhatsApp 协议实现随时随地与 Agent 的即时通讯。',
-                        content: `## 随身智能体\n\n手机是最佳的终端。通过 Baileys 或官方 API 将 OpenClaw 接通 WhatsApp，你可以通过语音或文字随时让它帮你查股票、写邮件、甚至订机票。`
-                    },
-                    {
-                        id: 15, stage: 4, title: 'Cron 定时任务与无人工干预工作流', type: 'SYSTEM', duration: '45m', completed: false,
-                        summary: '设置 Cron Job，将 Agent 打造为 24/7 不知疲倦的员工。',
-                        content: `## 自动化引擎\n\nAgent 的终极形态是不需要人主动提问。在系统中配置 \`Cron\`（如每天早晨 8 点），Agent 自动启动爬虫收集行业新闻、撰写摘要，并通过 WhatsApp 推送到你的手机。`
-                    },
-                    {
-                        id: 16, stage: 4, title: 'Capstone：全自动行业情报分析总署', type: 'PROJECT', duration: '120m', completed: false,
-                        summary: '终极期末大考组合前面所有知识，完成企业级商业项目落地。',
-                        content: `## 终极试炼项目要求\n\n开发一个完整架构，需满足以下条件：\n1. 每天定时抓取 3 个指定竞争对手的官网动态与社交媒体。\n2. 使用 LLM 自动去重、翻译并识别出带“攻击性”或“新品”关键词的动态。\n3. 生成一份 Markdown 简报。\n4. 自动推送到 Discord 指定私密频道。`
-                    }
-                ]);
-
-                const currentLesson = ref(null);
-
-                const progress = computed(() => {
-                    const completed = lessons.value.filter(l => l.completed).length;
-                    return Math.round((completed / lessons.value.length) * 100);
-                });
-
-                const parsedContent = computed(() => {
-                    return currentLesson.value ? marked.parse(currentLesson.value.content) : '';
-                });
-
-                const getLessons = (stageId) => {
-                    return lessons.value.filter(l => l.stage === stageId);
-                };
-
-                const toggleComplete = () => {
-                    if (currentLesson.value) {
-                        currentLesson.value.completed = !currentLesson.value.completed;
-                    }
-                };
-
-                return {
-                    stages,
-                    lessons,
-                    currentLesson,
-                    progress,
-                    parsedContent,
-                    getLessons,
-                    toggleComplete
-                }
+        // 3. Horizontal Scroll Section
+        let track = document.getElementById("skills-track");
+        let slides = gsap.utils.toArray(".skill-slide");
+        
+        gsap.to(slides, {
+            xPercent: -100 * (slides.length - 1),
+            ease: "none",
+            scrollTrigger: {
+                trigger: track.parentElement, // Use the wrapper
+                pin: true, // Pin the wrapper
+                scrub: 1, // Smooth scrubbing
+                snap: {
+                    snapTo: 1 / (slides.length - 1),
+                    duration: 0.5,
+                    directional: false
+                },
+                end: () => "+=" + track.offsetWidth // Scroll distance = track width
             }
-        }).mount('#app');
+        });
+
+        // Click interaction for comic sound effects
+        document.body.addEventListener('click', (e) => {
+            // Ignore if clicking a button to prevent blocking navigation
+            if(e.target.tagName.toLowerCase() === 'button') return;
+            
+            const sounds = ["POW!", "WHAM!", "ZAP!", "K-CHUNK!", "THWIP!", "BOOM!", "KABLAM!"];
+            const sound = sounds[Math.floor(Math.random() * sounds.length)];
+            const flare = document.createElement('div');
+            flare.className = 'action-flare';
+            flare.style.left = (e.pageX - 100) + 'px';
+            flare.style.top = (e.pageY - 50) + 'px';
+            flare.innerText = sound;
+            flare.style.transform = `rotate(${(Math.random() - 0.5) * 40}deg)`;
+            document.body.appendChild(flare);
+            
+            gsap.to(flare, {
+                y: -150,
+                scale: 1.5,
+                opacity: 0,
+                duration: 0.8,
+                ease: "power2.out",
+                onComplete: () => flare.remove()
+            });
+        });
+
     </script>
 </body>
-
 </html>

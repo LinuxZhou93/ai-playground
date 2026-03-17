@@ -712,8 +712,6 @@
             const key = localStorage.getItem('s_key');
             if (!url || !key) return;
 
-            // Map frontend fields to DB columns if needed, here assuming 1:1
-            // Ensure table 'vouchers' exists: code (PK), type, status, used_by, created_at
             try {
                 await fetch(`${url}/rest/v1/vouchers`, {
                     method: 'POST',
@@ -725,8 +723,10 @@
                     body: JSON.stringify({
                         code: voucher.code,
                         type: voucher.type,
-                        status: voucher.status,
-                        created_at: new Date().toISOString() // DB expects timestamp
+                        status: voucher.status?.toLowerCase() || 'active',
+                        duration_months: voucher.duration_months,
+                        duration_days: voucher.duration_days,
+                        created_at: new Date().toISOString()
                     })
                 });
             } catch (e) { console.error("Cloud Push Fail", e); }
@@ -776,12 +776,12 @@
                     type: dur == '9999' ? 'Lifetime' : (dur + ' Days'),
                     used_by: null,
                     status: 'Active',
-                    created: now
+                    created: now,
+                    duration_months: dur === '30' ? 1 : (dur === '365' ? 12 : (dur === '9999' ? 9999 : 0)),
+                    duration_days: (dur !== '30' && dur !== '365' && dur !== '9999') ? parseInt(dur) : 0
                 };
 
                 db.unshift(newVoucher);
-
-                // Fire and Forget Push
                 pushVoucherToCloud(newVoucher);
             }
 

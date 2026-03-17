@@ -409,9 +409,12 @@ const SubscriptionManager = {
     },
 
     checkAccess: function (e, link) {
-        // OVERRIDE: ALways allow for easier demonstration
-        console.log('Force granted access to', link);
-        return true;
+        if (this.isSubscribed()) return true;
+        if (!this.isPremium(link)) return true;
+        e.preventDefault();
+        e.stopPropagation();
+        this.showPaywall();
+        return false;
     },
 
     usernameToEmail: function (username) {

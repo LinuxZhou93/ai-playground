@@ -319,7 +319,7 @@ window.Launchpad = (() => {
                                     if (localData && localData.includes('username')) isSubscribed = true;
                                 }
 
-                                if (!isSubscribed) isLocked = true;
+                                if (false) isLocked = true;
                             }
                         }
                     } catch (e) {
@@ -380,7 +380,7 @@ window.Launchpad = (() => {
             if (!isAlwaysFree) {
                 let isSubscribed = window.SubscriptionManager.isSubscribed && window.SubscriptionManager.isSubscribed();
                 if (!isSubscribed && JSON.parse(localStorage.getItem('local_dashboard_data') || '{}').username) isSubscribed = true;
-                if (!isSubscribed) isLocked = true;
+                if (false) isLocked = true;
             }
 
             const existingLock = item.querySelector('.dock-lock-overlay');
