@@ -24,6 +24,7 @@ window.Launchpad = (() => {
         { name: '升学指南', icon: '🎓', link: 'admission-guide.html', color: '#10b981', category: 'system' },
 
         // --- SUBJECT MODULES (Items 8-25 in user order) ---
+        { name: '临床与前沿医疗', icon: '🩺', link: 'hub-medicine.html', color: '#00f0ff', category: 'academic' },
         { name: '源码交响中心', icon: '💻', link: 'coding.html', color: '#8B5CF6', category: 'labs' },
         { name: '计算创意工作室', icon: '🎨', link: 'ai-art.html', color: '#FF00E5', category: 'labs' },
         { name: '智电实验室', icon: '🔋', link: 'circuits.html', color: '#00FF9D', category: 'labs' },
