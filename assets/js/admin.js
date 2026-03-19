@@ -194,10 +194,17 @@ const AdminPanel = {
 
         // Generate array
         const vouchers = [];
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         for (let i = 0; i < count; i++) {
+            let codePart = "";
+            for (let j = 0; j < 12; j++) {
+                codePart += chars.charAt(Math.floor(Math.random() * chars.length));
+                if ((j + 1) % 4 === 0 && j < 11) codePart += "-";
+            }
             vouchers.push({
-                code: 'VIP-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
-                duration_months: 12
+                code: 'VIP-365D-' + codePart,
+                duration_months: 12,
+                status: 'active'
             });
         }
 

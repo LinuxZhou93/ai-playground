@@ -32,6 +32,7 @@ window.Launchpad = (() => {
         { name: '探空火箭工程', icon: '🚀', link: 'course-rocketry.html', color: '#F97316', category: 'labs' },
         { name: 'OpenClaw 开发', icon: '🤖', link: 'course-openclaw.html', color: '#8b5cf6', category: 'labs' },
         { name: '万物实验室', icon: '🧪', link: 'labs.html', color: '#00f3ff', category: 'labs' },
+        { name: 'API 科普', icon: '🔗', link: 'api.html', color: '#06B6D4', category: 'discovery' },
         { name: '寰宇观测站', icon: '🌌', link: 'astronomy.html', color: '#bc13fe', category: 'discovery' },
         { name: '生命科学', icon: '🧬', link: 'course-life.html', color: '#d946ef', category: 'discovery' },
         { name: '恐龙世界', icon: '🦖', link: 'dino.html', color: '#4ade80', category: 'discovery' },
@@ -312,14 +313,7 @@ window.Launchpad = (() => {
                                 if (sm.isSubscribed && typeof sm.isSubscribed === 'function') {
                                     isSubscribed = sm.isSubscribed();
                                 }
-
-                                // Fallback to localStorage if SM not fully ready/sync
-                                if (!isSubscribed) {
-                                    const localData = localStorage.getItem('local_dashboard_data');
-                                    if (localData && localData.includes('username')) isSubscribed = true;
-                                }
-
-                                if (false) isLocked = true;
+                                if (!isSubscribed) isLocked = true;
                             }
                         }
                     } catch (e) {
@@ -369,9 +363,14 @@ window.Launchpad = (() => {
 
         const dockItems = document.querySelectorAll('.dock-icon-box');
         dockItems.forEach(item => {
-            const onclickStr = item.getAttribute('onclick');
-            if (!onclickStr || !onclickStr.includes('location.href')) return;
-            const link = onclickStr.match(/['"]([^'"]+)['"]/)?.[1];
+            // Support both old HTML onclick and new dynamic dataset.link
+            let link = item.dataset.link;
+            let onclickStr = null;
+            if (!link) {
+                onclickStr = item.getAttribute('onclick');
+                if (!onclickStr || !onclickStr.includes('location.href')) return;
+                link = onclickStr.match(/['"]([^'"]+)['"]/)?.[1];
+            }
             if (!link) return;
 
             let isLocked = false;
@@ -379,8 +378,7 @@ window.Launchpad = (() => {
             const isAlwaysFree = window.SubscriptionManager.FREE_PAGES.some(p => link.includes(p));
             if (!isAlwaysFree) {
                 let isSubscribed = window.SubscriptionManager.isSubscribed && window.SubscriptionManager.isSubscribed();
-                if (!isSubscribed && JSON.parse(localStorage.getItem('local_dashboard_data') || '{}').username) isSubscribed = true;
-                if (false) isLocked = true;
+                if (!isSubscribed) isLocked = true;
             }
 
             const existingLock = item.querySelector('.dock-lock-overlay');
@@ -395,13 +393,25 @@ window.Launchpad = (() => {
                 lock.innerHTML = '🔒';
                 Object.assign(lock.style, { position: 'absolute', top: '-5px', right: '-5px', fontSize: '10px', background: 'black', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #333' });
                 item.appendChild(lock);
-                item.dataset.originalClick = onclickStr;
-                item.removeAttribute('onclick');
+                
+                // Save original action and override with paywall
+                if (item.dataset.link) {
+                    item.dataset.originalLink = item.dataset.link;
+                } else if (onclickStr) {
+                    item.dataset.originalClick = onclickStr;
+                    item.removeAttribute('onclick');
+                }
                 item.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.SubscriptionManager.showPaywall(); };
             } else {
                 item.classList.remove('dock-locked');
                 item.style.opacity = '1';
-                if (item.dataset.originalClick) {
+                
+                // Restore original action
+                if (item.dataset.originalLink) {
+                    item.dataset.link = item.dataset.originalLink;
+                    delete item.dataset.originalLink;
+                    item.onclick = function() { window.location.href = link; };
+                } else if (item.dataset.originalClick) {
                     item.setAttribute('onclick', item.dataset.originalClick);
                     item.onclick = null;
                     delete item.dataset.originalClick;
@@ -462,7 +472,8 @@ window.Launchpad = (() => {
                 item.style.boxShadow = '0 0 15px rgba(112, 0, 255, 0.3)';
             }
 
-            // Click Handler
+            // Click Handler & Data Attributes for permissions
+            item.dataset.link = app.link;
             item.onclick = function () {
                 window.location.href = app.link;
             };

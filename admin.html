@@ -713,7 +713,7 @@
             if (!url || !key) return;
 
             try {
-                await fetch(`${url}/rest/v1/vouchers`, {
+                const res = await fetch(`${url}/rest/v1/vouchers`, {
                     method: 'POST',
                     headers: {
                         'apikey': key, 'Authorization': 'Bearer ' + key,
@@ -722,14 +722,19 @@
                     },
                     body: JSON.stringify({
                         code: voucher.code,
-                        type: voucher.type,
                         status: voucher.status?.toLowerCase() || 'active',
                         duration_months: voucher.duration_months,
-                        duration_days: voucher.duration_days,
                         created_at: new Date().toISOString()
                     })
                 });
-            } catch (e) { console.error("Cloud Push Fail", e); }
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.message || 'Supabase Insert Failed');
+                }
+            } catch (e) { 
+                console.error("Cloud Push Fail", e); 
+                alert("❌ 同步到云端失败: " + e.message + "\n卡密仅保存在本地浏览器缓存中。");
+            }
         }
 
         async function updateVoucherStatusCloud(code, status, usedBy) {
@@ -768,17 +773,15 @@
                     code += chars.charAt(Math.floor(Math.random() * chars.length));
                     if ((j + 1) % 4 === 0 && j < 11) code += "-";
                 }
-                const fullCode = `${prefix}-${dur}D-${code}`;
+                const fullCode = `${prefix}-${dur === '9999' ? 'LIFE' : dur + 'D'}-${code}`;
                 codes += fullCode + "\n";
 
                 const newVoucher = {
                     code: fullCode,
-                    type: dur == '9999' ? 'Lifetime' : (dur + ' Days'),
                     used_by: null,
                     status: 'Active',
                     created: now,
-                    duration_months: dur === '30' ? 1 : (dur === '365' ? 12 : (dur === '9999' ? 9999 : 0)),
-                    duration_days: (dur !== '30' && dur !== '365' && dur !== '9999') ? parseInt(dur) : 0
+                    duration_months: dur === '30' ? 1 : (dur === '365' ? 12 : (dur === '9999' ? 9999 : 0))
                 };
 
                 db.unshift(newVoucher);

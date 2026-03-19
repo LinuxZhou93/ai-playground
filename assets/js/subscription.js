@@ -1,11 +1,11 @@
-// Subscription Manager - Supabase Edition
+// Subscription Manager - Supabase Edition (Clean Version v3.0)
 const SubscriptionManager = {
     client: null,
     user: null,
     profile: null,
     isReady: false,
 
-    // Free Access Configuration
+    // Free Access Configuration (Always accessible even without login/VIP)
     FREE_PAGES: [
         'blog.html', 'post-4.html', 'post-6.html', 'competition-atlas.html',
         'subject-synergy.html', 'wiki.html', 'forum.html', 'index.html', 'profile.html',
@@ -19,16 +19,13 @@ const SubscriptionManager = {
         // 1. Check Config
         if (typeof SUPABASE_CONFIG === 'undefined') {
             console.warn('⚠️ Supabase Config Missing');
-            alert('系统配置加载失败 (Config Missing)');
             return;
         }
 
-        // 2. Init Client (Safe Check)
+        // 2. Init Client
         try {
             if (typeof supabase === 'undefined') {
                 console.error('CRITICAL: Supabase SDK not loaded.');
-                this.client = null;
-                // Don't return, keep the object alive so UI doesn't crash
             } else {
                 this.client = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
             }
@@ -36,7 +33,7 @@ const SubscriptionManager = {
             console.error("Supabase init failed:", e);
         }
 
-        // 3. Check Session (Only if client exists)
+        // 3. Check Session
         if (this.client) {
             try {
                 const { data: { session } } = await this.client.auth.getSession();
@@ -44,39 +41,36 @@ const SubscriptionManager = {
                     console.log('User logged in:', session.user);
                     this.user = session.user;
                     await this.fetchProfile();
-                } else {
-                    console.log('No active session');
                 }
             } catch (e) {
                 console.error("Error checking session:", e);
             }
-        } else {
-            console.warn('Skipping session check (No Client)');
+
+            // 4. Auth State Listener
+            this.client.auth.onAuthStateChange(async (event, session) => {
+                console.log('Auth State Change:', event);
+                if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+                    this.user = session.user;
+                    await this.fetchProfile();
+                    this.hideAuthModal();
+                } else if (event === 'SIGNED_OUT') {
+                    this.user = null;
+                    this.profile = null;
+                    this.updateUI();
+                    this.updateDockAuthButton(false);
+                    if (window.location.pathname.includes('profile.html')) {
+                        window.location.href = 'index.html';
+                    }
+                }
+            });
         }
 
-        // 4. Bind Events
+        // 5. Bind Events & Global Interceptors
         this.bindEvents();
         this.bindGlobalPaywall();
 
-        // 5. Check Page Access (URL Protection)
+        // 6. Check Page Access (URL Protection)
         this.checkPageAccess();
-
-        // 6. Auth State Listener
-        this.client.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth State Change:', event);
-            if (event === 'SIGNED_IN' && session) {
-                this.user = session.user;
-                await this.fetchProfile();
-                this.hideAuthModal();
-            } else if (event === 'SIGNED_OUT') {
-                this.user = null;
-                this.profile = null;
-                this.updateDockAuthButton(false);
-                if (window.location.pathname.includes('profile.html')) {
-                    window.location.href = 'index.html';
-                }
-            }
-        });
 
         console.log('SubscriptionManager: Ready');
         this.isReady = true;
@@ -100,15 +94,9 @@ const SubscriptionManager = {
             }
 
             if (!data) {
-                // First Time User: Initialize DB
                 console.log('New User Detected: Initializing Data...');
                 await this.initNewUser();
-
-                // Fallback Mock while initializing
-                this.profile = {
-                    username: this.user.user_metadata.username || this.user.email.split('@')[0],
-                    expiry_date: null
-                };
+                // Data will be re-fetched or set locally
             } else {
                 this.profile = data;
             }
@@ -116,7 +104,7 @@ const SubscriptionManager = {
             this.updateUI();
             this.updateDockAuthButton(true);
 
-            // Dispatch event for other components
+            // Dispatch event for other components (like Launchpad)
             const status = this.getSubscriptionStatus();
             window.dispatchEvent(new CustomEvent('subscription_updated', {
                 detail: status
@@ -132,28 +120,41 @@ const SubscriptionManager = {
         const uEmail = this.user.email;
         const uName = this.user.user_metadata.username || uEmail.split('@')[0];
 
-        // 1. Init Profile
-        await this.client.from('profiles').upsert({
-            id: this.user.id,
-            username: uName,
-            updated_at: new Date()
-        });
+        // REMOVED: No more default VIP for new users. They must use a voucher.
+        const defaultExpiry = null; 
 
-        // 2. Init Dashboard Data (For Admin Panel Visibility)
-        await this.client.from('user_dashboard_data').upsert({
-            username: uEmail, // Using Email as PK for dashboard table as per schema
-            is_logged_in: true,
-            prog_self: 10,  // Default starter values
-            prog_basic: 5,
-            mod_launch: true
-        });
-        console.log('User Data Initialized in DB');
+        try {
+            // 1. Init Profile
+            const { error: pError } = await this.client.from('profiles').upsert({
+                id: this.user.id,
+                username: uName,
+                expiry_date: defaultExpiry, 
+                updated_at: new Date()
+            });
+            if (pError) throw pError;
+
+            // 2. Init Dashboard Data
+            const { error: dError } = await this.client.from('user_dashboard_data').upsert({
+                username: uEmail,
+                is_logged_in: true,
+                prog_self: 10,
+                prog_basic: 5,
+                mod_launch: true
+            });
+            if (dError) throw dError;
+
+            console.log('User Data Initialized in DB (Standard User)');
+            
+            this.profile = { username: uName, expiry_date: defaultExpiry };
+            
+        } catch (err) {
+            console.error('initNewUser failed:', err);
+        }
     },
 
     // --- UI Updates ---
 
     updateDockAuthButton: function (isLoggedIn) {
-        // Update the specific auth button in the header/dock if it exists
         const specificAuthBtn = document.getElementById('auth-btn');
         if (specificAuthBtn) {
             if (isLoggedIn) {
@@ -204,41 +205,25 @@ const SubscriptionManager = {
         const path = window.location.pathname;
         const page = path.substring(path.lastIndexOf('/') + 1);
 
-        // Pass if index or root
         if (!page || page === '/' || page === 'index.html') return;
-
-        // Pass if in Free List
         if (this.FREE_PAGES.some(p => p === page || path.endsWith(p))) return;
 
-        console.log(`🔒 Validating Access for Page: ${page}`);
-
-        // Immediate Check: Do we have a user session?
-        // Note: this.user might be null because init() is async and session check hasn't finished.
-        // So we strictly rely on LocalStorage for the "Fast Block".
-
+        // Strict Protection: Use localStorage for immediate bounce
         const hasLocalCreds = localStorage.getItem('current_user_email') ||
-            localStorage.getItem('sb-znmbkxmnwuurzhevfxtq-auth-token'); // Check Supabase token key
+            localStorage.getItem('sb-' + SUPABASE_CONFIG.url.split('//')[1].split('.')[0] + '-auth-token');
 
         if (!hasLocalCreds) {
-            console.warn('⛔ Access Denied: No local credentials found.');
-            document.body.style.display = 'none'; // Instant hide
+            console.warn('⛔ Access Denied: No credentials found.');
+            document.body.style.display = 'none';
             alert('🔒 会员专享页面\n\n请先登录以验证您的会员身份。');
             window.location.href = 'index.html';
-        } else {
-            // Local creds exist, but we should eventually verify VIP status.
-            // That happens in fetchProfile().
-            // If fetchProfile() later finds out user is NOT VIP, we should probably kick them out?
-            // For now, let's trust the login state to avoid disrupting valid users.
         }
     },
 
     // --- Actions ---
 
     handleLogin: async function (username, password) {
-        // Auto-detect phone number or pure username
         const email = this.smartFormatEmail(username);
-        console.log(`Attempting login with: ${email}`);
-
         try {
             const { data, error } = await this.client.auth.signInWithPassword({
                 email: email,
@@ -247,9 +232,7 @@ const SubscriptionManager = {
 
             if (error) throw error;
 
-            console.log('Login Success, persisting session:', data.user.email);
             localStorage.setItem('current_user_email', data.user.email);
-
             alert('🎉 登录成功！');
             this.hideAuthModal();
             window.location.reload();
@@ -257,12 +240,20 @@ const SubscriptionManager = {
             console.error(e);
             let msg = e.message;
             if (msg.includes("Invalid login credentials")) msg = "账号或密码错误";
-            if (msg.includes("Email not confirmed")) msg = "请前往邮箱确认验证链接，或联系管理员关闭邮箱验证。";
             alert('登录失败: ' + msg);
         }
     },
 
     handleRegister: async function (username, password) {
+        // VALIDATION: Must be email or 11-digit phone number
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username);
+        const isPhone = /^\d{11}$/.test(username);
+
+        if (!isEmail && !isPhone) {
+            alert('⚠️ 注册失败：请使用有效的手机号（11位数字）或电子邮箱进行注册。');
+            return;
+        }
+
         const email = this.smartFormatEmail(username);
         console.log(`Attempting register with: ${email}`);
 
@@ -271,21 +262,19 @@ const SubscriptionManager = {
                 email: email,
                 password: password,
                 options: {
-                    data: { username: username } // Store original username/phone
+                    data: { username: username }
                 }
             });
 
             if (error) throw error;
 
-            // Check if session exists (Auto Confirm ON) or not (Email Confirm ON)
             if (data.session) {
-                alert('🎉 注册成功并已登录！');
-                this.hideAuthModal(); // Close modal
+                alert('🎉 注册成功并已登录！所有模块已解锁服务。');
                 localStorage.setItem('current_user_email', data.user.email);
-                window.location.reload(); // Reload to activate session
+                window.location.reload();
             } else {
-                alert('✅ 注册申请已提交！\n\n请前往邮箱点击确认链接完成激活。');
-                this.toggleAuthMode(); // Switch to login view so they can try after clicking email
+                alert('✅ 注册申请已提交！\n\n请确认您的注册信息或联系管理员人工审核。');
+                this.toggleAuthMode();
             }
         } catch (e) {
             console.error(e);
@@ -293,71 +282,67 @@ const SubscriptionManager = {
         }
     },
 
-    // Helper: Turn Phone/Username into Email
     smartFormatEmail: function (input) {
         input = input.trim();
-        // If already email, return as is
         if (input.includes('@')) return input;
-
-        // If pure numbers (Phone), append phone domain
         if (/^\d+$/.test(input)) {
             return `${input}@phone.ai-playground.com`;
         }
-
-        // If regular username, append default domain
         return `${input}@ai-playground.com`;
     },
 
     handleLogout: async function () {
-        const { error } = await this.client.auth.signOut();
-        if (error) console.error('Logout error:', error);
-
+        if (this.client) await this.client.auth.signOut();
         localStorage.removeItem('current_user_email');
-        localStorage.removeItem('dify_conversation_id');
-
         alert('已退出登录');
         window.location.href = 'index.html';
     },
 
     redeemVoucher: async function () {
         const codeInput = document.getElementById('voucher-code');
-        const code = codeInput.value.trim();
+        const rawCode = codeInput.value.trim();
+        const code = rawCode.toUpperCase(); // Normalize for safety
 
         if (!code) { alert('请输入卡密'); return; }
         if (!this.user) { alert('请先登录'); return; }
 
-        try {
-            const { data: voucher, error: vError } = await this.client
-                .from('vouchers').select('*').eq('code', code).single();
+        console.log(`Checking Voucher: ${code}...`);
 
-            if (vError || !voucher) throw new Error('卡密无效');
+        try {
+            // 1. Fetch Voucher (Case insensitive comparison already handled by .toUpperCase())
+            const { data: voucher, error: vError } = await this.client
+                .from('vouchers')
+                .select('*')
+                .eq('code', code)
+                .single();
+
+            if (vError) {
+                console.error('Database query error:', vError);
+                throw new Error('卡密无效（未在数据库中找到）');
+            }
+            if (!voucher) throw new Error('卡密无效');
             if (voucher.status === 'used') throw new Error('此卡密已被使用');
 
+            // 2. Calculate New Expiry (Force to 2026-12-31 as default, or extend)
             let currentExpiry = new Date();
-            // Override: Force expiry to 2026-12-31 as requested
-            currentExpiry = new Date('2026-12-31T23:59:59');
-
-            // Old Logic kept for reference:
-            /*
             if (this.profile && this.profile.expiry_date) {
                 const existing = new Date(this.profile.expiry_date);
                 if (existing > new Date()) currentExpiry = existing;
             }
             const duration = voucher.duration_months || 12;
             currentExpiry.setMonth(currentExpiry.getMonth() + duration);
-            */
 
             // 3. Update User Profile
-            // Handle case where profile might indicate success but return no data
             const { error: pError } = await this.client
                 .from('profiles')
                 .upsert({
                     id: this.user.id,
                     expiry_date: currentExpiry.toISOString(),
-                    username: this.profile?.username || this.user.email.split('@')[0]
-                }); // Use upsert to create if missing
+                    username: this.profile?.username || this.user.email.split('@')[0],
+                    updated_at: new Date()
+                });
 
-            if (pError) throw new Error('更新用户档案失败: ' + pError.message);
+            if (pError) throw new Error('更新会员期限出错: ' + pError.message);
 
             // 4. Update Voucher Status
             const { error: vUpdateError } = await this.client
@@ -365,21 +350,21 @@ const SubscriptionManager = {
                 .update({ status: 'used', used_by: this.user.id })
                 .eq('id', voucher.id);
 
-            if (vUpdateError) throw new Error('核销卡密失败(RLS): ' + vUpdateError.message);
+            if (vUpdateError) {
+                console.warn('Voucher mark as used failed (probably RLS), but profile updated.');
+                // We keep going if profile updated, but ideally vouchers table should be writeable
+            }
 
-            alert('🎉 充值成功！\n会员有效期至: ' + currentExpiry.toLocaleDateString());
-
-            // Refresh
-            await this.fetchProfile();
+            alert('🎉 充值成功！\n您的会员有效期已延长至: ' + currentExpiry.toLocaleDateString());
             window.location.reload();
 
         } catch (e) {
             console.error('Redeem Error:', e);
-            alert('❌ 兑换失败: ' + e.message + '\n\n(请检查Supabase的RLS策略是否允许用户更新vouchers表)');
+            alert('❌ 兑换失败: ' + e.message);
         }
     },
 
-    // --- Helpers ---
+    // --- Access Control Helpers ---
 
     getSubscriptionStatus: function () {
         if (!this.profile || !this.profile.expiry_date) {
@@ -393,30 +378,30 @@ const SubscriptionManager = {
         };
     },
 
-    // Legacy / Shared Helpers needed by Launchpad
     isPremium: function (link) {
         if (!link) return false;
         const cleanLink = link.split('?')[0].split('#')[0];
         const fileName = cleanLink.substring(cleanLink.lastIndexOf('/') + 1);
-        if (fileName === '' || fileName === 'index.html') return false;
+        if (fileName === '' || fileName === 'index.html' || fileName === '/') return false;
         if (!this.FREE_PAGES) return true;
         return !this.FREE_PAGES.some(page => fileName === page || link.endsWith(page));
     },
 
     isSubscribed: function () {
+        if (!this.user) return false; 
         const status = this.getSubscriptionStatus();
         return status.isVIP;
     },
 
     checkAccess: function (e, link) {
-        // OVERRIDE: ALways allow for easier demonstration
-        console.log('Force granted access to', link);
-        return true;
-    },
+        if (!this.isReady) return true; // Fail open during init
+        if (this.isSubscribed()) return true;
+        if (!this.isPremium(link)) return true;
 
-    usernameToEmail: function (username) {
-        if (username.includes('@')) return username;
-        return `${username}@ai-playground.com`;
+        e.preventDefault();
+        e.stopPropagation();
+        this.showPaywall();
+        return false;
     },
 
     // --- UI Interactions ---
@@ -426,29 +411,17 @@ const SubscriptionManager = {
         const modal = document.getElementById('auth-modal');
         if (modal) {
             const title = modal.querySelector('h2');
-            if (title) title.textContent = '🔒 会员专享内容';
+            if (title) title.innerHTML = '🔒 会员专享中心<br><small style="font-size:12px; color:#ff8c94; font-weight:normal;">联系客服(微信: 13699466775) 限时领取季度激活码</small>';
         }
     },
 
     showAuthModal: function () {
-        if (!this.client) {
-            alert('错误：无法连接到登录服务 (Supabase SDK Failed)。\n请尝试刷新页面或检查网络。');
-            return;
-        }
-
         let modal = document.getElementById('auth-modal');
         if (!modal) {
             this.createAuthModalHTML();
             modal = document.getElementById('auth-modal');
         }
         modal.style.display = 'flex';
-        // Reset title if it was changed by paywall
-        const title = modal.querySelector('h2');
-        if (modal.getAttribute('data-mode') === 'register') {
-            if (title) title.textContent = '注册账号';
-        } else {
-            if (title) title.textContent = '账号登录';
-        }
     },
 
     hideAuthModal: function () {
@@ -465,12 +438,12 @@ const SubscriptionManager = {
 
         if (isLogin) {
             modal.setAttribute('data-mode', 'register');
-            if (title) title.textContent = '注册账号';
+            if (title) title.innerHTML = '注册账号';
             if (submitBtn) submitBtn.textContent = '注册';
             if (switchText) switchText.innerHTML = '已有账号？ <a href="#" onclick="SubscriptionManager.toggleAuthMode()">去登录</a>';
         } else {
             modal.setAttribute('data-mode', 'login');
-            if (title) title.textContent = '账号登录';
+            if (title) title.innerHTML = '账号登录';
             if (submitBtn) submitBtn.textContent = '登录';
             if (switchText) switchText.innerHTML = '没有账号？ <a href="#" onclick="SubscriptionManager.toggleAuthMode()">去注册</a>';
         }
@@ -486,10 +459,13 @@ const SubscriptionManager = {
         <div class="auth-box">
             <span class="auth-close" onclick="SubscriptionManager.hideAuthModal()">×</span>
             <h2>账号登录</h2>
+            <div style="background: rgba(255,140,148,0.1); border: 1px dashed #ff8c94; padding: 10px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; color: #ff8c94; text-align: center;">
+                🎁 提示：联系客服获取激活码<br><b>微信：13699466775</b>
+            </div>
             <form class="auth-form">
-                <input type="text" class="auth-input" placeholder="输入账号" required>
+                <input type="text" class="auth-input" placeholder="输入手机号或邮箱" required>
                 <input type="password" class="auth-input" placeholder="输入密码" required>
-                <button type="submit" class="auth-submit-btn">登录</button>
+                <button type="submit" class="auth-submit-btn">确认</button>
             </form>
             <div class="auth-switch">
                 <p>没有账号？ <a href="#" onclick="SubscriptionManager.toggleAuthMode()">去注册</a></p>
@@ -506,7 +482,6 @@ const SubscriptionManager = {
 
         const submitBtn = document.querySelector('.auth-submit-btn');
         if (submitBtn) {
-            // Replace to remove old listeners
             const newBtn = submitBtn.cloneNode(true);
             submitBtn.parentNode.replaceChild(newBtn, submitBtn);
 
@@ -534,94 +509,16 @@ const SubscriptionManager = {
     },
 
     bindGlobalPaywall: function () {
-        console.log('🛡️ Global Paywall: Active');
-        // Intercept all clicks to check for premium content
         document.body.addEventListener('click', (e) => {
             const link = e.target.closest('a');
             if (link) {
                 const href = link.getAttribute('href');
-                console.log(`🖱️ Click detected on: ${href}`);
-
-                // Allow simple anchors, javascript calls, mailto
-                if (!href || href.startsWith('#') || href.startsWith('javascript') || href.startsWith('mailto')) {
-                    return;
-                }
-
-                // Check Access
-                const allowed = this.checkAccess(e, href);
-                if (!allowed) {
-                    console.log(`🚫 Access Denied: ${href}`);
-                } else {
-                    console.log(`✅ Access Granted: ${href}`);
-                }
+                if (!href || href.startsWith('#') || href.startsWith('javascript') || href.startsWith('mailto')) return;
+                this.checkAccess(e, href);
             }
-        }, true); // Use capture phase to ensure we catch it first
-    },
-
-    // --- Access Control Helpers ---
-
-    isPremium: function (link) {
-        if (!link) return false;
-
-        // Normalize: remove query/hash, get path part
-        // Handle absolute URLs if necessary, but mostly relative
-        const cleanLink = link.split('?')[0].split('#')[0];
-        const fileName = cleanLink.substring(cleanLink.lastIndexOf('/') + 1);
-
-        console.log(`🔍 Checking access for: ${fileName}`);
-
-        // Base Rules
-        if (fileName === '' || fileName === 'index.html' || fileName === '/') return false;
-
-        // Whitelist Check
-        if (!this.FREE_PAGES) return true;
-
-        // Check if explicitly free
-        const isFree = this.FREE_PAGES.some(page => fileName === page || link.endsWith(page));
-
-        return !isFree; // If not free, it is premium
-    },
-
-    isSubscribed: function () {
-        if (!this.user) return false; // No user = Not subscribed
-        const status = this.getSubscriptionStatus();
-        return status.isVIP;
-    },
-
-    checkAccess: function (e, link) {
-        // 0. Initializing Bypass (Fail Open)
-        if (!this.isReady) {
-            console.log('System initializing, allowing access...');
-            return true;
-        }
-
-        // 1. VIP allows all
-        if (this.isSubscribed()) {
-            console.log('User is VIP. Access granted.');
-            return true;
-        }
-
-        // 2. Free page allows all
-        if (!this.isPremium(link)) {
-            console.log('Page is Free. Access granted.');
-            return true;
-        }
-
-        // 3. Otherwise, Block
-        e.preventDefault();
-        e.stopPropagation(); // Stop other listeners
-        e.stopImmediatePropagation(); // REALLY stop others
-        this.showPaywall();
-        return false;
-    },
+        }, true);
+    }
 };
 
-// Auto Init
 window.SubscriptionManager = SubscriptionManager;
-
-if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOM Ready, initializing SubscriptionManager...');
-        SubscriptionManager.init();
-    });
-}
+document.addEventListener('DOMContentLoaded', () => SubscriptionManager.init());
