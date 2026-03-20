@@ -33,15 +33,7 @@ function updateMacStatusUI(data) {
          ];
           
          mockData.forEach(mac => {
-              const statusDot = '<span class="status-dot red"></span>';
-              html += `
-                 <div class="mac-status-item">
-                     <div class="mac-header">${statusDot} ${mac.name}</div>
-                     <div class="mac-details">
-                         <span>CPU: ${mac.cpu}</span> | <span>MEM: ${mac.mem}</span>
-                     </div>
-                 </div>
-              `;
+             html += createMacStatusHTML(mac);
          });
          statusContainer.innerHTML = html;
          return;
@@ -51,34 +43,83 @@ function updateMacStatusUI(data) {
     const macs = data.devices || [];
     
     if (macs.length === 0) {
-        statusContainer.innerHTML = `<div class="mac-status-item error"><span>No Devices Connected</span></div>`;
+        statusContainer.innerHTML = `<div class="mac-status-item error"><span>No Nodes Connected</span></div>`;
         return;
     }
     
     macs.forEach(mac => {
-         const isOnline = mac.status === 'online';
-         const statusDot = isOnline ? '<span class="status-dot green"></span>' : '<span class="status-dot red"></span>';
-         
-         const cpuDisplay = mac.cpu || '-';
-         const memDisplay = mac.mem || '-';
-         
-         html += `
-            <div class="mac-status-item">
-                <div class="mac-header">${statusDot} ${mac.name}</div>
-                <div class="mac-details">
-                    <span>CPU: ${cpuDisplay}</span> | <span>MEM: ${memDisplay}</span>
-                </div>
-            </div>
-         `;
+        html += createMacStatusHTML(mac);
     });
 
     statusContainer.innerHTML = html;
 }
 
+function createMacStatusHTML(mac) {
+    const isOnline = mac.status === 'online';
+    const badgeClass = isOnline ? 'online' : 'offline';
+    const badgeText = isOnline ? 'ON' : 'OFF';
+    
+    // Parse values safely
+    let cpuVal = 0, memVal = 0;
+    if (isOnline) {
+       cpuVal = parseInt(mac.cpu) || 0;
+       memVal = parseInt(mac.mem) || 0;
+    }
+
+    const cpuDisplay = isOnline ? mac.cpu : '-';
+    const memDisplay = isOnline ? mac.mem : '-';
+
+    // Determine color class based on load
+    const getLoadClass = (val) => {
+        if(val < 50) return 'fill-low';
+        if(val < 80) return 'fill-med';
+        return 'fill-high';
+    };
+
+    const cpuClass = getLoadClass(cpuVal);
+    const memClass = getLoadClass(memVal);
+
+    return `
+        <div class="mac-status-item">
+            <div class="mac-header">
+                <div class="mac-name-block">
+                    <span class="status-badge ${badgeClass}">${badgeText}</span>
+                    <span>${mac.name}</span>
+                </div>
+            </div>
+            
+            <div class="mac-details">
+                <!-- CPU Bar -->
+                <div class="resource-bar-container">
+                    <div class="resource-label">
+                        <span>CPU</span>
+                        <span class="resource-value">${cpuDisplay}</span>
+                    </div>
+                    <div class="resource-track">
+                        <div class="resource-fill ${cpuClass}" style="width: ${cpuVal}%;"></div>
+                    </div>
+                </div>
+
+                <!-- RAM Bar -->
+                <div class="resource-bar-container">
+                    <div class="resource-label">
+                        <span>RAM</span>
+                        <span class="resource-value">${memDisplay}</span>
+                    </div>
+                    <div class="resource-track">
+                        <div class="resource-fill ${memClass}" style="width: ${memVal}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+
 // Initialization and automatic updates
 document.addEventListener('DOMContentLoaded', () => {
     // Initial fetch
     fetchMacStatus();
-    // Poll every 5 seconds
-    setInterval(fetchMacStatus, 5000);
+    // Poll every 3 seconds for smoother updates
+    setInterval(fetchMacStatus, 3000);
 });
