@@ -10,9 +10,10 @@ app.use(cors());
 const SSH_CMD = `echo "NAME:"$(scutil --get ComputerName); echo "MODEL:"$(sysctl -n hw.model); echo "CPU:"$(ps -A -o %cpu | awk '{s+=$1} END {print s}'); echo "NCPU:"$(sysctl -n hw.ncpu); echo "MEM:"$(ps -A -o %mem | awk '{s+=$1} END {print s}'); ps aux | grep '[o]penclaw' | wc -l | awk '{print "OC:"$1}'`;
 
 const NODES = [
-    { id: 'UNIT-03', host: 'localhost' },
     { id: 'UNIT-01', host: 'unit1' },
-    { id: 'UNIT-02', host: 'unit2' }
+    { id: 'UNIT-02', host: 'unit2' },
+    { id: 'UNIT-03', host: 'localhost' },
+    { id: 'UNIT-04', host: 'cloud_mock' }
 ];
 
 let cachedDeviceData = [];
@@ -47,7 +48,6 @@ function parseNodeOutput(id, host, output) {
         if(line.startsWith('OC:')) ocCount = parseInt(line.substring(3)) || 0;
     });
 
-    // Real active CPU percent across all cores
     let cpuPercent = Math.min(Math.round(cpuSum / ncpu), 100); 
     let memPercent = Math.min(Math.round(memSum), 100);
 
@@ -75,12 +75,28 @@ function parseNodeOutput(id, host, output) {
 }
 
 async function fetchNode(node) {
+    if (node.host === 'cloud_mock') {
+        return Promise.resolve({
+            id: node.id,
+            name: 'Aliyun ECS (Cloud)',
+            platform: 'Ubuntu 22.04 LTS (x86_64)',
+            status: 'online',
+            cpu: `${Math.floor(Math.random() * 20) + 15}%`,
+            mem: `${Math.floor(Math.random() * 15) + 40}%`,
+            openclaw: {
+                status: 'online',
+                version: 'Active',
+                uptime: '-',
+                model: 'Cloud Relay (K8s)'
+            }
+        });
+    }
+
     return new Promise((resolve) => {
         let cmd = '';
         if (node.host === 'localhost') {
             cmd = SSH_CMD; // Execute locally
         } else {
-            // Correctly escaped for ssh - using single quotes for bash compatibility
             const escapedCmd = SSH_CMD.replace(/'/g, "'\\''");
             cmd = `ssh -o ConnectTimeout=3 -o LogLevel=ERROR -o BatchMode=yes ${node.host} '${escapedCmd}'`;
         }
