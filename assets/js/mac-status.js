@@ -27,9 +27,9 @@ function updateMacStatusUI(data) {
          // Show simulated offline data if the server isn't available
          let html = '';
          const mockData = [
-             {name: 'M1 Studio', status: 'offline', cpu: '-', mem: '-'},
-             {name: 'M2 Pro', status: 'offline', cpu: '-', mem: '-'},
-             {name: 'M3 Max', status: 'offline', cpu: '-', mem: '-'}
+             {name: 'Mac Node 1', status: 'offline', cpu: '-', mem: '-'},
+             {name: 'Mac Studio (DingDang)', status: 'offline', cpu: '-', mem: '-'},
+             {name: 'Macbook Air M3', status: 'offline', cpu: '-', mem: '-'}
          ];
           
          mockData.forEach(mac => {
@@ -78,13 +78,16 @@ function createMacStatusHTML(mac) {
 
     const cpuClass = getLoadClass(cpuVal);
     const memClass = getLoadClass(memVal);
+    
+    // Simplified Mac Name presentation
+    const displayName = mac.name.length > 20 ? mac.name.substring(0, 17) + "..." : mac.name;
 
     return `
         <div class="mac-status-item">
             <div class="mac-header">
                 <div class="mac-name-block">
                     <span class="status-badge ${badgeClass}">${badgeText}</span>
-                    <span>${mac.name}</span>
+                    <span>${displayName}</span>
                 </div>
             </div>
             
