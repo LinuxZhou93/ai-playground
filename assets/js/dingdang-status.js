@@ -1,162 +1,151 @@
-// --- Dingdang Status Data Sync ---
-const macStatusUrl = 'http://localhost:18888/status';
+const API_URL = 'http://localhost:18888/status';
 
-async function fetchMacStatus() {
+async function fetchStatus() {
     try {
-        const response = await fetch(macStatusUrl);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        updateDashboardUI(data);
+        renderDashboard(data);
     } catch (e) {
-        console.error("Failed to fetch dashboard status:", e);
-        // Show simulated offline data 
-        updateDashboardUI({
-            status: 'error',
-            error: e.message
-        });
+        console.error("Fetch failed:", e);
+        renderErrorState(e.message);
     }
 }
 
-function setBadge(id, isOnline) {
+function updateEl(id, text) {
     const el = document.getElementById(id);
-    if (!el) return;
-    if (isOnline) {
-        el.className = 'status-badge online';
-        el.innerText = 'ONLINE';
-    } else {
-        el.className = 'status-badge offline';
-        el.innerText = 'OFFLINE';
-    }
+    if(el) el.innerText = text;
 }
 
-function setText(id, text) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerText = text || '--';
-}
-
-function updateDashboardUI(data) {
-    const statusContainer = document.getElementById('mac-status-container');
-    
-    // Process error state
-    if (data.status === 'error') {
-        setBadge('oc-status-badge', false);
-        setBadge('net-status-badge', false);
-        
-        ['oc-version', 'oc-uptime', 'oc-agents', 'oc-model', 'oc-wechat', 'net-latency', 'net-down', 'net-up', 'net-ip', 'net-vpn'].forEach(id => setText(id, '--'));
-        
-        if (statusContainer) {
-            let html = '';
-            const mockData = [
-                {name: '叮当主控 (DingDang Master)', status: 'offline', cpu: '-', mem: '-'},
-                {name: '计算节点 01', status: 'offline', cpu: '-', mem: '-'}
-            ];
-            mockData.forEach(mac => { html += createMacStatusHTML(mac); });
-            statusContainer.innerHTML = html;
+function renderDashboard(data) {
+    // 1. Update Telemetry Network Bar
+    if (data.network) {
+        updateEl('net-latency', data.network.latency);
+        updateEl('net-down', data.network.bandwidthDown);
+        updateEl('net-up', data.network.bandwidthUp);
+        updateEl('net-ip', data.network.publicIp);
+        const stNode = document.getElementById('net-status');
+        if(stNode) {
+            stNode.innerText = data.network.status.toUpperCase();
+            stNode.className = `t-badge ${data.network.status === 'stable' ? 'success' : 'warning'}`;
         }
+    }
+
+    // 2. Clear Units container
+    const container = document.getElementById('units-container');
+    if (!container) return;
+
+    if (!data.devices || data.devices.length === 0) {
+        container.innerHTML = `<div style="color:var(--accent); grid-column:1/-1; text-align:center;">No compute units found in matrix.</div>`;
         return;
     }
 
-    // Update OpenClaw Panel
-    const oc = data.openclaw || {};
-    setBadge('oc-status-badge', oc.status === 'online');
-    setText('oc-version', oc.version);
-    setText('oc-uptime', oc.uptime);
-    setText('oc-agents', oc.activeAgents);
-    setText('oc-model', oc.primaryModel);
-    setText('oc-wechat', oc.wechatChannel);
+    // 3. Render each unit
+    let html = '';
+    data.devices.forEach(unit => {
+        html += buildUnitCard(unit);
+    });
+    
+    container.innerHTML = html;
+}
 
-    // Update Network Panel
-    const net = data.network || {};
-    setBadge('net-status-badge', net.status === 'stable' || net.status === 'online');
-    setText('net-latency', net.latency);
-    setText('net-down', net.bandwidthDown);
-    setText('net-up', net.bandwidthUp);
-    setText('net-ip', net.publicIp);
-    setText('net-vpn', net.vpn);
-
-    // Update Compute Nodes Panel
-    if (statusContainer) {
-        let html = '';
-        const macs = data.devices || [];
-        
-        if (macs.length === 0) {
-            statusContainer.innerHTML = `<div class="dingdang-card" style="text-align: center; color: #ff003c; width: 100%;">
-                <div style="font-size: 1.5rem; margin-bottom: 10px;">Warning</div>
-                <span>No compute nodes connected to the cluster.</span>
-            </div>`;
-        } else {
-            macs.forEach(mac => {
-                html += createMacStatusHTML(mac);
-            });
-            statusContainer.innerHTML = html;
-        }
+function renderErrorState(err) {
+    updateEl('net-latency', '--');
+    updateEl('net-down', '--');
+    updateEl('net-up', '--');
+    
+    const container = document.getElementById('units-container');
+    if(container) {
+        container.innerHTML = `<div style="color:var(--accent); grid-column:1/-1; text-align:center;">
+            <h3>Matrix Connection Lost</h3>
+            <p>${err}</p>
+        </div>`;
     }
 }
 
-function createMacStatusHTML(mac) {
-    const isOnline = mac.status === 'online';
-    const badgeClass = isOnline ? 'online' : 'offline';
-    const badgeText = isOnline ? 'ONLINE' : 'OFFLINE';
-    
-    let cpuVal = 0, memVal = 0;
-    if (isOnline) {
-       cpuVal = parseInt(mac.cpu) || 0;
-       memVal = parseInt(mac.mem) || 0;
+function getFillClass(percentStr) {
+    const val = parseInt(percentStr) || 0;
+    if(val < 50) return 'bg-low';
+    if(val < 80) return 'bg-med';
+    return 'bg-high';
+}
+
+function buildUnitCard(u) {
+    const isOnline = u.status === 'online';
+    const cpuClass = getFillClass(u.cpu);
+    const memClass = getFillClass(u.mem);
+
+    // OpenClaw processing
+    let ocHtml = '';
+    if (u.openclaw) {
+        const ocOnline = u.openclaw.status === 'online';
+        const ocDot = ocOnline ? 'active' : (isOnline ? 'error' : 'idle');
+        const ocSys = ocOnline ? 'ONLINE' : 'OFFLINE';
+        
+        ocHtml = `
+            <div class="oc-panel">
+                <div class="oc-head">
+                    <div class="oc-logo"><span>OC</span> OpenClaw</div>
+                    <div class="oc-status-dot ${ocDot}" title="${ocSys}"></div>
+                </div>
+                <div class="oc-grid">
+                    <div class="oc-item"><span class="lbl">VERSION</span><span class="val">${u.openclaw.version || '--'}</span></div>
+                    <div class="oc-item"><span class="lbl">UPTIME</span><span class="val txt">${u.openclaw.uptime || '--'}</span></div>
+                    <div class="oc-item" style="grid-column: 1/-1"><span class="lbl">PRIMARY MODEL</span><span class="val highlight txt">${u.openclaw.model || '--'}</span></div>
+                </div>
+            </div>
+        `;
     }
 
-    const cpuDisplay = isOnline ? mac.cpu : '-';
-    const memDisplay = isOnline ? mac.mem : '-';
-
-    const getLoadClass = (val) => {
-        if(val < 50) return 'fill-low';
-        if(val < 80) return 'fill-med';
-        return 'fill-high';
-    };
-
-    const cpuClass = getLoadClass(cpuVal);
-    const memClass = getLoadClass(memVal);
-    
-    const safeName = mac.name || 'Unknown Node';
-    const titleAttr = safeName.replace(/"/g, '&quot;');
-
     return `
-        <div class="dingdang-card">
-            <div class="card-header-row">
-                <div class="card-title-group">
-                    <span class="node-name" title="${titleAttr}">${safeName}</span>
-                </div>
-                <div class="status-badge ${badgeClass}">${badgeText}</div>
-            </div>
-            
-            <div class="resource-section">
-                <!-- CPU Bar -->
-                <div class="resource-row">
-                    <div class="res-label">CPU</div>
-                    <div class="res-track">
-                        <div class="res-fill ${cpuClass}" style="width: ${cpuVal}%;"></div>
-                    </div>
-                    <div class="res-value">${cpuDisplay}</div>
-                </div>
-
-                <!-- RAM Bar -->
-                <div class="resource-row">
-                    <div class="res-label">RAM</div>
-                    <div class="res-track">
-                        <div class="res-fill ${memClass}" style="width: ${memVal}%;"></div>
-                    </div>
-                    <div class="res-value">${memDisplay}</div>
-                </div>
-            </div>
+    <div class="unit-block">
+        <!-- HEADER -->
+        <div class="u-head">
+            <div class="u-id">${u.id || 'UNIT-XX'}</div>
+            <div class="u-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'ONLINE' : 'OFFLINE'}</div>
         </div>
+
+        <!-- BODY -->
+        <div class="u-body">
+            
+            <!-- Host Info -->
+            <div class="hw-section">
+                <div class="u-section-title">HOST PLATFORM</div>
+                <div class="hw-metric-v">
+                    <span class="hm-lbl">NODE ALIAS</span>
+                    <span class="hm-val val-txt">${u.name || 'Unknown'}</span>
+                </div>
+                <div class="hw-metric-v" style="margin-top:10px;">
+                    <span class="hm-lbl">ARCHITECTURE</span>
+                    <span class="hm-val val-txt" style="color:var(--primary);">${u.platform || 'Unknown'}</span>
+                </div>
+            </div>
+
+            <!-- Hardware Telemetry -->
+            <div class="hw-section">
+                <div class="u-section-title">CORE TELEMETRY</div>
+                <div class="hw-grid">
+                    <div class="hw-metric-v">
+                        <span class="hm-lbl">CPU LOAD</span>
+                        <div class="hm-val val-num">${isOnline ? u.cpu : '--'}<div class="h-track"><div class="h-fill ${cpuClass}" style="width:${isOnline ? u.cpu : '0%'}"></div></div></div>
+                    </div>
+                    <div class="hw-metric-v">
+                        <span class="hm-lbl">MEM LOAD</span>
+                        <div class="hm-val val-num">${isOnline ? u.mem : '--'}<div class="h-track"><div class="h-fill ${memClass}" style="width:${isOnline ? u.mem : '0%'}"></div></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OpenClaw Block -->
+            ${ocHtml}
+
+        </div>
+    </div>
     `;
 }
 
-// Initialization and automatic updates
 document.addEventListener('DOMContentLoaded', () => {
-    fetchMacStatus();
-    setInterval(fetchMacStatus, 3000);
+    fetchStatus();
+    setInterval(fetchStatus, 3000);
 });
-window.fetchMacStatus = fetchMacStatus;
+window.fetchStatus = fetchStatus;
