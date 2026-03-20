@@ -78,13 +78,17 @@ function createMacStatusHTML(mac) {
 
     const cpuClass = getLoadClass(cpuVal);
     const memClass = getLoadClass(memVal);
+    
+    // Fallback manual truncation just in case CSS ellipsis isn't enough for very long string
+    const safeName = mac.name || 'Unknown Node';
+    const titleAttr = safeName.replace(/"/g, '&quot;');
 
     return `
         <div class="mac-status-item">
             <div class="mac-header">
                 <div class="mac-name-block">
                     <span class="status-badge ${badgeClass}">${badgeText}</span>
-                    <span class="mac-name-text" title="${mac.name}">${mac.name}</span>
+                    <span class="mac-name-text" title="${titleAttr}">${safeName}</span>
                 </div>
             </div>
             
@@ -118,3 +122,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Poll every 3 seconds for smoother updates
     setInterval(fetchMacStatus, 3000);
 });
+// Attach to global window object so it can be called explicitly if needed
+window.fetchMacStatus = fetchMacStatus;
