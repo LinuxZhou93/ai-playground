@@ -9,6 +9,7 @@ window.Launchpad = (() => {
 
     // App Data (Full List - Ordered for DOCK)
     const apps = [
+        { name: '生物育种科学', icon: '🌱', link: 'hub-auto-146.html', color: '#818cf8', category: 'discovery' },
         { name: '电子科学与技术', icon: '📡', link: 'hub-auto-145.html', color: '#2dd4bf', category: 'discovery' },
         { name: '精密仪器与机械', icon: '📐', link: 'hub-auto-144.html', color: '#34d399', category: 'discovery' },
         { name: '智能采矿工程', icon: '⛏️', link: 'hub-auto-143.html', color: '#f87171', category: 'discovery' },
