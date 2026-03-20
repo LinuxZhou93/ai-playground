@@ -219,7 +219,7 @@ window.Launchpad = (() => {
         { name: '神经进化', icon: '🧬', link: 'psyche_x_system/index.html', color: 'var(--accent)', category: 'system' },
         { name: '学习方法', icon: '🧠', link: 'study-methods.html', color: '#8b5cf6', category: 'system' },
         { name: '学习中心', icon: '🏫', link: 'learn.html', color: '#8B5CF6', category: 'system' },
-
+        { name: '叮当状态', icon: '💻', link: 'dingdang-status.html', color: '#00f0ff', category: 'system' },
         { name: '升学指南', icon: '🎓', link: 'admission-guide.html', color: '#10b981', category: 'system' },
 
         // --- SUBJECT MODULES (Items 8-25 in user order) ---

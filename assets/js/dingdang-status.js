@@ -1,4 +1,4 @@
-// --- Mac Status Data Sync ---
+// --- Dingdang Status Data Sync ---
 const macStatusUrl = 'http://localhost:18888/status';
 
 async function fetchMacStatus() {
@@ -27,9 +27,9 @@ function updateMacStatusUI(data) {
          // Show simulated offline data if the server isn't available
          let html = '';
          const mockData = [
-             {name: 'Mac Node 1', status: 'offline', cpu: '-', mem: '-'},
-             {name: 'Mac Studio (DingDang)', status: 'offline', cpu: '-', mem: '-'},
-             {name: 'Macbook Air M3', status: 'offline', cpu: '-', mem: '-'}
+             {name: '叮当主控 (DingDang)', status: 'offline', cpu: '-', mem: '-'},
+             {name: '计算节点 01', status: 'offline', cpu: '-', mem: '-'},
+             {name: '计算节点 02', status: 'offline', cpu: '-', mem: '-'}
          ];
           
          mockData.forEach(mac => {
@@ -43,7 +43,10 @@ function updateMacStatusUI(data) {
     const macs = data.devices || [];
     
     if (macs.length === 0) {
-        statusContainer.innerHTML = `<div class="mac-status-item error"><span>No Nodes Connected</span></div>`;
+        statusContainer.innerHTML = `<div class="dingdang-card" style="text-align: center; color: #ff003c; width: 100%;">
+            <div style="font-size: 1.5rem; margin-bottom: 10px;">Warning</div>
+            <span>No compute nodes connected to the cluster.</span>
+        </div>`;
         return;
     }
     
@@ -57,7 +60,7 @@ function updateMacStatusUI(data) {
 function createMacStatusHTML(mac) {
     const isOnline = mac.status === 'online';
     const badgeClass = isOnline ? 'online' : 'offline';
-    const badgeText = isOnline ? 'ON' : 'OFF';
+    const badgeText = isOnline ? 'ONLINE' : 'OFFLINE';
     
     // Parse values safely
     let cpuVal = 0, memVal = 0;
@@ -79,36 +82,36 @@ function createMacStatusHTML(mac) {
     const cpuClass = getLoadClass(cpuVal);
     const memClass = getLoadClass(memVal);
     
-    // Fallback manual truncation just in case CSS ellipsis isn't enough for very long string
+    // Fallback manual truncation
     const safeName = mac.name || 'Unknown Node';
     const titleAttr = safeName.replace(/"/g, '&quot;');
 
     return `
-        <div class="mac-status-item">
-            <div class="mac-header">
-                <div class="mac-name-block">
-                    <span class="status-badge ${badgeClass}">${badgeText}</span>
-                    <span class="mac-name-text" title="${titleAttr}">${safeName}</span>
+        <div class="dingdang-card">
+            <div class="card-header-row">
+                <div class="card-title-group">
+                    <span class="node-name" title="${titleAttr}">${safeName}</span>
                 </div>
+                <div class="status-badge ${badgeClass}">${badgeText}</div>
             </div>
             
-            <div class="mac-details">
+            <div class="resource-section">
                 <!-- CPU Bar -->
-                <div class="resource-bar-container">
-                    <div class="resource-label">CPU</div>
-                    <div class="resource-track">
-                        <div class="resource-fill ${cpuClass}" style="width: ${cpuVal}%;"></div>
+                <div class="resource-row">
+                    <div class="res-label">CPU</div>
+                    <div class="res-track">
+                        <div class="res-fill ${cpuClass}" style="width: ${cpuVal}%;"></div>
                     </div>
-                    <div class="resource-value">${cpuDisplay}</div>
+                    <div class="res-value">${cpuDisplay}</div>
                 </div>
 
                 <!-- RAM Bar -->
-                <div class="resource-bar-container">
-                    <div class="resource-label">RAM</div>
-                    <div class="resource-track">
-                        <div class="resource-fill ${memClass}" style="width: ${memVal}%;"></div>
+                <div class="resource-row">
+                    <div class="res-label">RAM</div>
+                    <div class="res-track">
+                        <div class="res-fill ${memClass}" style="width: ${memVal}%;"></div>
                     </div>
-                    <div class="resource-value">${memDisplay}</div>
+                    <div class="res-value">${memDisplay}</div>
                 </div>
             </div>
         </div>
