@@ -91,30 +91,25 @@ function createMacStatusHTML(mac) {
             <div class="mac-details">
                 <!-- CPU Bar -->
                 <div class="resource-bar-container">
-                    <div class="resource-label">
-                        <span>CPU</span>
-                        <span class="resource-value">${cpuDisplay}</span>
-                    </div>
+                    <div class="resource-label">CPU</div>
                     <div class="resource-track">
                         <div class="resource-fill ${cpuClass}" style="width: ${cpuVal}%;"></div>
                     </div>
+                    <div class="resource-value">${cpuDisplay}</div>
                 </div>
 
                 <!-- RAM Bar -->
                 <div class="resource-bar-container">
-                    <div class="resource-label">
-                        <span>RAM</span>
-                        <span class="resource-value">${memDisplay}</span>
-                    </div>
+                    <div class="resource-label">RAM</div>
                     <div class="resource-track">
                         <div class="resource-fill ${memClass}" style="width: ${memVal}%;"></div>
                     </div>
+                    <div class="resource-value">${memDisplay}</div>
                 </div>
             </div>
         </div>
     `;
 }
-
 
 // Initialization and automatic updates
 document.addEventListener('DOMContentLoaded', () => {
