@@ -78,16 +78,13 @@ function createMacStatusHTML(mac) {
 
     const cpuClass = getLoadClass(cpuVal);
     const memClass = getLoadClass(memVal);
-    
-    // Simplified Mac Name presentation
-    const displayName = mac.name.length > 20 ? mac.name.substring(0, 17) + "..." : mac.name;
 
     return `
         <div class="mac-status-item">
             <div class="mac-header">
                 <div class="mac-name-block">
                     <span class="status-badge ${badgeClass}">${badgeText}</span>
-                    <span>${displayName}</span>
+                    <span class="mac-name-text" title="${mac.name}">${mac.name}</span>
                 </div>
             </div>
             
