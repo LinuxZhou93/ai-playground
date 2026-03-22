@@ -340,7 +340,7 @@ window.Launchpad = (() => {
         // Listen for subscription updates
         window.addEventListener('subscription_updated', () => {
             renderPages();
-            // updateDock(); // Keep locks updated but don't rebuild
+            updateDock(); // Keep locks updated but don't rebuild
         });
         // setTimeout(updateDock, 500); // Disabling dynamic dock override
     }
