@@ -128,8 +128,7 @@ const SubscriptionManager = {
             const { error: pError } = await this.client.from('profiles').upsert({
                 id: this.user.id,
                 username: uName,
-                expiry_date: defaultExpiry, 
-                updated_at: new Date()
+                expiry_date: defaultExpiry
             });
             if (pError) throw pError;
 
@@ -338,8 +337,7 @@ const SubscriptionManager = {
                 .upsert({
                     id: this.user.id,
                     expiry_date: currentExpiry.toISOString(),
-                    username: this.profile?.username || this.user.email.split('@')[0],
-                    updated_at: new Date()
+                    username: this.profile?.username || this.user.email.split('@')[0]
                 });
 
             if (pError) throw new Error('更新会员期限出错: ' + pError.message);
