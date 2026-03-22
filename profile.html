@@ -245,6 +245,7 @@
             font-size: 20px;
             background: linear-gradient(to right, #fff, var(--primary));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 10px 0 5px;
             font-weight: bold;
@@ -914,6 +915,7 @@
         .btn-cancel:hover {
             color: #fff;
             border-color: #fff;
+        }
         }
     </style>
 
@@ -2259,9 +2261,27 @@
                     }
                 }
             } else {
-                // USER MODE
                 document.getElementById('uName').innerText = profile?.username || user.email.split('@')[0];
-                document.getElementById('uRole').innerText = isVIP ? '尊享会员 VIP' : '普通用户';
+                const uRoleEl = document.getElementById('uRole');
+                
+                if (isVIP) {
+                    uRoleEl.innerText = '👑 尊享会员';
+                    uRoleEl.style.cursor = 'pointer';
+                    uRoleEl.onclick = function() {
+                        const status = manager.getSubscriptionStatus();
+                        if (status && status.expiryDate) {
+                            const dateStr = new Date(status.expiryDate).toLocaleDateString();
+                            // Differentiate between annual and monthly based roughly on duration context (or just say VIP)
+                            const isLifetime = new Date(status.expiryDate).getFullYear() > 2050;
+                            const levelName = isLifetime ? '【终身会员】' : '【年度VIP会员】';
+                            alert('💎 ' + levelName + '\n您的会员有效期至：' + dateStr);
+                        }
+                    };
+                } else {
+                    uRoleEl.innerText = '普通用户';
+                    uRoleEl.style.cursor = 'default';
+                    uRoleEl.onclick = null;
+                }
                 
                 const customAvatar = localStorage.getItem('user_avatar');
                 if (customAvatar) {
