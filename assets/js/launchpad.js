@@ -566,11 +566,18 @@ window.Launchpad = (() => {
             // Support both old HTML onclick and new dynamic dataset.link
             let link = item.dataset.link;
             let onclickStr = null;
-            if (!link) {
+            
+            // If we previously locked it and moved onclick to originalClick, use that
+            if (!link && item.dataset.originalClick) {
+                onclickStr = item.dataset.originalClick;
+            } else if (!link) {
                 onclickStr = item.getAttribute('onclick');
-                if (!onclickStr || !onclickStr.includes('location.href')) return;
+            }
+
+            if (!link && onclickStr && onclickStr.includes('location.href')) {
                 link = onclickStr.match(/['"]([^'"]+)['"]/)?.[1];
             }
+            
             if (!link) return;
 
             let isLocked = false;

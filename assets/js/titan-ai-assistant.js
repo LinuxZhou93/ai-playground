@@ -57,6 +57,30 @@ class TitanAIAssistant {
                 border: 2px solid rgba(255, 255, 255, 0.2);
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 color: white;
+                position: relative;
+            }
+            .ai-fab::before {
+                content: '🤖 智能学科助教';
+                position: absolute;
+                right: 75px;
+                top: 50%;
+                transform: translateY(-50%) translateX(15px);
+                background: rgba(10, 15, 25, 0.95);
+                color: #38bdf8;
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: bold;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1);
+                border: 1px solid rgba(56, 189, 248, 0.4);
+                box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);
+            }
+            .ai-fab:hover::before {
+                opacity: 1;
+                transform: translateY(-50%) translateX(0);
             }
             .ai-fab:hover {
                 transform: scale(1.1);
