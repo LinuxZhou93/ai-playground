@@ -414,8 +414,9 @@ class TitanAIAssistant {
                     const renderer = new window.marked.Renderer();
                     // 核心修复：拦截文本，将 $...$ 转化为美观的物理公式标签
                     const originalText = renderer.text.bind(renderer);
-                    renderer.text = (text) => {
-                        return text.replace(/\$([^\$]+)\$/g, '<span class="ai-math-inline">$1</span>');
+                    renderer.text = (arg) => {
+                        const str = typeof arg === 'string' ? arg : (arg && arg.text ? arg.text : '');
+                        return str.replace(/\$([^\$]+)\$/g, '<span class="ai-math-inline">$1</span>');
                     };
                     
                     window.marked.setOptions({

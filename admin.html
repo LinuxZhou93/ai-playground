@@ -403,6 +403,9 @@
             <span>📚</span> Modules / 模块配置
         </div>
         <div class="nav-item">
+            <span>💡</span> Analysis / 数据分析
+        </div>
+        <div class="nav-item">
             <span>⚙️</span> Settings / 系统设置
         </div>
     </div>
@@ -642,6 +645,66 @@
                 </div>
             </div>
         </div>
+
+        <!-- Tab 4: Analysis -->
+        <div id="section-analysis" class="tab-section" style="display: none;">
+            <div class="page-header">
+                <h1 class="page-title">AI Analytics Center / 客户分析中心 (Data Lake)</h1>
+                <p class="page-subtitle">Real-time data lake insights and customer intent analysis. / 实时并发提取用户多模态请求与模型算力消耗。</p>
+            </div>
+            
+            <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+                <!-- Stat Cards -->
+                <div class="stat-card" style="border-top: 4px solid var(--accent); background: linear-gradient(145deg, rgba(30,41,59,1) 0%, rgba(15,23,42,1) 100%);">
+                    <div class="stat-label">Total Logs / API 总分发 (Limit 100)</div>
+                    <div style="font-size: 32px; font-weight: bold; color: white;" id="an-total-logs">0</div>
+                    <div style="font-size: 11px; color: var(--success); margin-top: 8px;"><span style="display:inline-block; width:6px; height:6px; background:var(--success); border-radius:50%; margin-right:4px; box-shadow: 0 0 8px var(--success);"></span>Live Syncing / 热数据连接正常</div>
+                </div>
+                <div class="stat-card" style="border-top: 4px solid #8b5cf6; background: linear-gradient(145deg, rgba(30,41,59,1) 0%, rgba(15,23,42,1) 100%);">
+                    <div class="stat-label">Total Token Calc / 模型总耗算力</div>
+                    <div style="font-size: 32px; font-weight: bold; color: white;" id="an-total-tokens">0 <span style="font-size:14px; color:var(--text-muted)">tk</span></div>
+                    <div style="font-size: 11px; color: #8b5cf6; margin-top: 8px;">Cost Estimate / 资源池核算中</div>
+                </div>
+                <div class="stat-card" style="border-top: 4px solid #f59e0b; background: linear-gradient(145deg, rgba(30,41,59,1) 0%, rgba(15,23,42,1) 100%);">
+                    <div class="stat-label">Media Inputs / 多模态请求浓度</div>
+                    <div style="font-size: 32px; font-weight: bold; color: white;" id="an-media-ratio">0%</div>
+                    <div style="font-size: 11px; color: #f59e0b; margin-top: 8px;">Voice & Image Filtered / 去重清洗</div>
+                </div>
+            </div>
+
+            <!-- Full width list -->
+            <div class="panel-card" style="grid-column: span 3; margin-top: 0px;">
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <div style="display:flex; flex-direction:column;">
+                       <span class="panel-title" style="color:#fff;">Real-time Command Stream / 客户会话通栏长列</span>
+                       <span style="font-size:11px; color:#64748b; margin-top:4px;">Automatically filtered and safely extracted without heavy media bytes. / 高并发写入优化，不阻塞用户长轮询</span>
+                    </div>
+                    <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="fetchAnalysisLogs()">🔄 Refresh / 手动拉取最新记录</button>
+                </div>
+                
+                <!-- Mini visual line chart placeholder -->
+                <div style="width: 100%; height: 60px; background: rgb(24 33 47); border-radius: 8px; margin-bottom: 24px; display: flex; align-items: flex-end; padding: 0 10px; gap: 4px;" id="an-chart-bars">
+                   <!-- bars injected by JS -->
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: separate; border-spacing: 0; color: var(--text-muted); font-size:13px;">
+                        <thead>
+                            <tr style="text-align: left; background: rgba(0,0,0,0.2);">
+                                <th style="padding: 12px; width: 15%; border-radius: 6px 0 0 6px;">Time / 发生时间</th>
+                                <th style="padding: 12px; width: 18%">User UUID / 客户端ID</th>
+                                <th style="padding: 12px; width: 10%">Role / 角色</th>
+                                <th style="padding: 12px; width: 42%">Content Intent / 净对话与意图剥离</th>
+                                <th style="padding: 12px; width: 15%; border-radius: 0 6px 6px 0;">Metrics / 性能探针</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analysis-table-body">
+                            <tr><td colspan="5" style="padding: 32px; text-align: center; color:var(--text-muted)">Waiting for Data Lake connection... / 等待连接...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Logic -->
@@ -656,31 +719,135 @@
             document.getElementById('section-' + tabId).style.display = 'block';
 
             // Highlight nav
-            const map = { 'dashboard': 0, 'users': 1, 'vouchers': 2 }; // Index based roughly
+            const map = { 'dashboard': 0, 'users': 1, 'vouchers': 2, 'analysis': 3 }; // Added analysis
             // Simple approach: find nav item by text content or just manually toggle
             const navs = document.querySelectorAll('.nav-item');
             if (navs[map[tabId]]) navs[map[tabId]].classList.add('active');
 
             if (tabId === 'vouchers') renderVoucherTable();
+            if (tabId === 'analysis') fetchAnalysisLogs();
         }
 
         // Bind Sidebar Clicks
         document.addEventListener('DOMContentLoaded', () => {
             const navs = document.querySelectorAll('.nav-item');
-            if (navs.length >= 4) {
+            if (navs.length >= 5) {
                 navs[0].onclick = () => switchTab('dashboard'); // Dashboard
                 navs[1].onclick = () => switchTab('users');     // Users
                 navs[2].onclick = () => switchTab('vouchers');  // Courses -> reused as Vouchers/Modules
-                navs[3].onclick = () => alert("Settings coming soon / 设置开发中");
+                navs[3].onclick = () => switchTab('analysis');
+                navs[4].onclick = () => alert("Settings coming soon / 设置开发中");
 
-                // Rename nav item 3 for clarity
-                navs[2].querySelector('span').innerText = '🎫';
-                navs[2].childNodes[2].textContent = ' Vouchers / 卡密中心';
+                // Rename nav item for clarity
+                navs[2].innerHTML = '<span>🎫</span> Vouchers / 卡密模块';
+                navs[3].innerHTML = '<span>💡</span> Analysis / 客户数据分析';
 
                 // Init load
                 renderVoucherTable();
             }
         });
+
+        // --- Analysis Data Lake Logic ---
+        async function fetchAnalysisLogs() {
+            const url = localStorage.getItem('s_url');
+            const key = localStorage.getItem('s_key');
+            if (!url || !key) return;
+            
+            const tbody = document.getElementById('analysis-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" style="padding: 32px; text-align: center;"><div class="logo-icon" style="margin: 0 auto 12px; width: 32px; height: 32px; animation: ai-fab-breath 1s infinite alternate; font-size:14px;">📡</div>正在从云端读取万级日志瀑布流...</td></tr>';
+            
+            try {
+                // Fetching the last 100 logs
+                const res = await fetch(`${url}/rest/v1/ai_chat_logs?select=*&order=created_at.desc&limit=100`, {
+                    headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+                });
+                
+                if (!res.ok) throw new Error("Failed to fetch data lake state");
+                const logs = await res.json();
+                
+                document.getElementById('an-total-logs').innerText = logs.length >= 100 ? '100+' : logs.length;
+                
+                let tokens = 0;
+                let mediaCount = 0;
+                let userInputs = 0;
+                
+                // Chart Bars Simulation with real array
+                const chartBox = document.getElementById('an-chart-bars');
+                chartBox.innerHTML = '';
+                
+                tbody.innerHTML = '';
+                logs.forEach(log => {
+                    // Update stats
+                    if (log.role === 'assistant' && log.metadata && log.metadata.tokens_estimate) {
+                        tokens += parseInt(log.metadata.tokens_estimate) || 0;
+                    }
+                    if (log.role === 'user') {
+                        userInputs++;
+                        if (log.metadata && log.metadata.has_media) {
+                            mediaCount++;
+                        }
+                    }
+                    
+                    // Add mini bar
+                    const barH = 15 + Math.random() * 35; // random visual height correlation 
+                    const barCol = log.role === 'user' ? '#38bdf8' : '#8b5cf6';
+                    chartBox.innerHTML += `<div style="flex:1; max-width:12px; height: ${barH}px; background: ${barCol}; opacity: 0.8; border-radius: 2px 2px 0 0;" title="${log.role}"></div>`;
+                    
+                    // Table rows
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #334155';
+                    tr.style.transition = '0.2s';
+                    tr.onmouseenter = () => tr.style.background = 'rgba(59, 130, 246, 0.05)';
+                    tr.onmouseleave = () => tr.style.background = 'transparent';
+                    
+                    const timeStr = new Date(log.created_at).toLocaleString('zh-CN', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                    const uidStr = log.user_id ? log.user_id.substring(0,6)+'...' : 'Anonymous User';
+                    
+                    const roleBadge = log.role === 'user' 
+                        ? `<span class="val-badge" style="color: #38bdf8; border-color: rgba(56,189,248,0.3); font-size:10px;">USER</span>`
+                        : `<span class="val-badge" style="color: #8b5cf6; border-color: rgba(139,92,246,0.3); font-size:10px;">TITAN-AI</span>`;
+                        
+                    let contentDisp = log.content ? log.content.substring(0, 100) : '';
+                    if (log.content && log.content.length > 100) contentDisp += '...';
+                    
+                    // Expose Multimodal Badges
+                    if (log.metadata && log.metadata.has_media) {
+                        contentDisp = `<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px; border:1px solid rgba(245,158,11,0.3); font-size: 10px; margin-right: 6px;">🖼️ 媒体附件已切分</span> ` + contentDisp;
+                    }
+                    
+                    let metricsStr = '<span style="color:#64748b">-</span>';
+                    if (log.metadata && (log.metadata.tokens_estimate || log.metadata.duration_ms || log.metadata.has_media)) {
+                         const tk = log.metadata.tokens_estimate ? `${log.metadata.tokens_estimate} tk` : '';
+                         const ms = log.metadata.duration_ms ? `${log.metadata.duration_ms}ms` : '';
+                         const type = log.metadata.media_count ? `${log.metadata.media_count} files` : '';
+                         let output = [tk, ms, type].filter(Boolean).join(' | ');
+                         if(output) {
+                             metricsStr = `<span class="status-tag" style="background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.3);">${output}</span>`;
+                         }
+                    }
+                    
+                    // Sanitize inner text for tags
+                    contentDisp = contentDisp.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&lt;span/g, '<span').replace(/&lt;\/span&gt;/g, '</span>');
+                    
+                    tr.innerHTML = `
+                        <td style="padding: 12px; font-family: monospace;">${timeStr}</td>
+                        <td style="padding: 12px; color: #94a3b8; font-weight:bold;">${uidStr}</td>
+                        <td style="padding: 12px;">${roleBadge}</td>
+                        <td style="padding: 12px; color: #e2e8f0; line-height: 1.5; font-size:13px; word-break: break-all;">${contentDisp}</td>
+                        <td style="padding: 12px;">${metricsStr}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                document.getElementById('an-total-tokens').innerHTML = tokens.toLocaleString() + ' <span style="font-size:14px; color:var(--text-muted)">tk</span>';
+                document.getElementById('an-media-ratio').innerText = userInputs > 0 ? Math.round((mediaCount/userInputs)*100) + '%' : '0%';
+                
+            } catch (e) {
+                console.error("Dashboard Fetch Logs error", e);
+                tbody.innerHTML = `<tr><td colspan="5" style="padding: 24px; text-align: center; color: #ef4444;">❌ 无法读取数据源: ${e.message}。由于安全策略保护，确保后台 Service Key 已经正确连接。</td></tr>`;
+            }
+        }
+
 
         // --- Voucher Logic (Cloud + Local) ---
         async function fetchVoucherDB() {
