@@ -602,7 +602,21 @@ class TitanAIAssistant {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
             </div>
         `;
-        this.appendMessage('user', voiceHTML, true);
+        
+        let pendingImgHTML = '';
+        const hasImage = !!this.pendingImageDataUrl;
+        let pureImgBase64 = null;
+        
+        if (hasImage) {
+            pendingImgHTML = `<img src="${this.pendingImageDataUrl}" class="ai-image-preview" style="margin-bottom: 8px;" />`;
+            pureImgBase64 = this.pendingImageDataUrl.split(',')[1];
+            
+            // 清理本地存根
+            this.pendingImageDataUrl = null;
+            this.pendingArea.style.display = 'none';
+        }
+
+        this.appendMessage('user', pendingImgHTML + voiceHTML, true);
         this.showTyping();
         
         const reader = new FileReader();
@@ -617,15 +631,14 @@ class TitanAIAssistant {
             const userMessage = {
                 role: 'user',
                 content: [
-                    { type: 'text', text: '请听这段语音并根据语音内容回答我的问题。' },
-                    { 
-                        type: 'image_url', 
-                        image_url: {
-                            url: `data:${audioBlob.type};base64,${base64Audio}`
-                        }
-                    }
+                    { type: 'text', text: hasImage ? '请听这段语音并结合照片里的视觉画面来联合回答我的提问。' : '请听这段语音并根据语音内容回答我的问题。' }
                 ]
             };
+            
+            if (pureImgBase64) {
+                userMessage.content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${pureImgBase64}` } });
+            }
+            userMessage.content.push({ type: 'image_url', image_url: { url: `data:${audioBlob.type};base64,${base64Audio}` } });
 
             this.sendToAPI(userMessage);
         };
