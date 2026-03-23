@@ -345,6 +345,8 @@ class TitanAIAssistant {
                 pointer-events: none;
                 transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 overflow: hidden;
+                user-select: text !important; /* 核心修正：面板级强制开启文本选择能力 */
+                -webkit-user-select: text !important;
             }
             .ai-panel.open {
                 transform: scale(1);
@@ -352,12 +354,12 @@ class TitanAIAssistant {
                 pointer-events: all;
             }
             .ai-panel.expanded {
-                width: 800px;
-                height: 85vh;
-                max-width: 90vw;
+                width: 960px; /* 大气宽度，适合深度阅读 */
+                height: 90vh; /* 撑满高度 */
+                max-width: 95vw;
                 border: 1px solid rgba(56, 189, 248, 0.6);
                 box-shadow: 0 10px 50px rgba(0, 0, 0, 0.8), 0 0 80px rgba(14, 165, 233, 0.2);
-                transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1), height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
             }
             .ai-header {
                 padding: 16px;
@@ -366,6 +368,8 @@ class TitanAIAssistant {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                user-select: none !important; /* 标题栏保持禁止选择，以免干扰拖拽 */
+                -webkit-user-select: none !important;
             }
             #titan-ai-drag-handle { cursor: default; }
             #titan-ai-drag-handle.draggable { cursor: grab; }
@@ -426,11 +430,25 @@ class TitanAIAssistant {
                 scroll-behavior: smooth;
             }
             .ai-chat-area::-webkit-scrollbar {
-                width: 4px;
+                width: 5px;
+                transition: width 0.3s;
+            }
+            .ai-chat-area:hover::-webkit-scrollbar {
+                width: 10px; /* 悬停时变宽，方便拖拽 */
             }
             .ai-chat-area::-webkit-scrollbar-thumb {
-                background: rgba(56, 189, 248, 0.2);
-                border-radius: 4px;
+                background: rgba(56, 189, 248, 0.25);
+                border-radius: 10px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
+                transition: background 0.3s;
+            }
+            .ai-chat-area::-webkit-scrollbar-thumb:hover {
+                background: rgba(56, 189, 248, 0.6);
+                background-clip: padding-box;
+            }
+            .ai-chat-area::-webkit-scrollbar-track {
+                background: transparent;
             }
             .msg-row {
                 display: flex;
@@ -479,6 +497,8 @@ class TitanAIAssistant {
                 letter-spacing: 0.3px;
                 word-wrap: break-word;
                 white-space: pre-wrap;
+                user-select: text !important; /* 强制开启选择能力，方便笔记复制 */
+                -webkit-user-select: text !important;
             }
             .msg-user {
                 background: rgba(56, 189, 248, 0.15);
@@ -495,7 +515,35 @@ class TitanAIAssistant {
                 border-bottom-left-radius: 2px;
                 position: relative;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                user-select: text !important;
+                -webkit-user-select: text !important;
             }
+            .msg-ai *::selection { background: rgba(14, 165, 233, 0.6); color: #fff; }
+            .msg-row.ai { position: relative; }
+            .ai-msg-actions {
+                position: absolute;
+                bottom: -22px;
+                left: 45px;
+                display: flex;
+                gap: 5px;
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+            .msg-row.ai:hover .ai-msg-actions { opacity: 1; }
+            .ai-msg-action-btn {
+                background: rgba(10, 15, 25, 0.8);
+                border: 1px solid rgba(56, 189, 248, 0.2);
+                color: #38bdf8;
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                backdrop-filter: blur(5px);
+            }
+            .ai-msg-action-btn:hover { background: #0ea5e9; color: #fff; }
             .msg-system {
                 align-self: center;
                 font-size: 11px;
@@ -757,38 +805,65 @@ class TitanAIAssistant {
                 50% { opacity: 1; transform: scale(1); filter: blur(0px); }
             }
             
-            /* 稳定版流式输出：仅针对新增区块触发动画，防止全局闪烁 */
+            /* Turbo-Smooth 流式输出：增强布局稳定性，防止回流抖动 */
+            .msg-ai {
+                contain: layout;
+                word-break: break-all;
+                overflow-wrap: break-word;
+            }
             .msg-ai > .new-block {
-                animation: msg-block-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                animation: msg-block-enter 0.3s ease-out forwards;
                 will-change: transform, opacity;
             }
             @keyframes msg-block-enter {
-                from { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+                from { opacity: 0; transform: translateY(6px); filter: blur(1px); }
                 to { opacity: 1; transform: translateY(0); filter: blur(0px); }
             }
             
-            /* 全新全息光标：稳定点位，不随全局重绘抖动 */
+            /* 修正全息光标：使用渐变亮色，增强工业感且不影响文本流 */
             .ai-cursor {
                 display: inline-block;
                 width: 2px;
-                height: 1.2em;
-                background: #38bdf8;
+                height: 1em;
+                background: #0ea5e9;
                 margin-left: 2px;
-                vertical-align: middle;
-                box-shadow: 0 0 8px #38bdf8;
-                animation: ai-cursor-blink 0.8s infinite;
+                vertical-align: text-bottom;
+                box-shadow: 0 0 10px #0ea5e9;
+                animation: ai-cursor-blink 0.5s infinite;
+                pointer-events: none;
             }
             @keyframes ai-cursor-blink {
-                0%, 100% { opacity: 1; }
+                0%, 100% { opacity: 1; filter: brightness(1.5); }
                 50% { opacity: 0; }
             }
             
             .ai-progress-bar {
-                position: absolute; top: 0; left: 0; height: 2px;
-                background: #38bdf8;
-                box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-                transition: width 0.3s ease;
+                position: absolute; top: 0; left: 0; height: 1.5px;
+                background: #0ea5e9;
+                box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+                transition: width 0.2s linear;
                 z-index: 10;
+            }
+
+            .ai-resize-handle {
+                position: absolute;
+                bottom: 0; right: 0;
+                width: 16px; height: 16px;
+                cursor: nwse-resize;
+                z-index: 100;
+                display: none; /* 仅在展开态显示 */
+            }
+            .ai-panel.expanded .ai-resize-handle {
+                display: block;
+                background: linear-gradient(135deg, transparent 50%, rgba(56, 189, 248, 0.3) 50%);
+            }
+            .ai-resize-handle::after {
+                content: '';
+                position: absolute;
+                right: 3px; bottom: 3px;
+                width: 4px; height: 4px;
+                border-right: 2px solid rgba(56, 189, 248, 0.5);
+                border-bottom: 2px solid rgba(56, 189, 248, 0.5);
             }
 
             .ai-chips-wrapper {
@@ -960,6 +1035,7 @@ class TitanAIAssistant {
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
                 </div>
+                <div class="ai-resize-handle" id="titan-ai-resize-handle"></div>
             </div>
             
             <div class="ai-camera-modal" id="titan-ai-camera-modal">
@@ -1002,6 +1078,7 @@ class TitanAIAssistant {
         this.dragHandle = document.getElementById('titan-ai-drag-handle');
         this.expandBtn = document.getElementById('titan-ai-expand-btn');
         this.resetBtn = document.getElementById('titan-ai-reset-btn');
+        this.resizeHandle = document.getElementById('titan-ai-resize-handle');
         this.isExpanded = false;
         
         this.pendingArea = document.getElementById('titan-ai-pending');
@@ -1119,40 +1196,79 @@ class TitanAIAssistant {
             setTimeout(() => this.scrollToBottom(), 300);
         });
 
-        // 拖拽逻辑
+        // 拖拽与缩放逻辑 (Move & Resize Engine)
         let isDragging = false;
+        let isResizing = false;
         let dragStartX, dragStartY;
         let initialLeft, initialTop;
+        let startWidth, startHeight;
+        let rect;
 
         this.dragHandle.addEventListener('mousedown', (e) => {
             if (!this.isExpanded || e.target.closest('.ai-header-controls')) return;
             isDragging = true;
             this.panel.style.transition = 'none';
-            // 拿到真实的物理渲染边缘坐标
-            const rect = this.panel.getBoundingClientRect();
+            rect = this.panel.getBoundingClientRect();
             dragStartX = e.clientX;
             dragStartY = e.clientY;
             initialLeft = rect.left;
             initialTop = rect.top;
             
-            // 为了把拖拽变得最纯粹！我们强行洗去 50% 的概念，用物理 PX 坐标锁死左上角。并且去掉 transform 中令人混淆的 translate
             this.panel.style.left = `${initialLeft}px`;
             this.panel.style.top = `${initialTop}px`;
             this.panel.style.transform = 'scale(1)';
         });
 
+        this.resizeHandle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            isResizing = true;
+            this.panel.style.transition = 'none';
+            rect = this.panel.getBoundingClientRect();
+            startWidth = rect.width;
+            startHeight = rect.height;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            // 锁定左上角，防止 transform: translate(-50%, -50%) 在缩放时导致抖动
+            this.panel.style.transform = 'none';
+            this.panel.style.left = `${initialLeft}px`;
+            this.panel.style.top = `${initialTop}px`;
+        });
+
         document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const dx = e.clientX - dragStartX;
-            const dy = e.clientY - dragStartY;
-            this.panel.style.left = `${initialLeft + dx}px`;
-            this.panel.style.top = `${initialTop + dy}px`;
-            this.panel.style.right = 'auto';
-            this.panel.style.bottom = 'auto';
+            if (isDragging) {
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                this.panel.style.left = `${initialLeft + dx}px`;
+                this.panel.style.top = `${initialTop + dy}px`;
+                this.panel.style.right = 'auto';
+                this.panel.style.bottom = 'auto';
+            } else if (isResizing) {
+                const dw = e.clientX - dragStartX;
+                const dh = e.clientY - dragStartY;
+                
+                const newW = Math.max(400, startWidth + dw);
+                const newH = Math.max(300, startHeight + dh);
+                
+                this.panel.style.width = `${newW}px`;
+                this.panel.style.height = `${newH}px`;
+            }
         });
 
         document.addEventListener('mouseup', () => {
-            if (isDragging) isDragging = false;
+            if (isDragging || isResizing) {
+                if (isResizing) this.saveSession();
+                isDragging = false;
+                isResizing = false;
+                // 复位 transition
+                setTimeout(() => {
+                    if (this.isExpanded) this.panel.style.transition = 'none';
+                    else this.panel.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                }, 50);
+            }
         });
 
         this.sendBtn.addEventListener('click', () => this.sendMessage());
@@ -1947,12 +2063,12 @@ ${currentFullContent}
 【💡 极致排版指令 - Notion Mastery】：
 你不仅是 AI，你是在创作一件工艺品级的学习笔记。必须严格遵守以下法则：
 1. **分层骨架**：严禁单纯文字堆砌。必须使用 Markdown 多级标题 (#, ##) 对逻辑进行分段，并辅以分界线 (---)。
-2. **极客符号**：每个标题和核心结论前，必须配一个契合语境 de Emoji。
-3. **金句化引用**：凡是核心推导结论、关键实验参数或“小创老师温馨建议”，必须使用引用块 (> ) 进行封装。
+2. **极客符号**：每个标题和核心结论前，必须配一个契合语境的 Emoji。
+3. **金句化引用**：核心推导、关键参数或“小创老师建议”，必须使用引用块 (> ) 进行封装。
 4. **多维可视化 (Visual Synergy)**：
-   - **Mermaid 架构图**：凡是涉及逻辑流程、软件架构、Gantt 进度或状态机，**必须**输出 \`\`\`mermaid 代码块。
-   - **极客 ASCII 工程图 (Mechanical Grade)**：讲解机械结构、物理原理或 CAD 草图时，**必须**输出极其专业的 ASCII 图纸。严禁潦草，应使用制表符 (┌─┐, ╽, ╿) 构造出具有工业设计感的示意图。
-5. **超链接引用**：凡是提到任何在线资源、官网、技术文档、视频教程或代码库，**必须**使用 Markdown 标准语法 \`[名称](URL)\` 提供超链接。禁止空谈名称。`;
+   - **Mermaid 架构图 (10.x)**：逻辑流、软件架构或状态机，必须使用 \`\`\`mermaid 标识符开启，禁止夹杂废话代码。
+   - **极客 ASCII 工程图 (Mechanical Grade)**：针对机械原理，输出高精度 ASCII。
+5. **超链接引用**：使用 Markdown 标准语法 \`[名称](URL)\` 提供文档链接。`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {
@@ -2057,23 +2173,37 @@ ${currentFullContent}
                 if (!window.hljs) return;
                 msgDiv.querySelectorAll('pre code').forEach((block) => {
                     const pre = block.parentElement;
-                    if (pre.querySelector('.code-header') || pre.classList.contains('mermaid-ready')) return; 
+                    const isStreaming = !aiReply || i < aiReply.length; // 如果仍在打字流中
                     
                     if (block.classList.contains('language-mermaid') && window.mermaid) {
-                        const content = block.innerText;
+                        if (isStreaming) {
+                            // 在流式输出过程中，仅显示代码原文，带上深色半透明滤镜，不进行 Mermaid 强渲染
+                            pre.style.opacity = '0.5';
+                            return; 
+                        }
+                        
+                        const content = block.innerText.trim();
+                        // 额外防腐：如果代码太短或没闭合，暂不渲染
+                        if (content.length < 10) return; 
+                        
                         const mermaidId = 'mermaid-' + Math.random().toString(36).substr(2, 9);
                         const mermaidDiv = document.createElement('div');
                         mermaidDiv.className = 'mermaid';
                         mermaidDiv.id = mermaidId;
+                        
                         try {
                             window.mermaid.render(mermaidId, content).then(({svg}) => {
                                 mermaidDiv.innerHTML = svg;
+                                pre.style.display = 'none';
+                                pre.classList.add('mermaid-ready');
+                                if (!pre.nextElementSibling || !pre.nextElementSibling.classList.contains('mermaid')) {
+                                    pre.parentNode.insertBefore(mermaidDiv, pre.nextSibling);
+                                }
                                 this.scrollToBottom();
+                            }).catch(err => {
+                                console.warn('Incomplete/Illegal Mermaid, waiting next cycle...', err);
                             });
-                            pre.classList.add('mermaid-ready');
-                            pre.style.display = 'none';
-                            pre.parentNode.insertBefore(mermaidDiv, pre);
-                        } catch (e) { console.error('Mermaid render error:', e); }
+                        } catch (e) { }
                         return;
                     }
                     
@@ -2132,21 +2262,38 @@ ${currentFullContent}
                     msgDiv.innerHTML = window.marked ? window.marked.parse(aiReply) : aiReply;
                     enhanceCodeBlocks();
                     progressBar.style.width = '100%';
-                    setTimeout(() => progressBar.remove(), 300);
+                    setTimeout(() => progressBar.remove(), 200);
                     this.setSendButtonState('send');
                     this.isProcessingQueue = false;
                     this.processQueue();
-                    this.scrollToBottom();
                     if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply);
+                    
+                    // 渲染完后，追加一键复制按钮
+                    const actions = document.createElement('div');
+                    actions.className = 'ai-msg-actions';
+                    actions.innerHTML = `
+                        <button type="button" class="ai-msg-action-btn" title="一键复制全篇回答内容">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            复制全文
+                        </button>
+                    `;
+                    actions.querySelector('button').onclick = (e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(aiReply);
+                        const btn = e.currentTarget;
+                        const originalHTML = btn.innerHTML;
+                        btn.innerHTML = '✅ 已成功复制到剪贴板';
+                        setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+                    };
+                    rowDiv.appendChild(actions);
                     return;
                 }
 
-                // 进阶算法：增量区块比对更新 (Incremental DOM Patching)
-                // 解决原生 marked 全量重绘导致的闪屏、抖动及动画重置问题
-                let step = 1;
-                // 遇到换行或特殊符号时，适当加大步长，模拟“思考后的顺滑产出”
-                if (aiReply[i] === '\n') step = 1;
-                else if (aiReply.substring(i, i+3).includes('```')) step = 3;
+                // Turbo-Burst 算法：大幅增加单次步长 (8-15字符)，降低闪烁感并提高响应速度
+                let step = 8;
+                const remaining = aiReply.length - i;
+                if (remaining < 20) step = 1; // 接近末尾时放慢，增强仪式感
+                else if (aiReply.substring(i, i+10).includes('\n')) step = 1; // 遇到换行时精确处理
 
                 i += step;
                 if (i > aiReply.length) i = aiReply.length;
@@ -2154,44 +2301,38 @@ ${currentFullContent}
                 const currentText = aiReply.substring(0, i);
                 progressBar.style.width = `${(i / aiReply.length) * 100}%`;
 
-                // 核心稳像技术：在内存中预渲染，仅同步变更部分
+                // 极速稳像算法：仅同步并更新 Tail（尾部）变动，不再进行全量 DOM 循环
                 tempContainer.innerHTML = window.marked ? window.marked.parse(currentText) : currentText;
                 const newChildren = Array.from(tempContainer.children);
                 
-                // 1. 同步已有块的内容 (除了最后一个正在增长的块)
+                // 仅对比和更新最后 3 个子节点（大部分历史块是静止的）
+                const startIdx = Math.max(0, newChildren.length - 3);
+                
                 for (let idx = 0; idx < newChildren.length; idx++) {
                     const newChild = newChildren[idx];
                     let existingChild = msgDiv.children[idx];
 
                     if (!existingChild) {
-                        // 发现新块：克隆节点并注入入场动画类
                         const clone = newChild.cloneNode(true);
                         clone.classList.add('new-block');
                         msgDiv.appendChild(clone);
                         lastBlockCount++;
                         this.scrollToBottom(true);
-                    } else if (idx === newChildren.length - 1) {
-                        // 最后一个块：实时同步内文，并追加光标
-                        existingChild.innerHTML = newChild.innerHTML + '<span class="ai-cursor"></span>';
-                    } else if (existingChild.innerHTML !== newChild.innerHTML) {
-                        // 中间块状态同步 (例如表格行增加)
-                        existingChild.innerHTML = newChild.innerHTML;
+                    } else if (idx >= startIdx) {
+                        // 仅对尾部活跃区块进行最小化更新
+                        const newHTML = newChild.innerHTML + (idx === newChildren.length - 1 ? '<span class="ai-cursor"></span>' : '');
+                        if (existingChild.innerHTML !== newHTML) {
+                            existingChild.innerHTML = newHTML;
+                        }
                     }
                 }
 
-                // 每隔 5 个字执行一次全局高亮刷新，确保性能与视觉平衡
-                if (i % 5 === 0) enhanceCodeBlocks();
-                
-                // 智能滚动：仅在行尾或新块产生时触发强制修正，平时平滑跟随
-                if (aiReply[i-1] === '\n' || i % 10 === 0) this.scrollToBottom();
+                // 降低高亮频率，提升渲染性能
+                if (i % 20 === 0) enhanceCodeBlocks();
+                if (i % 15 === 0) this.scrollToBottom();
 
-                let delay = 20; 
-                const char = aiReply[i-1];
-                if (char === '\n') delay = 100;
-                else if ('。！？?'.includes(char)) delay = 200;
-                else if ('，,'.includes(char)) delay = 80;
-
-                setTimeout(typeNextChar, delay);
+                // 降低延迟：从 20ms 降至 10ms，配合大步长实现瞬时感
+                setTimeout(typeNextChar, 10);
             };
 
             typeNextChar();
