@@ -1236,7 +1236,22 @@ class TitanAIAssistant {
                     allowTaint: false,
                     scale: dpr,
                     backgroundColor: null,
-                    logging: false
+                    logging: false,
+                    ignoreElements: (node) => {
+                        if (node.tagName && node.tagName.toLowerCase() === 'img') {
+                            try {
+                                const src = node.src || '';
+                                if (!src.startsWith('data:') && !src.startsWith('blob:')) {
+                                    const imgOrigin = new URL(src, window.location.href).origin;
+                                    if (imgOrigin !== window.location.origin) {
+                                        return true; // Ignore external cross-origin images to prevent poisoning!
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                        // Also ignore background images that might be cross-origin? Too intensive to check computed styles.
+                        return false;
+                    }
                 });
                 
                 // Manually crop the desired selection rect from the high-res canvas
