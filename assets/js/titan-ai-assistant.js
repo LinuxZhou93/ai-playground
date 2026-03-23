@@ -135,7 +135,7 @@ class TitanAIAssistant {
         if (role === 'ai' || role === 'assistant') {
             avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
         } else if (role === 'user') {
-            avatarHTML = '<div class="avatar avatar-user"></div>';
+            avatarHTML = '<div class="avatar avatar-user"><img src="assets/img/user_boy.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
         }
 
         const msgClass = (role === 'ai' || role === 'assistant') ? 'msg msg-ai markdown-body' : 'msg msg-user';
@@ -424,10 +424,12 @@ class TitanAIAssistant {
             }
             .msg {
                 max-width: 85%;
-                padding: 14px 18px;
+                padding: 12px 16px;
                 border-radius: 12px;
                 font-size: 14.5px;
-                line-height: 1.7;
+                line-height: 1.55;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+                letter-spacing: 0.3px;
                 word-wrap: break-word;
                 white-space: pre-wrap;
             }
@@ -739,13 +741,13 @@ class TitanAIAssistant {
             .markdown-body ul, .markdown-body ol { margin-left: 20px; margin-bottom: 12px; margin-top: 6px;}
             .markdown-body li { margin-bottom: 6px; }
             .markdown-body li::marker { color: #38bdf8; font-weight: bold; }
-            .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { margin-top: 22px; margin-bottom: 12px; font-weight: 700; color: #f8fafc; line-height: 1.4; }
+            .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { margin-top: 16px; margin-bottom: 8px; font-weight: 700; color: #f8fafc; line-height: 1.4; }
             .markdown-body h1 { font-size: 1.4em; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; color: #38bdf8;}
             .markdown-body h2 { font-size: 1.25em; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 6px; color: #0ea5e9;}
             .markdown-body h3 { font-size: 1.15em; color: #7dd3fc;}
             .markdown-body h4 { font-size: 1.05em; color: #bae6fd;}
-            .markdown-body strong { color: #facc15; font-weight: 700; background: rgba(250, 204, 21, 0.1); padding: 2px 4px; border-radius: 4px;}
-            .markdown-body p { margin-bottom: 10px; }
+            .markdown-body strong { color: #38bdf8; font-weight: 800; font-size: 1.05em; }
+            .markdown-body p { margin-bottom: 8px; }
             .markdown-body p:last-child { margin-bottom: 0; }
             .markdown-body code:not(pre code) {
                 background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; color: #38bdf8; font-family: Consolas, monospace; font-size: 0.9em;
@@ -1621,33 +1623,7 @@ class TitanAIAssistant {
     async sendAudioToGemini(audioBlob, durationInSeconds = 1) {
         const audioUrl = URL.createObjectURL(audioBlob);
         const barWidth = Math.min(240, Math.max(80, 60 + durationInSeconds * 4));
-        const voiceHTML = `
-            <div class="voice-message-bar" title="点击播放/暂停刚才录制的语音" style="width: ${barWidth}px;" onclick="
-                let a = window.$titanUserAudio;
-                const srcMatch = window.$titanAudioUrl === '${audioUrl}';
-                if (a && !a.paused && srcMatch) {
-                    a.pause();
-                    a.currentTime = 0;
-                    this.classList.remove('playing');
-                    window.$titanAudioUrl = null;
-                } else {
-                    if (a) { a.pause(); a.currentTime = 0; }
-                    document.querySelectorAll('.voice-message-bar.playing').forEach(el => el.classList.remove('playing'));
-                    window.$titanAudioUrl = '${audioUrl}';
-                    window.$titanUserAudio = new Audio('${audioUrl}');
-                    window.$titanUserAudio.play();
-                    this.classList.add('playing');
-                    window.$titanUserAudio.onended = () => { this.classList.remove('playing'); window.$titanAudioUrl = null; };
-                }
-            ">
-                <span style="flex: 1; text-align: left;">${durationInSeconds}"</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
-                    <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" class="voice-wave-1"></path>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" class="voice-wave-2"></path>
-                </svg>
-            </div>
-        `;
+        const voiceHTML = `<div class="voice-message-bar" title="点击播放/暂停刚才录制的语音" style="width: ${barWidth}px;" onclick="let a = window.$titanUserAudio;const srcMatch = window.$titanAudioUrl === '${audioUrl}';if (a && !a.paused && srcMatch) {a.pause();a.currentTime = 0;this.classList.remove('playing');window.$titanAudioUrl = null;} else {if (a) { a.pause(); a.currentTime = 0; }document.querySelectorAll('.voice-message-bar.playing').forEach(el => el.classList.remove('playing'));window.$titanAudioUrl = '${audioUrl}';window.$titanUserAudio = new Audio('${audioUrl}');window.$titanUserAudio.play();this.classList.add('playing');window.$titanUserAudio.onended = () => { this.classList.remove('playing'); window.$titanAudioUrl = null; };}"><span style="flex: 1; text-align: left;">${durationInSeconds}"</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07" class="voice-wave-1"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14" class="voice-wave-2"></path></svg></div>`;
         
         const hasImage = this.pendingImages.length > 0;
         const hasFile = this.pendingDocs.length > 0;
@@ -2008,7 +1984,7 @@ ${currentFullContent}
         
         let avatarHTML = '';
         if (role === 'ai') avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
-        if (role === 'user') avatarHTML = '<div class="avatar avatar-user">👦</div>';
+        if (role === 'user') avatarHTML = '<div class="avatar avatar-user"><img src="assets/img/user_boy.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
         
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg msg-${role}`;
