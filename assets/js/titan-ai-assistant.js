@@ -28,6 +28,7 @@ class TitanAIAssistant {
         this.messageQueue = [];
         this.pendingImages = [];
         this.pendingDocs = [];
+        this.isTypingCancelled = false;
         this.isProcessingQueue = false;
         this.init();
     }
@@ -181,9 +182,12 @@ class TitanAIAssistant {
             }
         } else {
             if (typeof content === 'string') {
-                msgDiv.innerText = content;
+                // UI 渲染时折叠附件内文，以免万字长文满屏滚不到头
+                const displayContent = content.replace(/(\[附件 [^\]]+\]\n)[\s\S]*?(?=\n\n\[附件 |\n\n\[用户问题\]:|\n\n请听这段语音|$)/g, '$1(📎 文档字元已系统折叠，后台模型已读)');
+                msgDiv.innerText = displayContent;
             } else if (Array.isArray(content)) {
                 let textPart = content.find(c => c.type === 'text')?.text || '[多模态视觉文件]';
+                textPart = textPart.replace(/(\[附件 [^\]]+\]\n)[\s\S]*?(?=\n\n\[附件 |\n\n\[用户问题\]:|\n\n请听这段语音|$)/g, '$1(📎 文档字元已折叠保护)');
                 msgDiv.innerText = textPart;
                 const imgPart = content.find(c => c.type === 'image_url');
                 if (imgPart) {
@@ -891,7 +895,6 @@ class TitanAIAssistant {
         this.pendingCloseBtn = document.getElementById('titan-ai-pending-close');
         this.pendingImageDataUrl = null;
         this.pendingTextData = null;
-        this.isPhoneCallMode = false;
         
         this.selectionBtn = document.getElementById('titan-ai-selection');
         this.chips = document.querySelectorAll('.ai-chip'); // 绑定启发式引导磁片
@@ -1937,7 +1940,7 @@ ${currentFullContent}
                         msgDiv.innerText = aiReply.substring(0, i);
                     }
                     this.scrollToBottom(true);
-                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips();
+                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply.substring(0, i));
                     this.isProcessingQueue = false;
                     this.processQueue();
                     return;
@@ -1954,18 +1957,10 @@ ${currentFullContent}
                     this.scrollToBottom();
 
                     // 收尾善后工作
-                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips();
+                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply);
                     this.setSendButtonState('send');
                     this.isProcessingQueue = false;
                     this.processQueue();
-                    
-                    if (this.isPhoneCallMode) {
-                        this.speakReply(aiReply, () => {
-                            if (this.isPhoneCallMode && !this.isRecording) {
-                                this.toggleVoiceRecording();
-                            }
-                        });
-                    }
                     return;
                 }
 
@@ -2268,7 +2263,31 @@ ${currentFullContent}
         }
     }
 
-    updateQuickChips() {
+    updateQuickChips(lastResponseText = '') {
+        const chipsContainer = document.getElementById('titan-ai-chips');
+        if(!chipsContainer) return;
+        
+        let customChips = [];
+        // --- 开始提取上下文连贯的动态子问题 (Dynamic Action Chips Extraction) ---
+        if (lastResponseText) {
+            const lines = lastResponseText.split('\n');
+            lines.forEach(line => {
+                line = line.trim();
+                if ((line.endsWith('？') || line.endsWith('?')) && line.length < 60) {
+                    // 清洗前置的项目符号或数字序号
+                    const cleanQ = line.replace(/^[\-\*1-9\.\s]+/, '');
+                    if (cleanQ.length > 4) {
+                        customChips.push({
+                            label: `🎯 ${cleanQ.length > 14 ? cleanQ.substring(0, 13) + '...' : cleanQ}`,
+                            prompt: cleanQ
+                        });
+                    }
+                }
+            });
+            // 限制最多提取最新的4个选项以防霸屏
+            if (customChips.length > 4) customChips = customChips.slice(-4);
+        }
+
         const defaultChips = [
             { label: '💡 只要提示', prompt: '不要直接回答，请给我一点推理关键线索的启发就好。' },
             { label: '🤔 换个说法', prompt: '用小学生能轻易听明白的通用比方，帮我生动地重新解释一遍。' },
@@ -2278,16 +2297,16 @@ ${currentFullContent}
             { label: '👩‍💻 代码求证', prompt: '能给我写一个与之关联的极简 C++ 或 Python 核心伪代码实现来看看吗？' }
         ];
         
-        // 随时化提取 3-4 枚不同的启发策略胶囊
-        const shuffled = defaultChips.sort(() => 0.5 - Math.random());
-        const drawCount = Math.floor(Math.random() * 2) + 3; // 随机 3 个 或 4 个
-        const selected = shuffled.slice(0, drawCount);
-        
-        const chipsContainer = document.getElementById('titan-ai-chips');
-        if(!chipsContainer) return;
-        
+        // 融合动态与系统预设选项：动态优先，如果不满3个，加入一些随机固定项凑数
+        let resultPool = [...customChips];
+        if (resultPool.length < 3) {
+            const shuffled = defaultChips.sort(() => 0.5 - Math.random());
+            const needed = (Math.floor(Math.random() * 2) + 3) - resultPool.length;
+            resultPool = resultPool.concat(shuffled.slice(0, needed));
+        }
+
         chipsContainer.innerHTML = '';
-        selected.forEach(chipData => {
+        resultPool.forEach(chipData => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'ai-chip';
