@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国防科技：现代战争的钢铁洪流 | Tech Odyssey</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="libs/hls.min.js"></script>
+    <script src="libs/marked.min.js"></script>
+
+    <!-- 专业动画库 -->
+    <script src="https://cdn.jsdelivr.net/npm/fireworks-js@2.x/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="libs/three.min.js"></script>
+
+    
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: white;
+        }
+
+        .glass {
+            background: rgba(20, 30, 20, 0.7);
+            /* Slightly green tint */
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(34, 197, 94, 0.6), rgba(16, 185, 129, 0.6));
+            border-radius: 4px;
+        }
+
+        .lesson-item {
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .lesson-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(2px);
+        }
+
+        .lesson-item.active {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.1));
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        #fireworks-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #fireworks-container.active {
+            opacity: 1;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="bg-black text-white">
+    <canvas id="fireworks-container"></canvas>
+
+    <div id="app" class="h-screen flex flex-col" v-cloak>
+        <!-- Navigation -->
+        <nav class="h-16 glass border-b border-green-500/20 flex-shrink-0">
+            <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 rounded bg-gradient-to-br from-green-600 to-emerald-600 flex items-center justify-center font-bold">
+                        M</div>
+                    <span class="font-bold text-xl">Future <span class="text-green-400">Defense</span></span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="profile.html" class="text-sm text-slate-400 hover:text-white transition-colors">←
+                        返回用户中心</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar -->
+            <aside class="w-80 glass border-r border-white/10 overflow-y-auto">
+                <div class="p-6">
+                    <h2 class="text-2xl font-bold mb-2">{{ course.title }}</h2>
+                    <p class="text-sm text-gray-400 mb-6">{{ course.description }}</p>
+
+                    <!-- Progress -->
+                    <div class="mb-6">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span>学习进度</span>
+                            <span>{{ completedLessons }}/{{ totalLessons }}</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500"
+                                :style="{ width: progressPercentage + '%' }"></div>
+                        </div>
+                    </div>
+
+                    <!-- Lesson List -->
+                    <div class="space-y-2">
+                        <div v-for="(lesson, index) in lessons" :key="lesson.id" @click="selectLesson(lesson)"
+                            class="lesson-item p-4 rounded-xl cursor-pointer"
+                            :class="{ 'active': currentLesson?.id === lesson.id }">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                    :class="lesson.completed ? 'bg-green-500' : 'bg-gray-700'">
+                                    {{ lesson.completed ? '✓' : index + 1 }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-semibold text-sm mb-1">{{ lesson.title }}</h4>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                        <span>{{ getLessonTypeLabel(lesson.type) }}</span>
+                                        <span v-if="lesson.duration_seconds">• {{
+                                            formatDuration(lesson.duration_seconds) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Area -->
+            <main class="flex-1 overflow-y-auto bg-[#0a0a0a] relative">
+                <!-- Background Grid -->
+                <div class="absolute inset-0 z-0 opacity-20"
+                    style="background-image: linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px); background-size: 40px 40px;">
+                </div>
+
+                <div class="max-w-5xl mx-auto p-8 relative z-10">
+                    <div v-if="loading" class="flex justify-center py-20">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+                    </div>
+
+                    <!-- Video Lesson -->
+                    <div v-else-if="currentLesson?.type === 'video'" class="space-y-6">
+                        <div
+                            class="aspect-video bg-black rounded-2xl overflow-hidden relative group border border-green-900/50 shadow-2xl shadow-green-900/20">
+                            <iframe :src="getEmbedUrl(currentLesson.content_url)" class="w-full h-full" frameborder="0"
+                                allowfullscreen></iframe>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold">{{ currentLesson.title }}</h1>
+                            <div class="flex items-center gap-4 text-sm text-gray-400 mb-6 mt-2">
+                                <span
+                                    class="bg-green-900/30 px-2 py-1 rounded text-green-400 border border-green-500/30">核心课程</span>
+                                <span>⏱️ {{ formatDuration(currentLesson.duration_seconds) }}</span>
+                            </div>
+                            <div class="flex gap-4">
+                                <button @click="markAsCompleted" :disabled="currentLesson.completed"
+                                    class="px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold hover:scale-105 transition-transform">
+                                    {{ currentLesson.completed ? '✓ 已完成' : '标记为完成' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reading Lesson -->
+                    <div v-else-if="currentLesson?.type === 'reading'"
+                        class="glass rounded-2xl p-8 border border-green-500/20">
+                        <h1 class="text-3xl font-bold mb-6 text-green-400">{{ currentLesson.title }}</h1>
+                        <div class="prose prose-invert max-w-none mb-8" v-html="renderMarkdown(currentLesson.content)">
+                        </div>
+
+                        <!-- 🎮 Interactive: Tank Lab (Lesson 4) -->
+                        <div v-if="currentLesson.id === 4"
+                            class="bg-gray-900/80 p-6 rounded-xl border border-green-700 mb-8 relative overflow-hidden">
+                            <div
+                                class="absolute top-0 right-0 p-4 opacity-10 font-mono text-4xl font-bold text-green-500">
+                                TOP SECRET</div>
+                            <h3 class="text-xl font-bold mb-4 text-green-400 flex items-center gap-2">
+                                🛡️ 主战坦克组装实验室 <span
+                                    class="text-xs text-black bg-green-400 px-2 py-1 rounded font-bold">Interactive</span>
+                            </h3>
+                            <p class="mb-6 text-gray-400 text-sm">请从右侧零件库中选择正确的组件，组装出一台现代主战坦克 (MBT)。</p>
+
+                            <div class="flex flex-col md:flex-row gap-8">
+                                <!-- Blueprint Area -->
+                                <div
+                                    class="flex-1 border-2 border-dashed border-green-800 rounded-lg p-8 flex items-center justify-center min-h-[300px] relative bg-black/40">
+                                    <div v-if="assembledParts.length < 3" class="text-center text-green-800">
+                                        <div class="text-6xl mb-2">⚙️</div>
+                                        <div class="font-mono">BLUEPRINT EMPTY</div>
+                                    </div>
+                                    <div v-else class="text-center animate-pulse">
+                                        <div class="text-6xl mb-4">🦾</div>
+                                        <h4 class="text-2xl font-bold text-green-400">系统组装完成</h4>
+                                        <div class="text-sm text-green-600 mt-2 font-mono">SYSTEM ONLINE</div>
+                                    </div>
+                                </div>
+
+                                <!-- Parts Inventory -->
+                                <div class="w-full md:w-64 space-y-3">
+                                    <div class="text-xs font-bold text-gray-500 uppercase">Components Library</div>
+                                    <div v-for="part in tankParts" :key="part.id" @click="installPart(part)"
+                                        class="p-4 bg-gray-800 border border-gray-700 rounded hover:border-green-500 cursor-pointer transition-all hover:bg-gray-700 flex justify-between items-center group">
+                                        <span class="text-sm group-hover:text-green-300">{{ part.name }}</span>
+                                        <span v-if="isPartInstalled(part.id)"
+                                            class="text-green-500 text-xs">Installed</span>
+                                        <span v-else class="text-gray-600 text-xs">+Add</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 font-mono text-sm h-6"
+                                :class="gameFeedback.type === 'success' ? 'text-green-400' : 'text-red-400'">
+                                > {{ gameFeedback.message }}
+                            </div>
+
+                            <div class="mt-8 flex justify-end">
+                                <button @click="markAsCompleted" :disabled="assembledParts.length < 3"
+                                    class="px-6 py-3 rounded-xl bg-green-900 border border-green-500 text-green-400 font-bold hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {{ currentLesson.completed ? '✓ 任务完成' : '提交蓝图' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Lesson -->
+                    <div v-else-if="currentLesson?.type === 'quiz'" class="max-w-3xl mx-auto">
+                        <div class="glass rounded-2xl p-8 border border-green-500/20">
+                            <h2 class="text-2xl font-bold mb-6 text-green-400 font-mono">MISSION DEBRIEFING / 任务简报</h2>
+                            <div v-if="!quizStarted">
+                                <p class="mb-6 text-gray-400">准备好验证你的战术理论知识了吗？</p>
+                                <button @click="startQuiz"
+                                    class="px-8 py-3 bg-green-600 hover:bg-green-500 rounded font-bold">开始考核</button>
+                            </div>
+                            <div v-else-if="!quizCompleted">
+                                <div class="mb-4 flex justify-between text-sm text-green-600 font-mono">
+                                    <span>Q: {{ currentQuestionIndex + 1 }}/{{ quizQuestions.length }}</span>
+                                </div>
+                                <h3 class="text-xl font-bold mb-6">{{ quizQuestions[currentQuestionIndex].text }}</h3>
+                                <div class="space-y-3">
+                                    <div v-for="(option, idx) in quizQuestions[currentQuestionIndex].options" :key="idx"
+                                        @click="selectOption(idx)"
+                                        class="p-4 rounded border transition-all cursor-pointer font-mono text-sm"
+                                        :class="getOptionClass(idx)">
+                                        {{ String.fromCharCode(65 + idx) }}. {{ option }}
+                                    </div>
+                                </div>
+                                <div v-if="hasAnsweredCurrent" class="mt-6 flex justify-end">
+                                    <button @click="nextQuestion"
+                                        class="px-6 py-2 bg-white text-black font-bold rounded">
+                                        {{ currentQuestionIndex < quizQuestions.length - 1 ? 'Next Target' : 'Finish' }}
+                                            </button>
+                                </div>
+                            </div>
+                            <div v-else class="text-center py-8">
+                                <div class="text-6xl mb-4">🎖️</div>
+                                <h3 class="text-2xl font-bold mb-2">考核结束</h3>
+                                <div class="text-4xl font-bold text-green-400 mb-6">{{ quizScore }}%</div>
+                                <button @click="markAsCompleted"
+                                    class="px-6 py-2 bg-green-600 rounded font-bold">归队</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const loading = ref(false);
+                const course = ref({
+                    title: '国防科技概论：现代战争的钢铁洪流',
+                    description: '探索隐身战机、主战坦克、无人机蜂群等尖端军事科技不仅改变了战争形态，更推动了材料学与信息技术的民用化。'
+                });
+
+                const lessons = ref([
+                    {
+                        id: 1, type: 'video', title: 'Ep.1 现代战争的演变：从机械化到信息化',
+                        duration_seconds: 600, completed: false,
+                        content_url: 'https://www.bilibili.com/video/BV1Ax411w7Fh' // 占位
+                    },
+                    {
+                        id: 2, type: 'reading', title: 'Ep.2 如果雷达看不见：隐身技术解密',
+                        completed: false,
+                        content: `# 隐身技术：消失在雷达屏幕上\n\n## 什么是雷达散射截面 (RCS)?\n雷达通过发射无线电波并接收由于目标反射而产生的回波来探测目标。RCS 越小，目标在雷达上就越难被发现。\n\n## F-22 的隐身秘密\n1. **外形设计**：平行边缘设计，将雷达波反射到非威胁方向。\n2. **吸波材料**：涂层能吸收雷达波的能量，转化为热能。\n\n> 思考：为什么现代隐身战机都没有外挂导弹？`
+                    },
+                    {
+                        id: 3, type: 'video', title: 'Ep.3 无人机蜂群战术', type: 'video', duration_seconds: 480, completed: false, content_url: 'https://www.bilibili.com/video/BV1ZK4y1b7Uj'
+                    },
+                    {
+                        id: 4, type: 'reading', title: 'Ep.4 [实验室] 主战坦克组装', completed: false,
+                        content: '## 陆战之王\n请在下方的互动区域完成坦克的组装。主战坦克 (MBT) 需要平衡火力、防护和机动性。'
+                    },
+                    {
+                        id: 5, type: 'quiz', title: 'Ep.5 最终考核', completed: false,
+                        content: {
+                            questions: [
+                                { text: "下列哪种战机具备隐身能力？", options: ["F-15", "J-20", "Su-27", "A-10"], correctIndex: 1 },
+                                { text: "坦克的'反应装甲'主要防御什么？", options: ["激光", "破甲弹(HEAT)", "电磁干扰", "声音"], correctIndex: 1 },
+                                { text: "美军现役的主战坦克是？", options: ["T-90", "Leopard 2", "M1 Abrams", "Challenger 2"], correctIndex: 2 }
+                            ]
+                        }
+                    }
+                ]);
+
+                const currentLesson = ref(lessons.value[0]);
+                const selectLesson = (l) => {
+                    currentLesson.value = l;
+                    resetQuiz();
+                    if (l.id === 4) initTankGame();
+                };
+
+                // Formatter
+                const formatDuration = (s) => Math.floor(s / 60) + ':' + (s % 60).toString().padStart(2, '0');
+                const getLessonTypeLabel = (t) => ({ video: '📺', reading: '📖', quiz: '📝' }[t] || t);
+                const renderMarkdown = (t) => marked.parse(t);
+                const getEmbedUrl = (url) => url; // Simplified for demo
+                const markAsCompleted = () => {
+                    currentLesson.value.completed = true;
+                    // Trigger fireworks
+                    const container = document.getElementById('fireworks-container');
+                    const fw = new Fireworks.Fireworks(container, { opacity: 0.5, particles: 50 });
+                    container.classList.add('active');
+                    fw.start();
+                    setTimeout(() => { fw.stop(); container.classList.remove('active'); }, 3000);
+                };
+
+                // Quiz Logic
+                const quizQuestions = ref([]);
+                const currentQuestionIndex = ref(0);
+                const quizStarted = ref(false);
+                const quizCompleted = ref(false);
+                const quizScore = ref(0);
+                const correctAnswers = ref(0);
+                const selectedOptionIndex = ref(null);
+                const hasAnsweredCurrent = ref(false);
+
+                const startQuiz = () => {
+                    quizStarted.value = true;
+                    quizQuestions.value = currentLesson.value.content.questions;
+                };
+                const selectOption = (idx) => {
+                    if (hasAnsweredCurrent.value) return;
+                    selectedOptionIndex.value = idx;
+                    hasAnsweredCurrent.value = true;
+                    if (idx === quizQuestions.value[currentQuestionIndex.value].correctIndex) correctAnswers.value++;
+                };
+                const nextQuestion = () => {
+                    if (currentQuestionIndex.value < quizQuestions.value.length - 1) {
+                        currentQuestionIndex.value++;
+                        selectedOptionIndex.value = null;
+                        hasAnsweredCurrent.value = false;
+                    } else {
+                        quizScore.value = Math.round(correctAnswers.value / quizQuestions.value.length * 100);
+                        quizCompleted.value = true;
+                    }
+                };
+                const resetQuiz = () => {
+                    quizStarted.value = false;
+                    quizCompleted.value = false;
+                    currentQuestionIndex.value = 0;
+                    selectedOptionIndex.value = null;
+                    hasAnsweredCurrent.value = false;
+                    correctAnswers.value = 0;
+                };
+                const getOptionClass = (idx) => {
+                    if (!hasAnsweredCurrent.value) return selectedOptionIndex.value === idx ? 'bg-green-800' : 'bg-gray-800 hover:bg-gray-700';
+                    const correct = quizQuestions.value[currentQuestionIndex.value].correctIndex;
+                    if (idx === correct) return 'bg-green-600 text-white font-bold';
+                    if (idx === selectedOptionIndex.value) return 'bg-red-600 text-white';
+                    return 'opacity-30';
+                };
+
+                // --- Tank Game Logic ---
+                const tankParts = ref([
+                    { id: 'engine', name: '燃气轮机引擎', type: 'core' },
+                    { id: 'armor', name: '复合装甲模块', type: 'defense' },
+                    { id: 'gun', name: '120mm 滑膛炮', type: 'weapon' },
+                    { id: 'radar', name: '相控阵雷达 (Wrong)', type: 'error' } // Trap
+                ]);
+                const assembledParts = ref([]);
+                const gameFeedback = ref({ message: '', type: '' });
+
+                const initTankGame = () => {
+                    assembledParts.value = [];
+                    gameFeedback.value = { message: '等待指令...', type: 'info' };
+                };
+                const isPartInstalled = (id) => assembledParts.value.includes(id);
+                const installPart = (part) => {
+                    if (assembledParts.value.includes(part.id)) return;
+                    if (part.type === 'error') {
+                        gameFeedback.value = { message: '错误！坦克不需要大型相控阵雷达，那是军舰用的！', type: 'error' };
+                        return;
+                    }
+                    assembledParts.value.push(part.id);
+                    gameFeedback.value = { message: `已安装: ${part.name}`, type: 'success' };
+                };
+
+                // Computes
+                const totalLessons = computed(() => lessons.value.length);
+                const completedLessons = computed(() => lessons.value.filter(l => l.completed).length);
+                const progressPercentage = computed(() => totalLessons.value ? (completedLessons.value / totalLessons.value) * 100 : 0);
+
+                return {
+                    loading, course, lessons, currentLesson, selectLesson,
+                    formatDuration, getLessonTypeLabel, renderMarkdown, getEmbedUrl, markAsCompleted,
+                    // Quiz
+                    startQuiz, selectOption, nextQuestion, quizStarted, quizCompleted, quizQuestions, currentQuestionIndex, quizScore, getOptionClass,
+                    // Tank Game
+                    initTankGame, tankParts, installPart, isPartInstalled, assembledParts, gameFeedback,
+                    // Progress
+                    totalLessons, completedLessons, progressPercentage
+                };
+            }
+        }).mount('#app');
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4D打印与形状记忆工程 | TITAN OS</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    
+    <style>
+        body { background-color: #020617; color: #f8fafc; overflow-x: hidden; font-family: 'Noto Sans SC', sans-serif; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        
+        #canvas-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0.7; }
+        
+        .glass-panel { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px; box-shadow: inset 0 0 20px rgba(168, 85, 247, 0.05); }
+        .glass-card { transition: all 0.5s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%); }
+        .glass-card:hover { transform: translateY(-8px) scale(1.02); border-color: #c084fc; background: rgba(168, 85, 247, 0.1); box-shadow: 0 15px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(168, 85, 247, 0.3); }
+        
+        #preloader { position: fixed; inset: 0; background: #020617; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        .scanner-beam { width: 100%; height: 2px; background: #c084fc; box-shadow: 0 0 20px 5px #c084fc; position: absolute; animation: scan 3s ease-in-out infinite alternate; z-index: 10; }
+        @keyframes scan { 0% { top: 10%; } 100% { top: 90%; } }
+        
+        .crt-flicker { animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.95; } 50% { opacity: 1; } 100% { opacity: 0.92; } }
+    </style>
+</head>
+<body class="selection:bg-slate-700 selection:text-white">
+
+    <div id="preloader">
+        <div class="scanner-beam"></div>
+        <div class="text-[10px] tracking-[0.5em] font-bold font-orbitron crt-flicker" style="color: #c084fc" id="load-text">INITIALIZING CORE_FILES...</div>
+        <div class="w-80 h-[2px] bg-slate-800 mt-6 relative"><div class="absolute left-0 top-0 h-full shadow-lg" style="background: #c084fc; width: 0%;" id="load-bar"></div></div>
+    </div>
+
+    <!-- Replace Javascript Canvas Logic for unique background -->
+    <canvas id="canvas-bg"></canvas>
+
+    <nav class="fixed top-0 w-full z-50 glass-panel border-x-0 border-t-0 py-3 px-6 flex justify-between items-center transition-transform duration-500 rounded-none bg-slate-900/50" id="navbar">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 border-2 flex items-center justify-center font-bold text-2xl" style="border-color: #c084fc; color: #c084fc; clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);">🖨️</div>
+            <div>
+                <div class="font-bold text-xl tracking-[0.25em] font-orbitron text-transparent bg-clip-text" style="background-image: linear-gradient(to right, #fff, #c084fc)">ASTRO<span class="text-slate-400 ml-2">ENGINEERING</span></div>
+            </div>
+        </div>
+        <a href="index.html" class="flex items-center px-4 py-2 border text-xs tracking-widest font-orbitron hover:bg-white/5 transition-all" style="border-color: rgba(168, 85, 247,0.4); color: #c084fc">[ EXIT ]</a>
+    </nav>
+
+    <header class="relative min-h-screen flex items-center pt-24 pb-12 overflow-hidden z-20">
+        <div class="container mx-auto px-6 grid xl:grid-cols-12 gap-12 items-center">
+            <div class="xl:col-span-6 space-y-8 gs-reveal">
+                <div class="inline-flex items-center gap-3 px-4 py-1.5 border" style="border-color: rgba(168, 85, 247,0.4); background: rgba(168, 85, 247,0.1)">
+                    <span class="w-1.5 h-1.5 animate-pulse" style="background: #c084fc"></span>
+                    <span class="text-[10px] font-bold tracking-widest font-mono" style="color: #c084fc">SYSTEM AUTHORIZED</span>
+                </div>
+                <h1 class="text-6xl lg:text-7xl font-black leading-[1] tracking-tighter uppercase font-orbitron text-slate-100">
+                    <span class="text-transparent bg-clip-text" style="background-image: linear-gradient(to right, #fff, #c084fc); filter: drop-shadow(0 0 20px rgba(168, 85, 247,0.4));">4D打印与形状记忆工程</span><br>
+                </h1>
+                <div class="relative pl-6 py-4 border-l-[3px] bg-gradient-to-r to-transparent" style="border-left-color: #c084fc; background-image: linear-gradient(to right, rgba(168, 85, 247,0.2), transparent);">
+                    <p class="text-slate-300 font-light text-base leading-relaxed max-w-xl">在3D打印基础上引入时间维度，使构件在特定环境刺激下能自动改变形状或性能。</p>
+                </div>
+                <button class="px-8 py-4 font-orbitron tracking-widest text-sm transition-all border" style="background: rgba(168, 85, 247,0.2); color: #c084fc; border-color: #c084fc; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);" onclick="document.getElementById('matrix').scrollIntoView({behavior:'smooth'})">ENGAGE</button>
+            </div>
+
+            <!-- ECharts Telemetry Dashboards -->
+            <div class="xl:col-span-6 gs-reveal relative h-[600px] flex flex-col gap-4">
+                <div class="glass-panel p-2 h-[300px] relative overflow-hidden flex flex-col">
+                    <div class="absolute top-0 right-0 p-2 font-mono text-[9px] z-10 text-right bg-slate-900/80 rounded-bl-lg border-b border-l" style="color: #c084fc; border-color: #c084fc">LIVE_DATA_STREAM</div>
+                    <div id="chart-main" class="w-full flex-1"></div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 h-[250px]">
+                    <div class="glass-panel p-4 font-mono text-[10px] flex flex-col overflow-hidden relative">
+                        <div class="font-bold border-b pb-2 mb-2" style="color: #c084fc; border-color: rgba(168, 85, 247,0.2)">> TERM_LOGS</div>
+                        <div id="terminal-logs" class="text-slate-300 flex-1 overflow-y-auto space-y-1"></div>
+                    </div>
+                    <div class="glass-panel p-2 flex flex-col relative overflow-hidden">
+                         <div id="chart-sub" class="w-full flex-1"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="py-24 relative z-30 bg-slate-900/80 border-t" style="border-top-color: rgba(168, 85, 247,0.3)" id="matrix">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col items-center text-center mb-20 gs-reveal-up">
+                <h2 class="text-4xl lg:text-5xl font-black font-noto text-white text-shadow-lg">前沿技术分支</h2>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8 relative max-w-6xl mx-auto">
+                
+                <a href="#" class="glass-panel glass-card p-8 group relative overflow-hidden gs-reveal-up" style="transition-delay: 0ms">
+                    <div class="absolute -right-10 -top-10 text-[120px] font-black font-orbitron opacity-5 group-hover:opacity-10 transition-opacity" style="color: #c084fc">1</div>
+                    <div class="font-mono text-[10px] mb-4 px-2 py-1 w-fit border" style="color: #c084fc; background: rgba(168, 85, 247,0.1); border-color: rgba(168, 85, 247,0.2)">PROT_01</div>
+                    <h3 class="text-2xl font-bold font-noto mb-4 text-slate-100 group-hover:text-white transition-colors">智能响应聚合物开发</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-8 font-light min-h-[80px]">研发对热、光、电或pH值敏感的形状记忆复合材料。</p>
+                    <div class="inline-flex items-center gap-2 text-xs font-orbitron tracking-wider cursor-pointer group/btn" style="color: #c084fc">
+                        INITIALIZE <span class="group-hover/btn:translate-x-2 transition-transform">→</span>
+                    </div>
+                </a>
+                <a href="#" class="glass-panel glass-card p-8 group relative overflow-hidden gs-reveal-up" style="transition-delay: 100ms">
+                    <div class="absolute -right-10 -top-10 text-[120px] font-black font-orbitron opacity-5 group-hover:opacity-10 transition-opacity" style="color: #c084fc">2</div>
+                    <div class="font-mono text-[10px] mb-4 px-2 py-1 w-fit border" style="color: #c084fc; background: rgba(168, 85, 247,0.1); border-color: rgba(168, 85, 247,0.2)">PROT_02</div>
+                    <h3 class="text-2xl font-bold font-noto mb-4 text-slate-100 group-hover:text-white transition-colors">折纸结构动力学设计</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-8 font-light min-h-[80px]">通过数学建模设计复杂的展开/收缩路径，应用于可部署空间天线。</p>
+                    <div class="inline-flex items-center gap-2 text-xs font-orbitron tracking-wider cursor-pointer group/btn" style="color: #c084fc">
+                        INITIALIZE <span class="group-hover/btn:translate-x-2 transition-transform">→</span>
+                    </div>
+                </a>
+                <a href="#" class="glass-panel glass-card p-8 group relative overflow-hidden gs-reveal-up" style="transition-delay: 200ms">
+                    <div class="absolute -right-10 -top-10 text-[120px] font-black font-orbitron opacity-5 group-hover:opacity-10 transition-opacity" style="color: #c084fc">3</div>
+                    <div class="font-mono text-[10px] mb-4 px-2 py-1 w-fit border" style="color: #c084fc; background: rgba(168, 85, 247,0.1); border-color: rgba(168, 85, 247,0.2)">PROT_03</div>
+                    <h3 class="text-2xl font-bold font-noto mb-4 text-slate-100 group-hover:text-white transition-colors">生物活性支架打印</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-8 font-light min-h-[80px]">研究可随组织生长而逐渐降解并改变孔隙率的植入式医疗器械。</p>
+                    <div class="inline-flex items-center gap-2 text-xs font-orbitron tracking-wider cursor-pointer group/btn" style="color: #c084fc">
+                        INITIALIZE <span class="group-hover/btn:translate-x-2 transition-transform">→</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- TITAN AI ASSISTANT -->
+    <script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+
+    <script>
+        window.addEventListener('load', () => {
+            const tl = gsap.timeline();
+            tl.to("#load-bar", { width: "100%", duration: 1.5, ease: "power1.inOut" })
+              .to("#load-text", { text: "DONE.", color: "#4ade80", duration: 0.2 }, "+=0")
+              .to("#preloader", { opacity: 0, duration: 0.8, ease: "power2.inOut" }, "+=0.5")
+              .set("#preloader", { display: "none" })
+              .from(".gs-reveal", { y: +40, opacity: 0, duration: 1, stagger: 0.15, ease: "back.out(1.2)" }, "-=0.2");
+              
+            initECharts();
+            initCanvasBg();
+        });
+
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.gs-reveal-up').forEach((elem) => {
+            gsap.from(elem, { scrollTrigger: { trigger: elem, start: "top 90%" }, y: 50, opacity: 0, duration: 1, ease: "power3.out" });
+        });
+
+        const term = document.getElementById('terminal-logs');
+        const logs = typeof customLogs !== "undefined" ? customLogs : ["System OK"];
+        setInterval(() => {
+            if(Math.random() > 0.6) return;
+            const d = document.createElement('div');
+            d.innerHTML = `> ${logs[Math.floor(Math.random()*logs.length)]}`;
+            term.appendChild(d);
+            if(term.children.length > 20) term.removeChild(term.firstChild);
+            term.scrollTop = term.scrollHeight;
+        }, 800);
+
+        function initECharts() {
+            // ECharts initialized with dynamic theme color
+            const chart1 = echarts.init(document.getElementById('chart-main'));
+            const chart2 = echarts.init(document.getElementById('chart-sub'));
+            
+            // Generate basic line chart and bar chart mapped to topic
+            let data1 = []; let now = new Date();
+            for(let i=0; i<50; i++) { data1.push({name:now.toString(), value:[now, Math.random()*100]}); now = new Date(+now + 1000); }
+            
+            chart1.setOption({
+                tooltip: {trigger: 'axis'},
+                xAxis: {type: 'time', splitLine:{show:false}, axisLabel:{show:false}},
+                yAxis: {type: 'value', splitLine:{lineStyle:{color:'rgba(168, 85, 247,0.1)'}}},
+                series: [{ type: 'line', showSymbol: false, data: data1, itemStyle: {color: '#c084fc'}, areaStyle: {color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0, color:'rgba(168, 85, 247,0.5)'},{offset:1, color:'transparent'}])} }]
+            });
+            
+            chart2.setOption({
+                xAxis: {type: 'category', data: ['A','B','C','D']},
+                yAxis: {type: 'value', show: false},
+                series: [{ type: 'bar', data: [40, 70, 50, 90], itemStyle: {color: '#c084fc'} }]
+            });
+
+            setInterval(() => {
+                let current = new Date();
+                data1.shift(); data1.push({name: current.toString(), value: [current, Math.random()*100]});
+                chart1.setOption({series: [{data: data1}]});
+                chart2.setOption({series: [{data: [Math.random()*100, Math.random()*100, Math.random()*100, Math.random()*100]}]});
+            }, 1000);
+            
+            window.addEventListener('resize', () => { chart1.resize(); chart2.resize(); });
+        }
+
+        由于你未提供具体的 `[[topic]]` 和 `[[desc]]`，我将以**《量子神经控制论 (Quantum Neural Cybernetics)》**为主题，为你构建一套极具赛博感、融合了量子纠缠与神经突触生长视觉特征的 Canvas 系统。
+
+这段代码采用了高阶的“动态拓扑图论”算法，配合拉格朗日扰动和鼠标引力场。
+
+javascript
+/**
+ * Quantum Neural Cybernetics - Canvas Engine
+ * Created by: WebGL/Canvas Master
+ * Theme: Dark Cyberpunk / Neural Synapse / Quantum Field
+ */
+
+const customLogs = [
+    "Initializing neural synaptic weight synchronization...",
+    "Quantum decoherence detected in Layer 7; recalibrating...",
+    "Fetching deep-space heuristic data from Node-89...",
+    "Establishing high-latency connection to Neo-Tokyo grid...",
+    "Running recursive backpropagation on bio-synthetic cortex...",
+    "Warning: Synaptic firing rate exceeding safety threshold (1.2GHz).",
+    "Encrypted packet received: 'The Ghost in the Machine'...",
+    "Injecting neurotransmitter-simulants into the virtual substrate...",
+    "Mapping hyper-dimensional manifold for cognitive bypass...",
+    "System Status: All neural nodes stable at 99.98% resonance."
+];
+
+function initCanvasBg() {
+    const canvas = document.getElementById('canvas-bg');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let width, height, particles = [];
+    const mouse = { x: -1000, y: -1000, active: false };
+    
+    // Configuration
+    const PARTICLE_COUNT = 120;
+    const CONNECTION_DIST = 180;
+    const MOUSE_RADIUS = 200;
+    const COLOR_PRIMARY = '#c084fc';
+    const COLOR_RGB = '168, 85, 247'; // Matching #a855f7/c084fc
+
+    class Particle {
+        constructor() {
+            this.init();
+        }
+
+        init() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.vx = (Math.random() - 0.5) * 0.8;
+            this.vy = (Math.random() - 0.5) * 0.8;
+            this.radius = Math.random() * 2 + 1;
+            this.pulse = Math.random() * Math.PI;
+            this.pulseSpeed = 0.02 + Math.random() * 0.03;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Boundary check with wrap-around
+            if (this.x < 0) this.x = width;
+            if (this.x > width) this.x = 0;
+            if (this.y < 0) this.y = height;
+            if (this.y > height) this.y = 0;
+
+            // Mouse Interaction: Quantum Attraction
+            if (mouse.active) {
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < MOUSE_RADIUS) {
+                    const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS;
+                    this.vx += dx * force * 0.02;
+                    this.vy += dy * force * 0.02;
+                }
+            }
+
+            // Friction to maintain stability
+            this.vx *= 0.98;
+            this.vy *= 0.98;
+            
+            this.pulse += this.pulseSpeed;
+        }
+
+        draw() {
+            const alpha = 0.3 + Math.sin(this.pulse) * 0.3;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${COLOR_RGB}, ${alpha})`;
+            ctx.fill();
+            
+            // Core bloom effect
+            if (Math.random() > 0.98) {
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = COLOR_PRIMARY;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+    }
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push(new Particle());
+        }
+    }
+
+    function drawConnections() {
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const p1 = particles[i];
+                const p2 = particles[j];
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < CONNECTION_DIST) {
+                    const alpha = (1 - dist / CONNECTION_DIST) * 0.4;
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    
+                    // Bezier curve for organic "synapse" feel
+                    if (dist < CONNECTION_DIST * 0.5) {
+                        ctx.strokeStyle = `rgba(${COLOR_RGB}, ${alpha * 1.5})`;
+                        ctx.lineWidth = 0.8;
+                    } else {
+                        ctx.strokeStyle = `rgba(${COLOR_RGB}, ${alpha})`;
+                        ctx.lineWidth = 0.3;
+                    }
+                    
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        // Subtle trails effect
+        ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+        ctx.fillRect(0, 0, width, height);
+
+        drawConnections();
+
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+
+        // Scanline effect (Cyberpunk overlay)
+        if (Math.random() > 0.95) {
+            ctx.fillStyle = `rgba(${COLOR_RGB}, 0.05)`;
+            ctx.fillRect(0, Math.random() * height, width, 1);
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    // Event Listeners
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        mouse.active = true;
+    });
+    window.addEventListener('mouseleave', () => {
+        mouse.active = false;
+    });
+    window.addEventListener('touchstart', (e) => {
+        mouse.active = true;
+        mouse.x = e.touches[0].clientX;
+        mouse.y = e.touches[0].clientY;
+    });
+
+    // Boot
+    resize();
+    animate();
+    console.log("%c Quantum Neural Grid Active ", `background: ${COLOR_PRIMARY}; color: #000; font-weight: bold;`);
+}
+
+// Global initialization
+document.addEventListener('DOMContentLoaded', initCanvasBg);
+
+// Overridden initCanvasBg
+function initCanvasBg_old() {
+            const canvas = document.getElementById('canvas-bg');
+            const ctx = canvas.getContext('2d');
+            let w = canvas.width = window.innerWidth;
+            let h = canvas.height = window.innerHeight;
+            
+            // A generic highly aesthetic flow field / particle system
+            let particles = [];
+            for(let i=0; i<150; i++) {
+                particles.push({
+                    x: Math.random()*w, y: Math.random()*h,
+                    vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
+                    size: Math.random()*2
+                });
+            }
+            
+            function animate() {
+                ctx.clearRect(0,0,w,h);
+                ctx.fillStyle = '#c084fc';
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy;
+                    if(p.x<0||p.x>w) p.vx*=-1;
+                    if(p.y<0||p.y>h) p.vy*=-1;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+    </script>
+</body>
+</html>

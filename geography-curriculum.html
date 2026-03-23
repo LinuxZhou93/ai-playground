@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K12 地理新课标核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #06100c;
+            /* Deep Forest Black */
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0d1e18;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e3a2f;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #2d5a49;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(13, 30, 24, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(16, 185, 129, 0.1);
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#06100c] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-emerald-900/30 border-t-emerald-500 rounded-full animate-spin"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-center text-xs text-emerald-500 font-bold animate-pulse">
+                GEOGRAPHY</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Globe = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20" /><path d="M2 12h20" /></IconBase>;
+        const Mountain = (props) => <IconBase {...props}><path d="m8 3 4 8 5-5 5 15H2L8 3z" /></IconBase>;
+        const Map = (props) => <IconBase {...props}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" /><line x1="9" x2="9" y1="3" y2="18" /><line x1="15" x2="15" y1="6" y2="21" /></IconBase>;
+        const Navigation = (props) => <IconBase {...props}><polygon points="3 11 22 2 13 21 11 13 3 11" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const MapPin = (props) => <IconBase {...props}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></IconBase>;
+        const Wind = (props) => <IconBase {...props}><path d="M9 4.5a2.5 2.5 0 0 1 4.96-.46c.334.047.334.54 0 .587A2.5 2.5 0 0 1 9 4.5Z" /><path d="M11 11.5a2.5 2.5 0 0 1 4.96-.46c.334.047.334.54 0 .587A2.5 2.5 0 0 1 11 11.5Z" /><path d="M5 8.5a2.5 2.5 0 0 1 4.96-.46c.334.047.334.54 0 .587A2.5 2.5 0 0 1 5 8.5Z" /><path d="M12 15.5a2.5 2.5 0 0 1 4.96-.46c.334.047.334.54 0 .587A2.5 2.5 0 0 1 12 15.5Z" /><path d="M7 19.5a2.5 2.5 0 0 1 4.96-.46c.334.047.334.54 0 .587A2.5 2.5 0 0 1 7 19.5Z" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            { id: "p_low", label: "小学低", subtitle: "1-2年级 · 感知", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "p_mid", label: "小学中", subtitle: "3-4年级 · 特征", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "p_high", label: "小学高", subtitle: "5-6年级 · 关联", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "j_7", label: "七年级", subtitle: "初一 · 区域", color: "bg-blue-500", textColor: "text-blue-400", borderColor: "border-blue-500/30", bgSoft: "bg-blue-500/10" },
+            { id: "j_8", label: "八年级", subtitle: "初二 · 中国", color: "bg-blue-500", textColor: "text-blue-400", borderColor: "border-blue-500/30", bgSoft: "bg-blue-500/10" },
+            { id: "j_9", label: "九年级", subtitle: "初三 · 全球", color: "bg-blue-500", textColor: "text-blue-400", borderColor: "border-blue-500/30", bgSoft: "bg-blue-500/10" },
+            { id: "s_1", label: "高一", subtitle: "高一 · 系统", color: "bg-cyan-600", textColor: "text-cyan-400", borderColor: "border-cyan-600/30", bgSoft: "bg-cyan-600/10" },
+            { id: "s_2", label: "高二", subtitle: "高二 · 探究", color: "bg-cyan-600", textColor: "text-cyan-400", borderColor: "border-cyan-600/30", bgSoft: "bg-cyan-600/10" },
+            { id: "s_3", label: "高三", subtitle: "高三 · 全景", color: "bg-cyan-600", textColor: "text-cyan-400", borderColor: "border-cyan-600/30", bgSoft: "bg-cyan-600/10" }
+        ];
+
+        const tracks = [
+            { id: "nature", title: "自然地理", desc: "地球运动 · 气候 · 地貌", icon: Mountain, color: "text-emerald-400", gradient: "from-emerald-500/20 to-emerald-900/5" },
+            { id: "human", title: "人文地理", desc: "人口 · 城市 · 产业", icon: MapPin, color: "text-blue-400", gradient: "from-blue-500/20 to-blue-900/5" },
+            { id: "regional", title: "区域发展", desc: "中国区域 · 世界地理", icon: Globe, color: "text-cyan-400", gradient: "from-cyan-500/20 to-cyan-900/5" },
+            { id: "technology", title: "地理技术", desc: "地图识读 · GIS · 遥感", icon: Map, color: "text-indigo-400", gradient: "from-indigo-500/20 to-indigo-900/5" }
+        ];
+
+        const curriculumData = {
+            nature: {
+                p_low: { title: "身边的天气", core: ["阴晴雨雪标识", "四季衣服变化", "太阳的位置"], literacy: "自然感知", detail: "通过感官直接体验并描述当地的天气及其对生活的影响。", example: "例：画出今天的天气符号。", action: "【野外】寻找影子的长短变化。", ai_integration: "【AI】识别照片中的云朵模型。" },
+                p_mid: { title: "地球与土地", core: ["地球是个球体", "认识陆地海洋", "家乡的山河"], literacy: "空间意识", detail: "建立初步的世界地理轮廓，认识海陆分布。", example: "例：在地球仪上指认七大洲。", action: "【实践】制作简易沙盘地图。", ai_integration: "【AI】3D还原地球海平面上升景象。" },
+                p_high: { title: "自然灾害感知", core: ["地震避险知识", "洪涝的成因", "气象预警警报"], literacy: "安全意识", detail: "了解极端自然现象及其防护措施。", example: "例：演练地震逃生姿势。", action: "【调研】家乡近年的洪涝记录。", ai_integration: "【AI】模拟台风路径演变。" },
+                j_7: { title: "地球运动基础", core: ["经纬网定位", "昼夜交替成因", "世界气候带"], literacy: "综合思维", detail: "掌握描述地球表面位置及基本气候规律的技术手段。", example: "例：利用经纬线寻找宝藏。", action: "【观测】连续记录一个月的月相。", ai_integration: "【AI】计算任意经纬度的日出时刻。" },
+                j_8: { title: "板块与地貌", core: ["大陆漂移学说", "板块张裂挤压", "河流阶地成型"], literacy: "演化观念", detail: "探析地表形态背后宏大的动力机制。", example: "例：模拟板块挤压造山。", action: "【考察】观察本地河岸腐蚀现状。", ai_integration: "【AI】可视化展示板块1亿年漂移图。" },
+                j_9: { title: "大气与水分循环", core: ["热力环流原理", "水循环全过程", "温室效应机理"], literacy: "系统关联", detail: "理解地球各大圈层之间物质与能量的交换。", example: "例：绘制水循环思维导图。", action: "【实验】制作闭合生态瓶循环系统。", ai_integration: "【AI】模拟碳减排对气温的影响。" },
+                s_1: { title: "大气圈动力系统", core: ["三圈环流模型", "气旋与反气旋", "气候变迁驱动力"], literacy: "规律探究", detail: "深入探讨大气运动的物理逻辑及其气象响应。", example: "例：分析冷锋过境的天气变化。", action: "【分析】解读家乡极端气温的历史数据。", ai_integration: "【AI】全球气压带风带实时流体驱动视图。" },
+                s_2: { title: "水与土圈层作用", core: ["洋流与气候关系", "成土发育因素", "喀斯特地貌发育"], literacy: "整体性思维", detail: "多因素耦合分析地理圈层的综合效应。", example: "例：探究暖流对沿岸生态的影响。", action: "【实验】模拟酸雨对比岩石腐蚀速度。", ai_integration: "【AI】生成特定气候下的植被演替模拟。" },
+                s_3: { title: "自然地理终极体系", core: ["自然环境差异性", "垂直自然带谱", "地质年代与演化"], literacy: "哲学视域", detail: "在宏阔时空背景下领悟地球自然系统的精妙平衡。", example: "例：解释垂直带谱的分异规律。", action: "【绘图】绘制珠穆朗玛峰垂直带谱。", ai_integration: "【AI】模拟远古恐龙时代地理全景。" }
+            },
+            human: {
+                p_low: { title: "我们的小社区", core: ["认识各种商店", "交通工具种类", "垃圾分类基础"], literacy: "人文感知", detail: "观察并参与周围社区的基本运行。", example: "例：设计一个垃圾分类小游戏。", action: "【调研】统计校门口出现的交通工具。", ai_integration: "【AI】生成未来智能垃圾桶草图。" },
+                p_mid: { title: "多样的房屋", core: ["北京四合院", "南方吊脚楼", "因地制宜的建筑"], literacy: "文化尊重", detail: "理解世界各地建筑特征与自然环境的关系。", example: "例：用纸板搭一座你喜欢的房子。", action: "【寻访】拍摄一张老建筑照片。", ai_integration: "【AI】还原100年前的家乡老街。" },
+                p_high: { title: "食物的旅程", core: ["大米的生长地", "水果的南北差异", "食品与交通网"], literacy: "关联思维", detail: "探索引入特定地理位置对人类饮食习惯的影响。", example: "例：调查家乡季节性水果来源。", action: "【市场】采访菜市场摊主货品产地。", ai_integration: "【AI】分析食材的碳足迹地图。" },
+                j_7: { title: "人口与聚落", core: ["人口分布疏密", "城市与乡村特征", "人口普查意义"], literacy: "区域认知", detail: "掌握描述人口分布及其生活载体的基本指标。", example: "例：分析胡焕庸线的意义。", action: "【调研】记录学校周边人口流向。", ai_integration: "【AI】预测未来50年全球人口分布趋势。" },
+                j_8: { title: "农业与工业分布", core: ["中国四大牧区", "工业基地布局", "新兴高科技中心"], literacy: "综合思维", detail: "掌握资源与市场对人类生产布局的决定作用。", example: "例：讨论北京中关村的优势。", action: "【报告】家乡主要产业的变迁调查。", ai_integration: "【AI】模拟建立一个高新开发区选址方案。" },
+                j_9: { title: "交通与商业联系", core: ["全球主要集装箱航线", "电子支付与新商业", "枢纽城市的作用"], literacy: "网络意识", detail: "理解信息时代地理距离如何被逻辑重新链接。", example: "例：在地图上标出大秦铁路。", action: "【设计】规划一条最优快递路线图。", ai_integration: "【AI】城市实时交通流预测引擎演示。" },
+                s_1: { title: "区位理论专题", core: ["杜能环农业模型", "韦伯工业区位论", "中心地理论"], literacy: "管理视角", detail: "运用经典区位论模型分析复杂的空间决策。", example: "例：分析特斯拉工厂在上海落户的原因。", action: "【方案】为本地新商场进行地理选址策划。", ai_integration: "【AI】基于大数据的动态区位竞争力评估。" },
+                s_2: { title: "人口迁移与城市化", core: ["推拉力理论", "城市病治理方案", "逆城市化现象"], literacy: "民生关怀", detail: "深研人口流动带来的结构性社会空间重塑。", example: "例：评价家乡城市化的优缺点。", action: "【提案】针对家乡交通拥堵的地理方案建议。", ai_integration: "【AI】模拟特大城市100年的人口热力漂移。" },
+                s_3: { title: "人文地理终极反思", core: ["文化景观碎片化", "地理政治新格局", "后现代城市空间"], literacy: "批判思维", detail: "反思资本、权力与技术如何重构人类地表活动空间。", example: "例：探讨数字游民带来的地理解域。", action: "【撰文】未来的虚拟地理空间价值评估。", ai_integration: "【AI】分析元宇宙对传统实体商业空间的结构性影响。" }
+            },
+            regional: {
+                p_low: { title: "我的家乡省份", core: ["省份名称标识", "家乡特色美食", "方言大挑战"], literacy: "归属感", detail: "认识自己所在省市的地理名片。", example: "例：在行政图上涂色自己的家乡。", action: "【介绍】向同学推荐家乡的一个好地方。", ai_integration: "【AI】根据描述生成家乡标志性风景。" },
+                p_mid: { title: "去别省转转", core: ["中国的大河大山", "南北方温差", "西藏的蓝天"], literacy: "大局视域", detail: "通过对比感知国内不同区域的地理差异。", example: "例：准备一份哈尔滨旅游装备表。", action: "【地理日记】虚拟游历一个省份后的见闻记。", ai_integration: "【AI】推荐基于天气的国内游路线。" },
+                p_high: { title: "我们的世界邻里", core: ["友好的俄罗斯", "古老的埃及", "美丽的东南亚"], literacy: "全球视野", detail: "初步认识中国周边及世界重点国家的特色。", example: "例：展示一件外国特色手工艺品。", action: "【调研】寻找家里的“外国制造”。", ai_integration: "【AI】翻译各国地名由来及文化含义。" },
+                j_7: { title: "世界重点分区", core: ["极地科考价值", "撒哈拉以南非洲", "东南亚水稻文化"], literacy: "环境尊重", detail: "掌握描述一个大洲或大区的完整地理逻辑。", example: "例：分析马六甲海峡的重要性。", action: "【PBL】如何保护北极熊的栖息地。", ai_integration: "【AI】生成极地科考站的3D室内漫游。" },
+                j_8: { title: "大美中国地理", core: ["四大分区对比", "一带一路战略", "脱贫攻坚地理奇迹"], literacy: "家国情怀", detail: "深度理解中国区域差异及国家协调发展能力。", example: "例：对比华北平原与云贵高原耕作差异。", action: "【展示】长江经济带的环保调研周记。", ai_integration: "【AI】叠加显示中国50年森林覆盖率变迁。" },
+                j_9: { title: "全球战略节点", core: ["欧盟的发展", "金砖国家的角色", "全球气候协定"], literacy: "责任意识", detail: "理解区域组织在全球化博弈中的战略定位。", example: "例：探讨非洲工业化的地理挑战。", action: "【策划】设计一条跨欧亚的虚拟高铁路线。", ai_integration: "【AI】模拟各种国际贸易争端对区域经济的影响。" },
+                s_1: { title: "区域发展差异分析", core: ["资源枯竭型城市转型", "生态脆弱区治理", "区域平衡逻辑"], literacy: "战略思维", detail: "运用综合指标评价一个区域的可持续发展潜力。", example: "例：分析德国鲁尔区的转型经验。", action: "【方案】为家乡的一个落后村落设计地理名片。", ai_integration: "【AI】基于地质大数据的生态脆弱性评级。" },
+                s_2: { title: "区位关联与协同", core: ["京津冀一体化", "粤港澳大湾区布局", "成渝经济圈"], literacy: "统筹整合", detail: "分析城市群如何通过要素流动实现能级跨越。", example: "例：大湾区一小时生活圈的技术支撑分析。", action: "【探究】调研本地在区域协作中的角色分工。", ai_integration: "【AI】实时展示区域间物流与信息流的动态流量。" },
+                s_3: { title: "全球治理巅峰课题", core: ["深海与极地博弈", "碳中和全球地理分布", "粮食安全地缘政治"], literacy: "领袖视野", detail: "在全人类命运共同体高度审视全球资源配置。", example: "例：评估北极航道开通对全球路径的影响。", action: "【撰述】未来的全球环境资源分配正义分析。", ai_integration: "【AI】基于气候模型预测未来50年全球宜居地带迁移图。" }
+            },
+            technology: {
+                p_low: { title: "超级的方向舵", core: ["我也能用指南针", "看懂太阳的方向", "识读简单的颜色图"], literacy: "工具启蒙", detail: "掌握三要素中的最基础——方向感知。", example: "例：跟着小旗向北走。", action: "【游戏】校园寻宝寻找指南针宝箱。", ai_integration: "【AI】声控指示当前经纬度方位。" },
+                p_mid: { title: "电子地图玩家", core: ["百度/高德地图搜一搜", "好亮的卫星图", "比例尺的魔术"], literacy: "技术应用", detail: "初步使用数字化工具查看地点位置与路线。", example: "例：搜一搜家到学校多远。", action: "【测绘】用步长测量教室的长宽。", ai_integration: "【AI】自动估算卫星图中的森林面积。" },
+                p_high: { title: "我是小小气象员", core: ["学会看雨量计", "认识气温曲线", "百叶箱的秘密"], literacy: "科学探究", detail: "掌握物理工具与地理要素的原始记录方法。", example: "例：记录一周的最高气温。", action: "【手工】自制简易风向标。", ai_integration: "【AI】把实时气象站数据实时播报。" },
+                j_7: { title: "等高线模型世界", core: ["山脊与山谷判读", "分层设色法", "剖面简图绘制"], literacy: "空间建模", detail: "通过2D符号还原3D地表起伏的逻辑。", example: "例：用黏土搓一个等高线地形图。", action: "【观测】根据等高线规划爬山最省力路线。", ai_integration: "【AI】AR扫描地形图生成立体景观。" },
+                j_8: { title: "北斗卫星定位导航", core: ["卫星导航原理", "定位的三球定位法", "导航里的地理算法"], literacy: "科技素养", detail: "深度理解中国北斗系统如何改变空间认知方式。", example: "例：比较GPS与北斗精准度。", action: "【实践】使用奥维互动地图记录地理航迹。", ai_integration: "【AI】算法优化城市配送的最后一公里路径。" },
+                j_9: { title: "地理信息数据基础", core: ["什么是GIS图层", "叠图分析初级", "地理大数据的来源"], literacy: "数字化能力", detail: "认识到地理信息是可以分层管理并计算的能量。", example: "例：寻找海拔1000米以上的所有城市。", action: "【项目】绘制家乡主要美食分布的GIS图层。", ai_integration: "【AI】利用机器学习识别遥感图像中的非法侵占耕地。" },
+                s_1: { title: "全网遥感监测系统", core: ["多光谱遥感原理", "夜间灯光指数意义", "无人机测绘基础"], literacy: "先进探测力", detail: "掌握非接触探测手段在资源管理中的应用。", example: "例：分析夜间灯光图看经济繁荣度。", action: "【探究】分析本地十年内森林变化的遥感对比图。", ai_integration: "【AI】自动分类遥感纹理中的作物健康度。" },
+                s_2: { title: "GIS时空建模", core: ["缓冲区分析应用", "最优路径网络分析", "三维渲染引擎原理"], literacy: "计算地理思维", detail: "利用专业地理分析工具解决工程选址与防灾问题。", example: "例：分析养老院应选址在医院几公里内。", action: "【报告】家乡突发山火的最优撤离GIS方案。", ai_integration: "【AI】城市数字孪生中的实时人流避险逃生引擎。" },
+                s_3: { title: "地理黑科技愿景", core: ["实时行星监控网络", "全自动防震建筑设计", "星际地理学初探"], literacy: "超越视野", detail: "站在文明视角思考数字地理技术对未来的终极重塑。", example: "例：研讨建立月球基地所需的地理技术。", action: "【设计】基于Mars大数据的火星生活地理适宜性评级。", ai_integration: "【AI】生成基于宇宙暗物质分布的引力地理网格图。" }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-emerald-950/20 glass-panel border border-emerald-900/30 rounded-2xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-emerald-900/20 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-emerald-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Map className="w-4 h-4" /> 学习要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-emerald-900/20 p-3 rounded-lg border border-emerald-700/30">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-emerald-100/90 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-emerald-800/10 p-4 rounded-xl border border-emerald-700/20">
+                                    <h4 className="text-emerald-300 font-bold mb-2">🔭 课标深度解析</h4>
+                                    <p className="text-emerald-400/80 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
+                                    <h4 className="text-blue-300 font-bold mb-2">🔍 典型探索/案例</h4>
+                                    <p className="text-blue-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-emerald-900/20 p-4 rounded-xl border border-emerald-500/20">
+                                        <h4 className="text-emerald-300 font-bold mb-2 flex items-center gap-2">
+                                            <Navigation className="w-4 h-4" /> 综合实践
+                                        </h4>
+                                        <p className="text-emerald-200/80 text-sm">{data.action}</p>
+                                    </div>
+                                    <div className="bg-indigo-900/20 p-4 rounded-xl border border-indigo-500/20">
+                                        <h4 className="text-indigo-300 font-bold mb-2 flex items-center gap-2">
+                                            <IconBase><path d="M12 2v8" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m19.07 10.93-1.41 1.41" /><path d="M22 22H2" /><path d="m8 22 4-10 4 10" /></IconBase> AI思维融合
+                                        </h4>
+                                        <p className="text-indigo-200/80 text-sm">{data.ai_integration}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            // Filter logic
+            const queryParams = new URLSearchParams(window.location.search);
+            const stageFilter = queryParams.get('stage'); // 'p', 'j', 's'
+
+            let filteredStages = stages;
+            let stageTitle = "";
+
+            if (stageFilter === 'p') {
+                filteredStages = stages.filter(s => s.id.startsWith('p_'));
+                stageTitle = " - 小学阶段";
+            } else if (stageFilter === 'j') {
+                filteredStages = stages.filter(s => s.id.startsWith('j_'));
+                stageTitle = " - 初中阶段";
+            } else if (stageFilter === 's') {
+                filteredStages = stages.filter(s => s.id.startsWith('s_'));
+                stageTitle = " - 高中阶段";
+            }
+
+            const gridClass = `grid grid-cols-[200px_repeat(${filteredStages.length},300px)] gap-6`;
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#06100c] text-emerald-100 pb-20 font-[Outfit]">
+                    {/* Navigation */}
+                    <a href="subject-synergy.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-emerald-900/80 backdrop-blur border border-emerald-700 rounded-full text-emerald-400 hover:text-white hover:bg-emerald-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回学科协同</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-blue-500 to-cyan-600 mb-4 relative z-10">
+                            K12 地理薪课标核心素养全景图{stageTitle}
+                        </h1>
+                        <p className="text-emerald-500/60 max-w-2xl mx-auto text-sm md:text-lg">
+                            从自然本源到人文秩序，利用前沿技术重塑地理空间认知
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-emerald-700 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="w-fit">
+                                {/* Stage Headers */}
+                                <div className={`${gridClass} mb-8 sticky top-0 bg-[#06100c]/95 backdrop-blur z-30 py-4 border-b border-emerald-900/50`}>
+                                    <div className="flex items-end justify-end px-4 pb-2 text-emerald-700 font-bold text-sm uppercase tracking-widest text-right">
+                                        研究视角 / 发展阶段
+                                    </div>
+                                    {filteredStages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-emerald-500 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className={`${gridClass} group`}>
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-emerald-500/50 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {filteredStages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                                                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                                                            bg-emerald-950/20 border border-emerald-900/30
+                                                            hover:bg-emerald-900/30 hover:border-emerald-700 hover:shadow-xl hover:-translate-y-1
+                                                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                                                        `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-emerald-100 mb-2 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-1.5 mb-4 flex-grow text-xs text-emerald-400/80">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-emerald-800 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-emerald-900/50 flex items-center justify-between">
+                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded bg-stone-900 ${stage.textColor}`}>
+                                                                    {stage.label.split(' ')[0]}
+                                                                </span>
+                                                                <span className="text-xs text-emerald-500/60 group-hover/card:text-emerald-400 transition-colors flex items-center gap-1">
+                                                                    定位 <Check className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main> statistics
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

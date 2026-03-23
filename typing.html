@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>键速大师 | 中国学生专业打字训练</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link
+        href="https://fonts.loli.net/css2?family=Roboto+Mono:wght@300;400;500;700&family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'ZCOOL XiaoWei', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e7;
+            overflow-x: hidden;
+        }
+
+        .word {
+            display: inline-block;
+            margin: 0 12px 12px 0;
+            font-size: 32px;
+            font-weight: 500;
+            letter-spacing: 3px;
+            transition: all 0.15s ease;
+            font-family: 'ZCOOL XiaoWei', sans-serif;
+        }
+
+        .word.active {
+            color: #fbbf24;
+            text-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+            transform: scale(1.1);
+        }
+
+        .word.correct {
+            color: #34d399;
+            opacity: 0.5;
+        }
+
+        .word.error {
+            color: #f87171;
+            text-decoration: underline wavy;
+            text-decoration-color: #ef4444;
+        }
+
+        .letter {
+            display: inline-block;
+            position: relative;
+        }
+
+        .letter.correct {
+            color: #34d399;
+        }
+
+        .letter.incorrect {
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.2);
+            border-radius: 3px;
+            padding: 0 2px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1.5em;
+            background: linear-gradient(to bottom, #fbbf24, #f59e0b);
+            margin-left: -2px;
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
+        }
+
+        @keyframes blink {
+
+            0%,
+            49% {
+                opacity: 1;
+            }
+
+            50%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .stat-box {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-box:hover {
+            border-color: rgba(251, 191, 36, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .mode-btn {
+            padding: 10px 20px;
+            background: rgba(51, 65, 85, 0.6);
+            border: 2px solid rgba(100, 116, 139, 0.3);
+            border-radius: 12px;
+            color: #94a3b8;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .mode-btn:hover {
+            background: rgba(71, 85, 105, 0.8);
+            border-color: #64748b;
+            color: #e2e8f0;
+            transform: scale(1.05);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-color: #f59e0b;
+            color: #1e293b;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+        }
+
+        #typing-area:focus {
+            outline: none;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+            border: 2px solid rgba(251, 191, 36, 0.4);
+            border-radius: 20px;
+            padding: 32px;
+        }
+
+        .pinyin-hint {
+            font-size: 14px;
+            color: #94a3b8;
+            font-family: 'Roboto Mono', monospace;
+            display: block;
+            margin-top: 4px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 20px;
+            font-size: 13px;
+            color: #fbbf24;
+            font-weight: 600;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="min-h-screen">
+
+    <!-- Header -->
+    <header class="py-6 px-8 border-b border-amber-900/30 backdrop-blur-sm bg-black/20">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <span class="text-4xl">⌨️</span>
+                <div>
+                    <h1 class="text-2xl font-bold">
+                        <span class="text-white">键速</span><span class="text-amber-400">大师</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-1">专为中国学生设计的打字训练平台</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="badge">
+                    <span>🎯</span>
+                    <span id="level-badge">初级键手</span>
+                </div>
+                <a href="index.html"
+                    class="px-5 py-2 bg-slate-700/60 hover:bg-slate-600/80 border border-slate-600 rounded-lg transition-all text-sm font-medium">
+                    ← 返回
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+
+        <!-- Mode Selection -->
+        <div class="mb-8">
+            <h2 class="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
+                <span>📚</span> 选择训练模式
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button class="mode-btn active" onclick="setMode('pinyin', this)">
+                    <div class="text-2xl mb-1">🔤</div>
+                    拼音打字
+                </button>
+                <button class="mode-btn" onclick="setMode('chinese', this)">
+                    <div class="text-2xl mb-1">🀄</div>
+                    中文课文
+                </button>
+                <button class="mode-btn" onclick="setMode('english', this)">
+                    <div class="text-2xl mb-1">📘</div>
+                    英语单词
+                </button>
+                <button class="mode-btn" onclick="setMode('chengyu', this)">
+                    <div class="text-2xl mb-1">📖</div>
+                    成语接龙
+                </button>
+                <button class="mode-btn" onclick="setMode('poem', this)">
+                    <div class="text-2xl mb-1">📜</div>
+                    古诗默写
+                </button>
+                <button class="mode-btn" onclick="setMode('code', this)">
+                    <div class="text-2xl mb-1">💻</div>
+                    编程代码
+                </button>
+                <button class="mode-btn" onclick="setMode('gaokao', this)">
+                    <div class="text-2xl mb-1">🎓</div>
+                    高考词汇
+                </button>
+                <button class="mode-btn" onclick="setMode('mix', this)">
+                    <div class="text-2xl mb-1">🎲</div>
+                    综合练习
+                </button>
+            </div>
+        </div>
+
+        <!-- Duration Options -->
+        <div class="flex items-center gap-4 mb-8 pb-6 border-b border-slate-700/50">
+            <span class="text-sm text-slate-400">⏱️ 测试时长:</span>
+            <div class="flex gap-2">
+                <button class="mode-btn text-sm" onclick="setDuration(30, this)">30秒</button>
+                <button class="mode-btn text-sm active" onclick="setDuration(60, this)">60秒</button>
+                <button class="mode-btn text-sm" onclick="setDuration(120, this)">2分钟</button>
+                <button class="mode-btn text-sm" onclick="setDuration(300, this)">5分钟</button>
+            </div>
+            <div class="ml-auto text-sm text-slate-400">
+                按 <kbd class="px-2 py-1 bg-slate-700 rounded text-amber-400 font-mono">Tab</kbd> 重新开始
+            </div>
+        </div>
+
+        <!-- Live Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="live-stats">
+            <div class="stat-box">
+                <div class="text-5xl font-bold text-amber-400 mb-2" id="live-wpm">0</div>
+                <div class="text-xs text-slate-400 uppercase tracking-wider">字 / 分钟</div>
+            </div>
+            <div class="stat-box">
+                <div class="text-5xl font-bold text-green-400 mb-2" id="live-accuracy">100%</div>
+                <div class="text-xs text-slate-400 uppercase tracking-wider">准确率</div>
+            </div>
+            <div class="stat-box">
+                <div class="text-5xl font-bold text-cyan-400 mb-2" id="live-combo">0</div>
+                <div class="text-xs text-slate-400 uppercase tracking-wider">连击数</div>
+            </div>
+            <div class="stat-box">
+                <div class="text-5xl font-bold text-purple-400 mb-2" id="live-timer">--</div>
+                <div class="text-xs text-slate-400 uppercase tracking-wider">剩余时间</div>
+            </div>
+        </div>
+
+        <!-- Mode Description -->
+        <div id="mode-desc"
+            class="mb-6 p-4 bg-amber-900/20 border border-amber-500/30 rounded-lg text-sm text-amber-100">
+            <strong>💡 拼音模式：</strong>看到汉字，输入对应拼音。例如：看到"你好"，输入"nihao"（不带声调）
+        </div>
+
+        <!-- Typing Area -->
+        <div
+            class="relative bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border-2 border-amber-500/20 rounded-2xl p-8 mb-6 min-h-[280px] shadow-lg">
+            <!-- Current Input Display -->
+            <div class="mb-6 p-4 bg-slate-900/60 border border-cyan-500/30 rounded-xl">
+                <div class="text-xs text-slate-400 mb-2 uppercase tracking-wider">当前输入</div>
+                <div class="flex items-center gap-3">
+                    <div class="text-2xl font-bold text-cyan-400" id="current-input-display">_</div>
+                    <div class="text-sm text-slate-500">vs</div>
+                    <div class="text-2xl font-bold text-amber-400" id="target-word-display">等待开始...</div>
+                </div>
+            </div>
+
+            <!-- Words Container -->
+            <div id="words-container" class="text-left max-w-5xl mx-auto leading-relaxed" style="line-height: 3.5;">
+                <p class="text-slate-400 text-center text-lg">点击下方输入框或按任意键开始训练...</p>
+            </div>
+        </div>
+
+        <!-- Visible Input Box -->
+        <div class="mb-8 p-6 bg-slate-800/60 border-2 border-blue-500/40 rounded-xl">
+            <label class="block text-sm font-bold text-blue-400 mb-3 uppercase tracking-wider">⌨️ 输入区域（在此输入）</label>
+            <input type="text" id="typing-area"
+                class="w-full bg-slate-900 border-2 border-slate-600 rounded-lg px-6 py-4 text-2xl font-mono text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all"
+                placeholder="在这里输入..." autocomplete="off" autocapitalize="off" autocorrect="off" autofocus>
+            <div class="mt-3 text-xs text-slate-500">
+                💡 输入完成后按 <kbd class="px-2 py-1 bg-slate-700 rounded text-amber-400">空格</kbd> 进入下一个词
+            </div>
+        </div>
+
+        <!-- Result Panel -->
+        <div id="result-panel" class="hidden">
+            <div class="result-card mb-8">
+                <h2 class="text-3xl font-bold text-center mb-2">
+                    <span class="text-amber-400">🎉 训练完成！</span>
+                </h2>
+                <p class="text-center text-slate-400 mb-8" id="result-title">坚持练习，打字如飞！</p>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                    <div class="text-center">
+                        <div class="text-6xl font-bold text-amber-400 mb-2" id="result-wpm">0</div>
+                        <div class="text-sm text-slate-400">字/分钟</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-6xl font-bold text-green-400 mb-2" id="result-accuracy">100%</div>
+                        <div class="text-sm text-slate-400">准确率</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-6xl font-bold text-cyan-400 mb-2" id="result-max-combo">0</div>
+                        <div class="text-sm text-slate-400">最高连击</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-6xl font-bold text-purple-400 mb-2" id="result-rank">C</div>
+                        <div class="text-sm text-slate-400">评级</div>
+                    </div>
+                </div>
+
+                <!-- WPM Chart -->
+                <div class="bg-slate-900/50 rounded-xl p-6 mb-6 border border-slate-700">
+                    <h3 class="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">⚡ 速度曲线</h3>
+                    <canvas id="wpm-chart" height="80"></canvas>
+                </div>
+
+                <!-- Achievement -->
+                <div
+                    class="bg-gradient-to-r from-amber-900/30 to-amber-800/20 border border-amber-500/40 rounded-xl p-6 mb-6">
+                    <h3 class="text-lg font-bold text-amber-400 mb-3">🏆 本次成就</h3>
+                    <div class="grid grid-cols-3 gap-3 text-sm" id="achievements">
+                        <!-- JS Injected -->
+                    </div>
+                </div>
+
+                <!-- Character Stats -->
+                <div class="grid grid-cols-3 gap-4 text-sm mb-8">
+                    <div class="bg-slate-900/40 rounded-lg p-5 border border-green-500/30">
+                        <div class="text-slate-400 mb-2">✅ 正确</div>
+                        <div class="text-3xl font-bold text-green-400" id="result-correct">0</div>
+                    </div>
+                    <div class="bg-slate-900/40 rounded-lg p-5 border border-red-500/30">
+                        <div class="text-slate-400 mb-2">❌ 错误</div>
+                        <div class="text-3xl font-bold text-red-400" id="result-incorrect">0</div>
+                    </div>
+                    <div class="bg-slate-900/40 rounded-lg p-5 border border-amber-500/30">
+                        <div class="text-slate-400 mb-2">📊 总计</div>
+                        <div class="text-3xl font-bold text-amber-400" id="result-total">0</div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="restartTest()"
+                        class="px-10 py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-900 font-bold rounded-xl transition-all text-lg shadow-lg hover:scale-105">
+                        🔄 再来一局
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ========== 中国学生词库 ==========
+        const WORD_BANKS = {
+            pinyin: {
+                data: [
+                    { word: '你好', pinyin: 'nihao' },
+                    { word: '学习', pinyin: 'xuexi' },
+                    { word: '努力', pinyin: 'nuli' },
+                    { word: '中国', pinyin: 'zhongguo' },
+                    { word: '未来', pinyin: 'weilai' },
+                    { word: '梦想', pinyin: 'mengxiang' },
+                    { word: '坚持', pinyin: 'jianchi' },
+                    { word: '成功', pinyin: 'chenggong' },
+                    { word: '科技', pinyin: 'keji' },
+                    { word: '创新', pinyin: 'chuangxin' },
+                    { word: '知识', pinyin: 'zhishi' },
+                    { word: '智慧', pinyin: 'zhihui' },
+                    { word: '勇敢', pinyin: 'yonggan' },
+                    { word: '自信', pinyin: 'zixin' },
+                    { word: '友谊', pinyin: 'youyi' }
+                ],
+                desc: '💡 拼音模式：看到汉字，输入对应拼音。例如：看到"你好"，输入"nihao"（不带声调）'
+            },
+            chinese: {
+                data: ['今天天气真好', '我爱学习编程', '少年强则国强', '勤能补拙', '书山有路勤为径', '学海无涯苦作舟', '一寸光阴一寸金', '黑发不知勤学早', '白首方悔读书迟'],
+                desc: '📝 中文模式：完整句子输入，检验输入法熟练度'
+            },
+            english: {
+                data: ['hello', 'world', 'student', 'study', 'school', 'teacher', 'friend', 'family', 'future', 'dream', 'success', 'knowledge', 'science', 'technology', 'computer', 'internet', 'develop', 'create', 'important', 'beautiful'],
+                desc: '📘 英语模式：中小学常用英语单词练习'
+            },
+            chengyu: {
+                data: ['一马当先', '马到成功', '功成名就', '就事论事', '事半功倍', '倍道而进', '进退两难', '难能可贵', '贵人多忘', '忘恩负义'],
+                desc: '🎯 成语模式：成语接龙，首尾呼应，寓教于乐'
+            },
+            poem: {
+                data: [
+                    '床前明月光 疑是地上霜 举头望明月 低头思故乡',
+                    '春眠不觉晓 处处闻啼鸟 夜来风雨声 花落知多少',
+                    '白日依山尽 黄河入海流 欲穷千里目 更上一层楼'
+                ],
+                desc: '📜 诗词模式：古诗词默写，传承中华文化'
+            },
+            code: {
+                data: [
+                    'print("Hello World")',
+                    'def calculate(x, y):',
+                    '    return x + y',
+                    'for i in range(10):',
+                    'if x > 0:',
+                    'list = [1, 2, 3]'
+                ],
+                desc: '💻 代码模式：Python 代码片段，编程基础训练'
+            },
+            gaokao: {
+                data: ['abandon', 'ability', 'abroad', 'absence', 'absolute', 'absorb', 'abstract', 'abundant', 'academic', 'accelerate', 'accent', 'accept', 'access', 'accident', 'accompany', 'accomplish', 'according', 'account', 'accurate', 'achieve'],
+                desc: '🎓 高考词汇：高频考试词汇，助力高考英语'
+            },
+            mix: {
+                data: ['hello', '你好', 'world', '世界', 'study', '学习', 'dream', '梦想'],
+                desc: '🎲 综合模式：中英文混合，全面提升'
+            }
+        };
+
+        // ========== State ==========
+        let currentMode = 'pinyin';
+        let currentDuration = 60;
+        let testActive = false;
+        let testStartTime = null;
+        let timerInterval = null;
+        let words = [];
+        let currentWordIndex = 0;
+        let inputBuffer = '';
+        let correctChars = 0;
+        let incorrectChars = 0;
+        let wpmHistory = [];
+        let comboCount = 0;
+        let maxCombo = 0;
+
+        // ========== Init ==========
+        function init() {
+            generateWords();
+            document.getElementById('typing-area').focus();
+            document.getElementById('words-container').addEventListener('click', () => {
+                document.getElementById('typing-area').focus();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    restartTest();
+                }
+            });
+
+            document.getElementById('typing-area').addEventListener('input', handleInput);
+            document.getElementById('typing-area').addEventListener('keydown', handleKeyDown);
+        }
+
+        function setMode(mode, btn) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const desc = WORD_BANKS[mode].desc;
+            document.getElementById('mode-desc').innerHTML = desc;
+
+            restartTest();
+        }
+
+        function setDuration(seconds, btn) {
+            currentDuration = seconds;
+            document.querySelectorAll('#live-stats').parentElement.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function generateWords() {
+            const bank = WORD_BANKS[currentMode];
+
+            if (currentMode === 'pinyin') {
+                words = [];
+                for (let i = 0; i < 50; i++) {
+                    const item = bank.data[Math.floor(Math.random() * bank.data.length)];
+                    words.push(item);
+                }
+            } else if (currentMode === 'poem' || currentMode === 'chinese') {
+                const text = bank.data[Math.floor(Math.random() * bank.data.length)];
+                words = text.split(' ').map(w => ({ word: w, pinyin: w }));
+            } else {
+                words = [];
+                for (let i = 0; i < 100; i++) {
+                    const word = bank.data[Math.floor(Math.random() * bank.data.length)];
+                    words.push({ word, pinyin: word });
+                }
+            }
+
+            renderWords();
+        }
+
+        function renderWords() {
+            const container = document.getElementById('words-container');
+            container.innerHTML = words.map((item, idx) => {
+                const displayWord = typeof item === 'string' ? item : item.word;
+                const isPinyin = currentMode === 'pinyin';
+
+                return `<div class="word ${idx === 0 ? 'active' : ''}" data-word-idx="${idx}">
+                    ${displayWord}
+                    ${isPinyin ? `<span class="pinyin-hint">${item.pinyin}</span>` : ''}
+                    ${idx === 0 ? '<span class="cursor"></span>' : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function handleInput(e) {
+            const input = e.target.value;
+
+            if (!testActive && input.length > 0) {
+                startTest();
+            }
+
+            if (!testActive) return;
+
+            inputBuffer = input;
+
+            // Update real-time display
+            const currentItem = words[currentWordIndex];
+            const targetWord = currentMode === 'pinyin' ? currentItem.pinyin : currentItem.word || currentItem;
+
+            // Display current input
+            document.getElementById('current-input-display').textContent = input || '_';
+            document.getElementById('target-word-display').textContent = targetWord;
+
+            // Visual feedback on target word display
+            const targetDisplay = document.getElementById('target-word-display');
+            if (input === targetWord) {
+                targetDisplay.className = 'text-2xl font-bold text-green-400';
+            } else if (targetWord.startsWith(input) && input.length > 0) {
+                targetDisplay.className = 'text-2xl font-bold text-amber-400';
+            } else if (input.length > 0) {
+                targetDisplay.className = 'text-2xl font-bold text-red-400';
+            } else {
+                targetDisplay.className = 'text-2xl font-bold text-amber-400';
+            }
+
+            updateWordDisplay();
+        }
+
+        function handleKeyDown(e) {
+            if (!testActive) return;
+
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (inputBuffer.length > 0) {
+                    moveToNextWord();
+                }
+            }
+        }
+
+        function updateWordDisplay() {
+            const wordEl = document.querySelector(`.word[data-word-idx="${currentWordIndex}"]`);
+            if (!wordEl) return;
+
+            const currentItem = words[currentWordIndex];
+            const targetWord = currentMode === 'pinyin' ? currentItem.pinyin : currentItem.word || currentItem;
+
+            // Simple comparison
+            if (inputBuffer === targetWord) {
+                wordEl.style.color = '#34d399';
+            } else if (targetWord.startsWith(inputBuffer)) {
+                wordEl.style.color = '#fbbf24';
+            } else {
+                wordEl.style.color = '#f87171';
+            }
+        }
+
+        function moveToNextWord() {
+            const currentItem = words[currentWordIndex];
+            const targetWord = currentMode === 'pinyin' ? currentItem.pinyin : currentItem.word || currentItem;
+
+            const wordEl = document.querySelector(`.word[data-word-idx="${currentWordIndex}"]`);
+
+            if (inputBuffer === targetWord) {
+                wordEl.classList.add('correct');
+                correctChars += targetWord.length;
+                comboCount++;
+                maxCombo = Math.max(maxCombo, comboCount);
+                document.getElementById('live-combo').textContent = comboCount;
+            } else {
+                wordEl.classList.add('error');
+                incorrectChars += Math.abs(targetWord.length - inputBuffer.length);
+                comboCount = 0;
+            }
+
+            wordEl.classList.remove('active');
+
+            currentWordIndex++;
+            inputBuffer = '';
+            document.getElementById('typing-area').value = '';
+
+            if (currentWordIndex >= words.length) {
+                generateMoreWords();
+            }
+
+            const nextWord = document.querySelector(`.word[data-word-idx="${currentWordIndex}"]`);
+            if (nextWord) {
+                nextWord.classList.add('active');
+                nextWord.innerHTML += '<span class="cursor"></span>';
+            }
+
+            updateLiveStats();
+        }
+
+        function generateMoreWords() {
+            const bank = WORD_BANKS[currentMode];
+            const moreWords = [];
+
+            for (let i = 0; i < 50; i++) {
+                if (currentMode === 'pinyin') {
+                    const item = bank.data[Math.floor(Math.random() * bank.data.length)];
+                    moreWords.push(item);
+                } else {
+                    const word = bank.data[Math.floor(Math.random() * bank.data.length)];
+                    moreWords.push({ word, pinyin: word });
+                }
+            }
+
+            const container = document.getElementById('words-container');
+            moreWords.forEach((item, idx) => {
+                const displayWord = typeof item === 'string' ? item : item.word;
+                const isPinyin = currentMode === 'pinyin';
+                const div = document.createElement('div');
+                div.className = 'word';
+                div.dataset.wordIdx = words.length + idx;
+                div.innerHTML = `${displayWord}${isPinyin ? `<span class="pinyin-hint">${item.pinyin}</span>` : ''}`;
+                container.appendChild(div);
+            });
+
+            words.push(...moreWords);
+        }
+
+        function startTest() {
+            testActive = true;
+            testStartTime = Date.now();
+            wpmHistory = [];
+            comboCount = 0;
+            maxCombo = 0;
+
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - testStartTime) / 1000);
+                const remaining = currentDuration - elapsed;
+                document.getElementById('live-timer').textContent = remaining + 's';
+
+                updateLiveStats();
+
+                if (remaining <= 0) {
+                    endTest();
+                }
+            }, 100);
+        }
+
+        function updateLiveStats() {
+            if (!testActive) return;
+
+            const elapsed = (Date.now() - testStartTime) / 1000 / 60;
+            const totalChars = correctChars + incorrectChars;
+
+            const wpm = elapsed > 0 ? Math.round((correctChars / 5) / elapsed) : 0;
+            const acc = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 100;
+
+            document.getElementById('live-wpm').textContent = wpm;
+            document.getElementById('live-accuracy').textContent = acc + '%';
+
+            wpmHistory.push(wpm);
+        }
+
+        function endTest() {
+            testActive = false;
+            clearInterval(timerInterval);
+
+            const elapsed = (Date.now() - testStartTime) / 1000 / 60;
+            const totalChars = correctChars + incorrectChars;
+            const wpm = Math.round((correctChars / 5) / elapsed);
+            const acc = Math.round((correctChars / totalChars) * 100);
+
+            // Rank
+            let rank = 'D';
+            if (wpm >= 80 && acc >= 95) rank = 'S';
+            else if (wpm >= 60 && acc >= 90) rank = 'A';
+            else if (wpm >= 40 && acc >= 85) rank = 'B';
+            else if (wpm >= 20 && acc >= 80) rank = 'C';
+
+            document.getElementById('live-stats').classList.add('hidden');
+            document.getElementById('result-panel').classList.remove('hidden');
+
+            document.getElementById('result-wpm').textContent = wpm;
+            document.getElementById('result-accuracy').textContent = acc + '%';
+            document.getElementById('result-max-combo').textContent = maxCombo;
+            document.getElementById('result-rank').textContent = rank;
+            document.getElementById('result-correct').textContent = correctChars;
+            document.getElementById('result-incorrect').textContent = incorrectChars;
+            document.getElementById('result-total').textContent = totalChars;
+
+            // Achievements
+            const achievements = [];
+            if (acc >= 95) achievements.push('🎯 神枪手 (95%+准确率)');
+            if (wpm >= 60) achievements.push('⚡ 闪电侠 (60+ WPM)');
+            if (maxCombo >= 20) achievements.push('🔥 连击王 (20连击)');
+
+            document.getElementById('achievements').innerHTML = achievements.length > 0
+                ? achievements.map(a => `<div class="bg-amber-500/20 border border-amber-500/40 rounded-lg p-3 text-amber-300 text-center">${a}</div>`).join('')
+                : '<div class="col-span-3 text-center text-slate-500">继续努力，解锁更多成就！</div>';
+
+            // Title
+            const titles = {
+                'S': '🏆 键盘之神！',
+                'A': '⚡ 打字高手！',
+                'B': '👍 表现不错！',
+                'C': '💪 继续加油！',
+                'D': '📚 多加练习！'
+            };
+            document.getElementById('result-title').textContent = titles[rank];
+
+            renderChart();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('wpm-chart').getContext('2d');
+
+            if (window.wpmChartInstance) {
+                window.wpmChartInstance.destroy();
+            }
+
+            window.wpmChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: wpmHistory.map((_, idx) => ''),
+                    datasets: [{
+                        data: wpmHistory,
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251, 191, 36, 0.15)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: '#fbbf24',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleColor: '#fbbf24',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#fbbf24',
+                            borderWidth: 2,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: (context) => `${context.parsed.y} 字/分钟`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 11, family: 'Roboto Mono' }
+                            },
+                            grid: { color: 'rgba(100, 116, 139, 0.15)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function restartTest() {
+            testActive = false;
+            clearInterval(timerInterval);
+
+            currentWordIndex = 0;
+            correctChars = 0;
+            incorrectChars = 0;
+            comboCount = 0;
+            maxCombo = 0;
+            wpmHistory = [];
+            inputBuffer = '';
+            testStartTime = null;
+
+            document.getElementById('typing-area').value = '';
+            document.getElementById('live-wpm').textContent = '0';
+            document.getElementById('live-accuracy').textContent = '100%';
+            document.getElementById('live-combo').textContent = '0';
+            document.getElementById('live-timer').textContent = '--';
+
+            document.getElementById('live-stats').classList.remove('hidden');
+            document.getElementById('result-panel').classList.add('hidden');
+
+            generateWords();
+            document.getElementById('typing-area').focus();
+        }
+
+        init();
+    </script>
+
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MISSION CONTROL // 航天指挥中心 | 轨道力学与深空探索</title>
+    <link
+        href="https://fonts.loli.net/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Noto+Sans+SC:wght@300;400;700;900&display=swap"
+        rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-purple: #7000ff;
+            --neon-red: #ff003c;
+            --glass-bg: rgba(5, 10, 20, 0.7);
+            --border-glow: rgba(0, 240, 255, 0.3);
+        }
+
+        * {
+            cursor: crosshair;
+        }
+
+        body {
+            margin: 0;
+            background: #000;
+            color: #e0e0e0;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            letter-spacing: 0.5px;
+        }
+
+        .font-mono {
+            font-family: 'Share+Tech+Mono', monospace;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* --- IMMERSIVE LAYERS --- */
+        .sky-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: -2;
+            transition: background 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .star-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 1px 1px, #ffffff22 1px, transparent 0);
+            background-size: 50px 50px;
+            opacity: 0;
+            z-index: -1;
+            transition: opacity 2s;
+        }
+
+        /* --- HUD ELEMENTS --- */
+        .hud-frame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            border: 20px solid transparent;
+            border-image: radial-gradient(circle, transparent 70%, rgba(0, 240, 255, 0.05) 100%) 30;
+        }
+
+        .altitude-meter {
+            position: fixed;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 70vh;
+            width: 120px;
+            z-index: 110;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, transparent, rgba(0, 240, 255, 0.1), transparent);
+            border-right: 1px solid rgba(0, 240, 255, 0.3);
+            padding-right: 15px;
+        }
+
+        .alt-pointer {
+            position: absolute;
+            right: -5px;
+            width: 20px;
+            height: 1px;
+            background: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+            transition: top 0.3s ease-out;
+        }
+
+        .alt-data-box {
+            position: fixed;
+            left: 40px;
+            top: 40px;
+            z-index: 120;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-glow);
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- SECTION STYLING --- */
+        .viewport-section {
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15%;
+            z-index: 10;
+        }
+
+        .data-panel {
+            width: 450px;
+            background: rgba(0, 10, 20, 0.8);
+            border-left: 3px solid var(--neon-blue);
+            padding: 40px;
+            backdrop-filter: blur(15px);
+            box-shadow: 20px 0 50px rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+
+        .tech-spec-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+            border-top: 1px solid rgba(0, 240, 255, 0.2);
+            padding-top: 20px;
+        }
+
+        .spec-item {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #888;
+        }
+
+        .spec-value {
+            font-family: 'Share Tech Mono';
+            font-size: 16px;
+            color: var(--neon-blue);
+        }
+
+        /* --- ASSETS --- */
+        .asset-stage {
+            position: absolute;
+            right: 10%;
+            width: 45%;
+            height: 70vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .floating-asset {
+            width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 30px rgba(0, 240, 255, 0.2));
+            transition: transform 0.1s linear;
+        }
+
+        /* --- SCANLINE EFFECT --- */
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: rgba(0, 240, 255, 0.1);
+            z-index: 200;
+            pointer-events: none;
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+
+            100% {
+                top: 100%;
+            }
+        }
+
+        /* --- GLITCH TEXT --- */
+        .glitch-text {
+            position: relative;
+            display: inline-block;
+        }
+
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            left: 2px;
+            text-shadow: -1px 0 red;
+            background: black;
+            overflow: hidden;
+            clip: rect(0, 900px, 0, 0);
+            animation: noise-2 3s infinite linear alternate-reverse;
+        }
+
+        @keyframes noise-2 {
+            0% {
+                clip: rect(10px, 9999px, 50px, 0);
+            }
+
+            100% {
+                clip: rect(80px, 9999px, 90px, 0);
+            }
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: var(--neon-blue);
+        }
+
+        /* Navigation Dots */
+        .nav-sidebar {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            z-index: 150;
+        }
+
+        .dot-nav {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--neon-blue);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .dot-nav.active {
+            background: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 30px;
+            left: 40px;
+            z-index: 200;
+            font-family: 'Orbitron';
+            font-size: 12px;
+            color: var(--neon-blue);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 15px;
+            border: 1px solid var(--neon-blue);
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .back-btn:hover {
+            background: var(--neon-blue);
+            color: black;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="custom-scroll">
+
+    <!-- HUD FRAME -->
+    <div class="hud-frame"></div>
+    <div class="scanline"></div>
+
+    <a href="index.html" class="back-btn">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>MISSION_CONTROL / BACK</span>
+    </a>
+
+    <!-- INFRASTRUCTURE LAYERS -->
+    <div class="sky-layer" id="skyLayer"></div>
+    <div class="star-field" id="starField"></div>
+
+    <!-- ALTITUDE CONTROL HUD -->
+    <div class="alt-data-box">
+        <div class="font-orbitron text-xs text-blue-400 mb-1">MISSION_STATUS: <span class="text-green-400">ACTIVE</span>
+        </div>
+        <div class="text-3xl font-mono font-black text-white" id="liveAlt">00000<span
+                class="text-sm ml-1 text-blue-400">KM</span></div>
+        <div class="font-mono text-[10px] text-gray-500 mt-2">VELOCITY: 7.91 KM/S | ORBIT: LEO_SYNC_01 | G-PERC: 1.0
+        </div>
+    </div>
+
+    <div class="altitude-meter font-mono text-[9px] text-blue-300">
+        <div class="alt-pointer" id="altPointer"></div>
+        <span>1000k KM - OUTER COMSOS</span>
+        <span>400k KM - LUNAR REACH</span>
+        <span>36k KM - GEOSTATIONARY</span>
+        <span>2k KM - LEO ORBIT</span>
+        <span>100 KM - KARMAN LINE</span>
+        <span>50 KM - STRATOSPHERE</span>
+        <span>12 KM - TROPOSPHERE</span>
+        <span>0 KM - SEA LEVEL</span>
+    </div>
+
+    <nav class="nav-sidebar">
+        <div class="dot-nav active" title="航空系统" onclick="gsap.to(window, {scrollTo: '#sec-aviation'})"></div>
+        <div class="dot-nav" title="平流层" onclick="gsap.to(window, {scrollTo: '#sec-strato'})"></div>
+        <div class="dot-nav" title="空间站" onclick="gsap.to(window, {scrollTo: '#sec-orbital'})"></div>
+        <div class="dot-nav" title="深空探测" onclick="gsap.to(window, {scrollTo: '#sec-deep'})"></div>
+        <div class="dot-nav" title="3D机库" onclick="gsap.to(window, {scrollTo: '#sec-hangar'})"></div>
+    </nav>
+
+    <!-- MAIN SECTIONS -->
+    <main>
+        <!-- SECTION 1: AVIATION -->
+        <section id="sec-aviation" class="viewport-section"
+            style="background: linear-gradient(to bottom, transparent, rgba(135,206,235,0.1));">
+            <div class="data-panel">
+                <div class="text-blue-500 font-orbitron text-[10px] tracking-[5px] mb-4">REGION: TROPOSPHERE</div>
+                <h2 class="text-5xl font-black font-orbitron mb-6 gradient-text">航空科技<br><span
+                        class="text-2xl opacity-60">ADVANCED AVIATION</span></h2>
+                <div class="space-y-4 text-sm text-gray-400 leading-relaxed font-light">
+                    <p>航空是人类征服天空的第一步。在大气层底部，稠密的空气提供了升力。从成飞 **歼-20 “威龙”** 到西飞 **C919**，中国航空工业正以前所未有的速度迈向世界之巅。</p>
+                    <p>重点研究：DSI进气道技术、隐身涂层布局、以及大涵道比涡扇发动机的国产突破。</p>
+                </div>
+
+                <div class="tech-spec-grid">
+                    <div class="spec-cell">
+                        <div class="spec-item">典型海拔 / TYP_ALT</div>
+                        <div class="spec-value">0 - 12 KM</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">最高航速 / MAX_VEL</div>
+                        <div class="spec-value">Mach 2.5+</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">主要载体 / VEHICLES</div>
+                        <div class="spec-value">J-20, C919, AG600</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">气压 / PRESSURE</div>
+                        <div class="spec-value">101.3 - 19.3 kPa</div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-4">
+                    <a href="https://www.avic.com" target="_blank"
+                        class="px-6 py-2 border border-blue-500 text-blue-400 text-xs font-bold hover:bg-blue-500 hover:text-black transition-all">访问中航工业官网</a>
+                    <button
+                        class="px-6 py-2 bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20 hover:border-blue-500 transition-all">查看
+                        24H 实时航班</button>
+                </div>
+            </div>
+
+            <div class="asset-stage">
+                <img src="https://images.unsplash.com/photo-1544601284-24f464878a1f?auto=format&fit=crop&q=80"
+                    alt="J-20" class="floating-asset" id="asset-j20">
+                <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 font-mono text-[10px] text-blue-400/50">
+                    ASSET_ID: AV_J20_STEALTH</div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: STRATOSPHERE -->
+        <section id="sec-strato" class="viewport-section">
+            <div class="data-panel" style="border-color: #a855f7;">
+                <div class="text-purple-500 font-orbitron text-[10px] tracking-[5px] mb-4">REGION: STRATOSPHERE</div>
+                <h2 class="text-5xl font-black font-orbitron mb-6 text-purple-400">临近空间<br><span
+                        class="text-2xl opacity-60">STRATEGIC EDGE</span></h2>
+                <div class="space-y-4 text-sm text-gray-400 leading-relaxed font-light">
+                    <p>海拔 20-50 公里的平流层，空气极端稀薄，云朵消失。这里是“临近空间”，是普通飞机无法触及、而低轨卫星又太高的高度。</p>
+                    <p>这里也是 **SR-71“黑鸟”** 极速飞行的领域，目前也是高超音速飞行器、临近空间飞艇的关键实验场。</p>
+                </div>
+
+                <div class="tech-spec-grid" style="border-color: rgba(168,85,247,0.2);">
+                    <div class="spec-cell">
+                        <div class="spec-item">典型海拔 / TYP_ALT</div>
+                        <div class="spec-value">12 - 50 KM</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">环境温度 / TEMP</div>
+                        <div class="spec-value">-60°C to 0°C</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">臭氧含量 / O3_CONC</div>
+                        <div class="spec-value">MAXIMUM LAYER</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">空气密度 / DENSITY</div>
+                        <div class="spec-value">1% OF SEA LEVEL</div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-4">
+                    <button
+                        class="px-6 py-2 border border-purple-500 text-purple-400 text-xs font-bold hover:bg-purple-500 hover:text-black transition-all">黑鸟计划技术文档</button>
+                    <button
+                        class="px-6 py-2 bg-purple-500/10 text-purple-400 text-xs font-bold border border-purple-500/20 hover:border-purple-500 transition-all">临近空间飞船演示</button>
+                </div>
+            </div>
+
+            <div class="asset-stage">
+                <img src="https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&q=80"
+                    alt="SR-71" class="floating-asset" id="asset-sr71">
+                <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 font-mono text-[10px] text-purple-400/50">
+                    ASSET_ID: STRATO_RECON_71</div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: ORBITAL (TIANGONG / ISS) -->
+        <section id="sec-orbital" class="viewport-section">
+            <div class="data-panel" style="border-color: #3b82f6;">
+                <div class="text-blue-500 font-orbitron text-[10px] tracking-[5px] mb-4">REGION: THERMOSPHERE</div>
+                <h2 class="text-5xl font-black font-orbitron mb-6 text-blue-400">环地堡垒<br><span
+                        class="text-2xl opacity-60">ORBITAL MATRIX</span></h2>
+                <div class="space-y-4 text-sm text-gray-400 leading-relaxed font-light">
+                    <p>欢迎来到 **中国空间站“天宫” (Tiangong)** 的轨道。在 400 公里的太空中，核心舱“天和”、实验舱“问天”、“梦天”组成了人类在太空的长久驻点。</p>
+                    <p>在这里，每一秒钟的航速高达 **7.9公里**。通过舱内的 3D 打印、生物实验，我们正为前往火星积攒宝贵经验。</p>
+                </div>
+
+                <div class="tech-spec-grid" style="border-color: rgba(59,130,246,0.2);">
+                    <div class="spec-cell">
+                        <div class="spec-item">轨道高度 / ORBIT_H</div>
+                        <div class="spec-value">340 - 450 KM</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">运行速度 / VELOCITY</div>
+                        <div class="spec-value">28,000 KM/H</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">周期 / PERIOD</div>
+                        <div class="spec-value">91 MINUTES</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">驻留人数 / CREW</div>
+                        <div class="spec-value">3 - 6 ASTRONAUTS</div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-4">
+                    <a href="http://www.cmse.gov.cn/" target="_blank"
+                        class="px-6 py-2 border border-blue-500 text-blue-400 text-xs font-bold hover:bg-blue-500 hover:text-black transition-all">载人航天官方数字平台</a>
+                    <button
+                        class="px-6 py-2 bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20 hover:border-blue-500 transition-all">天宫
+                        VR 实景互访</button>
+                </div>
+            </div>
+
+            <div class="asset-stage">
+                <img src="https://images.unsplash.com/photo-1454789548928-9efd52dc4031?auto=format&fit=crop&q=80"
+                    alt="Tiangong" class="floating-asset" id="asset-iss">
+                <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 font-mono text-[10px] text-blue-400/50">
+                    ASSET_ID: STATION_CHINA_TG</div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: DEEP SPACE (MARS / PROBES) -->
+        <section id="sec-deep" class="viewport-section">
+            <div class="data-panel" style="border-color: #ef4444;">
+                <div class="text-red-500 font-orbitron text-[10px] tracking-[5px] mb-4">REGION: EXOSPHERE / DEEP SPACE
+                </div>
+                <h2 class="text-5xl font-black font-orbitron mb-6 text-red-500">深空征途<br><span
+                        class="text-2xl opacity-60">COSMIC FRONTIER</span></h2>
+                <div class="space-y-4 text-sm text-gray-400 leading-relaxed font-light">
+                    <p>跨越地球引力，终点是群星。**“祝融号”** 在火星表面留下的车辙，符号着中国深空探测的新纪元。</p>
+                    <p>我们关注引力弹弓效应、远距离 DSN 通信以及詹姆斯·韦伯望远镜探索的宇宙黎明信息。</p>
+                </div>
+
+                <div class="tech-spec-grid" style="border-color: rgba(239,68,68,0.2);">
+                    <div class="spec-cell">
+                        <div class="spec-item">地火距离 / DISTANCE</div>
+                        <div class="spec-value">55M - 400M KM</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">通信延迟 / LATENCY</div>
+                        <div class="spec-value">3 - 22 MINUTES</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">探测器寿命 / LIFE</div>
+                        <div class="spec-value">EXTENDED MISSION</div>
+                    </div>
+                    <div class="spec-cell">
+                        <div class="spec-item">宇宙温度 / COSMIC_T</div>
+                        <div class="spec-value">2.7 K (CMBR)</div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-4">
+                    <a href="https://mars.nasa.gov" target="_blank"
+                        class="px-6 py-2 border border-red-500 text-red-400 text-xs font-bold hover:bg-red-500 hover:text-black transition-all">NASA
+                        Mars Project</a>
+                    <button
+                        class="px-6 py-2 bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/20 hover:border-red-500 transition-all">祝融号全景影像</button>
+                </div>
+            </div>
+
+            <div class="asset-stage">
+                <img src="https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?auto=format&fit=crop&q=80"
+                    alt="Mars" class="floating-asset" id="asset-mars">
+                <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 font-mono text-[10px] text-red-400/50">
+                    ASSET_ID: MARS_EXT_PROBE</div>
+            </div>
+        </section>
+
+        <!-- Hardcore Module: Orbital Engineering & Competitions -->
+        <section class="py-24 relative z-10 bg-black/40 border-y border-white/5">
+            <div class="max-w-7xl mx-auto px-10">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-10 mb-16">
+                    <div class="md:w-1/2">
+                        <span class="text-blue-500 font-mono text-xs uppercase tracking-[0.5em]">[ COMPETITION &
+                            PROTOTYPING ]</span>
+                        <h2 class="text-4xl font-black font-orbitron mt-4">特长生竞技场</h2>
+                        <p class="text-gray-400 mt-6 leading-relaxed">对标顶尖航天赛事。从 CANSAT (罐装卫星) 到 TARC
+                            火箭挑战，在这里掌握多级动力系统、航电控制律及气动布局优化。</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="p-6 glass-panel border-blue-500/30 text-center w-40">
+                            <div class="text-2xl mb-2">🚀</div>
+                            <div class="text-[10px] text-blue-400 font-mono">TARC_ROCKET</div>
+                        </div>
+                        <div class="p-6 glass-panel border-blue-500/30 text-center w-40">
+                            <div class="text-2xl mb-2">🛰️</div>
+                            <div class="text-[10px] text-blue-400 font-mono">CANSAT_SATELLITE</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-10">
+                    <div class="p-8 glass-panel group hover:border-blue-500/50 transition-all">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="w-12 h-12 bg-blue-500/20 rounded flex items-center justify-center"><i
+                                    data-lucide="layers" class="text-blue-400"></i></div>
+                            <h3 class="text-xl font-bold font-orbitron">CubeSat 卫星开发</h3>
+                        </div>
+                        <p class="text-gray-400 text-sm mb-6">基于 1U/3U 标准进行微纳卫星原型设计。涵盖星载电脑 (OBC)、姿态控制、以及 S 波段遥测通信链路。</p>
+                        <div class="font-mono text-[10px] text-blue-300 opacity-60 uppercase">> BUS_ARCH //
+                            PAYLOAD_INTEGRATION // EPS_SYSTEM</div>
+                    </div>
+                    <div class="p-8 glass-panel group hover:border-red-500/50 transition-all">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="w-12 h-12 bg-red-500/20 rounded flex items-center justify-center"><i
+                                    data-lucide="activity" class="text-red-400"></i></div>
+                            <h3 class="text-xl font-bold font-orbitron">航电系统与仿真</h3>
+                        </div>
+                        <p class="text-gray-400 text-sm mb-6">利用 KSP (坎巴拉太空计划) 与 MATLAB 进行轨道参数求解。通过自定义控制算法实现火箭的姿态垂直回收模拟。
+                        </p>
+                        <div class="font-mono text-[10px] text-red-300 opacity-60 uppercase">> PID_CONTROL //
+                            BALLISTIC_TRAJECTORY // GNC_SYSTEM</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: QUANTUM HANGAR -->
+        <section id="sec-hangar" class="py-32 px-10 border-t border-white/10 bg-black">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col items-center mb-24">
+                    <h2 class="text-6xl font-black font-orbitron mb-4 text-center glitch-text"
+                        data-text="QUANTUM 3D HANGAR">量子 3D 数字机库</h2>
+                    <div class="w-32 h-1 bg-blue-500 mb-6 shadow-[0_0_15px_#00f0ff]"></div>
+                    <p class="text-blue-400 font-mono text-center tracking-widest uppercase">Select an asset for
+                        high-fidelity interactive review</p>
+                </div>
+
+                <div class="grid lg:grid-cols-3 gap-12">
+                    <!-- Hangar Card 1 -->
+                    <div
+                        class="group relative bg-[#0a0a1a] border border-white/10 p-8 rounded-lg overflow-hidden transition-all hover:border-blue-500/50 hover:shadow-[0_0_50px_rgba(0,240,255,0.1)]">
+                        <div class="absolute top-0 right-0 p-4 font-mono text-6xl opacity-5 text-white">01</div>
+                        <div class="h-80 mb-8 flex items-center justify-center bg-black/40 rounded-xl">
+                            <model-viewer src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+                                poster="https://modelviewer.dev/assets/poster-astronaut.png" alt="Astronaut"
+                                shadow-intensity="1" camera-controls auto-rotate style="width: 100%; height: 100%;">
+                            </model-viewer>
+                        </div>
+                        <div class="border-l-4 border-blue-500 pl-4">
+                            <h3 class="text-2xl font-bold font-orbitron mb-2">天宫空间站 - 数字孪生</h3>
+                            <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                                集成全部实验舱室数据，支持内部各系统交互。查看包括再生生保、科学实验柜在内的核心技术细节。</p>
+                            <div class="flex flex-wrap gap-2 mb-6">
+                                <span
+                                    class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] border border-blue-500/30">LOD
+                                    1.0</span>
+                                <span
+                                    class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] border border-blue-500/30">INTERACTIVE</span>
+                                <span
+                                    class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] border border-blue-500/30">PBR_TEXTURE</span>
+                            </div>
+                            <button
+                                class="w-full py-3 bg-blue-500/10 text-blue-400 border border-blue-500 font-bold hover:bg-blue-500 hover:text-black transition-all">进入数字化舱室探险</button>
+                        </div>
+                    </div>
+
+                    <!-- Hangar Card 2 -->
+                    <div
+                        class="group relative bg-[#0a0a1a] border border-white/10 p-8 rounded-lg overflow-hidden transition-all hover:border-purple-500/50 hover:shadow-[0_0_50px_rgba(168,85,247,0.1)]">
+                        <div class="absolute top-0 right-0 p-4 font-mono text-6xl opacity-5 text-white">02</div>
+                        <div class="h-80 mb-8 flex items-center justify-center overflow-hidden rounded-xl bg-black/40">
+                            <img src="https://images.unsplash.com/photo-1544601284-24f464878a1f?auto=format&fit=crop&q=80"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform">
+                        </div>
+                        <div class="border-l-4 border-purple-500 pl-4">
+                            <h3 class="text-2xl font-bold font-orbitron mb-2">歼-20 “威龙” - 战术模型</h3>
+                            <p class="text-gray-500 text-sm leading-relaxed mb-6">全细节战机模型。点击可分解查看 EOTS
+                                光电跟踪系统、弹舱结构及其隐身布局仿真效果图。</p>
+                            <div class="flex flex-wrap gap-2 mb-6">
+                                <span
+                                    class="px-2 py-1 bg-purple-500/10 text-purple-400 text-[10px] border border-purple-500/30">MIL_SPEC</span>
+                                <span
+                                    class="px-2 py-1 bg-purple-500/10 text-purple-400 text-[10px] border border-purple-500/30">GLB_READY</span>
+                            </div>
+                            <button
+                                class="w-full py-3 bg-purple-500/10 text-purple-400 border border-purple-500 font-bold hover:bg-purple-500 hover:text-black transition-all">启动战机战术分解</button>
+                        </div>
+                    </div>
+
+                    <!-- Hangar Card 3 -->
+                    <div
+                        class="group relative bg-[#0a0a1a] border border-white/10 p-8 rounded-lg overflow-hidden transition-all hover:border-red-500/50 hover:shadow-[0_0_50px_rgba(239,68,68,0.1)]">
+                        <div class="absolute top-0 right-0 p-4 font-mono text-6xl opacity-5 text-white">03</div>
+                        <div class="h-80 mb-8 flex items-center justify-center overflow-hidden rounded-xl bg-black/40">
+                            <img src="https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?auto=format&fit=crop&q=80"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform">
+                        </div>
+                        <div class="border-l-4 border-red-500 pl-4">
+                            <h3 class="text-2xl font-bold font-orbitron mb-2">祝融号 - 火星拓荒者</h3>
+                            <p class="text-gray-500 text-sm leading-relaxed mb-6">基于真实现载荷数据构建。包括地面穿透雷达 (RoPeR)、火星气象测量仪
+                                (MCS) 等传感器的详细数据。</p>
+                            <div class="flex flex-wrap gap-2 mb-6">
+                                <span
+                                    class="px-2 py-1 bg-red-500/10 text-red-400 text-[10px] border border-red-500/30">SCIENTIFIC</span>
+                                <span
+                                    class="px-2 py-1 bg-red-500/10 text-red-400 text-[10px] border border-red-500/30">4K_MESH</span>
+                            </div>
+                            <button
+                                class="w-full py-3 bg-red-500/10 text-red-400 border border-red-500 font-bold hover:bg-red-500 hover:text-black transition-all">进入火星虚拟实验室</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER RESOURCES -->
+    <footer class="bg-[#050505] py-20 px-10 border-t border-white/5">
+        <div class="max-w-7xl mx-auto grid md:grid-cols-4 gap-12">
+            <div>
+                <div class="font-orbitron font-900 text-xl mb-6">MISSION_CONTROL</div>
+                <p class="text-xs text-gray-600 leading-loose">构建全球首个面向青少年的高精度、强交互航空航天科技平台。连接每一个对宇宙充满好奇的灵魂。</p>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold text-blue-500 uppercase mb-6 tracking-widest">核心资源库</h4>
+                <ul class="text-xs text-gray-500 space-y-4 font-light">
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">中国载人航天工程网</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">NASA 全球实时影像</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">ESA 欧空局公开数据</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">SpaceX 发射实时监控</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold text-blue-500 uppercase mb-6 tracking-widest">青少年挑战</h4>
+                <ul class="text-xs text-gray-500 space-y-4 font-light">
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">国际青少年火箭竞赛 (TARC)</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">全国青少年航天创新大赛</a></li>
+                    <li><a href="#" class="hover:text-blue-400 transition-colors">模拟火星殖民挑战赛</a></li>
+                </ul>
+            </div>
+            <div class="bg-blue-500/5 p-6 border border-blue-500/20 rounded-lg">
+                <h4 class="text-xs font-bold text-blue-400 uppercase mb-4 tracking-widest">SYSTEM_INFO</h4>
+                <div class="space-y-2 font-mono text-[10px]">
+                    <div class="flex justify-between"><span>UPTIME:</span> <span class="text-blue-400">99.98%</span>
+                    </div>
+                    <div class="flex justify-between"><span>LATENCY:</span> <span class="text-blue-400">12ms</span>
+                    </div>
+                    <div class="flex justify-between"><span>SECURITY:</span> <span
+                            class="text-green-400">ENCRYPTED</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-20 pt-10 border-t border-white/5 text-center text-[10px] text-gray-800 font-mono">
+            &copy; 2025 MISSION CONTROL | AEROSPACE SECTOR | COMMAND_SYNCED
+        </div>
+    </footer>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+        const skyLayer = document.getElementById('skyLayer');
+        const starField = document.getElementById('starField');
+        const liveAlt = document.getElementById('liveAlt');
+        const altPointer = document.getElementById('altPointer');
+
+        const configs = [
+            { id: 'sec-aviation', alt: 12180, bg: 'linear-gradient(to bottom, #0ea5e9, #020617)', stars: 0 },
+            { id: 'sec-strato', alt: 50420, bg: 'linear-gradient(to bottom, #1e1b4b, #020617)', stars: 0.2 },
+            { id: 'sec-orbital', alt: 400120, bg: 'linear-gradient(to bottom, #020617, #000)', stars: 0.7 },
+            { id: 'sec-deep', alt: 220000000, bg: 'linear-gradient(to bottom, #000, #000)', stars: 1 }
+        ];
+
+        // SETUP SCROLL SYNC
+        configs.forEach((config, i) => {
+            const section = document.getElementById(config.id);
+            const panel = section.querySelector('.data-panel');
+            const asset = section.querySelector('.floating-asset');
+
+            // SECTION TRIGGER
+            ScrollTrigger.create({
+                trigger: section,
+                start: "top center",
+                end: "bottom center",
+                onToggle: self => {
+                    if (self.isActive) {
+                        updateHUD(config, i);
+                        gsap.to(panel, { opacity: 1, x: 0, duration: 1, ease: 'power2.out' });
+                        updateNavDots(i);
+                    }
+                }
+            });
+
+            // PARALLAX ASSETS
+            gsap.to(asset, {
+                scrollTrigger: {
+                    trigger: section,
+                    start: "top bottom",
+                    end: "bottom top",
+                    scrub: 1
+                },
+                y: -100,
+                rotate: 5
+            });
+        });
+
+        function updateHUD(config, index) {
+            // Background Transition
+            gsap.to(skyLayer, { background: config.bg, duration: 2 });
+            gsap.to(starField, { opacity: config.stars, duration: 2 });
+
+            // Alt Counter Animation
+            gsap.to(liveAlt, {
+                innerHTML: config.alt,
+                duration: 1.5,
+                snap: { innerHTML: 1 },
+                onUpdate: function () {
+                    const val = Math.floor(this.targets()[0].innerHTML);
+                    this.targets()[0].innerHTML = val.toLocaleString().padStart(6, '0') + '<span class="text-sm ml-1 text-blue-400">KM</span>';
+                }
+            });
+
+            // Alt Pointer Position
+            const pointerPos = (index / (configs.length - 1)) * 95;
+            gsap.to(altPointer, { bottom: pointerPos + '%', duration: 1.5, ease: 'power2.inOut' });
+        }
+
+        function updateNavDots(index) {
+            document.querySelectorAll('.dot-nav').forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+        }
+
+        // MOUSE MOVE PARALLAX
+        window.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            const x = (clientX / window.innerWidth - 0.5) * 50;
+            const y = (clientY / window.innerHeight - 0.5) * 50;
+
+            gsap.to('.floating-asset', {
+                x: x,
+                y: y,
+                duration: 2,
+                ease: 'power2.out'
+            });
+        });
+
+        // INTRO ANIMATION
+        window.onload = () => {
+            gsap.from('.back-btn', { y: -50, opacity: 0, delay: 0.5 });
+            gsap.from('.alt-data-box', { x: -50, opacity: 0, delay: 0.7 });
+            gsap.from('.altitude-meter', { x: 50, opacity: 0, delay: 0.9 });
+
+            // Auto scroll to first section
+            updateHUD(configs[0], 0);
+        }
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

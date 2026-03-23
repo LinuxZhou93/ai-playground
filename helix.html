@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HELIX DNA ENGINE | 3D 双螺旋模拟</title>
+
+    <script src="libs/tailwindcss.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hud-panel {
+            background: rgba(20, 5, 25, 0.8);
+            border: 1px solid rgba(217, 70, 239, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+
+    <!-- CONTAINER -->
+    <div id="canvas-container" class="fixed inset-0 z-0"></div>
+
+    <!-- UI -->
+    <div class="fixed top-0 left-0 w-full p-6 z-10 flex justify-between pointer-events-none">
+
+        <!-- TITLE -->
+        <div class="hud-panel p-4 pointer-events-auto">
+            <h1 class="text-2xl font-bold tracking-widest text-fuchsia-400">HELIX <span class="text-white">ENGINE</span>
+            </h1>
+            <div class="text-[10px] text-fuchsia-300/70">GENETIC VISUALIZER V1.0</div>
+        </div>
+
+        <!-- CONTROLS -->
+        <div class="hud-panel p-4 pointer-events-auto flex gap-4">
+            <button onclick="toggleRotation()"
+                class="text-xs font-bold text-fuchsia-400 hover:text-white uppercase tracking-wider border border-fuchsia-500/50 px-3 py-1 rounded hover:bg-fuchsia-500/20 transition">
+                Start/Stop
+            </button>
+            <a href="life_hub.html"
+                class="text-xs font-bold text-gray-400 hover:text-white uppercase tracking-wider border border-gray-600 px-3 py-1 rounded hover:bg-gray-800 transition">
+                Exit
+            </a>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="fixed left-6 bottom-6 w-64 pointer-events-none">
+        <div class="hud-panel p-4 pointer-events-auto space-y-4">
+            <h2 class="text-xs font-bold text-fuchsia-400 border-b border-fuchsia-500/30 pb-2">BASE PAIR ANALYSIS</h2>
+
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-gray-400">Adenine (A)</span>
+                <span class="text-red-400 font-mono">30%</span>
+            </div>
+            <div class="w-full h-1 bg-gray-800 rounded">
+                <div class="h-full bg-red-500 w-[30%]"></div>
+            </div>
+
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-gray-400">Thymine (T)</span>
+                <span class="text-blue-400 font-mono">30%</span>
+            </div>
+            <div class="w-full h-1 bg-gray-800 rounded">
+                <div class="h-full bg-blue-500 w-[30%]"></div>
+            </div>
+
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-gray-400">Guanine (G)</span>
+                <span class="text-green-400 font-mono">20%</span>
+            </div>
+            <div class="w-full h-1 bg-gray-800 rounded">
+                <div class="h-full bg-green-500 w-[20%]"></div>
+            </div>
+
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-gray-400">Cytosine (C)</span>
+                <span class="text-yellow-400 font-mono">20%</span>
+            </div>
+            <div class="w-full h-1 bg-gray-800 rounded">
+                <div class="h-full bg-yellow-500 w-[20%]"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // THREE.JS SETUP
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.05);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 20;
+        camera.position.y = 5;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // LIGHTS
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xd946ef, 2, 100);
+        pointLight.position.set(10, 10, 10);
+        scene.add(pointLight);
+
+        const pointLight2 = new THREE.PointLight(0xbef264, 2, 100);
+        pointLight2.position.set(-10, -10, 10);
+        scene.add(pointLight2);
+
+        // DNA GROUP
+        const dnaGroup = new THREE.Group();
+        scene.add(dnaGroup);
+
+        const particleCount = 40;
+        const radius = 4;
+        const height = 30;
+        const turns = 2;
+
+        const sphereGeo = new THREE.SphereGeometry(0.3, 16, 16);
+        const bondGeo = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
+
+        // MATERIALS
+        const matA = new THREE.MeshPhongMaterial({ color: 0xef4444, emissive: 0x550000 }); // Red
+        const matT = new THREE.MeshPhongMaterial({ color: 0x3b82f6, emissive: 0x000055 }); // Blue
+        const matG = new THREE.MeshPhongMaterial({ color: 0x10b981, emissive: 0x005500 }); // Green
+        const matC = new THREE.MeshPhongMaterial({ color: 0xeab308, emissive: 0x555500 }); // Yellow
+        const matBond = new THREE.MeshBasicMaterial({ color: 0x9ca3af, transparent: true, opacity: 0.3 });
+
+        function createBasePair(y, angle) {
+
+            // Positions
+            const x1 = Math.cos(angle) * radius;
+            const z1 = Math.sin(angle) * radius;
+            const x2 = Math.cos(angle + Math.PI) * radius; // Opposite
+            const z2 = Math.sin(angle + Math.PI) * radius;
+
+            // Decide Pair (A-T or G-C)
+            let type = Math.random() > 0.5 ? 'AT' : 'GC';
+            let m1, m2;
+            if (type === 'AT') { m1 = matA; m2 = matT; }
+            else { m1 = matG; m2 = matC; }
+
+            // Sphere 1
+            const s1 = new THREE.Mesh(sphereGeo, m1);
+            s1.position.set(x1, y, z1);
+            dnaGroup.add(s1);
+
+            // Sphere 2
+            const s2 = new THREE.Mesh(sphereGeo, m2);
+            s2.position.set(x2, y, z2);
+            dnaGroup.add(s2);
+
+            // Bond (Connector)
+            const bond = new THREE.Mesh(bondGeo, matBond);
+            bond.position.set(0, y, 0);
+            bond.rotation.x = Math.PI / 2;
+            bond.rotation.z = angle;
+            bond.scale.y = radius * 2; // Stretch
+            dnaGroup.add(bond);
+        }
+
+        // Generate Strand
+        for (let i = 0; i < particleCount; i++) {
+            const y = (i / particleCount) * height - (height / 2);
+            const angle = (i / particleCount) * Math.PI * 2 * turns;
+            createBasePair(y, angle);
+        }
+
+        // PARTICLES BG
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 1000;
+        const posArray = new Float32Array(starsCount * 3);
+        for (let i = 0; i < starsCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 100;
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff, transparent: true, opacity: 0.5 });
+        const starsMesh = new THREE.Points(starsGeo, starsMat);
+        scene.add(starsMesh);
+
+
+        // ANIMATION LOOP
+        let rotating = true;
+        function toggleRotation() { rotating = !rotating; }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (rotating) {
+                dnaGroup.rotation.y += 0.005;
+                dnaGroup.rotation.z = Math.sin(Date.now() * 0.0005) * 0.1; // Gentle sway
+            }
+
+            starsMesh.rotation.y += 0.0005;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // RESIZE
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

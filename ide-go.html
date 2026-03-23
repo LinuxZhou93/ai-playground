@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Studio | 编程实践站</title>
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/go/go.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/ttcn.min.css">
+    
+    <style>
+        body {
+            background: #0C1021;
+            color: #E2E8F0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .CodeMirror {
+            height: 100%;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+    <div id="app" class="h-full flex flex-col relative">
+        <!-- Intro Overlay -->
+        <div v-if="showIntro"
+            class="fixed inset-0 z-50 bg-[#0B0B15] flex flex-col items-center justify-center transition-transform duration-700 overflow-y-auto">
+            <div class="max-w-4xl w-full mx-auto px-6 py-12 relative z-10 animate-slide-up">
+                <div class="text-center mb-8">
+                    <div
+                        class="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-cyan-500/30">
+                        <span class="text-5xl text-white font-bold">Go</span>
+                    </div>
+                    <h1 class="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">Go Studio</h1>
+                    <p class="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                        Google 开发的云时代新星。它简洁、高效，专为构建现代云服务和微服务架构而生。
+                    </p>
+                </div>
+
+                <!-- Feature Grid -->
+                <div class="grid md:grid-cols-3 gap-6 mb-10">
+                    <div
+                        class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                        <div class="text-4xl mb-4">☁️</div>
+                        <h3 class="text-lg font-bold text-white mb-2">云原生首选</h3>
+                        <p class="text-sm text-slate-400">Docker 和 Kubernetes 都用 Go 编写，它是云计算事实上的标准语言。</p>
+                    </div>
+                    <div
+                        class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                        <div class="text-4xl mb-4">⚡</div>
+                        <h3 class="text-lg font-bold text-white mb-2">极速并发</h3>
+                        <p class="text-sm text-slate-400">强大的 Goroutine 机制，轻松处理百万级并发连接。</p>
+                    </div>
+                    <div
+                        class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                        <div class="text-4xl mb-4">🐹</div>
+                        <h3 class="text-lg font-bold text-white mb-2">简洁高效</h3>
+                        <p class="text-sm text-slate-400">语法简洁，编译速度极快，开发效率与运行效率兼得。</p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-12">
+                    <button @click="showIntro = false"
+                        class="px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl font-bold text-xl transition-all shadow-lg hover:shadow-cyan-500/30 hover:-translate-y-1 flex items-center gap-2">
+                        <span>▶</span> 开始模拟编程
+                    </button>
+                    <a href="https://go.dev/dl/" target="_blank"
+                        class="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-lg transition-all border border-white/10 flex items-center gap-2">
+                        <span>📥</span> 下载 Go
+                    </a>
+                    <a href="https://go.dev/" target="_blank"
+                        class="px-8 py-4 bg-transparent hover:bg-white/5 text-slate-300 hover:text-white rounded-xl font-bold text-lg transition-all flex items-center gap-2">
+                        <span>🌐</span> 访问官网
+                    </a>
+                </div>
+
+                <!-- Learning Path Hint -->
+                <div class="text-center border-t border-white/10 pt-8">
+                    <p class="text-slate-500 text-sm mb-4">推荐开发工具</p>
+                    <div
+                        class="flex items-center justify-center gap-6 opacity-60 grayscale hover:grayscale-0 transition-all">
+                        <a href="https://code.visualstudio.com/" target="_blank"
+                            class="flex flex-col items-center gap-2 group">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
+                                class="w-8 h-8 group-hover:scale-110 transition-transform">
+                            <span class="text-xs text-slate-400 group-hover:text-blue-400">VS Code</span>
+                        </a>
+                        <a href="https://www.jetbrains.com/go/" target="_blank"
+                            class="flex flex-col items-center gap-2 group">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/9/9d/GoLand_Icon.svg"
+                                class="w-8 h-8 group-hover:scale-110 transition-transform">
+                            <span class="text-xs text-slate-400 group-hover:text-purple-400">GoLand</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="h-14 border-b border-white/10 flex items-center justify-between px-4 bg-odyssey-surface/50">
+            <div class="flex items-center gap-3">
+                <a href="coding.html" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <div
+                        class="w-8 h-8 rounded bg-go-cyan flex items-center justify-center font-bold text-white text-xs">
+                        Go</div>
+                    <span class="font-bold text-lg">Go <span class="text-go-cyan">Studio</span></span>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-xs text-slate-500">Go 1.19 (Simulated)</div>
+                <button @click="runCode" :disabled="loading"
+                    class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold text-sm flex items-center gap-2">
+                    <span v-if="loading" class="animate-spin">⟳</span>
+                    <span v-else>▶ Run</span>
+                </button>
+            </div>
+        </nav>
+        <div class="flex-1 flex overflow-hidden">
+            <div class="w-64 border-r border-white/10 bg-odyssey-surface/30 flex flex-col">
+                <div class="p-3 border-b border-white/5 font-bold text-sm text-slate-400">Back-end</div>
+                <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <button v-for="ex in examples" :key="ex.name" @click="loadExample(ex)"
+                        class="w-full text-left px-3 py-2 rounded hover:bg-white/5 text-sm transition-colors text-slate-300 hover:text-white truncate">
+                        {{ ex.name }}
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 flex flex-col md:flex-row">
+                <div class="flex-1 flex flex-col border-r border-white/10 bg-[#f9f9f9]">
+                    <div class="bg-gray-100 px-4 py-1 text-xs text-slate-500 flex justify-between"><span>main.go</span>
+                    </div>
+                    <textarea id="code-editor"></textarea>
+                </div>
+                <div class="w-full md:w-1/3 flex flex-col bg-[#0f0f1a]">
+                    <div class="bg-[#1a1a2e] px-4 py-1 text-xs text-slate-400 border-b border-white/5 font-bold">Console
+                    </div>
+                    <div id="terminal"
+                        class="flex-1 p-4 font-mono text-sm overflow-y-auto whitespace-pre-wrap text-slate-300">
+                        <div v-for="(log, i) in logs" :key="i"
+                            :class="log.type === 'error' ? 'text-red-400' : 'text-slate-300'">{{ log.msg }}</div>
+                        <div v-if="logs.length === 0" class="text-slate-600 italic">Click "Run" to execute...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+        createApp({
+            setup() {
+                const showIntro = ref(true);
+                const loading = ref(false);
+                const logs = ref([]);
+                const editor = ref(null);
+
+                const examples = [
+                    { name: 'Hello Go', code: `package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello, Go!")\n}` },
+                    { name: 'Loop', code: `package main\n\nimport "fmt"\n\nfunc main() {\n    for i := 0; i < 5; i++ {\n        fmt.Println("Count:", i)\n    }\n}` },
+                    { name: 'Simple Web Server', code: `package main\n\nimport (\n    "fmt"\n    "net/http"\n)\n\nfunc main() {\n    fmt.Println("Server started at :8080")\n}` }
+                ];
+
+                const loadExample = (ex) => { if (editor.value) editor.value.setValue(ex.code); logs.value = []; };
+                const addToLog = (msg, type = 'info') => logs.value.push({ msg, type });
+
+                const runCode = () => {
+                    loading.value = true;
+                    logs.value = [];
+                    const code = editor.value.getValue();
+
+                    setTimeout(() => {
+                        if (code.includes('fmt.Println')) {
+                            // Simple simulation
+                            const matches = [...code.matchAll(/fmt\.Println\("(.*?)"\)/g)];
+                            matches.forEach(m => addToLog(m[1]));
+
+                            if (code.includes('for i := 0')) {
+                                for (let i = 0; i < 5; i++) addToLog("Count: " + i);
+                            }
+                        } else {
+                            addToLog("Program exited.");
+                        }
+                        loading.value = false;
+                    }, 600);
+                };
+
+                onMounted(() => {
+                    editor.value = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                        mode: 'go', theme: 'ttcn', lineNumbers: true, indentUnit: 4, lineWrapping: true
+                    });
+                    loadExample(examples[0]);
+                });
+                return { showIntro, loading, logs, runCode, examples, loadExample };
+            }
+        }).mount('#app');
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

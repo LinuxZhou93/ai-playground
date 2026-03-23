@@ -1516,7 +1516,7 @@ ${currentFullContent}
             rowDiv.innerHTML = avatarHTML;
             rowDiv.appendChild(msgDiv);
             this.chatArea.appendChild(rowDiv);
-            this.scrollToBottom();
+            this.scrollToBottom(true);
 
             const enhanceCodeBlocks = () => {
                 if (!window.hljs) return;
@@ -1648,7 +1648,7 @@ ${currentFullContent}
         if (typing) typing.remove();
         
         this.chatArea.appendChild(rowDiv);
-        this.scrollToBottom();
+        this.scrollToBottom(true);
     }
     
     showTyping() {
@@ -1668,7 +1668,7 @@ ${currentFullContent}
         rowDiv.appendChild(msgDiv);
         
         this.chatArea.appendChild(rowDiv);
-        this.scrollToBottom();
+        this.scrollToBottom(true);
     }
 
     async sendMessage() {
@@ -1802,11 +1802,20 @@ ${currentFullContent}
         }
     }
 
-    scrollToBottom() {
-        this.chatArea.scrollTo({
-            top: this.chatArea.scrollHeight,
-            behavior: 'smooth'
-        });
+    scrollToBottom(force = false) {
+        if (!this.chatArea) return;
+        
+        // 判断是否贴近底部。只有强制触发或本来就贴近底部时，才跟随新消息滚动。
+        // 这可以防止 AI 边输出边往下挤导致无法往回看。
+        const distanceToBottom = this.chatArea.scrollHeight - this.chatArea.scrollTop - this.chatArea.clientHeight;
+        const isNearBottom = distanceToBottom < 150;
+        
+        if (force || isNearBottom) {
+            this.chatArea.scrollTo({
+                top: this.chatArea.scrollHeight,
+                behavior: force ? 'smooth' : 'auto'
+            });
+        }
     }
 
     updateQuickChips() {

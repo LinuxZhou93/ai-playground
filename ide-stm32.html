@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STM32 Cube | 编程实践站</title>
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/eclipse.min.css">
+    
+    <style>
+        body {
+            background: #e0e0e0;
+            color: #333;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .CodeMirror {
+            height: 100%;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+        }
+
+        .sidebar-item {
+            @apply px-2 py-1 cursor-pointer hover:bg-blue-100 flex items-center gap-2;
+        }
+
+        .sidebar-item.active {
+            @apply bg-blue-200 text-blue-800 font-bold;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+    <div id="app" class="h-full flex flex-col relative">
+        <!-- Intro Overlay -->
+        <div v-if="showIntro"
+            class="fixed inset-0 z-50 bg-[#0B0B15] flex flex-col items-center justify-center transition-transform duration-700 overflow-y-auto">
+            <div class="max-w-4xl w-full mx-auto px-6 py-12 relative z-10 animate-slide-up">
+                <div class="text-center mb-8">
+                    <div
+                        class="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center shadow-2xl shadow-blue-600/30">
+                        <span class="text-5xl text-white font-bold">💎</span>
+                    </div>
+                    <h1 class="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">STM32 Studio</h1>
+                    <p class="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                        高性能嵌入式开发。基于 ARM Cortex-M 内核，广泛应用于工业控制和消费电子，学习专业的嵌入式编程。
+                    </p>
+                </div>
+
+                <!-- Feature Grid -->
+                <div class="grid md:grid-cols-3 gap-6 mb-10">
+                    <div
+                        class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                        <div class="text-4xl mb-4">⚡</div>
+                        <h3 class="text-lg font-bold text-white mb-2">高性能</h3>
+                        <p class="text-sm text-slate-400">基于 ARM Cortex-M 内核，强大的处理能力和丰富的外设。</p>
+                    </div>
+                    <div
+                        class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                        <div class="text-4xl mb-4">🏭</div>
+                        <h3 class="text-lg font-bold text-white mb-2">工业标准</h3>
+                        <p class="text-sm text-slate-400">学习行业通用的开发流程，掌握底层寄存器和 HAL 库开发。</p>
+                    </div>
+                    <div
+                        class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                        <div class="text-4xl mb-4">💾</div>
+                        <h3 class="text-lg font-bold text-white mb-2">嵌入式 C</h3>
+                        <p class="text-sm text-slate-400">深入理解 C 语言在嵌入式系统中的应用，精细控制硬件。</p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-12">
+                    <button @click="showIntro = false"
+                        class="px-8 py-4 bg-gradient-to-r from-blue-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white rounded-xl font-bold text-xl transition-all shadow-lg hover:shadow-blue-600/30 hover:-translate-y-1 flex items-center gap-2">
+                        <span>▶</span> 进入 IDE
+                    </button>
+                    <a href="https://www.st.com/en/development-tools/stm32-cube-ide.html" target="_blank"
+                        class="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-lg transition-all border border-white/10 flex items-center gap-2">
+                        <span>📥</span> 下载 CubeIDE
+                    </a>
+                    <a href="https://www.st.com/" target="_blank"
+                        class="px-8 py-4 bg-transparent hover:bg-white/5 text-slate-300 hover:text-white rounded-xl font-bold text-lg transition-all flex items-center gap-2">
+                        <span>🌐</span> ST 官网
+                    </a>
+                </div>
+
+                <!-- Learning Path Hint -->
+                <div class="text-center border-t border-white/10 pt-8">
+                    <p class="text-slate-500 text-sm mb-4">技术生态</p>
+                    <div
+                        class="flex items-center justify-center gap-6 opacity-60 grayscale hover:grayscale-0 transition-all">
+                        <a href="https://www.st.com/" target="_blank" class="flex flex-col items-center gap-2 group">
+                            <div
+                                class="w-8 h-8 flex items-center justify-center font-bold text-white bg-blue-600 rounded">
+                                ST</div>
+                            <span class="text-xs text-slate-400 group-hover:text-blue-400">STMicro</span>
+                        </a>
+                        <a href="https://www.arm.com/" target="_blank" class="flex flex-col items-center gap-2 group">
+                            <div
+                                class="w-8 h-8 flex items-center justify-center font-bold text-blue-500 border border-blue-500 rounded">
+                                M</div>
+                            <span class="text-xs text-slate-400 group-hover:text-blue-400">Cortex-M</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Toolbar like CubeIDE -->
+        <nav class="h-10 bg-gray-200 border-b border-gray-300 flex items-center px-4 gap-4 text-sm">
+            <div class="font-bold text-stm-blue flex items-center gap-2">
+                <a href="coding.html" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <div class="w-6 h-6 bg-stm-light rounded-sm"></div>
+                    STM32 IDE
+                </a>
+            </div>
+            <div class="h-6 w-px bg-gray-400 mx-2"></div>
+            <button class="hover:bg-gray-300 px-2 rounded">File</button>
+            <button class="hover:bg-gray-300 px-2 rounded">Edit</button>
+            <button class="hover:bg-gray-300 px-2 rounded">Source</button>
+            <div class="flex-1"></div>
+            <button @click="build"
+                class="bg-stm-blue text-white px-3 py-1 rounded flex items-center gap-2 hover:bg-blue-800">
+                <span>🔨</span> Build
+            </button>
+            <button @click="debug"
+                class="bg-green-600 text-white px-3 py-1 rounded flex items-center gap-2 hover:bg-green-700">
+                <span>🪲</span> Debug
+            </button>
+        </nav>
+
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Project Explorer -->
+            <div class="w-64 bg-white border-r border-gray-300 flex flex-col">
+                <div class="bg-gray-100 p-2 text-xs font-bold border-b">Project Explorer</div>
+                <div class="p-2 text-sm font-mono overflow-y-auto">
+                    <div class="sidebar-item font-bold">📂 STM32_Project</div>
+                    <div class="sidebar-item pl-6">📂 Includes</div>
+                    <div class="sidebar-item pl-6">📂 Core</div>
+                    <div class="sidebar-item pl-10">📂 Inc</div>
+                    <div class="sidebar-item pl-10">📂 Src</div>
+                    <div class="sidebar-item pl-14 active">📄 main.c</div>
+                    <div class="sidebar-item pl-14">📄 stm32f4xx_it.c</div>
+                    <div class="sidebar-item pl-14">📄 syscalls.c</div>
+                    <div class="sidebar-item pl-6">📂 Drivers</div>
+                    <div class="sidebar-item pl-6">📄 STM32F401RETX_FLASH.ld</div>
+                </div>
+            </div>
+
+            <!-- Central Area -->
+            <div class="flex-1 flex flex-col bg-white">
+                <!-- Editor Tabs -->
+                <div class="flex bg-gray-100 border-b border-gray-300">
+                    <div
+                        class="px-4 py-1 bg-white border-r border-gray-300 text-xs font-bold text-stm-blue border-t-2 border-t-stm-blue">
+                        main.c</div>
+                    <div class="px-4 py-1 bg-gray-100 border-r border-gray-300 text-xs text-gray-500">stm32f4xx_hal.c
+                    </div>
+                </div>
+
+                <!-- Editor -->
+                <div class="flex-1 relative">
+                    <textarea id="code-editor"></textarea>
+                </div>
+
+                <!-- Bottom Console -->
+                <div class="h-40 bg-white border-t border-gray-300 flex flex-col">
+                    <div class="flex border-b border-gray-200">
+                        <button
+                            class="px-4 py-1 text-xs border-r hover:bg-gray-100 font-bold text-blue-600">Console</button>
+                        <button class="px-4 py-1 text-xs border-r hover:bg-gray-100">Problems</button>
+                    </div>
+                    <div class="flex-1 p-2 font-mono text-xs overflow-y-auto" id="console-output">
+                        <div v-for="(log, i) in logs" :key="i" :class="log.color">{{ log.msg }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Tool (IOC) - Visual Placeholder -->
+            <div class="w-16 bg-gray-50 border-l border-gray-300 flex flex-col items-center py-4 gap-4">
+                <div title="Device Configuration"
+                    class="w-10 h-10 bg-stm-light/20 rounded border border-stm-light flex items-center justify-center cursor-pointer hover:bg-stm-light/40">
+                    ⚙️</div>
+                <div title="Clock Configuration"
+                    class="w-10 h-10 bg-gray-200 rounded flex items-center justify-center cursor-pointer hover:bg-gray-300">
+                    ⏰</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+        createApp({
+            setup() {
+                const showIntro = ref(true);
+                const logs = ref([{ msg: "STM32 CubeIDE Ready.", color: "text-gray-600" }]);
+                const editor = ref(null);
+                const code = `#include "main.h"
+
+// STM32F4 HAL Blink Example
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+  MX_GPIO_Init();
+  
+  /* Infinite loop */
+  while (1)
+  {
+      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+      HAL_Delay(500);
+  }
+}`;
+
+                const build = () => {
+                    logs.value = [];
+                    logs.value.push({ msg: "16:00:00 **** Build of configuration Debug for project STM32_Project ****", color: "text-blue-700 font-bold" });
+                    logs.value.push({ msg: "make all", color: "text-gray-600" });
+                    setTimeout(() => logs.value.push({ msg: "Building file: ../Core/Src/main.c", color: "text-gray-800" }), 200);
+                    setTimeout(() => logs.value.push({ msg: "Invoking: MCU GCC Compiler", color: "text-gray-800" }), 400);
+                    setTimeout(() => logs.value.push({ msg: "Finished building: ../Core/Src/main.c", color: "text-gray-800" }), 600);
+                    setTimeout(() => logs.value.push({ msg: "Finished building target: STM32_Project.elf", color: "text-gray-800" }), 800);
+                    setTimeout(() => logs.value.push({ msg: "16:00:01 Build Finished. 0 errors, 0 warnings. (took 912ms)", color: "text-green-600 font-bold" }), 1000);
+                };
+
+                const debug = () => {
+                    logs.value.push({ msg: "Starting OpenOCD Debugger...", color: "text-blue-700" });
+                    setTimeout(() => logs.value.push({ msg: "Connected to ST-LINK/V2 [SWD Mode]", color: "text-green-600" }), 500);
+                    setTimeout(() => logs.value.push({ msg: "Target Voltage: 3.24V", color: "text-gray-600" }), 600);
+                    setTimeout(() => logs.value.push({ msg: "Breakpoint 1 at main.c:12", color: "text-purple-600" }), 800);
+                };
+
+                onMounted(() => {
+                    editor.value = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                        mode: 'text/x-csrc', theme: 'eclipse', lineNumbers: true, indentUnit: 4, lineWrapping: true
+                    });
+                    editor.value.setValue(code);
+                });
+                return { showIntro, logs, build, debug };
+            }
+        }).mount('#app');
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKY-GUARDIAN // 无人机战术中心 | 自动驾驶与飞行逻辑</title>
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/three.min.js"></script>
+
+    <!-- Scripts -->
+    <script src="assets/js/background-3d.js" defer></script>
+    <link rel="stylesheet" href="assets/css/ai-assistant.css">
+
+    
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #020617;
+            /* Darker Blue/Slate */
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Hero Image Background Override */
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-image: url('assets/images/drone_hero.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.3;
+            z-index: -1;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+        }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-left: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.1), transparent);
+            transition: 0.5s;
+        }
+
+        .glass-card:hover::before {
+            left: 100%;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.15);
+        }
+
+        .glass-nav {
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.3));
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #38bdf8;
+            border-radius: 4px;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="selection:bg-sky-500/30">
+    <!-- Hero Background Image -->
+    <div class="hero-bg"></div>
+
+    <!-- Background Canvas (Stars/Particles) -->
+    <canvas id="bg-canvas" class="fixed inset-0 z-0 opacity-40 mix-blend-screen"></canvas>
+
+    <div class="relative z-10">
+        <!-- Navbar -->
+        <nav class="sticky top-0 z-50 glass-nav">
+            <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-sky-500/30 text-xl">
+                        🚁</div>
+                    <span class="font-display font-bold text-2xl tracking-tight uppercase">SKY<span
+                            class="text-sky-400">.GUARDIAN</span></span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <a href="#roadmap"
+                        class="text-sm text-slate-400 hover:text-white transition-colors hidden md:block">进阶路线</a>
+                    <a href="#simulator"
+                        class="text-sm text-slate-400 hover:text-white transition-colors hidden md:block">模拟飞行</a>
+                    <a href="#coding"
+                        class="text-sm text-slate-400 hover:text-white transition-colors hidden md:block">集群编程</a>
+                    <a href="index.html"
+                        class="px-5 py-2 rounded-full glass-card text-sm font-semibold hover:bg-white/10 transition-colors">返回首页</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="pb-20">
+            <!-- Hero Section -->
+            <section class="min-h-[85vh] flex flex-col justify-center items-center relative px-6 text-center">
+                <div class="max-w-5xl mx-auto space-y-8 animate-slide-up">
+                    <div
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border-sky-500/30 text-sky-300 text-sm font-medium mb-4">
+                        <span class="relative flex h-2 w-2">
+                            <span
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                        </span>
+                        全球顶级青少年无人机学习平台
+                    </div>
+
+                    <h1 class="font-display font-bold text-6xl md:text-8xl leading-tight tracking-tight">
+                        <span class="block text-white mb-2">Command The</span>
+                        <span class="text-gradient">Unknown Sky</span>
+                    </h1>
+
+                    <p class="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto font-light leading-relaxed">
+                        御风而行，智胜苍穹。<br class="hidden md:block" />
+                        从手动操控到 <span class="text-white font-semibold">AI 集群编程</span>，掌握未来的三维空间霸权。
+                    </p>
+
+                    <div class="flex flex-wrap gap-4 justify-center pt-8">
+                        <a href="#roadmap"
+                            class="group relative px-8 py-4 bg-white text-black rounded-full font-bold text-lg hover:bg-sky-50 transition-all shadow-xl shadow-sky-500/20 hover:shadow-sky-500/40 hover:-translate-y-1">
+                            开启飞行之旅
+                            <span class="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                        </a>
+                        <a href="#simulator"
+                            class="px-8 py-4 glass-card rounded-full font-bold text-lg hover:bg-white/10 transition-all">
+                            进入模拟器
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="w-full mt-20 md:mt-32 px-6">
+                    <div
+                        class="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 pb-8 border-b border-white/5 relative z-10">
+                        <div class="text-center group cursor-default">
+                            <div
+                                class="text-4xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-2 group-hover:scale-110 transition-transform">
+                                SWARM</div>
+                            <div class="text-xs text-slate-500 uppercase tracking-widest font-semibold">集群协作控制</div>
+                        </div>
+                        <div class="text-center group cursor-default">
+                            <div
+                                class="text-4xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-2 group-hover:scale-110 transition-transform">
+                                VOLT</div>
+                            <div class="text-xs text-slate-500 uppercase tracking-widest font-semibold">52.2V_TELEMETRY
+                            </div>
+                        </div>
+                        <div class="text-center group cursor-default">
+                            <div
+                                class="text-4xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-2 group-hover:scale-110 transition-transform">
+                                CV</div>
+                            <div class="text-xs text-slate-500 uppercase tracking-widest font-semibold">视觉追踪/避障</div>
+                        </div>
+                        <div class="text-center group cursor-default">
+                            <div
+                                class="text-4xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-2 group-hover:scale-110 transition-transform">
+                                FPV</div>
+                            <div class="text-xs text-slate-500 uppercase tracking-widest font-semibold">战术第一视角</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Value Proposition -->
+            <section class="max-w-7xl mx-auto px-6 py-24">
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="glass-card p-8 rounded-3xl relative overflow-hidden group">
+                        <div
+                            class="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-bl-[100px] transition-colors group-hover:bg-sky-500/20">
+                        </div>
+                        <div
+                            class="w-16 h-16 bg-sky-500/20 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform text-sky-400">
+                            👁️
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3">空间思维</h3>
+                        <p class="text-slate-400 leading-relaxed">建立强大的三维空间感和手眼协调能力，通过 FPV 视角体验飞行的极致快感。</p>
+                    </div>
+
+                    <div class="glass-card p-8 rounded-3xl relative overflow-hidden group">
+                        <div
+                            class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-[100px] transition-colors group-hover:bg-purple-500/20">
+                        </div>
+                        <div
+                            class="w-16 h-16 bg-purple-500/20 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform text-purple-400">
+                            ⚙️
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3">工程实践</h3>
+                        <p class="text-slate-400 leading-relaxed">亲手组装调试无人机，掌握空气动力学、电子调速、飞控参数配置等硬核知识。</p>
+                    </div>
+
+                    <div class="glass-card p-8 rounded-3xl relative overflow-hidden group">
+                        <div
+                            class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-bl-[100px] transition-colors group-hover:bg-cyan-500/20">
+                        </div>
+                        <div
+                            class="w-16 h-16 bg-cyan-500/20 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform text-cyan-400">
+                            🤖
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3">AI 编程</h3>
+                        <p class="text-slate-400 leading-relaxed">从 Python 控制单机飞行，到设计复杂的无人机编队表演，探索自动化与人工智能。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Learning Path (Step by Step) -->
+            <section id="roadmap" class="max-w-7xl mx-auto px-6 py-12 mb-20">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl md:text-5xl font-display font-bold mb-4">Flight Mastery Roadmap</h2>
+                    <p class="text-slate-400 text-lg">从零基础到天空指挥官的进阶之路</p>
+                </div>
+
+                <div class="relative">
+                    <!-- Connector Line (Desktop) -->
+                    <div
+                        class="absolute top-1/2 left-0 w-full h-1 bg-gradient-to-r from-sky-500/30 via-blue-500/30 to-purple-500/30 hidden md:block -z-10 transform -translate-y-1/2">
+                    </div>
+
+                    <div class="grid md:grid-cols-4 gap-6">
+                        <!-- Step 1 -->
+                        <div class="relative group">
+                            <div class="glass-card p-6 rounded-3xl border-t-4 border-t-sky-400 hover:border-t-sky-300">
+                                <span
+                                    class="absolute -top-4 left-6 bg-sky-500 text-black text-xs font-bold px-3 py-1 rounded-full">Phase
+                                    1</span>
+                                <div
+                                    class="text-4xl mb-4 grayscale group-hover:grayscale-0 transition-all duration-500">
+                                    🎮</div>
+                                <h3 class="text-xl font-bold text-white mb-2">新手试飞</h3>
+                                <p class="text-sky-400 font-semibold mb-2">Pilot Cadet</p>
+                                <p class="text-slate-400 text-sm mb-4">学习安全法规，掌握基础四轴飞行原理，熟练使用定高/自稳模式。</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="relative group">
+                            <div
+                                class="glass-card p-6 rounded-3xl border-t-4 border-t-blue-500 hover:border-t-blue-400 transform md:translate-y-8">
+                                <span
+                                    class="absolute -top-4 left-6 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full">Phase
+                                    2</span>
+                                <div
+                                    class="text-4xl mb-4 grayscale group-hover:grayscale-0 transition-all duration-500">
+                                    👓</div>
+                                <h3 class="text-xl font-bold text-white mb-2">FPV 竞速</h3>
+                                <p class="text-blue-400 font-semibold mb-2">FPV Racer</p>
+                                <p class="text-slate-400 text-sm mb-4">佩戴 FPV 眼镜，学习纯手动 (Acro) 模式，在模拟器和穿越机赛道上极速狂飙。</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="relative group">
+                            <div
+                                class="glass-card p-6 rounded-3xl border-t-4 border-t-indigo-500 hover:border-t-indigo-400">
+                                <span
+                                    class="absolute -top-4 left-6 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full">Phase
+                                    3</span>
+                                <div
+                                    class="text-4xl mb-4 grayscale group-hover:grayscale-0 transition-all duration-500">
+                                    🛠️</div>
+                                <h3 class="text-xl font-bold text-white mb-2">组装调试</h3>
+                                <p class="text-indigo-400 font-semibold mb-2">Drone Engineer</p>
+                                <p class="text-slate-400 text-sm mb-4">深入 Betaflight 固件，亲手焊接组装无人机，理解 PID 调参原理。</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="relative group">
+                            <div
+                                class="glass-card p-6 rounded-3xl border-t-4 border-t-purple-500 hover:border-t-purple-400 transform md:translate-y-8">
+                                <span
+                                    class="absolute -top-4 left-6 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">Phase
+                                    4</span>
+                                <div
+                                    class="text-4xl mb-4 grayscale group-hover:grayscale-0 transition-all duration-500">
+                                    🧠</div>
+                                <h3 class="text-xl font-bold text-white mb-2">集群编程</h3>
+                                <p class="text-purple-400 font-semibold mb-2">Swarm Commander</p>
+                                <p class="text-slate-400 text-sm mb-4">使用 Python/C++ 编写飞行算法，控制多架无人机协同编队，实现自动化任务。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Competition Atlas (Whitelist) -->
+            <section id="competitions" class="max-w-7xl mx-auto px-6 py-12 mb-20 relative overflow-hidden rounded-3xl">
+                <div class="absolute inset-0 z-0">
+                    <img src="assets/images/drone_swarm.png" class="w-full h-full object-cover opacity-20">
+                    <div class="absolute inset-0 bg-black/60"></div>
+                </div>
+                <div class="relative z-10">
+                    <div class="text-center mb-16">
+                        <h2 class="text-4xl md:text-5xl font-display font-bold mb-4">Elite Competitions</h2>
+                        <p class="text-slate-400 text-lg">直通教育部白名单赛事，从校赛飞向国赛舞台</p>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Competition 1 -->
+                        <div class="glass-card p-8 rounded-3xl relative overflow-hidden group">
+                            <div
+                                class="absolute top-0 right-0 py-1 px-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-xs uppercase transform translate-x-8 translate-y-4 rotate-45 shadow-lg z-10">
+                                Whitelist 2025
+                            </div>
+                            <div class="flex items-start gap-6">
+                                <div
+                                    class="w-16 h-16 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex-shrink-0 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
+                                    🇨🇳
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-white mb-2">全国青少年无人机大赛</h3>
+                                    <div class="flex gap-2 mb-3">
+                                        <span
+                                            class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs border border-red-500/30">教育部白名单</span>
+                                        <span class="px-2 py-1 bg-white/10 text-slate-300 rounded text-xs">中国航空学会</span>
+                                    </div>
+                                    <p class="text-slate-400 text-sm mb-4 leading-relaxed">
+                                        中国青少年无人机领域最具权威性赛事。包含旋翼赛（个人飞行、物流搬运、空中格斗）、编程赛（蜂群舞蹈、图形编程）及创意赛等26个赛项。
+                                    </p>
+                                    <a href="#"
+                                        class="text-sky-400 text-sm font-bold hover:text-white transition-colors flex items-center gap-1">
+                                        查看备赛指南 <span class="group-hover:translate-x-1 transition-transform">→</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Competition 2 -->
+                        <div class="glass-card p-8 rounded-3xl relative overflow-hidden group">
+                            <div
+                                class="absolute top-0 right-0 py-1 px-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-xs uppercase transform translate-x-8 translate-y-4 rotate-45 shadow-lg z-10">
+                                Whitelist 2025
+                            </div>
+                            <div class="flex items-start gap-6">
+                                <div
+                                    class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
+                                    🤖
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-white mb-2">全国青少年智能无人系统应用大赛</h3>
+                                    <div class="flex gap-2 mb-3">
+                                        <span
+                                            class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs border border-blue-500/30">教育部白名单</span>
+                                        <span class="px-2 py-1 bg-white/10 text-slate-300 rounded text-xs">兵工学会</span>
+                                    </div>
+                                    <p class="text-slate-400 text-sm mb-4 leading-relaxed">
+                                        聚焦智能无人系统技术，考核光纤遥控、空地无人协同对抗、无人车因群竞速等前沿应用能力，培养未来国防科技人才。
+                                    </p>
+                                    <a href="#"
+                                        class="text-sky-400 text-sm font-bold hover:text-white transition-colors flex items-center gap-1">
+                                        查看备赛指南 <span class="group-hover:translate-x-1 transition-transform">→</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </section>
+
+            <!-- Simulators & Tools -->
+            <section id="simulator" class="max-w-7xl mx-auto px-6 py-12 mb-20 scroll-mt-24">
+                <div class="glass-card rounded-[40px] p-8 md:p-16 border border-white/10 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-sky-500/10 to-blue-500/10 pointer-events-none">
+                    </div>
+
+                    <div class="text-center mb-12 relative z-10">
+                        <h2 class="text-4xl md:text-5xl font-display font-bold mb-4">Flight Simulation Bay</h2>
+                        <p class="text-slate-400 text-lg">炸机不可怕，模拟器里练技术。把损失降到 0，把技术练到 100%。</p>
+                    </div>
+
+                    <div class="grid md:grid-cols-4 gap-6 relative z-10">
+                        <!-- Simulator 1: VelociDrone -->
+                        <div
+                            class="glass-card p-6 rounded-3xl flex flex-col items-center text-center hover:bg-white/5 transition-colors group">
+                            <div
+                                class="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-3xl mb-4 shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
+                                🚀
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-1">VelociDrone</h3>
+                            <p class="text-xs text-orange-400 font-bold uppercase mb-2">Pro Racing Choice</p>
+                            <p class="text-slate-400 text-sm mb-4 line-clamp-3">最真实的物理引擎，全球职业飞手首选。MultiGP
+                                官方赛事模拟器，包含赛道编辑器。</p>
+                            <a href="https://www.velocidrone.com/" target="_blank"
+                                class="mt-auto px-4 py-2 border border-white/10 rounded-full text-xs font-bold hover:bg-white hover:text-black transition-colors">Download</a>
+                        </div>
+
+                        <!-- Simulator 2: Liftoff -->
+                        <div
+                            class="glass-card p-6 rounded-3xl flex flex-col items-center text-center hover:bg-white/5 transition-colors group">
+                            <div
+                                class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl mb-4 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                                🛠️
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-1">Liftoff</h3>
+                            <p class="text-xs text-blue-400 font-bold uppercase mb-2">Build & Fly</p>
+                            <p class="text-slate-400 text-sm mb-4 line-clamp-3">不仅是飞行，更是组装模拟器。海量真实零件库，自定义你的专属无人机。</p>
+                            <a href="https://www.luGus-studios.be/liftoff" target="_blank"
+                                class="mt-auto px-4 py-2 border border-white/10 rounded-full text-xs font-bold hover:bg-white hover:text-black transition-colors">Steam</a>
+                        </div>
+
+                        <!-- Simulator 3: DRL -->
+                        <div
+                            class="glass-card p-6 rounded-3xl flex flex-col items-center text-center hover:bg-white/5 transition-colors group">
+                            <div
+                                class="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-3xl mb-4 shadow-lg shadow-yellow-500/30 group-hover:scale-110 transition-transform">
+                                🏆
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-1">DRL Sim</h3>
+                            <p class="text-xs text-yellow-400 font-bold uppercase mb-2">Gamified Learning</p>
+                            <p class="text-slate-400 text-sm mb-4 line-clamp-3">无人机竞速联盟官方模拟器。即使是零基础小白，也能通过新手教程成为大神。</p>
+                            <a href="https://thedroneracingleague.com/play/" target="_blank"
+                                class="mt-auto px-4 py-2 border border-white/10 rounded-full text-xs font-bold hover:bg-white hover:text-black transition-colors">Play
+                                Now</a>
+                        </div>
+
+                        <!-- Simulator 4: FPV SkyDive -->
+                        <div
+                            class="glass-card p-6 rounded-3xl flex flex-col items-center text-center hover:bg-white/5 transition-colors group">
+                            <div
+                                class="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-3xl mb-4 shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform">
+                                🆓
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-1">FPV SkyDive</h3>
+                            <p class="text-xs text-green-400 font-bold uppercase mb-2">Free to Play</p>
+                            <p class="text-slate-400 text-sm mb-4 line-clamp-3">Orqa 推出的免费高画质模拟器。支持手机和电脑，随时随地享受 FPV 乐趣。
+                            </p>
+                            <a href="https://store.steampowered.com/app/1278060/FPV_SkyDive__FPV_Drone_Simulator/"
+                                target="_blank"
+                                class="mt-auto px-4 py-2 border border-white/10 rounded-full text-xs font-bold hover:bg-white hover:text-black transition-colors">Free</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Resource Command Center -->
+            <section id="coding" class="max-w-7xl mx-auto px-6 py-12 scroll-mt-24">
+                <div class="flex items-end justify-between mb-12">
+                    <div>
+                        <h2 class="text-4xl font-display font-bold mb-2">Resource Command Center</h2>
+                        <p class="text-slate-400">一站式学习资源库，连接你的软硬件生态</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Column 1: Hardware Hangar -->
+                    <div class="glass-card rounded-2xl p-6 hover:border-blue-500/50 transition-colors group">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-2xl text-blue-400">
+                                🛠️
+                            </div>
+                            <h3 class="text-xl font-bold text-white">Hardware Hangar</h3>
+                        </div>
+                        <ul class="space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">Betaflight Configurator</strong>
+                                    <p class="text-slate-400 text-xs">穿越机调参必备软件。调整 PID、速率及 OSD 设置。</p>
+                                    <a href="#" class="text-blue-400 text-xs hover:underline mt-1 block">Download Latest
+                                        →</a>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">ArduPilot / PX4</strong>
+                                    <p class="text-slate-400 text-xs">开源自动驾驶仪固件，适合高阶航点规划与自主任务。</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">OpenTX / EdgeTX</strong>
+                                    <p class="text-slate-400 text-xs">Radiomaster 等遥控器的开源操作系统。</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 2: Code Control -->
+                    <div class="glass-card rounded-2xl p-6 hover:border-purple-500/50 transition-colors group">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl text-purple-400">
+                                💻
+                            </div>
+                            <h3 class="text-xl font-bold text-white">Code Control</h3>
+                        </div>
+                        <ul class="space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">DroneBlocks</strong>
+                                    <p class="text-slate-400 text-xs">支持 Tello 的图形化编程，类似 Scratch 的积木式操作。</p>
+                                    <a href="#" class="text-purple-400 text-xs hover:underline mt-1 block">Start Coding
+                                        →</a>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">DJITelloPy (Python)</strong>
+                                    <p class="text-slate-400 text-xs">DJI 官方 Python SDK，几行代码控制无人机起飞、翻滚、拍照。</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">ROS 2 (Robot Operating System)</strong>
+                                    <p class="text-slate-400 text-xs">大学级机器人操作系统，实现复杂的 SLAM 建图与避障。</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 3: Tactical Ops -->
+                    <div class="glass-card rounded-2xl p-6 hover:border-sky-500/50 transition-colors group">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-sky-500/20 flex items-center justify-center text-2xl text-sky-400">
+                                🛸
+                            </div>
+                            <h3 class="text-xl font-bold text-white">Tactical Ops</h3>
+                        </div>
+                        <ul class="space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">Swarm Coordination</strong>
+                                    <p class="text-slate-400 text-xs">集群智能。掌握多机协同避障、编队重构及自组织通信逻辑。</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">Computer Vision</strong>
+                                    <p class="text-slate-400 text-xs">基于 OpenCV 的运动目标锁定与全自动跟随飞行训练。</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2"></span>
+                                <div>
+                                    <strong class="text-white block text-sm">SLAM Navigation</strong>
+                                    <p class="text-slate-400 text-xs">即时定位与地图构建。让无人机在无 GPS 环境下实现室内自主穿行。</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            </section>
+
+            <!-- Safety & Regulations -->
+            <section id="safety" class="max-w-7xl mx-auto px-6 py-12 mb-20 scroll-mt-24">
+                <div class="glass-card rounded-[40px] p-8 md:p-12 border border-red-500/30 relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-red-900/20 to-orange-900/20 pointer-events-none">
+                    </div>
+
+                    <div class="relative z-10 grid md:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <div class="flex items-center gap-3 mb-6">
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center text-2xl text-white shadow-lg shadow-red-500/40">
+                                    🛑
+                                </div>
+                                <h2 class="text-3xl font-display font-bold text-white">Safety First</h2>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-4">TACT_BRIEF // 战术简报</h3>
+                            <p class="text-slate-400 leading-relaxed mb-6">
+                                无人机通过高速旋转的螺旋桨提供升力，具有一定的危险性。在中国境内飞行，必须严格遵守《无人驾驶航空器飞行管理暂行条例》。
+                            </p>
+
+                            <ul class="space-y-3 mb-8">
+                                <li class="flex items-center gap-3 text-sm text-slate-300">
+                                    <span class="text-red-500">✕</span> 严禁在机场、军事禁区、高铁沿线禁飞区飞行
+                                </li>
+                                <li class="flex items-center gap-3 text-sm text-slate-300">
+                                    <span class="text-red-500">✕</span> 严禁在人群密集区域上方悬停或低空飞行
+                                </li>
+                                <li class="flex items-center gap-3 text-sm text-slate-300">
+                                    <span class="text-green-500">✓</span> 必须完成实名登记 (UOM) 并粘贴二维码
+                                </li>
+                                <li class="flex items-center gap-3 text-sm text-slate-300">
+                                    <span class="text-green-500">✓</span> 建议购买第三方责任险
+                                </li>
+                            </ul>
+
+                            <div class="flex flex-wrap gap-4">
+                                <a href="https://uom.caac.gov.cn/" target="_blank"
+                                    class="px-6 py-3 bg-red-600 rounded-full text-white font-bold hover:bg-red-500 transition-colors shadow-lg shadow-red-600/20 flex items-center gap-2">
+                                    UOM 实名登记系统 <span class="text-xs opacity-70">↗</span>
+                                </a>
+                                <a href="#"
+                                    class="px-6 py-3 glass-card rounded-full text-white font-bold hover:bg-white/10 transition-colors">
+                                    查看禁飞区地图
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Pre-flight Checklist Card -->
+                        <div class="glass-card p-6 rounded-3xl bg-black/40">
+                            <h4 class="text-lg font-bold text-white mb-4 border-b border-white/10 pb-4">Pre-flight
+                                Checklist</h4>
+                            <div class="space-y-4">
+                                <label class="flex items-start gap-4 cursor-pointer group">
+                                    <input type="checkbox"
+                                        class="w-5 h-5 rounded bg-white/10 border-white/20 checked:bg-green-500 checked:border-green-500 focus:ring-0 cursor-pointer mt-0.5">
+                                    <div>
+                                        <span
+                                            class="block text-white text-sm font-medium group-hover:text-green-400 transition-colors">环境检查</span>
+                                        <span class="text-slate-500 text-xs">空旷无遮挡，无大风，GPS 信号良好 (>10 stars)</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-start gap-4 cursor-pointer group">
+                                    <input type="checkbox"
+                                        class="w-5 h-5 rounded bg-white/10 border-white/20 checked:bg-green-500 checked:border-green-500 focus:ring-0 cursor-pointer mt-0.5">
+                                    <div>
+                                        <span
+                                            class="block text-white text-sm font-medium group-hover:text-green-400 transition-colors">机身检查</span>
+                                        <span class="text-slate-500 text-xs">桨叶无破损，螺丝紧固，电池卡扣锁紧</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-start gap-4 cursor-pointer group">
+                                    <input type="checkbox"
+                                        class="w-5 h-5 rounded bg-white/10 border-white/20 checked:bg-green-500 checked:border-green-500 focus:ring-0 cursor-pointer mt-0.5">
+                                    <div>
+                                        <span
+                                            class="block text-white text-sm font-medium group-hover:text-green-400 transition-colors">动力系统</span>
+                                        <span class="text-slate-500 text-xs">电池电压正常 (4.2V/cell)，遥控器电量充足</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-start gap-4 cursor-pointer group">
+                                    <input type="checkbox"
+                                        class="w-5 h-5 rounded bg-white/10 border-white/20 checked:bg-green-500 checked:border-green-500 focus:ring-0 cursor-pointer mt-0.5">
+                                    <div>
+                                        <span
+                                            class="block text-white text-sm font-medium group-hover:text-green-400 transition-colors">失控保护</span>
+                                        <span class="text-slate-500 text-xs">测试遥控器关闭后电机自动停转或自动返航</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gear Guide (Hardware Hangar) -->
+            <section id="gear"
+                class="max-w-7xl mx-auto px-6 py-12 mb-20 scroll-mt-24 relative overflow-hidden rounded-3xl">
+                <div class="absolute inset-0 z-0">
+                    <img src="assets/images/drone_tech.png" class="w-full h-full object-cover opacity-15">
+                    <div class="absolute inset-0 bg-black/80"></div>
+                </div>
+                <div class="relative z-10">
+                    <div class="text-center mb-16">
+                        <h2 class="text-4xl md:text-5xl font-display font-bold mb-4">Flight Gear Arsenal</h2>
+                        <p class="text-slate-400 text-lg">工欲善其事，必先利其器。精选各阶段最佳装备。</p>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <!-- Starter Kit -->
+                        <div class="glass-card p-6 rounded-3xl group hover:border-sky-500/50 transition-colors">
+                            <div
+                                class="mb-6 relative overflow-hidden rounded-2xl h-48 bg-gradient-to-br from-sky-900 to-slate-900 flex items-center justify-center">
+                                <span class="text-6xl group-hover:scale-110 transition-transform duration-500">🛸</span>
+                                <div
+                                    class="absolute top-3 right-3 px-3 py-1 bg-sky-500 text-white text-xs font-bold rounded-full">
+                                    Entry Level</div>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">DJI Tello EDU</h3>
+                            <p class="text-sky-400 text-sm font-semibold mb-4">最佳编程启蒙</p>
+                            <p class="text-slate-400 text-sm mb-6 min-h-[60px]">
+                                大疆与英特尔联合出品。支持 Scratch/Python 编程，安全耐撞，室内飞行的完美选择。
+                            </p>
+                            <div class="space-y-2 border-t border-white/10 pt-4">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Flight Time</span>
+                                    <span class="text-white">13 mins</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Weight</span>
+                                    <span class="text-white">80g (No Reg)</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Camera</span>
+                                    <span class="text-white">720p HD</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FPV Trainer -->
+                        <div class="glass-card p-6 rounded-3xl group hover:border-blue-500/50 transition-colors">
+                            <div
+                                class="mb-6 relative overflow-hidden rounded-2xl h-48 bg-gradient-to-br from-blue-900 to-indigo-900 flex items-center justify-center">
+                                <span class="text-6xl group-hover:scale-110 transition-transform duration-500">🎮</span>
+                                <div
+                                    class="absolute top-3 right-3 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
+                                    FPV Ready</div>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Radiomaster Zorro</h3>
+                            <p class="text-blue-400 text-sm font-semibold mb-4">最强游戏手柄控</p>
+                            <p class="text-slate-400 text-sm mb-6 min-h-[60px]">
+                                支持 ELRS 协议的开源遥控器。手感极佳，完美适配模拟器与真机，一次投资终身使用。
+                            </p>
+                            <div class="space-y-2 border-t border-white/10 pt-4">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">System</span>
+                                    <span class="text-white">EdgeTX</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Protocol</span>
+                                    <span class="text-white">ELRS 2.4G</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Simulator</span>
+                                    <span class="text-white">USB-C Plug & Play</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cinematic/Racing -->
+                        <div class="glass-card p-6 rounded-3xl group hover:border-purple-500/50 transition-colors">
+                            <div
+                                class="mb-6 relative overflow-hidden rounded-2xl h-48 bg-gradient-to-br from-purple-900 to-pink-900 flex items-center justify-center">
+                                <span
+                                    class="text-6xl group-hover:scale-110 transition-transform duration-500">🏎️</span>
+                                <div
+                                    class="absolute top-3 right-3 px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-full">
+                                    Expert</div>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Mobula 6 / 7</h3>
+                            <p class="text-purple-400 text-sm font-semibold mb-4">室内微型穿越机 (Whoop)</p>
+                            <p class="text-slate-400 text-sm mb-6 min-h-[60px]">
+                                带圈圈的微型穿越机，安全且性能强悍。在家也能练习钻圈和极限动作，耐撞性极强。
+                            </p>
+                            <div class="space-y-2 border-t border-white/10 pt-4">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Class</span>
+                                    <span class="text-white">65mm / 75mm</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Video</span>
+                                    <span class="text-white">Analog / HDZero</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Power</span>
+                                    <span class="text-white">1S LiPo</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </section>
+
+            <!-- FAQ Section -->
+            <section class="max-w-4xl mx-auto px-6 py-12 mb-20 reveal-on-scroll">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-display font-bold mb-4">Field Support</h2>
+                    <p class="text-slate-400">常见问题与技术支持</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="glass-card p-6 rounded-2xl group cursor-pointer">
+                        <details class="text-slate-300">
+                            <summary
+                                class="list-none flex items-center justify-between font-bold text-white text-lg cursor-pointer">
+                                <span>❓ 青少年学习无人机需要考证吗？</span>
+                                <span
+                                    class="bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-sm group-hover:bg-sky-500 transition-colors">+</span>
+                            </summary>
+                            <p class="mt-4 text-slate-400 leading-relaxed border-t border-white/5 pt-4">
+                                对于 250g 以下的微型无人机（如 Tello, Mobula6），在非禁飞区飞行无需执照。但如果想参加正规赛事或操作大型无人机，建议考取 **AOPA** 或
+                                **中国航空学会** 颁发的《青少年无人机技术等级证书》，这不仅是技能证明，也是很多比赛的准入门槛。
+                            </p>
+                        </details>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl group cursor-pointer">
+                        <details class="text-slate-300">
+                            <summary
+                                class="list-none flex items-center justify-between font-bold text-white text-lg cursor-pointer">
+                                <span>🔋 锂电池如何安全存放？</span>
+                                <span
+                                    class="bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-sm group-hover:bg-sky-500 transition-colors">+</span>
+                            </summary>
+                            <p class="mt-4 text-slate-400 leading-relaxed border-t border-white/5 pt-4">
+                                无人机使用的 LiPo 电池非常娇贵。长期存放（超过 3 天）必须将电压充/放到 **3.80V/cell**
+                                (存储电压)。切勿充满电存放（会鼓包）或空电存放（会饿死）。建议使用专门的防爆袋或弹药箱存放。
+                            </p>
+                        </details>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl group cursor-pointer">
+                        <details class="text-slate-300">
+                            <summary
+                                class="list-none flex items-center justify-between font-bold text-white text-lg cursor-pointer">
+                                <span>🌪️ 模拟器练多久可以飞真机？</span>
+                                <span
+                                    class="bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-sm group-hover:bg-sky-500 transition-colors">+</span>
+                            </summary>
+                            <p class="mt-4 text-slate-400 leading-relaxed border-t border-white/5 pt-4">
+                                对于 FPV 穿越机，建议在模拟器中积累至少 **10-20 小时** 的飞行时间。标准是：能够熟练进行视距内定点悬停、8 字航线飞行，并且在模拟赛道中不炸机连续飞行 3
+                                圈以上，再去尝试真机。
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Use a shared footer include if possible, but for now copying footer from coding.html -->
+            <footer class="border-t border-white/10 bg-black/80 backdrop-blur-xl pt-20 pb-10">
+                <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-12 mb-16">
+                    <!-- Brand -->
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center font-bold text-white shadow-lg">
+                                🚁</div>
+                            <span class="font-display font-bold text-2xl text-white">无人机<span
+                                    class="text-sky-500">实验室</span></span>
+                        </div>
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            探索天空的极限。我们致力培养下一代无人机工程师与飞行员。
+                        </p>
+                    </div>
+
+                    <!-- Column 2 -->
+                    <div>
+                        <h4 class="font-bold text-white mb-6">Resources</h4>
+                        <ul class="space-y-4 text-sm text-slate-400">
+                            <li><a href="#" class="hover:text-sky-400 transition-colors">Simulator Guide</a></li>
+                            <li><a href="#" class="hover:text-sky-400 transition-colors">Part Picker</a></li>
+                            <li><a href="#" class="hover:text-sky-400 transition-colors">Soldering 101</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 3 -->
+                    <div>
+                        <h4 class="font-bold text-white mb-6">Community</h4>
+                        <ul class="space-y-4 text-sm text-slate-400">
+                            <li><a href="forum_v3.html" class="hover:text-sky-400 transition-colors">Pilot Forum</a>
+                            </li>
+                            <li><a href="#" class="hover:text-sky-400 transition-colors">Events & Races</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div
+                    class="max-w-7xl mx-auto px-6 border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-600">
+                    <p>© 2024 Tech Odyssey. All rights reserved.</p>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        Flight Systems Online
+                    </div>
+                </div>
+            </footer>
+
+            <!-- Scroll Animation Script -->
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const observerOptions = {
+                        root: null,
+                        rootMargin: '0px',
+                        threshold: 0.1
+                    };
+
+                    const observer = new IntersectionObserver((entries, observer) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('animate-slide-up');
+                                entry.target.style.opacity = '1';
+                                observer.unobserve(entry.target);
+                            }
+                        });
+                    }, observerOptions);
+
+                    document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
+                        el.style.opacity = '0'; // Initial state
+                        observer.observe(el);
+                    });
+                });
+            </script>
+    </div>
+
+    <!-- AI Assistant logic -->
+    <script src="assets/js/ai-assistant.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initAIAssistant === 'function') initAIAssistant('drone');
+            if (typeof init3DScene === 'function') init3DScene();
+        });
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

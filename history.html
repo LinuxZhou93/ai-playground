@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史探秘 | History Exploration</title>
+    <!-- TailwindCSS -->
+    
+    
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.loli.net/css2?family=Orbitron:wght@400;700;900&family=Noto+Serif+SC:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/index.css">
+    <style>
+        :root {
+            --history-gold: #c5a059;
+            --history-dark: #050505;
+            --museum-glow: rgba(197, 160, 89, 0.15);
+        }
+
+        body {
+            background-color: var(--history-dark);
+            color: #d1d5db;
+            overflow-x: hidden;
+            font-family: 'Noto Serif SC', serif;
+            cursor: none;
+            /* Custom cursor for spotlight */
+        }
+
+        /* --- SPOTLIGHT EFFECT --- */
+        #spotlight {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            pointer-events: none;
+            background: radial-gradient(circle 250px at var(--mouse-x) var(--mouse-y),
+                    transparent 10%,
+                    rgba(0, 0, 0, 0.95) 80%);
+        }
+
+        #custom-cursor {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--history-gold);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+            mix-blend-mode: difference;
+        }
+
+        /* --- TEXTURE & DUST --- */
+        .grain {
+            position: fixed;
+            inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.05;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* --- MUSEUM LAYOUT --- */
+        .museum-container {
+            position: relative;
+            z-index: 10;
+        }
+
+        .era-panel {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .era-panel.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .era-content {
+            background: rgba(15, 15, 15, 0.8);
+            border-left: 2px solid var(--history-gold);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .era-content::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle at top right, var(--museum-glow), transparent);
+            pointer-events: none;
+        }
+
+        .archive-no {
+            font-family: 'Orbitron';
+            font-size: 10px;
+            color: var(--history-gold);
+            letter-spacing: 5px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .era-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .key-artifact {
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            padding: 20px;
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.02);
+            transition: 0.3s;
+        }
+
+        .key-artifact:hover {
+            border-color: var(--history-gold);
+            background: rgba(197, 160, 89, 0.05);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--history-gold);
+            border-radius: 3px;
+        }
+
+        /* Loader */
+        #history-loader {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s;
+        }
+
+        .temple-gate {
+            width: 80px;
+            height: 60px;
+            border: 4px solid var(--history-gold);
+            border-bottom: none;
+            position: relative;
+            margin-bottom: 20px;
+            animation: flicker 1.5s infinite;
+        }
+
+        .temple-gate::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -10px;
+            right: -10px;
+            height: 4px;
+            background: var(--history-gold);
+        }
+
+        /* Section Styling */
+        .era-section {
+            padding: 80px 0;
+            border-left: 1px dashed rgba(251, 191, 36, 0.2);
+            margin-left: 20px;
+            position: relative;
+        }
+
+        .era-section::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 0;
+            width: 15px;
+            height: 15px;
+            background: var(--history-gold);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--history-gold);
+        }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(251, 191, 36, 0.3);
+            transform: translateX(10px);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Timeline HUD */
+        .timeline-container {
+            position: fixed;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 50;
+        }
+
+        .timeline-dot {
+            width: 10px;
+            height: 10px;
+            border: 1px solid var(--history-gold);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .timeline-dot.active {
+            background: var(--history-gold);
+            box-shadow: 0 0 10px var(--history-gold);
+            transform: scale(1.5);
+        }
+
+        /* Nav Back */
+        .nav-back {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Orbitron';
+            color: var(--history-gold);
+            text-decoration: none;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            transition: 0.3s;
+        }
+
+        .nav-back:hover {
+            background: var(--history-gold);
+            color: #000;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+    <div id="spotlight"></div>
+    <div id="custom-cursor"></div>
+    <div class="grain"></div>
+
+    <!-- Navigation -->
+    <a href="index.html" class="nav-back" style="cursor: pointer;">
+        <span>←</span> TITAN CORE
+    </a>
+
+    <header class="h-screen flex items-center justify-center relative overflow-hidden">
+        <div class="text-center z-20">
+            <span class="archive-no">ESTABLISHED 2026 / CHRONO-ARCHIVE</span>
+            <h1 class="text-7xl md:text-9xl font-display font-black text-white mb-4 tracking-tighter">人类历程</h1>
+            <h2 class="text-xl text-history-gold font-display tracking-[1em] mb-12">MUSEUM OF SAPIENS</h2>
+            <p class="text-slate-500 italic max-w-xl mx-auto">“历史，就是那些虚构出来的、大家都愿意相信的共识。”</p>
+            <div class="mt-12">
+                <button onclick="startJourney()"
+                    class="px-12 py-4 border border-history-gold text-history-gold hover:bg-history-gold hover:text-black transition-all font-bold tracking-widest"
+                    style="cursor: pointer;">进入馆室 ENTER</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 pb-60 museum-container">
+        <div id="era-panels" class="space-y-40">
+            <!-- Panels injected here -->
+        </div>
+    </main>
+
+    <!-- Right HUD Nav -->
+    <div class="timeline-container" id="timeline-hud">
+        <!-- Dots injected here -->
+    </div>
+
+    <script src="assets/js/history-data.js"></script>
+    <script>
+        // --- 1. SPOTLIGHT & CURSOR TRACKING ---
+        document.addEventListener('mousemove', e => {
+            document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
+            document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+
+            const cursor = document.getElementById('custom-cursor');
+            cursor.style.left = `${e.clientX}px`;
+            cursor.style.top = `${e.clientY}px`;
+        });
+
+        // --- 2. RENDER ERA PANELS ---
+        function renderHistory() {
+            const container = document.getElementById('era-panels');
+            if (!window.HISTORY_DATA) return;
+
+            window.HISTORY_DATA.eras.forEach((era, index) => {
+                const panel = document.createElement('section');
+                panel.className = 'era-panel';
+                panel.innerHTML = `
+                    <div class="era-content w-full md:w-4/5 ml-auto">
+                        <span class="archive-no">ARTIFACT ID: 00${index + 1} / ERA</span>
+                        <h3 class="era-title">${era.title.zh}</h3>
+                        <p class="text-history-gold font-display text-sm tracking-widest mb-8 border-b border-history-gold/20 pb-4">
+                            TIME: ${era.period.zh} | ${era.title.en}
+                        </p>
+                        <p class="text-xl text-slate-300 leading-relaxed mb-10 font-serif">
+                            ${era.description.zh}
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            ${era.keyPoints.map(kp => `
+                                <div class="key-artifact">
+                                    <h4 class="text-history-gold font-bold mb-2 flex items-center gap-2">
+                                        <span class="w-1 h-1 bg-history-gold"></span>
+                                        ${kp.title.zh}
+                                    </h4>
+                                    <p class="text-sm text-slate-400 font-serif italic">${kp.desc.zh}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(panel);
+            });
+
+            // Observe panels for animation
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.2 });
+
+            document.querySelectorAll('.era-panel').forEach(panel => observer.observe(panel));
+        }
+
+        function startJourney() {
+            document.querySelector('.museum-container').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        document.addEventListener('DOMContentLoaded', renderHistory);
+
+        // Interactive Cursor scaling
+        document.querySelectorAll('button, a').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                document.getElementById('custom-cursor').style.width = '80px';
+                document.getElementById('custom-cursor').style.height = '80px';
+            });
+            el.addEventListener('mouseleave', () => {
+                document.getElementById('custom-cursor').style.width = '40px';
+                document.getElementById('custom-cursor').style.height = '40px';
+            });
+        });
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

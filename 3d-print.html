@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOUNDRY // 智造工场 | 硬件与机器人创新中心</title>
+    <link rel="preconnect" href="https://fonts.loli.net">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.loli.net/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
+    
+    <script src="assets/js/manual-manager.js"></script>
+    <style>
+        :root {
+            --neon-pink: #FF2D55;
+            --neon-blue: #00F3FF;
+            --neon-green: #39FF14;
+            --dark-bg: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            overflow-x: hidden;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Glitch Effect */
+        .glitch {
+            position: relative;
+        }
+
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-bg);
+        }
+
+        .glitch::before {
+            left: 2px;
+            text-shadow: -1px 0 var(--neon-pink);
+            clip: rect(24px, 550px, 90px, 0);
+            animation: glitch-anim 3s infinite linear alternate-reverse;
+        }
+
+        .glitch::after {
+            left: -2px;
+            text-shadow: -1px 0 var(--neon-blue);
+            clip: rect(85px, 550px, 140px, 0);
+            animation: glitch-anim 2.5s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim {
+            0% {
+                clip: rect(14px, 9999px, 127px, 0);
+            }
+
+            20% {
+                clip: rect(66px, 9999px, 15px, 0);
+            }
+
+            40% {
+                clip: rect(54px, 9999px, 114px, 0);
+            }
+
+            60% {
+                clip: rect(38px, 9999px, 96px, 0);
+            }
+
+            80% {
+                clip: rect(4px, 9999px, 93px, 0);
+            }
+
+            100% {
+                clip: rect(98px, 9999px, 5px, 0);
+            }
+        }
+
+        /* 3D Grid Background */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+            z-index: -1;
+            opacity: 0.3;
+            animation: moveGrid 10s linear infinite;
+        }
+
+        @keyframes moveGrid {
+            0% {
+                transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+            }
+
+            100% {
+                transform: perspective(500px) rotateX(60deg) translateY(0px) translateZ(-200px);
+            }
+        }
+
+        /* Cards */
+        .tech-card {
+            background: rgba(10, 10, 10, 0.8);
+            border: 1px solid var(--neon-blue);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tech-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 30px rgba(255, 45, 85, 0.3);
+        }
+
+        .tech-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: 0.5s;
+        }
+
+        .tech-card:hover::before {
+            left: 100%;
+        }
+
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tech-card:hover .scanner-line {
+            opacity: 1;
+            animation: scan 1.5s linear infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0%;
+            }
+
+            100% {
+                top: 100%;
+            }
+        }
+
+        /* Floating Models */
+        .float-model {
+            animation: floating 4s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-20px) rotate(2deg);
+            }
+
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="min-h-screen">
+    <div class="grid-bg"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-md border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <span
+                        class="text-2xl font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500 font-black tracking-widest">FOUNDRY</span>
+                    <span class="text-[10px] font-mono text-gray-500 ml-2 hidden md:inline">SYSTEM_ID: FAB_HUB_01</span>
+                </div>
+                <div class="flex gap-8">
+                    <a href="index.html"
+                        class="text-sm hover:text-[var(--neon-pink)] transition-colors font-mono tracking-tighter">&lt;
+                        RETURN_CORE &gt;</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="h-screen flex items-center justify-center relative overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <!-- Image Background with Overlay -->
+            <img src="assets/images/3d_hero.png" class="w-full h-full object-cover opacity-40">
+            <!-- Blueprint Pattern Overlay -->
+            <div class="absolute inset-0"
+                style="background-image: radial-gradient(circle at 2px 2px, rgba(0, 243, 255, 0.1) 1px, transparent 0); background-size: 40px 40px;">
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[var(--dark-bg)] via-transparent to-[var(--dark-bg)]">
+            </div>
+        </div>
+
+        <div class="text-center z-10 relative px-4">
+            <div class="text-[var(--neon-blue)] font-mono text-xs mb-4 animate-pulse uppercase tracking-[0.5em]">
+                Hardware Innovation & Mechatronics</div>
+            <h1 class="text-5xl md:text-8xl font-black font-orbitron mb-4 glitch" data-text=" फाउंड्री // 智造工场">FOUNDRY
+                // 智造工场</h1>
+            <p
+                class="text-lg md:text-2xl text-gray-400 font-light tracking-[0.2em] md:tracking-[0.5em] mb-12 font-orbitron">
+                构建现实世界的原子逻辑 • DESIGN · PROTOTYPE · DEPLOY
+            </p>
+            <div class="flex flex-col md:flex-row justify-center gap-6">
+                <a href="#robotics"
+                    class="px-8 py-3 bg-[var(--neon-blue)] text-black hover:bg-white transition-all font-bold tracking-widest skew-x-[-10deg] shadow-[0_0_20px_rgba(0,243,255,0.4)] group">
+                    <span class="skew-x-[10deg] inline-block group-hover:scale-110 transition-transform">机器人工程
+                        (ROBOTICS)</span>
+                </a>
+                <a href="#printing"
+                    class="px-8 py-3 border border-[var(--neon-pink)] text-[var(--neon-pink)] hover:bg-[var(--neon-pink)] hover:text-white transition-all font-bold tracking-widest skew-x-[-10deg] group">
+                    <span class="skew-x-[10deg] inline-block group-hover:scale-110 transition-transform">增材制造
+                        (3D_GEN)</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Hardware Status Panel -->
+        <div
+            class="absolute bottom-10 left-10 hidden lg:block font-mono text-[10px] text-cyan-500/50 space-y-2 border-l border-cyan-500/20 pl-4">
+            <div>POWER: 48V LIPO_STABLE</div>
+            <div>NET: ROS2_DISTRIBUTED_ACTIVE</div>
+            <div>STATUS: FABRICATION_PROTOCOL_ONLINE</div>
+        </div>
+    </section>
+
+    <!-- Software Section -->
+    <section id="modeling" class="py-20 px-4 max-w-7xl mx-auto">
+        <h2
+            class="text-4xl font-orbitron font-bold mb-16 text-center text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">
+            数字熔炉 (DIGITAL FORGE)
+        </h2>
+
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- 3D One -->
+            <div class="tech-card rounded-xl p-0 group overflow-hidden relative">
+                <div class="absolute inset-0 z-0">
+                    <img src="assets/images/3d-cad.png"
+                        class="w-full h-full object-cover opacity-30 group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[var(--dark-bg)] to-transparent"></div>
+                </div>
+                <div class="relative z-10 p-8">
+                    <div class="scanner-line"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-50 text-4xl font-black text-white/5">01</div>
+                    <h3 class="text-2xl font-orbitron font-bold text-[var(--neon-blue)] mb-4">3D ONE</h3>
+                    <div class="h-16 mb-4 flex items-center text-4xl">🧊</div>
+                    <p class="text-gray-300 text-sm mb-6 leading-relaxed min-h-[80px]">
+                        专为中国青少年打造的3D创意工具。像堆积木一样简单，通过可视化编程培养空间思维，不仅是软件，更是通往未来的钥匙。
+                    </p>
+                    <div class="flex gap-2 mb-6 pointer-events-none flex-wrap">
+                        <span
+                            class="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs border border-blue-500/30">青少年</span>
+                        <span class="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs border border-blue-500/30">积木</span>
+                    </div>
+                    <button
+                        class="w-full py-3 border border-white/20 hover:border-[var(--neon-blue)] hover:text-[var(--neon-blue)] transition-colors text-xs font-bold tracking-widest bg-black/50">
+                        初始化系统 (INITIALIZE)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Blender -->
+            <div class="tech-card rounded-xl p-0 group overflow-hidden relative">
+                <div class="absolute inset-0 z-0">
+                    <img src="assets/images/3d-blender.png"
+                        class="w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-700">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[var(--dark-bg)] to-transparent"></div>
+                </div>
+                <div class="relative z-10 p-8">
+                    <div class="scanner-line"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-50 text-4xl font-black text-white/5">02</div>
+                    <h3 class="text-2xl font-orbitron font-bold text-orange-400 mb-4">BLENDER</h3>
+                    <div class="h-16 mb-4 flex items-center text-4xl">🎨</div>
+                    <p class="text-gray-300 text-sm mb-6 leading-relaxed min-h-[80px]">
+                        数字艺术的神器。像捏泥人一样进行数字雕刻，创造极具生物感的有机形态。开源、免费、且功能无限强大。
+                    </p>
+                    <div class="flex gap-2 mb-6 pointer-events-none flex-wrap">
+                        <span
+                            class="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs border border-orange-500/30">艺术</span>
+                        <span
+                            class="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs border border-orange-500/30">雕刻</span>
+                    </div>
+                    <button
+                        class="w-full py-3 border border-white/20 hover:border-orange-400 hover:text-orange-400 transition-colors text-xs font-bold tracking-widest bg-black/50">
+                        加载工坊 (LOAD)
+                    </button>
+                </div>
+            </div>
+
+            <!-- SolidWorks -->
+            <div class="tech-card rounded-xl p-8 group relative overflow-hidden">
+                <div class="scanner-line"></div>
+                <div class="absolute top-0 right-0 p-4 opacity-50 text-4xl font-black text-white/5">03</div>
+                <h3 class="text-2xl font-orbitron font-bold text-[var(--neon-pink)] mb-4">SOLIDWORKS</h3>
+                <div
+                    class="h-16 mb-4 bg-pink-900/20 rounded-lg flex items-center justify-center border border-pink-500/30">
+                    <span class="text-4xl">⚙️</span>
+                </div>
+                <p class="text-gray-400 text-sm mb-6 leading-relaxed min-h-[80px]">
+                    工业界事实标准。参数化设计、虚拟装配、力学仿真。在这里，你将像真正的工程师一样思考，构建精密的机械结构。
+                </p>
+                <div class="flex gap-2 mb-6 flex-wrap">
+                    <span class="px-2 py-1 bg-pink-500/10 text-pink-400 text-xs border border-pink-500/30">专业</span>
+                    <span class="px-2 py-1 bg-pink-500/10 text-pink-400 text-xs border border-pink-500/30">工程</span>
+                </div>
+                <button
+                    class="w-full py-3 border border-white/20 hover:border-[var(--neon-pink)] hover:text-[var(--neon-pink)] transition-colors text-xs font-bold tracking-widest">
+                    接入终端 (ACCESS)
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Robotics Section (New Hardcore Module) -->
+    <section id="robotics" class="py-24 px-4 max-w-7xl mx-auto border-t border-white/5">
+        <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+            <div class="max-w-2xl">
+                <span class="text-[var(--neon-blue)] font-mono text-xs uppercase tracking-widest">[ Robotics &
+                    Mechatronics ]</span>
+                <h2 class="text-5xl font-orbitron font-bold mt-4">机器人工程内核</h2>
+                <p class="text-gray-400 mt-6 leading-relaxed">
+                    不仅是组装，更是对物理法则的精准控制。涵盖底盘运动学、PID 闭环控制及 SLAM 导航。
+                </p>
+            </div>
+            <div class="flex gap-4">
+                <div
+                    class="px-6 py-2 bg-white/5 border border-white/10 rounded-full font-mono text-[10px] text-gray-500">
+                    VEX_V5_STARDARD</div>
+                <div
+                    class="px-6 py-2 bg-white/5 border border-white/10 rounded-full font-mono text-[10px] text-gray-500">
+                    MAKEX_SUPREME</div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <!-- Robotics Item 1 -->
+            <div class="tech-card rounded-[30px] p-10 group bg-gradient-to-br from-slate-900 to-black">
+                <div class="text-4xl mb-6">⚙️</div>
+                <h3 class="text-2xl font-bold mb-4">嵌入式开发链路</h3>
+                <p class="text-sm text-gray-400 mb-8 leading-relaxed">从 STM32 到 ESP32，掌握底层寄存器配置与硬核代码开发。这是机器人的大脑神经网络。</p>
+                <div class="space-y-3 font-mono text-[10px] text-cyan-400/60 uppercase">
+                    <div>> Keil MDK / CubeMX</div>
+                    <div>> Real-time OS (FreeRTOS)</div>
+                </div>
+            </div>
+
+            <!-- Robotics Item 2 -->
+            <div
+                class="tech-card rounded-[30px] p-10 group border-l-4 border-l-[var(--neon-pink)] bg-gradient-to-br from-slate-900 to-black">
+                <div class="text-4xl mb-6">🤖</div>
+                <h3 class="text-2xl font-bold mb-4">ROS 2.0 系统架构</h3>
+                <p class="text-sm text-gray-400 mb-8 leading-relaxed">对标工业级机器人开发。掌握节点通信、Lidar 扫图与复杂路径规划算法。</p>
+                <div class="space-y-3 font-mono text-[10px] text-pink-400/60 uppercase">
+                    <div>> Ubuntu / Docker Layer</div>
+                    <div>> Navigation 2 / SLAM</div>
+                </div>
+            </div>
+
+            <!-- Robotics Item 3 -->
+            <div class="tech-card rounded-[30px] p-10 group bg-gradient-to-br from-slate-900 to-black">
+                <div class="text-4xl mb-6">🏎️</div>
+                <h3 class="text-2xl font-bold mb-4">顶级赛事特训</h3>
+                <p class="text-sm text-gray-400 mb-8 leading-relaxed">针对 VEX、MakeX 等竞赛进行战术推演。建立结构强度评估表与自动阶段代码栈。</p>
+                <div class="space-y-3 font-mono text-[10px] text-green-400/60 uppercase">
+                    <div>> Match Scouting</div>
+                    <div>> Autonomous Stack v4.2</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hardware Section -->
+    <section id="printing" class="py-20 px-4 border-t border-white/10 relative">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-4xl font-orbitron font-bold mb-16 text-center">打印矩阵 (PRINTING MATRIX) <span
+                    class="text-[var(--neon-green)] text-sm align-top">[ONLINE]</span></h2>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- Bambu Lab -->
+                <div class="lg:col-span-2 tech-card rounded-xl p-0 flex flex-col md:flex-row relative overflow-hidden">
+                    <!-- Image Side/Background -->
+                    <div class="md:absolute inset-0 z-0">
+                        <img src="assets/images/3d_lab.png"
+                            class="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-r from-[var(--dark-bg)] via-[var(--dark-bg)] to-transparent">
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 p-8 w-full md:w-2/3">
+                        <h3 class="text-3xl font-orbitron font-bold text-[var(--neon-green)] mb-2">BAMBU LAB X1</h3>
+                        <p class="text-[var(--neon-green)] text-sm mb-6 font-bold tracking-widest">HIGH-SPEED CORE XY
+                            SYSTEM</p>
+                        <p class="text-gray-300 mb-6 text-sm">消费级打印的终点。搭载微米级激光雷达，以人工智能重新定义制造速度。</p>
+                        <ul class="space-y-4 text-gray-300 text-sm font-light mb-8 font-orbitron">
+                            <li class="flex items-center gap-3">
+                                <span
+                                    class="w-2 h-2 bg-[var(--neon-green)] rounded-full shadow-[0_0_5px_#39FF14]"></span>
+                                AMS 智能多色打印系统
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <span
+                                    class="w-2 h-2 bg-[var(--neon-green)] rounded-full shadow-[0_0_5px_#39FF14]"></span>
+                                AI 炒面检测与流体校准 (Lidar)
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <span
+                                    class="w-2 h-2 bg-[var(--neon-green)] rounded-full shadow-[0_0_5px_#39FF14]"></span>
+                                20000 mm/s² 狂暴加速度
+                            </li>
+                        </ul>
+                        <button
+                            class="px-6 py-2 bg-[var(--neon-green)] text-black font-bold uppercase hover:bg-white transition-colors shadow-[0_0_15px_rgba(57,255,20,0.4)]">
+                            启动协议 (START PROTOCOL)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Slicing -->
+                <div class="tech-card rounded-xl p-8 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-2xl font-orbitron font-bold text-white mb-4">切片核心 (SLICING CORE)</h3>
+                        <p class="text-gray-400 text-sm mb-6">将数字模型“降维”打击为G-Code指令代码。这是连接虚拟与现实的翻译官。</p>
+
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>填充密度 (INFILL)</span>
+                                <span>20%</span>
+                            </div>
+                            <div class="w-full bg-gray-800 h-1 rounded-full overflow-hidden">
+                                <div class="bg-[var(--neon-pink)] h-full w-[20%]"></div>
+                            </div>
+
+                            <div class="flex justify-between text-xs text-gray-500 mt-4">
+                                <span>打印速度 (SPEED)</span>
+                                <span>300mm/s</span>
+                            </div>
+                            <div class="w-full bg-gray-800 h-1 rounded-full overflow-hidden">
+                                <div class="bg-[var(--neon-blue)] h-full w-[85%]"></div>
+                            </div>
+
+                            <div class="flex justify-between text-xs text-gray-500 mt-4">
+                                <span>层高 (LAYER HEIGHT)</span>
+                                <span>0.2mm</span>
+                            </div>
+                            <div class="w-full bg-gray-800 h-1 rounded-full overflow-hidden">
+                                <div class="bg-[var(--neon-green)] h-full w-[50%]"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        class="mt-8 w-full py-2 border border-dashed border-gray-600 text-gray-400 hover:border-white hover:text-white transition-all text-xs tracking-widest uppercase">
+                        加载切片软件 (LOAD SLICER)
+                    </button>
+                    <div class="scanner-line"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- 3D + AI: Kids Innovation Era -->
+    <section id="ai-3d"
+        class="py-20 px-4 border-t border-white/10 relative overflow-hidden bg-gradient-to-b from-black to-[var(--dark-bg)]">
+        <div class="max-w-7xl mx-auto relative z-10">
+            <h2 class="text-4xl font-orbitron font-bold mb-4 text-center glitch" data-text="AI + 3D KIDS LAB">3D 打印 + AI
+                魔法实验室</h2>
+            <p class="text-[var(--neon-blue)] text-center font-orbitron text-xs tracking-[0.4em] mb-16 opacity-70">神奇咒语
+                • 魔法绘图 • 创意制造</p>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Case 1: Doodle to 3D -->
+                <div class="tech-card rounded-xl p-8 group relative overflow-hidden border-yellow-500/30">
+                    <div class="scanner-line !bg-yellow-500"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-black text-yellow-500">01</div>
+                    <h3 class="text-xl font-orbitron font-bold text-yellow-400 mb-4">魔法涂鸦变身<br>(Doodle to 3D)</h3>
+                    <div class="h-12 flex items-center mb-4"><span class="text-3xl">🖍️ ➔ 🧸</span></div>
+                    <p class="text-gray-400 text-xs leading-relaxed mb-6">
+                        在平板上画一个小怪兽，利用 AI 自动识别并勾勒出立体轮廓，瞬间变成可以拿在手里的 3D 小玩偶。让你的画作从纸上“跑”出来！
+                    </p>
+                    <div class="flex gap-2 mb-4">
+                        <span
+                            class="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 text-[10px] border border-yellow-500/20">画图高手</span>
+                        <span
+                            class="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 text-[10px] border border-yellow-500/20">趣味制作</span>
+                    </div>
+                    <!-- Manual Trigger -->
+                    <div class="manual-trigger" onclick="window.ManualManager.open('doodle-to-3d')" title="查看制作手册">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Case 2: Voice Spell -->
+                <div class="tech-card rounded-xl p-8 group relative overflow-hidden border-purple-500/30">
+                    <div class="scanner-line !bg-purple-500"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-black text-purple-500">02</div>
+                    <h3 class="text-xl font-orbitron font-bold text-purple-400 mb-4">语音魔法咒语<br>(Voice Spell)</h3>
+                    <div class="h-12 flex items-center mb-4"><span class="text-3xl">🎙️ ➔ 🪄</span></div>
+                    <p class="text-gray-400 text-xs leading-relaxed mb-6">
+                        对着麦克风说出你的创意，比如“一个带翅膀的苹果”。AI 机器人会根据你的“咒语”生成模型，并指挥打印机开始制造你的魔法道具。
+                    </p>
+                    <div class="flex gap-2 mb-4">
+                        <span
+                            class="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] border border-purple-500/20">小小演说家</span>
+                        <span
+                            class="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] border border-purple-500/20">智能联通</span>
+                    </div>
+                    <!-- Manual Trigger -->
+                    <div class="manual-trigger" onclick="window.ManualManager.open('voice-spell')" title="查看制作手册">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Case 3: AI Fixer -->
+                <div class="tech-card rounded-xl p-8 group relative overflow-hidden border-green-500/30">
+                    <div class="scanner-line !bg-green-500"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-black text-green-500">03</div>
+                    <h3 class="text-xl font-orbitron font-bold text-green-400 mb-4">玩具修理工厂<br>(Toy Hospital)</h3>
+                    <div class="h-12 flex items-center mb-4"><span class="text-3xl">🔧 ➔ ✨</span></div>
+                    <p class="text-gray-400 text-xs leading-relaxed mb-6">
+                        玩具车轮子丢了？拍张照片，AI 会自动寻找并设计一个配套的零件。通过 3D 打印“修好”破损的玩具，你就是未来的工程师！
+                    </p>
+                    <div class="flex gap-2 mb-4">
+                        <span
+                            class="px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] border border-green-500/20">环保小卫士</span>
+                        <span
+                            class="px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] border border-green-500/20">问题解决</span>
+                    </div>
+                    <!-- Manual Trigger -->
+                    <div class="manual-trigger" onclick="window.ManualManager.open('toy-hospital')" title="查看制作手册">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Case 4: Story to Print -->
+                <div class="tech-card rounded-xl p-8 group relative overflow-hidden border-red-500/30">
+                    <div class="scanner-line !bg-red-500"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-black text-red-500">04</div>
+                    <h3 class="text-xl font-orbitron font-bold text-red-400 mb-4">故事主角工坊<br>(Story Maker)</h3>
+                    <div class="h-12 flex items-center mb-4"><span class="text-3xl">📖 ➔ 🌵</span></div>
+                    <p class="text-gray-400 text-xs leading-relaxed mb-6">
+                        写下你创作的科幻小故事，AI 会帮你设计出故事里的外星飞船或神秘生物模型。把你的梦想打印出来，组建自己的微缩世界。
+                    </p>
+                    <div class="flex gap-2 mb-4">
+                        <span
+                            class="px-2 py-0.5 bg-red-500/10 text-red-400 text-[10px] border border-red-500/20">小作家</span>
+                        <span
+                            class="px-2 py-0.5 bg-red-500/10 text-red-400 text-[10px] border border-red-500/20">创意想象</span>
+                    </div>
+                    <!-- Manual Trigger -->
+                    <div class="manual-trigger" onclick="window.ManualManager.open('story-maker')" title="查看制作手册">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    </div>
+    </section>
+
+    <!-- Quantum Database (Resources) -->
+    <section id="resources" class="py-20 px-4 border-t border-white/10 relative overflow-hidden">
+        <!-- Background Image -->
+        <div class="absolute inset-0 z-0">
+            <img src="assets/images/3d_art.png" class="w-full h-full object-cover opacity-20 filter grayscale">
+            <div class="absolute inset-0 bg-black/80"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto relative z-10">
+            <h2 class="text-4xl font-orbitron font-bold mb-16 text-center glitch" data-text="QUANTUM DATABASE">量子数据库
+                (QUANTUM DATABASE)</h2>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Global Repos -->
+                <div class="col-span-full mb-4">
+                    <h3
+                        class="text-xl font-orbitron text-[var(--neon-blue)] border-b border-[var(--neon-blue)] pb-2 inline-block">
+                        全球模型库 (GLOBAL ARCHIVES)</h3>
+                </div>
+
+                <!-- MakerWorld -->
+                <a href="https://makerworld.com/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline px-6">
+                    <div class="scanner-line"></div>
+                    <div class="text-4xl mb-4 text-white group-hover:scale-110 transition-transform">🌍</div>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">MAKER WORLD</h4>
+                    <p class="text-xs text-gray-400">新生代王者。与硬件深度互联，一键打印的极致体验。</p>
+                </a>
+
+                <!-- Printables -->
+                <a href="https://www.printables.com/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <div class="text-4xl mb-4 text-orange-500 group-hover:scale-110 transition-transform">🧡</div>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">PRINTABLES</h4>
+                    <p class="text-xs text-gray-400">极客社区。高质量、经竞赛筛选的优选模型库。</p>
+                </a>
+
+                <!-- Thingiverse -->
+                <a href="https://www.thingiverse.com/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <div class="text-4xl mb-4 text-blue-500 group-hover:scale-110 transition-transform">💠</div>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">THINGIVERSE</h4>
+                    <p class="text-xs text-gray-400">元老传奇。全球最大的 3D 模型“亚历山大图书馆”。</p>
+                </a>
+
+                <!-- GrabCAD -->
+                <a href="https://grabcad.com/library" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <div class="text-4xl mb-4 text-red-500 group-hover:scale-110 transition-transform">🔩</div>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">GRABCAD</h4>
+                    <p class="text-xs text-gray-400">工程师圣地。下载真实的发动机、机器人和航空航天图纸。</p>
+                </a>
+
+                <!-- MyMiniFactory -->
+                <a href="https://www.myminifactory.com/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <div class="text-4xl mb-4 text-purple-500 group-hover:scale-110 transition-transform">🗿</div>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">MY MINI FACTORY</h4>
+                    <p class="text-xs text-gray-400">手办与艺术。专注于高精度的游戏角色与桌面战棋模型。</p>
+                </a>
+
+                <!-- Learning & Wiki -->
+                <div class="col-span-full my-8 mb-4">
+                    <h3
+                        class="text-xl font-orbitron text-[var(--neon-pink)] border-b border-[var(--neon-pink)] pb-2 inline-block">
+                        知识矩阵 (KNOWLEDGE MATRIX)</h3>
+                </div>
+
+                <!-- Bambu Wiki -->
+                <a href="https://wiki.bambulab.com/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <span
+                        class="absolute top-2 right-2 text-[var(--neon-pink)] text-xs border border-[var(--neon-pink)] px-1">OFFICIAL</span>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">BAMBU WIKI</h4>
+                    <p class="text-xs text-gray-400">官方说明书。从维护到排障的百科全书。</p>
+                </a>
+
+                <!-- i3DOne Community -->
+                <a href="https://www.i3done.com/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <span
+                        class="absolute top-2 right-2 text-[var(--neon-green)] text-xs border border-[var(--neon-green)] px-1">TEEN</span>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">i3DOne 社区</h4>
+                    <p class="text-xs text-gray-400">中国青少年大本营。比赛、教程、校园创客的聚集地。</p>
+                </a>
+
+                <!-- CNC Kitchen -->
+                <a href="https://www.youtube.com/c/CNCKitchen" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">CNC KITCHEN</h4>
+                    <p class="text-xs text-gray-400">硬核评测。用科学实验数据告诉你材料强度与打印参数的秘密。</p>
+                </a>
+
+                <!-- Klipper -->
+                <a href="https://www.klipper3d.org/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <span
+                        class="absolute top-2 right-2 text-white/50 text-xs border border-white/20 px-1">FIRMWARE</span>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">KLIPPER</h4>
+                    <p class="text-xs text-gray-400">固件革命。将复杂运算转移至上位机，释放打印机极速潜能。</p>
+                </a>
+
+                <!-- Open Source Initiative Header -->
+                <div class="col-span-full my-8 mb-4">
+                    <h3 class="text-xl font-orbitron text-white border-b border-white pb-2 inline-block">
+                        开源源计划 (GITHUB OPEN SOURCE) <span class="text-xs text-gray-500 ml-2 md:inline hidden">// CODE THE
+                            FUTURE</span></h3>
+                </div>
+
+                <!-- Voron Design -->
+                <a href="https://github.com/VoronDesign" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline relative overflow-hidden">
+                    <div class="scanner-line"></div>
+                    <div class="absolute -right-4 -top-4 opacity-10 text-6xl rotate-12">🔧</div>
+                    <h4 class="text-lg font-bold text-red-500 mb-2 font-orbitron">VORON DESIGN</h4>
+                    <div class="text-[10px] font-mono text-red-500/50 mb-2">> git clone hardware</div>
+                    <p class="text-xs text-gray-400">追求极致的开源打印机硬件项目。真正的“从零构建”，硬核玩家的终极挑战。</p>
+                </a>
+
+                <!-- OpenSCAD -->
+                <a href="https://openscad.org/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline relative overflow-hidden">
+                    <div class="scanner-line"></div>
+                    <div class="absolute -right-4 -top-4 opacity-10 text-6xl rotate-12">💻</div>
+                    <h4 class="text-lg font-bold text-yellow-500 mb-2 font-orbitron">OPEN SCAD</h4>
+                    <div class="text-[10px] font-mono text-yellow-500/50 mb-2">> code = model</div>
+                    <p class="text-xs text-gray-400">程序员的 CAD。用代码定义几何形状，参数化设计的完美工具。</p>
+                </a>
+
+                <!-- OrcaSlicer -->
+                <a href="https://github.com/SoftFever/OrcaSlicer" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline relative overflow-hidden">
+                    <div class="scanner-line"></div>
+                    <div class="absolute -right-4 -top-4 opacity-10 text-6xl rotate-12">🍰</div>
+                    <h4 class="text-lg font-bold text-teal-400 mb-2 font-orbitron">ORCA SLICER</h4>
+                    <div class="text-[10px] font-mono text-teal-400/50 mb-2">> fork process optimize</div>
+                    <p class="text-xs text-gray-400">当前最热门的开源切片软件。集众家之长，提供极致的打印参数控制。</p>
+                </a>
+
+                <!-- OctoPrint -->
+                <a href="https://octoprint.org/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline relative overflow-hidden">
+                    <div class="scanner-line"></div>
+                    <div class="absolute -right-4 -top-4 opacity-10 text-6xl rotate-12">🐙</div>
+                    <h4 class="text-lg font-bold text-green-400 mb-2 font-orbitron">OCTOPRINT</h4>
+                    <div class="text-[10px] font-mono text-green-400/50 mb-2">> connect remote</div>
+                    <p class="text-xs text-gray-400">3D 打印机的远程大脑。监控、延时摄影、插件扩展，万物皆可互联。</p>
+                </a>
+
+                <!-- Marlin Firmware -->
+                <a href="https://marlinfw.org/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline relative overflow-hidden">
+                    <div class="scanner-line"></div>
+                    <div class="absolute -right-4 -top-4 opacity-10 text-6xl rotate-12">🐟</div>
+                    <h4 class="text-lg font-bold text-blue-400 mb-2 font-orbitron">MARLIN FW</h4>
+                    <div class="text-[10px] font-mono text-blue-400/50 mb-2">> #define EXTRUDERS 1</div>
+                    <p class="text-xs text-gray-400">3D 打印世界的基石。驱动着全球数百万台打印机，极致的底层控制权。</p>
+                </a>
+
+                <!-- FreeCAD -->
+                <a href="https://www.freecad.org/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline relative overflow-hidden">
+                    <div class="scanner-line"></div>
+                    <div class="absolute -right-4 -top-4 opacity-10 text-6xl rotate-12">📐</div>
+                    <h4 class="text-lg font-bold text-red-400 mb-2 font-orbitron">FREE CAD</h4>
+                    <div class="text-[10px] font-mono text-red-400/50 mb-2">> python_api.init()</div>
+                    <p class="text-xs text-gray-400">SolidWorks 的开源替代者。完全免费的参数化建模工具，社区插件极其丰富。</p>
+                </a>
+
+                <!-- Obico AI -->
+                <a href="https://www.obico.io/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline relative overflow-hidden">
+                    <div class="scanner-line"></div>
+                    <div class="absolute -right-4 -top-4 opacity-10 text-6xl rotate-12">👁️</div>
+                    <span class="absolute top-2 right-2 text-purple-400 text-xs border border-purple-400/50 px-1">AI
+                        INSIDE</span>
+                    <h4 class="text-lg font-bold text-purple-400 mb-2 font-orbitron">OBICO AI</h4>
+                    <div class="text-[10px] font-mono text-purple-400/50 mb-2">> detect_failure()</div>
+                    <p class="text-xs text-gray-400">开源 AI 视觉侦探。自动识别打印失败（如炒面），并及时暂停，拯救你的线材。</p>
+                </a>
+
+                <!-- Instructables -->
+                <a href="https://www.instructables.com/workshop/3d-printing/" target="_blank"
+                    class="tech-card p-6 rounded-lg group block hover:no-underline">
+                    <div class="scanner-line"></div>
+                    <h4 class="text-lg font-bold text-white mb-2 font-orbitron">INSTRUCTABLES</h4>
+                    <p class="text-xs text-gray-400">全球创客教程。手把手教你如何将打印件与电子硬件结合。</p>
+                </a>
+            </div>
+
+            <!-- Engineering Blueprints - Visual Decorative Section -->
+            <div
+                class="mt-32 p-12 glass-card rounded-[40px] border-dashed border-cyan-500/20 text-center relative overflow-hidden">
+                <div class="absolute inset-0 opacity-5 pointer-events-none">
+                    <svg viewBox="0 0 100 100" class="w-full h-full stroke-cyan-500 fill-none">
+                        <path d="M10 10 L90 90 M90 10 L10 90" stroke-width="0.1" />
+                        <circle cx="50" cy="50" r="40" stroke-width="0.1" />
+                        <rect x="20" y="20" width="60" height="60" stroke-width="0.1" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-orbitron font-bold text-cyan-500/50 mb-4 tracking-[1em]">ENGINEERING ARCHIVE
+                </h3>
+                <p class="text-[10px] font-mono text-gray-600">PRECISE MEASUREMENT // STRUCTURAL INTEGRITY // KINEMATIC
+                    SIMULATION</p>
+            </div>
+        </div>
+    </section>
+    <footer class="py-12 border-t border-white/5 bg-black text-center text-gray-600 text-xs">
+        <p class="font-orbitron">FOUNDRY v4.0 | HARDWARE & ROBOTICS SECTOR</p>
+        <p class="mt-2">&copy; 2025 ZHOU XIAOMAI</p>
+    </footer>
+
+    <script>
+        // Simple scroll reveal
+        window.addEventListener('scroll', () => {
+            const cards = document.querySelectorAll('.tech-card');
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                if (rect.top < window.innerHeight - 100) {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0) scale(1)';
+                }
+            });
+        });
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K12 英语新课标核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #020617;
+            /* Deepest Blue */
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#020617] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-sky-900/30 border-t-sky-500 rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center text-xs text-sky-500 font-bold animate-pulse">
+                ENGLISH</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const MessageSquare = (props) => <IconBase {...props}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconBase>;
+        const Globe = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20" /><path d="M2 12h20" /></IconBase>;
+        const PenTool = (props) => <IconBase {...props}><path d="m12 19 7-7 3 3-7 7-3-3z" /><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="m2 2 5 5" /><path d="m11 11 5 5" /></IconBase>;
+        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            { id: "p_low", label: "小学低", subtitle: "1-2年级 · 感知", color: "bg-sky-500", textColor: "text-sky-400", borderColor: "border-sky-500/30", bgSoft: "bg-sky-500/10" },
+            { id: "p_mid", label: "小学中", subtitle: "3-4年级 · 兴趣", color: "bg-sky-500", textColor: "text-sky-400", borderColor: "border-sky-500/30", bgSoft: "bg-sky-500/10" },
+            { id: "p_high", label: "小学高", subtitle: "5-6年级 · 基础", color: "bg-sky-500", textColor: "text-sky-400", borderColor: "border-sky-500/30", bgSoft: "bg-sky-500/10" },
+            { id: "j_7", label: "七年级", subtitle: "初一 · 衔接", color: "bg-blue-600", textColor: "text-blue-400", borderColor: "border-blue-600/30", bgSoft: "bg-blue-600/10" },
+            { id: "j_8", label: "八年级", subtitle: "初二 · 进阶", color: "bg-blue-600", textColor: "text-blue-400", borderColor: "border-blue-600/30", bgSoft: "bg-blue-600/10" },
+            { id: "j_9", label: "九年级", subtitle: "初三 · 应用", color: "bg-blue-600", textColor: "text-blue-400", borderColor: "border-blue-600/30", bgSoft: "bg-blue-600/10" },
+            { id: "s_1", label: "高一", subtitle: "衔接 · 拓展", color: "bg-indigo-600", textColor: "text-indigo-400", borderColor: "border-indigo-600/30", bgSoft: "bg-indigo-600/10" },
+            { id: "s_2", label: "高二", subtitle: "深化 · 思辨", color: "bg-indigo-600", textColor: "text-indigo-400", borderColor: "border-indigo-600/30", bgSoft: "bg-indigo-600/10" },
+            { id: "s_3", label: "高三", subtitle: "超越 · 愿景", color: "bg-indigo-600", textColor: "text-indigo-400", borderColor: "border-indigo-600/30", bgSoft: "bg-indigo-600/10" }
+        ];
+
+        const tracks = [
+            { id: "communication", title: "语言交流", desc: "听力 · 口语决策", icon: MessageSquare, color: "text-sky-400", gradient: "from-sky-500/20 to-sky-900/5" },
+            { id: "reading", title: "深度阅读", desc: "文本分析 · 批判思考", icon: BookOpen, color: "text-blue-400", gradient: "from-blue-500/20 to-blue-900/5" },
+            { id: "culture", title: "文化意识", desc: "跨文化理解 · 全球视野", icon: Globe, color: "text-indigo-400", gradient: "from-indigo-500/20 to-indigo-900/5" },
+            { id: "tech_integration", title: "科技赋能", desc: "AI 协作 · 数字素养", icon: Zap, color: "text-cyan-400", gradient: "from-cyan-500/20 to-cyan-900/5" }
+        ];
+
+        const curriculumData = {
+            communication: {
+                p_low: { title: "趣味听说启蒙", core: ["自然拼读初探", "日常指令理解", "英文儿歌吟唱"], literacy: "语言语感、交流意愿", detail: "建立英文声音与实物的映射。", example: "例：Shopping Game练习数字与颜色。", action: "【实践】录制一段自我介绍视频", ai_fusion: "【AI】与机器人对话3分钟。" },
+                p_mid: { title: "简单情境对话", core: ["日常问候表达", "颜色/动物/家庭", "基础疑问句式"], literacy: "口语自信心", detail: "在模拟场景中灵活运用学到的词汇和短语。", example: "例：家访模拟，介绍自己的家人。", action: "【实践】英文配音一段动画片片段", ai_fusion: "【AI】AI纠正发音准确度。" },
+                p_high: { title: "综合日常沟通", core: ["连贯叙述经历", "常用习惯用语", "即兴回答问题"], literacy: "沟通策略", detail: "培养在日常生活全场景下的英语交流能力。", example: "例：导游情境，介绍学校的一个景点。", action: "【实践】全英文家里导游视频", ai_fusion: "【AI】AI助理优化演讲稿。" },
+                j_7: { title: "辩论性口语入门", core: ["陈述观点技巧", "逻辑连接词", "基本辩论流程"], literacy: "逻辑表达", detail: "开始接触客观论证的口语表达方式。", example: "例：保护环境还是发展工业的小辩论。", action: "【实践】撰写并在班级发表环保演讲", ai_fusion: "【AI】AI提供辩论论点建议。" },
+                j_8: { title: "跨文化情境交流", core: ["委婉语与语调", "地道俗语运用", "跨国社交礼仪"], literacy: "社交智慧", detail: "学习在不同文化背景下的得体沟通逻辑。", example: "例：模拟在国外同学家做客的情景。", action: "【实践】采访虚拟的外国友人(AI)并写采访简报", ai_fusion: "【AI】模拟异国文化背景对话。" },
+                j_9: { title: "即兴演讲与逻辑", core: ["五分钟演讲结构", "处理压力提问", "高级词汇替换"], literacy: "临场反应、思辨表达", detail: "培养在公众面前的连贯且富有深度的表达力。", example: "例：模拟TED演讲大纲陈述。", action: "【实践】英文演讲挑战赛", ai_fusion: "【AI】AI实时反馈语速与准确性。" },
+                s_1: { title: "学术演示与交流", core: ["论文发表式陈述", "学术报告术语", "图表数据描述"], literacy: "专业性沟通", detail: "为未来的高等教育及专业领域展示做准备。", example: "例：展示一个科学小实验的过程和结论。", action: "【深度实践】全英文个人项目路演", ai_fusion: "【AI】辅助PPT大纲生成与美化。" },
+                s_2: { title: "复杂议题深度沟通", core: ["哲学议题讨论", "多角度逻辑博弈", "高阶谈判技巧"], literacy: "批判性思维、妥协艺术", detail: "能在极其复杂的语境下进行深度且有影响力的对话。", example: "例：模拟全球气候峰会的各方利益角力。", action: "【实践】模拟联合国大会辩论", ai_fusion: "【AI】扮演多方立场进行压力面试。" },
+                s_3: { title: "全球领导力表达", core: ["愿景蓝图描述", "跨团队异步协作", "数字化品牌语言"], literacy: "国际领导力", detail: "建立在科技与人文高度融合下的跨文化领导话语体系。", example: "例：未来城市愿景路演。", action: "【深度实践】全英文数字品牌策划方案", ai_fusion: "【AI】全天候异域团队协作助理。" }
+            },
+            reading: {
+                p_low: { title: "绘本感知", core: ["视觉词理解", "看图预测情节", "拼读基本功"], literacy: "阅读习惯", detail: "通过丰富的图像和节奏感强的语言建立基础。", example: "例：阅读《Brown Bear, Brown Bear》。", action: "【实践】制作一张绘本单词卡", ai_fusion: "【AI】点读笔式AI朗读纠音。" },
+                p_mid: { title: "故事理解", core: ["提取关键信息", "理清故事顺序", "简单角色分析"], literacy: "信息提取能力", detail: "从单纯的看图转向对故事情节的逻辑理解。", example: "例：复述《猜猜我有多爱你》。", action: "【实践】手绘故事思维导图", ai_fusion: "【AI】AI生成故事情节续写思路。" },
+                p_high: { title: "基础语篇分析", core: ["区分事实与观点", "识别段落主旨", "长难句拆解入门"], literacy: "语境推测能力", detail: "开始接触更复杂的应用文体，学会结构化阅读。", example: "例：阅读一则英文报纸的校园简报。", action: "【实践】为绘本设计一个新结局", ai_fusion: "【AI】复杂长难句的图形化解析。" },
+                j_7: { title: "文本结构化阅读", core: ["说明文结构", "关键词定位技巧", "查字典策略优化"], literacy: "策略性阅读", detail: "强调阅读的速度和重点提取的准确性。", example: "例：对比说明书与广告文案的区别。", action: "【实践】分析一篇科普文章的框架", ai_fusion: "【AI】快速摘要工具的使用。" },
+                j_8: { title: "多文体综合阅读", core: ["人物传记阅读", "新闻评论导论", "修辞分析初步"], literacy: "鉴赏力", detail: "理解不同文体背后的作者意图和表达策略。", example: "例：阅读名人演讲稿片段。", action: "【实践】撰写并发布英文书籍简评", ai_fusion: "【AI】AI提取文本中的情感极性。" },
+                j_9: { title: "批判性思维阅读", core: ["逻辑谬误识别", "多视角文本互测", "深度观点挖掘"], literacy: "独立思考能力", detail: "在阅读中不断质疑和论证，不仅仅是接受信息。", example: "例：分析同一事件的两份立场对立的报道。", action: "【实践】对比两份社论的立场差异", ai_fusion: "【AI】AI检测文本中的逻辑漏洞。" },
+                s_1: { title: "学术文献研读", core: ["论文摘要阅读", "引用规范认知", "专业领域术语积累"], literacy: "学术素养", detail: "为阅读国际前沿科技文献打下坚实的基础。", example: "例：研读一份简单的NASA项目介绍。", action: "【深度实践】多源英文文献库综合综述", ai_fusion: "【AI】自动生成论文综述草稿。" },
+                s_2: { title: "经典文学原著", core: ["莎士比亚/海明威导读", "隐喻与象征分析", "时代背景深度剖析"], literacy: "人文厚度、审美素养", detail: "触碰英语文明的文学脊梁，理解复杂的文学隐喻。", example: "例：分析《老人与海》中的抗争精神。", action: "【深度实践】撰写一篇深度文学批评小论文", ai_fusion: "【AI】文学作品中的意象云生成。" },
+                s_3: { title: "全球化报刊阅读", core: ["《经济学人》导读", "社论风格解析", "全球经济/政治语境"], literacy: "精英视野", detail: "能够流利、深刻地研读世界主流严肃媒体的深度报道。", example: "例：研读关于AI伦理的深度社论。", action: "【深度实践】针对全球议题的批判性研究报告", ai_fusion: "【AI】知识库关联：全球热点交叉检索。" }
+            },
+            culture: {
+                p_low: { title: "文化差异意识", core: ["常见节日习俗", "不同国家的食物", "礼貌问候差异"], literacy: "文化敏感性", detail: "在好奇心中认识世界的多元。", example: "例：比较春节和圣诞节的装饰。", action: "【实践】制作节日文化海报", ai_fusion: "【AI】生成不同文化背景的艺术风格画。" },
+                p_mid: { title: "社交礼仪初探", core: ["餐桌礼仪基础", "礼物文化禁忌", "日常行为规范比较"], literacy: "跨文化交流意识", detail: "学习如何在不同文化中保持得体并受人尊重。", example: "例：模拟英文餐厅点餐礼仪。", action: "【实践】录制一段礼仪小剧场", ai_fusion: "【AI】模拟不同情境下的社交通关。" },
+                p_high: { title: "世界风土人情", core: ["地理标志与地标故事", "风俗背后的历史", "儿歌与民间传说对比"], literacy: "宽广视野", detail: "通过对故事和地理的了解，建立广博的认知地图。", example: "例：探寻伦敦塔桥背后的传说。", action: "【实践】制作家乡文化的英文推荐小页", ai_fusion: "【AI】VR全景体验异国胜景。" },
+                j_7: { title: "中西文化对比", core: ["价值观差异初步", "教育制度比较", "语言习惯与定势思维"], literacy: "客观分析力、民族自信", detail: "能在比较中更深刻地认识自己的文化体系。", example: "例：辩演东西方不同的职业观。", action: "【实践】策划一次中西文化对比沙龙", ai_fusion: "【AI】跨语言谚语背后的逻辑溯源。" },
+                j_8: { title: "跨文化适应力", core: ["文化冲击(Culture Shock)", "解决误解的沟通技巧", "全球化的含义"], literacy: "同理心", detail: "不仅了解差异，更获得消弭隔阂、促进理解的方法。", example: "例：案例分析：一次典型的跨文化沟通误会。", action: "【实践】撰写跨文化沟通手册", ai_fusion: "【AI】AI作为中立翻译参与谈判。" },
+                j_9: { title: "全球公民意识", core: ["环境、能源与贫困议题", "国际组织的作用", "志愿服务精神"], literacy: "社会责任感、担当教育", detail: "理解作为个体对世界整体应有的贡献和态度。", example: "例：草拟关于塑料垃圾治理的英文倡议。", action: "【实践】发起一次全球性议题的英文配音宣讲", ai_fusion: "【AI】追踪全球实时环境监测数据。" },
+                s_1: { title: "人类命运共同体", core: ["数字文明的共同挑战", "科技全球化路径", "文化霸权与融合思辨"], literacy: "战略性考量", detail: "深刻理解全球协作的必然性与复杂性。", example: "例：分析大语言模型时代的文化出海策略。", action: "【深度实践】策划一场模拟国际文化交流论坛", ai_fusion: "【AI】翻译与文化内核适配度评估。" },
+                s_2: { title: "思想史与文化比较", core: ["东西方哲学核心比较", "文学名篇中的时代精神", "历史转折点分析"], literacy: "历史观、哲学深度", detail: "在文明底层逻辑层面进行跨时空的对话与比较。", example: "例：苏格拉底与孔子价值观的现代英文碰撞。", action: "【深度实践】完成一份文明比较研究报告", ai_fusion: "【AI】多语言经史子集语义对齐工具。" },
+                s_3: { title: "文化领导力", core: ["文化出海策划", "塑造国际品牌影响力", "全球共识构建"], literacy: "领导力素养、自信输出", detail: "不仅能理解世界，更能用英语去从容、自信、有效地引领和输出。", example: "例：全球品牌愿景陈述。", action: "【深度实践】建立全英文GitHub/LinkedIn专业矩阵", ai_fusion: "【AI】全天候全球协作与品牌沟通分析套件。" }
+            },
+            tech_integration: {
+                p_low: { title: "数字化工具初体验", core: ["英文键盘指法", "常用技术术语积累", "简单的绘图App"], literacy: "数字起步素养", detail: "熟悉数字化工作的基础环境和语言表达。", example: "例：使用英文界面绘制一张梦想蓝图。", action: "【实践】在英文Pad上完成绘图挑战", ai_fusion: "【AI】AI绘图提示词启蒙。" },
+                p_mid: { title: "协作软件应用", core: ["简单的Zoom/Meet操作", "共享文档(Doc)基础", "数字安全警示语"], literacy: "协作与安全意识", detail: "学习如何在数字化平台上与他人进行简单的沟通和共创。", example: "例：在共享协作系统里英文打卡任务。", action: "【实践】全英文协作完成小组作业", ai_fusion: "【AI】数字礼仪的AI自动提醒。" },
+                p_high: { title: "编程英语基础", core: ["Scratch指令块解读", "基础算法英文逻辑", "软硬件常用英文名"], literacy: "逻辑与技术衔接", detail: "在玩转图形化编程的同时，自然过渡到技术语境下的英语。", example: "例：用英文指令给虚拟机器人导航。", action: "【实践】用Scratch制作一款全英文游戏", ai_fusion: "【AI】将自然语言指令转化为代码块。" },
+                j_7: { title: "开源社区交流", core: ["GitHub 术语体系", "Issue/Pull Request 英语", "简历英文版起步"], literacy: "开发者语境能力", detail: "开始真正进入全球开发者社区，学习其中的交流规则和语言。", example: "例：分析知名开源项目的README文件结构。", action: "【实践】为一个开源项目提交简单的Fix(英文注释)", ai_fusion: "【AI】AI翻译辅助开发者交流。" },
+                j_8: { title: "数字化内容创作", core: ["英文播客制作", "独立网站基础(HTML/CSS词汇)", "多媒体剪辑英语"], literacy: "多维创造力", detail: "不仅仅是读和写，更学会用各种媒介、用英语去表达。", example: "例：剪辑一个全英文的个人成长瞬间短片。", action: "【实践】搭建个人静态Markdown简历页", ai_fusion: "【AI】AI辅助剪辑脚本设计。" },
+                j_9: { title: "技术文档与说明书", core: ["撰写标准README文档", "逻辑化说明流程", "高效的信息检索策略"], literacy: "专业文档写作", detail: "模仿程序员的严谨，学会编写精确、简介的技术性文本。", example: "例：为自己的开源小工具写一份英文手册。", action: "【实践】在GitHub发布第一个个人技术文档集", ai_fusion: "【AI】AI生成技术文档标准化模板。" },
+                s_1: { title: "AI赋能前沿科技", core: ["LLM原理简略读本", "数字取证英文入门", "Prompt设计法则"], literacy: "前瞻性技术认知", detail: "用英语去触碰最前沿的AI技术，不再被局限于翻译信息。", example: "例：研读论文摘要：GPT-4o的主要创新点。", action: "【深度实践】用英文撰写一份AI工具使用心得报告", ai_fusion: "【AI】作为Prompt工程师与模型共创作品。" },
+                s_2: { title: "数字化品牌愿景", core: ["白皮书分析技巧", "科技战略术语汇编", "元宇宙词典"], literacy: "战略眼光、创新思维", detail: "在宏大的科技语境下，进行项目愿景的构建和逻辑陈述。", example: "例：阅读分析区块链及Web3.0核心术语。", action: "【深度实践】为自创项目建立完整的英文路线图", ai_fusion: "【AI】科技趋势分析建模分析。" },
+                s_3: { title: "未来科技领导力", core: ["开源协议与伦理", "开发者个人影响力构建", "数字化品牌的终极叙事"], literacy: "终身学习者姿态、科技灵魂", detail: "能够运用流畅的英语在全球高能级科技竞争中进行顶层对话与决策。", example: "例：技术路演与全球治理方案呈现。", action: "【深度实践】建立全球协作的思想传播平台矩阵", ai_fusion: "【AI】混合现实实时翻译与多语种协作套件管理。" }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-slate-800 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <IconBase><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></IconBase> 教纲要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-slate-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-slate-300 font-bold mb-2">🎓 深度维度</h4>
+                                    <p className="text-slate-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-sky-900/10 p-4 rounded-xl border border-sky-500/20">
+                                    <h4 className="text-sky-300 font-bold mb-2">💡 典型课例/活动</h4>
+                                    <p className="text-sky-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-indigo-900/10 p-4 rounded-xl border border-indigo-500/20">
+                                        <h4 className="text-indigo-300 font-bold mb-2 flex items-center gap-2">
+                                            <PenTool className="w-4 h-4" /> 综合实践
+                                        </h4>
+                                        <p className="text-indigo-200/80 text-sm">{data.action}</p>
+                                    </div>
+                                    <div className="bg-cyan-900/10 p-4 rounded-xl border border-cyan-500/20">
+                                        <h4 className="text-cyan-300 font-bold mb-2 flex items-center gap-2">
+                                            <Zap className="w-4 h-4" /> AI 能力融合
+                                        </h4>
+                                        <p className="text-cyan-200/80 text-sm">{data.ai_fusion}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            // Filter logic
+            const queryParams = new URLSearchParams(window.location.search);
+            const stageFilter = queryParams.get('stage'); // 'p', 'j', 's'
+
+            let filteredStages = stages;
+            let stageTitle = "";
+
+            if (stageFilter === 'p') {
+                filteredStages = stages.filter(s => s.id.startsWith('p_'));
+                stageTitle = " - Elementary";
+            } else if (stageFilter === 'j') {
+                filteredStages = stages.filter(s => s.id.startsWith('j_'));
+                stageTitle = " - Junior High";
+            } else if (stageFilter === 's') {
+                filteredStages = stages.filter(s => s.id.startsWith('s_'));
+                stageTitle = " - Senior High";
+            }
+
+            const gridClass = `grid grid-cols-[200px_repeat(${filteredStages.length},300px)] gap-6`;
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#020617] text-slate-100 pb-20">
+                    {/* Navigation */}
+                    <a href="subject-synergy.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-sky-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回学科协同</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-sky-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 mb-4 relative z-10">
+                            K12 英语新课标核心素养全景图{stageTitle}
+                        </h1>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-lg">
+                            从语言习练到文化互鉴的国际化人才成长矩阵
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-slate-600 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="w-fit">
+                                {/* Stage Headers */}
+                                <div className={`${gridClass} mb-8 sticky top-0 bg-[#020617]/95 backdrop-blur z-30 py-4 border-b border-slate-800`}>
+                                    <div className="flex items-end justify-end px-4 pb-2 text-slate-500 font-bold text-sm uppercase tracking-widest text-right">
+                                        语言维度 / 学习阶段
+                                    </div>
+                                    {filteredStages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-slate-400 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className={`${gridClass} group`}>
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-slate-500 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {filteredStages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                                                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                                                            bg-slate-900/40 border border-slate-800
+                                                            hover:bg-slate-800 hover:border-slate-600 hover:shadow-xl hover:-translate-y-1
+                                                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                                                        `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-slate-200 mb-2 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-1.5 mb-4 flex-grow">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2 text-xs text-slate-400">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-xs text-slate-600 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded bg-slate-950 ${stage.textColor}`}>
+                                                                    {stage.label.split(' ')[0]}
+                                                                </span>
+                                                                <span className="text-xs text-slate-500 group-hover/card:text-sky-400 transition-colors flex items-center gap-1">
+                                                                    LEARN <Check className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

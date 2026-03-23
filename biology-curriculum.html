@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初中生物新课标核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #0f172a;
+            /* Slate 900 */
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#0f172a] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-green-900/30 border-t-green-500 rounded-full animate-spin"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-center text-xs text-green-500 font-bold animate-pulse">
+                LOADING</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Dna = (props) => <IconBase {...props}><path d="M2 15c6.667-6 13.333 0 20-6" /><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" /><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" /><path d="M17 6l-2.5-2.5" /><path d="M14 8l-1-1" /><path d="M7 18l2.5 2.5" /><path d="M3.5 14.5l1 1" /><path d="M20 9c-6.667 6-13.333 0-20 6" /><path d="M9 12c-1.333-2.667-2-5.333-2-8" /><path d="M15 12c1.333 2.667 2 5.333 2 8" /></IconBase>;
+        const Heart = (props) => <IconBase {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></IconBase>;
+        const Leaf = (props) => <IconBase {...props}><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.5 2 6 0 5.5-4.5 10-10 12z" /><path d="M8 14s1.5 2 4 2.5" /></IconBase>;
+        const Microscope = (props) => <IconBase {...props}><path d="M6 18h8" /><path d="M3 22h18" /><path d="M14 22a7 7 0 1 0 0-14h-1" /><circle cx="9" cy="14" r="2" /><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z" /><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const Book = (props) => <IconBase {...props}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></IconBase>;
+        const Wrench = (props) => <IconBase {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></IconBase>;
+        const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            { id: "p_low", label: "小学低", subtitle: "1-2年级", color: "bg-green-400", textColor: "text-green-400", borderColor: "border-green-400/30", bgSoft: "bg-green-400/10" },
+            { id: "p_mid", label: "小学中", subtitle: "3-4年级", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "p_high", label: "小学高", subtitle: "5-6年级", color: "bg-teal-500", textColor: "text-teal-400", borderColor: "border-teal-500/30", bgSoft: "bg-teal-500/10" },
+            { id: "j_7", label: "七年级", subtitle: "初一", color: "bg-lime-500", textColor: "text-lime-400", borderColor: "border-lime-500/30", bgSoft: "bg-lime-500/10" },
+            { id: "j_8", label: "八年级", subtitle: "初二", color: "bg-green-600", textColor: "text-green-300", borderColor: "border-green-600/30", bgSoft: "bg-green-600/10" },
+            { id: "j_9", label: "九年级", subtitle: "初三", color: "bg-emerald-600", textColor: "text-emerald-300", borderColor: "border-emerald-600/30", bgSoft: "bg-emerald-600/10" },
+            { id: "s_1", label: "高一", subtitle: "必修", color: "bg-blue-500", textColor: "text-blue-400", borderColor: "border-blue-500/30", bgSoft: "bg-blue-500/10" },
+            { id: "s_2", label: "高二", subtitle: "选修", color: "bg-indigo-500", textColor: "text-indigo-400", borderColor: "border-indigo-500/30", bgSoft: "bg-indigo-500/10" },
+            { id: "s_3", label: "高三", subtitle: "提升", color: "bg-purple-500", textColor: "text-purple-400", borderColor: "border-purple-500/30", bgSoft: "bg-purple-500/10" }
+        ];
+
+        const tracks = [
+            {
+                id: "structure",
+                title: "生物体的结构",
+                desc: "细胞 · 组织 · 器官",
+                icon: Microscope,
+                color: "text-green-400",
+                gradient: "from-green-500/20 to-green-900/5"
+            },
+            {
+                id: "human",
+                title: "人体的生理",
+                desc: "消化 · 呼吸 · 循环",
+                icon: Heart,
+                color: "text-red-400",
+                gradient: "from-red-500/20 to-red-900/5"
+            },
+            {
+                id: "genetics",
+                title: "遗传与进化",
+                desc: "DNA · 变异 · 进化",
+                icon: Dna,
+                color: "text-blue-400",
+                gradient: "from-blue-500/20 to-blue-900/5"
+            },
+            {
+                id: "ecology",
+                title: "生态与环境",
+                desc: "生态系统 · 生物多样性",
+                icon: Leaf,
+                color: "text-emerald-400",
+                gradient: "from-emerald-500/20 to-emerald-900/5"
+            }
+        ];
+
+        const curriculumData = {
+            structure: {
+                p_low: { title: "小小博物家", core: ["身边的小草", "可爱的小动物", "认识五官"], literacy: "生命观念", detail: "观察校园或公园里的植物和动物。感知生命的多样性。学习用感官探索自然。", example: "例：画出一棵你最喜欢的树。", engineering: "【工程设计】自制植物观察笔记", math_connection: "【数学应用】按大小分类叶子" },
+                p_mid: { title: "奇妙的身体", core: ["我们的骨骼", "食物的去向", "保护眼睛"], literacy: "生命观念", detail: "初步了解人体的基础器官功能。学习健康的生活习惯与卫生常识。", example: "例：模拟食物通过消化道的过程。", engineering: "【工程设计】设计一份营养早餐食谱", math_connection: "【数学应用】统计全天饮水量" },
+                p_high: { title: "微观世界的入口", core: ["放大镜下的发现", "生命的小房间", "微小的生物"], literacy: "科学探究", detail: "学习使用放大镜与初步接触显微镜。了解细胞是生物体的基本单位。", example: "例：观察洋葱表皮的格子结构。", engineering: "【工程设计】制作简易纸筒放大镜", math_connection: "【数学应用】面积与体积的微观缩放" },
+                j_7: { title: "细胞的奥秘", core: ["显微镜熟练使用", "动植物细胞对比", "细胞的分裂与分化"], literacy: "生命观念", detail: "系统掌握显微操作技能。深入理解细胞的结构及生命活动逻辑。", example: "例：制作口腔上皮细胞装片。", engineering: "【工程设计】构建可拆解的细胞模型", math_connection: "【数学应用】细胞分裂的指数增长" },
+                j_8: { title: "高等生物的层次", core: ["组织与器官", "八大系统协同", "植物的输导组织"], literacy: "结构与功能观", detail: "揭示从细胞到系统逐级构建的过程。理解结构如何决定功能（如心脏瓣膜）。", example: "例：解剖并观察花的结构。", engineering: "【工程设计】制作血液循环系统模型图", math_connection: "【数学应用】表面积与体积比在吸收中的价值" },
+                j_9: { title: "生命系统的统一性", core: ["病毒与细菌", "真菌界", "原核与真核对比"], literacy: "生命观念", detail: "广域探索不同形式的生命载体。理解生命系统在物质与能量上的统一法则。", example: "例：培养皿中的菌落观察。", engineering: "【工程设计】设计家庭厨余堆肥系统", math_connection: "【数学应用】细菌分裂速度的动态建模" },
+                s_1: { title: "分子与细胞", core: ["蛋白质与核酸", "生物膜系统", "细胞代谢"], literacy: "生命观念、科学思维", detail: "在分子水平解析生命本质。深入探讨酶、ATP在代谢中的核心作用。", example: "例：探究影响酶活性的条件。", engineering: "【工程设计】模拟生物膜的通透性实验装置", math_connection: "【数学应用】化学平衡与能量转换计算" },
+                s_2: { title: "系统稳态调节", core: ["内环境稳态", "神经-体液调节", "免疫系统"], literacy: "生命观念、社会责任", detail: "理解复杂生命系统如何保持平衡。探讨疫苗原理与过敏症状的本质。", example: "例：建立血糖调节的数学模型。", engineering: "【工程设计】设计自动监测内环境的智能穿戴构构想", math_connection: "【数学应用】反馈调节的动态平衡模型" },
+                s_3: { title: "生物工程前沿", core: ["基因工程", "克隆技术", "生物技术伦理"], literacy: "创新实践、伦理观", detail: "学习现代生物技术的流程（剪切、拼接、表达）。讨论尖端技术对人类社会的冲击。", example: "例：模拟DNA粗提取与鉴定。", engineering: "【工程设计】策划一场关于转基因的辩论赛方案", math_connection: "【数学应用】碱基配对与概率计算" }
+            },
+            human: {
+                p_low: { title: "我从哪里来", core: ["妈妈的肚子", "我会长大的", "保护自己"], literacy: "生命观念", detail: "初步感知生命的起源与成长。培养对自己身体的尊重与初步的安全防范意识。", example: "例：测量并记录自己每个月的身高变化。", engineering: "【工程设计】制作“我的成长纪念册”", math_connection: "【数学应用】测量长度与单位换算" },
+                p_mid: { title: "呼吸运动的奥秘", core: ["鼻子和肺", "呼气与吸气", "清新的空气"], literacy: "科学探究", detail: "通过模拟实验感知肺部工作原理。学习垃圾分类与环境保护的基础联系。", example: "例：用气球模拟肺的呼吸动作。", engineering: "【工程设计】制作肺呼吸模拟器", math_connection: "【数学应用】统计呼吸频率与运动的关系" },
+                p_high: { title: "血液循环工厂", core: ["跳动的心脏", "血管的分布", "脉搏的秘密"], literacy: "结构与功能观", detail: "感知心脏跳动。测量脉搏。理解血液在身体里搬运氧气和营养的作用。", example: "例：寻找身体上各处可以摸到脉搏的位置。", engineering: "【工程设计】制作简易听诊器", math_connection: "【数学应用】根据脉搏计算每小时心跳总数" },
+                j_7: { title: "消化与吸收", core: ["消化道的旅程", "酶的分解作用", "平衡膳食宝塔"], literacy: "生命观念", detail: "掌握食物营养成分。通过实验理解物理性消化与化学性消化的差异。", example: "例：测定不同食物中的能量含量。", engineering: "【工程设计】设计一周科学减脂/增肌食谱", math_connection: "【数学应用】热量单位换算与卡路里计算" },
+                j_8: { title: "循环与排泄", core: ["血液成分分析", "心脏泵压", "肾脏过滤"], literacy: "稳态观", detail: "深度解析血液循环路径。理解肾单位如何精细过滤废物，产生尿液。", example: "例：观察小鱼尾鳍内血液的流动。", engineering: "【工程设计】模拟人工心肺机的工作链路", math_connection: "【数学应用】解读血常规与尿检数据报告" },
+                j_9: { title: "神经与激素调节", core: ["反射弧", "大脑的功能", "内分泌腺"], literacy: "平衡观", detail: "理解中枢神经系统的指挥作用。探讨激素如何在极低浓度下改变生命体状态。", example: "例：测定并分析人的反应时间。", engineering: "【工程设计】设计防止近视的智能桌椅原型", math_connection: "【数学应用】神经脉冲传导速度的估算" },
+                s_1: { title: "遗传因子的发现", core: ["孟德尔定律", "分离定律应用", "自由组合"], literacy: "科学思维", detail: "学习经典遗传理论。通过概率统计方法预测子代性状。掌握严谨的逻辑推理。", example: "例：模拟性状分离比的实验。", engineering: "【工程设计】设计家族遗传病系谱图分析工作流", math_connection: "【数学应用】二项式展开与概率统计" },
+                s_2: { title: "免疫调节深化", core: ["特异性免疫", "记忆细胞", "单克隆抗体"], literacy: "生命观念", detail: "解析体液免疫与细胞免疫的微观战斗。理解免疫预防与疾病治疗的前艺技术。", example: "例：讨论艾滋病对人体免疫系统的破坏机制。", engineering: "【工程设计】模拟大规模疫情传播模型与干预策略", math_connection: "【数学应用】SIR传染病动态模型计算" },
+                s_3: { title: "体液调节与健康", core: ["水盐平衡", "体温监测", "人工器官"], literacy: "社会责任", detail: "探讨生命体在极端环境下（沙漠、高寒）的生存策略。分析现代器官移植的挑战。", example: "例：探讨马拉松运动员如何维持内环境稳定。", engineering: "【工程设计】构想基于纳米机器人的靶向输药系统", math_connection: "【数学应用】渗透压与浓度的精确计算" }
+            },
+            genetics: {
+                p_low: { title: "谁更像谁？", core: ["大树与小苗", "爸爸妈妈和我", "宠物一家人"], literacy: "生命观念", detail: "通过肉眼观察发现亲代与子代之间的相似性，初步感知遗传现象。", example: "例：找找自己有哪些特征像爸爸，哪些像妈妈。", engineering: "【工程设计】绘制“家庭特征树”", math_connection: "【数学应用】特征重合度的简单计数" },
+                p_mid: { title: "生命的周期", core: ["种子的萌发", "蝴蝶的一生", "动物的寿命"], literacy: "生命观念", detail: "理解生命有始有终的过程。通过养殖或种植实验观察生命周期变化。", example: "例：亲手种下一颗种子并记录它是如何变成大树的。", engineering: "【工程设计】设计昆虫生长观察盒", math_connection: "【数学应用】绘制生命周期的时间轴图表" },
+                p_high: { title: "遗传的小秘密", core: ["种瓜得瓜", "变异的草莓", "优良品种"], literacy: "科学思维", detail: "初步了解什么是特征。思考为什么世界上没有两片完全相同的叶子（变异）。", example: "例：观察同一批萌发的豆芽之间高度的差异。", engineering: "【工程设计】选育并标记班级最高产的阳台蔬菜", math_connection: "【数学应用】正态分布的雏形感知" },
+                j_7: { title: "生殖的演化", core: ["无性生殖技术", "花的结构与传粉", "胚胎发育"], literacy: "生命观念", detail: "掌握植物有性与无性生殖的原理。了解动物界繁育策略的多样性。", example: "例：尝试进行多肉植物的叶插繁殖。", engineering: "【工程设计】设计校园微型植物苗圃", math_connection: "【数学应用】传粉成功率与产量的相关性计算" },
+                j_8: { title: "遗传的载体", core: ["DNA双螺旋", "基因控制性状", "性别决定机理"], literacy: "生命观念", detail: "理解细胞核、染色体、DNA、基因的层级关系。掌握性别决定中XY染色体的分配。", example: "例：模拟精子与卵细胞的随机结合。", engineering: "【工程设计】利用超轻黏土制作DNA精细模型", math_connection: "【数学应用】计算XY组合的理论比例(50:50)" },
+                j_9: { title: "进化的历程", core: ["化石的证据", "达尔文自然选择", "长颈鹿的脖子"], literacy: "进化与适应观", detail: "证据链构建。理解物竞天择。分析生物多样性是长期进化的结果。", example: "例：模拟保护色对生物生存的影响。", engineering: "【工程设计】制作“生命演化简史”长卷动画", math_connection: "【数学应用】生存概率在不同环境下的统计学分析" },
+                s_1: { title: "基因的本质", core: ["肺炎链球菌转化", "DNA复制", "中心法则"], literacy: "科学思维", detail: "复刻伟大的科学实验过程。理解遗传信息如何精准传递给子代并指导蛋白质合成。", example: "例：制作DNA分子的双螺旋模型并演示复制。", engineering: "【工程设计】设计防止DNA突变的存储容器模型", math_connection: "【数学应用】碱基排列组合的数学量级估算" },
+                s_2: { title: "变异与育种", core: ["基因突变", "多倍体育种", "杂交优势"], literacy: "科学思维、创新实践", detail: "掌握不同育种技术的优缺点。理解变异是生物进化的原始材料。", example: "例：调查常见农作物育种技术的应用。", engineering: "【工程设计】设计一套抗寒/抗虫农作物的研发逻辑路线", math_connection: "【数学应用】杂交后代基因型的分离比例推导" },
+                s_3: { title: "人类遗传与健康", core: ["遗传病筛查", "基因库与多样性", "进化综合模型"], literacy: "社会责任", detail: "探讨人类基因组计划。分析遗传病对家庭社会的冲击。关注生物多样性的保护价值。", example: "例：进行人群中某种性状的调查与统计。", engineering: "【工程设计】设计一份基于DNA检测的个人健康档案模板", math_connection: "【数学应用】哈代-温伯格平衡公式计算基因频率" }
+            },
+            ecology: {
+                p_low: { title: "我的自然朋友", core: ["爱护花草", "小鱼和水", "天气与生物"], literacy: "社会责任", detail: "观察身边的环境对生物的影响。建立最原始的环境保护意识。", example: "例：在校园里找一处有阴影和没阴影的地方，看看蚂蚁在哪里多。", engineering: "【工程设计】自制鸟类喂食架", math_connection: "【数学应用】分类统计不同颜色的花" },
+                p_mid: { title: "谁吃了谁？", core: ["庄稼与害虫", "草原上的链条", "分解者功臣"], literacy: "生命观念", detail: "发现生物之间的捕食关系。感知生命链条的环环相扣。理解垃圾降解的基础逻辑。", example: "例：画出一张有青蛙、蛇、老鼠和谷物的食物链。", engineering: "【工程设计】制作一个微型蚯蚓观察箱", math_connection: "【数学应用】计数食物链中生物的数量" },
+                p_high: { title: "和谐的生态瓶", core: ["微型生态系统", "阳光和水的作用", "系统的平衡"], literacy: "科学探究", detail: "动手尝试维持一个微型系统的动态平衡。理解系统组分缺失会导致的崩塌。", example: "例：观察密封瓶里小鱼和水藻能共存多久。", engineering: "【工程设计】挑战“一个月的可持续生态瓶”", math_connection: "【数学应用】溶氧量与光照时数的数据记录" },
+                j_7: { title: "生物圈是共同家园", core: ["环境对生物的影响", "生物圈的范围", "温室效应初步"], literacy: "生态观", detail: "认识地球上最大的生态系统。理解人类活动已经深远改变了自然界。", example: "例：探究光照强度对植物蒸腾作用的影响。", engineering: "【工程设计】规划校园智慧绿地灌溉系统", math_connection: "【数学应用】计算植物覆盖率对局部湿度的影响系数" },
+                j_8: { title: "生态系统的结构", core: ["能量流动金字塔", "物质循环", "信息传递"], literacy: "物质与能量观", detail: "理解10%-20%的能量传递法则. 解析碳循环、氮循环在大自然中的流转路线。", example: "例：通过模型演示生态系统生产力的逐级递减。", engineering: "【工程设计】设计一个零排垃圾的家庭农场闭环方案", math_connection: "【数学应用】能量金字塔每层的具体数值换算" },
+                j_9: { title: "保护生命多样性", core: ["濒危生物保护", "外来物物种入侵", "可持续发展"], literacy: "社会责任", detail: "分析生态入侵对本地系统的破坏。建立资源节约与环境友好的终极社会观。", example: "例：调查当地入侵物种（如水葫芦）的现状。", engineering: "【工程设计】设计一款推广生物多样性的科普交互屏", math_connection: "【数学应用】物种丰富度计算指数的初步接触" },
+                s_1: { title: "种群与社区", core: ["J/S型增长曲线", "群落演替", "生态位分析"], literacy: "生命观念、科学思维", detail: "研究大量个体聚合在一起展现的群体特征。理解为什么森林会变成草地。", example: "例：培养草履虫并观察种群密度变化。", engineering: "【工程设计】设计城市新区绿地景观的演进规划", math_connection: "【数学应用】微分方程在人口/种群增长中的表达" },
+                s_2: { title: "生态系统稳定性", core: ["正负反馈调节", "环境容纳量", "全球性环境问题"], literacy: "生态观、社会责任", detail: "分析地球气候系统的自我调节极限。探讨臭氧空洞、酸雨等复杂问题的本质。", example: "例：利用数学模型模拟生态系统的抗干扰能力。", engineering: "【工程设计】构想未来的垂直森林城市净化模型", math_connection: "【数学应用】生态价值核算的动态函数分析" },
+                s_3: { title: "人与自然生命共同体", core: ["生态文明建设", "生物多样性公约", "绿色技术应用"], literacy: "社会责任、创新实践", detail: "探讨碳中和、碳达峰的生物学路径。分析现代文明与自然的共生范式。", example: "例：为当地社区设计一份低碳生活蓝图。", engineering: "【工程设计】生物除污技术在湿地公园中的工程化应用方案", math_connection: "【数学应用】全周期碳排放的精算建模" }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-slate-700 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Book className="w-4 h-4" /> 知识要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-slate-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-slate-300 font-bold mb-2">🔭 课标解读</h4>
+                                    <p className="text-slate-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-green-900/10 p-4 rounded-xl border border-green-500/20">
+                                    <h4 className="text-green-300 font-bold mb-2">🧪 典型例题</h4>
+                                    <p className="text-green-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-red-900/10 p-4 rounded-xl border border-red-500/20">
+                                        <h4 className="text-red-300 font-bold mb-2 flex items-center gap-2">
+                                            <Wrench className="w-4 h-4" /> 工程与设计
+                                        </h4>
+                                        <p className="text-red-200/80 text-sm">{data.engineering}</p>
+                                    </div>
+                                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
+                                        <h4 className="text-blue-300 font-bold mb-2 flex items-center gap-2">
+                                            <Calculator className="w-4 h-4" /> 数学与数据
+                                        </h4>
+                                        <p className="text-blue-200/80 text-sm">{data.math_connection}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            // Filter logic
+            const queryParams = new URLSearchParams(window.location.search);
+            const stageFilter = queryParams.get('stage'); // 'p', 'j', 's'
+
+            let filteredStages = stages;
+            let stageTitle = "";
+
+            if (stageFilter === 'p') {
+                filteredStages = stages.filter(s => s.id.startsWith('p_'));
+                stageTitle = " - 小学阶段";
+            } else if (stageFilter === 'j') {
+                filteredStages = stages.filter(s => s.id.startsWith('j_'));
+                stageTitle = " - 初中阶段";
+            } else if (stageFilter === 's') {
+                filteredStages = stages.filter(s => s.id.startsWith('s_'));
+                stageTitle = " - 高中阶段";
+            }
+
+            const gridClass = `grid grid-cols-[200px_repeat(${filteredStages.length},300px)] gap-6`;
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#020617] text-slate-100 pb-20 font-[Inter]">
+                    {/* Navigation */}
+                    <a href="subject-synergy.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-green-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回学科协同</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-green-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600 mb-4 relative z-10">
+                            K12 生物芯课标核心素养全景图{stageTitle}
+                        </h1>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-lg">
+                            从细胞奥秘到生态平衡的生命探索矩阵
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-slate-500 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="w-fit">
+                                {/* Stage Headers */}
+                                <div className={`${gridClass} mb-8 sticky top-0 bg-[#020617]/95 backdrop-blur z-30 py-4 border-b border-slate-800`}>
+                                    <div className="flex items-end justify-end px-4 pb-2 text-slate-500 font-bold text-sm uppercase tracking-widest text-right">
+                                        生物维度 / 学习阶段
+                                    </div>
+                                    {filteredStages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-slate-400 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className={`${gridClass} group`}>
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-slate-500 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {filteredStages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                                                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                                                            bg-slate-900/40 border border-slate-800
+                                                            hover:bg-slate-800 hover:border-slate-600 hover:shadow-xl hover:-translate-y-1
+                                                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                                                        `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-slate-200 mb-2 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-1.5 mb-4 flex-grow text-xs text-slate-400">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-slate-600 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-slate-700/50 flex flex-col gap-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded bg-slate-950 ${stage.textColor}`}>
+                                                                        {stage.label.split(' ')[0]}
+                                                                    </span>
+                                                                    <span className="text-xs text-slate-500 group-hover/card:text-green-400 transition-colors flex items-center gap-1">
+                                                                        详情 <Check className="w-3 h-3" />
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

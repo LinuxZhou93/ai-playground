@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高中信息科技新课标核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #0f172a;
+            /* Slate 900 */
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#0f172a] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-blue-900/30 border-t-blue-500 rounded-full animate-spin"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-center text-xs text-blue-500 font-bold animate-pulse">
+                LOADING</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Cpu = (props) => <IconBase {...props}><rect x="4" y="4" width="16" height="16" rx="2" /><rect x="9" y="9" width="6" height="6" /><path d="M15 2v2" /><path d="M15 20v2" /><path d="M2 15h2" /><path d="M2 9h2" /><path d="M20 15h2" /><path d="M20 9h2" /><path d="M9 2v2" /><path d="M9 20v2" /></IconBase>;
+        const Wifi = (props) => <IconBase {...props}><path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" /><path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" /></IconBase>;
+        const Code = (props) => <IconBase {...props}><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></IconBase>;
+        const Globe = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><line x1="2" x2="22" y1="12" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const Book = (props) => <IconBase {...props}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></IconBase>;
+        const Wrench = (props) => <IconBase {...props}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></IconBase>;
+        const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            { id: "p_low", label: "小学低", subtitle: "1-2年级 · 感知", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "p_mid", label: "小学中", subtitle: "3-4年级 · 特征", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "p_high", label: "小学高", subtitle: "5-6年级 · 规律", color: "bg-emerald-500", textColor: "text-emerald-400", borderColor: "border-emerald-500/30", bgSoft: "bg-emerald-500/10" },
+            { id: "j_7", label: "七年级", subtitle: "初一 · 基础", color: "bg-blue-500", textColor: "text-blue-400", borderColor: "border-blue-500/30", bgSoft: "bg-blue-500/10" },
+            { id: "j_8", label: "八年级", subtitle: "初二 · 函数", color: "bg-blue-500", textColor: "text-blue-400", borderColor: "border-blue-500/30", bgSoft: "bg-blue-500/10" },
+            { id: "j_9", label: "九年级", subtitle: "初三 · 综合", color: "bg-blue-500", textColor: "text-blue-400", borderColor: "border-blue-500/30", bgSoft: "bg-blue-500/10" },
+            { id: "s_1", label: "高一", subtitle: "高一 · 直观", color: "bg-violet-600", textColor: "text-violet-400", borderColor: "border-violet-600/30", bgSoft: "bg-violet-600/10" },
+            { id: "s_2", label: "高二", subtitle: "高二 · 抽象", color: "bg-violet-600", textColor: "text-violet-400", borderColor: "border-violet-600/30", bgSoft: "bg-violet-600/10" },
+            { id: "s_3", label: "高三", subtitle: "高三 · 素养", color: "bg-violet-600", textColor: "text-violet-400", borderColor: "border-violet-600/30", bgSoft: "bg-violet-600/10" }
+        ];
+
+        const tracks = [
+            {
+                id: "data_algo",
+                title: "数据与算法",
+                desc: "编码 · 结构 · 算法",
+                icon: Code,
+                color: "text-blue-400",
+                gradient: "from-blue-500/20 to-blue-900/5"
+            },
+            {
+                id: "is_system",
+                title: "信息系统",
+                desc: "系统 · 数据库 · 搭建",
+                icon: Cpu,
+                color: "text-purple-400",
+                gradient: "from-purple-500/20 to-purple-900/5"
+            },
+            {
+                id: "network_security",
+                title: "网络与安全",
+                desc: "协议 · 路由 · 防护",
+                icon: Wifi,
+                color: "text-cyan-400",
+                gradient: "from-cyan-500/20 to-cyan-900/5"
+            },
+            {
+                id: "ai_future",
+                title: "人工智能",
+                desc: "机器学习 · 伦理 · 创新",
+                icon: Globe,
+                color: "text-emerald-400",
+                gradient: "from-emerald-500/20 to-emerald-900/5"
+            }
+        ];
+
+        const curriculumData = {
+            data_algo: {
+                p_low: { title: "我是数字小魔术师", core: ["拼图中的逻辑", "简单的指令控制", "认识图标"], literacy: "信息意识", detail: "通过直观的游戏与交互，感知计算机执行指令的基本方式。", example: "例：将打乱的图标按种类归类。", engineering: "【工程设计】自制纸质计算器", math_connection: "【数学应用】分类与对应" },
+                p_mid: { title: "小小程序员入门", core: ["Scratch图形化编程", "逻辑判断IF", "多媒体合成"], literacy: "计算思维", detail: "学习图形化编程块，理解程序执行的三大基础结构（顺序、选择、循环）。", example: "例：制作一个会跳舞的小猫动画。", engineering: "【工程设计】创意小游戏开发", math_connection: "【数学应用】坐标系与角度" },
+                p_high: { title: "算法初体验", core: ["变量与运算", "初探Python", "硬件交互初步"], literacy: "计算思维", detail: "从图形化平滑过渡到代码编程，理解变量作为数据载体的核心作用。", example: "例：编写Python脚本计算矩形周长。", engineering: "【工程设计】环境监测报警器", math_connection: "【数学应用】代数变量思想" },
+                j_7: { title: "代码构建世界", core: ["Python进阶语法", "列表应用", "文件基础操作"], literacy: "计算思维", detail: "掌握Python处理批量数据的方法，学习读写本地文件实现数据持久化。", example: "例：制作简易班级档案查询系统。", engineering: "【工程设计】自动化表格处理工具", math_connection: "【数学应用】统计分组计算" },
+                j_8: { title: "算法进阶之路", core: ["冒泡与选择排序", "二分查找", "函数封装"], literacy: "算法思维", detail: "理解经典算法的时空效率，学习通过函数封装提高代码的复用性与可读性。", example: "例：手动模拟查找算法的每一步过程。", engineering: "【工程设计】成绩排名自动化脚本", math_connection: "【数学应用】阶乘与排列组合" },
+                j_9: { title: "数据结构基石", core: ["栈与队列", "链表初步", "递归初探"], literacy: "计算思维", detail: "探索数据在内存中的存储逻辑，理解递归算法解决分治问题的独特优势。", example: "例：用递归实现汉诺塔的步骤输出。", engineering: "【工程设计】简易待办事项管理系统", math_connection: "【数学应用】归纳法与递推" },
+                s_1: { title: "数据编码与计算", core: ["进制转换", "Python高级特性", "算法描述"], literacy: "计算思维", detail: "理解二进制到底层数据的映射关系。掌握Python语法与算法策略设计。", example: "例：实现由RSA算法演变的加密过程。", engineering: "【工程设计】简易计算器APP开发", math_connection: "【数学应用】数论与离散数学" },
+                s_2: { title: "数据结构精研", core: ["树形结构", "图论基础", "排序算法优化"], literacy: "计算思维", detail: "深入掌握树与图的遍历算法，对比不同排序算法在海量数据下的性能。", example: "例：利用深度优先搜索解决迷宫问题。", engineering: "【工程设计】开发排队叫号/导航系统", math_connection: "【数学应用】图论建模计算" },
+                s_3: { title: "算法综合挑战", core: ["动态规划", "分治策略", "贪心算法"], literacy: "计算思维", detail: "运用高级算法策略攻克复杂优化任务，理解算法在互联网核心业务中的价值。", example: "例：求解城市电网布局的最优成本路径。", engineering: "【工程设计】物流配送路径优化项目", math_connection: "【数学应用】矩阵运算与多维优化" }
+            },
+            is_system: {
+                p_low: { title: "认识我的小助手", core: ["鼠标点击与拖拽", "正确开关机", "画板绘图"], literacy: "信息意识", detail: "掌握计算机最基础的操作技能，培养正确使用数字设备的习惯。", example: "例：在画板中临摹一副数字油画。", engineering: "【工程设计】设计理想中的电脑外观", math_connection: "【数学应用】几何形状组合" },
+                p_mid: { title: "系统初探秘", core: ["文件与文件夹", "输入法使用", "安全上网"], literacy: "数字公民", detail: "理解操作系统的文件组织结构，学习规范的信息表达与网络安全常识。", example: "例：分类整理自己的课件与作品文件夹。", engineering: "【工程设计】个人数字资源库建设", math_connection: "【数学应用】目录树结构逻辑" },
+                p_high: { title: "硬件与系统的协作", core: ["操作系统内核", "外设接口", "简单的排错"], literacy: "技术素养", detail: "了解软件是如何驱动硬件工作的，掌握常见软件故障的基础排查方案。", example: "例：诊断麦克风失效的驱动原因。", engineering: "【工程设计】配置家庭数字娱乐中心", math_connection: "【数学应用】传输速度与带宽换算" },
+                j_7: { title: "构建小型局部网", core: ["局域网配置", "云存储原理", "多人协作系统"], literacy: "信息社会责任", detail: "学习设备互联的核心技术，实现在局域网内共享文件夹与资源。", example: "例：搭建一个简易的FTP文件服务器。", engineering: "【工程设计】规划校园智慧教室拓扑", math_connection: "【数学应用】拓扑结构组合计算" },
+                j_8: { title: "数据管理基础", core: ["数据库初步", "表格数据流", "可视化仪表盘"], literacy: "数字化学习", detail: "学习如何将杂乱的数据转化为结构化信息。初步接触数据管理系统。", example: "例：用软件建立学生社团成员数据库。", engineering: "【工程设计】开发学生表现评价系统", math_connection: "【数学应用】关系代数初步" },
+                j_9: { title: "系统架构初探", core: ["C/S与B/S架构", "虚拟化技术", "分布式初步"], literacy: "信息意识", detail: "理解现代互联网系统的整体骨架，感知从单机到云端的演进过程。", example: "例：对比本地游戏与云游戏的系统负载。", engineering: "【工程设计】模拟搭建个人主页空间", math_connection: "【数学应用】并发统计概率" },
+                s_1: { title: "信息系统基础", core: ["系统组成", "硬件架构", "操作系统"], literacy: "信息意识", detail: "认识冯诺依曼架构。掌握系统输入、处理、存储的完整链路。", example: "例：组装一台满足高性能运算的台式机。", engineering: "【工程设计】配置工作站/服务器清单", math_connection: "【数学应用】逻辑门运算电路" },
+                s_2: { title: "数据分析与管理", core: ["SQL数据库", "增删改查", "数据挖掘"], literacy: "创新意识", detail: "运用SQL进行结构化数据管理。利用可视化工具发现数据背后的商业价值。", example: "例：构建学生成绩查询与分析系统。", engineering: "【工程设计】开发班级图书馆管理系统", math_connection: "【数学应用】集合论在查询中的应用" },
+                s_3: { title: "开源硬件控制", core: ["Arduino实战", "传感器融合", "工业级系统"], literacy: "工程实践", detail: "利用开源硬件实现物理世界与数字世界的无缝对接，设计闭环控制系统。", example: "例：制作智能恒温培养箱模型。", engineering: "【工程设计】设计智慧安防与避障系统", math_connection: "【数学应用】PID控制算法数学原理" }
+            },
+            network_security: {
+                p_low: { title: "网络连连看", core: ["认识Wi-Fi", "访问网站", "文明回复"], literacy: "信息社会责任", detail: "初步感知互联网络的存在，培养互联网礼仪与文明交流态度。", example: "例：在公共留言板发布一条正能量消息。", engineering: "【工程设计】制作网络设备贴纸标示", math_connection: "【数学应用】排序算法关联" },
+                p_mid: { title: "搜索小达人", core: ["关键词技巧", "信息真伪辨别", "版权意识"], literacy: "数字化学习", detail: "学习如何在信息的海洋中精准定位资源，提高对网络虚假信息的抵抗力。", example: "例：从三篇 conflicting 报道中找出客观事实。", engineering: "【工程设计】设计防止沉迷网络的约定书", math_connection: "【数学应用】布尔逻辑检索" },
+                p_high: { title: "暗语与加密", core: ["密码强度设计", "双因素认证", "隐私泄露风险"], literacy: "安全意识", detail: "理解现代密码学的基础逻辑，掌握在公共网络环境下保护账号安全的策略。", example: "例：设计一个无法被简单暴力破解的复杂密码。", engineering: "【工程设计】校园数据资产安全手册", math_connection: "【数学应用】组合数学与概率" },
+                j_7: { title: "TCP/IP 协议栈", core: ["IP地址划分", "协议分层", "路由器原理"], literacy: "信息意识", detail: "深入掌握TCP/IP协议族的工作方式，理解数据包在互联网中的漫游过程。", example: "例：使用命令行工具 Tracert 追踪数据路径。", engineering: "【工程设计】规划校园网子网掩码布局", math_connection: "【数学应用】二进制与十进制灵活转换" },
+                j_8: { title: "Web开发入门", core: ["HTML/CSS基础", "前端布局", "超链接逻辑"], literacy: "创新素养", detail: "学习支撑万维网的三大技术基石，亲手构建属于自己的静态网页。", example: "例：制作一个展示个人爱好的精美专题页。", engineering: "【工程设计】响应式个人主页开发", math_connection: "【数学应用】比例与网格布局计算" },
+                j_9: { title: "JavaScript 动态网", core: ["交互逻辑", "DOM操作", "前端安全入门"], literacy: "计算思维", detail: "让网页“活起来”。学习通过JS实现复杂交互，感知跨站脚本攻击的风险。", example: "例：制作一个动态的时钟或简单的网页计算器。", engineering: "【工程设计】班级交互留言板前端", math_connection: "【数学应用】函数映射与事件驱动" },
+                s_1: { title: "网络分层架构", core: ["OSI模型", "数据包交换", "域名解析"], literacy: "信息意识", detail: "系统理解网络协议的分层分工。掌握子网掩码与路由选择的核心逻辑。", example: "例：配置局域网交换机与三层路由器。", engineering: "【工程设计】规划大型园区综合布线系统", math_connection: "【数学应用】二进制偏移与位运算" },
+                s_2: { title: "全栈技术实践", core: ["后端服务器", "API设计", "前后端联调"], literacy: "数字化创新", detail: "掌握Web全栈开发闭环。学习如何通过API实现不同异构系统之间的数据交换。", example: "例：部署一个支持用户登录的社区系统。", engineering: "【工程设计】企业级办公协同平台部署", math_connection: "【数学应用】消息队列并发处理" },
+                s_3: { title: "网络攻防巅峰", core: ["加密算法", "防火墙安全策略", "攻防模拟"], literacy: "社会责任", detail: "掌握RSA加密底层数学。模拟各种典型攻击防御场景。建立终极系统安全观念。", example: "例：在沙盒环境下模拟拦截SQL注入攻击。", engineering: "【工程设计】设计金融级网络安全加固方案", math_connection: "【数学应用】质数分布与数论难题" }
+            },
+            ai_future: {
+                p_low: { title: "AI 小助手的眼睛", core: ["人脸识别感知", "物体分类", "语音听写"], literacy: "信息意识", detail: "通过直观的游戏体验，感知人工智能在感知领域的卓越表现。", example: "例：对着镜头测试AI能否识别出你刚才做的鬼脸。", engineering: "【工程设计】给绘图AI起名字", math_connection: "【数学应用】特征点提取数" },
+                p_mid: { title: "机器人大家庭", core: ["工业机器人", "服务型AI", "算法公平性"], literacy: "数字习惯", detail: "了解AI在不同行业中的广泛应用，讨论技术造福人类的条件与限制。", example: "例：观看无人超市视频并分析其背后的算法流程。", engineering: "【工程设计】设想一款陪读机器人原型", math_connection: "【数学应用】效率比值计算" },
+                p_high: { title: "让机器也爱学习", core: ["标注数据基础", "预测未来", "AI生成初探"], literacy: "信息意识", detail: "理解“喂给”机器的数据越多，它就可能变得越聪明的基本逻辑。", example: "例：通过分类大量的猫狗图片来“训练”你的大脑联想机。", engineering: "【工程设计】简易垃圾分类语料库建设", math_connection: "【数学应用】准确率百分比统计" },
+                j_7: { title: "机器学习初级", core: ["回归分析", "分类算法原型", "聚类分组"], literacy: "计算思维", detail: "学习如何通过数学模型寻找数据中的规律。理解预测与聚类的逻辑差异。", example: "例：利用散点图预测班级同学身高的增长趋势。", engineering: "【工程设计】训练垃圾分类视觉模型", math_connection: "【数学应用】欧氏距离与余弦相似度" },
+                j_8: { title: "神经网络黑盒", core: ["神经元模型", "偏置与权重", "多层感知机"], literacy: "科技素素养", detail: "揭开神经网络的神秘面纱，学习权重更新对模型性能的决定性作用。", example: "例：手动调整参数让简易神经网络拟合XOR逻辑。", engineering: "【工程设计】设计手写数字识别系统", math_connection: "【数学应用】矩阵乘法基础运算" },
+                j_9: { title: "大语言模型探秘", core: ["Transformer初步", "Prompt技巧", "AI伦理红线"], literacy: "社会责任", detail: "理解ChatGPT等大模型背后的“文字接龙”本质。探讨AI生成内容的版权与真实性。", example: "例：对比不同Prompt对绘图AI生成结果的影响。", engineering: "【工程设计】编写AI辅助写作的工作流", math_connection: "【数学应用】概率统计与分布" },
+                s_1: { title: "人工智能初步", core: ["图灵测试", "计算机视觉", "专家系统"], literacy: "信息意识", detail: "了解AI发展史。体验语音/图像处理。思考AI带来的就业与伦理挑战。", example: "例：分析深度学习在自动驾驶中的核心逻辑。", engineering: "【工程设计】构想基于AI的社区老人陪护方案", math_connection: "【数学应用】逻辑推理链条" },
+                s_2: { title: "深度学习建模", core: ["TensorFlow框架", "模型部署", "调参艺术"], literacy: "计算思维", detail: "利用开源AI框架亲手训练并部署一个识别特定目标的工业级模型。", example: "例：开发一个校园口罩佩戴自动检测系统。", engineering: "【工程设计】设计智慧校园垃圾分类闭环", math_connection: "【数学应用】微积分与梯度下降" },
+                s_3: { title: "通用人工智能展望", core: ["强化学习", "多模态大模型", "人机协作终章"], literacy: "实践创新", detail: "站在当前科技巅峰。探索AI在解决科学难题（如蛋白质折叠）中的创新范式。", example: "例：参与开源AI项目的边缘贡献或前沿论文阅读。", engineering: "【工程设计】设计基于多模态的未来智能学习中心", math_connection: "【数学应用】泛函分析与高等概率论" }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-slate-700 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Book className="w-4 h-4" /> 知识要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-slate-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
+                                    <h4 className="text-slate-300 font-bold mb-2">🔭 课标解读</h4>
+                                    <p className="text-slate-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
+                                    <h4 className="text-blue-300 font-bold mb-2">🧪 典型例题</h4>
+                                    <p className="text-blue-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-purple-900/10 p-4 rounded-xl border border-purple-500/20">
+                                        <h4 className="text-purple-300 font-bold mb-2 flex items-center gap-2">
+                                            <Wrench className="w-4 h-4" /> 工程与设计
+                                        </h4>
+                                        <p className="text-purple-200/80 text-sm">{data.engineering}</p>
+                                    </div>
+                                    <div className="bg-cyan-900/10 p-4 rounded-xl border border-cyan-500/20">
+                                        <h4 className="text-cyan-300 font-bold mb-2 flex items-center gap-2">
+                                            <Calculator className="w-4 h-4" /> 数学与数据
+                                        </h4>
+                                        <p className="text-cyan-200/80 text-sm">{data.math_connection}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            // Filter logic
+            const queryParams = new URLSearchParams(window.location.search);
+            const stageFilter = queryParams.get('stage'); // 'p', 'j', 's'
+
+            let filteredStages = stages;
+            let stageTitle = "";
+
+            if (stageFilter === 'p') {
+                filteredStages = stages.filter(s => s.id.startsWith('p_'));
+                stageTitle = " - 小学阶段";
+            } else if (stageFilter === 'j') {
+                filteredStages = stages.filter(s => s.id.startsWith('j_'));
+                stageTitle = " - 初中阶段";
+            } else if (stageFilter === 's') {
+                filteredStages = stages.filter(s => s.id.startsWith('s_'));
+                stageTitle = " - 高中阶段";
+            }
+
+            const gridClass = `grid grid-cols-[200px_repeat(${filteredStages.length},300px)] gap-6`;
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#020617] text-slate-100 pb-20 font-[Inter]">
+                    {/* Navigation */}
+                    <a href="subject-synergy.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-blue-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回学科协同</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-500 to-violet-600 mb-4 relative z-10">
+                            K12 信息技术芯课标核心素养全景图{stageTitle}
+                        </h1>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-lg">
+                            从数字化生存到人工智能创造的算法思维矩阵
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-slate-500 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="w-fit">
+                                {/* Stage Headers */}
+                                <div className={`${gridClass} mb-8 sticky top-0 bg-[#020617]/95 backdrop-blur z-30 py-4 border-b border-slate-800`}>
+                                    <div className="flex items-end justify-end px-4 pb-2 text-slate-500 font-bold text-sm uppercase tracking-widest text-right">
+                                        信息技术 / 学习阶段
+                                    </div>
+                                    {filteredStages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-slate-400 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className={`${gridClass} group`}>
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-slate-500 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {filteredStages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                                                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                                                            bg-slate-900/40 border border-slate-800
+                                                            hover:bg-slate-800 hover:border-slate-600 hover:shadow-xl hover:-translate-y-1
+                                                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                                                        `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-slate-200 mb-2 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-1.5 mb-4 flex-grow text-xs text-slate-400">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-slate-600 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded bg-slate-950 ${stage.textColor}`}>
+                                                                    {stage.label.split(' ')[0]}
+                                                                </span>
+                                                                <span className="text-xs text-slate-500 group-hover/card:text-blue-400 transition-colors flex items-center gap-1">
+                                                                    详情 <Check className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

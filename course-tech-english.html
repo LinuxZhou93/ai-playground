@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TITAN TERMINAL | Global Tech Authority</title>
+
+    <!-- Libraries -->
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="libs/marked.min.js"></script>
+    <script src="assets/js/english-data.js"></script>
+
+    <style>
+        @import url('https://fonts.loli.net/css2?family=Plus+Jakarta+Sans:wght@300;600;800&family=JetBrains+Mono:wght@200;400;700&display=swap');
+
+        :root {
+            --cmd-blue: #00F5FF;
+            --cmd-green: #00FF41;
+            --cmd-purple: #7000FF;
+            --cmd-bg: #010101;
+        }
+
+        body {
+            background-color: var(--cmd-bg);
+            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .hud-border {
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            position: relative;
+        }
+
+        .hud-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            border-right: 2px solid var(--cmd-blue);
+            border-bottom: 2px solid var(--cmd-blue);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .track-tab {
+            filter: grayscale(1);
+            opacity: 0.4;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .track-tab.active {
+            filter: grayscale(0);
+            opacity: 1;
+            border-bottom: 2px solid var(--cmd-blue);
+        }
+
+        .lesson-card {
+            border-left: 2px solid transparent;
+            transition: 0.2s;
+        }
+
+        .lesson-card:hover,
+        .lesson-card.active {
+            background: rgba(0, 245, 255, 0.05);
+            border-left-color: var(--cmd-blue);
+        }
+
+        /* 移除任何初始隐藏逻辑，改用简单的过渡 */
+        #app {
+            opacity: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="selection:bg-cmd-blue selection:text-black">
+    <div id="app" class="p-4 gap-4 overflow-hidden">
+        <!-- Error Fallback Message (Visible only if Vue fails) -->
+        <div v-if="false" class="absolute inset-0 flex items-center justify-center bg-black z-[9999]">
+            <div class="text-cmd-blue font-mono text-center">
+                <h2 class="text-2xl mb-4 animate-pulse">SYSTEM BOOT FAILURE</h2>
+                <p class="text-xs opacity-50">MANUAL RESET REQUIRED. CHECK DATA_SYNC_LOGS.</p>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="h-20 flex items-center justify-between px-10 hud-border shrink-0">
+            <div class="flex items-center gap-12">
+                <div @click="goHome" class="flex flex-col cursor-pointer group">
+                    <span class="text-[9px] font-mono tracking-[8px] text-gray-500 uppercase">Universal Tech Node</span>
+                    <h1
+                        class="font-black text-2xl tracking-tighter uppercase italic group-hover:text-cmd-blue transition-colors text-white">
+                        Titan <span class="text-cmd-blue">Pulse</span> <span
+                            class="text-[10px] text-gray-500 font-mono">X-60</span>
+                    </h1>
+                </div>
+                <nav class="hidden lg:flex gap-8 items-center border-l border-white/10 pl-12">
+                    <div v-for="cat in categories" :key="cat.id" @click="selectedCatId = cat.id"
+                        class="track-tab flex flex-col items-center gap-2 px-4 pb-2"
+                        :class="{ 'active': selectedCatId === cat.id }">
+                        <span class="text-xl">{{ cat.icon }}</span>
+                        <span class="text-[9px] font-mono uppercase tracking-[2px]">{{ cat.name[currentLang] }}</span>
+                    </div>
+                </nav>
+            </div>
+            <div class="flex items-center gap-8">
+                <div class="flex border border-white/10 p-1 rounded-sm">
+                    <button v-for="l in ['en', 'zh']" @click="currentLang = l"
+                        class="px-4 py-1 text-[9px] font-mono transition-all rounded-[1px]"
+                        :class="currentLang === l ? 'bg-cmd-blue text-black font-bold' : 'text-gray-500 hover:text-white'">
+                        {{ l.toUpperCase() }}
+                    </button>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-mono">
+                    <div class="flex flex-col items-end">
+                        <span class="text-[8px] text-gray-400">SYNC_STATUS</span>
+                        <span class="text-cmd-green tracking-widest">{{ totalProgressPercentage }}%</span>
+                    </div>
+                </div>
+                <button @click="goBack"
+                    class="px-8 py-3 bg-white text-black font-black text-[10px] tracking-widest uppercase hover:bg-cmd-blue transition-colors">EXIT_CMD</button>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <div class="flex-1 flex gap-4 overflow-hidden">
+            <!-- Sidebar -->
+            <aside class="w-80 flex flex-col gap-4 shrink-0">
+                <div class="flex-1 hud-border p-6 flex flex-col gap-6 overflow-hidden">
+                    <div
+                        class="flex justify-between items-center text-[9px] font-mono text-cmd-blue uppercase italic tracking-widest">
+                        <span>Cluster: {{ activeCategoryName }}</span>
+                        <span class="opacity-50 font-sans">{{ filteredLessons.length }} Units</span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto no-scrollbar space-y-2 pr-2">
+                        <div v-for="lesson in filteredLessons" :key="lesson.id" @click="selectLesson(lesson)"
+                            class="lesson-card p-4 cursor-pointer relative group border-b border-white/5"
+                            :class="{ 'active': currentLesson?.id === lesson.id }">
+                            <span class="text-[8px] font-mono text-gray-600 mb-1 block">UNIT_{{
+                                lesson.id.toString().padStart(3, '0') }}</span>
+                            <h4
+                                class="text-[13px] font-bold leading-tight group-hover:text-cmd-blue transition-colors text-white/90">
+                                {{ lesson.title[currentLang] }}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-44 hud-border p-6 font-mono text-[9px] flex flex-col gap-3">
+                    <div class="text-cmd-purple tracking-widest uppercase animate-pulse">>> Live_Data_Feed</div>
+                    <div class="space-y-2 opacity-60">
+                        <div v-for="feed in globalFeed" :key="feed.time" class="flex gap-4">
+                            <span class="text-gray-600">{{ feed.time }}</span>
+                            <span class="flex-1 truncate">{{ feed.event }}</span>
+                            <span class="text-cmd-blue uppercase">{{ feed.status }}</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="flex-1 hud-border overflow-hidden relative flex flex-col">
+                <div
+                    class="h-10 border-b border-white/5 flex px-8 items-center bg-white/2 gap-10 text-[9px] font-mono tracking-[4px]">
+                    <span
+                        class="text-cmd-blue flex items-center h-full border-b border-cmd-blue">PROTOCOL_VIEW_V6.0</span>
+                    <span class="text-gray-500 hidden md:block">SECURE_CHANNEL_ENCRYPTED</span>
+                    <span class="flex-1"></span>
+                    <span class="text-cmd-green opacity-50 animate-pulse">LIVE.DATA</span>
+                </div>
+
+                <div class="flex-1 overflow-y-auto no-scrollbar p-12 md:p-20" v-if="currentLesson">
+                    <div class="max-w-4xl mx-auto space-y-16">
+                        <div class="space-y-6">
+                            <div class="flex items-center gap-4">
+                                <span
+                                    class="bg-cmd-blue/10 text-cmd-blue px-3 py-1 font-mono text-[9px] tracking-widest border border-cmd-blue/20">ACCESS_PRIORITY:
+                                    HIGH</span>
+                                <div class="h-[1px] flex-1 bg-white/5"></div>
+                            </div>
+                            <h1 class="text-6xl md:text-7xl font-black tracking-tighter italic uppercase text-white">{{
+                                currentLesson.title[currentLang] }}</h1>
+                            <p class="text-xl md:text-2xl text-gray-500 border-l-4 border-cmd-blue pl-6 py-2 leading-relaxed font-light italic"
+                                v-if="currentLesson.subtitle">
+                                {{ currentLesson.subtitle[currentLang] }}
+                            </p>
+                        </div>
+
+                        <!-- Vocabulary -->
+                        <div v-if="currentLesson.content?.vocabulary"
+                            class="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
+                            <div v-for="vocab in currentLesson.content.vocabulary"
+                                class="p-8 hud-border bg-white/1 hover:bg-cmd-blue/5 transition-all group cursor-default">
+                                <div class="flex justify-between items-start mb-6">
+                                    <div class="space-y-1">
+                                        <h4
+                                            class="text-3xl font-bold text-white group-hover:text-cmd-blue transition-colors">
+                                            {{ vocab.word }}</h4>
+                                        <span class="text-[9px] font-mono text-gray-600 uppercase tracking-widest">{{
+                                            vocab.pronunciation || 'ENG_PRON' }}</span>
+                                    </div>
+                                    <button @click="speakWord(vocab.word)"
+                                        class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-cmd-blue hover:text-black transition-all">🔊</button>
+                                </div>
+                                <p
+                                    class="text-gray-400 text-sm leading-relaxed mb-6 group-hover:text-white transition-colors">
+                                    {{ vocab.meaning[currentLang] }}
+                                </p>
+                                <div v-if="vocab.example"
+                                    class="p-4 bg-black/50 border-l-2 border-cmd-purple/30 text-[11px] font-mono text-gray-500 italic leading-relaxed">
+                                    "{{ vocab.example[currentLang] }}"
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Completion Action -->
+                        <div @click="markAsCompleted"
+                            class="p-10 hud-border bg-white/2 cursor-pointer hover:bg-cmd-green/10 transition-all text-center group">
+                            <span
+                                class="text-[10px] font-black tracking-[10px] uppercase text-gray-400 group-hover:text-cmd-green">SYNC_DATA_TO_NEURAL_MAP</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar: AI Processor -->
+            <aside class="w-80 flex flex-col gap-4 shrink-0">
+                <div class="flex-1 hud-border flex flex-col overflow-hidden">
+                    <div class="p-8 border-b border-white/5 flex flex-col items-center gap-6 bg-white/2">
+                        <div
+                            class="w-24 h-24 rounded-full border border-cmd-blue/40 flex items-center justify-center relative">
+                            <div class="absolute inset-0 rounded-full border-t-2 border-cmd-blue animate-spin"></div>
+                            <span class="text-cmd-blue font-black tracking-[4px] text-[10px]">CORTEX</span>
+                        </div>
+                        <div class="text-center space-y-1">
+                            <h3 class="text-sm font-black tracking-widest text-white">X-60 AI PROCESSOR</h3>
+                            <p class="text-[8px] font-mono text-cmd-blue opacity-50 uppercase italic tracking-widest">
+                                Real-time Node Assistant</p>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8" id="ai-chat">
+                        <div v-for="msg in aiMessages" :key="msg.id" class="space-y-2">
+                            <div
+                                class="flex justify-between text-[8px] font-mono opacity-50 uppercase tracking-tighter">
+                                <span :class="msg.role === 'assistant' ? 'text-cmd-blue' : 'text-cmd-purple'">{{
+                                    msg.role }}</span>
+                                <span>{{ msg.time }}</span>
+                            </div>
+                            <div class="p-4 text-[11px] font-mono leading-relaxed border-l-[1px]"
+                                :class="msg.role === 'assistant' ? 'bg-cmd-blue/5 border-cmd-blue text-cmd-blue' : 'bg-white/5 border-white/10 text-gray-400'">
+                                {{ msg.content }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-black/80 border-t border-white/5">
+                        <div class="relative">
+                            <span
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-cmd-blue opacity-50 font-mono text-[10px]">></span>
+                            <input v-model="userInput" @keyup.enter="sendMessage"
+                                class="w-full bg-black border border-white/10 py-3 pl-7 pr-3 font-mono text-[10px] text-cmd-blue outline-none transition-all placeholder-gray-800"
+                                placeholder="EXECUTE_COMMAND...">
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Initialization Script -->
+    <script>
+        // Use a wrapping function to avoid global scope pollution and catch errors
+        (function () {
+            try {
+                const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+                const app = createApp({
+                    setup() {
+                        // Data Safety Fallback
+                        const rawData = window.englishCourseData || {};
+                        const settings = rawData.settings || { currentLang: 'en' };
+
+                        const currentLang = ref(settings.currentLang);
+                        const categories = ref(rawData.categories || []);
+                        const globalFeed = ref(rawData.globalFeed || []);
+                        const lessons = ref(rawData.lessons || []);
+
+                        const selectedCatId = ref('semantics');
+                        const currentLesson = ref(lessons.value.length > 0 ? lessons.value[0] : null);
+
+                        const userInput = ref('');
+                        const aiMessages = ref([
+                            { id: 1, role: 'assistant', content: "Titan Terminal v6.0 Online. Systems checked. All 60 nodes available for sync.", time: new Date().toLocaleTimeString().slice(0, 5) }
+                        ]);
+
+                        // Computed
+                        const filteredLessons = computed(() => {
+                            return lessons.value.filter(l => l.cat === selectedCatId.value);
+                        });
+
+                        const activeCategoryName = computed(() => {
+                            const cat = categories.value.find(c => c.id === selectedCatId.value);
+                            return cat ? cat.name[currentLang.value] : 'SECTOR_UNKNOWN';
+                        });
+
+                        const totalProgressPercentage = computed(() => {
+                            if (lessons.value.length === 0) return 0;
+                            const comp = lessons.value.filter(l => l.completed).length;
+                            return Math.round((comp / lessons.value.length) * 100);
+                        });
+
+                        // Methods
+                        const selectLesson = (l) => {
+                            currentLesson.value = l;
+                            if (window.gsap) {
+                                gsap.from("main", { opacity: 0, scale: 0.98, duration: 0.4, ease: "power2.out" });
+                            }
+                        };
+
+                        const markAsCompleted = () => {
+                            if (currentLesson.value) {
+                                currentLesson.value.completed = true;
+                                aiMessages.value.push({
+                                    id: Date.now(),
+                                    role: 'assistant',
+                                    content: `Protocol integration for [${currentLesson.value.title[currentLang.value]}] confirmed. Efficiency optimized.`,
+                                    time: new Date().toLocaleTimeString().slice(0, 5)
+                                });
+                                scrollToBottom();
+                            }
+                        };
+
+                        // AI Configuration
+                        const DEEPSEEK_CONFIG = {
+                            apiKey: 'sk-21128a0cda4e4cc39f7c05c330f355ce',
+                            apiUrl: 'http://localhost:3000/v1/chat/completions',
+                            model: 'deepseek-chat'
+                        };
+
+                        const aiLoading = ref(false);
+
+                        const sendMessage = async () => {
+                            const text = userInput.value.trim();
+                            if (!text || aiLoading.value) return;
+
+                            // Add User Message
+                            aiMessages.value.push({ 
+                                id: Date.now(), 
+                                role: 'user', 
+                                content: text, 
+                                time: new Date().toLocaleTimeString().slice(0, 5) 
+                            });
+                            userInput.value = '';
+                            aiLoading.value = true;
+                            scrollToBottom();
+
+                            try {
+                                const context = `你是一位专业的科技英语助教(CORTEX X-60)。当前学生正在学习：科技英语课程。章节：${currentLesson.value?.title[currentLang.value] || '概览'}。请用生动、科幻、且极其专业的语言回答学生的问题。如果涉及到翻译，请给出精准的代码级解释。`;
+                                
+                                const messages = [
+                                    { role: 'system', content: context },
+                                    ...aiMessages.value.slice(-6).map(m => ({ role: m.role, content: m.content }))
+                                ];
+
+                                const response = await fetch(DEEPSEEK_CONFIG.apiUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${DEEPSEEK_CONFIG.apiKey}`
+                                    },
+                                    body: JSON.stringify({
+                                        model: DEEPSEEK_CONFIG.model,
+                                        messages: messages,
+                                        stream: true
+                                    })
+                                });
+
+                                if (!response.ok) throw new Error(`API Error ${response.status}`);
+                                await handleStreamResponse(response);
+
+                            } catch (error) {
+                                console.error('AI Error:', error);
+                                aiMessages.value.push({
+                                    id: Date.now(),
+                                    role: 'assistant',
+                                    content: `⚠️ 通讯链路中断 (Connection Failed). 请确保本地代理 (Port 3000) 正在运行。\nError: ${error.message}`,
+                                    time: new Date().toLocaleTimeString().slice(0, 5)
+                                });
+                            } finally {
+                                aiLoading.value = false;
+                                scrollToBottom();
+                            }
+                        };
+
+                        const handleStreamResponse = async (response) => {
+                            const assistantMsg = { 
+                                id: Date.now(), 
+                                role: 'assistant', 
+                                content: '', 
+                                time: new Date().toLocaleTimeString().slice(0, 5) 
+                            };
+                            aiMessages.value.push(assistantMsg);
+                            const msgIndex = aiMessages.value.length - 1;
+
+                            const reader = response.body.getReader();
+                            const decoder = new TextDecoder();
+
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+
+                                const chunk = decoder.decode(value, { stream: true });
+                                const lines = chunk.split('\n');
+
+                                for (const line of lines) {
+                                    if (line.startsWith('data: ')) {
+                                        const dataStr = line.slice(6);
+                                        if (dataStr === '[DONE]') continue;
+                                        try {
+                                            const data = JSON.parse(dataStr);
+                                            const text = data.choices?.[0]?.delta?.content || '';
+                                            if (text) {
+                                                aiMessages.value[msgIndex].content += text;
+                                                scrollToBottom();
+                                            }
+                                        } catch (e) { }
+                                    }
+                                }
+                            }
+                        };
+
+                        const scrollToBottom = () => {
+                            nextTick(() => {
+                                const chatBox = document.getElementById('ai-chat');
+                                if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+                            });
+                        };
+
+                        const speakWord = (w) => {
+                            if ('speechSynthesis' in window) {
+                                const utterance = new SpeechSynthesisUtterance(w);
+                                utterance.lang = 'en-US';
+                                window.speechSynthesis.speak(utterance);
+                            }
+                        };
+
+                        const goHome = () => window.location.href = 'index.html';
+                        const goBack = () => window.location.href = 'english.html';
+
+                        onMounted(() => {
+                            console.log('Titan Terminal successfully mounted.');
+                        });
+
+                        return {
+                            currentLang, categories, globalFeed, lessons, selectedCatId, currentLesson,
+                            filteredLessons, activeCategoryName, totalProgressPercentage,
+                            selectLesson, markAsCompleted, userInput, aiMessages,
+                            sendMessage, speakWord, goHome, goBack
+                        };
+                    }
+                });
+
+                app.mount('#app');
+
+            } catch (err) {
+                console.error('CRITICAL BOOT ERROR:', err);
+                // Last ditch effort: replace body with error text
+                document.body.style.backgroundColor = 'black';
+                document.body.innerHTML = `<div style="color:red; font-family:monospace; padding:50px;"><h2>FATAL: SYSTEM BOOT FAILURE</h2><pre>${err.stack}</pre></div>`;
+            }
+        })();
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

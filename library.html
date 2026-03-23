@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Archive | 科技特长生数字图书馆</title>
+    <link
+        href="https://fonts.loli.net/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    
+    <script src="assets/js/library-data.js"></script>
+
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #bc13fe;
+            --neon-green: #0aff0a;
+            --bg-dark: #020617;
+            --app-bg: #050510;
+            --panel-bg: rgba(15, 23, 42, 0.8);
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-blue) #111;
+        }
+
+        /* --- Scrollbar Customization --- */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #050510;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-blue);
+        }
+
+        /* --- Layout --- */
+        .app-container {
+            min-height: 100vh;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg-dark) 70%);
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            background: linear-gradient(to bottom, rgba(2, 6, 23, 0.9), transparent);
+            backdrop-filter: blur(10px);
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, #fff, var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* --- Billboard (Hero) --- */
+        .billboard {
+            width: 100%;
+            height: 70vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0 8% 50px;
+            overflow: hidden;
+            margin-bottom: -50px;
+        }
+
+        .billboard-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+            filter: brightness(0.4);
+            transition: 1s ease;
+        }
+
+        .billboard-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, var(--bg-dark) 5%, transparent 40%),
+                linear-gradient(to right, var(--bg-dark) 0%, transparent 60%);
+            z-index: 0;
+        }
+
+        .billboard-info {
+            position: relative;
+            z-index: 10;
+            max-width: 600px;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .billboard-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            line-height: 1.1;
+        }
+
+        .billboard-desc {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        /* --- Swimlanes --- */
+        .content-area {
+            padding: 0 4% 100px;
+            position: relative;
+            z-index: 20;
+        }
+
+        .swimlane {
+            margin-bottom: 40px;
+        }
+
+        .swimlane-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 4px solid var(--neon-blue);
+        }
+
+        .swimlane-row {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding: 10px 0 30px;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Flip Card --- */
+        .media-card {
+            flex: 0 0 180px;
+            height: 260px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #111;
+        }
+
+        .media-card:hover {
+            transform: scale(1.1) translateY(-10px);
+            z-index: 50;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 243, 255, 0.3);
+        }
+
+        .movie-card {
+            flex: 0 0 280px;
+            height: 160px;
+        }
+
+        .card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: 0.5s;
+        }
+
+        .card-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .media-card:hover .card-info {
+            opacity: 1;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .card-meta {
+            font-size: 0.7rem;
+            color: var(--neon-blue);
+        }
+
+        /* --- Difficulty Badges --- */
+        .diff-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 2px 6px;
+            font-size: 0.6rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        .diff-Legendary {
+            background: #ffd700;
+            color: #000;
+            box-shadow: 0 0 10px #ffd700;
+        }
+
+        .diff-Advanced {
+            background: #ff0055;
+            color: #fff;
+        }
+
+        .diff-Intermediate {
+            background: var(--neon-blue);
+            color: #000;
+        }
+
+        .diff-Beginner {
+            background: var(--neon-green);
+            color: #000;
+        }
+
+        /* --- Controls --- */
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-btn.active {
+            background: var(--neon-blue);
+            color: #000;
+            border-color: var(--neon-blue);
+        }
+
+        /* --- Detail Modal --- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 1000px;
+            background: var(--bg-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .modal-left {
+            flex: 0 0 40%;
+            position: relative;
+        }
+
+        .modal-right {
+            flex: 1;
+            padding: 50px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            cursor: pointer;
+            z-index: 10;
+            transition: 0.3s;
+        }
+
+        .close-modal:hover {
+            color: var(--neon-pink);
+            transform: rotate(90deg);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Desktop / Mobile optimization --- */
+        @media (max-width: 768px) {
+            .billboard-title {
+                font-size: 2rem;
+            }
+
+            .modal-content {
+                flex-direction: column;
+                width: 95%;
+                height: 90%;
+                overflow-y: auto;
+            }
+
+            .modal-left {
+                height: 300px;
+            }
+
+            .media-card {
+                flex: 0 0 140px;
+                height: 200px;
+            }
+
+            .movie-card {
+                flex: 0 0 240px;
+                height: 135px;
+            }
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">NEURAL_ARCHIVE</div>
+            <div class="controls">
+                <div class="nav-btn active" onclick="switchTab('all', this)">全部</div>
+                <div class="nav-btn" onclick="switchTab('read', this)">读书区</div>
+                <div class="nav-btn" onclick="switchTab('watch', this)">观影区</div>
+            </div>
+            <div class="flex items-center gap-6">
+                <input type="text" id="searchInput" oninput="handleSearch()" placeholder="搜索 700+ 科技资源..."
+                    class="bg-white/5 border border-white/10 rounded-full px-6 py-2 outline-none focus:border-cyan-500 transition w-64">
+                <a href="index.html" class="text-pink-500 hover:text-white transition font-bold">退出系统</a>
+            </div>
+        </header>
+
+        <!-- Billboard -->
+        <section class="billboard" id="billboard">
+            <img id="bb-bg" class="billboard-bg" src="https://picsum.photos/seed/bb/1920/1080" alt="">
+            <div class="billboard-overlay"></div>
+            <div class="billboard-info" id="bb-info">
+                <h1 class="billboard-title">神作速递</h1>
+                <p class="billboard-desc">正在加载 Neural 实验室推荐内容...</p>
+                <button
+                    class="bg-cyan-500 text-black px-10 py-4 font-black rounded-lg hover:bg-white transition uppercase tracking-widest">
+                    立即接入 (Access Now)
+                </button>
+            </div>
+        </section>
+
+        <!-- Main Content Swimlanes -->
+        <main class="content-area" id="main-content">
+            <!-- Swimlanes will be injected by JavaScript -->
+        </main>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">✕</span>
+            <div class="modal-left" id="modalLeft">
+                <img id="modalImg" src="" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
+            </div>
+            <div class="modal-right">
+                <p id="modalCategory" class="text-cyan-400 font-bold mb-2 tracking-widest uppercase text-sm"></p>
+                <h2 id="modalTitle" class="text-4xl font-black mb-4 leading-tight"></h2>
+                <div class="flex gap-4 mb-6">
+                    <span id="modalDiff" class="px-3 py-1 bg-slate-800 rounded text-xs font-bold"></span>
+                    <span id="modalRating" class="text-yellow-400 font-bold">⭐ 9.8</span>
+                    <span id="modalYear" class="text-slate-400">2024</span>
+                </div>
+                <p id="modalDesc" class="text-slate-300 leading-relaxed mb-8 text-lg"></p>
+                <div class="flex gap-4">
+                    <a id="modalAction" href="#" target="_blank"
+                        class="bg-white text-black px-8 py-3 font-bold rounded hover:bg-cyan-500 transition">
+                        开始阅读 / 观看
+                    </a>
+                    <button class="border border-white/20 px-8 py-3 font-bold rounded hover:bg-white/10 transition">
+                        加入收藏
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        function init() {
+            // Pick a random highlight for Billboard
+            updateBillboard(window.libraryData.find(d => d.difficulty === 'Legendary') || window.libraryData[0]);
+            renderSwimlanes();
+        }
+
+        function updateBillboard(item) {
+            document.getElementById('bb-bg').src = item.thumbnail;
+            document.getElementById('bb-info').innerHTML = `
+                <div class="text-cyan-400 font-black mb-2 tracking-[0.5rem] uppercase text-sm">${item.category}</div>
+                <h1 class="billboard-title">${item.title}</h1>
+                <p class="billboard-desc">${item.description}</p>
+                <div class="flex gap-4">
+                    <button onclick='openDetail(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="bg-cyan-400 text-black px-10 py-3 font-black rounded hover:bg-white transition uppercase">
+                        详情 (Details)
+                    </button>
+                    <a href="${item.url}" target="_blank" class="bg-white/10 backdrop-filter blur-md border border-white/20 text-white px-10 py-3 font-black rounded hover:bg-white/20 transition uppercase">
+                        快速预览
+                    </a>
+                </div>
+            `;
+        }
+
+        function renderSwimlanes() {
+            const container = document.getElementById('main-content');
+            container.innerHTML = '';
+
+            let data = window.libraryData;
+
+            // Apply global filter
+            if (currentFilter !== 'all') {
+                data = data.filter(d => d.type === currentFilter);
+            }
+
+            // Apply search
+            if (searchQuery) {
+                data = data.filter(d =>
+                    d.title.toLowerCase().includes(searchQuery) ||
+                    d.category.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            // Group by category
+            const grouped = {};
+            data.forEach(item => {
+                if (!grouped[item.category]) grouped[item.category] = [];
+                grouped[item.category].push(item);
+            });
+
+            // If empty
+            if (Object.keys(grouped).length === 0) {
+                container.innerHTML = '<div class="text-center py-20 text-slate-500 text-2xl">未找到相关资源 [NO DATA FOUND]</div>';
+                return;
+            }
+
+            // Sort categories to show Legendary/Classics first
+            const sortedCats = Object.keys(grouped).sort((a, b) => {
+                if (a.includes('神作') || a.includes('核心')) return -1;
+                return 0;
+            });
+
+            sortedCats.forEach(cat => {
+                const section = document.createElement('div');
+                section.className = 'swimlane';
+                section.innerHTML = `
+                    <h2 class="swimlane-title">${cat}</h2>
+                    <div class="swimlane-row" id="row-${cat}"></div>
+                `;
+                container.appendChild(section);
+
+                const row = section.querySelector('.swimlane-row');
+                grouped[cat].forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = `media-card ${item.type === 'watch' ? 'movie-card' : ''}`;
+                    card.innerHTML = `
+                        <div class="diff-tag diff-${item.difficulty}">${item.difficulty}</div>
+                        <img class="card-img" src="${item.thumbnail}" loading="lazy">
+                        <div class="card-info">
+                            <div class="card-title">${item.title}</div>
+                            <div class="card-meta">Rating: ${item.rating} • ${item.year}</div>
+                        </div>
+                    `;
+                    card.onclick = () => openDetail(item);
+                    row.appendChild(card);
+                });
+            });
+        }
+
+        function switchTab(type, btn) {
+            currentFilter = type;
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            renderSwimlanes();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            renderSwimlanes();
+        }
+
+        function openDetail(item) {
+            const modal = document.getElementById('detailModal');
+            document.getElementById('modalImg').src = item.thumbnail;
+            document.getElementById('modalTitle').innerText = item.title;
+            document.getElementById('modalDesc').innerText = item.description;
+            document.getElementById('modalCategory').innerText = item.category;
+            document.getElementById('modalYear').innerText = item.year;
+            document.getElementById('modalRating').innerText = `⭐ ${item.rating}`;
+
+            const diffSpan = document.getElementById('modalDiff');
+            diffSpan.innerText = item.difficulty;
+            diffSpan.className = `px-3 py-1 rounded text-xs font-bold diff-${item.difficulty}`;
+
+            const action = document.getElementById('modalAction');
+
+            // --- NEW: CONTENT ENGINE ---
+            if (item.url && item.url !== '#' && !item.url.includes('google.com')) {
+                action.innerText = item.type === 'read' ? '沉浸式阅读' : '立即开始观看';
+                action.onclick = (e) => {
+                    e.preventDefault();
+                    startViewing(item);
+                };
+            } else {
+                action.innerText = item.type === 'read' ? '搜寻副本' : '等待同步';
+                action.href = item.url;
+                action.onclick = null;
+            }
+
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function startViewing(item) {
+            // Create a temporary Full Screen Viewer
+            const viewer = document.createElement('div');
+            viewer.className = 'fixed inset-0 z-[2000] bg-black animate-in fade-in duration-500';
+            viewer.id = 'fullViewer';
+
+            let contentHtml = '';
+            if (item.type === 'watch') {
+                // Bilibili / Video Iframe
+                contentHtml = `<iframe src="${item.url}&high_quality=1&danmaku=1" allowfullscreen="true" class="w-full h-full border-none"></iframe>`;
+            } else {
+                // Reader Iframe
+                contentHtml = `<iframe src="${item.url}" class="w-full h-full border-none bg-white"></iframe>`;
+            }
+
+            viewer.innerHTML = `
+                <div class="absolute top-4 left-4 z-10 flex gap-4">
+                    <button onclick="document.getElementById('fullViewer').remove()" 
+                        class="bg-black/50 hover:bg-red-600 text-white px-6 py-2 rounded-full backdrop-blur-md transition">
+                        ✕ 退出观看
+                    </button>
+                    <div class="bg-black/50 text-cyan-400 px-6 py-2 rounded-full backdrop-blur-md">
+                        正在加载: ${item.title}
+                    </div>
+                </div>
+                ${contentHtml}
+            `;
+            document.body.appendChild(viewer);
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // Close modal on background click
+        window.onclick = function (event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target == modal) closeModal();
+        }
+
+        // Initialize on load
+        window.onload = init;
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

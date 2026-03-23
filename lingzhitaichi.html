@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太极聚灵 · 抱元生息 | 全身互动体感游戏</title>
+    <!-- MediaPipe Pose dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+    <link
+        href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;700&family=Outfit:wght@300;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #D4AF37;
+            /* Gold */
+            --dark: #0a0a0a;
+            --text: #ffffff;
+            --accent: #e5b364;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--dark);
+            font-family: 'Noto Serif SC', serif;
+            color: var(--text);
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-image: url('assets/tcm/lingzhitaichi_bg.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        #game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* --- HUD --- */
+        #hud {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            right: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 10;
+        }
+
+        .hud-panel {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 15px;
+            padding: 20px 40px;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        #score-display {
+            font-size: 72px;
+            font-weight: 700;
+            color: var(--primary);
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+            line-height: 1;
+        }
+
+        .hud-label {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 18px;
+            letter-spacing: 6px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        #timer-display {
+            font-size: 56px;
+            font-weight: 700;
+            color: white;
+            line-height: 1;
+        }
+
+        /* --- Video & Render --- */
+        .input_video {
+            display: none;
+        }
+
+        .output_canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+            /* Mirror */
+            z-index: 5;
+            opacity: 0.6;
+            /* Slight overlay to see digital skeleton */
+        }
+
+        /* Game overlay canvas for particles */
+        #game_layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 8;
+            pointer-events: none;
+        }
+
+        /* --- Ultimate Tai Chi Aura --- */
+        #taichi-aura {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 600px;
+            height: 600px;
+            transform: translate(-50%, -50%) scale(0);
+            background-image: url('assets/tcm/taichi_aura.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0;
+            transition: all 0.5s ease-out;
+            z-index: 4;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        .aura-active {
+            opacity: 0.8 !important;
+            transform: translate(-50%, -50%) scale(1) rotate(360deg) !important;
+            transition: transform 10s linear, opacity 0.5s ease-in !important;
+        }
+
+        /* --- Screens --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            z-index: 200;
+            transition: opacity 0.5s;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .title-primary {
+            font-size: 100px;
+            color: var(--primary);
+            margin: 0 0 10px 0;
+            text-shadow: 0 10px 40px rgba(212, 175, 55, 0.3);
+            font-weight: 400;
+        }
+
+        .subtitle {
+            font-size: 28px;
+            letter-spacing: 12px;
+            opacity: 0.7;
+            margin-bottom: 80px;
+        }
+
+        .btn-start {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 20px 80px;
+            font-size: 28px;
+            font-family: 'Noto Serif SC', serif;
+            letter-spacing: 4px;
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-start:hover {
+            background: var(--primary);
+            color: black;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
+        }
+
+        .instruction-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 40px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            width: 300px;
+            text-align: center;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="game-overlay"></div>
+        <video class="input_video" autoplay playsinline></video>
+        <canvas class="output_canvas"></canvas>
+        <canvas id="game_layer"></canvas>
+        <div id="taichi-aura"></div>
+
+        <div id="hud" style="display:none;">
+            <div class="hud-panel">
+                <div class="hud-label">聚灵积分</div>
+                <div id="score-display">0</div>
+            </div>
+            <div class="hud-panel" style="border-color: rgba(255,255,255,0.1);">
+                <div class="hud-label">剩余时间</div>
+                <div id="timer-display">60</div>
+            </div>
+        </div>
+
+        <div id="screen-loading" class="screen">
+            <h1 class="title-primary" style="font-size:48px;">气沉丹田，凝神聚气...</h1>
+            <p style="opacity:0.6; margin-top: 30px; letter-spacing:2px;">正在加载正中大健康全身捕捉骨架引擎</p>
+        </div>
+
+        <div id="screen-start" class="screen hidden">
+            <h1 class="title-primary">太极聚灵</h1>
+            <div class="subtitle">抱元生息 · 正中灵芝</div>
+
+            <div style="display:flex; gap: 60px; margin-bottom: 80px; text-align:left;">
+                <div class="instruction-card">
+                    <div style="font-size: 48px; color: var(--primary); margin-bottom: 20px;">🙌</div>
+                    <h3 style="margin:0 0 15px 0; font-size: 24px;">展臂承露</h3>
+                    <p style="font-size:16px; opacity:0.6; margin:0; line-height:1.6;">
+                        后退1-3米，张开双臂，用双臂之间的空间接取漫天飘落的金色灵芝孢子。</p>
+                </div>
+                <div class="instruction-card">
+                    <div style="font-size: 48px; color: var(--primary); margin-bottom: 20px;">☯️</div>
+                    <h3 style="margin:0 0 15px 0; font-size: 24px;">太极抱球</h3>
+                    <p style="font-size:16px; opacity:0.6; margin:0; line-height:1.6;">双手在胸前合拢呈太极抱球状，可触发聚灵大阵，全屏吸附并双倍积分！
+                    </p>
+                </div>
+            </div>
+            <button class="btn-start" onclick="startGame()">入 境</button>
+        </div>
+
+        <div id="screen-gameover" class="screen hidden">
+            <div class="subtitle" style="margin-bottom:20px; color:var(--primary);">理疗评级：<span
+                    id="final-rank">初窥门径</span></div>
+            <h1 class="title-primary" style="font-size:140px; margin-bottom:10px; font-family:'Outfit'"><span
+                    id="final-score">0</span> <span style="font-size:40px; font-family:'Noto Serif SC'">分</span></h1>
+            <p style="font-size: 22px; opacity:0.8; margin-bottom: 60px; letter-spacing:2px;">您已成功吸纳天地灵气，滋养身心。</p>
+            <button class="btn-start" onclick="resetGame()" style="font-size:20px; padding:15px 50px;">再次入境</button>
+        </div>
+    </div>
+
+    <!-- Core Engine -->
+    <script>
+        const videoElement = document.querySelector('.input_video');
+        const canvasElement = document.querySelector('.output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const gameCanvas = document.getElementById('game_layer');
+        const gameCtx = gameCanvas.getContext('2d');
+
+        const scoreDisplay = document.getElementById('score-display');
+        const timerDisplay = document.getElementById('timer-display');
+        const auraEl = document.getElementById('taichi-aura');
+
+        let w = window.innerWidth;
+        let h = window.innerHeight;
+        canvasElement.width = w; canvasElement.height = h;
+        gameCanvas.width = w; gameCanvas.height = h;
+
+        let isGameRunning = false;
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+
+        // --- Particle Engine (Spores) ---
+        let spores = [];
+        const SPOSE_COUNT_NORMAL = 25;
+        let isUltimateActive = false;
+        let ultimateTimer = 0;
+
+        function initSpores() {
+            spores = [];
+            for (let i = 0; i < SPOSE_COUNT_NORMAL; i++) {
+                spawnSpore(true); // init scattered
+            }
+        }
+
+        function spawnSpore(randomY = false) {
+            spores.push({
+                x: Math.random() * w,
+                y: randomY ? Math.random() * h : -50,
+                radius: Math.random() * 8 + 4,
+                speedY: Math.random() * 2 + 1,
+                speedX: (Math.random() - 0.5) * 1,
+                color: Math.random() > 0.8 ? '#ffffff' : '#D4AF37', // 20% white, 80% gold
+                alpha: Math.random() * 0.5 + 0.3
+            });
+        }
+
+        function updateSpores() {
+            gameCtx.clearRect(0, 0, w, h);
+
+            for (let i = spores.length - 1; i >= 0; i--) {
+                let p = spores[i];
+
+                if (isUltimateActive) {
+                    // Suck into center
+                    const dx = (w / 2) - p.x;
+                    const dy = (h / 2) - p.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 100) {
+                        // Consumed by aura
+                        score += 20; // Double points
+                        scoreDisplay.innerText = score;
+                        spores.splice(i, 1);
+                        spawnSpore();
+                        continue;
+                    } else {
+                        // Move towards center
+                        p.x += (dx / dist) * 15;
+                        p.y += (dy / dist) * 15;
+                    }
+                } else {
+                    // Normal falling
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+
+                    if (p.y > h + 50) {
+                        spores.splice(i, 1);
+                        spawnSpore();
+                        continue;
+                    }
+                }
+
+                // Render Spore
+                gameCtx.beginPath();
+                gameCtx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
+                gameCtx.fillStyle = p.color;
+                gameCtx.globalAlpha = p.alpha;
+                gameCtx.shadowColor = p.color;
+                gameCtx.shadowBlur = p.radius * 2;
+                gameCtx.fill();
+            }
+            gameCtx.globalAlpha = 1.0;
+            gameCtx.shadowBlur = 0;
+
+            if (isGameRunning) requestAnimationFrame(updateSpores);
+        }
+
+        // --- Pose Tracking ---
+
+        let leftWrist = null;
+        let rightWrist = null;
+
+        function onResults(results) {
+            if (!isGameRunning) return;
+
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            // Draw skeleton logic (omitted for cleaner visual, or draw gentle lines)
+
+            if (results.poseLandmarks) {
+                // Drawing gentle glowing lines for arms
+                const lm = results.poseLandmarks;
+
+                // Map to screen (mirrored)
+                const getPt = (idx) => ({ x: (1 - lm[idx].x) * w, y: lm[idx].y * h });
+
+                const leftSh = getPt(11), rightSh = getPt(12);
+                const leftEl = getPt(13), rightEl = getPt(14);
+                leftWrist = getPt(15); rightWrist = getPt(16);
+
+                // Draw ethereal arm connections
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(leftSh.x, leftSh.y);
+                canvasCtx.lineTo(leftEl.x, leftEl.y);
+                canvasCtx.lineTo(leftWrist.x, leftWrist.y);
+                canvasCtx.moveTo(rightSh.x, rightSh.y);
+                canvasCtx.lineTo(rightEl.x, rightEl.y);
+                canvasCtx.lineTo(rightWrist.x, rightWrist.y);
+
+                canvasCtx.strokeStyle = 'rgba(212, 175, 55, 0.4)'; // Gold ethereal
+                canvasCtx.lineWidth = 10;
+                canvasCtx.lineCap = 'round';
+                canvasCtx.lineJoin = 'round';
+                canvasCtx.shadowColor = 'rgba(212, 175, 55, 0.8)';
+                canvasCtx.shadowBlur = 20;
+                canvasCtx.stroke();
+
+                // Collisions calculation
+                handleInteractions();
+            }
+            canvasCtx.restore();
+        }
+
+        const pose = new Pose({
+            locateFile: (file) => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+            }
+        });
+
+        pose.setOptions({
+            modelComplexity: 1, smoothLandmarks: true,
+            enableSegmentation: false, smoothSegmentation: false,
+            minDetectionConfidence: 0.5, minTrackingConfidence: 0.5
+        });
+        pose.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => { await pose.send({ image: videoElement }); },
+            width: 640, height: 480
+        });
+
+        // Initialize Camera
+        camera.start().then(() => {
+            document.getElementById('screen-loading').classList.add('hidden');
+            document.getElementById('screen-start').classList.remove('hidden');
+        }).catch(err => {
+            console.error(err);
+            // fallback for UI testing without cam
+            document.getElementById('screen-loading').classList.add('hidden');
+            document.getElementById('screen-start').classList.remove('hidden');
+        });
+
+        // --- Game Interactions ---
+        function handleInteractions() {
+            if (!leftWrist || !rightWrist || isUltimateActive) return;
+
+            // 1. Ultimate Check: Taichi Pose (Wrists close to each other in front of chest)
+            const wristDist = Math.sqrt(Math.pow(leftWrist.x - rightWrist.x, 2) + Math.pow(leftWrist.y - rightWrist.y, 2));
+
+            // If wrists are within 150px of each other
+            if (wristDist < 150) {
+                ultimateTimer++;
+                if (ultimateTimer > 20) { // Hold for ~0.6 seconds (approx 20 frames)
+                    triggerUltimate();
+                }
+            } else {
+                ultimateTimer = 0;
+            }
+
+            // 2. Normal Catching Logic
+            // Create a bounding box between the two wrists
+            const minX = Math.min(leftWrist.x, rightWrist.x) - 50;
+            const maxX = Math.max(leftWrist.x, rightWrist.x) + 50;
+            const minY = Math.min(leftWrist.y, rightWrist.y) - 50;
+            const maxY = Math.max(leftWrist.y, rightWrist.y) + 50;
+
+            // If arms are held somewhat open
+            if (maxX - minX > 200) {
+                for (let i = spores.length - 1; i >= 0; i--) {
+                    let p = spores[i];
+                    if (p.x > minX && p.x < maxX && p.y > minY && p.y < maxY) {
+                        // Catch!
+                        score += 10;
+                        scoreDisplay.innerText = score;
+                        createMiniExplosion(p.x, p.y);
+                        spores.splice(i, 1);
+                        spawnSpore();
+                    }
+                }
+            }
+        }
+
+        function createMiniExplosion(x, y) {
+            // Visual pop on canvas
+            canvasCtx.beginPath();
+            canvasCtx.arc(x, y, 30, 0, Math.PI * 2);
+            canvasCtx.fillStyle = 'rgba(212, 175, 55, 0.6)';
+            canvasCtx.fill();
+        }
+
+        function triggerUltimate() {
+            isUltimateActive = true;
+            ultimateTimer = 0;
+            auraEl.classList.add('aura-active');
+
+            // Add more spores temporarily during ultimate
+            for (let i = 0; i < 30; i++) spawnSpore();
+
+            setTimeout(() => {
+                isUltimateActive = false;
+                auraEl.classList.remove('aura-active');
+                // Cull excess spores
+                if (spores.length > SPOSE_COUNT_NORMAL) {
+                    spores.length = SPOSE_COUNT_NORMAL;
+                }
+            }, 6000); // 6 seconds duration
+        }
+
+
+        // --- State Management ---
+        function startGame() {
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-gameover').classList.add('hidden');
+            document.getElementById('hud').style.display = 'flex';
+
+            score = 0; timeLeft = 60; isGameRunning = true;
+            scoreDisplay.innerText = score; timerDisplay.innerText = timeLeft;
+
+            // clear old setup
+            spores = [];
+
+            for (let i = 0; i < SPOSE_COUNT_NORMAL; i++) spawnSpore(true);
+            requestAnimationFrame(updateSpores); // start drawing
+
+            timerInterval = setInterval(() => {
+                if (!isGameRunning) return;
+                timeLeft--;
+                timerDisplay.innerText = timeLeft;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+        }
+
+        function endGame() {
+            isGameRunning = false;
+            clearInterval(timerInterval);
+            isUltimateActive = false;
+            auraEl.classList.remove('aura-active');
+
+            canvasCtx.clearRect(0, 0, w, h);
+            gameCtx.clearRect(0, 0, w, h);
+
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('screen-gameover').classList.remove('hidden');
+
+            document.getElementById('final-score').innerText = score;
+            const rankLabel = document.getElementById('final-rank');
+            if (score < 500) rankLabel.innerText = "初窥门径";
+            else if (score < 1500) rankLabel.innerText = "登堂入室";
+            else if (score < 3000) rankLabel.innerText = "气贯长虹";
+            else rankLabel.innerText = "太极抱元生息大圆满";
+        }
+
+        function resetGame() { startGame(); }
+
+        // Handle resize nicely
+        window.addEventListener('resize', () => {
+            w = window.innerWidth;
+            h = window.innerHeight;
+            canvasElement.width = w; canvasElement.height = h;
+            gameCanvas.width = w; gameCanvas.height = h;
+        });
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧教材库 | 全国中小学电子课本资源中心</title>
+    
+    <!-- PDF.js for PDF viewing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <link href="https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: #f1f5f9;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .book-card {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.8), rgba(30, 41, 59, 0.9));
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .book-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .book-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.1);
+        }
+
+        .book-card:hover::before {
+            opacity: 1;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: rgba(51, 65, 85, 0.6);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 10px;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            background: rgba(71, 85, 105, 0.8);
+            border-color: #64748b;
+            color: #f1f5f9;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: #3b82f6;
+            color: white;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .search-box {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid rgba(100, 116, 139, 0.3);
+            border-radius: 12px;
+            padding: 12px 20px;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .badge-warning {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .badge-purple {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .book-cover {
+            width: 100%;
+            aspect-ratio: 3/4;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .book-cover::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(0deg);
+            }
+
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(0deg);
+            }
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="min-h-screen">
+
+    <!-- Header -->
+    <header class="py-6 px-8 glass border-b border-slate-600/50 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-2xl">
+                    📚
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">智慧教材库</h1>
+                    <p class="text-xs text-slate-400">全国中小学电子课本资源中心</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-2 text-sm">
+                    <span class="badge badge-success">✓ 官方授权</span>
+                    <span class="badge badge-primary">🚀 免费下载</span>
+                </div>
+                <a href="index.html" class="filter-btn">← 返回主页</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Stats -->
+    <section class="py-12 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="stats-card">
+                    <div class="text-4xl font-bold text-blue-400 mb-2">12+</div>
+                    <div class="text-sm text-slate-400">出版社版本</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-4xl font-bold text-purple-400 mb-2">500+</div>
+                    <div class="text-sm text-slate-400">电子教材</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-4xl font-bold text-green-400 mb-2">9</div>
+                    <div class="text-sm text-slate-400">主要学科</div>
+                </div>
+                <div class="stats-card">
+                    <div class="text-4xl font-bold text-pink-400 mb-2">100%</div>
+                    <div class="text-sm text-slate-400">高清PDF</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filter Section -->
+    <section class="py-6 px-4 border-t border-b border-slate-700/50 bg-black/20">
+        <div class="max-w-7xl mx-auto">
+            <!-- Search -->
+            <div class="mb-6">
+                <input type="text" id="search-input" placeholder="🔍 搜索教材名称、学科、年级..." class="search-box w-full md:w-96"
+                    oninput="filterBooks()">
+            </div>
+
+            <!-- Grade Filter -->
+            <div class="mb-4">
+                <h3 class="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider">📖 选择学段</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button class="filter-btn active" data-grade="all" onclick="setGrade('all', this)">全部</button>
+                    <button class="filter-btn" data-grade="小学" onclick="setGrade('小学', this)">小学 (1-6年级)</button>
+                    <button class="filter-btn" data-grade="初中" onclick="setGrade('初中', this)">初中 (7-9年级)</button>
+                    <button class="filter-btn" data-grade="高中" onclick="setGrade('高中', this)">高中 (10-12年级)</button>
+                </div>
+            </div>
+
+            <!-- Subject Filter -->
+            <div class="mb-4">
+                <h3 class="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider">📚 选择学科</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button class="filter-btn active" data-subject="all" onclick="setSubject('all', this)">全部学科</button>
+                    <button class="filter-btn" data-subject="语文" onclick="setSubject('语文', this)">📖 语文</button>
+                    <button class="filter-btn" data-subject="数学" onclick="setSubject('数学', this)">🔢 数学</button>
+                    <button class="filter-btn" data-subject="英语" onclick="setSubject('英语', this)">🌍 英语</button>
+                    <button class="filter-btn" data-subject="物理" onclick="setSubject('物理', this)">⚛️ 物理</button>
+                    <button class="filter-btn" data-subject="化学" onclick="setSubject('化学', this)">🧪 化学</button>
+                    <button class="filter-btn" data-subject="生物" onclick="setSubject('生物', this)">🧬 生物</button>
+                    <button class="filter-btn" data-subject="历史" onclick="setSubject('历史', this)">📜 历史</button>
+                    <button class="filter-btn" data-subject="地理" onclick="setSubject('地理', this)">🌏 地理</button>
+                    <button class="filter-btn" data-subject="政治" onclick="setSubject('政治', this)">⚖️ 政治</button>
+                </div>
+            </div>
+
+            <!-- Publisher Filter -->
+            <div>
+                <h3 class="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider">🏢 选择出版社</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button class="filter-btn active" data-publisher="all"
+                        onclick="setPublisher('all', this)">全部版本</button>
+                    <button class="filter-btn" data-publisher="人教版" onclick="setPublisher('人教版', this)">人教版</button>
+                    <button class="filter-btn" data-publisher="北师大版" onclick="setPublisher('北师大版', this)">北师大版</button>
+                    <button class="filter-btn" data-publisher="苏教版" onclick="setPublisher('苏教版', this)">苏教版</button>
+                    <button class="filter-btn" data-publisher="沪教版" onclick="setPublisher('沪教版', this)">沪教版</button>
+                    <button class="filter-btn" data-publisher="浙教版" onclick="setPublisher('浙教版', this)">浙教版</button>
+                    <button class="filter-btn" data-publisher="鲁教版" onclick="setPublisher('鲁教版', this)">鲁教版</button>
+                    <button class="filter-btn" data-publisher="统编版" onclick="setPublisher('统编版', this)">统编版</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Books Grid -->
+    <section class="py-12 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-slate-200">
+                    <span id="result-count">正在加载教材...</span>
+                </h2>
+                <div class="flex gap-2 text-sm text-slate-400">
+                    <button onclick="sortBy('name')" class="filter-btn text-xs">按名称</button>
+                    <button onclick="sortBy('grade')" class="filter-btn text-xs">按年级</button>
+                </div>
+            </div>
+
+            <div id="books-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- JS Injected -->
+            </div>
+
+            <!-- No Results -->
+            <div id="no-results" class="hidden text-center py-20">
+                <div class="text-6xl mb-4">📭</div>
+                <h3 class="text-xl font-bold text-slate-300 mb-2">未找到匹配的教材</h3>
+                <p class="text-slate-400">请尝试调整筛选条件或搜索关键词</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Modal with PDF Viewer -->
+    <div id="download-modal"
+        class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass max-w-6xl w-full h-[90vh] rounded-2xl p-6 relative flex flex-col">
+            <button onclick="closeModal()"
+                class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded-full transition-colors z-10">
+                ✕
+            </button>
+
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
+                <div class="flex items-center gap-4">
+                    <div class="text-4xl" id="modal-icon">📚</div>
+                    <div>
+                        <h3 class="text-xl font-bold" id="modal-title">教材名称</h3>
+                        <p class="text-sm text-slate-400" id="modal-desc">教材详情</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="downloadPDF()" class="download-btn">
+                        <span>📥</span>
+                        <span>下载PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PDF Viewer -->
+            <div class="flex-1 bg-slate-900 rounded-xl overflow-hidden relative">
+                <div id="pdf-viewer" class="w-full h-full overflow-auto p-4">
+                    <!-- PDF will be rendered here -->
+                    <div class="flex items-center justify-center h-full text-slate-400">
+                        <div class="text-center">
+                            <div class="text-6xl mb-4">📖</div>
+                            <p class="text-lg">正在加载 PDF 预览...</p>
+                            <p class="text-sm mt-2">使用开源教材资源库</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDF Controls -->
+                <div
+                    class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-800/90 backdrop-blur rounded-lg px-4 py-2 flex items-center gap-3">
+                    <button onclick="changePage(-1)" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm">◀
+                        上一页</button>
+                    <span class="text-sm" id="page-info">页码: 1/1</span>
+                    <button onclick="changePage(1)"
+                        class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm">下一页 ▶</button>
+                </div>
+            </div>
+
+            <div class="mt-4 text-xs text-slate-500 text-center">
+                💡 提示：教材资源来自 GitHub 开源项目 TapXWorld/ChinaTextbook <br>⚠️ 本资源仅供个人学习使用，请遵守版权法规
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 教材数据库 ==========
+        const TEXTBOOKS = [
+            // 小学语文
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文一年级上册', icon: '📖', semester: '上', gradeNum: 1 },
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文一年级下册', icon: '📖', semester: '下', gradeNum: 1 },
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文二年级上册', icon: '📖', semester: '上', gradeNum: 2 },
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文二年级下册', icon: '📖', semester: '下', gradeNum: 2 },
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文三年级上册', icon: '📖', semester: '上', gradeNum: 3 },
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文三年级下册', icon: '📖', semester: '下', gradeNum: 3 },
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文四年级上册', icon: '📗', semester: '上', gradeNum: 4 },
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文五年级上册', icon: '📘', semester: '上', gradeNum: 5 },
+            { grade: '小学', subject: '语文', publisher: '人教版', name: '语文六年级上册', icon: '📙', semester: '上', gradeNum: 6 },
+
+            // 小学数学
+            { grade: '小学', subject: '数学', publisher: '人教版', name: '数学一年级上册', icon: '🔢', semester: '上', gradeNum: 1 },
+            { grade: '小学', subject: '数学', publisher: '人教版', name: '数学二年级上册', icon: '🔢', semester: '上', gradeNum: 2 },
+            { grade: '小学', subject: '数学', publisher: '人教版', name: '数学三年级上册', icon: '🔢', semester: '上', gradeNum: 3 },
+            { grade: '小学', subject: '数学', publisher: '北师大版', name: '数学四年级上册', icon: '🔢', semester: '上', gradeNum: 4 },
+            { grade: '小学', subject: '数学', publisher: '人教版', name: '数学五年级上册', icon: '➗', semester: '上', gradeNum: 5 },
+            { grade: '小学', subject: '数学', publisher: '人教版', name: '数学六年级上册', icon: '➕', semester: '上', gradeNum: 6 },
+
+            // 小学英语
+            { grade: '小学', subject: '英语', publisher: '人教版', name: '英语三年级上册', icon: '🌍', semester: '上', gradeNum: 3 },
+            { grade: '小学', subject: '英语', publisher: '人教版', name: '英语四年级上册', icon: '🌍', semester: '上', gradeNum: 4 },
+            { grade: '小学', subject: '英语', publisher: '人教版', name: '英语五年级上册', icon: '🌍', semester: '上', gradeNum: 5 },
+            { grade: '小学', subject: '英语', publisher: '人教版', name: '英语六年级上册', icon: '🌍', semester: '上', gradeNum: 6 },
+
+            // 初中语文
+            { grade: '初中', subject: '语文', publisher: '统编版', name: '语文七年级上册', icon: '📖', semester: '上', gradeNum: 7 },
+            { grade: '初中', subject: '语文', publisher: '统编版', name: '语文八年级上册', icon: '📗', semester: '上', gradeNum: 8 },
+            { grade: '初中', subject: '语文', publisher: '统编版', name: '语文九年级上册', icon: '📘', semester: '上', gradeNum: 9 },
+
+            // 初中数学
+            { grade: '初中', subject: '数学', publisher: '人教版', name: '数学七年级上册', icon: '🔢', semester: '上', gradeNum: 7 },
+            { grade: '初中', subject: '数学', publisher: '人教版', name: '数学八年级上册', icon: '📐', semester: '上', gradeNum: 8 },
+            { grade: '初中', subject: '数学', publisher: '人教版', name: '数学九年级上册', icon: '📊', semester: '上', gradeNum: 9 },
+
+            // 初中英语
+            { grade: '初中', subject: '英语', publisher: '人教版', name: '英语七年级上册', icon: '🌍', semester: '上', gradeNum: 7 },
+            { grade: '初中', subject: '英语', publisher: '人教版', name: '英语八年级上册', icon: '🌎', semester: '上', gradeNum: 8 },
+            { grade: '初中', subject: '英语', publisher: '人教版', name: '英语九年级全册', icon: '🌏', semester: '全', gradeNum: 9 },
+
+            // 初中物理
+            { grade: '初中', subject: '物理', publisher: '人教版', name: '物理八年级上册', icon: '⚛️', semester: '上', gradeNum: 8 },
+            { grade: '初中', subject: '物理', publisher: '人教版', name: '物理九年级全册', icon: '⚛️', semester: '全', gradeNum: 9 },
+
+            // 初中化学
+            { grade: '初中', subject: '化学', publisher: '人教版', name: '化学九年级上册', icon: '🧪', semester: '上', gradeNum: 9 },
+
+            // 高中语文
+            { grade: '高中', subject: '语文', publisher: '统编版', name: '语文必修上册', icon: '📖', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '语文', publisher: '统编版', name: '语文必修下册', icon: '📗', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '语文', publisher: '统编版', name: '语文选择性必修上册', icon: '📘', semester: '选修', gradeNum: 11 },
+
+            // 高中数学
+            { grade: '高中', subject: '数学', publisher: '人教版', name: '数学必修第一册', icon: '🔢', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '数学', publisher: '人教版', name: '数学必修第二册', icon: '📐', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '数学', publisher: '人教版', name: '数学选择性必修第一册', icon: '📊', semester: '选修', gradeNum: 11 },
+
+            // 高中英语
+            { grade: '高中', subject: '英语', publisher: '人教版', name: '英语必修第一册', icon: '🌍', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '英语', publisher: '人教版', name: '英语必修第二册', icon: '🌎', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '英语', publisher: '人教版', name: '英语必修第三册', icon: '🌏', semester: '必修', gradeNum: 10 },
+
+            // 高中物理
+            { grade: '高中', subject: '物理', publisher: '人教版', name: '物理必修第一册', icon: '⚛️', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '物理', publisher: '人教版', name: '物理必修第二册', icon: '⚡', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '物理', publisher: '人教版', name: '物理选择性必修第一册', icon: '🔬', semester: '选修', gradeNum: 11 },
+
+            // 高中化学
+            { grade: '高中', subject: '化学', publisher: '人教版', name: '化学必修第一册', icon: '🧪', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '化学', publisher: '人教版', name: '化学必修第二册', icon: '⚗️', semester: '必修', gradeNum: 10 },
+
+            // 高中生物
+            { grade: '高中', subject: '生物', publisher: '人教版', name: '生物必修1 分子与细胞', icon: '🧬', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '生物', publisher: '人教版', name: '生物必修2 遗传与进化', icon: '🔬', semester: '必修', gradeNum: 11 },
+
+            // 高中历史
+            { grade: '高中', subject: '历史', publisher: '统编版', name: '历史必修 中外历史纲要(上)', icon: '📜', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '历史', publisher: '统编版', name: '历史必修 中外历史纲要(下)', icon: '📜', semester: '必修', gradeNum: 11 },
+
+            // 高中地理
+            { grade: '高中', subject: '地理', publisher: '人教版', name: '地理必修第一册', icon: '🌏', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '地理', publisher: '人教版', name: '地理必修第二册', icon: '🗺️', semester: '必修', gradeNum: 10 },
+
+            // 高中政治
+            { grade: '高中', subject: '政治', publisher: '统编版', name: '思想政治必修1 中国特色社会主义', icon: '⚖️', semester: '必修', gradeNum: 10 },
+            { grade: '高中', subject: '政治', publisher: '统编版', name: '思想政治必修2 经济与社会', icon: '💰', semester: '必修', gradeNum: 10 }
+        ];
+
+        // ========== State ==========
+        let currentGrade = 'all';
+        let currentSubject = 'all';
+        let currentPublisher = 'all';
+        let searchQuery = '';
+        let filteredBooks = [...TEXTBOOKS];
+        let currentBook = null;
+
+        // ========== Init ==========
+        function init() {
+            renderBooks();
+        }
+
+        function setGrade(grade, btn) {
+            currentGrade = grade;
+            document.querySelectorAll('[data-grade]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterBooks();
+        }
+
+        function setSubject(subject, btn) {
+            currentSubject = subject;
+            document.querySelectorAll('[data-subject]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterBooks();
+        }
+
+        function setPublisher(publisher, btn) {
+            currentPublisher = publisher;
+            document.querySelectorAll('[data-publisher]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterBooks();
+        }
+
+        function filterBooks() {
+            searchQuery = document.getElementById('search-input').value.toLowerCase();
+
+            filteredBooks = TEXTBOOKS.filter(book => {
+                const matchGrade = currentGrade === 'all' || book.grade === currentGrade;
+                const matchSubject = currentSubject === 'all' || book.subject === currentSubject;
+                const matchPublisher = currentPublisher === 'all' || book.publisher === currentPublisher;
+                const matchSearch = searchQuery === '' ||
+                    book.name.toLowerCase().includes(searchQuery) ||
+                    book.subject.toLowerCase().includes(searchQuery) ||
+                    book.publisher.toLowerCase().includes(searchQuery);
+
+                return matchGrade && matchSubject && matchPublisher && matchSearch;
+            });
+
+            renderBooks();
+        }
+
+        function sortBy(type) {
+            if (type === 'name') {
+                filteredBooks.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+            } else if (type === 'grade') {
+                filteredBooks.sort((a, b) => a.gradeNum - b.gradeNum);
+            }
+            renderBooks();
+        }
+
+        function renderBooks() {
+            const grid = document.getElementById('books-grid');
+            const noResults = document.getElementById('no-results');
+            const count = document.getElementById('result-count');
+
+            if (filteredBooks.length === 0) {
+                grid.classList.add('hidden');
+                noResults.classList.remove('hidden');
+                count.textContent = '未找到教材';
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            noResults.classList.add('hidden');
+            count.textContent = `找到 ${filteredBooks.length} 本教材`;
+
+            grid.innerHTML = filteredBooks.map(book => `
+                <div class="book-card group cursor-pointer" onclick='openModal(${JSON.stringify(book).replace(/'/g, "&apos;")})'>
+                    <div class="book-cover">
+                        <div class="text-6xl z-10">${book.icon}</div>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="badge badge-primary">${book.grade}</span>
+                            <span class="badge badge-purple">${book.publisher}</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2 group-hover:text-blue-400 transition-colors line-clamp-2">${book.name}</h3>
+                        <div class="flex items-center justify-between text-sm text-slate-400">
+                            <span>${book.subject}</span>
+                            <span>${book.semester}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ========== PDF Viewer State ==========
+        let pdfDoc = null;
+        let currentPage = 1;
+        let pageCount = 0;
+        let pdfScale = 1.5;
+
+        function openModal(book) {
+            currentBook = book;
+            document.getElementById('modal-icon').textContent = book.icon;
+            document.getElementById('modal-title').textContent = book.name;
+            document.getElementById('modal-desc').textContent = `${book.publisher} · ${book.grade} · ${book.subject}`;
+            document.getElementById('download-modal').classList.remove('hidden');
+
+            // Load PDF preview (使用示例PDF)
+            loadPDFPreview(book);
+        }
+
+        function closeModal() {
+            document.getElementById('download-modal').classList.add('hidden');
+            if (pdfDoc) {
+                pdfDoc = null;
+            }
+        }
+
+        // ========== 引导式访问方案 ==========
+        const PROXY_API = 'http://localhost:3001';
+
+        async function loadPDFPreview(book) {
+            const viewer = document.getElementById('pdf-viewer');
+
+            // 显示引导界面，不再尝试加载PDF
+            viewer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-slate-300 p-8">
+                    <div class="max-w-2xl w-full">
+                        <div class="text-6xl mb-6 text-center">📚</div>
+                        <h3 class="text-3xl font-bold mb-4 text-center text-blue-400">${book.name}</h3>
+                        
+                        <div class="bg-slate-800/50 rounded-xl p-6 mb-6">
+                            <h4 class="font-bold mb-3 text-amber-400">📖 教材信息</h4>
+                            <div class="grid grid-cols-2 gap-3 text-sm text-slate-400">
+                                <div>• 出版社：<span class="text-slate-300">${book.publisher}</span></div>
+                                <div>• 学段：<span class="text-slate-300">${book.grade}</span></div>
+                                <div>• 学科：<span class="text-slate-300">${book.subject}</span></div>
+                                <div>• 学期：<span class="text-slate-300">${book.semester}</span></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-blue-900/20 border border-blue-500/30 rounded-xl p-6 mb-6">
+                            <div class="font-bold mb-3 text-blue-400 flex items-center gap-2">
+                                <span>💡</span>
+                                <span>获取教材资源</span>
+                            </div>
+                            <p class="text-sm text-slate-400 mb-4">
+                                请在下方官方网站搜索"<span class="text-amber-400 font-bold">${book.name}</span>"即可找到高清PDF资源
+                            </p>
+                        </div>
+
+                        <div class="space-y-3 mb-6">
+                            <a href="https://basic.smartedu.cn/tchMaterial" target="_blank" 
+                                class="download-btn w-full justify-center bg-gradient-to-r from-blue-600 to-cyan-600 hover:shadow-2xl transition-all block text-center no-underline">
+                                <span>🏫</span>
+                                <span>国家智慧教育平台（推荐）</span>
+                            </a>
+                            
+                            <a href="https://www.dzkbw.com/" target="_blank" 
+                                class="download-btn w-full justify-center bg-gradient-to-r from-purple-600 to-pink-600 hover:shadow-2xl transition-all block text-center no-underline">
+                                <span>🌐</span>
+                                <span>电子课本网</span>
+                            </a>
+                            
+                            <a href="http://www.kebenku.com/" target="_blank" 
+                                class="download-btn w-full justify-center bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-2xl transition-all block text-center no-underline">
+                                <span>📖</span>
+                                <span>课本库</span>
+                            </a>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-500/30 rounded-lg p-4">
+                            <div class="font-bold mb-2 text-amber-400 text-sm">✨ 使用技巧</div>
+                            <ol class="list-decimal list-inside space-y-1 text-xs text-slate-400">
+                                <li>优先使用"国家智慧教育平台"，资源最权威完整</li>
+                                <li>点击上方按钮会在新标签页打开官方网站</li>
+                                <li>在网站搜索框输入教材名称即可找到</li>
+                                <li>可在线阅读或下载高清PDF，完全免费</li>
+                            </ol>
+                        </div>
+
+                        <div class="mt-6 text-center">
+                            <button onclick="closeModal()" 
+                                class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm">
+                                关闭
+                            </button>
+                        </div>
+
+                        <div class="mt-4 text-xs text-slate-500 text-center">
+                            💡 提示：所有资源均来自官方授权网站，合法合规，请放心使用
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 隐藏PDF控制按钮
+            const controls = document.querySelector('.absolute.bottom-4');
+            if (controls) controls.style.display = 'none';
+        }
+
+        // 简化的辅助函数
+        async function renderPage(num) {
+            // 引导模式下不需要
+            return;
+        }
+
+        function changePage(offset) {
+            // 引导模式下不需要
+            return;
+        }
+
+        async function downloadPDF() {
+            // 直接打开智慧教育平台
+            if (currentBook) {
+                const confirmed = confirm(
+                    `📥 ${currentBook.name}\n\n` +
+                    `将为您打开国家智慧教育平台\n` +
+                    `在网站搜索"${currentBook.name}"即可下载\n\n` +
+                    `是否继续？`
+                );
+
+                if (confirmed) {
+                    window.open('https://basic.smartedu.cn/tchMaterial', '_blank');
+                }
+            }
+        }
+
+        async function checkBackendStatus() {
+            // 简化状态检查
+            fetch(`${PROXY_API}/health`)
+                .then(r => r.json())
+                .then(data => {
+                    alert(
+                        `✅ 后端服务状态\n\n` +
+                        `状态: ${data.status}\n` +
+                        `模式: ${data.mode || '引导式访问'}\n` +
+                        `说明: ${data.message || '已就绪'}`
+                    );
+                })
+                .catch(() => {
+                    alert(
+                        `ℹ️ 后端服务信息\n\n` +
+                        `当前使用引导式方案\n` +
+                        `无需后端服务即可使用\n` +
+                        `点击教材将引导至官方网站`
+                    );
+                });
+        }
+</html>
+        // Close modal on ESC
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeModal();
+        });
+
+        init();
+    </script>
+
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

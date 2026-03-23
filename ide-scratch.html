@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Scratch IDE | 在线编程</title>
+
+    <script src="libs/tailwindcss.js"></script>
+    
+    <!-- <link href="https://fonts.loli.net/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet"> -->
+    <script src="libs/three.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0f172a;
+            /* Match forum */
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        #app {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Glassmorphism overrides */
+        aside,
+        nav {
+            background: rgba(15, 23, 42, 0.6) !important;
+            backdrop-filter: blur(12px);
+            border-color: rgba(148, 163, 184, 0.1) !important;
+        }
+
+        aside {
+            border-right: 1px solid rgba(148, 163, 184, 0.1) !important;
+        }
+
+        nav {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            backdrop-filter: blur(8px);
+        }
+
+        #scratch-container {
+            width: 100%;
+            height: calc(100vh - 64px);
+        }
+
+        #scratch-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="bg-slate-900 text-white">
+    <canvas id="bg-canvas"></canvas>
+    <div id="app" class="flex h-screen text-white">
+        <!-- Left Sidebar: Lessons -->
+        <aside class="w-64 border-r border-slate-700 p-4 overflow-y-auto">
+            <h2 class="text-lg font-bold mb-4" data-i18n="lessons">教学课程</h2>
+            <ul class="space-y-2">
+                <li v-for="lesson in lessons" :key="lesson.id" class="cursor-pointer p-2 rounded hover:bg-slate-700"
+                    @click="loadLesson(lesson)">
+                    {{ lesson.title }}
+                </li>
+            </ul>
+            <button @click="resetEditor"
+                class="mt-6 w-full px-3 py-2 bg-scratch-purple hover:bg-purple-600 rounded text-center font-semibold">
+                重置编辑器
+            </button>
+        </aside>
+
+        <!-- Main Area: Editor -->
+        <main class="flex-1 flex flex-col">
+            <!-- Top Bar (same as before) -->
+            <nav class="h-16 border-b border-slate-700 flex items-center justify-between px-6">
+                <div class="flex items-center gap-4">
+                    <a href="coding.html" class="p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                        <svg width="24" height="24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </a>
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-scratch-purple to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg">
+                            S</div>
+                        <div>
+                            <h1 class="font-bold text-white text-lg leading-tight" data-i18n="ide_title">Scratch IDE
+                            </h1>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+                                data-i18n="ide_subtitle">在线编程环境</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleLanguage()"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"><svg
+                            width="16" height="16" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg><span id="lang-text">EN</span></button>
+                    <button onclick="saveProject()"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"><svg
+                            width="16" height="16" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h8a2 2 0 002-2V9a2 2 0 00-2-2h-1M8 7V5a2 2 0 012-2h2a2 2 0 012 2v2M8 7v5" />
+                        </svg><span data-i18n="save">保存</span></button>
+                    <button onclick="shareProject()"
+                        class="px-4 py-2 bg-scratch-purple hover:bg-purple-600 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"><svg
+                            width="16" height="16" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm-1.316 6.632a3 3 0 11-5.367-2.684 3 3 0 015.367 2.684z" />
+                        </svg><span data-i18n="share">分享</span></button>
+                    <button onclick="toggleFullscreen()" class="p-2 rounded-lg hover:bg-slate-800 transition-colors"
+                        title="全屏"><svg width="20" height="20" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg></button>
+                </div>
+            </nav>
+
+            <div id="scratch-container" v-if="!isEditorActive"
+                class="flex-1 relative flex flex-col items-center justify-center p-8 text-center overflow-y-auto">
+                <!-- Launch UI -->
+                <div class="max-w-4xl w-full mx-auto px-6 py-6 relative z-10 animate-slide-up">
+                    <div class="text-center mb-8">
+                        <div
+                            class="w-24 h-24 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-orange-500/20 border border-white/10">
+                            <span class="text-6xl text-white">😻</span>
+                        </div>
+                        <h2 class="text-5xl md:text-6xl font-black text-white mb-4 tracking-tight"
+                            data-i18n="launch_title">
+                            {{ currentLesson ? currentLesson.title : 'Scratch Studio' }}
+                        </h2>
+                        <p class="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed" data-i18n="launch_desc">
+                            {{ currentLesson ? '即将启动编辑器并开始本课程的学习。您的进度会自动记录。' :
+                            '全球最流行的少儿编程社区。通过拖拽积木块创作故事、游戏和动画，与全世界分享你的创意。' }}
+                        </p>
+                    </div>
+
+                    <!-- Feature Grid (Only show if not in lesson mode) -->
+                    <div v-if="!currentLesson" class="grid md:grid-cols-3 gap-6 mb-10">
+                        <div
+                            class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                            <div class="text-4xl mb-4">🎨</div>
+                            <h3 class="text-lg font-bold text-white mb-2">创意表达</h3>
+                            <p class="text-sm text-slate-400">发挥想象力，创作属于你的互动故事和动画。</p>
+                        </div>
+                        <div
+                            class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                            <div class="text-4xl mb-4">🎮</div>
+                            <h3 class="text-lg font-bold text-white mb-2">游戏制作</h3>
+                            <p class="text-sm text-slate-400">通过简单的逻辑积木，设计好玩的互动游戏。</p>
+                        </div>
+                        <div
+                            class="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-colors">
+                            <div class="text-4xl mb-4">🌍</div>
+                            <h3 class="text-lg font-bold text-white mb-2">全球社区</h3>
+                            <p class="text-sm text-slate-400">与全世界数百万创作者分享你的作品。</p>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-12">
+                        <button @click="launchEditor"
+                            class="inline-flex items-center gap-3 bg-gradient-to-r from-scratch-purple to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white text-lg font-bold px-8 py-4 rounded-xl transition-all hover:scale-105 shadow-xl shadow-purple-900/30 group">
+                            <span data-i18n="launch_btn">启动创作</span>
+                            <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                        </button>
+                        <a href="https://scratch.mit.edu/download" target="_blank"
+                            class="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-lg transition-all border border-white/10 flex items-center gap-2">
+                            <span>📥</span> 下载桌面版
+                        </a>
+                        <a href="https://scratch.mit.edu/ideas" target="_blank"
+                            class="px-8 py-4 bg-transparent hover:bg-white/5 text-slate-300 hover:text-white rounded-xl font-bold text-lg transition-all flex items-center gap-2">
+                            <span>💡</span> 获取灵感
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Editor Iframe -->
+            <div v-else class="flex-1 w-full h-full bg-black relative">
+                <div v-if="loading"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10">
+                    <div
+                        class="w-12 h-12 border-4 border-scratch-purple border-t-white rounded-full loading-spinner mb-4">
+                    </div>
+                    <p class="text-white font-bold" data-i18n="loading_editor">正在加载 Scratch 编辑器...</p>
+                </div>
+                <iframe :src="editorUrl" class="w-full h-full border-0" allowtransparency="true" allowfullscreen="true"
+                    allow="geolocation; microphone; camera; midi" @load="loading = false"></iframe>
+            </div>
+        </main>
+    </div>
+
+    <!-- Shared Storage Logic -->
+    <script src="assets/js/project-storage.js"></script>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-700 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                <span class="text-scratch-purple">☁️</span>
+                <span data-i18n="share_project">分享作品</span>
+            </h3>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-1" data-i18n="project_title">项目标题</label>
+                    <input type="text" id="proj-title"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 focus:border-scratch-purple outline-none transition-colors"
+                        placeholder="我的精彩作品">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-1" data-i18n="project_desc">项目描述</label>
+                    <textarea id="proj-desc" rows="3"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 focus:border-scratch-purple outline-none transition-colors"
+                        placeholder="介绍一下你的作品玩法..."></textarea>
+                </div>
+
+                <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-300">
+                    <p class="font-bold mb-1">💡 提示 (Tip)</p>
+                    <p>请先在编辑器中点击 <b>"文件 > 保存到电脑"</b> 获得 .sb3 文件，所有数据将保存到你的浏览记录中。</p>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeShareModal()"
+                        class="flex-1 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 font-bold transition-colors"
+                        data-i18n="cancel">取消</button>
+                    <button onclick="confirmShare()"
+                        class="flex-1 py-2 rounded-lg bg-scratch-purple hover:bg-purple-600 font-bold text-white transition-colors shadow-lg shadow-purple-900/30"
+                        data-i18n="publish">发布到社区</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue 3 CDN -->
+    <!-- Vue 3 Local -->
+    <script src="libs/vue.global.prod.js"></script>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const lessons = ref([
+                    { id: 1, title: '初识 Scratch：让小猫动起来', type: 'tutorial', projectId: '' },
+                    { id: 2, title: '制作音乐动画', type: 'tutorial', projectId: '' },
+                    { id: 3, title: '躲避球游戏基础', type: 'tutorial', projectId: '' },
+                    { id: 4, title: '互动故事大挑战', type: 'tutorial', projectId: '' }
+                ]);
+
+                const editorUrl = ref('https://turbowarp.org/editor');
+                const currentLesson = ref(null);
+
+                const loadLesson = (lesson) => {
+                    currentLesson.value = lesson;
+                    // In a real app, we might append ?tutorial=ID to the editor URL
+                    // For now, valid visual feedback is enough
+                };
+
+                onMounted(() => {
+                    // Init 3D Scene
+                    if (typeof THREE !== 'undefined') init3DScene();
+
+                    // Check for project_id or project_url in query params
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const projectId = urlParams.get('project_id'); // e.g. 10128431 (Scratch ID)
+
+                    if (projectId) {
+                        // TurboWarp allows loading by ID directly in path: https://turbowarp.org/123456/editor
+                        editorUrl.value = `https://turbowarp.org/${projectId}/editor`;
+                        console.log('Loading project ID:', projectId);
+                    }
+                });
+
+                const isEditorActive = ref(false);
+                const loading = ref(true);
+
+                const launchEditor = () => {
+                    const width = window.screen.width;
+                    const height = window.screen.height;
+                    window.open(editorUrl.value, 'ScratchIDE', `width=${width},height=${height}`);
+                    // isEditorActive.value = true; // Don't activate iframe mode
+                };
+
+                const resetEditor = () => {
+                    currentLesson.value = null;
+                    isEditorActive.value = false;
+                };
+
+                return { lessons, currentLesson, loadLesson, resetEditor, editorUrl, isEditorActive, launchEditor, loading };
+            }
+        }).mount('#app');
+
+        // --- Share Feature Logic ---
+        window.shareProject = function () {
+            const modal = document.getElementById('share-modal');
+            modal.classList.remove('hidden');
+
+            // Auto-fill for Remix
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('remix') === 'true') {
+                const originalTitle = urlParams.get('original_title');
+                const titleInput = document.getElementById('proj-title');
+                // Only fill if empty to avoid overwriting user input
+                if (!titleInput.value && originalTitle) {
+                    titleInput.value = `Remix of ${originalTitle}`;
+                }
+            }
+        }
+
+        window.closeShareModal = function () {
+            document.getElementById('share-modal').classList.add('hidden');
+        }
+
+        window.confirmShare = function () {
+            const title = document.getElementById('proj-title').value;
+            const desc = document.getElementById('proj-desc').value;
+
+            if (!title) {
+                alert('请填写项目标题');
+                return;
+            }
+
+            // Save to LocalStorage via ProjectStorage
+            ProjectStorage.saveProject({
+                title: title,
+                description: desc,
+                author: 'Local User', // Placeholder
+                type: 'scratch',
+                isLocal: true,
+                thumbnail_url: null // Could add file input to upload wrapper image later
+            });
+
+            alert('✅ 发布成功！\n\n你的作品已添加到"社区实验室"页面。');
+            closeShareModal();
+            // Optional: Redirect to community
+            // window.location.href = 'coding.html';
+        }
+
+        // --- Existing Logic ---
+        window.saveProject = function () {
+            alert('提示：\n\n1. 在编辑器内点击"文件 > 保存到电脑"即可保存项目\n2. 项目会保存为 .sb3 文件\n3. 下次可以通过"文件 > 从电脑中上传"来加载项目');
+        }
+
+        window.toggleFullscreen = function () {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        // Language Logic
+        let currentLang = localStorage.getItem('ide_lang') || 'zh';
+        const translations = {
+            zh: {
+                ide_title: 'Scratch IDE',
+                ide_subtitle: '在线编程环境',
+                save: '保存',
+                share: '分享',
+                loading_editor: '正在加载 Scratch 编辑器...',
+                first_load: '首次加载可能需要几秒钟',
+                lessons: '教学课程',
+                reset_editor: '重置编辑器',
+                share_project: '分享作品',
+                project_title: '项目标题',
+                project_desc: '项目描述',
+                cancel: '取消',
+                publish: '发布到社区',
+                launch_title: '准备好开始创作了吗？',
+                launch_desc: '为了提供最流畅的编程体验，编辑器将在新窗口中全屏打开。',
+                launch_btn: '启动 Scratch 编辑器'
+            },
+            en: {
+                ide_title: 'Scratch IDE',
+                ide_subtitle: 'Online Programming Environment',
+                save: 'Save',
+                share: 'Share',
+                loading_editor: 'Loading Scratch Editor...',
+                first_load: 'First load may take a few seconds',
+                lessons: 'Tutorials',
+                reset_editor: 'Reset Editor',
+                share_project: 'Share Project',
+                project_title: 'Project Title',
+                project_desc: 'Project Description',
+                cancel: 'Cancel',
+                publish: 'Publish',
+                launch_title: 'Ready to Create?',
+                launch_desc: 'To provide the smoothest experience, the editor will open in a new window.',
+                launch_btn: 'Launch Scratch Editor'
+            }
+        };
+
+        window.setLanguage = function (lang) {
+            currentLang = lang;
+            localStorage.setItem('ide_lang', lang);
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) el.textContent = translations[lang][key];
+            });
+            const langText = document.getElementById('lang-text');
+            if (langText) langText.textContent = lang === 'zh' ? 'EN' : '中文';
+        }
+
+        window.toggleLanguage = function () {
+            setLanguage(currentLang === 'zh' ? 'en' : 'zh');
+        }
+
+        window.addEventListener('load', () => setLanguage(currentLang));
+
+        // --- 1. 3D Background Logic (From Forum) ---
+        function init3DScene() {
+            const canvas = document.getElementById('bg-canvas');
+            if (!canvas) return;
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            camera.position.z = 50;
+
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particleCount = 1500; // Slightly fewer for performance
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const colorPalette = [
+                new THREE.Color(0x8B5CF6), new THREE.Color(0x06B6D4),
+                new THREE.Color(0xEC4899), new THREE.Color(0xF59E0B),
+            ];
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 200;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
+            }
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const particles = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({
+                size: 0.8, vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending
+            }));
+            scene.add(particles);
+
+            let mouseX = 0, mouseY = 0;
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                particles.rotation.y += 0.0005;
+                particles.rotation.x += 0.0002;
+                camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
+                camera.position.y += (mouseY * 5 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+                renderer.render(scene, camera);
+            }
+            animate();
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

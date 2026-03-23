@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TITAN OS | QUANTUM GATEWAY</title>
+    <!-- Use standard fonts if Google Fonts blocked -->
+    <style>
+        @import url('https://fonts.loli.net/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+    </style>
+
+    <!-- SYSTEM STYLES -->
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --dark-bg: #050510;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--dark-bg);
+            color: white;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            /* REMOVED: opacity: 0 transition */
+        }
+
+        /* --- 3D CANVAS --- */
+        #world {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: -1;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
+        }
+
+        /* --- STAGE 1: HERO LOGIN INTERFACE --- */
+        .hero-stage {
+            height: 100vh;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+            perspective: 1000px;
+        }
+
+        .login-hud {
+            width: 480px;
+            max-width: 90%;
+            padding: 2px;
+            background: linear-gradient(135deg, var(--neon-blue), transparent 40%, transparent 60%, var(--neon-purple));
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+            /* VISIBLE BY DEFAULT for safety */
+            opacity: 1;
+            transform: translateY(0);
+            transition: transform 0.3s, opacity 0.3s;
+            position: relative;
+        }
+
+        /* Clip Path Fallback */
+        @supports (clip-path: polygon(0 0)) {
+            .login-hud {
+                clip-path: polygon(20px 0, 100% 0,
+                        100% calc(100% - 20px), calc(100% - 20px) 100%,
+                        0 100%, 0 20px);
+            }
+        }
+
+        .hud-inner {
+            background: rgba(10, 15, 30, 0.9);
+            /* Higher opacity for readability */
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @supports (clip-path: polygon(0 0)) {
+            .hud-inner {
+                clip-path: polygon(20px 0, 100% 0,
+                        100% calc(100% - 20px), calc(100% - 20px) 100%,
+                        0 100%, 0 20px);
+            }
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 42px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 0 15px var(--neon-blue);
+            letter-spacing: 4px;
+        }
+
+        .logo-sub {
+            font-family: 'Rajdhani', sans-serif;
+            color: var(--neon-purple);
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .input-box {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .input-label {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .tech-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 2px solid var(--neon-blue);
+            padding: 15px;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 18px;
+            outline: none;
+        }
+
+        .tech-input:focus {
+            background: rgba(0, 243, 255, 0.05);
+            border-color: var(--neon-blue);
+        }
+
+        .primary-btn {
+            background: var(--neon-blue);
+            color: black;
+            border: none;
+            padding: 18px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 800;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .primary-btn:hover {
+            box-shadow: 0 0 30px var(--neon-blue);
+        }
+
+        /* 3D Core Placeholder if JS fails */
+        .fallback-core {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--neon-purple), transparent);
+            opacity: 0.2;
+            z-index: -1;
+            filter: blur(40px);
+        }
+
+        /* --- STAGE 2: VISUALS --- */
+        .academy-section {
+            min-height: 100vh;
+            padding: 100px 50px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .academy-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+            filter: brightness(0.4);
+        }
+
+        .academy-content {
+            z-index: 2;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .ac-title {
+            font-size: 3em;
+            font-weight: 800;
+            font-family: 'Orbitron';
+            margin-bottom: 20px;
+        }
+
+        .ac-desc {
+            font-size: 1.2em;
+            line-height: 1.6;
+            color: #ccc;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+
+    <!-- FALLBACK VISUALS (If Three.js fails) -->
+    <div class="hero-stage">
+        <div class="fallback-core"></div> <!-- Static glow -->
+        <div id="world"></div> <!-- 3D Canvas -->
+
+        <div class="login-hud" id="loginHud">
+            <div class="hud-inner">
+                <div class="logo-area">
+                    <div class="logo-title">TITAN OS</div>
+                    <div class="logo-sub">QUANTUM KNOWLEDGE ARCHITECT</div>
+                </div>
+
+                <div class="input-box">
+                    <div class="input-label">
+                        <span>IDENTITY_CODE</span>
+                        <span style="color:var(--neon-blue)">STATUS: ACTIVE</span>
+                    </div>
+                    <input type="text" class="tech-input" placeholder="ENTER ID" value="ZHOULIN.ADMIN">
+                </div>
+
+                <div class="input-box">
+                    <div class="input-label">
+                        <span>ACCESS_PHRASE</span>
+                        <span>ENCRYPTION: AES-256</span>
+                    </div>
+                    <input type="password" class="tech-input" placeholder="••••••••" value="12345678">
+                </div>
+
+                <button class="primary-btn" onclick="initiateLogin()">
+                    AUTHORIZE ACCESS
+                </button>
+
+                <div style="text-align: center; font-size: 10px; color: grey;">
+                    SECURE CONNECTION ESTABLISHED
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACADEMY PREVIEWS -->
+    <section class="academy-section">
+        <div class="academy-bg"
+            style="background-image: url('/Users/zhoulin/.gemini/antigravity/brain/36507a07-2eed-4e8b-a428-935c7555323e/academy_computing_quantum_1766058869407.png')">
+        </div>
+        <div class="academy-content">
+            <h2 class="ac-title">FUTURE COMPUTING</h2>
+            <p class="ac-desc">From Quantum Entanglement to Neural Networks. Master the logic of the digital universe.
+            </p>
+        </div>
+    </section>
+
+    <section class="academy-section">
+        <div class="academy-bg"
+            style="background-image: url('/Users/zhoulin/.gemini/antigravity/brain/36507a07-2eed-4e8b-a428-935c7555323e/academy_engineering_engine_1766058890666.png')">
+        </div>
+        <div class="academy-content" style="text-align: right;">
+            <h2 class="ac-title">HARDCORE ENGINEERING</h2>
+            <p class="ac-desc">Reshaping material reality with brute force & precision. Fusion Energy. Robotics.</p>
+        </div>
+    </section>
+
+    <!-- SCRIPTS LOADED AT BOTTOM WITH ERROR HANDLING -->
+    <!-- Using unpkg which is generally reliable, but we add checks -->
+    <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+
+    <script>
+        function initiateLogin() {
+            const btn = document.querySelector('.primary-btn');
+            btn.innerText = "ACCESS GRANTED...";
+            btn.style.background = "#00f3ff";
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 800);
+        }
+
+        // 3D BACKGROUND LOGIC (Wrapped in try/catch to prevent page break)
+        try {
+            if (typeof THREE !== 'undefined') {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.getElementById('world').appendChild(renderer.domElement);
+
+                // Create Particles
+                const geometry = new THREE.BufferGeometry();
+                const count = 1000;
+                const positions = new Float32Array(count * 3);
+                for (let i = 0; i < count * 3; i++) {
+                    positions[i] = (Math.random() - 0.5) * 50;
+                }
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const material = new THREE.PointsMaterial({ size: 0.1, color: 0x00f3ff });
+                const particles = new THREE.Points(geometry, material);
+                scene.add(particles);
+
+                camera.position.z = 15;
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    particles.rotation.y += 0.001;
+                    renderer.render(scene, camera);
+                }
+                animate();
+
+                // Handle Resize
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            } else {
+                console.warn('Three.js not loaded');
+            }
+        } catch (e) {
+            console.error('3D Init Failed:', e);
+            // Fallback is CSS gradient
+        }
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

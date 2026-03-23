@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科技特长生培养社群 | Tech Talent Community</title>
+
+    <!-- Dependencies: Local for Speed -->
+    <script src="libs/tailwindcss.js"></script>
+
+    <!-- Optional: Defer heavy externals so they don't block the UI -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/dayjs.min.js" defer></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/plugin/relativeTime.min.js" defer></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/dayjs/1.11.9/locale/zh-cn.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+
+    <!-- Configure Tailwind -->
+    
+
+    <style>
+        /* CSS Reset & Critical Styles */
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Ensure canvas is visible */
+        #bg-canvas {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1 !important;
+            /* Bump z-index */
+            pointer-events: none;
+            opacity: 0.8 !important;
+            /* Increase opacity */
+        }
+
+        #app {
+            position: relative;
+            z-index: 10;
+            /* Keep app above canvas */
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        #app-loading {
+            position: absolute;
+            inset: 0;
+            background: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 0.3s;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+    <link rel="stylesheet" href="assets/css/ai-assistant.css">
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="bg-cyber-dark text-slate-200 selection:bg-cyber-accent selection:text-white">
+
+    <div id="app" class="h-screen flex flex-col">
+
+        <!-- Loading Screen -->
+        <div id="app-loading">
+            <div class="text-center">
+                <div class="text-6xl mb-4 animate-bounce">🔮</div>
+                <div class="text-2xl font-bold text-cyan-400 mb-2">科技特长生培养社群</div>
+                <div class="text-xs text-slate-500 uppercase tracking-widest">正在初始化系统...</div>
+            </div>
+        </div>
+
+        <!-- Mobile Header (Visible on small screens) -->
+        <header
+            class="md:hidden h-16 border-b border-slate-700/50 flex items-center justify-between px-4 bg-cyber-dark z-50">
+            <h1 class="font-bold text-xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                科技特长生培养社群</h1>
+            <button class="text-slate-400 hover:text-white">☰</button>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="flex-1 flex overflow-hidden">
+
+            <!-- LEFT SIDEBAR: Navigation -->
+            <aside
+                class="w-64 border-r border-slate-700/30 flex flex-col bg-cyber-dark/50 hidden md:flex backdrop-blur-sm">
+                <div class="p-6">
+                    <div class="flex items-center gap-3 mb-1">
+                        <div
+                            class="w-8 h-8 rounded bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold">
+                            N</div>
+                        <h1 class="font-bold text-xl text-white">科技特长生</h1>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono tracking-widest pl-11">EST. 2025</div>
+                </div>
+
+                <nav class="flex-1 px-4 mt-4 space-y-2">
+                    <a href="index.html"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-cyan-400 transition-colors group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">🏠</span>
+                        <span class="font-bold">首页</span>
+                    </a>
+                    <a href="forum.html"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800 text-cyan-400 transition-colors">
+                        <span class="text-xl">💬</span>
+                        <span class="font-bold">论坛</span>
+                    </a>
+                    <a href="learn.html"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-purple-400 transition-colors group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">📚</span>
+                        <span class="font-bold">学习</span>
+                    </a>
+                    <a href="coding.html"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">💻</span>
+                        <span class="font-bold">工作台</span>
+                    </a>
+                </nav>
+
+                <div class="p-4 border-t border-slate-700/30">
+                    <button
+                        class="w-full py-3 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 font-bold hover:bg-cyan-600 hover:text-white transition-all">
+                        登录 / 注册
+                    </button>
+                </div>
+            </aside>
+
+            <!-- MIDDLE CONTENT: Feed -->
+            <main class="flex-1 flex flex-col min-w-0 border-r border-slate-700/30 relative">
+                <!-- Sticky Header -->
+                <header
+                    class="h-16 border-b border-slate-700/50 bg-cyber-dark/80 backdrop-blur sticky top-0 z-30 flex items-center justify-between px-6">
+                    <h2 class="text-lg font-bold text-white">最新动态</h2>
+                    <div class="flex items-center gap-4">
+                        <div class="relative hidden sm:block">
+                            <input type="text" placeholder="搜索话题..."
+                                class="bg-slate-800/50 border border-slate-700 rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:border-cyan-500 w-48 transition-all">
+                            <span class="absolute left-3 top-2 text-slate-500 text-xs">🔍</span>
+                        </div>
+                        <button
+                            class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 transition-colors">🔔</button>
+                    </div>
+                </header>
+
+                <!-- Scrollable Thread List -->
+                <div id="thread-container" class="flex-1 overflow-y-auto p-0 scroll-smooth">
+                    <!-- Create Post Trigger -->
+                    <div class="p-4 border-b border-slate-800/50">
+                        <div class="flex gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-slate-800 shrink-0 flex items-center justify-center text-lg">
+                                👤</div>
+                            <div class="flex-1">
+                                <div
+                                    class="bg-slate-800/50 rounded-xl p-3 text-slate-500 text-sm cursor-text hover:bg-slate-800 transition-colors">
+                                    分享你的想法...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Threads will be injected here -->
+                    <div id="thread-list" class="p-4 space-y-4"></div>
+
+                    <!-- Load More Helper -->
+                    <div class="p-8 text-center text-slate-500 text-sm italic">
+                        已经到底啦
+                    </div>
+                </div>
+            </main>
+
+            <!-- RIGHT SIDEBAR: Stats (Hidden on tablet/mobile) -->
+            <aside class="w-80 border-l border-slate-700/30 hidden lg:flex flex-col bg-cyber-dark/30 p-6 space-y-6">
+                <!-- Community Card -->
+                <div class="glass-panel relative overflow-hidden group">
+                    <div
+                        class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-[40px] rounded-full pointer-events-none group-hover:bg-cyan-500/20 transition-all">
+                    </div>
+                    <h3 class="font-bold text-white mb-2">关于社群</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                        这是一个匯聚科技特长生、竞赛选手和未来创造者的精英社区。在这里，我们分享竞赛经验、探讨升学路径、协作开发项目，共同点亮科技树。
+                    </p>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <div class="text-xl font-bold text-white">1,242</div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-wider">成员</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-emerald-400">Online</div>
+                            <div class="text-[10px] text-slate-500 uppercase tracking-wider">在线</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trending Dashboard -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">🔥 实时热度榜</h3>
+                        <span class="text-[10px] text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">LIVE</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="group cursor-pointer">
+                            <div class="flex items-center justify-between mb-1">
+                                <span
+                                    class="text-sm font-bold text-slate-300 group-hover:text-cyan-400 transition-colors">1.
+                                    CSP-J 2025 押题</span>
+                                <span class="text-xs font-mono text-red-400">9.8w</span>
+                            </div>
+                            <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-red-500 to-orange-500 w-[90%]"></div>
+                            </div>
+                        </div>
+                        <div class="group cursor-pointer">
+                            <div class="flex items-center justify-between mb-1">
+                                <span
+                                    class="text-sm font-bold text-slate-300 group-hover:text-cyan-400 transition-colors">2.
+                                    清北强基新政</span>
+                                <span class="text-xs font-mono text-orange-400">8.5w</span>
+                            </div>
+                            <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-orange-500 to-yellow-500 w-[75%]"></div>
+                            </div>
+                        </div>
+                        <div class="group cursor-pointer">
+                            <div class="flex items-center justify-between mb-1">
+                                <span
+                                    class="text-sm font-bold text-slate-300 group-hover:text-cyan-400 transition-colors">3.
+                                    VEX 机器人攻略</span>
+                                <span class="text-xs font-mono text-yellow-400">7.2w</span>
+                            </div>
+                            <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-yellow-500 to-green-500 w-[60%]"></div>
+                            </div>
+                        </div>
+                        <div class="group cursor-pointer">
+                            <div class="flex items-center justify-between mb-1">
+                                <span
+                                    class="text-sm font-bold text-slate-300 group-hover:text-cyan-400 transition-colors">4.
+                                    科技特长生面试</span>
+                                <span class="text-xs font-mono text-emerald-400">6.1w</span>
+                            </div>
+                            <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 w-[50%]"></div>
+                            </div>
+                        </div>
+                        <div class="group cursor-pointer">
+                            <div class="flex items-center justify-between mb-1">
+                                <span
+                                    class="text-sm font-bold text-slate-300 group-hover:text-cyan-400 transition-colors">5.
+                                    AI 论文发表指南</span>
+                                <span class="text-xs font-mono text-cyan-400">5.4w</span>
+                            </div>
+                            <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 w-[45%]"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <!-- 3D Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- AUTH MODAL -->
+    <div id="auth-modal"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="bg-[#1e293b] w-full max-w-md p-8 rounded-2xl border border-slate-700 shadow-2xl transform scale-95 transition-transform duration-300"
+            id="auth-panel">
+            <!-- Close Button -->
+            <button id="close-auth"
+                class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">✕</button>
+
+            <!-- Headers -->
+            <div class="flex gap-6 mb-8 border-b border-slate-700/50 pb-2">
+                <button id="tab-login"
+                    class="text-lg font-bold text-cyan-400 border-b-2 border-cyan-400 pb-2 transition-colors">登录</button>
+                <button id="tab-register"
+                    class="text-lg font-bold text-slate-500 hover:text-slate-300 pb-2 transition-colors">注册</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">邮箱 /手机号</label>
+                    <input type="text" placeholder="example@neuron.com"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">密码</label>
+                    <input type="password" placeholder="••••••••"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors">
+                </div>
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold py-3 rounded-lg hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/20 transition-all flex justify-center items-center gap-2">
+                    <span>立即登录</span>
+                    <div id="login-spinner"
+                        class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </button>
+            </form>
+
+            <!-- Register Form (Hidden) -->
+            <form id="form-register" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">昵称</label>
+                    <input type="text" placeholder="未来科学家"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">邮箱</label>
+                    <input type="email" placeholder="example@neuron.com"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">设置密码</label>
+                    <input type="password" placeholder="••••••••"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-purple-500 transition-colors">
+                </div>
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 rounded-lg hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-500/20 transition-all">
+                    创建账户
+                </button>
+            </form>
+
+            <div class="mt-6 text-center text-xs text-slate-500">
+                点击登录即代表同意 <a href="#" class="text-cyan-400 hover:underline">服务条款</a> 和 <a href="#"
+                    class="text-cyan-400 hover:underline">隐私政策</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE POST MODAL -->
+    <div id="create-post-modal"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-2xl transform scale-95 transition-transform duration-300 relative"
+            id="create-post-panel">
+            <button id="close-post-modal"
+                class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">✕</button>
+            <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <span>📝</span> 发布新话题
+            </h2>
+            <form id="form-create-post" class="space-y-4">
+                <div>
+                    <input type="text" id="post-title" placeholder="标题：用一句话概括你的核心观点..." required
+                        class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-lg font-bold text-white focus:outline-none focus:border-cyan-500 transition-colors placeholder:text-slate-600">
+                </div>
+                <div>
+                    <textarea id="post-content" rows="6" placeholder="分享你的经验、困惑或见解..." required
+                        class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-300 focus:outline-none focus:border-cyan-500 transition-colors resize-none placeholder:text-slate-600"></textarea>
+                </div>
+                <div class="flex gap-2 overflow-x-auto pb-2" id="tag-selector">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="post-tag" value="算法竞赛" class="peer hidden" checked>
+                        <span
+                            class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-sm peer-checked:bg-cyan-500/20 peer-checked:text-cyan-400 peer-checked:border-cyan-500 transition-all">算法竞赛</span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="post-tag" value="机器人" class="peer hidden">
+                        <span
+                            class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-sm peer-checked:bg-purple-500/20 peer-checked:text-purple-400 peer-checked:border-purple-500 transition-all">机器人</span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="post-tag" value="升学规划" class="peer hidden">
+                        <span
+                            class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-sm peer-checked:bg-emerald-500/20 peer-checked:text-emerald-400 peer-checked:border-emerald-500 transition-all">升学规划</span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="post-tag" value="项目实战" class="peer hidden">
+                        <span
+                            class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-sm peer-checked:bg-pink-500/20 peer-checked:text-pink-400 peer-checked:border-pink-500 transition-all">项目实战</span>
+                    </label>
+                </div>
+                <div class="flex justify-end pt-4 border-t border-slate-700/50">
+                    <button type="submit"
+                        class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-8 rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2">
+                        <span>发布</span>
+                        <span class="text-xl">🚀</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI INSIGHT MODAL -->
+    <div id="ai-modal"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-lg transform scale-95 transition-transform duration-300 relative border-indigo-500/30 shadow-[0_0_50px_-12px_rgba(99,102,241,0.3)]"
+            id="ai-panel">
+            <button id="close-ai-modal"
+                class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">✕</button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <div
+                    class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl border border-indigo-500/30">
+                    ✨</div>
+                <div>
+                    <h2 class="text-xl font-bold text-white">AI 深度分析</h2>
+                    <div class="text-[10px] text-indigo-400 font-mono tracking-widest uppercase">Powered by Gemini Pro
+                    </div>
+                </div>
+            </div>
+
+            <div id="ai-loading" class="py-8 text-center hidden">
+                <div
+                    class="inline-block w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2">
+                </div>
+                <p class="text-indigo-300 text-xs animate-pulse">正在阅读帖子内容...</p>
+            </div>
+
+            <div id="ai-content" class="space-y-4 hidden">
+                <div class="bg-indigo-900/20 rounded-lg p-4 border border-indigo-500/20">
+                    <h3 class="text-xs font-bold text-indigo-300 mb-2 uppercase">核心观点提炼</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed" id="ai-summary"></p>
+                </div>
+
+                <div class="bg-emerald-900/20 rounded-lg p-4 border border-emerald-500/20">
+                    <h3 class="text-xs font-bold text-emerald-300 mb-2 uppercase">行动建议</h3>
+                    <ul class="text-slate-300 text-sm leading-relaxed list-disc list-inside space-y-1"
+                        id="ai-suggestion">
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-700/50 flex justify-end gap-3">
+                <button class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm"
+                    onclick="document.getElementById('close-ai-modal').click()">关闭</button>
+                <button
+                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-500/20 flex items-center gap-2">
+                    <span>💡</span> 追问 AI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Shared References ---
+            const threadListEl = document.getElementById('thread-list');
+            const loadingEl = document.getElementById('app-loading');
+            const searchInput = document.querySelector('input[placeholder="搜索话题..."]');
+
+            // UI Refs
+            const authModal = document.getElementById('auth-modal');
+            const authPanel = document.getElementById('auth-panel');
+            const aiModal = document.getElementById('ai-modal');
+            const aiPanel = document.getElementById('ai-panel');
+            const sidebarLoginBtn = document.querySelector('aside .p-4 button');
+
+            // Post Modal Refs
+            const createPostModal = document.getElementById('create-post-modal');
+            const createPostPanel = document.getElementById('create-post-panel');
+            const closeCreatePostBtn = document.getElementById('close-post-modal');
+            const formCreatePost = document.getElementById('form-create-post');
+
+            // Helpers for Modals
+            const toggleModal = (modal, panel, show) => {
+                if (show) {
+                    modal.classList.remove('hidden');
+                    setTimeout(() => {
+                        modal.classList.remove('opacity-0');
+                        panel.classList.remove('scale-95');
+                        panel.classList.add('scale-100');
+                    }, 10);
+                } else {
+                    modal.classList.add('opacity-0');
+                    panel.classList.remove('scale-100');
+                    panel.classList.add('scale-95');
+                    setTimeout(() => modal.classList.add('hidden'), 300);
+                }
+            };
+
+            // Close buttons
+            document.getElementById('close-auth').onclick = () => toggleModal(authModal, authPanel, false);
+            if (document.getElementById('close-ai-modal'))
+                document.getElementById('close-ai-modal').onclick = () => toggleModal(aiModal, aiPanel, false);
+
+            const toggleCreatePostModal = (show) => toggleModal(createPostModal, createPostPanel, show);
+            if (closeCreatePostBtn) closeCreatePostBtn.addEventListener('click', () => toggleCreatePostModal(false));
+
+            const toggleAuthModal = (show) => toggleModal(authModal, authPanel, show);
+
+            // Refactored switchTab, same logic...
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const formLogin = document.getElementById('form-login');
+            const formRegister = document.getElementById('form-register');
+
+            const switchTab = (mode) => {
+                if (mode === 'login') {
+                    tabLogin.className = 'text-lg font-bold text-cyan-400 border-b-2 border-cyan-400 pb-2 transition-colors';
+                    tabRegister.className = 'text-lg font-bold text-slate-500 hover:text-slate-300 pb-2 transition-colors';
+                    formLogin.classList.remove('hidden');
+                    formRegister.classList.add('hidden');
+                } else {
+                    tabRegister.className = 'text-lg font-bold text-purple-400 border-b-2 border-purple-400 pb-2 transition-colors';
+                    tabLogin.className = 'text-lg font-bold text-slate-500 hover:text-slate-300 pb-2 transition-colors';
+                    formLogin.classList.add('hidden');
+                    formRegister.classList.remove('hidden');
+                }
+            };
+            tabLogin.onclick = () => switchTab('login');
+            tabRegister.onclick = () => switchTab('register');
+
+            // --- 1. 3D Background Logic (Kept Same) ---
+            function init3DScene() {
+                const canvas = document.getElementById('bg-canvas');
+                if (!canvas) return;
+                // ... (Original 3D Logic is fine, abbreviated for replacement matching safety)
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                camera.position.z = 50;
+
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particleCount = 2000;
+                const positions = new Float32Array(particleCount * 3);
+                const colors = new Float32Array(particleCount * 3);
+                const colorPalette = [new THREE.Color(0x8B5CF6), new THREE.Color(0x06B6D4), new THREE.Color(0xEC4899), new THREE.Color(0xF59E0B)];
+
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = (Math.random() - 0.5) * 200;
+                    positions[i * 3 + 1] = (Math.random() - 0.5) * 200;
+                    positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+                    const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                    colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b;
+                }
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                const particles = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({ size: 0.8, vertexColors: true, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending }));
+                scene.add(particles);
+
+                let mouseX = 0, mouseY = 0;
+                document.addEventListener('mousemove', (e) => { mouseX = (e.clientX / window.innerWidth) * 2 - 1; mouseY = -(e.clientY / window.innerHeight) * 2 + 1; });
+                function animate() { requestAnimationFrame(animate); particles.rotation.y += 0.0005; particles.rotation.x += 0.0002; camera.position.x += (mouseX * 5 - camera.position.x) * 0.05; camera.position.y += (mouseY * 5 - camera.position.y) * 0.05; camera.lookAt(scene.position); renderer.render(scene, camera); }
+                animate();
+                window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+            }
+
+            // --- 2. Auth Logic & Events ---
+            let currentUser = null;
+            sidebarLoginBtn.onclick = () => { if (currentUser) actions.viewProfile(); else { toggleAuthModal(true); switchTab('login'); } };
+
+            formLogin.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const btn = formLogin.querySelector('button[type="submit"]');
+                const originalContent = btn.innerHTML;
+                btn.innerHTML = `<span>登录中...</span><div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>`;
+                btn.disabled = true;
+                setTimeout(() => {
+                    currentUser = { name: "家长_User", role: "Parent" };
+                    updateUIForLogin();
+                    toggleAuthModal(false);
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                }, 1000);
+            });
+
+            const updateUIForLogin = () => {
+                if (!currentUser) return;
+                sidebarLoginBtn.innerHTML = `<div class="flex items-center gap-3 justify-center"><div class="w-6 h-6 rounded-full bg-cyan-500 text-white flex items-center justify-center text-xs font-bold">${currentUser.name[0]}</div><span class="text-white">${currentUser.name}</span></div>`;
+                sidebarLoginBtn.classList.replace('bg-cyan-600/20', 'bg-slate-800');
+                sidebarLoginBtn.classList.replace('text-cyan-400', 'text-white');
+                sidebarLoginBtn.classList.replace('border-cyan-500/30', 'border-slate-700');
+
+                const postInputDiv = document.querySelector('#thread-container .p-4.border-b.border-slate-800\\/50 .flex-1 > div');
+                if (postInputDiv) {
+                    postInputDiv.textContent = "点击发布新话题...";
+                    postInputDiv.className = 'bg-slate-800/50 rounded-xl p-3 text-slate-300 text-sm cursor-pointer hover:bg-slate-700 transition-colors';
+                    postInputDiv.onclick = () => toggleCreatePostModal(true);
+                }
+            };
+
+            formCreatePost.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const title = document.getElementById('post-title').value;
+                const content = document.getElementById('post-content').value;
+                const tag = document.querySelector('input[name="post-tag"]:checked')?.value || "综合";
+                state.items.unshift({ id: Date.now(), title, tag, tagColor: "text-blue-400", content, author: currentUser.name, avatar: null, upvotes: 0, hasUpvoted: false, comments: 0, time: new Date(), replies: [] });
+                render();
+                toggleCreatePostModal(false);
+                formCreatePost.reset();
+            });
+
+            // --- AI Logic ---
+            const performAIAnalysis = (threadId) => {
+                const thread = state.items.find(i => i.id === threadId);
+                if (!thread) return;
+
+                toggleModal(aiModal, aiPanel, true);
+
+                // Show Loading
+                const loading = document.getElementById('ai-loading');
+                const content = document.getElementById('ai-content');
+                loading.classList.remove('hidden');
+                content.classList.add('hidden');
+
+                setTimeout(() => {
+                    loading.classList.add('hidden');
+                    content.classList.remove('hidden');
+
+                    document.getElementById('ai-summary').innerHTML = `
+                        该帖核心讨论了 <b>${thread.title}</b>。
+                        <br>根据当前科技特长生培养趋势，${thread.tag} 赛道竞争日益激烈。帖子中提到的问题非常典型，反映了${thread.tag === '升学规划' ? '家长对于政策不确定性' : '学生在技术选型上'}的普遍焦虑。
+                    `;
+
+                    const suggestions = [
+                        "建议结合孩子当前年级制定 3 年规划",
+                        thread.tag === '算法竞赛' ? "CSP-J/S 是必经之路，建议重点刷题（洛谷/Codeforces）" : "VEX 比赛更看重团队协作和工程文档",
+                        "推荐关注教育部最新的《白名单赛事》列表"
+                    ];
+
+                    document.getElementById('ai-suggestion').innerHTML = suggestions.map(s => `<li>${s}</li>`).join('');
+
+                }, 1500); // Simulate API delay
+            };
+
+            // --- 3. Forum State & Rendering ---
+            const state = {
+                view: 'list',
+                activeThread: null,
+                items: [],
+                filter: '',
+                topics: [
+                    { title: "【信奥】CSP-J/S 2025 备考路线图分享", tag: "算法竞赛", color: "text-red-400" },
+                    { title: "VEX 机器人世锦赛夺冠经验回顾", tag: "机器人", color: "text-purple-400" },
+                    { title: "高中生如何发表第一篇 AI 顶会论文？", tag: "学术科研", color: "text-cyan-400" },
+                    { title: "科技特长生申请清北/常春藤的策略", tag: "升学规划", color: "text-emerald-400" },
+                    { title: "C++ 指针与内存管理核心难点解析", tag: "编程基础", color: "text-slate-300" },
+                    { title: "我的第一个开源项目：基于 Python 的温湿度监控", tag: "项目实战", color: "text-pink-400" }
+                ]
+            };
+
+            const initData = () => {
+                state.items = Array.from({ length: 8 }, (_, i) => {
+                    const topic = state.topics[i % state.topics.length];
+                    return {
+                        id: i,
+                        title: topic.title,
+                        tag: topic.tag,
+                        tagColor: topic.color,
+                        content: "孩子目前初二，想走科技特长生路线，目前在纠结是主要攻读 CSP-J 还是开始准备 VEX 机器人比赛？想请教各位老师和家长的经验，这对于升学（特别是强基计划）的含金量区别大吗？...",
+                        author: `家长_${i + 1}`,
+                        avatar: null,
+                        upvotes: 42 + (i * 12),
+                        hasUpvoted: false,
+                        comments: 5 + (i * 3),
+                        time: new Date(Date.now() - (i * 3600000)),
+                        replies: i === 0 ? [
+                            { id: 1, user: "老师_张", content: "非常有价值的分享，感谢！", time: new Date(Date.now() - 100000) },
+                            { id: 2, user: "竞赛教练_王", content: "CSP-J 确实是基础，但 VEX 能锻炼工程思维，看孩子兴趣。", time: new Date(Date.now() - 200000) }
+                        ] : []
+                    };
+                });
+            };
+
+            const actions = {
+                upvote: (id) => {
+                    const item = state.items.find(i => i.id === id);
+                    if (item) {
+                        item.hasUpvoted = !item.hasUpvoted;
+                        item.upvotes += item.hasUpvoted ? 1 : -1;
+                        if (state.view === 'detail') renderDetailView(); else renderListView();
+                    }
+                },
+                filterTag: (tag) => { state.filter = tag; searchInput.value = tag; render(); },
+                clearFilter: () => { state.filter = ''; searchInput.value = ''; render(); },
+                viewThread: (id) => {
+                    const thread = state.items.find(i => i.id === id);
+                    if (thread) { state.activeThread = thread; state.view = 'detail'; render(); document.getElementById('thread-container').scrollTop = 0; }
+                },
+                backToList: () => { state.activeThread = null; state.view = 'list'; render(); },
+                viewProfile: () => { state.view = 'profile'; render(); },
+                aiAnalyze: (id) => { performAIAnalysis(id); },
+                submitComment: (threadId) => {
+                    if (!currentUser) return alert('请先登录');
+                    const input = document.getElementById('comment-input');
+                    const content = input.value.trim();
+                    if (!content) return;
+
+                    const thread = state.items.find(t => t.id === threadId);
+                    if (thread) {
+                        thread.replies.unshift({
+                            id: Date.now(),
+                            user: currentUser.name,
+                            content: content,
+                            time: new Date()
+                        });
+                        thread.comments++;
+                        renderDetailView();
+                    }
+                }
+            };
+
+            const render = () => {
+                threadListEl.innerHTML = '';
+                if (state.view === 'detail') {
+                    threadListEl.className = 'p-4 max-w-4xl mx-auto animate-fade-in-up';
+                    renderDetailView();
+                } else if (state.view === 'profile') {
+                    threadListEl.className = 'p-4 max-w-4xl mx-auto animate-fade-in-up';
+                    renderProfileView();
+                } else {
+                    threadListEl.className = 'p-6 grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-max';
+                    renderListView();
+                }
+            };
+
+            const renderProfileView = () => {
+                const myPosts = state.items.filter(i => i.author === currentUser?.name);
+                threadListEl.innerHTML = `
+                    <div class="glass-panel p-8 animate-fade-in-up">
+                        <button onclick="window.forumActions.backToList()" class="mb-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+                            <span class="text-xl group-hover:-translate-x-1 transition-transform">←</span>
+                            <span class="font-bold">返回首页</span>
+                        </button>
+                    
+                        <div class="flex items-center gap-6 mb-8 pb-8 border-b border-slate-700/50">
+                           <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-4xl text-white font-bold shadow-lg shadow-cyan-500/50">
+                                ${currentUser.name[0]}
+                           </div>
+                           <div>
+                               <h1 class="text-3xl font-bold text-white mb-2">${currentUser.name}</h1>
+                               <div class="flex gap-3 text-sm text-slate-400">
+                                   <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">${currentUser.role}</span>
+                                   <span class="flex items-center">✨ 积分: 1,240</span>
+                                   <span class="flex items-center">📅 加入于 2025</span>
+                               </div>
+                           </div>
+                           <button onclick="window.location.reload()" class="ml-auto px-6 py-2 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/10 transition-colors flex items-center gap-2">
+                                <span>🚪</span> 退出登录
+                           </button>
+                        </div>
+                        
+                        <div class="flex gap-6 border-b border-slate-700/50 mb-6">
+                            <button class="px-4 py-2 text-cyan-400 border-b-2 border-cyan-400 font-bold">我的发布 (${myPosts.length})</button>
+                            <button class="px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">我的收藏</button>
+                            <button class="px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">账户设置</button>
+                        </div>
+
+                        <div class="space-y-4">
+                            ${myPosts.length > 0 ? myPosts.map(post => `
+                                <div class="p-5 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-cyan-500/30 cursor-pointer transition-all group" onclick="window.forumActions.viewDetails(${post.id})">
+                                    <div class="flex justify-between items-start mb-2">
+                                         <h3 class="font-bold text-lg text-slate-200 group-hover:text-cyan-400 transition-colors">${post.title}</h3>
+                                         <span class="text-xs text-slate-500 font-mono">${new Date(post.time).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="flex gap-3 mb-3">
+                                        <span class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-500">${post.tag}</span>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-xs text-slate-500">
+                                        <span>👍 ${post.upvotes}</span>
+                                        <span>💬 ${post.comments}</span>
+                                    </div>
+                                </div>
+                            `).join('') : '<div class="text-center text-slate-500 py-10">你还没有发布过任何话题</div>'}
+                        </div>
+                    </div>
+                `;
+            };
+
+            const renderListView = () => {
+                const filtered = state.items.filter(thread =>
+                    state.filter === '' ||
+                    thread.title.toLowerCase().includes(state.filter.toLowerCase()) ||
+                    thread.tag.toLowerCase().includes(state.filter.toLowerCase())
+                );
+
+                let html = '';
+                if (filtered.length === 0) {
+                    html = `<div class="text-center text-slate-500 py-10">没有找到相关内容</div>`;
+                } else {
+                    filtered.forEach((thread) => {
+                        let timeDisplay = "刚刚";
+                        if (window.dayjs && window.dayjs_plugin_relativeTime) {
+                            dayjs.extend(window.dayjs_plugin_relativeTime);
+                            dayjs.locale('zh-cn');
+                            timeDisplay = dayjs(thread.time).fromNow();
+                        } else {
+                            timeDisplay = "近期";
+                        }
+                        const activeClass = thread.hasUpvoted ? 'text-cyan-400' : 'text-slate-400';
+
+                        // Fake Gradient Cover based on ID
+                        const gradients = [
+                            'from-purple-500/20 to-blue-500/10',
+                            'from-cyan-500/20 to-teal-500/10',
+                            'from-pink-500/20 to-rose-500/10',
+                            'from-amber-500/20 to-orange-500/10'
+                        ];
+                        const bgGradient = gradients[thread.id % gradients.length];
+
+                        html += `
+                            <article class="glass-panel group cursor-pointer hover:border-cyan-500/50 transition-all duration-300 relative overflow-hidden flex flex-col h-full !p-0" onclick="window.forumActions.viewDetails(${thread.id})">
+                                <!-- Minimal Cover -->
+                                <div class="h-24 bg-gradient-to-br ${bgGradient} relative">
+                                     <div class="absolute bottom-2 left-4">
+                                         <span class="px-2 py-1 rounded bg-slate-900/80 backdrop-blur ${thread.tagColor} border border-slate-700/50 text-[10px] font-bold tracking-wider uppercase">${thread.tag}</span>
+                                     </div>
+                                </div>
+
+                                <div class="p-5 flex flex-col flex-1">
+                                    <h3 class="font-bold text-lg text-slate-100 mb-3 group-hover:text-cyan-400 transition-colors leading-snug line-clamp-2">
+                                        ${thread.title}
+                                    </h3>
+                                    
+                                    <p class="text-slate-400 text-sm line-clamp-3 mb-4 leading-relaxed flex-1">
+                                        ${thread.content}
+                                    </p>
+                                    
+                                    <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-700/50">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-[10px] text-white font-bold ring-2 ring-slate-800">${thread.author[0]}</div>
+                                            <span class="text-xs font-bold text-slate-400">${thread.author}</span>
+                                        </div>
+                                        
+                                        <div class="flex items-center gap-3 text-xs text-slate-500 font-mono">
+                                            <button onclick="window.forumActions.aiAnalyze(${thread.id}, event)" class="flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:scale-105 transition-all mr-2 group/ai" title="AI 智能分析">
+                                                <span class="text-lg leading-none animate-pulse">✨</span> 
+                                                <span class="hidden group-hover/ai:inline">AI 分析</span>
+                                            </button>
+                                            <span class="flex items-center gap-1 ${activeClass}"><span class="text-lg leading-none">▲</span> ${thread.upvotes}</span>
+                                            <span class="flex items-center gap-1"><span class="text-lg leading-none">💬</span> ${thread.comments}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        `;
+                    });
+                }
+                threadListEl.innerHTML = html;
+            };
+
+            const renderDetailView = () => {
+                const thread = state.activeThread;
+                if (!thread) return;
+
+                const repliesHtml = (thread.replies || []).map(reply => `
+                    <div class="flex gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                        <div class="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-xs font-bold text-white shrink-0">${reply.user[0]}</div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-bold text-slate-300">${reply.user}</span>
+                                <span class="text-xs text-slate-500">${new Date(reply.time).toLocaleString()}</span>
+                            </div>
+                            <p class="text-slate-300 text-sm leading-relaxed">${reply.content}</p>
+                        </div>
+                    </div>
+                 `).join('');
+
+                threadListEl.innerHTML = `
+                        <div class="mb-6">
+                            <button onclick="window.forumActions.backToList()" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+                                <span class="text-xl group-hover:-translate-x-1 transition-transform">←</span>
+                                <span class="font-bold">返回列表</span>
+                            </button>
+                        </div>
+                        
+                        <article class="glass-panel p-8 relative overflow-hidden mb-6">
+                             <div class="absolute top-0 right-0 p-32 bg-cyan-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+                             
+                             <!-- AI Insight Block -->
+                             <div class="mb-8 p-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-xl relative overflow-hidden">
+                                <div class="absolute -right-4 -top-4 text-6xl opacity-10">🤖</div>
+                                <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <span>✨</span> AI 智能提炼
+                                </h4>
+                                <p class="text-indigo-200/80 text-sm leading-relaxed italic">
+                                    "本帖核心探讨了 <b>${thread.title}</b>。社区观点普遍认为，根据孩子的具体兴趣选择赛道最为关键。${thread.tag} 方向目前在 ${thread.tag === '算法竞赛' ? '强基计划' : '海外申请'} 中具有明显优势..."
+                                </p>
+                             </div>
+
+                             <div class="flex gap-3 mb-4">
+                                <span class="px-2 py-1 rounded-md bg-slate-800 ${thread.tagColor} border border-slate-700 text-xs font-bold">${thread.tag}</span>
+                                <span class="text-slate-500 text-xs flex items-center">发布于 ${window.dayjs ? dayjs(thread.time).fromNow() : '近期'}</span>
+                             </div>
+                             <h1 class="text-3xl font-bold text-white mb-6 leading-tight">${thread.title}</h1>
+                             <div class="flex items-center gap-4 mb-8 pb-6 border-b border-slate-700/50">
+                                <div class="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-lg font-bold text-white">${thread.author[0]}</div>
+                                <div>
+                                    <div class="font-bold text-white text-lg">${thread.author}</div>
+                                    <div class="text-slate-500 text-xs">认证家长 · 活跃贡献者</div>
+                                </div>
+                             </div>
+                             <div class="prose prose-invert max-w-none mb-8 text-slate-200 leading-8 text-lg">
+                                ${thread.content.split('\n').map(p => `<p>${p}</p>`).join('')}
+                             </div>
+                             <div class="flex items-center gap-6 text-slate-400 border-t border-slate-700/50 pt-6">
+                                <button class="flex items-center gap-2 hover:text-cyan-400 hover:scale-105 transition-all text-cyan-400" onclick="window.forumActions.upvote(${thread.id}, event)">
+                                    <span class="text-xl">${thread.hasUpvoted ? '👍' : '👍'}</span> ${thread.upvotes} 赞同
+                                </button>
+                                <button class="flex items-center gap-2 hover:text-cyan-400 transition-colors">
+                                    <span class="text-xl">⭐</span> 收藏
+                                </button>
+                             </div>
+                        </article>
+                        
+                        <div class="glass-panel p-6">
+                            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2"><span>💬</span> 讨论 (${thread.comments})</h3>
+                            
+                            <!-- Comment Input -->
+                            <div class="mb-8 flex gap-4">
+                                <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold shrink-0">
+                                    ${currentUser ? currentUser.name[0] : 'G'}
+                                </div>
+                                <div class="flex-1">
+                                    <textarea id="comment-input" rows="3" placeholder=${currentUser ? "写下你的看法..." : "请先登录后发表评论..."} ${currentUser ? '' : 'disabled'}
+                                        class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors resize-none placeholder:text-slate-500 mb-2"></textarea>
+                                    <div class="flex justify-end">
+                                        <button onclick="window.forumActions.submitComment(${thread.id})" ${currentUser ? '' : 'disabled'}
+                                            class="px-6 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                            发表评论
+                                        </button>
+                                    </div>
+                                    ${!currentUser ? '<p class="text-xs text-slate-500 mt-2">提示：登录后即可参与讨论</p>' : ''}
+                                </div>
+                            </div>
+
+                            <div class="space-y-4" id="comments-list">
+                                ${repliesHtml.length ? repliesHtml : '<div class="text-slate-500 text-center py-4">暂无评论，快来抢沙发吧！</div>'}
+                            </div>
+                        </div>
+                `;
+            };
+
+            // Expose Global Actions
+            window.forumActions = {
+                upvote: (id, e) => { e.stopPropagation(); actions.upvote(id); },
+                filterTag: (tag, e) => { if (e) e.stopPropagation(); actions.filterTag(tag); },
+                viewDetails: (id) => { actions.viewThread(id); },
+                viewThread: (id) => { actions.viewThread(id); },
+                backToList: () => { actions.backToList(); },
+                aiAnalyze: (id, e) => { if (e) e.stopPropagation(); actions.aiAnalyze(id); },
+                submitComment: (id) => { actions.submitComment(id); }
+            };
+
+            searchInput.addEventListener('input', (e) => { state.filter = e.target.value.toLowerCase(); render(); });
+
+            initData();
+            render();
+            if (typeof THREE !== 'undefined') init3DScene(); else window.addEventListener('load', () => { if (typeof THREE !== 'undefined') init3DScene(); });
+            requestAnimationFrame(() => { loadingEl.style.opacity = '0'; setTimeout(() => loadingEl.remove(), 300); });
+        });
+    </script>
+
+    <!-- AI客服助手 -->
+    <script src="assets/js/ai-assistant.js"></script>
+    <script>
+        // 初始化AI助手 - 论坛上下文
+        document.addEventListener('DOMContentLoaded', () => {
+            initAIAssistant('forum');
+        });
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

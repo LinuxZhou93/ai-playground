@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SONIC TERMINAL | 音频科技学习端 - TITAN STUDIO</title>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+    <script src="assets/js/sound-data.js"></script>
+    <link
+        href="https://fonts.loli.net/css2?family=Plus+Jakarta+Sans:wght@300;600;800&family=JetBrains+Mono:wght@200;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --terminal-bg: #020617;
+            --terminal-cyan: #22d3ee;
+        }
+
+        body {
+            background: var(--terminal-bg);
+            color: #fff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .lesson-active {
+            border-left: 4px solid var(--terminal-cyan);
+            background: rgba(34, 211, 238, 0.05);
+        }
+
+        /* Markdown Style */
+        .prose {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.8;
+        }
+
+        .prose h1,
+        .prose h2,
+        .prose h3 {
+            color: #fff;
+            font-weight: 800;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .prose code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono';
+            color: var(--terminal-cyan);
+        }
+
+        .prose blockquote {
+            border-left: 4px solid var(--terminal-cyan);
+            padding-left: 1rem;
+            font-style: italic;
+            background: rgba(34, 211, 238, 0.05);
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            border-radius: 0 10px 10px 0;
+        }
+
+        [v-cloak] {
+            display: none !important;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--terminal-cyan);
+            border-radius: 10px;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="selection:bg-cyan-500/30">
+    <div id="app" v-cloak class="h-screen flex flex-col">
+        <!-- Dashboard Nav -->
+        <header class="h-20 border-b border-white/5 px-8 flex justify-between items-center glass-panel flex-shrink-0">
+            <div class="flex items-center gap-6">
+                <div @click="goBack" class="cursor-pointer hover:text-cyan-400 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="mono text-[10px] font-bold opacity-30 tracking-[0.4em] uppercase">SONIC_SESSION_2.0</h1>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-black">{{ currentTrack?.title }}</span>
+                        <span
+                            class="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-[8px] font-black rounded uppercase tracking-widest">{{
+                            currentTrack?.tag }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-8">
+                <div class="text-right">
+                    <div class="mono text-[10px] opacity-30">PROGRESS</div>
+                    <div class="w-32 h-1.5 bg-white/5 rounded-full overflow-hidden mt-1">
+                        <div class="h-full bg-cyan-400 transition-all duration-1000" :style="{width: progress + '%'}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar -->
+            <aside class="w-80 border-r border-white/5 glass-panel overflow-y-auto p-6 space-y-8 flex-shrink-0">
+                <div v-for="track in soundData.tracks" :key="track.id" class="space-y-4">
+                    <div class="flex items-center gap-3 opacity-40">
+                        <span class="text-xl">{{ track.icon }}</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest">{{ track.title }}</span>
+                    </div>
+                    <div class="space-y-1">
+                        <div v-for="lesson in track.lessons" :key="lesson.id" @click="selectLesson(lesson, track)"
+                            class="p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-all text-xs font-bold"
+                            :class="{'lesson-active': currentLesson?.id === lesson.id}">
+                            <div class="flex justify-between items-center">
+                                <span :class="currentLesson?.id === lesson.id ? 'text-cyan-400' : 'text-white/40'">{{
+                                    lesson.title }}</span>
+                                <span class="text-[8px] opacity-20 mono">{{ lesson.type.toUpperCase() }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="flex-1 overflow-y-auto bg-[#020617]">
+                <div v-if="currentLesson" class="max-w-4xl mx-auto py-20 px-10 reveal-animate">
+                    <!-- Lesson Type Badge -->
+                    <div
+                        class="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full text-[10px] font-black mb-6 border border-white/10">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                        SYSTEM_BOOT: {{ currentLesson.type.toUpperCase() }}
+                    </div>
+
+                    <h2 class="text-4xl md:text-5xl font-black mb-10 tracking-tight leading-tight">{{
+                        currentLesson.title }}</h2>
+
+                    <!-- Video Container -->
+                    <div v-if="currentLesson.type === 'video'"
+                        class="relative aspect-video rounded-3xl overflow-hidden glass-panel border border-white/10 mb-12 shadow-2xl">
+                        <iframe :src="currentLesson.url" class="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                    </div>
+
+                    <!-- Reading Content -->
+                    <div v-if="currentLesson.type === 'reading'" class="prose prose-invert"
+                        v-html="renderMarkdown(currentLesson.content)"></div>
+
+                    <!-- Interactive Task -->
+                    <div v-if="currentLesson.type === 'interactive'" class="space-y-8">
+                        <p class="text-xl text-white/60 leading-relaxed">{{ currentLesson.desc }}</p>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div v-for="task in currentLesson.tasks" :key="task"
+                                class="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 flex items-center gap-4 group hover:bg-cyan-500/10 transition-all cursor-pointer">
+                                <span
+                                    class="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-black group-hover:bg-cyan-500 group-hover:text-black transition-all">CHECK</span>
+                                <span class="text-sm font-bold opacity-80">{{ task }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Nav -->
+                    <div class="mt-20 pt-10 border-t border-white/5 flex justify-between items-center">
+                        <button
+                            class="mono text-[10px] font-black tracking-widest opacity-40 hover:opacity-100 transition-all">PREV_MODULE</button>
+                        <button @click="completeLesson"
+                            class="bg-cyan-400 text-black px-8 py-3 rounded-full text-[10px] font-black tracking-widest hover:scale-105 transition-all">COMPLETE_&_NEXT</button>
+                    </div>
+                </div>
+
+                <div v-else class="h-full flex flex-col items-center justify-center text-center p-20">
+                    <div class="text-8xl mb-8 animate-bounce">🎧</div>
+                    <h3 class="text-2xl font-black mb-4">准备好开启共鸣了吗？</h3>
+                    <p class="text-white/30 max-w-sm font-medium">从左侧侧边栏选择一个音频研究课题，进入数字音频的奇点。</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    soundData: window.soundCourseData,
+                    currentLesson: null,
+                    currentTrack: null,
+                    progress: 0
+                }
+            },
+            methods: {
+                selectLesson(lesson, track) {
+                    this.currentLesson = lesson;
+                    this.currentTrack = track;
+                    // Reset animation
+                    this.$nextTick(() => {
+                        gsap.fromTo(".reveal-animate", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8 });
+                    });
+                },
+                renderMarkdown(content) {
+                    return marked.parse(content || '');
+                },
+                completeLesson() {
+                    const totalLessons = this.soundData.tracks.reduce((acc, track) => acc + track.lessons.length, 0);
+                    this.progress = Math.min(100, this.progress + (100 / totalLessons));
+                },
+                goBack() { window.location.href = 'music.html'; }
+            }
+        }).mount('#app');
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

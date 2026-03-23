@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K12 道德与法治/思想政治核心素养全景图 (Pro)</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://cdn.staticfile.org/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.staticfile.org/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    
+
+    <!-- Custom Scrollbar Styles -->
+    <style>
+        body {
+            background-color: #0c0a09;
+            /* Stone 950 */
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1c1917;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #44403c;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #57534e;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .glass-panel {
+            background: rgba(28, 25, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(245, 158, 11, 0.1);
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body>
+    <div id="loading"
+        class="fixed inset-0 bg-[#0c0a09] flex items-center justify-center z-[100] transition-opacity duration-500">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-amber-900/30 border-t-amber-500 rounded-full animate-spin"></div>
+            <div
+                class="absolute inset-0 flex items-center justify-center text-xs text-amber-500 font-bold animate-pulse">
+                POLITICS</div>
+        </div>
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Shield = (props) => <IconBase {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></IconBase>;
+        const Heart = (props) => <IconBase {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></IconBase>;
+        const Gavel = (props) => <IconBase {...props}><path d="m14 5 3-3 5 5-3 3-5-5Z" /><path d="m14 5-8 8-3 3 2 2 3 3 3-3 8-8-5-5Z" /><path d="M7 14 2 19" /><path d="M9 16 4 21" /></IconBase>;
+        const Scale = (props) => <IconBase {...props}><path d="m16 16 3-8 3 8c-.1 1-1 2-3 2s-2.9-1-3-2Z" /><path d="m2 16 3-8 3 8c-.1 1-1 2-3 2s-2.9-1-3-2Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h18" /></IconBase>;
+        const Globe = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10" /><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20" /><path d="M2 12h20" /></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const Flag = (props) => <IconBase {...props}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" x2="4" y1="22" y2="15" /></IconBase>;
+
+        // Data Configuration
+        const stages = [
+            { id: "p_low", label: "小学低", subtitle: "1-2年级 · 生活", color: "bg-amber-500", textColor: "text-amber-400", borderColor: "border-amber-500/30", bgSoft: "bg-amber-500/10" },
+            { id: "p_mid", label: "小学中", subtitle: "3-4年级 · 规则", color: "bg-amber-500", textColor: "text-amber-400", borderColor: "border-amber-500/30", bgSoft: "bg-amber-500/10" },
+            { id: "p_high", label: "小学高", subtitle: "5-6年级 · 责任", color: "bg-amber-500", textColor: "text-amber-400", borderColor: "border-amber-500/30", bgSoft: "bg-amber-500/10" },
+            { id: "j_7", label: "七年级", subtitle: "初一 · 成长", color: "bg-red-500", textColor: "text-red-400", borderColor: "border-red-500/30", bgSoft: "bg-red-500/10" },
+            { id: "j_8", label: "八年级", subtitle: "初二 · 法治", color: "bg-red-500", textColor: "text-red-400", borderColor: "border-red-500/30", bgSoft: "bg-red-500/10" },
+            { id: "j_9", label: "九年级", subtitle: "初三 · 理想", color: "bg-red-500", textColor: "text-red-400", borderColor: "border-red-500/30", bgSoft: "bg-red-500/10" },
+            { id: "s_1", label: "高一", subtitle: "高一 · 思辨", color: "bg-purple-600", textColor: "text-purple-400", borderColor: "border-purple-600/30", bgSoft: "bg-purple-600/10" },
+            { id: "s_2", label: "高二", subtitle: "高二 · 政治", color: "bg-purple-600", textColor: "text-purple-400", borderColor: "border-purple-600/30", bgSoft: "bg-purple-600/10" },
+            { id: "s_3", label: "高三", subtitle: "高三 · 全球", color: "bg-purple-600", textColor: "text-purple-400", borderColor: "border-purple-600/30", bgSoft: "bg-purple-600/10" }
+        ];
+
+        const tracks = [
+            { id: "self_life", title: "成长与生活", desc: "心理健康 · 人际交往", icon: Heart, color: "text-rose-400", gradient: "from-rose-500/20 to-rose-900/5" },
+            { id: "ethics_values", title: "核心价值", desc: "道德品质 · 文化认同", icon: Flag, color: "text-amber-400", gradient: "from-amber-500/20 to-amber-900/5" },
+            { id: "rule_of_law", title: "法治意识", desc: "宪法精神 · 权利义务", icon: Gavel, color: "text-blue-400", gradient: "from-blue-500/20 to-blue-900/5" },
+            { id: "society_nation", title: "国家与世界", desc: "政治参与 · 全球视野", icon: Globe, color: "text-indigo-400", gradient: "from-indigo-500/20 to-indigo-900/5" }
+        ];
+
+        const curriculumData = {
+            self_life: {
+                p_low: { title: "我是小学生啦", core: ["校园安全第一步", "认识新面孔", "整理小课桌"], literacy: "行为习惯", detail: "学习最基本的校园生活规范，建立个人卫生与安全意识。", example: "例：自己整理书包，认识安全标示。", practical: "【活动】班级小管家体验。", ai_integration: "【AI】语音助手提醒我准时起床。" },
+                p_mid: { title: "情绪调色盘", core: ["快乐与伤心", "学会说不", "我的朋友圈"], literacy: "心理健康", detail: "认识基本情绪，学习简单的自我调控与同伴沟通技巧。", example: "例：画出今天的心情天气图。", practical: "【活动】心情日历记录。", ai_integration: "【AI】分析绘本里的情感色彩。" },
+                p_high: { title: "少年成长烦恼", core: ["青春期前奏", "友谊的边界", "拒绝成瘾行为"], literacy: "自尊自律", detail: "初步认识身体与心理的变化，建立健康的社交准则。", example: "例：讨论网络游戏的利与弊。", practical: "【活动】给六年后的自己写封信。", ai_integration: "【AI】模拟不同社交场景的对话逻辑。" },
+                j_7: { title: "成长的节拍", core: ["接纳青春期变化", "亲子沟通艺术", "建立自我认同"], literacy: "心理素质", detail: "深度解析青春期心理机制，掌握人际冲突的化解策略。", example: "例：模拟真实的家庭对话实验。", practical: "【活动】校园心理剧编演。", ai_integration: "【AI】情感陪聊机器人（非专业替代）。" },
+                j_8: { title: "健全人格塑造", core: ["抗挫折能力培养", "集体生活的力量", "审美情趣引导"], literacy: "生命观念", detail: "在集体互动中寻找自我位置，建立积极向上的生命价值观。", example: "例：班级凝聚力大比拼。", practical: "【活动】社区义工志愿服务。", ai_integration: "【AI】生成个性化的压力释放呼吸模型。" },
+                j_9: { title: "梦想起航季", core: ["生涯规划初步", "焦虑情绪管理", "选择的责任"], literacy: "人生决策", detail: "面对学业压力与未来分流，建立长期的奋斗观与责任心。", example: "例：我的理想职业调查报告。", practical: "【活动】考前心理减压工作坊。", ai_integration: "【AI】建立未来10年职业树预演。" },
+                s_1: { title: "马克思主义哲学入门", core: ["唯物论基础", "世界是普遍联系的", "矛盾分析法"], literacy: "辩证思维", detail: "掌握观察世界的科学逻辑工具，批驳形而上学倾向。", example: "例：分析“网络直播”的利弊统一。", practical: "【活动】逻辑悖论大挑战。", ai_integration: "【AI】逻辑纠错工具，识别谬误。" },
+                s_2: { title: "价值判断与人生", core: ["什么是价值", "社会利益与个人利益", "在奋斗中成才"], literacy: "价值观引领", detail: "在复杂的社会思潮中坚定理想信念，实现自我增值。", example: "例：辩论：成功是否必须依靠运气。", practical: "【活动】人生哲学演讲比赛。", ai_integration: "【AI】分析不同时代英雄定义的语义变化。" },
+                s_3: { title: "终极关怀与哲学", core: ["认识论深度", "历史唯物主义", "人类解放的理想"], literacy: "理论洞察力", detail: "系统总结人类社会发展规律，构建宏大的终极关怀视阈。", example: "例：探讨“数字化带来的社会变革”。", practical: "【活动】马克思主义经典著作研读会。", ai_integration: "【AI】自动构建哲学概念关联图谱。" }
+            },
+            ethics_values: {
+                p_low: { title: "我是诚实宝贝", core: ["不说谎话", "爱护公共财物", "长辈辛苦了"], literacy: "道德启蒙", detail: "建立最朴素的是非观，培养尊敬长辈的情感。", example: "例：帮爷爷奶奶倒杯水。", practical: "【活动】周末孝亲周。", ai_integration: "【AI】绘声绘色讲24孝故事。" },
+                p_mid: { title: "中华文化之旅", core: ["认识传统节日", "爱护家乡古迹", "节约每一滴水"], literacy: "文化认同", detail: "感知中华优秀传统文化的魅力，培养勤俭节约习惯。", example: "例：制作一张春节民俗海报。", practical: "【活动】寻找家乡的老物件。", ai_integration: "【AI】生成专属节气问候图。" },
+                p_high: { title: "少年责任担当", core: ["爱心义卖活动", "争做环保志愿者", "中国梦我的梦"], literacy: "民族自信", detail: "认识国家发展的伟大成就，树立位卑未敢忘忧国的意识。", example: "例：写一份绿化校园建议书。", practical: "【活动】校园微公益挑战。", ai_integration: "【AI】模拟规划一座零碳城市。" },
+                j_7: { title: "美德在身边", core: ["见贤思齐精神", "工匠精神初识", "邻里守望相助"], literacy: "公德修养", detail: "从身边榜样汲取力量，将道德准则转化为日常行为。", example: "例：寻找身边的“平凡英雄”。", practical: "【活动】美德人物访谈录。", ai_integration: "【AI】道德案例库搜索与智能匹配。" },
+                j_8: { title: "文化深度自信", core: ["两创精神", "红色基因传承", "格鲁克林原则"], literacy: "系统认知", detail: "深度理解文化传承与创新的关系，坚定文化自觉。", example: "例：策划一场汉服文化展。", practical: "【活动】探访本地非遗基地。", ai_integration: "【AI】利用生成式技术修复古迹照片。" },
+                j_9: { title: "核心价值引领", core: ["24字核心价值观", "人类命运共同体", "时代新人使命"], literacy: "信念基石", detail: "将个人理想融入民族复兴伟业，明确时代担当。", example: "例：假如我代表中国青年发声。", practical: "【活动】“强国有我”主题演讲。", ai_integration: "【AI】分析核心价值观在国际传播中的共鸣点。" },
+                s_1: { title: "文化传承专题", core: ["文化创新的途径", "传统文化现代表达", "文化多样性尊重"], literacy: "文化素养", detail: "从理论高度分析文化现象，掌握文化软实力的构建方法。", example: "例：分析《黑神话悟空》的文化出海。", practical: "【活动】文化衍生品策划大赛。", ai_integration: "【AI】生成文化元素融合的数字藏品。" },
+                s_2: { title: "社会主义文化建设", core: ["意识形态工作指导", "文化事业与产业", "道德风尚建设"], literacy: "思想引领", detail: "掌握国家文化发展战略，批判不良文化倾向。", example: "例：评析网络“饭圈文化”异化。", practical: "【活动】清朗网络空间调研报告。", ai_integration: "【AI】自动化监测网络情绪波动与趋势。" },
+                s_3: { title: "文化生活巅峰审视", core: ["全球化下的文化重构", "数字文明与伦理", "公共文化服务体系"], literacy: "战略批判力", detail: "在互联网算法时代重新审视人的主体性与文化安全。", example: "例：研讨“算法茧房”对多元思维的挑战。", practical: "【活动】制定一份“数字减速”生活方案。", ai_integration: "【AI】构建支撑多元文化共存的虚拟博物馆。" }
+            },
+            rule_of_law: {
+                p_low: { title: "规则真重要", core: ["交通红绿灯", "排队不插队", "游戏也要讲规则"], literacy: "规则意识", detail: "通过具体场景理解社会生活的有序运行离不开规则。", example: "例：演练过马路的安全规范。", practical: "【活动】寻找校园里的“禁止”标识。", ai_integration: "【AI】红绿灯智能交互小游戏。" },
+                p_mid: { title: "法律就在身边", core: ["认识未保法", "消费者的权利", "法律保护我"], literacy: "法律认知", detail: "初步认识基本法律名词，知道法律是保护弱者的护盾。", example: "例：拨打12315的正确姿势。", practical: "【活动】普法宣讲员大比拼。", ai_integration: "【AI】简单的法律常识QA助手。" },
+                p_high: { title: "宪法是母法", core: ["宪法生日与精神", "我的名字与户口", "公民的基本义务"], literacy: "宪法权威", detail: "感知宪法在生活中的至高无上地位及对个人权利的保障。", example: "例：画一张宪法树漫画。", practical: "【活动】宪法宣誓周体验。", ai_integration: "【AI】模拟查询宪法对特定场景的规定。" },
+                j_7: { title: "法律的眼睛", core: ["法律的普遍约束力", "正义与公平的权衡", "见义勇为与法律保护"], literacy: "法理初识", detail: "理解法律与道德、纪律的区别，建立最初的法理概念。", example: "例：分析“老人倒了扶不扶”的法律风险点。", practical: "【活动】法律诊所实操模拟。", ai_integration: "【AI】提取判决书中的关键法律逻辑链。" },
+                j_8: { title: "法治意识进阶", core: ["行政、民事、刑事区分", "法庭程序初探", "依法维权路径"], literacy: "实操能力", detail: "掌握法律救济的基本手段，懂得运用程序正义保护权益。", example: "例：模拟法庭现场演练。", practical: "【活动】旁听法院公开审理。", ai_integration: "【AI】自动生成一份简易起诉状（科普向）。" },
+                j_9: { title: "全面依法治国", core: ["科学立法/严格执法", "法治政府建设", "全民守法根基"], literacy: "法治素养", detail: "系统学习中国特色社会主义法治体系的宏大蓝图。", example: "例：为社区养犬条例提修改意见。", practical: "【活动】立法建议直通车调研。", ai_integration: "【AI】分析近年来法规修改的语义特征。" },
+                s_1: { title: "政治与生活平衡", core: ["公民参与政治的渠道", "政府的职能与服务", "行政权力的监督"], literacy: "政治参与", detail: "理解政府权力来源，学习依法行使民主权利。", example: "例：分析“市长信箱”的反馈效率。", practical: "【活动】模拟政协委员提案。", ai_integration: "【AI】民意调查数据实时可视化系统。" },
+                s_2: { title: "国家机构与运作", core: ["人民代表大会制度", "中国共产党领导的多党合作", "民族区域自治"], literacy: "制度自信", detail: "掌握中国核心政治制度的优势及底层运行逻辑。", example: "例：绘制人大常委会议程图。", practical: "【活动】基层社区治理观摩。", ai_integration: "【AI】数字政务系统的自动化辅助决策。" },
+                s_3: { title: "法治政治巅峰反思", core: ["全球治理中的法律博弈", "算法裁判的伦理防线", "宪法解释的艺术"], literacy: "战略智慧", detail: "反思在技术奇点时代，人类政治与法治最后的伦理底线。", example: "例：研讨“数字代议制”的可能性。", practical: "【活动】制定一份“未来城”基本法纲要。", ai_integration: "【AI】基于数万条法律数据的自动合规风险扫描仪。" }
+            },
+            society_nation: {
+                p_low: { title: "我的祖国真辽阔", core: ["认读中国地图", "五星红旗真美丽", "北京是首都"], literacy: "国家认同", detail: "建立中国人的身份认同，感知领土主权的重要性。", example: "例：唱响国歌，认读国旗。", practical: "【活动】地图涂色比赛。", ai_integration: "【AI】AR实景展示长城样貌。" },
+                p_mid: { title: "幸福生活哪里来", core: ["家乡的巨变", "劳动最光荣", "小小理财家"], literacy: "劳动意识", detail: "感知经济发展成果，通过亲身劳动理解价值创造。", example: "例：计算一顿年夜饭的成本。", practical: "【活动】跳蚤市场体验。", ai_integration: "【AI】模拟超市经营小游戏。" },
+                p_high: { title: "大家庭的邻居", core: ["丝路上的故事", "外国小朋友的生活", "同一个地球村"], literacy: "全球视野", detail: "认识世界的多样性，培养平等交流与合作的意识。", example: "例：分享一个别国的特色节日。", practical: "【活动】小小智库研究邻国。", ai_integration: "【AI】跨国语言实时翻译交流体验。" },
+                j_7: { title: "新时代的坐标", core: ["四个全面战略布局", "创新驱动发展", "民族复兴路线图"], literacy: "国情调研", detail: "掌握描述国情的关键指标，理解国家发展的阶段性任务。", example: "例：查阅家乡5年的生产总值变化。", practical: "【活动】“寻访家乡变化”影像展。", ai_integration: "【AI】生成特定地点的50年卫星对比影像。" },
+                j_8: { title: "经济与生态平衡", core: ["绿水青山即金山银山", "双碳目标的挑战", "生物多样性保护"], literacy: "绿色理念", detail: "深度理解生态文明建设的紧迫性与转型阵痛。", example: "例：设计一个垃圾减量化方案。", practical: "【活动】本地湿地系统研学。", ai_integration: "【AI】模拟计算一个工厂的碳排放定额。" },
+                j_9: { title: "中国在舞台中央", core: ["大国外交战略", "联合国与国际责任", "构建人类命运共同体"], literacy: "全球眼光", detail: "从国际关系视角理解中国地位，培养负责任的公民意识。", example: "例：模拟联合国：解决粮食危机。", practical: "【活动】制作全球性问题双语简报。", ai_integration: "【AI】实时抓取并分析全球热门时事趋势।" },
+                s_1: { title: "社会主义市场经济", core: ["看不见的手与看得见的手", "企业的经营与管理", "收入分配公平性"], literacy: "经济思维", detail: "掌握现代经济运行机制，理解国家宏观调控的必要性。", example: "例：分析猪肉价格涨跌的底层逻辑。", practical: "【活动】模拟炒股与经济分析大赛。", ai_integration: "【AI】金融市场的情绪指数预测模型。" },
+                s_2: { title: "当代国际政治与军事", core: ["主权国家的权利义务", "霸权主义与多极化", "国家安全整体观"], literacy: "安全底线", detail: "深研复杂国际地缘博弈，确立深层的国家安全防线。", example: "例：分析某热点地缘冲突的因果链。", practical: "【活动】国家安全知识竞赛。", ai_integration: "【AI】模拟各种国际制裁对供应链的影响。" },
+                s_3: { title: "政治经济巅峰博弈", core: ["全球治理体系改革", "数字主权与网络空间", "后人类时代的社会契约"], literacy: "未来哲学力", detail: "思考人类文明在面临数智化、星球化时的终极体制选择。", example: "例：策论：AI是否会带来“计划经济”的回潮？", practical: "【活动】撰写一份《人类命运共同体白皮书（学生版）》。", ai_integration: "【AI】基于数千年的文明史数据预测未来政体演化路径。" }
+            }
+        };
+
+        const DetailModal = ({ isOpen, onClose, data, stageColor }) => {
+            if (!isOpen || !data) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in" onClick={onClose}>
+                    <div className="bg-stone-900 border border-stone-700 rounded-2xl w-[95%] md:w-full max-w-2xl overflow-hidden shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+                        <div className={`p-6 ${stageColor.replace('bg-', 'bg-opacity-20 bg-')} border-b border-stone-700 flex justify-between items-start sticky top-0 backdrop-blur-md z-10`}>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white mb-2">{data.title}</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 rounded text-xs font-bold bg-white/10 text-white border border-white/20">核心素养：{data.literacy}</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-stone-400 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Scale className="w-4 h-4" /> 学习要点
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {data.core.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-stone-800/50 p-3 rounded-lg border border-stone-700">
+                                            <div className={`w-2 h-2 rounded-full ${stageColor.replace('bg-', 'bg-')}`}></div>
+                                            <span className="text-stone-200 text-sm">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-stone-800/30 p-4 rounded-xl border border-stone-700/50">
+                                    <h4 className="text-stone-300 font-bold mb-2">📜 课程深度解析</h4>
+                                    <p className="text-stone-400 text-sm leading-relaxed">{data.detail}</p>
+                                </div>
+
+                                <div className="bg-amber-900/10 p-4 rounded-xl border border-amber-500/20">
+                                    <h4 className="text-amber-300 font-bold mb-2">🔍 典型案例/活动</h4>
+                                    <p className="text-amber-200/80 text-sm font-mono">{data.example}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-indigo-900/10 p-4 rounded-xl border border-indigo-500/20">
+                                        <h4 className="text-indigo-300 font-bold mb-2 flex items-center gap-2">
+                                            <Shield className="w-4 h-4" /> 实践活动
+                                        </h4>
+                                        <p className="text-indigo-200/80 text-sm">{data.practical}</p>
+                                    </div>
+                                    <div className="bg-purple-900/10 p-4 rounded-xl border border-purple-500/20">
+                                        <h4 className="text-purple-300 font-bold mb-2 flex items-center gap-2">
+                                            <IconBase><path d="M12 2v8" /><path d="m4.93 10.93 1.41 1.41" /><path d="M2 18h2" /><path d="M20 18h2" /><path d="m19.07 10.93-1.41 1.41" /><path d="M22 22H2" /><path d="m8 22 4-10 4 10" /></IconBase> AI思维融合
+                                        </h4>
+                                        <p className="text-purple-200/80 text-sm">{data.ai_integration}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [selectedNode, setSelectedNode] = useState(null);
+            const [selectedStageColor, setSelectedStageColor] = useState("");
+
+            // Filter logic
+            const queryParams = new URLSearchParams(window.location.search);
+            const stageFilter = queryParams.get('stage'); // 'p', 'j', 's'
+
+            let filteredStages = stages;
+            let stageTitle = "";
+
+            if (stageFilter === 'p') {
+                filteredStages = stages.filter(s => s.id.startsWith('p_'));
+                stageTitle = " - 小学阶段";
+            } else if (stageFilter === 'j') {
+                filteredStages = stages.filter(s => s.id.startsWith('j_'));
+                stageTitle = " - 初中阶段";
+            } else if (stageFilter === 's') {
+                filteredStages = stages.filter(s => s.id.startsWith('s_'));
+                stageTitle = " - 高中阶段";
+            }
+
+            const gridClass = `grid grid-cols-[200px_repeat(${filteredStages.length},300px)] gap-6`;
+
+            useEffect(() => {
+                const loader = document.getElementById('loading');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen bg-[#0c0a09] text-stone-100 pb-20 font-[Outfit]">
+                    {/* Navigation */}
+                    <a href="subject-synergy.html" className="fixed top-4 right-4 md:top-6 md:right-6 z-40 p-2 md:p-3 bg-stone-800/80 backdrop-blur border border-stone-700 rounded-full text-stone-400 hover:text-white hover:bg-amber-600 transition-all shadow-lg group">
+                        <span className="mr-2 text-sm font-bold hidden group-hover:inline">返回学科协同</span>
+                        <Home className="w-5 h-5 inline" />
+                    </a>
+
+                    {/* Header */}
+                    <header className="pt-10 md:pt-20 pb-8 md:pb-12 px-4 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-amber-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+                        <h1 className="text-2xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-red-500 to-purple-600 mb-4 relative z-10">
+                            K12 道德与法治/思想政治核心素养全景图{stageTitle}
+                        </h1>
+                        <p className="text-stone-400 max-w-2xl mx-auto text-sm md:text-lg">
+                            构建具有哲学深度、法治思维与现代科技视野的学习路径
+                        </p>
+                    </header>
+
+                    {/* Main Content Grid */}
+                    <main className="max-w-7xl mx-auto px-4">
+                        <div className="md:hidden text-center text-stone-500 text-xs mb-2 animate-pulse">
+                            ← 左右滑动查看完整图谱 →
+                        </div>
+                        <div className="overflow-x-auto custom-scrollbar pb-4">
+                            <div className="w-fit">
+                                {/* Stage Headers */}
+                                <div className={`${gridClass} mb-8 sticky top-0 bg-[#0c0a09]/95 backdrop-blur z-30 py-4 border-b border-stone-800`}>
+                                    <div className="flex items-end justify-end px-4 pb-2 text-stone-500 font-bold text-sm uppercase tracking-widest text-right">
+                                        核心维度 / 发展阶段
+                                    </div>
+                                    {filteredStages.map(stage => (
+                                        <div key={stage.id} className={`flex flex-col items-center p-4 rounded-xl ${stage.bgSoft} border ${stage.borderColor}`}>
+                                            <span className={`text-lg font-bold ${stage.textColor}`}>{stage.label}</span>
+                                            <span className="text-xs text-stone-400 mt-1">{stage.subtitle}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Tracks & Nodes */}
+                                <div className="space-y-8">
+                                    {tracks.map(track => (
+                                        <div key={track.id} className={`${gridClass} group`}>
+                                            {/* Track Header */}
+                                            <div className={`glass-panel rounded-xl p-6 flex flex-col justify-center items-end text-right border-r-4 ${track.color.replace('text-', 'border-')}`}>
+                                                <track.icon className={`w-8 h-8 ${track.color} mb-3`} />
+                                                <h3 className={`text-xl font-bold text-white mb-1`}>{track.title}</h3>
+                                                <p className="text-xs text-stone-500 font-medium">{track.desc}</p>
+                                            </div>
+
+                                            {/* Stage Nodes */}
+                                            {filteredStages.map(stage => {
+                                                const data = curriculumData[track.id][stage.id];
+                                                return (
+                                                    <div
+                                                        key={`${track.id}-${stage.id}`}
+                                                        onClick={() => {
+                                                            setSelectedNode(data);
+                                                            setSelectedStageColor(stage.color);
+                                                        }}
+                                                        className={`
+                                                            relative h-full min-h-[180px] rounded-xl p-5 cursor-pointer
+                                                            bg-stone-900/40 border border-stone-800
+                                                            hover:bg-stone-800 hover:border-stone-600 hover:shadow-xl hover:-translate-y-1
+                                                            transition-all duration-300 group/card overflow-hidden flex flex-col
+                                                        `}
+                                                    >
+                                                        {/* Hover Glow */}
+                                                        <div className={`absolute inset-0 opacity-0 group-hover/card:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${track.gradient}`}></div>
+
+                                                        <div className="relative z-10 h-full flex flex-col">
+                                                            <h4 className="text-lg font-bold text-stone-200 mb-2 group-hover/card:text-white transition-colors">
+                                                                {data.title}
+                                                            </h4>
+
+                                                            <div className="space-y-1.5 mb-4 flex-grow text-xs text-stone-400">
+                                                                {data.core.slice(0, 3).map((item, i) => (
+                                                                    <div key={i} className="flex items-center gap-2">
+                                                                        <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`}></div>
+                                                                        {item}
+                                                                    </div>
+                                                                ))}
+                                                                {data.core.length > 3 && <div className="text-stone-700 pl-3.5">...</div>}
+                                                            </div>
+
+                                                            <div className="mt-auto pt-3 border-t border-stone-700/50 flex items-center justify-between">
+                                                                <span className={`text-[10px] font-bold px-2 py-1 rounded bg-stone-900 ${stage.textColor}`}>
+                                                                    {stage.label.split(' ')[0]}
+                                                                </span>
+                                                                <span className="text-xs text-stone-500 group-hover/card:text-amber-400 transition-colors flex items-center gap-1">
+                                                                    详情 <Check className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <DetailModal
+                        isOpen={!!selectedNode}
+                        onClose={() => setSelectedNode(null)}
+                        data={selectedNode}
+                        stageColor={selectedStageColor}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>

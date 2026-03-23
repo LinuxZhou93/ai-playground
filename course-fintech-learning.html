@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>青少年财商启蒙课程 | TITAN FINTECH</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Dependencies -->
+    <script src="libs/tailwindcss.js"></script>
+    <script src="libs/vue.global.prod.js"></script>
+    <script src="libs/marked.min.js"></script>
+
+    <!-- Animation -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+    
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #050a18;
+            color: white;
+        }
+
+        .glass {
+            background: rgba(15, 15, 25, 0.7);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(251, 191, 36, 0.1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(251, 191, 36, 0.6), rgba(245, 158, 11, 0.6));
+            border-radius: 4px;
+        }
+
+        .lesson-item {
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .lesson-item:hover {
+            background: rgba(251, 191, 36, 0.08);
+            transform: translateX(2px);
+        }
+
+        .lesson-item.active {
+            background: linear-gradient(90deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
+            border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        /* Prose Styling for Reading Content */
+        .prose {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.8;
+        }
+
+        .prose h2 {
+            color: #fbbf24;
+            font-weight: 800;
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .prose h3 {
+            color: #fde047;
+            font-weight: 700;
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .prose p {
+            margin-bottom: 1rem;
+        }
+
+        .prose ul,
+        .prose ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .prose li {
+            margin-bottom: 0.5rem;
+        }
+
+        .prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        .prose th,
+        .prose td {
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        .prose th {
+            background: rgba(251, 191, 36, 0.1);
+            font-weight: 700;
+        }
+
+        .prose code {
+            background: rgba(251, 191, 36, 0.1);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Space Grotesk', monospace;
+        }
+
+        .prose strong {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+    </style>
+
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+</head>
+
+<body class="bg-[#050a18] text-white">
+    <div id="app" class="h-screen flex flex-col" v-cloak>
+        <!-- Navigation -->
+        <nav class="h-16 glass border-b border-amber-500/20 flex-shrink-0">
+            <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 rounded bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center font-bold">
+                        $</div>
+                    <span class="font-bold text-xl">TITAN <span class="text-amber-400">FINTECH</span></span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="fintech.html" class="text-sm text-slate-400 hover:text-white transition-colors">←
+                        返回金融实验室</a>
+
+                    <!-- Right Tools -->
+                    <div class="flex items-center gap-2 border-l border-white/10 pl-4 ml-2">
+                        <!-- Notes Toggle -->
+                        <button @click="showNotes = !showNotes"
+                            class="p-2 rounded-lg transition-all flex items-center gap-2"
+                            :class="showNotes ? 'bg-yellow-500/20 text-yellow-300' : 'text-gray-400 hover:text-white'">
+                            <span class="text-lg">📝</span>
+                            <span class="hidden sm:inline text-xs font-bold">学习笔记</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar: Lesson List -->
+            <aside class="w-80 glass border-r border-white/10 overflow-y-auto">
+                <div class="p-6">
+                    <h2 class="text-2xl font-bold mb-2">{{ course.title }}</h2>
+                    <p class="text-sm text-gray-400 mb-6">{{ course.description }}</p>
+
+                    <!-- Progress -->
+                    <div class="mb-6">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span>学习进度</span>
+                            <span>{{ completedLessons }}/{{ totalLessons }}</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-fintech-gold to-fintech-orange transition-all duration-500"
+                                :style="{ width: progressPercentage + '%' }"></div>
+                        </div>
+                    </div>
+
+                    <!-- Lesson List -->
+                    <div class="space-y-2">
+                        <div v-for="(lesson, index) in lessons" :key="lesson.id" @click="selectLesson(lesson)"
+                            class="lesson-item p-4 rounded-xl cursor-pointer"
+                            :class="{ 'active': currentLesson?.id === lesson.id }">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                    :class="lesson.completed ? 'bg-green-500' : 'bg-gray-700'">
+                                    {{ lesson.completed ? '✓' : index + 1 }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-semibold text-sm mb-1">{{ lesson.title }}</h4>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                        <span>{{ getLessonTypeLabel(lesson.type) }}</span>
+                                        <span v-if="lesson.duration_seconds">• {{
+                                            formatDuration(lesson.duration_seconds) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main: Content Area -->
+            <main class="flex-1 overflow-y-auto bg-[#0a0a0a]">
+                <div class="max-w-5xl mx-auto p-8">
+                    <!-- Loading State -->
+                    <div v-if="loading" class="flex justify-center py-20">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+                    </div>
+
+                    <!-- Video Lesson -->
+                    <div v-else-if="currentLesson?.type === 'video'" class="space-y-6">
+                        <div class="aspect-video bg-black rounded-2xl overflow-hidden relative group">
+                            <iframe :src="getEmbedUrl(currentLesson.content_url)" class="w-full h-full" frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen
+                                sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
+                                referrerpolicy="no-referrer">
+                            </iframe>
+                        </div>
+
+                        <div>
+                            <h1 class="text-3xl font-bold mb-3">{{ currentLesson.title }}</h1>
+                            <div class="flex items-center gap-4 text-sm text-gray-400 mb-6">
+                                <span>📺 视频课程</span>
+                                <span>⏱️ {{ formatDuration(currentLesson.duration_seconds) }}</span>
+                                <span v-if="currentLesson.completed" class="text-green-400">✓ 已完成</span>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <button v-if="previousLesson" @click="selectLesson(previousLesson)"
+                                    class="px-6 py-3 rounded-xl glass hover:bg-white/10 transition-colors">
+                                    ← 上一课
+                                </button>
+                                <button @click="markAsCompleted"
+                                    class="px-6 py-3 rounded-xl bg-gradient-to-r from-fintech-gold to-fintech-orange text-black font-bold hover:scale-105 transition-transform"
+                                    :disabled="currentLesson.completed">
+                                    {{ currentLesson.completed ? '✓ 已完成' : '标记为完成' }}
+                                </button>
+                                <button v-if="nextLesson" @click="selectLesson(nextLesson)"
+                                    class="px-6 py-3 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform">
+                                    下一课 →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reading Lesson -->
+                    <div v-else-if="currentLesson?.type === 'reading'" class="glass rounded-2xl p-8">
+                        <h1 class="text-3xl font-bold mb-6">{{ currentLesson.title }}</h1>
+                        <div class="prose prose-invert max-w-none" v-html="renderMarkdown(currentLesson.content)"></div>
+                        <div class="mt-8 flex gap-4">
+                            <button v-if="previousLesson" @click="selectLesson(previousLesson)"
+                                class="px-6 py-3 rounded-xl glass hover:bg-white/10 transition-colors">
+                                ← 上一课
+                            </button>
+                            <button @click="markAsCompleted"
+                                class="px-6 py-3 rounded-xl bg-gradient-to-r from-fintech-gold to-fintech-orange text-black font-bold">
+                                标记为完成
+                            </button>
+                            <button v-if="nextLesson" @click="selectLesson(nextLesson)"
+                                class="px-6 py-3 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform">
+                                下一课 →
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Lesson -->
+                    <div v-else-if="currentLesson?.type === 'quiz'" class="max-w-3xl mx-auto">
+                        <div v-if="!quizStarted" class="text-center py-12">
+                            <h2 class="text-3xl font-bold mb-4">准备好接受挑战了吗？</h2>
+                            <p class="text-gray-400 mb-8">本测验将检查您对财商知识的掌握程度。</p>
+                            <button @click="startQuiz"
+                                class="px-8 py-3 bg-gradient-to-r from-fintech-gold to-fintech-orange rounded-full text-black font-bold">
+                                开始测验
+                            </button>
+                        </div>
+
+                        <div v-else-if="!quizCompleted" class="space-y-6">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-bold text-gray-500">问题 {{ currentQuestionIndex + 1 }} / {{
+                                    quizQuestions.length }}</span>
+                                <div class="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                    <div class="h-full bg-fintech-gold transition-all"
+                                        :style="{ width: ((currentQuestionIndex + 1) / quizQuestions.length * 100) + '%' }">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass rounded-2xl p-8">
+                                <h3 class="text-xl font-bold mb-6">{{ quizQuestions[currentQuestionIndex].text }}</h3>
+                                <div class="space-y-3">
+                                    <div v-for="(option, idx) in quizQuestions[currentQuestionIndex].options" :key="idx"
+                                        @click="selectOption(idx)"
+                                        class="p-4 rounded-xl border transition-all cursor-pointer"
+                                        :class="getOptionClass(idx)">
+                                        {{ option }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="hasAnsweredCurrent" class="flex justify-end">
+                                <button @click="nextQuestion"
+                                    class="px-6 py-2 bg-white text-black font-bold rounded-lg">
+                                    {{ currentQuestionIndex < quizQuestions.length - 1 ? '下一题' : '查看结果' }} </button>
+                            </div>
+                        </div>
+
+                        <div v-else class="text-center py-12">
+                            <div
+                                class="w-24 h-24 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center mx-auto mb-6">
+                                <span class="text-4xl font-black">{{ quizScore }}</span>
+                            </div>
+                            <h2 class="text-3xl font-bold mb-2">测验完成!</h2>
+                            <p class="text-gray-400 mb-8">您答对了 {{ correctAnswersCount }} / {{ quizQuestions.length }}
+                                道题目</p>
+                            <div class="flex justify-center gap-4">
+                                <button @click="resetQuiz"
+                                    class="px-6 py-2 border border-white/20 rounded-lg hover:bg-white/5">再试一次</button>
+                                <button @click="markAsCompleted"
+                                    class="px-6 py-2 bg-white text-black font-bold rounded-lg">完成课程</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Sidebar: Study Notes -->
+            <aside v-show="showNotes"
+                class="w-80 glass border-l border-white/10 flex flex-col transition-all duration-300 fixed right-0 top-0 h-full z-40 lg:relative lg:z-0 lg:h-auto">
+                <!-- Title Bar -->
+                <div class="h-16 border-b border-yellow-500/20 flex items-center justify-between px-4 bg-black/20">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">📝</span>
+                        <h3 class="font-bold text-sm text-yellow-100">学习笔记</h3>
+                    </div>
+                    <button @click="showNotes = false" class="lg:hidden p-1 hover:bg-white/10 rounded">✕</button>
+                </div>
+
+                <!-- Notes Content -->
+                <div class="flex-1 p-4 flex flex-col gap-4">
+                    <div class="text-xs text-gray-400 flex justify-between">
+                        <span>Lesson {{ currentLesson?.id }}</span>
+                        <span>{{ currentLesson?.title ? currentLesson.title.substring(0, 15) + '...' : '' }}</span>
+                    </div>
+                    <textarea v-model="currentNote"
+                        class="flex-1 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:border-yellow-500/50 resize-none leading-relaxed font-mono"
+                        placeholder="在此记录您的学习心得... &#10;内容将自动保存至本地。"></textarea>
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs transition-colors"
+                            :class="notesStatus ? 'text-green-400' : 'text-gray-600'">
+                            {{ notesStatus || '支持自动保存' }}
+                        </span>
+                        <button @click="saveNote"
+                            class="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-300 text-sm font-bold rounded-lg transition-colors border border-yellow-500/30">
+                            保存笔记
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                // State
+                const loading = ref(true);
+                const course = ref({});
+                const lessons = ref([]);
+                const currentLesson = ref(null);
+
+                // UI State
+                const showNotes = ref(false);
+
+                // Notes State
+                const currentNote = ref('');
+                const notesStatus = ref('');
+
+                // Quiz State
+                const quizStarted = ref(false);
+                const quizCompleted = ref(false);
+                const quizQuestions = ref([]);
+                const currentQuestionIndex = ref(0);
+                const selectedOptionIndex = ref(null);
+                const hasAnsweredCurrent = ref(false);
+                const quizScore = ref(0);
+                const correctAnswersCount = ref(0);
+
+                // Computed
+                const totalLessons = computed(() => lessons.value.length);
+                const completedLessons = computed(() => lessons.value.filter(l => l.completed).length);
+                const progressPercentage = computed(() => {
+                    if (totalLessons.value === 0) return 0;
+                    return Math.round((completedLessons.value / totalLessons.value) * 100);
+                });
+
+                const previousLesson = computed(() => {
+                    if (!currentLesson.value) return null;
+                    const idx = lessons.value.findIndex(l => l.id === currentLesson.value.id);
+                    return idx > 0 ? lessons.value[idx - 1] : null;
+                });
+
+                const nextLesson = computed(() => {
+                    if (!currentLesson.value) return null;
+                    const idx = lessons.value.findIndex(l => l.id === currentLesson.value.id);
+                    return idx < lessons.value.length - 1 ? lessons.value[idx + 1] : null;
+                });
+
+                // Methods
+                const loadCourseData = async () => {
+                    loading.value = true;
+                    try {
+                        const resp = await fetch('assets/data/course-fintech.json');
+                        const data = await resp.json();
+                        course.value = {
+                            title: data.title,
+                            description: data.description
+                        };
+                        lessons.value = data.lessons.map(l => ({
+                            ...l,
+                            completed: localStorage.getItem(`fintech_lesson_${l.id}`) === 'true'
+                        }));
+                        if (lessons.value.length > 0) {
+                            currentLesson.value = lessons.value[0];
+                        }
+                    } catch (e) {
+                        console.error('Failed to load course data:', e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const selectLesson = (lesson) => {
+                    currentLesson.value = lesson;
+                    loadNote();
+                    // Reset quiz state
+                    quizStarted.value = false;
+                    quizCompleted.value = false;
+                    currentQuestionIndex.value = 0;
+                    selectedOptionIndex.value = null;
+                    hasAnsweredCurrent.value = false;
+                };
+
+                const markAsCompleted = () => {
+                    if (!currentLesson.value) return;
+                    currentLesson.value.completed = true;
+                    localStorage.setItem(`fintech_lesson_${currentLesson.value.id}`, 'true');
+                    // Auto-advance to next lesson
+                    if (nextLesson.value) {
+                        setTimeout(() => selectLesson(nextLesson.value), 1000);
+                    }
+                };
+
+                const getLessonTypeLabel = (type) => {
+                    const labels = {
+                        'video': '📺 视频',
+                        'reading': '📖 阅读',
+                        'quiz': '📝 测验',
+                        'code': '💻 编程'
+                    };
+                    return labels[type] || type;
+                };
+
+                const formatDuration = (seconds) => {
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                };
+
+                const getEmbedUrl = (url) => {
+                    if (url.includes('bilibili.com')) {
+                        const bvMatch = url.match(/BV[\w]+/);
+                        if (bvMatch) {
+                            return `https://player.bilibili.com/player.html?bvid=${bvMatch[0]}&high_quality=1`;
+                        }
+                    }
+                    return url;
+                };
+
+                const renderMarkdown = (content) => {
+                    if (!content) return '';
+                    return marked.parse(content);
+                };
+
+                // Notes Methods
+                const loadNote = () => {
+                    if (!currentLesson.value) return;
+                    const key = `note_fintech_${currentLesson.value.id}`;
+                    currentNote.value = localStorage.getItem(key) || '';
+                    notesStatus.value = '';
+                };
+
+                const saveNote = () => {
+                    if (!currentLesson.value) return;
+                    const key = `note_fintech_${currentLesson.value.id}`;
+                    localStorage.setItem(key, currentNote.value);
+                    notesStatus.value = '已保存';
+                    setTimeout(() => notesStatus.value = '', 2000);
+                };
+
+                // Quiz Methods
+                const startQuiz = () => {
+                    if (!currentLesson.value?.content?.questions) return;
+                    quizQuestions.value = currentLesson.value.content.questions;
+                    quizStarted.value = true;
+                    currentQuestionIndex.value = 0;
+                    selectedOptionIndex.value = null;
+                    hasAnsweredCurrent.value = false;
+                    correctAnswersCount.value = 0;
+                };
+
+                const selectOption = (idx) => {
+                    if (hasAnsweredCurrent.value) return;
+                    selectedOptionIndex.value = idx;
+                    hasAnsweredCurrent.value = true;
+                    if (idx === quizQuestions.value[currentQuestionIndex.value].correctIndex) {
+                        correctAnswersCount.value++;
+                    }
+                };
+
+                const getOptionClass = (idx) => {
+                    if (!hasAnsweredCurrent.value) {
+                        return 'border-white/10 hover:border-amber-500/50 hover:bg-amber-500/10';
+                    }
+                    const correct = quizQuestions.value[currentQuestionIndex.value].correctIndex;
+                    if (idx === correct) {
+                        return 'border-green-500 bg-green-500/20';
+                    }
+                    if (idx === selectedOptionIndex.value) {
+                        return 'border-red-500 bg-red-500/20';
+                    }
+                    return 'border-white/10 opacity-50';
+                };
+
+                const nextQuestion = () => {
+                    if (currentQuestionIndex.value < quizQuestions.value.length - 1) {
+                        currentQuestionIndex.value++;
+                        selectedOptionIndex.value = null;
+                        hasAnsweredCurrent.value = false;
+                    } else {
+                        quizCompleted.value = true;
+                        quizScore.value = Math.round((correctAnswersCount.value / quizQuestions.value.length) * 100);
+                    }
+                };
+
+                const resetQuiz = () => {
+                    quizStarted.value = false;
+                    quizCompleted.value = false;
+                    currentQuestionIndex.value = 0;
+                    selectedOptionIndex.value = null;
+                    hasAnsweredCurrent.value = false;
+                    correctAnswersCount.value = 0;
+                };
+
+                // Watchers
+                watch(currentLesson, () => {
+                    loadNote();
+                });
+
+                // Initial Load
+                onMounted(() => {
+                    loadCourseData();
+                });
+
+                return {
+                    loading,
+                    course,
+                    lessons,
+                    currentLesson,
+                    showNotes,
+                    currentNote,
+                    notesStatus,
+                    quizStarted,
+                    quizCompleted,
+                    quizQuestions,
+                    currentQuestionIndex,
+                    selectedOptionIndex,
+                    hasAnsweredCurrent,
+                    quizScore,
+                    correctAnswersCount,
+                    totalLessons,
+                    completedLessons,
+                    progressPercentage,
+                    previousLesson,
+                    nextLesson,
+                    selectLesson,
+                    markAsCompleted,
+                    getLessonTypeLabel,
+                    formatDuration,
+                    getEmbedUrl,
+                    renderMarkdown,
+                    loadNote,
+                    saveNote,
+                    startQuiz,
+                    selectOption,
+                    getOptionClass,
+                    nextQuestion,
+                    resetQuiz
+                };
+            }
+        });
+
+        app.mount('#app');
+    </script>
+
+<!-- TITAN AI ASSISTANT -->
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.22_2"></script>
+</body>
+
+</html>
