@@ -1812,6 +1812,24 @@ ${currentFullContent}
         this.setSendButtonState('stop');
 
         try {
+            // Build limit-safe conversation history to prevent Token limit exceeded
+            let apiMessages = [];
+            if (this.chatHistory.length > 0 && this.chatHistory[0].role === 'system') {
+                apiMessages.push(this.chatHistory[0]);
+            }
+            const historyNoSys = this.chatHistory.filter(m => m.role !== 'system');
+            const recentMessages = historyNoSys.slice(-10); // 仅保留最近10条对话
+            
+            const cleanedRecentMessages = recentMessages.map((msg, idx) => {
+                if (msg.role === 'user' && Array.isArray(msg.content) && idx !== recentMessages.length - 1) {
+                    // 仅对非最后一轮的多模态消息提纯文本，丢弃Base64图文音频文件，节省上下文 Token 防崩溃
+                    const textObj = msg.content.find(c => c.type === 'text');
+                    return { role: 'user', content: (textObj ? textObj.text : '') + '\n[过往历史媒体附件已折叠]' };
+                }
+                return msg;
+            });
+            apiMessages = apiMessages.concat(cleanedRecentMessages);
+
             const response = await fetch(this.settings.endpoint, {
                 method: 'POST',
                 signal: this.currentAbortController.signal,
@@ -1821,7 +1839,7 @@ ${currentFullContent}
                 },
                 body: JSON.stringify({
                     model: this.settings.model,
-                    messages: this.chatHistory,
+                    messages: apiMessages,
                     temperature: 0.7,
                     max_tokens: 1500
                 })
