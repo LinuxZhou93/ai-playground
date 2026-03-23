@@ -1060,6 +1060,21 @@ class TitanAIAssistant {
         } catch (e) { }
     }
 
+    _updateFileReadyUI(filename) {
+        if (this.pendingImageDataUrl) {
+            this.pendingHint.innerText = `📄 文件「${filename}」与图片融合就绪...`;
+            this.pendingImg.src = this.pendingImageDataUrl;
+        } else {
+            // 给文档文件一个白色方块占位图作为视觉提示
+            this.pendingImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
+            this.pendingHint.innerText = `📄 文件「${filename}」读取完毕...`;
+        }
+        this.pendingArea.style.display = 'flex';
+        
+        if (!this.isChatOpen) this.fab.click();
+        this.input.focus();
+    }
+
     async handleFileUpload(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -1070,26 +1085,88 @@ class TitanAIAssistant {
                 this.pendingImageDataUrl = ev.target.result;
                 this.pendingImg.src = this.pendingImageDataUrl;
                 this.pendingArea.style.display = 'flex';
-                this.pendingHint.innerText = `📸 相册图片「${file.name}」已就绪...`;
+                if (this.pendingTextData) {
+                    this.pendingHint.innerText = `📸 图片与已传文档融合就绪...`;
+                } else {
+                    this.pendingHint.innerText = `📸 相册图片「${file.name}」已就绪...`;
+                }
                 
                 if (!this.isChatOpen) this.fab.click();
                 this.input.focus();
             };
             reader.readAsDataURL(file);
+        } else if (file.name.toLowerCase().endsWith('.docx')) {
+            const reader = new FileReader();
+            this.pendingHint.innerText = `📄 正在自动加载 Word 智能解析引擎...`;
+            this.pendingArea.style.display = 'flex';
+            if (!this.isChatOpen) this.fab.click();
+            
+            reader.onload = async (ev) => {
+                try {
+                    if (!window.mammoth) {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                    }
+                    const result = await window.mammoth.extractRawText({ arrayBuffer: ev.target.result });
+                    const content = result.value.substring(0, 5000) || '(文档内容为空或全部是图片无法进行文本识别)';
+                    this.pendingTextData = `【文件解析：${file.name}】\n内容摘要：\n${content}`;
+                    this._updateFileReadyUI(file.name);
+                } catch (err) {
+                    console.error('DOCX 解析失败:', err);
+                    this.pendingTextData = `【文件解析：${file.name}】\n内容解析失败，可能是已加密或格式异常的文稿。`;
+                    this._updateFileReadyUI(file.name);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        } else if (file.name.toLowerCase().endsWith('.pdf')) {
+            const reader = new FileReader();
+            this.pendingHint.innerText = `📄 正在自动外挂 PDF 机器视觉解析引擎...`;
+            this.pendingArea.style.display = 'flex';
+            if (!this.isChatOpen) this.fab.click();
+            
+            reader.onload = async (ev) => {
+                try {
+                    if (!window.pdfjsLib) {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+                    }
+                    
+                    const loadingTask = window.pdfjsLib.getDocument({ data: new Uint8Array(ev.target.result) });
+                    const pdfDocument = await loadingTask.promise;
+                    let fullText = '';
+                    const maxPages = Math.min(pdfDocument.numPages, 10); // 截取前10页进行高速解析
+                    for (let i = 1; i <= maxPages; i++) {
+                        const page = await pdfDocument.getPage(i);
+                        const textContent = await page.getTextContent();
+                        fullText += textContent.items.map(item => item.str).join(' ') + '\\n';
+                    }
+                    const content = fullText.substring(0, 6000) || '(文档内容无法提取，可能为纯图像扫描件)';
+                    this.pendingTextData = `【文件解析：${file.name}】\n内容摘要：\n${content}`;
+                    this._updateFileReadyUI(file.name);
+                } catch (err) {
+                    console.error('PDF 解析失败:', err);
+                    this.pendingTextData = `【文件解析：${file.name}】\n内容解析失败，可能已被加密、设权或文档已顺坏。`;
+                    this._updateFileReadyUI(file.name);
+                }
+            };
+            reader.readAsArrayBuffer(file);
         } else {
             const reader = new FileReader();
             reader.onload = (ev) => {
-                const content = ev.target.result.substring(0, 5000); // 防超长截断
+                const content = ev.target.result.substring(0, 6000); // 防超长截断
                 this.pendingTextData = `【文件解析：${file.name}】\n内容摘要：\n${content}`;
-                
-                // 给文档文件一个白色方块占位图作为视觉提示
-                this.pendingImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
-                this.pendingImageDataUrl = null; 
-                this.pendingArea.style.display = 'flex';
-                this.pendingHint.innerText = `📄 文件「${file.name}」读取完毕...`;
-                
-                if (!this.isChatOpen) this.fab.click();
-                this.input.focus();
+                this._updateFileReadyUI(file.name);
             };
             reader.readAsText(file);
         }
@@ -1329,14 +1406,26 @@ class TitanAIAssistant {
         const hasImage = !!this.pendingImageDataUrl;
         let pureImgBase64 = null;
         
+        const hasFile = !!this.pendingTextData;
+        let fileTextPromptPart = '';
+
+        if (hasFile) {
+            pendingImgHTML += `<div style="background:rgba(255,255,255,0.1);padding:8px;border-radius:4px;margin-bottom:8px;font-size:12px;">📄 已附加文档内容</div>`;
+            fileTextPromptPart = `[附加文档资料]\n${this.pendingTextData}\n\n`;
+            this.pendingTextData = null;
+            this.pendingArea.style.display = 'none';
+        }
+
         if (hasImage) {
-            pendingImgHTML = `<img src="${this.pendingImageDataUrl}" class="ai-image-preview" style="margin-bottom: 8px;" />`;
+            pendingImgHTML += `<img src="${this.pendingImageDataUrl}" class="ai-image-preview" style="margin-bottom: 8px;" />`;
             pureImgBase64 = this.pendingImageDataUrl.split(',')[1];
             
             // 清理本地存根
             this.pendingImageDataUrl = null;
             this.pendingArea.style.display = 'none';
         }
+
+        if (this.fileInput) this.fileInput.value = '';
 
         this.lastInputWasVoice = true; // 标记这是语音请求
         this.appendMessage('user', pendingImgHTML + voiceHTML, true);
@@ -1347,14 +1436,21 @@ class TitanAIAssistant {
         reader.onloadend = async () => {
             const base64Audio = reader.result.split(',')[1];
             
-            // Format for Gemini Audio using standard API mapping if supported
-            // Using standard input_audio or multimodal image_url based on proxy features 
-            // Here we send the image_url schema (Data URI) which is very commonly natively mapped 
-            // by OneAPI/NewAPI to inlineData for Gemini multimodal models.
+            let systemPromptText = '请听这段语音并根据语音内容回答我的问题。';
+            if (hasImage && hasFile) {
+                systemPromptText = '请听这段语音并结合照片里的视觉画面、以及附加的文档内容来联合回答我的提问。';
+            } else if (hasImage) {
+                systemPromptText = '请听这段语音并结合照片里的视觉画面来联合回答我的提问。';
+            } else if (hasFile) {
+                systemPromptText = '请听这段语音并结合附加的文档内容来联合回答我的提问。';
+            }
+
+            systemPromptText = fileTextPromptPart + systemPromptText;
+
             const userMessage = {
                 role: 'user',
                 content: [
-                    { type: 'text', text: hasImage ? '请听这段语音并结合照片里的视觉画面来联合回答我的提问。' : '请听这段语音并根据语音内容回答我的问题。' }
+                    { type: 'text', text: systemPromptText }
                 ]
             };
             
@@ -1431,7 +1527,11 @@ class TitanAIAssistant {
         // 仅保存在待发送预览区（Pending），等待用户输入提示词合并发出
         this.pendingImageDataUrl = dataURL;
         this.pendingImg.src = dataURL;
-        this.pendingHint.innerText = '📸 画面已锁定，随时发送...';
+        if (this.pendingTextData) {
+             this.pendingHint.innerText = '📸 画面与已传文档融合锁定，随时发送...';
+        } else {
+             this.pendingHint.innerText = '📸 画面已锁定，随时发送...';
+        }
         this.pendingArea.style.display = 'flex';
         
         if (!this.isChatOpen) this.fab.click();
@@ -1744,31 +1844,45 @@ ${currentFullContent}
         this.lastInputWasVoice = false;
         
         if (hasFile && !hasImage) {
-            let combinedText = `[用户发送了文件]\n${this.pendingTextData}\n\n[用户问题]: ${text || '请帮我总结并分析这份文件的核心要点。'}`;
-            this.appendMessage('user', `<div style="background:rgba(255,255,255,0.1);padding:8px;border-radius:4px;margin-bottom:8px;font-size:12px;">📄 已上传文档附录</div><div>${text || '帮我看看这份文件的内容'}</div>`, true);
+            let combinedText = `[附加文档资料]\n${this.pendingTextData}\n\n[用户问题]: ${text || '请分析附加的文件内容。'}`;
+            let htmlMsg = `<div style="background:rgba(255,255,255,0.1);padding:8px;border-radius:4px;margin-bottom:8px;font-size:12px;">📄 已附加文档内容</div><div>${text || '帮我看看这份文件的内容'}</div>`;
+            this.appendMessage('user', htmlMsg, true);
             userMessageObject = { role: 'user', content: combinedText };
             this.pendingTextData = null;
             this.pendingArea.style.display = 'none';
             if (this.fileInput) this.fileInput.value = '';
         } else if (hasImage) {
-            // 解析出不带前缀的纯 base64，如果是 Gemini 常规图片管道有时候也可能直接吃带前缀的。
-            // 按照我们之前的兼容逻辑，一般分离。
+            // 支持同时有文件和图片
             const pureBase64 = this.pendingImageDataUrl.split(',')[1];
             
-            let baseTextHTML = text ? `<div style="margin-top:8px;">${text}</div>` : '';
-            let htmlMsg = `<img src="${this.pendingImageDataUrl}" class="ai-image-preview" />${baseTextHTML}`;
+            let htmlMsg = `<img src="${this.pendingImageDataUrl}" class="ai-image-preview" style="margin-bottom:8px; display:block;" />`;
+            if (hasFile) {
+                htmlMsg += `<div style="background:rgba(255,255,255,0.1);padding:8px;border-radius:4px;margin-bottom:8px;font-size:12px;">📄 并且附加了文档内容</div>`;
+            }
+            if (text) {
+                htmlMsg += `<div>${text}</div>`;
+            } else if (hasFile) {
+                htmlMsg += `<div>请分析这幅画面及附加文件。</div>`;
+            }
             this.appendMessage('user', htmlMsg, true);
             
+            let aiTextPrompt = text || '请看这幅照片。如果画面中有学生搭建的物理机械结构（例如杠杆、齿轮传动、器材）或其他现象，请结合科普原理解答，帮我解决当下的疑惑。';
+            if (hasFile) {
+                aiTextPrompt = `[附加文档资料]\n${this.pendingTextData}\n\n[用户问题]: ${aiTextPrompt}`;
+            }
+
             userMessageObject = {
                 role: 'user',
                 content: [
-                    { type: 'text', text: text || '请看这幅照片。如果画面中有学生搭建的物理机械结构（例如杠杆、齿轮传动、器材）或其他现象，请结合科普原理解答，帮我解决当下的疑惑。' },
+                    { type: 'text', text: aiTextPrompt },
                     { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${pureBase64}` } }
                 ]
             };
             
             this.pendingImageDataUrl = null;
+            this.pendingTextData = null;
             this.pendingArea.style.display = 'none';
+            if (this.fileInput) this.fileInput.value = '';
         } else {
             this.appendMessage('user', text);
             userMessageObject = { role: 'user', content: text };
@@ -1777,7 +1891,9 @@ ${currentFullContent}
         this.playHapticSound('send');
         
         // 分发成就积分及飘字
-        if (hasImage) {
+        if (hasImage && hasFile) {
+            this.awardPoints(30, '超维度多模态发问');
+        } else if (hasImage) {
             this.awardPoints(15, '深度全景图发问');
         } else if (hasFile) {
             this.awardPoints(20, '极客文档分析');
