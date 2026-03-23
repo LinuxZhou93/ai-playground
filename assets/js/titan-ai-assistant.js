@@ -714,6 +714,20 @@ class TitanAIAssistant {
                 0%, 100% { transform: translateY(0); opacity: 0.4; }
                 50% { transform: translateY(-4px); opacity: 1; }
             }
+            .typing-status {
+                font-size: 11px;
+                color: #38bdf8;
+                font-family: 'Orbitron', sans-serif;
+                margin-left: 8px;
+                opacity: 0.8;
+                font-weight: bold;
+                letter-spacing: 0.5px;
+                animation: status-pulse 1.5s infinite alternate;
+            }
+            @keyframes status-pulse {
+                from { opacity: 0.5; filter: blur(0px); }
+                to { opacity: 1; filter: blur(0.3px); }
+            }
             .ai-chips-wrapper {
                 padding: 0 16px 8px 16px;
                 display: flex; gap: 8px; overflow-x: auto;
@@ -2065,7 +2079,10 @@ ${currentFullContent}
         
         // Remove typing indicator if exists
         const typing = document.getElementById('ai-typing-indicator');
-        if (typing) typing.remove();
+        if (typing) {
+            if (this.typingStatusTimer) clearInterval(this.typingStatusTimer);
+            typing.remove();
+        }
         
         this.chatArea.appendChild(rowDiv);
         this.scrollToBottom(true);
@@ -2082,13 +2099,44 @@ ${currentFullContent}
         const avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
         const msgDiv = document.createElement('div');
         msgDiv.className = 'msg msg-ai typing-indicator';
-        msgDiv.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
+        
+        const statusPhrases = [
+            '🌐 系统神经元激活中...',
+            '🛰️ 正在同步卫星科创库...',
+            '🧬 智库 RAG 关联性检索...',
+            '🧩 正在重构硬核工程方案...',
+            '🛠️ 模块化知识体拼装中...',
+            '📡 深度扫描页面上下文...',
+            '⚡ 正在注入逻辑流分析...'
+        ];
+        
+        msgDiv.innerHTML = `
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <span class="typing-status" id="ai-typing-status" style="transition: opacity 0.3s;">${statusPhrases[0]}</span>
+        `;
         
         rowDiv.innerHTML = avatarHTML;
         rowDiv.appendChild(msgDiv);
-        
         this.chatArea.appendChild(rowDiv);
         this.scrollToBottom(true);
+
+        // 启动流式提示词轮播定时器
+        let phraseIdx = 0;
+        this.typingStatusTimer = setInterval(() => {
+            const statusEl = document.getElementById('ai-typing-status');
+            if (statusEl) {
+                phraseIdx = (phraseIdx + 1) % statusPhrases.length;
+                statusEl.style.opacity = '0';
+                setTimeout(() => {
+                    statusEl.innerText = statusPhrases[phraseIdx];
+                    statusEl.style.opacity = '1';
+                }, 300);
+            } else {
+                clearInterval(this.typingStatusTimer);
+            }
+        }, 1800);
     }
 
     setSendButtonState(state) {
@@ -2295,29 +2343,23 @@ ${currentFullContent}
         if(!chipsContainer) return;
         
         let customChips = [];
-        // --- 开始提取上下文连贯的动态子问题 (Dynamic Action Chips Extraction) ---
+        // --- 动态子问题提取 (Dynamic Action Chips Extraction) ---
         if (lastResponseText) {
             const lines = lastResponseText.split('\n');
-            console.log('[SmartChips] 正在扫描 AI 回复的', lines.length, '行文本...');
-            lines.forEach((line, idx) => {
+            lines.forEach(line => {
                 line = line.trim();
-                if (!line) return; // 跳过空行
+                if (!line) return;
                 const hasQ = line.includes('？') || line.includes('?');
-                // 放宽提取条件：只要含问号且不超长，都视为追问选项
-                if (hasQ && line.length > 5 && line.length < 150) {
-                    // 深度清洗前置符号、数字序号以及 Markdown 强调符 (**, `) 
+                if (hasQ && line.length > 5 && line.length < 120) {
                     let cleanQ = line.replace(/^[\-\*1-9\.\s>]+/, '').replace(/[\*_\`\#\"""]/g, '').trim();
-                    console.log(`[SmartChips] 第${idx}行命中: "${cleanQ.substring(0, 40)}..."`);
                     if (cleanQ.length > 4) {
                         customChips.push({
-                            label: `🎯 ${cleanQ.length > 16 ? cleanQ.substring(0, 15) + '…' : cleanQ}`,
+                            label: `🎯 ${cleanQ.length > 18 ? cleanQ.substring(0, 17) + '…' : cleanQ}`,
                             prompt: cleanQ
                         });
                     }
                 }
             });
-            console.log('[SmartChips] 共提取到', customChips.length, '个动态磁片');
-            // 限制最多提取最新的3个选项以防霸屏
             if (customChips.length > 3) customChips = customChips.slice(-3);
         }
 
