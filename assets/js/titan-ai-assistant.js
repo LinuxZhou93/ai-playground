@@ -2544,6 +2544,7 @@ ${currentFullContent}
 4. **多维可视化 (Visual Synergy)**：
    - **Mermaid 架构图 (10.x)**：逻辑流、软件架构或状态机，必须使用 \`\`\`mermaid 标识符开启，禁止夹杂废话代码。
    - **极客 ASCII 工程图 (Mechanical Grade)**：针对机械原理，输出高精度 ASCII。
+   - **AI 动态配图与绘画**：当需要展示实物照片、解释视觉概念或用户主动要求“画一张图”、“看照片”时，你无需调用外部工具，必须直接使用 Markdown 图片语法调用强大的 AI 实时绘图引擎。格式必须为：\`![图片描述](https://image.pollinations.ai/prompt/{一段极度详细、充满画面细节、光影氛围的英文Prompt}?width=800&height=400&nologo=true)\`。
 5. **超链接引用**：使用 Markdown 标准语法 \`[名称](URL)\` 提供文档链接。`;
 
         // Init context if empty
