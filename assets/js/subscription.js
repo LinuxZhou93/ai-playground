@@ -82,13 +82,15 @@ const SubscriptionManager = {
         if (!this.user) return;
 
         try {
-            const { data, error } = await this.client
+            const { data: list, error } = await this.client
                 .from('profiles')
                 .select('*')
                 .eq('id', this.user.id)
-                .single();
+                .limit(1);
 
-            if (error && error.code !== 'PGRST116') {
+            const data = (list && list.length > 0) ? list[0] : null;
+            
+            if (error) {
                 console.error('Error fetching profile:', error);
                 return;
             }
@@ -309,11 +311,13 @@ const SubscriptionManager = {
 
         try {
             // 1. Fetch Voucher (Case insensitive comparison already handled by .toUpperCase())
-            const { data: voucher, error: vError } = await this.client
+            const { data: list, error: vError } = await this.client
                 .from('vouchers')
                 .select('*')
                 .eq('code', code)
-                .single();
+                .limit(1);
+            
+            const voucher = (list && list.length > 0) ? list[0] : null;
 
             if (vError) {
                 console.error('Database query error:', vError);

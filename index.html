@@ -1533,11 +1533,13 @@
                     const client = manager.client;
                     if (client) {
                         // Fetch Dashboard Data (Level & Badges & Avatar)
-                        const { data: dashData } = await client
+                        const { data: list } = await client
                             .from('user_dashboard_data')
                             .select('current_level, badges_earned, username, avatar_url')
                             .eq('username', user.email)
-                            .single();
+                            .limit(1);
+                        
+                        const dashData = (list && list.length > 0) ? list[0] : null;
 
                         if (dashData) {
                             // Update Name & Level
@@ -2311,11 +2313,12 @@
             let d = null;
             if (currentUserEmail && window.SubscriptionManager?.client) {
                 try {
-                    const { data } = await window.SubscriptionManager.client
+                    const { data: list } = await window.SubscriptionManager.client
                         .from('user_dashboard_data')
                         .select('*')
                         .eq('username', currentUserEmail)
-                        .single();
+                        .limit(1);
+                    const data = (list && list.length > 0) ? list[0] : null;
                     if (data) {
                         d = data;
                         localStorage.setItem('local_dashboard_data', JSON.stringify(data));
@@ -2403,9 +2406,9 @@
             reader.readAsDataURL(file);
         }
 
-        // Run Sync Loop (Adjusted for async)
-        setInterval(updateDashboardFromStorage, 2000); // Poll slower for network
+        // Run Sync (Once on load + Event based)
         setTimeout(updateDashboardFromStorage, 100); // Immediate
+        window.addEventListener('subscription_updated', updateDashboardFromStorage);
 
         const ctx = canvas.getContext('2d');
         let w, h, particles = [];

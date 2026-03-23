@@ -174,8 +174,6 @@
                 repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255, 255, 255, .02) 10px, rgba(255, 255, 255, .02) 20px);
         }
     </style>
-    <link rel="stylesheet" href="assets/css/ai-assistant.css">
-
     <link rel="stylesheet" href="assets/css/titan-core.css">
 </head>
 
@@ -668,56 +666,6 @@
             </div>
         </footer>
 
-        <!-- AI Sidebar (Integrated) -->
-        <aside
-            class="fixed right-0 top-16 bottom-0 w-80 glass border-l border-white/10 z-40 transform transition-transform duration-300 flex flex-col"
-            :class="showAI ? 'translate-x-0' : 'translate-x-full'">
-
-            <!-- Header -->
-            <div class="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">🤖</span>
-                    <h3 class="font-bold text-gray-200">课程推荐顾问</h3>
-                </div>
-                <button @click="showAI = false" class="text-gray-400 hover:text-white">✕</button>
-            </div>
-
-            <!-- Chat Area -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="chatContainer">
-                <div v-for="(msg, i) in aiMessages" :key="i" class="flex gap-3"
-                    :class="{'flex-row-reverse': msg.role === 'user'}">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                        :class="msg.role === 'assistant' ? 'bg-odyssey-purple/20 border border-odyssey-purple/50' : 'bg-gray-700'">
-                        <span v-if="msg.role === 'assistant'">AI</span>
-                        <span v-else>Me</span>
-                    </div>
-                    <div class="p-3 rounded-2xl text-sm max-w-[85%]"
-                        :class="msg.role === 'assistant' ? 'bg-odyssey-purple/10 text-gray-200 border border-odyssey-purple/20' : 'bg-white text-black'">
-                        {{ msg.content }}
-                    </div>
-                </div>
-                <div v-if="aiLoading" class="flex gap-2 text-gray-500 text-xs items-center">
-                    <span class="animate-spin">⏳</span> 思考中...
-                </div>
-            </div>
-
-            <!-- Input -->
-            <div class="p-4 border-t border-white/10 bg-black/40">
-                <div class="relative">
-                    <input v-model="userInput" @keyup.enter="sendMessage" type="text" placeholder="推荐一些编程课..."
-                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:border-odyssey-purple text-white">
-                    <button @click="sendMessage"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 text-odyssey-purple hover:scale-110 transition-transform">➤</button>
-                </div>
-            </div>
-        </aside>
-
-        <!-- AI Toggle Button -->
-        <button v-if="!showAI" @click="showAI = true"
-            class="fixed right-6 bottom-6 w-14 h-14 rounded-full bg-gradient-to-r from-odyssey-purple to-odyssey-pink flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-50">
-            <span class="text-2xl">🤖</span>
-        </button>
-
     </div>
 
     <script>
@@ -730,16 +678,6 @@
             setup() {
                 const user = ref(null);
                 const scrolled = ref(false);
-
-                // AI Assistant State
-                const showAI = ref(true);
-                const userInput = ref('');
-                const aiMessages = ref([{
-                    role: 'assistant',
-                    content: '你好！我是课程推荐顾问。想学点什么？我可以根据你的兴趣为你推荐课程，比如“我喜欢机器人”或“我想学生物”。'
-                }]);
-                const aiLoading = ref(false);
-                const chatContainer = ref(null);
 
                 // Course Data
                 const courses = ref([]);
@@ -1204,55 +1142,6 @@
                     return colors[categoryId] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
                 };
 
-                // AI Chat Methods
-                const sendMessage = async () => {
-                    const message = userInput.value.trim();
-                    if (!message || aiLoading.value) return;
-
-                    aiMessages.value.push({ role: 'user', content: message });
-                    userInput.value = '';
-                    aiLoading.value = true;
-
-                    // Auto-scroll
-                    setTimeout(() => {
-                        if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-                    }, 100);
-
-                    try {
-                        const context = `你是一个科技教育平台的课程顾问。已有课程包括：AI人工智能、编程基础、机器人、设计、科学、游戏开发、古生物(恐龙)、天文、海洋、生命科学、军事科技。请根据用户兴趣推荐最合适的课程。用亲切、专业的语气回答。`;
-
-                        // Using DeepSeek Proxy (Standardized)
-                        const response = await fetch('http://localhost:3000/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': 'Bearer sk-21128a0cda4e4cc39f7c05c330f355ce'
-                            },
-                            body: JSON.stringify({
-                                model: 'deepseek-chat',
-                                messages: [
-                                    { role: 'system', content: context },
-                                    ...aiMessages.value.map(m => ({ role: m.role, content: m.content })).slice(-5), // Keep context small
-                                    { role: 'user', content: message }
-                                ],
-                                stream: false
-                            })
-                        });
-
-                        const data = await response.json();
-                        const answer = data.choices[0].message.content;
-
-                        aiMessages.value.push({ role: 'assistant', content: answer });
-
-                    } catch (e) {
-                        aiMessages.value.push({ role: 'assistant', content: '抱歉，我现在有点忙，请稍后再试。' });
-                    } finally {
-                        aiLoading.value = false;
-                        setTimeout(() => {
-                            if (chatContainer.value) chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-                        }, 100);
-                    }
-                };
 
                 onMounted(async () => {
                     // Use shared getCurrentUser helper to get profile data including avatar
@@ -1292,14 +1181,7 @@
                     scrollToCourses,
                     getDifficultyLabel,
                     getCategoryName,
-                    getCategoryColor,
-                    // AI
-                    showAI,
-                    userInput,
-                    aiMessages,
-                    aiLoading,
-                    sendMessage,
-                    chatContainer
+                    getCategoryColor
                 };
             }
         }).mount('#app');
