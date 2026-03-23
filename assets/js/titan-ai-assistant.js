@@ -428,6 +428,8 @@ class TitanAIAssistant {
                 flex-direction: column;
                 gap: 16px;
                 scroll-behavior: smooth;
+                pointer-events: auto !important; /* 全局开启接收指针的能力 */
+                user-select: text !important;
             }
             .ai-chat-area::-webkit-scrollbar {
                 width: 5px;
@@ -497,8 +499,11 @@ class TitanAIAssistant {
                 letter-spacing: 0.3px;
                 word-wrap: break-word;
                 white-space: pre-wrap;
-                user-select: text !important; /* 强制开启选择能力，方便笔记复制 */
+                user-select: text !important;
                 -webkit-user-select: text !important;
+                pointer-events: all !important; /* 确保指针能点到文字 */
+                position: relative;
+                z-index: 5; /* 提升层级，防止被背景装饰遮挡 */
             }
             .msg-user {
                 background: rgba(56, 189, 248, 0.15);
@@ -517,8 +522,10 @@ class TitanAIAssistant {
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
                 user-select: text !important;
                 -webkit-user-select: text !important;
+                pointer-events: all !important;
             }
-            .msg-ai *::selection { background: rgba(14, 165, 233, 0.6); color: #fff; }
+            .msg-ai ::selection { background: rgba(56, 189, 248, 0.5) !important; color: #fff !important; }
+            .msg-user ::selection { background: rgba(14, 165, 233, 0.4) !important; color: #fff !important; }
             .msg-row.ai { position: relative; }
             .ai-msg-actions {
                 position: absolute;
@@ -837,6 +844,31 @@ class TitanAIAssistant {
                 50% { opacity: 0; }
             }
             
+            /* 选区工具栏：极致灵动感 */
+            .ai-selection-toolbar {
+                position: fixed;
+                padding: 4px 10px;
+                background: rgba(10, 15, 25, 0.95);
+                border: 1px solid rgba(56, 189, 248, 0.6);
+                border-radius: 20px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 10px rgba(14, 165, 233, 0.3);
+                z-index: 10000;
+                display: flex; gap: 8px;
+                animation: toolbar-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                pointer-events: all;
+            }
+            @keyframes toolbar-pop {
+                from { opacity: 0; transform: scale(0.8) translateY(10px); }
+                to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            .toolbar-btn {
+                background: transparent; color: #fff; border: none; font-size: 12px;
+                cursor: pointer; display: flex; align-items: center; gap: 4px;
+                padding: 4px 8px; border-radius: 12px; transition: all 0.2s;
+                font-family: 'Orbitron', 'Inter', sans-serif; font-weight: 500;
+            }
+            .toolbar-btn:hover { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+
             .ai-progress-bar {
                 position: absolute; top: 0; left: 0; height: 1.5px;
                 background: #0ea5e9;
@@ -1162,6 +1194,39 @@ class TitanAIAssistant {
             }, 300);
         });
 
+        // 调节面板大小逻辑 (Panel Resizer)
+        const resizeHandle = this.panel.querySelector('.ai-resize-handle');
+        if (resizeHandle) {
+            let isResizing = false;
+            let lastX, lastY;
+            resizeHandle.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                lastX = e.clientX;
+                lastY = e.clientY;
+                document.body.style.cursor = 'nwse-resize';
+                e.preventDefault();
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const deltaX = e.clientX - lastX;
+                const deltaY = lastY - e.clientY; // 往上拉是增加
+                const newWidth = parseInt(getComputedStyle(this.panel).width) + deltaX;
+                const newHeight = parseInt(getComputedStyle(this.panel).height) - deltaY;
+                if (newWidth > 320 && newWidth < window.innerWidth * 0.95) {
+                    this.panel.style.width = newWidth + 'px';
+                }
+                if (newHeight > 400 && newHeight < window.innerHeight * 0.95) {
+                    this.panel.style.height = newHeight + 'px';
+                }
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+            window.addEventListener('mouseup', () => {
+                isResizing = false;
+                document.body.style.cursor = '';
+            });
+        }
+        
         // 扩展面板逻辑
         this.expandBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1971,27 +2036,74 @@ class TitanAIAssistant {
 
 
     handleTextSelection(e) {
+        // 使用微任务等待选区稳定
         setTimeout(() => {
             const selection = window.getSelection();
-            const text = selection.toString().trim();
-            // 不在面板范围内点击才算
-            if (text.length > 0 && (!this.panel || !this.panel.contains(e.target)) && e.target.id !== 'titan-ai-selection') {
-                let x = e.pageX;
-                let y = e.pageY - 40;
-                if(e.type === 'touchend' && e.changedTouches && e.changedTouches.length > 0) {
-                    const touch = e.changedTouches[0];
-                    x = touch.pageX;
-                    y = touch.pageY - 40;
+            const selectedText = selection.toString().trim();
+            
+            // 只有当选区长度合适（非无效误触）时才触发
+            // 注意：我们移除了 !this.panel.contains 的限制，让用户可以在 AI 面板里选词
+            if (selectedText.length > 1) {
+                // 如果已存在工具栏，先清理旧的
+                const oldToolbar = document.getElementById('ai-select-toolbar');
+                if (oldToolbar) oldToolbar.remove();
+
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+
+                const toolbar = document.createElement('div');
+                toolbar.id = 'ai-select-toolbar';
+                toolbar.className = 'ai-selection-toolbar';
+                toolbar.innerHTML = `
+                    <button class="toolbar-btn" id="analyze-part-btn">✨ 分析选段</button>
+                    <button class="toolbar-btn" id="copy-part-btn">📋 复制</button>
+                `;
+
+                // 物理定位：根据选区位置动态悬浮，并加上页面滚动偏移
+                toolbar.style.left = `${rect.left + rect.width / 2}px`;
+                toolbar.style.top = `${rect.top + window.scrollY - 50}px`;
+                toolbar.style.transform = 'translateX(-50%)';
+
+                document.body.appendChild(toolbar);
+
+                // 核心逻辑 A：分析选段
+                const analyzeBtn = toolbar.querySelector('#analyze-part-btn');
+                if (analyzeBtn) {
+                    analyzeBtn.onclick = (btnE) => {
+                        btnE.stopPropagation();
+                        // 逻辑：将选中的文字带入分析器，模拟用户提问
+                        const prefix = "我想专门请教一下刚才这段内容：\n";
+                        this.input.value = `${prefix}“${selectedText}”`;
+                        this.sendMessage(); // 一键直达，极致效率
+                        toolbar.remove();
+                        selection.removeAllRanges();
+                    };
                 }
-                this.selectionBtn.style.display = 'flex';
-                this.selectionBtn.style.top = `${y}px`;
-                this.selectionBtn.style.left = `${x}px`;
+
+                // 核心逻辑 B：仅复制
+                const copyBtn = toolbar.querySelector('#copy-part-btn');
+                if (copyBtn) {
+                    copyBtn.onclick = (btnE) => {
+                        btnE.stopPropagation();
+                        navigator.clipboard.writeText(selectedText);
+                        toolbar.remove();
+                    };
+                }
+
+                // 点击页面其他位置（除工具栏外）销毁工具栏
+                const hideHandler = (me) => {
+                    if (!toolbar.contains(me.target)) {
+                        toolbar.remove();
+                        document.removeEventListener('mousedown', hideHandler);
+                    }
+                };
+                setTimeout(() => document.addEventListener('mousedown', hideHandler), 50);
             } else {
-                if (e.target.id !== 'titan-ai-selection') {
-                    this.selectionBtn.style.display = 'none';
-                }
+                // 如果选区被清除，尝试隐藏工具栏
+                const oldToolbar = document.getElementById('ai-select-toolbar');
+                if (oldToolbar) oldToolbar.remove();
             }
-        }, 80);
+        }, 100);
     }
 
     async openCamera() {
@@ -2163,6 +2275,10 @@ ${currentFullContent}
             const avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg msg-ai markdown-body';
+            msgDiv.setAttribute('draggable', 'false'); // 核心修复：严禁拖拽，释放选区感应
+            msgDiv.style.userSelect = 'text';
+            msgDiv.style.pointerEvents = 'auto'; // 显式声明，防止继承自父级的 none
+            msgDiv.style.zIndex = '100'; // 置于绝对顶层
             
             rowDiv.innerHTML = avatarHTML;
             rowDiv.appendChild(msgDiv);
@@ -2170,6 +2286,14 @@ ${currentFullContent}
             this.scrollToBottom(true);
 
             const enhanceCodeBlocks = () => {
+                // 2. 链接增强：强制新页签打开 (New Tab Mastery)
+                msgDiv.querySelectorAll('a').forEach(link => {
+                    if (!link.hasAttribute('target')) {
+                        link.setAttribute('target', '_blank');
+                        link.setAttribute('rel', 'noopener noreferrer');
+                    }
+                });
+
                 if (!window.hljs) return;
                 msgDiv.querySelectorAll('pre code').forEach((block) => {
                     const pre = block.parentElement;
@@ -2365,6 +2489,11 @@ ${currentFullContent}
         
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg msg-${role}`;
+        msgDiv.setAttribute('draggable', 'false'); // 强制禁止拖放，防止干扰选区
+        msgDiv.style.userSelect = 'text'; // JS 层面双重保险
+        msgDiv.style.cursor = 'text';     // 强制光标感官
+        msgDiv.style.pointerEvents = 'auto'; // 确保接受指针事件
+        msgDiv.style.zIndex = '10';      // 绝对顶层
         if (isHTML) {
             msgDiv.innerHTML = text;
         } else {
