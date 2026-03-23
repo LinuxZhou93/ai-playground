@@ -47,9 +47,27 @@ class TitanAIAssistant {
 
     saveSession() {
         // 本地留档 (只保留 user 和 assistant 的核心内容免污染)
-        const historyToSave = this.chatHistory.filter(msg => msg.role !== 'system');
-        sessionStorage.setItem('titan_ai_history', JSON.stringify(historyToSave));
-        sessionStorage.setItem('titan_ai_panel_open', this.isChatOpen ? 'true' : 'false');
+        let historyToSave = this.chatHistory.filter(msg => msg.role !== 'system');
+        
+        // --- 核心防御：防止存储爆雷 QuotaExceededError ---
+        // 任何多图和语音如果按原封不动的 Base64 编码保存到 sessionStorage 会瞬间挤爆 5MB 限额，
+        // 进而抛出异常导致后续的 processQueue 和对话网络请求被强行中断（"卡住并丢失"的元凶）。
+        historyToSave = historyToSave.map(msg => {
+            if (msg.role === 'user' && Array.isArray(msg.content)) {
+                // 深度折叠：只存文字意图，剥离媒体 Base64 冗余黑箱
+                const textObj = msg.content.find(c => c.type === 'text');
+                return { role: 'user', content: (textObj ? textObj.text : '') + '\n[过往视觉/语音实体已转存]' };
+            }
+            return msg;
+        });
+
+        try {
+            sessionStorage.setItem('titan_ai_history', JSON.stringify(historyToSave));
+            sessionStorage.setItem('titan_ai_panel_open', this.isChatOpen ? 'true' : 'false');
+        } catch(e) { 
+            console.warn('浏览器会话存储爆板，应用极限降维保护：', e);
+            try { sessionStorage.setItem('titan_ai_history', JSON.stringify(historyToSave.slice(-4))); } catch(e2) {}
+        }
         
         // 【新增】：云端量子漫游同步 (Supabase Sync) 跨平台保存状态
         if (window.SupabaseClient && window.SupabaseClient.client) {
@@ -772,6 +790,9 @@ class TitanAIAssistant {
                 <div class="ai-header" id="titan-ai-drag-handle">
                     <div class="ai-header-title">小创老师 (Virtual Teacher)</div>
                     <div class="ai-header-controls">
+                        <button type="button" class="ai-expand-btn" id="titan-ai-reset-btn" title="开启新对话 / 清除长期记忆并释放内存空间 (New Chat)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                        </button>
                         <button type="button" class="ai-expand-btn" id="titan-ai-expand-btn" title="展开为学习桌面 / 适合精读长篇解答及阅览代码">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
                         </button>
@@ -799,9 +820,7 @@ class TitanAIAssistant {
                     <button type="button" class="ai-upload" id="titan-ai-upload-btn" title="传送门 / 导入本地照片、作业文档、表格或幻灯片以供深度分析 (Upload)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     </button>
-                    <button type="button" class="ai-phone" id="titan-ai-phone-btn" title="实时语音对谈 / 开启沉浸式口语化交互辅导 (Voice Call)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                    </button>
+
                     <button type="button" class="ai-tts-stop" id="titan-ai-tts-stop-btn" title="立刻打断 AI 说话 (Stop Audio)" style="display:none; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
                     </button>
@@ -854,7 +873,7 @@ class TitanAIAssistant {
         this.cameraModal = document.getElementById('titan-ai-camera-modal');
         this.uploadBtn = document.getElementById('titan-ai-upload-btn');
         this.fileInput = document.getElementById('titan-ai-file-input');
-        this.phoneBtn = document.getElementById('titan-ai-phone-btn');
+
         this.ttsStopBtn = document.getElementById('titan-ai-tts-stop-btn');
         this.videoEl = document.getElementById('titan-ai-video');
         this.canvasEl = document.getElementById('titan-ai-canvas');
@@ -863,6 +882,7 @@ class TitanAIAssistant {
         
         this.dragHandle = document.getElementById('titan-ai-drag-handle');
         this.expandBtn = document.getElementById('titan-ai-expand-btn');
+        this.resetBtn = document.getElementById('titan-ai-reset-btn');
         this.isExpanded = false;
         
         this.pendingArea = document.getElementById('titan-ai-pending');
@@ -910,6 +930,23 @@ class TitanAIAssistant {
                 // 极简交互：点击磁片后直接替用户发送以增强爽快感
                 this.sendBtn.click();
             });
+        });
+
+        // 开启新对话逻辑
+        this.resetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('确定要清除当前的记忆并开启新挑战吗？')) {
+                this.chatHistory = [];
+                this.chatArea.innerHTML = `
+                    <div class="msg-row system">
+                        <div class="msg msg-system">收到！旧的实验记录已存档，系统重置完成。⚡️</div>
+                    </div>
+                `;
+                this.pendingImages = [];
+                this.pendingDocs = [];
+                this._updateFileReadyUI();
+                this.saveSession();
+            }
         });
 
         // 扩展面板逻辑
@@ -992,7 +1029,7 @@ class TitanAIAssistant {
         this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
         this.uploadBtn.addEventListener('click', () => this.fileInput.click());
         this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
-        this.phoneBtn.addEventListener('click', () => this.togglePhoneCall());
+
         const scBtn = document.getElementById('titan-ai-screenshot-btn');
         if(scBtn) scBtn.addEventListener('click', () => this.handleScreenshot());
         if (this.ttsStopBtn) {
@@ -1492,26 +1529,6 @@ class TitanAIAssistant {
         window.speechSynthesis.speak(utterance);
     }
 
-    togglePhoneCall() {
-        this.isPhoneCallMode = !this.isPhoneCallMode;
-        if (this.isPhoneCallMode) {
-            this.phoneBtn.classList.add('calling');
-            this.appendMessage('system', '📞 实时通话模式已开启，我在这呢，请畅所欲言。');
-            if (!this.isChatOpen) this.fab.click();
-            // 自动开启第一轮聆听
-            if (!this.isRecording) this.toggleVoiceRecording();
-        } else {
-            this.phoneBtn.classList.remove('calling');
-            this.appendMessage('system', '📞 实时通话模式已结束。');
-            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-            if (this.currentAudioPlayer) {
-                this.currentAudioPlayer.pause();
-                this.currentAudioPlayer = null;
-            }
-            if (this.isRecording) this.toggleVoiceRecording();
-        }
-    }
-
     async toggleVoiceRecording() {
         if (this.isRecording) {
             this.mediaRecorder.stop();
@@ -1682,10 +1699,14 @@ class TitanAIAssistant {
                 ]
             };
             
-            if (pureImgBase64) {
-                userMessage.content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${pureImgBase64}` } });
+            if (imagesBase64List.length > 0) {
+                imagesBase64List.forEach(b64 => {
+                    userMessage.content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } });
+                });
             }
-            userMessage.content.push({ type: 'image_url', image_url: { url: `data:${audioBlob.type};base64,${base64Audio}` } });
+            // 剥离 ;codecs=opus 前缀，防止各种通用 API 代理/大模型校验 MIME 时出现格式匹配死锁
+            const cleanMimeType = audioBlob.type.split(';')[0] || 'audio/webm';
+            userMessage.content.push({ type: 'image_url', image_url: { url: `data:${cleanMimeType};base64,${base64Audio}` } });
 
             this.messageQueue.push(userMessage);
             this.processQueue();
@@ -2077,13 +2098,41 @@ ${currentFullContent}
             return;
         }
         const text = this.input.value.trim();
-        const hasImage = !!this.pendingImageDataUrl;
-        const hasFile = !!this.pendingTextData;
+        const hasImage = this.pendingImages && this.pendingImages.length > 0;
+        const hasFile = this.pendingDocs && this.pendingDocs.length > 0;
         
         if (!text && !hasImage && !hasFile) return;
         
         this.input.value = '';
         let userMessageObject = null;
+
+        let fileTextPromptPart = '';
+        let pendingMediaHTML = '';
+        const imagesBase64List = [];
+
+        if (hasFile) {
+            pendingMediaHTML += `<div style="background:rgba(255,255,255,0.1);padding:6px;border-radius:4px;margin-bottom:8px;font-size:12px;display:flex;flex-wrap:wrap;gap:6px;">`;
+            this.pendingDocs.forEach(doc => {
+                pendingMediaHTML += `<span style="background:rgba(14,165,233,0.3);padding:2px 6px;border-radius:4px;">📄 ${doc.name}</span>`;
+                fileTextPromptPart += `[附件 ${doc.name}]\n${doc.content}\n\n`;
+            });
+            pendingMediaHTML += `</div>`;
+        }
+
+        if (hasImage) {
+            pendingMediaHTML += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">`;
+            this.pendingImages.forEach(img => {
+                imagesBase64List.push(img.split(',')[1]);
+                pendingMediaHTML += `<img src="${img}" class="ai-image-preview" style="height:60px;width:60px;object-fit:cover;border-radius:6px;margin:0;" />`;
+            });
+            pendingMediaHTML += `</div>`;
+        }
+
+        // Reset arrays
+        this.pendingImages = [];
+        this.pendingDocs = [];
+        this._updateFileReadyUI();
+        if (this.fileInput) this.fileInput.value = '';
         
         this.lastInputWasVoice = false;
         
