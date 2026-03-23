@@ -759,6 +759,8 @@ class TitanAIAssistant {
                 border-radius: 0 8px 8px 0;
                 color: #bae6fd;
             }
+            .markdown-body blockquote p { margin-bottom: 4px; }
+            .markdown-body blockquote p:last-child { margin-bottom: 0; }
             .markdown-body hr { margin: 18px 0; border: none; border-top: 1px dashed rgba(255,255,255,0.2); }
             .markdown-body ul, .markdown-body ol { margin-left: 20px; margin-bottom: 12px; margin-top: 6px;}
             .markdown-body li { margin-bottom: 6px; }
@@ -771,6 +773,11 @@ class TitanAIAssistant {
             .markdown-body strong { color: #38bdf8; font-weight: 800; font-size: 1.05em; }
             .markdown-body p { margin-bottom: 8px; }
             .markdown-body p:last-child { margin-bottom: 0; }
+            .markdown-body table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+            .markdown-body table th { background: rgba(14, 165, 233, 0.2); color: #7dd3fc; padding: 8px 10px; text-align: left; border: 1px solid rgba(255,255,255,0.12); font-weight: 700; white-space: nowrap; }
+            .markdown-body table td { padding: 7px 10px; border: 1px solid rgba(255,255,255,0.08); color: #cbd5e1; }
+            .markdown-body table tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+            .markdown-body table tr:hover td { background: rgba(14, 165, 233, 0.08); }
             .markdown-body code:not(pre code) {
                 background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; color: #38bdf8; font-family: Consolas, monospace; font-size: 0.9em;
             }
@@ -1865,16 +1872,36 @@ ${currentFullContent}
                     model: this.settings.model,
                     messages: apiMessages,
                     temperature: 0.7,
-                    max_tokens: 1500
+                    max_tokens: 4096
                 })
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || response.statusText);
+                // 自动重试一次：网关偶发 502/503/504 时直接背靠背再请求一次
+                if ([502, 503, 504].includes(response.status) && !this._isRetrying) {
+                    this._isRetrying = true;
+                    console.warn(`[小创老师] 网关返回 ${response.status}，启动自动重试...`);
+                    const retryResponse = await fetch(this.settings.endpoint, {
+                        method: 'POST',
+                        signal: this.currentAbortController.signal,
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.settings.apiKey}` },
+                        body: JSON.stringify({ model: this.settings.model, messages: apiMessages, temperature: 0.7, max_tokens: 4096 })
+                    });
+                    this._isRetrying = false;
+                    if (retryResponse.ok) {
+                        // 重试成功，用重试结果替代原 response 继续往下走
+                        var data = await retryResponse.json();
+                    } else {
+                        const errorData = await retryResponse.json().catch(() => ({}));
+                        throw new Error(errorData.error?.message || `服务暂时不可用 (${retryResponse.status})，请稍候再试`);
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || response.statusText);
+                }
             }
 
-            const data = await response.json();
+            if (typeof data === 'undefined') var data = await response.json();
             let aiReply = data.choices[0].message.content;
             this.chatHistory.push({ role: 'assistant', content: aiReply });
             this.saveSession();
@@ -2271,20 +2298,25 @@ ${currentFullContent}
         // --- 开始提取上下文连贯的动态子问题 (Dynamic Action Chips Extraction) ---
         if (lastResponseText) {
             const lines = lastResponseText.split('\n');
-            lines.forEach(line => {
+            console.log('[SmartChips] 正在扫描 AI 回复的', lines.length, '行文本...');
+            lines.forEach((line, idx) => {
                 line = line.trim();
-                // 放宽提取条件：只要这一段含有问号且不是动辄几百字的超长段落，都视为一个小创老师抛出的选项/追问，哪怕后面带了括号（提示：...）
-                if ((line.includes('？') || line.includes('?')) && line.length > 5 && line.length < 150) {
-                    // 深度清洗前置的项目符号、数字序号以及 Markdown 强调符 (**, `) 
-                    let cleanQ = line.replace(/^[\-\*1-9\.\s>]+/, '').replace(/[\*_\`\#]/g, '').trim();
+                if (!line) return; // 跳过空行
+                const hasQ = line.includes('？') || line.includes('?');
+                // 放宽提取条件：只要含问号且不超长，都视为追问选项
+                if (hasQ && line.length > 5 && line.length < 150) {
+                    // 深度清洗前置符号、数字序号以及 Markdown 强调符 (**, `) 
+                    let cleanQ = line.replace(/^[\-\*1-9\.\s>]+/, '').replace(/[\*_\`\#\"""]/g, '').trim();
+                    console.log(`[SmartChips] 第${idx}行命中: "${cleanQ.substring(0, 40)}..."`);
                     if (cleanQ.length > 4) {
                         customChips.push({
-                            label: `🎯 ${cleanQ.length > 14 ? cleanQ.substring(0, 13) + '...' : cleanQ}`,
+                            label: `🎯 ${cleanQ.length > 16 ? cleanQ.substring(0, 15) + '…' : cleanQ}`,
                             prompt: cleanQ
                         });
                     }
                 }
             });
+            console.log('[SmartChips] 共提取到', customChips.length, '个动态磁片');
             // 限制最多提取最新的3个选项以防霸屏
             if (customChips.length > 3) customChips = customChips.slice(-3);
         }
