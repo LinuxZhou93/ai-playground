@@ -120,20 +120,62 @@ class TitanAIAssistant {
             try { sessionStorage.setItem('titan_ai_history', JSON.stringify(historyToSave.slice(-4))); } catch(e2) {}
         }
         
-        // 【新增】：云端量子漫游同步 (Supabase Sync) 跨平台保存状态
+        // 【核心计划：全量数据工厂同步 (Supabase Data Lake Sync)】
+        // 1. 同步当前会话快照 (用于 UI 恢复)
         if (window.SupabaseClient && window.SupabaseClient.client) {
             const supabase = window.SupabaseClient.client;
             supabase.auth.getUser().then(({ data: { user } }) => {
                 if (user) {
+                    // 更新会话快照
                     supabase.from('ai_chat_sessions').upsert({
                         user_id: user.id,
                         history: historyToSave,
                         updated_at: new Date().toISOString()
                     }).then(({ error }) => {
-                        if (error) console.warn('Supabase Cloud Sync Blocked or Table missing:', error);
+                        if (error) console.warn('Supabase Session Sync Fail:', error);
                     });
                 }
             });
+        }
+    }
+
+    /**
+     * 【新增】高保真流水日志增量同步 (Low Overhead / Anti-Lag)
+     * 每一轮对话完成后异步推送到 ai_chat_logs 归档表，实现百万级数据的“只增不减”
+     */
+    async logChatMessage(role, content, metadata = {}) {
+        if (!window.SupabaseClient || !window.SupabaseClient.client) return;
+        const supabase = window.SupabaseClient.client;
+        
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            // 数据降维预处理：如果是多模态，提取文本摘要存入 content，Base64 仅保留 metadata 引用（防爆库）
+            let cleanContent = content;
+            let finalMetadata = { ...metadata, timestamp: new Date().toISOString() };
+            
+            if (Array.isArray(content)) {
+                const textPart = content.find(c => c.type === 'text');
+                const mediaParts = content.filter(c => c.type !== 'text');
+                cleanContent = textPart ? textPart.text : '[Media Message]';
+                finalMetadata.has_media = true;
+                finalMetadata.media_count = mediaParts.length;
+                // 仅保留媒体的前 10 个字符作为 ID 校验，不存大二进制
+                finalMetadata.media_summary = mediaParts.map(m => m.type + ':' + (m.source?.data?.substring(0, 10) || 'ext'));
+            }
+
+            // 异步后台执行，不阻塞主 UI 打字动画
+            supabase.from('ai_chat_logs').insert({
+                user_id: user ? user.id : null, 
+                role: role,
+                content: cleanContent,
+                metadata: finalMetadata
+            }).then(({ error }) => {
+                if (error) console.warn('Incremental Log Sync Fail:', error.message);
+                else console.log(`🚀 Titan Log: ${role} message archived.`);
+            });
+        } catch (e) {
+            console.error('Log System Critical Error:', e);
         }
     }
 
@@ -214,7 +256,14 @@ class TitanAIAssistant {
         
         if (role === 'ai' || role === 'assistant') {
             if (window.marked) {
-                msgDiv.innerHTML = window.marked.parse(content);
+                // 核心修复：确保 content 为字符串再传给 marked
+                let rawText = '';
+                if (typeof content === 'string') {
+                    rawText = content;
+                } else if (Array.isArray(content)) {
+                    rawText = content.find(c => c.type === 'text')?.text || '[多模态内容]';
+                }
+                msgDiv.innerHTML = window.marked.parse(rawText);
                 if (window.hljs) {
                     msgDiv.querySelectorAll('pre code').forEach((block) => {
                         window.hljs.highlightElement(block);
@@ -2393,8 +2442,11 @@ ${currentFullContent}
         
         this.chatHistory.push(userMessageObject);
         this.saveSession();
+        // 增量同步用户提问至数据湖
+        this.logChatMessage('user', userMessageObject.content);
 
         this.currentAbortController = new AbortController();
+        this._lastSendTime = Date.now(); // 记录发信起点，用于分析 AI 响应时常
         this.isTypingCancelled = false;
         this.setSendButtonState('stop');
 
@@ -2572,7 +2624,8 @@ ${currentFullContent}
             const typeNextChar = () => {
                 if (this.isTypingCancelled) {
                     this.setSendButtonState('send');
-                    msgDiv.innerHTML = window.marked ? window.marked.parse(aiReply.substring(0, i)) : aiReply.substring(0, i);
+                    const safetyReply = aiReply || '';
+                    msgDiv.innerHTML = window.marked ? window.marked.parse(safetyReply.substring(0, i)) : safetyReply.substring(0, i);
                     enhanceCodeBlocks();
                     progressBar.remove();
                     this.isProcessingQueue = false;
@@ -2582,7 +2635,8 @@ ${currentFullContent}
 
                 if (i >= aiReply.length) {
                     // 打字正式完成，进入静态阅读模式 (Static Reading Mode)
-                    const finalContent = window.marked ? window.marked.parse(aiReply) : aiReply;
+                    const safetyReply = aiReply || '';
+                    const finalContent = window.marked ? window.marked.parse(safetyReply) : safetyReply;
                     if (msgDiv.innerHTML !== finalContent) {
                         msgDiv.innerHTML = finalContent;
                     }
@@ -2610,6 +2664,12 @@ ${currentFullContent}
                     
                     if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply);
                     
+                    // 增量同步 AI 回答至数据湖
+                    this.logChatMessage('assistant', aiReply, { 
+                        tokens_estimate: Math.ceil(aiReply.length / 1.5),
+                        duration_ms: Date.now() - (this._lastSendTime || 0)
+                    });
+
                     // 追加功能动作条，且不再触碰 msgDiv 内部
                     const actions = document.createElement('div');
                     actions.className = 'ai-msg-actions';
@@ -2708,15 +2768,23 @@ ${currentFullContent}
         
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg msg-${role}`;
-        msgDiv.setAttribute('draggable', 'false'); // 强制禁止拖放，防止干扰选区
-        msgDiv.style.userSelect = 'text'; // JS 层面双重保险
-        msgDiv.style.cursor = 'text';     // 强制光标感官
-        msgDiv.style.pointerEvents = 'auto'; // 确保接受指针事件
-        msgDiv.style.zIndex = '10';      // 绝对顶层
+        msgDiv.setAttribute('draggable', 'false');
+        msgDiv.style.userSelect = 'text';
+        msgDiv.style.cursor = 'text';
+        msgDiv.style.pointerEvents = 'auto';
+        msgDiv.style.zIndex = '10';
+        
+        let safeText = '';
+        if (typeof text === 'string') {
+            safeText = text;
+        } else if (Array.isArray(text)) {
+            safeText = text.find(c => c.type === 'text')?.text || '[数据实体]';
+        }
+
         if (isHTML) {
-            msgDiv.innerHTML = text;
+            msgDiv.innerHTML = safeText;
         } else {
-            msgDiv.innerText = text;
+            msgDiv.innerText = safeText;
         }
         
         if (role === 'user') {
