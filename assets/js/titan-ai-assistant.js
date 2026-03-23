@@ -236,6 +236,21 @@ class TitanAIAssistant {
             };
             document.head.appendChild(script);
         }
+        if (!document.getElementById('mermaid-js')) {
+            const script = document.createElement('script');
+            script.id = 'mermaid-js';
+            script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js';
+            script.onload = () => {
+                if (window.mermaid) {
+                    window.mermaid.initialize({ 
+                        startOnLoad: false, 
+                        theme: 'dark',
+                        themeVariables: { primaryColor: '#0ea5e9' }
+                    });
+                }
+            };
+            document.head.appendChild(script);
+        }
     }
 
     injectCSS() {
@@ -741,6 +756,41 @@ class TitanAIAssistant {
                 0%, 100% { opacity: 0.5; transform: scale(0.98); filter: blur(0.2px); }
                 50% { opacity: 1; transform: scale(1); filter: blur(0px); }
             }
+            
+            /* 稳定版流式输出：仅针对新增区块触发动画，防止全局闪烁 */
+            .msg-ai > .new-block {
+                animation: msg-block-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                will-change: transform, opacity;
+            }
+            @keyframes msg-block-enter {
+                from { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+                to { opacity: 1; transform: translateY(0); filter: blur(0px); }
+            }
+            
+            /* 全新全息光标：稳定点位，不随全局重绘抖动 */
+            .ai-cursor {
+                display: inline-block;
+                width: 2px;
+                height: 1.2em;
+                background: #38bdf8;
+                margin-left: 2px;
+                vertical-align: middle;
+                box-shadow: 0 0 8px #38bdf8;
+                animation: ai-cursor-blink 0.8s infinite;
+            }
+            @keyframes ai-cursor-blink {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0; }
+            }
+            
+            .ai-progress-bar {
+                position: absolute; top: 0; left: 0; height: 2px;
+                background: #38bdf8;
+                box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+                transition: width 0.3s ease;
+                z-index: 10;
+            }
+
             .ai-chips-wrapper {
                 padding: 0 16px 8px 16px;
                 display: flex; gap: 8px; overflow-x: auto;
@@ -819,6 +869,25 @@ class TitanAIAssistant {
                 color: #7dd3fc;
                 background: rgba(14, 165, 233, 0.1);
                 border-bottom-color: #7dd3fc;
+            }
+            .mermaid {
+                background: rgba(14, 165, 233, 0.05) !important;
+                border: 1px solid rgba(56, 189, 248, 0.2);
+                border-radius: 12px;
+                padding: 16px;
+                margin: 16px 0;
+                display: flex;
+                justify-content: center;
+                box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+                transition: all 0.3s;
+            }
+            .mermaid:hover {
+                border-color: rgba(56, 189, 248, 0.5);
+                background: rgba(14, 165, 233, 0.08) !important;
+            }
+            .mermaid svg {
+                max-width: 100%;
+                height: auto;
             }
              @media (max-width: 640px) {
                 .ai-panel {
@@ -981,21 +1050,39 @@ class TitanAIAssistant {
             });
         });
 
-        // 开启新对话逻辑
+        // 开启新对话逻辑 (New Chat) - 彻底重构：杜绝 Confirm 造成的闪烁与状态死锁
         this.resetBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm('确定要清除当前的记忆并开启新挑战吗？')) {
+            
+            // 1. 彻底切断当前的输出流与网络连接
+            this.cancelOutput(); 
+            this.isProcessingQueue = false;
+            this.messageQueue = [];
+            
+            // 2. 视觉反馈：瞬间扫除尘埃
+            this.panel.style.opacity = '0.5';
+            this.panel.style.filter = 'blur(10px) brightness(1.5)';
+            
+            setTimeout(() => {
                 this.chatHistory = [];
                 this.chatArea.innerHTML = `
                     <div class="msg-row system">
-                        <div class="msg msg-system">收到！旧的实验记录已存档，系统重置完成。⚡️</div>
+                        <div class="msg msg-system">收到！磁场扰动已归零，记忆模块重置完成。开始新的挑战吧！⚡️</div>
                     </div>
                 `;
-                this.pendingImages = [];
-                this.pendingDocs = [];
-                this._updateFileReadyUI();
+                
+                // 3. 清理待发送的多模态文件
+                this.clearAllPendingFiles();
+                
+                // 4. 同步持久化存储 (彻底抹除)
                 this.saveSession();
-            }
+                
+                // 5. 状态恢复
+                this.panel.style.opacity = '1';
+                this.panel.style.filter = 'none';
+                if (typeof this.playHapticSound === 'function') this.playHapticSound('reset');
+                this.scrollToBottom();
+            }, 300);
         });
 
         // 扩展面板逻辑
@@ -1862,11 +1949,10 @@ ${currentFullContent}
 1. **分层骨架**：严禁单纯文字堆砌。必须使用 Markdown 多级标题 (#, ##) 对逻辑进行分段，并辅以分界线 (---)。
 2. **极客符号**：每个标题和核心结论前，必须配一个契合语境 de Emoji。
 3. **金句化引用**：凡是核心推导结论、关键实验参数或“小创老师温馨建议”，必须使用引用块 (> ) 进行封装。
-4. **表格展示**：凡是涉及两个以上概念的对比，必须使用 Markdown 表格呈现。
-5. **ASCII 工程图**：每当讲解机械结构、组织逻辑或现象成因时，必须输出高度精细的系统工程 ASCII 图纸，利用特殊的连接符（┌───┐, │, └───┘）展示逻辑流。
-6. **真人语调**：语气要像是一位极其专业、冷静但又充满激情的伯克利实验室导师。
-7. **视觉引导**：常态化鼓励学生点击下方的【相机📸】按钮拍照或截屏发给你分析。
-8. **超链接引用**：凡是提到任何在线资源、官网、技术文档、视频教程或代码库，**必须**使用 Markdown 标准语法 \`[名称](URL)\` 提供超链接。禁止空谈名称。`;
+4. **多维可视化 (Visual Synergy)**：
+   - **Mermaid 架构图**：凡是涉及逻辑流程、软件架构、Gantt 进度或状态机，**必须**输出 \`\`\`mermaid 代码块。
+   - **极客 ASCII 工程图 (Mechanical Grade)**：讲解机械结构、物理原理或 CAD 草图时，**必须**输出极其专业的 ASCII 图纸。严禁潦草，应使用制表符 (┌─┐, ╽, ╿) 构造出具有工业设计感的示意图。
+5. **超链接引用**：凡是提到任何在线资源、官网、技术文档、视频教程或代码库，**必须**使用 Markdown 标准语法 \`[名称](URL)\` 提供超链接。禁止空谈名称。`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {
@@ -1971,7 +2057,25 @@ ${currentFullContent}
                 if (!window.hljs) return;
                 msgDiv.querySelectorAll('pre code').forEach((block) => {
                     const pre = block.parentElement;
-                    if (pre.querySelector('.code-header')) return; 
+                    if (pre.querySelector('.code-header') || pre.classList.contains('mermaid-ready')) return; 
+                    
+                    if (block.classList.contains('language-mermaid') && window.mermaid) {
+                        const content = block.innerText;
+                        const mermaidId = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+                        const mermaidDiv = document.createElement('div');
+                        mermaidDiv.className = 'mermaid';
+                        mermaidDiv.id = mermaidId;
+                        try {
+                            window.mermaid.render(mermaidId, content).then(({svg}) => {
+                                mermaidDiv.innerHTML = svg;
+                                this.scrollToBottom();
+                            });
+                            pre.classList.add('mermaid-ready');
+                            pre.style.display = 'none';
+                            pre.parentNode.insertBefore(mermaidDiv, pre);
+                        } catch (e) { console.error('Mermaid render error:', e); }
+                        return;
+                    }
                     
                     window.hljs.highlightElement(block);
                     
@@ -2004,14 +2108,21 @@ ${currentFullContent}
                 });
             };
 
+            const progressBar = document.createElement('div');
+            progressBar.className = 'ai-progress-bar';
+            progressBar.style.width = '0%';
+            msgDiv.parentElement.appendChild(progressBar);
+
             let i = 0;
+            let lastBlockCount = 0;
+            const tempContainer = document.createElement('div');
+
             const typeNextChar = () => {
                 if (this.isTypingCancelled) {
                     this.setSendButtonState('send');
                     msgDiv.innerHTML = window.marked ? window.marked.parse(aiReply.substring(0, i)) : aiReply.substring(0, i);
                     enhanceCodeBlocks();
-                    this.scrollToBottom(true);
-                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply.substring(0, i));
+                    progressBar.remove();
                     this.isProcessingQueue = false;
                     this.processQueue();
                     return;
@@ -2020,42 +2131,73 @@ ${currentFullContent}
                 if (i >= aiReply.length) {
                     msgDiv.innerHTML = window.marked ? window.marked.parse(aiReply) : aiReply;
                     enhanceCodeBlocks();
-                    this.scrollToBottom();
-                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply);
+                    progressBar.style.width = '100%';
+                    setTimeout(() => progressBar.remove(), 300);
                     this.setSendButtonState('send');
                     this.isProcessingQueue = false;
                     this.processQueue();
+                    this.scrollToBottom();
+                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply);
                     return;
                 }
 
-                // 智能加速：如果是代码块内部或复杂 Markdown 标识符，一次多处理几个字符减少闪烁感
-                const step = (aiReply.substring(i, i + 5).includes('```') || aiReply.substring(i, i + 5).includes('|--')) ? 5 : 1;
+                // 进阶算法：增量区块比对更新 (Incremental DOM Patching)
+                // 解决原生 marked 全量重绘导致的闪屏、抖动及动画重置问题
+                let step = 1;
+                // 遇到换行或特殊符号时，适当加大步长，模拟“思考后的顺滑产出”
+                if (aiReply[i] === '\n') step = 1;
+                else if (aiReply.substring(i, i+3).includes('```')) step = 3;
+
                 i += step;
                 if (i > aiReply.length) i = aiReply.length;
 
                 const currentText = aiReply.substring(0, i);
-                msgDiv.innerHTML = window.marked ? window.marked.parse(currentText + '▌') : currentText + '▌';
-                enhanceCodeBlocks();
-                this.scrollToBottom();
+                progressBar.style.width = `${(i / aiReply.length) * 100}%`;
 
-                let delay = 30; // 默认基础速度稍微提升 (35 -> 30)
-                if (i > 0 && i < aiReply.length) {
-                    const lc = aiReply.charAt(i - 1);
-                    const cc = aiReply.charAt(i);
-                    if (cc === '\n' && lc === '\n') {
-                        delay = 450; // 缩短长停顿 (600 -> 450)
-                    } else if (cc === '\n') {
-                        delay = 120; // 缩短行停顿 (200 -> 120)
-                    } else if ('.。!！?？'.includes(lc)) {
-                        delay = 200; // 增加标点后的呼吸感
+                // 核心稳像技术：在内存中预渲染，仅同步变更部分
+                tempContainer.innerHTML = window.marked ? window.marked.parse(currentText) : currentText;
+                const newChildren = Array.from(tempContainer.children);
+                
+                // 1. 同步已有块的内容 (除了最后一个正在增长的块)
+                for (let idx = 0; idx < newChildren.length; idx++) {
+                    const newChild = newChildren[idx];
+                    let existingChild = msgDiv.children[idx];
+
+                    if (!existingChild) {
+                        // 发现新块：克隆节点并注入入场动画类
+                        const clone = newChild.cloneNode(true);
+                        clone.classList.add('new-block');
+                        msgDiv.appendChild(clone);
+                        lastBlockCount++;
+                        this.scrollToBottom(true);
+                    } else if (idx === newChildren.length - 1) {
+                        // 最后一个块：实时同步内文，并追加光标
+                        existingChild.innerHTML = newChild.innerHTML + '<span class="ai-cursor"></span>';
+                    } else if (existingChild.innerHTML !== newChild.innerHTML) {
+                        // 中间块状态同步 (例如表格行增加)
+                        existingChild.innerHTML = newChild.innerHTML;
                     }
                 }
+
+                // 每隔 5 个字执行一次全局高亮刷新，确保性能与视觉平衡
+                if (i % 5 === 0) enhanceCodeBlocks();
+                
+                // 智能滚动：仅在行尾或新块产生时触发强制修正，平时平滑跟随
+                if (aiReply[i-1] === '\n' || i % 10 === 0) this.scrollToBottom();
+
+                let delay = 20; 
+                const char = aiReply[i-1];
+                if (char === '\n') delay = 100;
+                else if ('。！？?'.includes(char)) delay = 200;
+                else if ('，,'.includes(char)) delay = 80;
 
                 setTimeout(typeNextChar, delay);
             };
 
             typeNextChar();
+
             // --- 结束 ---
+
             
         } catch (error) {
             if (error.name === 'AbortError') {
