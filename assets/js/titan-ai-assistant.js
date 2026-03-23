@@ -199,15 +199,8 @@ class TitanAIAssistant {
         if (!document.getElementById('highlight-js')) {
             const script = document.createElement('script');
             script.id = 'highlight-js';
-            script.src = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js';
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
             document.head.appendChild(script);
-            
-            const langs = ['javascript', 'python', 'cpp', 'css', 'xml', 'bash'];
-            langs.forEach(lang => {
-                const langScript = document.createElement('script');
-                langScript.src = `https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/${lang}.min.js`;
-                document.head.appendChild(langScript);
-            });
         }
     }
 
@@ -708,10 +701,22 @@ class TitanAIAssistant {
                 color: #c9d1d9; font-size: 13px;
                 white-space: pre;
             }
+            .markdown-body blockquote { 
+                border-left: 4px solid #3b82f6; 
+                background: rgba(59, 130, 246, 0.15); 
+                padding: 10px 14px; 
+                margin: 12px 0; 
+                border-radius: 6px;
+                color: #bae6fd;
+            }
+            .markdown-body ul, .markdown-body ol { margin-left: 20px; margin-bottom: 12px; }
+            .markdown-body li { margin-bottom: 4px; }
+            .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { margin-top: 14px; margin-bottom: 8px; font-weight: bold; color: #f8fafc; font-size: 1.1em; }
+            .markdown-body strong { color: #facc15; font-weight: bold; }
             .markdown-body p { margin-bottom: 8px; }
             .markdown-body p:last-child { margin-bottom: 0; }
             .markdown-body code:not(pre code) {
-                background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; color: #38bdf8; font-family: monospace; font-size: 0.9em;
+                background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; color: #38bdf8; font-family: Consolas, monospace; font-size: 0.9em;
             }
              @media (max-width: 640px) {
                 .ai-panel {
@@ -1457,7 +1462,7 @@ class TitanAIAssistant {
 ${currentFullContent}
 
 【💡核心回复规范 - 极其重要】：
-1. 你的普通段落中，【绝对严禁】使用任何大头标题控制符如 #, *, -, >, = 等，必须用简单的回车换行与生动的 Emoji 组合（例如行星🪐，逻辑🧠，成就🏆）来进行留白排版。
+1. 你可以像 Notion 笔记那样，大胆使用 Markdown 高级排版！例如多级标题 (###)、加粗 (**)、有序或无序列表 (-)，以及最重要的 **高亮块/引用块 (> )** 来包裹“提示/重点/公式”。配合丰富的 Emoji (如🪐, 🧠, 🏆, 🔥, 💡) 让文字拥有类似 Notion 的优美色块质感。
 2. 【特级作图规则 (ASCII Blueprint)】：你是专业的“科技特长生全栈总架构师”，每当讲解机械结构(如齿轮/杠杆)、组织逻辑、现象成因或数据流时，你**必须**使用 Markdown 全代码块（\`\`\`text \`\`\`）包裹，并以极高难度的系统工程 ASCII 全景架构图进行呈现！决不允许画几个简单的横线应付，必须利用高级制表符（如 ┌───┐, │, └───┘, ├, ┼, ◄, ▲, ▼, =>）画出包含嵌套子系统、清晰上下游流向、并带有精细参数注释的硬核工程图纸！图纸画得越专业、越庞大越能彰显你的地位！前端拥有带拷贝按钮的极客深色 IDE 代码窗来承载你的神作！
 3. 请使用充满亲和力的“真人语调”，坚决避免 AI 机器人般机械或冰冷的套话。语言要简明扼要，直接、简短。
 4. 【多模态教学强引导】：当你在对话中讲解一些知识概念、或者鼓励学生亲自去搭建实体（如乐高/VEX/结构件）时，**无时无刻不要忘记极其热情地引导他们主动使用面板下方的【相机📸】按钮，把他们的实物作品或身边对应的现象拍给你看！** （用轻松的口吻，如：“遇到搞不懂的结构？随时点下面的相机按钮拍个照片或长截屏发给小创老师，我帮你一键分析！”或“拼出来了没？拍个图发给我验证一下鸭！”）要让孩子深刻感受到你是拥有视觉的随身极客伴侣。`;
