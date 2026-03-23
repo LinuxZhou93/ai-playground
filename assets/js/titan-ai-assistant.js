@@ -44,11 +44,26 @@ class TitanAIAssistant {
     }
 
     saveSession() {
-        // 保存聊天历史 (只保留 user 和 assistant 的有效干货)
+        // 本地留档 (只保留 user 和 assistant 的核心内容免污染)
         const historyToSave = this.chatHistory.filter(msg => msg.role !== 'system');
         sessionStorage.setItem('titan_ai_history', JSON.stringify(historyToSave));
-        // 保存展开状态
         sessionStorage.setItem('titan_ai_panel_open', this.isChatOpen ? 'true' : 'false');
+        
+        // 【新增】：云端量子漫游同步 (Supabase Sync) 跨平台保存状态
+        if (window.SupabaseClient && window.SupabaseClient.client) {
+            const supabase = window.SupabaseClient.client;
+            supabase.auth.getUser().then(({ data: { user } }) => {
+                if (user) {
+                    supabase.from('ai_chat_sessions').upsert({
+                        user_id: user.id,
+                        history: historyToSave,
+                        updated_at: new Date().toISOString()
+                    }).then(({ error }) => {
+                        if (error) console.warn('Supabase Cloud Sync Blocked or Table missing:', error);
+                    });
+                }
+            });
+        }
     }
 
     restoreSession() {
@@ -60,19 +75,53 @@ class TitanAIAssistant {
             setTimeout(() => this.scrollToBottom(), 100);
         }
 
-        // 还原真实的对话气泡历史 (直接洗牌绘制不需要打字机流延时)
+        // 【新增】：首先联线 Supabase 中心探针拉取云端跨设备存盘，一旦脱机或匿名则退坡到本地 sessionStorage
+        if (window.SupabaseClient && window.SupabaseClient.client) {
+            const supabase = window.SupabaseClient.client;
+            supabase.auth.getUser().then(({ data: { user } }) => {
+                if (user) {
+                    supabase.from('ai_chat_sessions')
+                        .select('history')
+                        .eq('user_id', user.id)
+                        .single()
+                        .then(({ data, error }) => {
+                            if (!error && data && data.history && data.history.length > 0) {
+                                this._applyHistoryData(data.history);
+                            } else {
+                                this._restoreLocalSession();
+                            }
+                        });
+                } else {
+                    this._restoreLocalSession();
+                }
+            });
+        } else {
+            this._restoreLocalSession();
+        }
+    }
+
+    _restoreLocalSession() {
         const savedHistory = sessionStorage.getItem('titan_ai_history');
         if (savedHistory) {
             try {
                 const history = JSON.parse(savedHistory);
-                if (history && history.length > 0) {
-                    this.chatHistory = [...history]; // 重新装载到大脑缓存
-                    history.forEach(msg => {
-                        this.renderStaticMessage(msg.role, msg.content);
-                    });
-                    setTimeout(() => this.scrollToBottom(), 300);
-                }
-            } catch(e) { console.error('Error recovering session:', e); }
+                this._applyHistoryData(history);
+            } catch(e) { console.error('Error recovering local session:', e); }
+        }
+    }
+
+    _applyHistoryData(history) {
+        if (history && Array.isArray(history) && history.length > 0) {
+            this.chatHistory = [...history];
+            
+            // 清理多余残影DOM，只保留系统组件
+            const existingRows = this.chatArea.querySelectorAll('.msg-row.ai, .msg-row.user');
+            existingRows.forEach(r => r.remove());
+
+            history.forEach(msg => {
+                this.renderStaticMessage(msg.role, msg.content);
+            });
+            setTimeout(() => this.scrollToBottom(), 300);
         }
     }
 
