@@ -495,21 +495,31 @@ class TitanAIAssistant {
     }
 
     async sendToAPI(userMessageObject) {
-        // Init context if empty
-        if (this.chatHistory.length === 0) {
-            this.chatHistory.push({
-                role: 'system',
-                content: `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科与理科知识。
-当前学生正在浏览的模块：${this.context.title} (${this.context.header})
+        // 动态抓取当前页面的最新上下文（解决单页应用无刷新切换网页的场景）
+        const currentFullContent = document.body ? document.body.innerText.replace(/\s+/g, ' ').substring(0, 3000) : '';
+        const currentTitle = document.title;
+        const currentHeader = document.querySelector('h1')?.innerText || '';
+        
+        const systemPromptContent = `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科与理科知识。
+当前学生正在浏览的模块：${currentTitle} (${currentHeader})
 以下是系统刚刚抓取到的该网页内的核心文本上下文（供你解答时进行深度参考，你的回答必须要尽量结合甚至引用这些文字）：
-${this.context.fullContent}
+${currentFullContent}
 
 【💡核心回复规范 - 极其重要】：
 1. 绝对不要使用任何 Markdown 语法符号（例如用来加粗的星号 **，或者用来做标题的井号 #）。客户端无法渲染这些符号，会严重影响观感。
 2. 采用类似 Notion 的自然分段风格。使用清晰的换行进行段落分隔，语言要直接、简短、留白易读。
 3. 请使用充满亲和力的“真人真实语调”，坚决避免 AI 机器人般机械或冰冷的套话，就像朋友交流一样自然。
-4. 【关于 Emoji 的使用规范🚫🚫🚫】：不要机械或重复地使用固定少数的表情！务必要根据你的回复内容和具体的语义场景（如提到行星用🪐，讲到逻辑用🧠，指代代码用💻，表达警告用⚠️等），【自适应且丰富地】选用对应的各种 Emoji 表情。将表情当做辅助文字表达情感的工具，让整个回复版面内容显得极度生动多彩。`
+4. 【关于 Emoji 的使用规范🚫🚫🚫】：不要机械或重复地使用固定少数的表情！务必要根据你的回复内容和具体的语义场景（如提到行星用🪐，讲到逻辑用🧠，指代代码用💻，表达警告用⚠️等），【自适应且丰富地】选用对应的各种 Emoji 表情。将表情当做辅助文字表达情感的工具，让整个回复版面内容显得极度生动多彩。`;
+
+        // Init context if empty
+        if (this.chatHistory.length === 0) {
+            this.chatHistory.push({
+                role: 'system',
+                content: systemPromptContent
             });
+        } else if (this.chatHistory[0] && this.chatHistory[0].role === 'system') {
+            // 如果这是非首次请求，我们要保证大模型能“看到”最新的页面内容
+            this.chatHistory[0].content = systemPromptContent;
         }
         
         this.chatHistory.push(userMessageObject);
