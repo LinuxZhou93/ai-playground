@@ -1120,29 +1120,122 @@ class TitanAIAssistant {
     }
     
     async handleScreenshot() {
-        try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({ video: { mediaSource: "screen" } });
-            const track = stream.getVideoTracks()[0];
-            const imageCapture = new ImageCapture(track);
-            const bitmap = await imageCapture.grabFrame();
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.4)';
+        overlay.style.zIndex = '999999';
+        overlay.style.cursor = 'crosshair';
+        
+        const hint = document.createElement('div');
+        hint.style.position = 'absolute';
+        hint.style.top = '20px';
+        hint.style.left = '50%';
+        hint.style.transform = 'translateX(-50%)';
+        hint.style.color = '#fff';
+        hint.style.background = 'rgba(0,0,0,0.7)';
+        hint.style.padding = '8px 16px';
+        hint.style.borderRadius = '20px';
+        hint.style.fontSize = '14px';
+        hint.style.pointerEvents = 'none';
+        hint.innerText = '按住左键拖拽选定网页截屏区域 (右键取消)';
+        overlay.appendChild(hint);
+
+        const selectionBox = document.createElement('div');
+        selectionBox.style.position = 'absolute';
+        selectionBox.style.border = '2px dashed #38bdf8';
+        selectionBox.style.background = 'rgba(56, 189, 248, 0.1)';
+        selectionBox.style.pointerEvents = 'none';
+        selectionBox.style.display = 'none';
+        overlay.appendChild(selectionBox);
+        document.body.appendChild(overlay);
+
+        let isDrawing = false;
+        let startX, startY;
+
+        const onMouseDown = (e) => {
+            if (e.button !== 0) return; // Only left click
+            isDrawing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            selectionBox.style.left = startX + 'px';
+            selectionBox.style.top = startY + 'px';
+            selectionBox.style.width = '0px';
+            selectionBox.style.height = '0px';
+            selectionBox.style.display = 'block';
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDrawing) return;
+            const currentX = e.clientX;
+            const currentY = e.clientY;
+            selectionBox.style.width = Math.abs(currentX - startX) + 'px';
+            selectionBox.style.height = Math.abs(currentY - startY) + 'px';
+            selectionBox.style.left = Math.min(startX, currentX) + 'px';
+            selectionBox.style.top = Math.min(startY, currentY) + 'px';
+        };
+
+        const cleanup = () => {
+            overlay.removeEventListener('mousedown', onMouseDown);
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+            overlay.remove();
+        };
+
+        const onMouseUp = async (e) => {
+            if (!isDrawing) return;
+            isDrawing = false;
             
-            const canvas = document.createElement('canvas');
-            canvas.width = bitmap.width;
-            canvas.height = bitmap.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-            
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            if (this.pendingImages.length < 6) {
-                this.pendingImages.push(dataUrl);
-                this._updateFileReadyUI();
-            } else {
-                alert('您最多只能同时上传 6 张图片供分析哦！');
+            const rect = selectionBox.getBoundingClientRect();
+            cleanup();
+            if (rect.width < 10 || rect.height < 10) return; // Ignore accidental tiny clicks
+
+            try {
+                if (!window.html2canvas) {
+                    await new Promise((res, rej) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                        s.onload = res; s.onerror = rej;
+                        document.head.appendChild(s);
+                    });
+                }
+                
+                hint.innerText = '正在捕获屏幕...';
+                document.body.appendChild(hint); // Temporarily keep hint alive during lag
+                
+                const canvas = await window.html2canvas(document.body, {
+                    x: rect.left + window.scrollX,
+                    y: rect.top + window.scrollY,
+                    width: rect.width,
+                    height: rect.height,
+                    useCORS: true,
+                    scale: window.devicePixelRatio || 1,
+                    backgroundColor: null
+                });
+                
+                hint.remove();
+                if (this.pendingImages.length < 6) {
+                    this.pendingImages.push(canvas.toDataURL('image/jpeg', 0.9));
+                    this._updateFileReadyUI();
+                } else {
+                    alert('最多只能同时上传 6 张图片供分析！');
+                }
+            } catch(err) {
+                console.error('网页截屏失败:', err);
+                if (hint) hint.remove();
             }
-            track.stop();
-        } catch(err) {
-            console.error('截屏失败:', err);
-        }
+        };
+
+        overlay.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+        overlay.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            cleanup();
+        });
     }
 
     async handleFileUpload(e) {
