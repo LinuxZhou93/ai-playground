@@ -286,6 +286,49 @@ class TitanAIAssistant {
                 background: rgba(255,255,255,0.1);
                 color: #fff;
             }
+            .ai-camera {
+                background: transparent;
+                border: 1px solid rgba(255,255,255,0.1);
+                min-width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                color: #94a3b8;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+            }
+            .ai-camera:hover {
+                background: rgba(255,255,255,0.1);
+                color: #fff;
+            }
+            .ai-image-preview {
+                max-width: 200px;
+                border-radius: 12px;
+                margin-top: 8px;
+                border: 1px solid rgba(255,255,255,0.1);
+            }
+            .ai-selection-popover {
+                position: absolute;
+                z-index: 999999;
+                background: #0ea5e9;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                display: none;
+                align-items: center;
+                gap: 6px;
+                transition: transform 0.2s;
+            }
+            .ai-selection-popover:hover {
+                background: #38bdf8;
+                transform: scale(1.05);
+            }
             .ai-voice.recording {
                 color: #ef4444;
                 border-color: rgba(239, 68, 68, 0.5);
@@ -361,6 +404,10 @@ class TitanAIAssistant {
                 </div>
                 
                 <div class="ai-input-area">
+                    <input type="file" id="titan-ai-file" accept="image/*" style="display:none;" />
+                    <label for="titan-ai-file" class="ai-camera" title="上传/拍照解析图片">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    </label>
                     <button class="ai-voice" id="titan-ai-voice" title="语音输入 (Voice Input)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
                     </button>
@@ -374,6 +421,8 @@ class TitanAIAssistant {
             <div class="ai-fab" id="titan-ai-fab">
                 <div class="core"></div>
             </div>
+
+            <div class="ai-selection-popover" id="titan-ai-selection">🤖 问问 AI</div>
         `;
         
         document.body.appendChild(container);
@@ -386,6 +435,8 @@ class TitanAIAssistant {
         this.input = document.getElementById('titan-ai-input');
         this.sendBtn = document.getElementById('titan-ai-send');
         this.voiceBtn = document.getElementById('titan-ai-voice');
+        this.fileInput = document.getElementById('titan-ai-file');
+        this.selectionBtn = document.getElementById('titan-ai-selection');
         this.mediaRecorder = null;
         this.audioStream = null;
         this.audioChunks = [];
@@ -410,6 +461,25 @@ class TitanAIAssistant {
         });
         
         this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
+        this.fileInput.addEventListener('change', (e) => this.handleImageUpload(e));
+        
+        document.addEventListener('mouseup', this.handleTextSelection.bind(this));
+        document.addEventListener('touchend', this.handleTextSelection.bind(this));
+        
+        this.selectionBtn.addEventListener('click', () => {
+            const selectedText = window.getSelection().toString().trim();
+            if (selectedText) {
+                if (!this.isChatOpen) this.fab.click();
+                // 稍加延迟，保证面板划出后再加入聊天气泡
+                setTimeout(() => {
+                    const msg = `请帮我解析以下这段提取内容：\n\n"${selectedText}"`;
+                    this.input.value = msg;
+                    this.sendMessage();
+                }, 300);
+            }
+            this.selectionBtn.style.display = 'none';
+            window.getSelection().removeAllRanges();
+        });
     }
 
     async toggleVoiceRecording() {
@@ -494,15 +564,75 @@ class TitanAIAssistant {
         };
     }
 
+    handleTextSelection(e) {
+        setTimeout(() => {
+            const selection = window.getSelection();
+            const text = selection.toString().trim();
+            if (text.length > 0 && !this.panel.contains(e.target) && e.target.id !== 'titan-ai-selection') {
+                const rect = selection.getRangeAt(0).getBoundingClientRect();
+                this.selectionBtn.style.display = 'flex';
+                this.selectionBtn.style.top = `${rect.top + window.scrollY - 45}px`;
+                this.selectionBtn.style.left = `${rect.left + window.scrollX + (rect.width / 2) - 30}px`;
+            } else {
+                if (e.target.id !== 'titan-ai-selection') {
+                    this.selectionBtn.style.display = 'none';
+                }
+            }
+        }, 50);
+    }
+
+    handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => {
+            const base64Data = reader.result;
+            const pureBase64 = base64Data.split(',')[1];
+
+            const imgHTML = `<img src="${base64Data}" class="ai-image-preview" />`;
+            this.appendMessage('user', imgHTML, true);
+            this.showTyping();
+
+            const userMessage = {
+                role: 'user',
+                content: [
+                    { type: 'text', text: '请结合你掌握的知识分析下这张图片，如它涉及代码或实物，请给出深度科技视角的解析。' },
+                    { 
+                        type: 'image_url', 
+                        image_url: {
+                            url: `data:${file.type};base64,${pureBase64}`
+                        }
+                    }
+                ]
+            };
+            this.sendToAPI(userMessage);
+            this.fileInput.value = '';
+        }
+    }
+
     async sendToAPI(userMessageObject) {
         // 动态抓取当前页面的最新上下文（解决单页应用无刷新切换网页的场景）
         const currentFullContent = document.body ? document.body.innerText.replace(/\s+/g, ' ').substring(0, 3000) : '';
         const currentTitle = document.title;
         const currentHeader = document.querySelector('h1')?.innerText || '';
         
+        const chengdianRAG = `
+【🔐 内置教育知识库RAG：成电创客教学大纲与理念精华】
+1. 教育愿景：强校背书赋能，坚信“由于动手，所以可能”。
+2. 瞪羚培养体系：彻底告别无意义的“买课时”模式。采用半年度跨跃性成果导向，保证全年高密度交付多项真实比赛与工程实物。
+3. 四大引擎矩阵：A修主流VEX机器人，B修底层C++/Python技能树，C选世界机器人大会等白名单赛脱产，D修社会问题解决工程营地。
+4. 全能生命周期图：L1(兴趣与认知土壤) > L2(入门获白名单证书/以考促学) > L3(竞技突围) > L4(深造通道，用科创成果筑起综合素养和强基计划护城河)。
+5. 课堂真经：杜绝老师包办一切，而是以“破冰 -> 重难点解析 -> 放权给孩子实操且仅做边缘微调 -> 公开分享路演 -> 知识升华” 这五个环节来锻炼极客硬实力。
+*（注意：你应当自然、毫不生硬地在与家长、学生的对话中引申或参考这些先进模型观念，严禁透漏任何诸如利润分成、具体课时单价等非教育层面的后台资料。）*
+`;
+
         const systemPromptContent = `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科与理科知识。
-当前学生正在浏览的模块：${currentTitle} (${currentHeader})
-以下是系统刚刚抓取到的该网页内的核心文本上下文（供你解答时进行深度参考，你的回答必须要尽量结合甚至引用这些文字）：
+当有疑惑时，你可以充分参考你的内在理论体系引擎：${chengdianRAG}
+
+当前学生正在浏览的本系统中某个模块页面：${currentTitle} (${currentHeader})
+以下是系统刚刚抓取到的该网页内的当前页面核心文本（这是他此刻可能在问的直接上下文）：
 ${currentFullContent}
 
 【💡核心回复规范 - 极其重要】：
