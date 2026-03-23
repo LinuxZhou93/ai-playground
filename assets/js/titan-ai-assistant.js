@@ -38,7 +38,99 @@ class TitanAIAssistant {
         this.bindEvents();
         setTimeout(() => {
             if (typeof this.updateQuickChips === 'function') this.updateQuickChips();
-        }, 300); // 确保在 DOM 加载完成后初始化灵感胶囊
+            // 在挂载完毕后，尝试读取并重绘本会话缓存的聊天记录跨网页不消失
+            this.restoreSession();
+        }, 300); // 确保在 DOM 加载完成后初始化灵感胶囊和历史记录
+    }
+
+    saveSession() {
+        // 保存聊天历史 (只保留 user 和 assistant 的有效干货)
+        const historyToSave = this.chatHistory.filter(msg => msg.role !== 'system');
+        sessionStorage.setItem('titan_ai_history', JSON.stringify(historyToSave));
+        // 保存展开状态
+        sessionStorage.setItem('titan_ai_panel_open', this.isChatOpen ? 'true' : 'false');
+    }
+
+    restoreSession() {
+        // 先还原上次记忆的展开状态
+        const wasOpen = sessionStorage.getItem('titan_ai_panel_open');
+        if (wasOpen === 'true' && !this.isChatOpen) {
+            this.isChatOpen = true;
+            this.panel.classList.add('open');
+            setTimeout(() => this.scrollToBottom(), 100);
+        }
+
+        // 还原真实的对话气泡历史 (直接洗牌绘制不需要打字机流延时)
+        const savedHistory = sessionStorage.getItem('titan_ai_history');
+        if (savedHistory) {
+            try {
+                const history = JSON.parse(savedHistory);
+                if (history && history.length > 0) {
+                    this.chatHistory = [...history]; // 重新装载到大脑缓存
+                    history.forEach(msg => {
+                        this.renderStaticMessage(msg.role, msg.content);
+                    });
+                    setTimeout(() => this.scrollToBottom(), 300);
+                }
+            } catch(e) { console.error('Error recovering session:', e); }
+        }
+    }
+
+    renderStaticMessage(role, content) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = `msg-row ${role === 'assistant' ? 'ai' : 'user'}`;
+        
+        let avatarHTML = '';
+        if (role === 'ai' || role === 'assistant') {
+            avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
+        } else if (role === 'user') {
+            avatarHTML = '<div class="avatar avatar-user"></div>';
+        }
+
+        const msgClass = (role === 'ai' || role === 'assistant') ? 'msg msg-ai markdown-body' : 'msg msg-user';
+        const msgDiv = document.createElement('div');
+        msgDiv.className = msgClass;
+        
+        if (role === 'ai' || role === 'assistant') {
+            if (window.marked) {
+                msgDiv.innerHTML = window.marked.parse(content);
+                if (window.hljs) {
+                    msgDiv.querySelectorAll('pre code').forEach((block) => {
+                        window.hljs.highlightElement(block);
+                        const pre = block.parentElement;
+                        let langName = 'TEXT';
+                        const langClass = Array.from(block.classList).find(c => c.startsWith('language-'));
+                        if (langClass) langName = langClass.replace('language-', '').toUpperCase();
+                        const header = document.createElement('div');
+                        header.className = 'code-header';
+                        header.innerHTML = `<span class="code-lang">${langName}</span><button type="button" class="code-copy" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(block.innerText)}')); this.innerHTML='✅ 已复制'; setTimeout(()=>this.innerHTML='<svg width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><rect x=\\'9\\' y=\\'9\\' width=\\'13\\' height=\\'13\\' rx=\\'2\\' ry=\\'2\\'></rect><path d=\\'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\\'></path></svg> 复制代码', 2000)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> 复制代码</button>`;
+                        pre.insertBefore(header, block);
+                    });
+                }
+            } else {
+                msgDiv.innerText = content;
+            }
+        } else {
+            if (typeof content === 'string') {
+                msgDiv.innerText = content;
+            } else if (Array.isArray(content)) {
+                let textPart = content.find(c => c.type === 'text')?.text || '[多模态视觉文件]';
+                msgDiv.innerText = textPart;
+                const imgPart = content.find(c => c.type === 'image_url');
+                if (imgPart) {
+                    const imgPreview = document.createElement('img');
+                    imgPreview.src = imgPart.image_url.url;
+                    imgPreview.style.maxWidth = '100%';
+                    imgPreview.style.borderRadius = '8px';
+                    imgPreview.style.marginTop = '8px';
+                    msgDiv.appendChild(imgPreview);
+                }
+            }
+        }
+
+        rowDiv.innerHTML = avatarHTML;
+        rowDiv.appendChild(msgDiv);
+        this.chatArea.appendChild(rowDiv);
     }
 
     loadDependencies() {
@@ -715,6 +807,7 @@ class TitanAIAssistant {
             } else {
                 this.panel.classList.remove('open');
             }
+            this.saveSession(); // 面板动作变更后跨网页留存
         });
         
         // 绑定快捷磁片启发式提问
@@ -1332,6 +1425,7 @@ ${currentFullContent}
         }
         
         this.chatHistory.push(userMessageObject);
+        this.saveSession();
 
         try {
             const response = await fetch(this.settings.endpoint, {
@@ -1356,6 +1450,7 @@ ${currentFullContent}
             const data = await response.json();
             let aiReply = data.choices[0].message.content;
             this.chatHistory.push({ role: 'assistant', content: aiReply });
+            this.saveSession();
             // --- 开始：全新增强版单向流智能打字机 (Unified Stream Engine) ---
             const typing = document.getElementById('ai-typing-indicator');
             if (typing) typing.remove();
