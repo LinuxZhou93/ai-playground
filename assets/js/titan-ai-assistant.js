@@ -21,7 +21,8 @@ class TitanAIAssistant {
         this.settings = {
             apiKey: atob(_k.join('')),
             endpoint: 'https://backgrace.com/v1/chat/completions', 
-            model: 'gemini-3-flash'
+            model: 'gemini-3-flash',
+            memberExpired: parseInt(localStorage.getItem('titan_ai_member_expired') || '0')
         };
 
         this.chatHistory = [];
@@ -38,7 +39,12 @@ class TitanAIAssistant {
     updateMemberStatusUI() {
         if (!this.statusBar || !this.input) return; 
         
-        const isMember = this.settings.memberExpired > Date.now();
+        // 核心修复：联通全栈 SubscriptionManager 订阅身份，注册用户只要没过期即是有效 VIP
+        let isMember = this.settings.memberExpired > Date.now();
+        if (window.SubscriptionManager && window.SubscriptionManager.isSubscribed && window.SubscriptionManager.isSubscribed()) {
+            isMember = true;
+        }
+        
         let remaining = parseInt(localStorage.getItem('ai_guest_limit') || '10');
         
         if (isMember) {
@@ -49,6 +55,7 @@ class TitanAIAssistant {
             this.input.disabled = false;
             this.input.placeholder = "问我任何关于科技特长生的问题...";
             this.input.style.opacity = '1';
+            this.input.style.cursor = 'text';
         } else {
             this.statusBar.innerHTML = `
                 <span><i class="fas fa-user-circle" style="color:#94a3b8;margin-right:4px;"></i> 访客模式 (体验中)</span>
@@ -179,6 +186,12 @@ class TitanAIAssistant {
             this.restoreSession();
             this.updateMemberStatusUI(); // Update status bar after UI is ready
         }, 300); // 确保在 DOM 加载完成后初始化灵感胶囊和历史记录
+        
+        // 核心突破：监听后端回调！由于 SubscriptionManager 取网络延迟 100~300ms 造成时间差，这里必须被动回调刷新 UI
+        window.addEventListener('subscription_updated', (e) => {
+            console.log('Titan AI 哨兵：系统权限广播侦测完毕', e.detail);
+            this.updateMemberStatusUI();
+        });
     }
 
     saveSession() {
@@ -207,8 +220,16 @@ class TitanAIAssistant {
         
         // 【核心计划：全量数据工厂同步 (Supabase Data Lake Sync)】
         // 1. 同步当前会话快照 (用于 UI 恢复)
-        if (window.SupabaseClient && window.SupabaseClient.client) {
-            const supabase = window.SupabaseClient.client;
+        let supabase = null;
+        if (window.SubscriptionManager && window.SubscriptionManager.client) {
+            supabase = window.SubscriptionManager.client;
+        } else if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+            supabase = window.SupabaseClient.init();
+        } else if (window.SupabaseClient) {
+            supabase = window.SupabaseClient.client;
+        }
+
+        if (supabase) {
             supabase.auth.getUser().then(({ data: { user } }) => {
                 if (user) {
                     // 更新会话快照
@@ -229,8 +250,19 @@ class TitanAIAssistant {
      * 每一轮对话完成后异步推送到 ai_chat_logs 归档表，实现百万级数据的“只增不减”
      */
     async logChatMessage(role, content, metadata = {}) {
-        if (!window.SupabaseClient || !window.SupabaseClient.client) return;
-        const supabase = window.SupabaseClient.client;
+        let supabase = null;
+        if (window.SubscriptionManager && window.SubscriptionManager.client) {
+            supabase = window.SubscriptionManager.client;
+        } else if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+            supabase = window.SupabaseClient.init(); // Always try to get the active client
+        } else if (window.SupabaseClient) {
+            supabase = window.SupabaseClient.client;
+        }
+
+        if (!supabase) {
+            console.warn("Titan Log: Supabase client not ready, skipping log array update.", role);
+            return;
+        }
         
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -274,8 +306,16 @@ class TitanAIAssistant {
         }
 
         // 【新增】：首先联线 Supabase 中心探针拉取云端跨设备存盘，一旦脱机或匿名则退坡到本地 sessionStorage
-        if (window.SupabaseClient && window.SupabaseClient.client) {
-            const supabase = window.SupabaseClient.client;
+        let supabase = null;
+        if (window.SubscriptionManager && window.SubscriptionManager.client) {
+            supabase = window.SubscriptionManager.client;
+        } else if (window.SupabaseClient && typeof window.SupabaseClient.init === 'function') {
+            supabase = window.SupabaseClient.init();
+        } else if (window.SupabaseClient) {
+            supabase = window.SupabaseClient.client;
+        }
+
+        if (supabase) {
             supabase.auth.getUser().then(({ data: { user } }) => {
                 if (user) {
                     supabase.from('ai_chat_sessions')
@@ -2277,6 +2317,8 @@ class TitanAIAssistant {
     }
 
     async sendAudioToGemini(audioBlob, durationInSeconds = 1) {
+        if (!this.checkUsageLimit()) return; // 语音流输入防绕过拦截
+
         const audioUrl = URL.createObjectURL(audioBlob);
         const barWidth = Math.min(240, Math.max(80, 60 + durationInSeconds * 4));
         const voiceHTML = `<div class="voice-message-bar" title="点击播放/暂停刚才录制的语音" style="width: ${barWidth}px;" onclick="let a = window.$titanUserAudio;const srcMatch = window.$titanAudioUrl === '${audioUrl}';if (a && !a.paused && srcMatch) {a.pause();a.currentTime = 0;this.classList.remove('playing');window.$titanAudioUrl = null;} else {if (a) { a.pause(); a.currentTime = 0; }document.querySelectorAll('.voice-message-bar.playing').forEach(el => el.classList.remove('playing'));window.$titanAudioUrl = '${audioUrl}';window.$titanUserAudio = new Audio('${audioUrl}');window.$titanUserAudio.play();this.classList.add('playing');window.$titanUserAudio.onended = () => { this.classList.remove('playing'); window.$titanAudioUrl = null; };}"><span style="flex: 1; text-align: left;">${durationInSeconds}"</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07" class="voice-wave-1"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14" class="voice-wave-2"></path></svg></div>`;
@@ -2726,8 +2768,11 @@ ${currentFullContent}
                     this.isProcessingQueue = false;
                     this.processQueue();
                     
-                    // 核心修复：访客模式提问计费 (Guest Usage Tracking)
-                    const isMemberStatus = this.settings.memberExpired > Date.now();
+                    // 核心修复：访客模式提问计费 (Guest Usage Tracking) 接入全栈检测
+                    let isMemberStatus = this.settings.memberExpired > Date.now();
+                    if (window.SubscriptionManager && window.SubscriptionManager.isSubscribed && window.SubscriptionManager.isSubscribed()) {
+                        isMemberStatus = true;
+                    }
                     if (!isMemberStatus) {
                         let remainingCount = parseInt(localStorage.getItem('ai_guest_limit') || '10');
                         if (remainingCount > 0) {
@@ -2955,7 +3000,36 @@ ${currentFullContent}
         this.setSendButtonState('send');
     }
 
+    // 防渗透验证：一举阻断图片、语音、快捷键绕过攻击
+    checkUsageLimit() {
+        let isMemberStatus = this.settings.memberExpired > Date.now();
+        if (window.SubscriptionManager && window.SubscriptionManager.isSubscribed && window.SubscriptionManager.isSubscribed()) {
+            isMemberStatus = true;
+        }
+        let remaining = parseInt(localStorage.getItem('ai_guest_limit') || '10');
+        
+        if (!isMemberStatus && remaining <= 0) {
+            if (this.input) {
+                this.input.style.transition = 'all 0.1s';
+                this.input.style.border = '1px solid #ef4444';
+                setTimeout(() => { this.input.style.border = ''; }, 300);
+            }
+            
+            // 引导解锁
+            if (this.activateBtn) {
+                this.activateBtn.click();
+            } else {
+                alert('访客体验次数已耗尽！\n请点击输入框侧边的钥匙图标或直接登录重置对话次数。');
+            }
+            return false;
+        }
+        return true;
+    }
+
     async sendMessage() {
+        // 核心锁定防绕过拦截: 确保即便点击了提示词泡泡发起的调用也会被拦截
+        if (this.sendBtnState !== 'stop' && !this.checkUsageLimit()) return;
+
         if (this.sendBtnState === 'stop') {
             this.cancelOutput();
             return;
