@@ -996,13 +996,15 @@
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #334155';
 
+                let statusLower = (v.status || '').toLowerCase();
+                let statusStr = statusLower === 'active' ? 'Active' : (statusLower === 'used' ? 'Used' : (statusLower === 'void' ? 'Void' : v.status));
+
                 let statusColor = '#94a3b8';
-                if (v.status === 'Active') statusColor = '#10b981';
-                if (v.status === 'Used') statusColor = '#f59e0b';
-                if (v.status === 'Void') statusColor = '#ef4444';
+                if (statusLower === 'active') statusColor = '#10b981';
+                if (statusLower === 'used') statusColor = '#f59e0b';
+                if (statusLower === 'void') statusColor = '#ef4444';
 
                 // FIX 1: Handle Undefined Type
-                // If v.type is missing, try to infer from code duration (e.g. VIP-30D-...) or use default
                 let displayType = v.type;
                 if (!displayType || displayType === 'undefined') {
                     if (v.code && (v.code.includes('-Lifetime-') || v.code.includes('-LIFE-'))) displayType = 'Lifetime';
@@ -1013,27 +1015,29 @@
                 }
 
                 // FIX 2: Handle UUID display
-                // Check if used_by looks like a UUID (len 36)
                 let displayUser = v.used_by || '-';
                 if (v.used_by && v.used_by.length > 30) {
                     displayUser = globalUserMap[v.used_by] || v.used_by;
-                    // Truncate if still UUID
                     if (displayUser === v.used_by) {
                         displayUser = v.used_by.substring(0, 8) + '...';
                     }
                 }
 
+                let actionHtml = '';
+                if (statusLower === 'active') {
+                    actionHtml += `<button class="btn" style="padding: 4px 10px; font-size: 11px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border:1px solid rgba(59,130,246,0.3); margin-right:4px;" onclick="markUsed('${v.code}')">Use</button>
+                                   <button class="btn" style="padding: 4px 10px; font-size: 11px; background: rgba(239, 68, 68, 0.2); color: #f87171; border:1px solid rgba(239, 68, 68, 0.3); margin-right:4px;" onclick="voidVoucher('${v.code}')">Void</button>`;
+                }
+                actionHtml += `<button class="btn" style="padding: 4px 10px; font-size: 11px; background: rgba(100, 116, 139, 0.2); color: #94a3b8; border:1px solid rgba(100, 116, 139, 0.3);" onclick="deleteVoucher('${v.code}')">Del</button>`;
+
                 tr.innerHTML = `
                     <td style="padding: 12px; font-family:monospace; font-weight:bold; color: #e2e8f0;">${v.code}</td>
                     <td style="padding: 12px;"><span class="val-badge" style="font-size:11px;">${displayType}</span></td>
                     <td style="padding: 12px; color:${v.used_by ? '#60a5fa' : '#64748b'}">${displayUser}</td>
-                    <td style="padding: 12px;"><span style="color:${statusColor}; font-weight:600;">${v.status}</span></td>
+                    <td style="padding: 12px;"><span style="color:${statusColor}; font-weight:600;">${statusStr}</span></td>
                     <td style="padding: 12px; font-size:12px; color:#64748b;">${new Date(v.created || v.created_at).toLocaleDateString()}</td>
-                    <td style="padding: 12px;">
-                        ${v.status === 'Active' ? `
-                            <button class="btn" style="padding: 4px 10px; font-size: 11px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border:1px solid rgba(59,130,246,0.3); margin-right:4px;" onclick="markUsed('${v.code}')">Use</button>
-                            <button class="btn" style="padding: 4px 10px; font-size: 11px; background: rgba(239, 68, 68, 0.2); color: #f87171; border:1px solid rgba(239, 68, 68, 0.3);" onclick="voidVoucher('${v.code}')">Void</button>
-                        ` : '<span style="opacity:0.3">-</span>'}
+                    <td style="padding: 12px; display:flex; align-items:center;">
+                        ${actionHtml}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1063,6 +1067,27 @@
                 localStorage.setItem('voucher_db', JSON.stringify(db));
                 renderVoucherTable(db);
                 updateVoucherStatusCloud(code, 'Used', user);
+            }
+        }
+
+        async function deleteVoucher(code) {
+            if (!confirm("Are you sure you want to permanently delete this voucher?")) return;
+            
+            let db = await fetchVoucherDB();
+            db = db.filter(v => v.code !== code);
+            localStorage.setItem('voucher_db', JSON.stringify(db));
+            renderVoucherTable(db);
+            
+            const url = localStorage.getItem('s_url');
+            const key = localStorage.getItem('s_key');
+            if (!url || !key) return;
+            try {
+                await fetch(`${url}/rest/v1/vouchers?code=eq.${code}`, {
+                    method: 'DELETE',
+                    headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+                });
+            } catch(e) { 
+                console.error("Cloud Delete Fail", e); 
             }
         }
 
