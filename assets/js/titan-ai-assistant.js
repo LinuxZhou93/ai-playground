@@ -2273,9 +2273,10 @@ ${currentFullContent}
             const lines = lastResponseText.split('\n');
             lines.forEach(line => {
                 line = line.trim();
-                if ((line.endsWith('？') || line.endsWith('?')) && line.length < 60) {
-                    // 清洗前置的项目符号或数字序号
-                    const cleanQ = line.replace(/^[\-\*1-9\.\s]+/, '');
+                // 放宽提取条件：只要这一段含有问号且不是动辄几百字的超长段落，都视为一个小创老师抛出的选项/追问，哪怕后面带了括号（提示：...）
+                if ((line.includes('？') || line.includes('?')) && line.length > 5 && line.length < 150) {
+                    // 深度清洗前置的项目符号、数字序号以及 Markdown 强调符 (**, `) 
+                    let cleanQ = line.replace(/^[\-\*1-9\.\s>]+/, '').replace(/[\*_\`\#]/g, '').trim();
                     if (cleanQ.length > 4) {
                         customChips.push({
                             label: `🎯 ${cleanQ.length > 14 ? cleanQ.substring(0, 13) + '...' : cleanQ}`,
@@ -2284,8 +2285,8 @@ ${currentFullContent}
                     }
                 }
             });
-            // 限制最多提取最新的4个选项以防霸屏
-            if (customChips.length > 4) customChips = customChips.slice(-4);
+            // 限制最多提取最新的3个选项以防霸屏
+            if (customChips.length > 3) customChips = customChips.slice(-3);
         }
 
         const defaultChips = [
