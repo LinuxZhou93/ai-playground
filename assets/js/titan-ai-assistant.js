@@ -1233,7 +1233,7 @@ class TitanAIAssistant {
                 // Capture the entire page first to avoid html2canvas clipping bugs
                 const fullCanvas = await window.html2canvas(document.body, {
                     useCORS: true,
-                    allowTaint: true,
+                    allowTaint: false,
                     scale: dpr,
                     backgroundColor: null,
                     logging: false
