@@ -224,6 +224,16 @@ class TitanAIAssistant {
             const script = document.createElement('script');
             script.id = 'highlight-js';
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+            script.onload = () => {
+                if (window.marked) {
+                    window.marked.setOptions({
+                        gfm: true,
+                        breaks: true,
+                        headerIds: false,
+                        mangle: false
+                    });
+                }
+            };
             document.head.appendChild(script);
         }
     }
@@ -463,12 +473,13 @@ class TitanAIAssistant {
                 border-bottom-right-radius: 2px;
             }
             .msg-ai {
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                color: #e2e8f0;
+                background: linear-gradient(135deg, rgba(23, 31, 48, 0.95) 0%, rgba(10, 15, 25, 0.98) 100%);
+                border: 1px solid rgba(56, 189, 248, 0.2);
+                color: #f1f5f9;
                 align-self: flex-start;
                 border-bottom-left-radius: 2px;
                 position: relative;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             }
             .msg-system {
                 align-self: center;
@@ -716,17 +727,19 @@ class TitanAIAssistant {
             }
             .typing-status {
                 font-size: 11px;
-                color: #38bdf8;
-                font-family: 'Orbitron', sans-serif;
-                margin-left: 8px;
-                opacity: 0.8;
-                font-weight: bold;
-                letter-spacing: 0.5px;
-                animation: status-pulse 1.5s infinite alternate;
+                color: #0ea5e9;
+                font-family: 'Orbitron', 'Inter', sans-serif;
+                margin-left: 10px;
+                opacity: 0.9;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                animation: status-breath 2s infinite ease-in-out;
+                text-transform: uppercase;
+                text-shadow: 0 0 8px rgba(14, 165, 233, 0.4);
             }
-            @keyframes status-pulse {
-                from { opacity: 0.5; filter: blur(0px); }
-                to { opacity: 1; filter: blur(0.3px); }
+            @keyframes status-breath {
+                0%, 100% { opacity: 0.5; transform: scale(0.98); filter: blur(0.2px); }
+                50% { opacity: 1; transform: scale(1); filter: blur(0px); }
             }
             .ai-chips-wrapper {
                 padding: 0 16px 8px 16px;
@@ -794,6 +807,18 @@ class TitanAIAssistant {
             .markdown-body table tr:hover td { background: rgba(14, 165, 233, 0.08); }
             .markdown-body code:not(pre code) {
                 background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; color: #38bdf8; font-family: Consolas, monospace; font-size: 0.9em;
+            }
+            .markdown-body a {
+                color: #38bdf8;
+                text-decoration: none;
+                border-bottom: 1px solid rgba(56, 189, 248, 0.4);
+                transition: all 0.2s;
+                font-weight: 500;
+            }
+            .markdown-body a:hover {
+                color: #7dd3fc;
+                background: rgba(14, 165, 233, 0.1);
+                border-bottom-color: #7dd3fc;
             }
              @media (max-width: 640px) {
                 .ai-panel {
@@ -1670,11 +1695,12 @@ class TitanAIAssistant {
         const hasFile = this.pendingDocs.length > 0;
         let fileTextPromptPart = '';
         let pendingMediaHTML = '';
-        const imagesBase64List = [];
+        const currentImages = [...this.pendingImages];
+        const currentDocs = [...this.pendingDocs];
 
         if (hasFile) {
             pendingMediaHTML += `<div style="background:rgba(255,255,255,0.1);padding:6px;border-radius:4px;margin-bottom:8px;font-size:12px;display:flex;flex-wrap:wrap;gap:6px;">`;
-            this.pendingDocs.forEach(doc => {
+            currentDocs.forEach(doc => {
                 pendingMediaHTML += `<span style="background:rgba(14,165,233,0.3);padding:2px 6px;border-radius:4px;">📄 ${doc.name}</span>`;
                 fileTextPromptPart += `[附件 ${doc.name}]\n${doc.content}\n\n`;
             });
@@ -1683,20 +1709,16 @@ class TitanAIAssistant {
 
         if (hasImage) {
             pendingMediaHTML += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">`;
-            this.pendingImages.forEach(img => {
-                imagesBase64List.push(img.split(',')[1]);
+            currentImages.forEach(img => {
                 pendingMediaHTML += `<img src="${img}" class="ai-image-preview" style="height:60px;width:60px;object-fit:cover;border-radius:6px;margin:0;" />`;
             });
             pendingMediaHTML += `</div>`;
         }
 
-        // Reset arrays
-        this.pendingImages = [];
-        this.pendingDocs = [];
-        this._updateFileReadyUI();
-        if (this.fileInput) this.fileInput.value = '';
+        // Reset arrays immediately for UX
+        this.clearAllPendingFiles();
 
-        this.lastInputWasVoice = true; // 标记这是语音请求
+        this.lastInputWasVoice = true; 
         this.appendMessage('user', pendingMediaHTML + voiceHTML, true);
         this.showTyping();
         
@@ -1714,28 +1736,36 @@ class TitanAIAssistant {
                 systemPromptText = '请听这段语音并结合附加的文档内容来联合回答我的提问。';
             }
 
-            systemPromptText = fileTextPromptPart + systemPromptText;
-
-            const userMessage = {
-                role: 'user',
-                content: [
-                    { type: 'text', text: systemPromptText }
-                ]
-            };
-            
-            if (imagesBase64List.length > 0) {
-                imagesBase64List.forEach(b64 => {
-                    userMessage.content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } });
-                });
-            }
-            // 剥离 ;codecs=opus 前缀，防止各种通用 API 代理/大模型校验 MIME 时出现格式匹配死锁
             const cleanMimeType = audioBlob.type.split(';')[0] || 'audio/webm';
-            userMessage.content.push({ type: 'image_url', image_url: { url: `data:${cleanMimeType};base64,${base64Audio}` } });
+            const userMessage = this._buildMultimodalMessage(
+                fileTextPromptPart + systemPromptText, 
+                currentImages, 
+                { data: base64Audio, type: cleanMimeType }
+            );
 
             this.messageQueue.push(userMessage);
             this.processQueue();
         };
     }
+
+    _buildMultimodalMessage(text, images = [], audio = null) {
+        const content = [];
+        if (text) content.push({ type: 'text', text: text });
+        
+        if (images && images.length > 0) {
+            images.forEach(img => {
+                const b64 = img.includes(',') ? img.split(',')[1] : img;
+                content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } });
+            });
+        }
+        
+        if (audio && audio.data) {
+            content.push({ type: 'image_url', image_url: { url: `data:${audio.type};base64,${audio.data}` } });
+        }
+        
+        return { role: 'user', content: content.length === 1 && content[0].type === 'text' ? content[0].text : content };
+    }
+
 
     handleTextSelection(e) {
         setTimeout(() => {
@@ -1750,7 +1780,6 @@ class TitanAIAssistant {
                     x = touch.pageX;
                     y = touch.pageY - 40;
                 }
-                
                 this.selectionBtn.style.display = 'flex';
                 this.selectionBtn.style.top = `${y}px`;
                 this.selectionBtn.style.left = `${x}px`;
@@ -1759,13 +1788,12 @@ class TitanAIAssistant {
                     this.selectionBtn.style.display = 'none';
                 }
             }
-        }, 80); //稍微提高延迟让选区更稳定
+        }, 80);
     }
 
     async openCamera() {
         this.cameraModal.style.display = 'flex';
         try {
-            // environment 优先后置，前置 fallback。完全靠谱在移动端和PC间切换。
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
             this.videoEl.srcObject = stream;
         } catch(err) {
@@ -1829,14 +1857,16 @@ class TitanAIAssistant {
 以下是系统刚刚抓取到的该网页内的当前页面核心文本（这是他此刻可能在问的直接上下文）：
 ${currentFullContent}
 
-【💡核心回复规范 - 极其重要】：
-1. 你必须像高级 Notion 笔记那样使用 Markdown 优雅排版！规范如下：
-   - 坚决避免类似 "1. **加粗伪标题**" 这种平铺排版。必须使用真正的多级标题 (### , ####) 来划分每个大环节，以形成清晰的骨架层级！
-   - 加入充裕的 Emoji 作为图标点缀 (如🪐🎯💡🔥🚀等)。段落大意之间可以利用分割线 (---) 进行物理隔断。
-   - 【极其关键】：涉及到“核心概念”、“金句”、“启发点”或“警告”等重要知识，**必须用引用块 (\`> \`) 进行包裹**！系统会强制将其渲染成带色彩的极客高亮提示框（Color Blocks），这就是我们要的 Notion 化质感！
-2. 【特级作图规则 (ASCII Blueprint)】：你是专业的“科技特长生全栈总架构师”，每当讲解机械结构(如齿轮/杠杆)、组织逻辑、现象成因或数据流时，你**必须**使用 Markdown 全代码块（\`\`\`text \`\`\`）包裹，并以极高难度的系统工程 ASCII 全景架构图进行呈现！决不允许画几个简单的横线应付，必须利用高级制表符（如 ┌───┐, │, └───┘, ├, ┼, ◄, ▲, ▼, =>）画出包含嵌套子系统、清晰上下游流向、并带有精细参数注释的硬核工程图纸！图纸画得越专业、越庞大越能彰显你的地位！前端拥有带拷贝按钮的极客深色 IDE 代码窗来承载你的神作！
-3. 请使用充满亲和力的“真人语调”，坚决避免 AI 机器人般机械或冰冷的套话。语言要简明扼要，直接、简短。
-4. 【多模态教学强引导】：当你在对话中讲解一些知识概念、或者鼓励学生亲自去搭建实体（如乐高/VEX/结构件）时，**无时无刻不要忘记极其热情地引导他们主动使用面板下方的【相机📸】按钮，把他们的实物作品或身边对应的现象拍给你看！** （用轻松的口吻，如：“遇到搞不懂的结构？随时点下面的相机按钮拍个照片或长截屏发给小创老师，我帮你一键分析！”或“拼出来了没？拍个图发给我验证一下鸭！”）要让孩子深刻感受到你是拥有视觉的随身极客伴侣。`;
+【💡 极致排版指令 - Notion Mastery】：
+你不仅是 AI，你是在创作一件工艺品级的学习笔记。必须严格遵守以下法则：
+1. **分层骨架**：严禁单纯文字堆砌。必须使用 Markdown 多级标题 (#, ##) 对逻辑进行分段，并辅以分界线 (---)。
+2. **极客符号**：每个标题和核心结论前，必须配一个契合语境 de Emoji。
+3. **金句化引用**：凡是核心推导结论、关键实验参数或“小创老师温馨建议”，必须使用引用块 (> ) 进行封装。
+4. **表格展示**：凡是涉及两个以上概念的对比，必须使用 Markdown 表格呈现。
+5. **ASCII 工程图**：每当讲解机械结构、组织逻辑或现象成因时，必须输出高度精细的系统工程 ASCII 图纸，利用特殊的连接符（┌───┐, │, └───┘）展示逻辑流。
+6. **真人语调**：语气要像是一位极其专业、冷静但又充满激情的伯克利实验室导师。
+7. **视觉引导**：常态化鼓励学生点击下方的【相机📸】按钮拍照或截屏发给你分析。
+8. **超链接引用**：凡是提到任何在线资源、官网、技术文档、视频教程或代码库，**必须**使用 Markdown 标准语法 \`[名称](URL)\` 提供超链接。禁止空谈名称。`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {
@@ -1952,10 +1982,15 @@ ${currentFullContent}
                     const header = document.createElement('div');
                     header.className = 'code-header';
                     header.innerHTML = `
-                        <span class="code-lang">${langName}</span>
+                        <div class="mac-dots">
+                            <i style="background: #ff5f56;"></i>
+                            <i style="background: #ffbd2e;"></i>
+                            <i style="background: #27c93f;"></i>
+                            <span class="code-lang" style="margin-left: 8px; font-family: 'Orbitron'; font-size: 10px; color: #8b949e;">${langName}</span>
+                        </div>
                         <button type="button" class="code-copy">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            复制代码
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy
                         </button>
                     `;
                     
@@ -1970,16 +2005,11 @@ ${currentFullContent}
             };
 
             let i = 0;
-            // 内核：基于自适应停顿流的打字推演 (由 setTimeout 控制更自然)
             const typeNextChar = () => {
                 if (this.isTypingCancelled) {
                     this.setSendButtonState('send');
-                    if (window.hljs && window.marked) {
-                        msgDiv.innerHTML = window.marked.parse(aiReply.substring(0, i));
-                        enhanceCodeBlocks();
-                    } else {
-                        msgDiv.innerText = aiReply.substring(0, i);
-                    }
+                    msgDiv.innerHTML = window.marked ? window.marked.parse(aiReply.substring(0, i)) : aiReply.substring(0, i);
+                    enhanceCodeBlocks();
                     this.scrollToBottom(true);
                     if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply.substring(0, i));
                     this.isProcessingQueue = false;
@@ -1987,17 +2017,10 @@ ${currentFullContent}
                     return;
                 }
 
-                if (i > aiReply.length) {
-                    // 全文下潜完成，收尾抛出完美无光标版本并赋予语法高亮 + Code Header
-                    if (window.hljs && window.marked) {
-                        msgDiv.innerHTML = window.marked.parse(aiReply);
-                        enhanceCodeBlocks();
-                    } else {
-                        msgDiv.innerText = aiReply;
-                    }
+                if (i >= aiReply.length) {
+                    msgDiv.innerHTML = window.marked ? window.marked.parse(aiReply) : aiReply;
+                    enhanceCodeBlocks();
                     this.scrollToBottom();
-
-                    // 收尾善后工作
                     if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply);
                     this.setSendButtonState('send');
                     this.isProcessingQueue = false;
@@ -2005,33 +2028,29 @@ ${currentFullContent}
                     return;
                 }
 
-                // 运动打字态渲染
+                // 智能加速：如果是代码块内部或复杂 Markdown 标识符，一次多处理几个字符减少闪烁感
+                const step = (aiReply.substring(i, i + 5).includes('```') || aiReply.substring(i, i + 5).includes('|--')) ? 5 : 1;
+                i += step;
+                if (i > aiReply.length) i = aiReply.length;
+
                 const currentText = aiReply.substring(0, i);
-                if (window.marked && window.hljs) {
-                    msgDiv.innerHTML = window.marked.parse(currentText + '▌');
-                    // ✨ 实时为刚刚生成的任何 pre 追加深色 Header 面板及彩色语法高亮！
-                    enhanceCodeBlocks();
-                } else {
-                    msgDiv.innerText = currentText + '▌';
-                }
+                msgDiv.innerHTML = window.marked ? window.marked.parse(currentText + '▌') : currentText + '▌';
+                enhanceCodeBlocks();
                 this.scrollToBottom();
 
-                // 智能感知语意的“变速箱”：遇大段缓冲呼吸感，日常字句如丝绸平滑
-                let delay = 35; 
+                let delay = 30; // 默认基础速度稍微提升 (35 -> 30)
                 if (i > 0 && i < aiReply.length) {
                     const lc = aiReply.charAt(i - 1);
                     const cc = aiReply.charAt(i);
-                    // 遇到双回车空段落，留出半秒白墙缓冲给小学生喘息
                     if (cc === '\n' && lc === '\n') {
-                        delay = 600;
+                        delay = 450; // 缩短长停顿 (600 -> 450)
                     } else if (cc === '\n') {
-                        delay = 200; // 换小行稍等
+                        delay = 120; // 缩短行停顿 (200 -> 120)
+                    } else if ('.。!！?？'.includes(lc)) {
+                        delay = 200; // 增加标点后的呼吸感
                     }
                 }
 
-                // 追加处理越界防守：遇到代码块时为了防止 HTML/Markdown 渲染时隐时现错位，一次性加速吐出更多！
-                // 或者我们可以保持平滑，用 1字 即可。为了极限防闪烁这里保持每次 1，因为 marked.js 渲染极快不闪。
-                i += 1;
                 setTimeout(typeNextChar, delay);
             };
 
@@ -2174,15 +2193,15 @@ ${currentFullContent}
         if (!text && !hasImage && !hasFile) return;
         
         this.input.value = '';
-        let userMessageObject = null;
+        const currentImages = [...this.pendingImages];
+        const currentDocs = [...this.pendingDocs];
 
         let fileTextPromptPart = '';
         let pendingMediaHTML = '';
-        const imagesBase64List = [];
 
         if (hasFile) {
             pendingMediaHTML += `<div style="background:rgba(255,255,255,0.1);padding:6px;border-radius:4px;margin-bottom:8px;font-size:12px;display:flex;flex-wrap:wrap;gap:6px;">`;
-            this.pendingDocs.forEach(doc => {
+            currentDocs.forEach(doc => {
                 pendingMediaHTML += `<span style="background:rgba(14,165,233,0.3);padding:2px 6px;border-radius:4px;">📄 ${doc.name}</span>`;
                 fileTextPromptPart += `[附件 ${doc.name}]\n${doc.content}\n\n`;
             });
@@ -2191,46 +2210,30 @@ ${currentFullContent}
 
         if (hasImage) {
             pendingMediaHTML += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">`;
-            this.pendingImages.forEach(img => {
-                imagesBase64List.push(img.split(',')[1]);
+            currentImages.forEach(img => {
                 pendingMediaHTML += `<img src="${img}" class="ai-image-preview" style="height:60px;width:60px;object-fit:cover;border-radius:6px;margin:0;" />`;
             });
             pendingMediaHTML += `</div>`;
         }
 
-        // Reset arrays
-        this.pendingImages = [];
-        this.pendingDocs = [];
-        this._updateFileReadyUI();
-        if (this.fileInput) this.fileInput.value = '';
-        
+        this.clearAllPendingFiles();
         this.lastInputWasVoice = false;
         
-        if (hasFile || hasImage) {
-            let aiTextPrompt = text || (hasImage ? '请看上述图像。结合画面为您解析。' : '请帮我详细分析我发送的文档。');
-            if (hasFile) {
-                aiTextPrompt = `${fileTextPromptPart}\n\n[用户问题]: ${aiTextPrompt}`;
-            }
-            
-            let finalHtmlMsg = pendingMediaHTML;
-            if (text) finalHtmlMsg += `<div style="margin-top:8px;">${text}</div>`;
-            else finalHtmlMsg += `<div style="margin-top:8px;font-style:italic;opacity:0.7;">(发送了多媒体文件)</div>`;
-            
-            this.appendMessage('user', finalHtmlMsg, true);
-            
-            if (hasImage) {
-                let contentArray = [{ type: 'text', text: aiTextPrompt }];
-                imagesBase64List.forEach(b64 => {
-                     contentArray.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } });
-                });
-                userMessageObject = { role: 'user', content: contentArray };
-            } else {
-                userMessageObject = { role: 'user', content: aiTextPrompt };
-            }
-        } else {
-            this.appendMessage('user', text);
-            userMessageObject = { role: 'user', content: text };
+        let finalHtmlMsg = pendingMediaHTML;
+        if (text) finalHtmlMsg += `<div style="margin-top:8px;">${text}</div>`;
+        else finalHtmlMsg += `<div style="margin-top:8px;font-style:italic;opacity:0.7;">(发送了多媒体文件)</div>`;
+        
+        this.appendMessage('user', finalHtmlMsg, true);
+        
+        let aiTextPrompt = text;
+        if (!text && (hasImage || hasFile)) {
+            aiTextPrompt = hasImage ? '请看上述图像。结合画面为您解析。' : '请帮我详细分析我发送的文档。';
         }
+        
+        const userMessageObject = this._buildMultimodalMessage(
+            fileTextPromptPart ? `${fileTextPromptPart}\n\n[用户问题]: ${aiTextPrompt}` : aiTextPrompt,
+            currentImages
+        );
         
         this.playHapticSound('send');
         
@@ -2343,24 +2346,31 @@ ${currentFullContent}
         if(!chipsContainer) return;
         
         let customChips = [];
-        // --- 动态子问题提取 (Dynamic Action Chips Extraction) ---
+        // --- 进化版：全局正则语义探测器 (Global Semantic Probing) ---
         if (lastResponseText) {
-            const lines = lastResponseText.split('\n');
-            lines.forEach(line => {
-                line = line.trim();
-                if (!line) return;
-                const hasQ = line.includes('？') || line.includes('?');
-                if (hasQ && line.length > 5 && line.length < 120) {
-                    let cleanQ = line.replace(/^[\-\*1-9\.\s>]+/, '').replace(/[\*_\`\#\"""]/g, '').trim();
-                    if (cleanQ.length > 4) {
+            // 不再拘泥于物理换行，而是利用语义边界寻找所有以问号结尾的“诱导性短句”
+            const questions = lastResponseText.match(/[^。！!？\?\n\r]+[？\?]/g) || [];
+            
+            questions.forEach(q => {
+                let text = q.trim();
+                // 排除过短（噪音）或过于宏大的长句（非选项）
+                if (text.length > 5 && text.length < 100) {
+                    // 彻底扒掉 Markdown 的外壳 (加粗、斜体、代码、引用、列表头)
+                    let clean = text.replace(/^[\-\*1-9\.\s>#]+/, '')
+                                    .replace(/[\*_\`\#\"""]/g, '')
+                                    .replace(/[\(（]提示[：:].*?[\)）]/g, '') // 智能剔除括号里的提示说明，保持磁片简洁
+                                    .trim();
+                    
+                    if (clean.length > 3 && !customChips.some(c => c.prompt === clean)) {
                         customChips.push({
-                            label: `🎯 ${cleanQ.length > 18 ? cleanQ.substring(0, 17) + '…' : cleanQ}`,
-                            prompt: cleanQ
+                            label: `🎯 ${clean.length > 18 ? clean.substring(0, 16) + '…' : clean}`,
+                            prompt: clean
                         });
                     }
                 }
             });
-            if (customChips.length > 3) customChips = customChips.slice(-3);
+            // 优先展示最新的 3-4 个深度交互选项
+            if (customChips.length > 4) customChips = customChips.slice(-4);
         }
 
         const defaultChips = [
