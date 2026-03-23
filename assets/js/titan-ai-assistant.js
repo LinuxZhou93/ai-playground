@@ -303,6 +303,19 @@ class TitanAIAssistant {
                 background: rgba(255,255,255,0.1);
                 color: #fff;
             }
+            .ai-camera-modal {
+                position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000000;
+                display: none; align-items: center; justify-content: center; flex-direction: column;
+            }
+            .ai-camera-wrapper {
+                position: relative; width: 90%; max-width: 500px;
+                background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.1);
+            }
+            #titan-ai-video { width: 100%; border-radius: 8px; background: #000; }
+            #titan-ai-snap { width: 100%; margin-top: 12px; padding: 12px; background: #0ea5e9; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+            #titan-ai-snap:hover { background: #38bdf8; }
+            .ai-camera-close { position: absolute; top: -40px; right: 0; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+            
             .ai-image-preview {
                 max-width: 200px;
                 border-radius: 12px;
@@ -311,7 +324,7 @@ class TitanAIAssistant {
             }
             .ai-selection-popover {
                 position: absolute;
-                z-index: 999999;
+                z-index: 9999999;
                 background: #0ea5e9;
                 color: white;
                 padding: 6px 12px;
@@ -319,7 +332,7 @@ class TitanAIAssistant {
                 font-size: 13px;
                 font-weight: bold;
                 cursor: pointer;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.4);
                 display: none;
                 align-items: center;
                 gap: 6px;
@@ -404,10 +417,9 @@ class TitanAIAssistant {
                 </div>
                 
                 <div class="ai-input-area">
-                    <input type="file" id="titan-ai-file" accept="image/*" style="display:none;" />
-                    <label for="titan-ai-file" class="ai-camera" title="上传/拍照解析图片">
+                    <button class="ai-camera" id="titan-ai-camera-btn" title="拍照识别 (Camera)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                    </label>
+                    </button>
                     <button class="ai-voice" id="titan-ai-voice" title="语音输入 (Voice Input)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
                     </button>
@@ -418,6 +430,15 @@ class TitanAIAssistant {
                 </div>
             </div>
             
+            <div class="ai-camera-modal" id="titan-ai-camera-modal">
+                <div class="ai-camera-wrapper">
+                    <video id="titan-ai-video" autoplay playsinline></video>
+                    <canvas id="titan-ai-canvas" style="display:none;"></canvas>
+                    <button id="titan-ai-snap">📸 拍照并发送</button>
+                    <button class="ai-camera-close" id="titan-ai-camera-close">✖</button>
+                </div>
+            </div>
+
             <div class="ai-fab" id="titan-ai-fab">
                 <div class="core"></div>
             </div>
@@ -435,7 +456,13 @@ class TitanAIAssistant {
         this.input = document.getElementById('titan-ai-input');
         this.sendBtn = document.getElementById('titan-ai-send');
         this.voiceBtn = document.getElementById('titan-ai-voice');
-        this.fileInput = document.getElementById('titan-ai-file');
+        this.cameraBtn = document.getElementById('titan-ai-camera-btn');
+        this.cameraModal = document.getElementById('titan-ai-camera-modal');
+        this.videoEl = document.getElementById('titan-ai-video');
+        this.canvasEl = document.getElementById('titan-ai-canvas');
+        this.snapBtn = document.getElementById('titan-ai-snap');
+        this.cameraCloseBtn = document.getElementById('titan-ai-camera-close');
+        
         this.selectionBtn = document.getElementById('titan-ai-selection');
         this.mediaRecorder = null;
         this.audioStream = null;
@@ -461,7 +488,10 @@ class TitanAIAssistant {
         });
         
         this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
-        this.fileInput.addEventListener('change', (e) => this.handleImageUpload(e));
+        
+        this.cameraBtn.addEventListener('click', () => this.openCamera());
+        this.cameraCloseBtn.addEventListener('click', () => this.closeCamera());
+        this.snapBtn.addEventListener('click', () => this.takeSnapshot());
         
         document.addEventListener('mouseup', this.handleTextSelection.bind(this));
         document.addEventListener('touchend', this.handleTextSelection.bind(this));
@@ -568,48 +598,80 @@ class TitanAIAssistant {
         setTimeout(() => {
             const selection = window.getSelection();
             const text = selection.toString().trim();
-            if (text.length > 0 && !this.panel.contains(e.target) && e.target.id !== 'titan-ai-selection') {
-                const rect = selection.getRangeAt(0).getBoundingClientRect();
+            // 不在面板范围内点击才算
+            if (text.length > 0 && (!this.panel || !this.panel.contains(e.target)) && e.target.id !== 'titan-ai-selection') {
+                let x = e.pageX;
+                let y = e.pageY - 40;
+                if(e.type === 'touchend' && e.changedTouches && e.changedTouches.length > 0) {
+                    const touch = e.changedTouches[0];
+                    x = touch.pageX;
+                    y = touch.pageY - 40;
+                }
+                
                 this.selectionBtn.style.display = 'flex';
-                this.selectionBtn.style.top = `${rect.top + window.scrollY - 45}px`;
-                this.selectionBtn.style.left = `${rect.left + window.scrollX + (rect.width / 2) - 30}px`;
+                this.selectionBtn.style.top = `${y}px`;
+                this.selectionBtn.style.left = `${x}px`;
             } else {
                 if (e.target.id !== 'titan-ai-selection') {
                     this.selectionBtn.style.display = 'none';
                 }
             }
-        }, 50);
+        }, 80); //稍微提高延迟让选区更稳定
     }
 
-    handleImageUpload(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onloadend = () => {
-            const base64Data = reader.result;
-            const pureBase64 = base64Data.split(',')[1];
-
-            const imgHTML = `<img src="${base64Data}" class="ai-image-preview" />`;
-            this.appendMessage('user', imgHTML, true);
-            this.showTyping();
-
-            const userMessage = {
-                role: 'user',
-                content: [
-                    { type: 'text', text: '请结合你掌握的知识分析下这张图片，如它涉及代码或实物，请给出深度科技视角的解析。' },
-                    { 
-                        type: 'image_url', 
-                        image_url: {
-                            url: `data:${file.type};base64,${pureBase64}`
-                        }
-                    }
-                ]
-            };
-            this.sendToAPI(userMessage);
-            this.fileInput.value = '';
+    async openCamera() {
+        this.cameraModal.style.display = 'flex';
+        try {
+            // environment 优先后置，前置 fallback。完全靠谱在移动端和PC间切换。
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+            this.videoEl.srcObject = stream;
+        } catch(err) {
+            console.error('Camera access denied:', err);
+            alert('无法访问摄像头，请检查浏览器权限。');
+            this.closeCamera();
         }
+    }
+
+    closeCamera() {
+        this.cameraModal.style.display = 'none';
+        if (this.videoEl.srcObject) {
+            this.videoEl.srcObject.getTracks().forEach(track => track.stop());
+            this.videoEl.srcObject = null;
+        }
+    }
+
+    takeSnapshot() {
+        if (!this.videoEl.videoWidth) return;
+        this.canvasEl.width = this.videoEl.videoWidth;
+        this.canvasEl.height = this.videoEl.videoHeight;
+        const ctx = this.canvasEl.getContext('2d');
+        ctx.drawImage(this.videoEl, 0, 0, this.canvasEl.width, this.canvasEl.height);
+        
+        // 生成 base64
+        const dataURL = this.canvasEl.toDataURL('image/jpeg');
+
+        // 关闭模态框并清理视频流
+        this.closeCamera();
+
+        // 到聊天流里面发一条图片消息
+        if (!this.isChatOpen) this.fab.click();
+        const imgHTML = `<img src="${dataURL}" class="ai-image-preview" />`;
+        this.appendMessage('user', imgHTML, true);
+        this.showTyping();
+
+        const userMessage = {
+            role: 'user',
+            content: [
+                { type: 'text', text: '请看这张照片，深度分析它并回答。如果含有代码、考题、教具实体，请给出极具极客视角的见解。' },
+                { 
+                    type: 'image_url', 
+                    image_url: {
+                        url: dataURL
+                    }
+                }
+            ]
+        };
+        this.sendToAPI(userMessage);
     }
 
     async sendToAPI(userMessageObject) {
