@@ -25,14 +25,49 @@ class TitanAIAssistant {
         };
 
         this.chatHistory = [];
+        this.messageQueue = [];
+        this.isProcessingQueue = false;
         this.init();
     }
 
     init() {
+        this.loadDependencies();
         this.injectCSS();
         this.injectUI();
         this.cacheDOM();
         this.bindEvents();
+        setTimeout(() => {
+            if (typeof this.updateQuickChips === 'function') this.updateQuickChips();
+        }, 300); // 确保在 DOM 加载完成后初始化灵感胶囊
+    }
+
+    loadDependencies() {
+        if (!document.getElementById('marked-js')) {
+            const script = document.createElement('script');
+            script.id = 'marked-js';
+            script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+            document.head.appendChild(script);
+        }
+        if (!document.getElementById('highlight-css')) {
+            const link = document.createElement('link');
+            link.id = 'highlight-css';
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css';
+            document.head.appendChild(link);
+        }
+        if (!document.getElementById('highlight-js')) {
+            const script = document.createElement('script');
+            script.id = 'highlight-js';
+            script.src = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js';
+            document.head.appendChild(script);
+            
+            const langs = ['javascript', 'python', 'cpp', 'css', 'xml', 'bash'];
+            langs.forEach(lang => {
+                const langScript = document.createElement('script');
+                langScript.src = `https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/${lang}.min.js`;
+                document.head.appendChild(langScript);
+            });
+        }
     }
 
     injectCSS() {
@@ -45,11 +80,22 @@ class TitanAIAssistant {
                 z-index: 10000;
                 font-family: 'Orbitron', 'Noto Sans SC', sans-serif;
             }
+            .ai-scanner {
+                position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #38bdf8;
+                box-shadow: 0 0 15px 5px rgba(56, 189, 248, 0.4); z-index: 1000;
+                animation: scan-sweep 1.5s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+            }
+            @keyframes scan-sweep { 0% { top: 0; opacity: 1; } 80% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+            .scan-blink { display: inline-block; width: 6px; height: 6px; background: #38bdf8; border-radius: 50%; animation: pulse-core 0.5s infinite; margin-right: 4px; }
+            @keyframes ai-fab-breath {
+                0%, 100% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.4), inset 0 0 10px rgba(255,255,255,0.4); transform: translateY(0); }
+                50% { box-shadow: 0 0 25px rgba(14, 165, 233, 0.7), inset 0 0 15px rgba(255,255,255,0.6); transform: translateY(-5px); }
+            }
             .ai-fab {
                 width: 56px;
                 height: 56px;
                 border-radius: 50%;
-                background: linear-gradient(135deg, #0ea5e9, #6366f1);
+                background: url('assets/img/xiao_chuang_head.png') center/cover no-repeat;
                 box-shadow: 0 0 20px rgba(14, 165, 233, 0.4), inset 0 0 10px rgba(255,255,255,0.4);
                 display: flex;
                 align-items: center;
@@ -59,9 +105,10 @@ class TitanAIAssistant {
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 color: white;
                 position: relative;
+                animation: ai-fab-breath 3s ease-in-out infinite;
             }
             .ai-fab::before {
-                content: '🤖 智能学科助教';
+                content: '🤖 小创老师已就位';
                 position: absolute;
                 right: 75px;
                 top: 50%;
@@ -84,16 +131,12 @@ class TitanAIAssistant {
                 transform: translateY(-50%) translateX(0);
             }
             .ai-fab:hover {
-                transform: scale(1.1);
+                transform: scale(1.1) !important;
+                animation: none;
                 box-shadow: 0 0 30px rgba(14, 165, 233, 0.6), inset 0 0 15px rgba(255,255,255,0.6);
             }
             .ai-fab .core {
-                width: 24px;
-                height: 24px;
-                background: #fff;
-                border-radius: 50%;
-                box-shadow: 0 0 15px #fff;
-                animation: pulse-core 2s infinite ease-in-out;
+                display: none;
             }
             @keyframes pulse-core {
                 0%, 100% { transform: scale(0.8); opacity: 0.8; }
@@ -103,7 +146,8 @@ class TitanAIAssistant {
                 position: absolute;
                 bottom: 76px;
                 right: 0;
-                width: 380px;
+                width: 420px;
+                max-width: 90vw;
                 height: 550px;
                 background: rgba(10, 15, 25, 0.85);
                 backdrop-filter: blur(20px);
@@ -124,6 +168,14 @@ class TitanAIAssistant {
                 opacity: 1;
                 pointer-events: all;
             }
+            .ai-panel.expanded {
+                width: 800px;
+                height: 85vh;
+                max-width: 90vw;
+                border: 1px solid rgba(56, 189, 248, 0.6);
+                box-shadow: 0 10px 50px rgba(0, 0, 0, 0.8), 0 0 80px rgba(14, 165, 233, 0.2);
+                transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
             .ai-header {
                 padding: 16px;
                 background: rgba(14, 165, 233, 0.1);
@@ -132,6 +184,14 @@ class TitanAIAssistant {
                 justify-content: space-between;
                 align-items: center;
             }
+            #titan-ai-drag-handle { cursor: default; }
+            #titan-ai-drag-handle.draggable { cursor: grab; }
+            #titan-ai-drag-handle.draggable:active { cursor: grabbing; }
+            .ai-header-controls { display: flex; gap: 8px; }
+            .ai-expand-btn {
+                background: none; border: none; color: #38bdf8; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: all 0.2s; padding: 4px; border-radius: 4px;
+            }
+            .ai-expand-btn:hover { background: rgba(56, 189, 248, 0.2); opacity: 1; }
             .ai-header-title {
                 color: #38bdf8;
                 font-weight: bold;
@@ -139,6 +199,30 @@ class TitanAIAssistant {
                 display: flex;
                 align-items: center;
                 gap: 8px;
+            }
+            .ai-pts-floating {
+                position: absolute; bottom: 85px; right: 28px; z-index: 9999;
+                font-family: 'Orbitron', 'Noto Sans SC', sans-serif; display: flex; align-items: center; gap: 4px;
+                color: #10b981; font-weight: 900; font-size: 18px;
+                background: rgba(16, 185, 129, 0.15); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(16,185,129,0.3);
+                box-shadow: 0 0 10px rgba(16,185,129,0.4);
+                animation: ai-pts-float-up 1.8s ease-out forwards; pointer-events: none;
+            }
+            .ai-pts-floating span { font-size: 12px; color: #e2e8f0; font-weight: normal; }
+            @keyframes ai-pts-float-up {
+                0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+                15% { opacity: 1; transform: translateY(0) scale(1.1); }
+                80% { opacity: 1; transform: translateY(-40px) scale(1); }
+                100% { opacity: 0; transform: translateY(-50px) scale(0.8); }
+            }
+            .ai-pts-particle {
+                position: absolute; bottom: 95px; right: 40px; z-index: 9998;
+                width: 5px; height: 5px; border-radius: 50%; pointer-events: none;
+                animation: ai-pts-explode 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            }
+            @keyframes ai-pts-explode {
+                0% { opacity: 1; transform: translate(0, 0) scale(1); }
+                100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
             }
             .ai-header-title::before {
                 content: '';
@@ -170,6 +254,12 @@ class TitanAIAssistant {
                 width: 100%;
                 gap: 12px;
                 align-items: flex-start;
+                animation: msg-spring-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                opacity: 0;
+            }
+            @keyframes msg-spring-up {
+                0% { opacity: 0; transform: translateY(15px) scale(0.95); }
+                100% { opacity: 1; transform: translateY(0) scale(1); }
             }
             .msg-row.user {
                 justify-content: flex-end;
@@ -243,9 +333,10 @@ class TitanAIAssistant {
                 background: rgba(0,0,0,0.4);
                 border: 1px solid rgba(255,255,255,0.1);
                 border-radius: 8px;
-                padding: 8px 12px;
+                padding: 8px 10px;
                 color: #fff;
                 font-family: inherit;
+                font-size: 13px;
                 outline: none;
                 transition: all 0.2s;
             }
@@ -256,8 +347,8 @@ class TitanAIAssistant {
             .ai-send {
                 background: #0ea5e9;
                 border: none;
-                width: 36px;
-                height: 36px;
+                width: 32px;
+                height: 32px;
                 border-radius: 8px;
                 color: white;
                 cursor: pointer;
@@ -273,8 +364,8 @@ class TitanAIAssistant {
             .ai-voice {
                 background: transparent;
                 border: 1px solid rgba(255,255,255,0.1);
-                min-width: 36px;
-                height: 36px;
+                min-width: 32px;
+                height: 32px;
                 border-radius: 8px;
                 color: #94a3b8;
                 cursor: pointer;
@@ -291,8 +382,8 @@ class TitanAIAssistant {
             .ai-camera {
                 background: transparent;
                 border: 1px solid rgba(255,255,255,0.1);
-                min-width: 36px;
-                height: 36px;
+                min-width: 32px;
+                height: 32px;
                 border-radius: 8px;
                 color: #94a3b8;
                 cursor: pointer;
@@ -305,6 +396,34 @@ class TitanAIAssistant {
             .ai-camera:hover {
                 background: rgba(255,255,255,0.1);
                 color: #fff;
+            }
+            .ai-upload, .ai-phone, .ai-tts-stop {
+                background: transparent;
+                border: 1px solid rgba(255,255,255,0.1);
+                min-width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                color: #94a3b8;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            }
+            .ai-upload:hover, .ai-phone:hover, .ai-tts-stop:hover {
+                background: rgba(255,255,255,0.1);
+                color: #fff;
+            }
+            .ai-phone.calling {
+                color: #10b981;
+                border-color: rgba(16, 185, 129, 0.5);
+                animation: pulse-call 1.5s infinite;
+            }
+            @keyframes pulse-call {
+                0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+                70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
             }
             .ai-camera-modal {
                 position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000000;
@@ -411,6 +530,48 @@ class TitanAIAssistant {
                 0%, 100% { transform: translateY(0); opacity: 0.4; }
                 50% { transform: translateY(-4px); opacity: 1; }
             }
+            .ai-chips-wrapper {
+                padding: 0 16px 8px 16px;
+                display: flex; gap: 8px; overflow-x: auto;
+            }
+            .ai-chips-wrapper::-webkit-scrollbar { display: none; }
+            .ai-chip {
+                white-space: nowrap; padding: 6px 12px; background: rgba(56, 189, 248, 0.1); 
+                color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px;
+                font-size: 11px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+            }
+            .ai-chip:hover { background: rgba(56, 189, 248, 0.3); color: #fff; }
+            
+            .markdown-body pre {
+                background: #0d1117 !important; /* GitHub Dark Base */
+                border: 1px solid rgba(255,255,255,0.15);
+                border-radius: 8px;
+                padding: 0;
+                overflow: hidden;
+                margin: 12px 0;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+            }
+            .markdown-body .code-header {
+                display: flex; justify-content: space-between; align-items: center;
+                background: rgba(255,255,255,0.05); padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.1);
+                font-size: 11px; color: #8b949e; font-family: 'Orbitron', monospace;
+            }
+            .markdown-body .code-header .code-copy {
+                background: transparent; border: none; color: #8b949e; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 11px; outline: none; transition: 0.2s;
+            }
+            .markdown-body .code-header .code-copy:hover { color: #c9d1d9; }
+            .markdown-body pre code {
+                display: block; padding: 12px; overflow-x: auto;
+                font-family: Consolas, Monaco, "Courier New", monospace !important;
+                line-height: 1.4 !important;
+                color: #c9d1d9; font-size: 13px;
+                white-space: pre;
+            }
+            .markdown-body p { margin-bottom: 8px; }
+            .markdown-body p:last-child { margin-bottom: 0; }
+            .markdown-body code:not(pre code) {
+                background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; color: #38bdf8; font-family: monospace; font-size: 0.9em;
+            }
              @media (max-width: 640px) {
                 .ai-panel {
                     position: fixed;
@@ -428,30 +589,53 @@ class TitanAIAssistant {
         
         container.innerHTML = `
             <div class="ai-panel" id="titan-ai-panel">
-                <div class="ai-header">
-                    <div class="ai-header-title">智能学科助教 (AI Assistant)</div>
+                <div class="ai-header" id="titan-ai-drag-handle">
+                    <div class="ai-header-title">小创老师 (Virtual Teacher)</div>
+                    <div class="ai-header-controls">
+                        <button type="button" class="ai-expand-btn" id="titan-ai-expand-btn" title="展开为学习桌面 / 适合精读长篇解答及阅览代码">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="ai-chat-area" id="titan-ai-chat">
                     <div class="msg-row system">
-                        <div class="msg msg-system">智能学科助理已准备完毕，将深度结合此网页所展示的核心知识向您解答疑问！</div>
+                        <div class="msg msg-system">哈喽！我是小创老师，已准备完毕，将深度结合此网页所展示的核心知识向您解答疑问！</div>
                     </div>
                 </div>
                 
                 <div class="ai-pending-area" id="titan-ai-pending">
                     <img id="titan-ai-pending-img" class="ai-pending-img" src="" />
-                    <button class="ai-pending-close" id="titan-ai-pending-close">✖</button>
-                    <span class="ai-pending-hint">📸 已就绪，请补充问题...</span>
+                    <button type="button" class="ai-pending-close" id="titan-ai-pending-close">✖</button>
+                    <span class="ai-pending-hint" id="titan-ai-pending-hint">📸 已就绪，请补充问题...</span>
+                </div>
+                <div class="ai-chips-wrapper" id="titan-ai-chips">
+                    <button type="button" class="ai-chip" data-prompt="💡 不要直接给我答案，只给我一点提示">💡 不要答案，只要提示</button>
+                    <button type="button" class="ai-chip" data-prompt="🤔 结合生活中的物理/工程例子，用通俗语言帮我解释一下">🤔 通俗现象解释</button>
+                    <button type="button" class="ai-chip" data-prompt="📝 给我出一道类似的题目练手，附带答案解析">📝 出一道类似题</button>
                 </div>
                 <div class="ai-input-area">
-                    <button class="ai-camera" id="titan-ai-camera-btn" title="全能极客拍照 (Camera)">
+                    <input type="file" id="titan-ai-file-input" accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
+                    <button type="button" class="ai-upload" id="titan-ai-upload-btn" title="传送门 / 导入作业或错题本以供深度分析 (Upload)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </button>
+                    <button type="button" class="ai-phone" id="titan-ai-phone-btn" title="实时语音对谈 / 开启沉浸式口语化交互辅导 (Voice Call)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    </button>
+                    <button type="button" class="ai-tts-stop" id="titan-ai-tts-stop-btn" title="立刻打断 AI 说话 (Stop Audio)" style="display:none; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    </button>
+                    <button type="button" class="ai-camera" id="titan-ai-camera-btn" title="科创视觉实验 / 拍摄搭建的实体结构（如齿轮、杠杆）或遇到困难的现象，让小创老师现场为你观察并分析 (Camera)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                     </button>
-                    <button class="ai-voice" id="titan-ai-voice" title="语音输入 (Voice Input)">
+                    <button type="button" class="ai-voice" id="titan-ai-voice" title="点击录音 / 再次点击停止并发送。可结合刚刚拍下的照片进行跨模态发问 (Voice Input)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
                     </button>
-                    <input type="text" class="ai-input" id="titan-ai-input" placeholder="输入你想问的问题 / Enter prompt..." autocomplete="off">
-                    <button class="ai-send" id="titan-ai-send">
+                    <div style="flex:1; position:relative; display:flex; align-items:center;">
+                        <canvas id="titan-ai-waveform" width="140" height="30" style="display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none; z-index:10;"></canvas>
+                        <input type="text" class="ai-input" id="titan-ai-input" placeholder="输入你想问的问题..." autocomplete="off" maxlength="10000" style="width:100%;">
+                    </div>
+                    <button type="button" class="ai-send" id="titan-ai-send" title="发送问题 / 可以与上传的图像照片组合进行多模态发问 (Send)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
                 </div>
@@ -461,8 +645,8 @@ class TitanAIAssistant {
                 <div class="ai-camera-wrapper">
                     <video id="titan-ai-video" autoplay playsinline></video>
                     <canvas id="titan-ai-canvas" style="display:none;"></canvas>
-                    <button id="titan-ai-snap">📸 拍照并发送</button>
-                    <button class="ai-camera-close" id="titan-ai-camera-close">✖</button>
+                    <button type="button" id="titan-ai-snap">📸 拍照并发送</button>
+                    <button type="button" class="ai-camera-close" id="titan-ai-camera-close">✖</button>
                 </div>
             </div>
 
@@ -470,7 +654,7 @@ class TitanAIAssistant {
                 <div class="core"></div>
             </div>
 
-            <div class="ai-selection-popover" id="titan-ai-selection">🤖 问问 AI</div>
+            <div class="ai-selection-popover" id="titan-ai-selection">🤖 问问小创老师</div>
         `;
         
         document.body.appendChild(container);
@@ -485,17 +669,29 @@ class TitanAIAssistant {
         this.voiceBtn = document.getElementById('titan-ai-voice');
         this.cameraBtn = document.getElementById('titan-ai-camera-btn');
         this.cameraModal = document.getElementById('titan-ai-camera-modal');
+        this.uploadBtn = document.getElementById('titan-ai-upload-btn');
+        this.fileInput = document.getElementById('titan-ai-file-input');
+        this.phoneBtn = document.getElementById('titan-ai-phone-btn');
+        this.ttsStopBtn = document.getElementById('titan-ai-tts-stop-btn');
         this.videoEl = document.getElementById('titan-ai-video');
         this.canvasEl = document.getElementById('titan-ai-canvas');
         this.snapBtn = document.getElementById('titan-ai-snap');
         this.cameraCloseBtn = document.getElementById('titan-ai-camera-close');
         
+        this.dragHandle = document.getElementById('titan-ai-drag-handle');
+        this.expandBtn = document.getElementById('titan-ai-expand-btn');
+        this.isExpanded = false;
+        
         this.pendingArea = document.getElementById('titan-ai-pending');
         this.pendingImg = document.getElementById('titan-ai-pending-img');
+        this.pendingHint = document.getElementById('titan-ai-pending-hint');
         this.pendingCloseBtn = document.getElementById('titan-ai-pending-close');
         this.pendingImageDataUrl = null;
+        this.pendingTextData = null;
+        this.isPhoneCallMode = false;
         
         this.selectionBtn = document.getElementById('titan-ai-selection');
+        this.chips = document.querySelectorAll('.ai-chip'); // 绑定启发式引导磁片
         this.mediaRecorder = null;
         this.audioStream = null;
         this.audioChunks = [];
@@ -504,14 +700,102 @@ class TitanAIAssistant {
 
     bindEvents() {
         this.fab.addEventListener('click', () => {
+            if (!this.isChatOpen) this.playHapticSound('open');
             this.isChatOpen = !this.isChatOpen;
             if (this.isChatOpen) {
                 this.panel.classList.add('open');
                 this.input.focus();
-                this.scrollToBottom();
+                
+                if (!this.hasScanned) {
+                    this.hasScanned = true;
+                    this.runScanner();
+                } else {
+                    this.scrollToBottom();
+                }
             } else {
                 this.panel.classList.remove('open');
             }
+        });
+        
+        // 绑定快捷磁片启发式提问
+        this.chips.forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                const prompt = e.currentTarget.dataset.prompt;
+                this.input.value = prompt;
+                this.input.focus();
+                // 极简交互：点击磁片后直接替用户发送以增强爽快感
+                this.sendBtn.click();
+            });
+        });
+
+        // 扩展面板逻辑
+        this.expandBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.isExpanded = !this.isExpanded;
+            if (this.isExpanded) {
+                this.panel.classList.add('expanded');
+                this.dragHandle.classList.add('draggable');
+                
+                this.panel.style.transition = 'none'; // 取消原生缩放过渡避免冲突
+                this.panel.style.position = 'fixed';
+                this.panel.style.left = '50%';
+                this.panel.style.top = '50%';
+                this.panel.style.right = 'auto';
+                this.panel.style.bottom = 'auto';
+                this.panel.style.transform = 'translate(-50%, -50%) scale(1)';
+                
+                this.expandBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+            } else {
+                this.panel.classList.remove('expanded');
+                this.dragHandle.classList.remove('draggable');
+                
+                this.panel.style.position = 'absolute';
+                this.panel.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                this.panel.style.left = '';
+                this.panel.style.top = '';
+                this.panel.style.right = '0';
+                this.panel.style.bottom = '76px';
+                this.panel.style.transform = '';
+                
+                this.expandBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+            }
+            setTimeout(() => this.scrollToBottom(), 300);
+        });
+
+        // 拖拽逻辑
+        let isDragging = false;
+        let dragStartX, dragStartY;
+        let initialLeft, initialTop;
+
+        this.dragHandle.addEventListener('mousedown', (e) => {
+            if (!this.isExpanded || e.target.closest('.ai-header-controls')) return;
+            isDragging = true;
+            this.panel.style.transition = 'none';
+            // 拿到真实的物理渲染边缘坐标
+            const rect = this.panel.getBoundingClientRect();
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            
+            // 为了把拖拽变得最纯粹！我们强行洗去 50% 的概念，用物理 PX 坐标锁死左上角。并且去掉 transform 中令人混淆的 translate
+            this.panel.style.left = `${initialLeft}px`;
+            this.panel.style.top = `${initialTop}px`;
+            this.panel.style.transform = 'scale(1)';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            this.panel.style.left = `${initialLeft + dx}px`;
+            this.panel.style.top = `${initialTop + dy}px`;
+            this.panel.style.right = 'auto';
+            this.panel.style.bottom = 'auto';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) isDragging = false;
         });
 
         this.sendBtn.addEventListener('click', () => this.sendMessage());
@@ -521,10 +805,25 @@ class TitanAIAssistant {
         
         this.pendingCloseBtn.addEventListener('click', () => {
             this.pendingImageDataUrl = null;
+            this.pendingTextData = null;
             this.pendingArea.style.display = 'none';
+            if (this.fileInput) this.fileInput.value = '';
         });
         
         this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
+        this.uploadBtn.addEventListener('click', () => this.fileInput.click());
+        this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+        this.phoneBtn.addEventListener('click', () => this.togglePhoneCall());
+        if (this.ttsStopBtn) {
+            this.ttsStopBtn.addEventListener('click', () => {
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                if (this.currentAudioPlayer) {
+                    this.currentAudioPlayer.pause();
+                    this.currentAudioPlayer = null;
+                }
+                this.ttsStopBtn.style.display = 'none';
+            });
+        }
         
         this.cameraBtn.addEventListener('click', () => this.openCamera());
         this.cameraCloseBtn.addEventListener('click', () => this.closeCamera());
@@ -549,12 +848,213 @@ class TitanAIAssistant {
         });
     }
 
+    runScanner() {
+        const scannerEl = document.createElement('div');
+        scannerEl.className = 'ai-scanner';
+        this.panel.appendChild(scannerEl);
+        
+        const scanMsg = document.createElement('div');
+        scanMsg.className = 'msg-row system';
+        scanMsg.innerHTML = `<div class="msg msg-system" style="background:rgba(56,189,248,0.2);color:#38bdf8;border:1px solid rgba(56,189,248,0.5);"><span class="scan-blink"></span> [鹰眼系统] 正在同步知识库与页面视觉要素...</div>`;
+        this.chatArea.appendChild(scanMsg);
+        this.scrollToBottom();
+        
+        setTimeout(() => {
+            if(scannerEl.parentNode) scannerEl.remove();
+            scanMsg.innerHTML = `<div class="msg msg-system" style="background:rgba(16,185,129,0.2);color:#10b981;border:1px solid rgba(16,185,129,0.5);">同步流闭环。小创老师全维就位。</div>`;
+            setTimeout(() => { 
+                scanMsg.style.opacity = '0'; 
+                scanMsg.style.transition = 'opacity 0.5s'; 
+                setTimeout(() => scanMsg.remove(), 500); 
+            }, 2500);
+        }, 1500);
+    }
+
+    playHapticSound(type) {
+        if (!window.AudioContext && !window.webkitAudioContext) return;
+        try {
+            if (!this.hapticCtx) {
+                this.hapticCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (this.hapticCtx.state === 'suspended') this.hapticCtx.resume();
+            
+            const osc = this.hapticCtx.createOscillator();
+            const gainNode = this.hapticCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(this.hapticCtx.destination);
+            
+            const now = this.hapticCtx.currentTime;
+            if (type === 'open') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                gainNode.gain.setValueAtTime(0.015, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'send') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                gainNode.gain.setValueAtTime(0.015, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'snap') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+                gainNode.gain.setValueAtTime(0.04, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+        } catch (e) { }
+    }
+
+    async handleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                this.pendingImageDataUrl = ev.target.result;
+                this.pendingImg.src = this.pendingImageDataUrl;
+                this.pendingArea.style.display = 'flex';
+                this.pendingHint.innerText = `📸 相册图片「${file.name}」已就绪...`;
+                
+                if (!this.isChatOpen) this.fab.click();
+                this.input.focus();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const content = ev.target.result.substring(0, 5000); // 防超长截断
+                this.pendingTextData = `【文件解析：${file.name}】\n内容摘要：\n${content}`;
+                
+                // 给文档文件一个白色方块占位图作为视觉提示
+                this.pendingImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
+                this.pendingImageDataUrl = null; 
+                this.pendingArea.style.display = 'flex';
+                this.pendingHint.innerText = `📄 文件「${file.name}」读取完毕...`;
+                
+                if (!this.isChatOpen) this.fab.click();
+                this.input.focus();
+            };
+            reader.readAsText(file);
+        }
+    }
+
+    async speakReply(text, callback) {
+        const cleanText = text.replace(/[*_#`~]/g, '').trim();
+        if (!cleanText) {
+            if (callback) callback();
+            return;
+        }
+
+        try {
+            // 尝试调用 OpenAI 兼容的高级语音合成接口进行拟态发音
+            const ttsEndpoint = this.settings.endpoint.replace('/chat/completions', '/audio/speech');
+            const response = await fetch(ttsEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.settings.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'tts-1',
+                    input: cleanText,
+                    voice: 'nova' // 知性女声，更拟人
+                })
+            });
+
+            if (response.ok) {
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                
+                this.currentAudioPlayer = audio;
+                if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'flex';
+                
+                audio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    this.currentAudioPlayer = null;
+                    if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                    if (callback) callback();
+                };
+                audio.onerror = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    this.currentAudioPlayer = null;
+                    if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                    this.fallbackSpeak(cleanText, callback);
+                };
+                
+                await audio.play();
+                return;
+            } else {
+                this.fallbackSpeak(cleanText, callback);
+            }
+        } catch (e) {
+            this.fallbackSpeak(cleanText, callback);
+        }
+    }
+
+    fallbackSpeak(text, callback) {
+        if (!('speechSynthesis' in window)) {
+            if (callback) callback();
+            return;
+        }
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        
+        // 尝试选用本地相对拟人的高级声音
+        const voices = window.speechSynthesis.getVoices();
+        const premiumVoice = voices.find(v => v.lang.includes('zh') && (v.name.includes('Xiaoxiao') || v.name.includes('Ting-Ting') || v.name.includes('Premium') || v.name.includes('Natural')));
+        if (premiumVoice) utterance.voice = premiumVoice;
+        
+        if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'flex';
+        utterance.onend = () => { if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none'; if (callback) callback(); };
+        utterance.onerror = () => { if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none'; if (callback) callback(); };
+        
+        window.speechSynthesis.speak(utterance);
+    }
+
+    togglePhoneCall() {
+        this.isPhoneCallMode = !this.isPhoneCallMode;
+        if (this.isPhoneCallMode) {
+            this.phoneBtn.classList.add('calling');
+            this.appendMessage('system', '📞 实时通话模式已开启，我在这呢，请畅所欲言。');
+            if (!this.isChatOpen) this.fab.click();
+            // 自动开启第一轮聆听
+            if (!this.isRecording) this.toggleVoiceRecording();
+        } else {
+            this.phoneBtn.classList.remove('calling');
+            this.appendMessage('system', '📞 实时通话模式已结束。');
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            if (this.currentAudioPlayer) {
+                this.currentAudioPlayer.pause();
+                this.currentAudioPlayer = null;
+            }
+            if (this.isRecording) this.toggleVoiceRecording();
+        }
+    }
+
     async toggleVoiceRecording() {
         if (this.isRecording) {
             this.mediaRecorder.stop();
             this.isRecording = false;
+            if (this.silenceInterval) clearInterval(this.silenceInterval);
+            if (this.maxAudioDurationTimer) clearTimeout(this.maxAudioDurationTimer);
             this.voiceBtn.classList.remove('recording');
-            this.input.placeholder = '输入你想问的问题 / Enter prompt...';
+            this.input.placeholder = '输入你想问的问题...';
+            this.input.style.opacity = '1';
+            const waveformCanvas = document.getElementById('titan-ai-waveform');
+            if (waveformCanvas) waveformCanvas.style.display = 'none';
         } else {
             // Check browser support
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -563,6 +1063,15 @@ class TitanAIAssistant {
             try {
                 if (!this.audioStream) {
                     this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+                
+                if (!this.hapticCtx) this.hapticCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.hapticCtx.state === 'suspended') this.hapticCtx.resume();
+                if (!this.analyser) {
+                    this.analyser = this.hapticCtx.createAnalyser();
+                    this.analyser.fftSize = 64; 
+                    this.micSource = this.hapticCtx.createMediaStreamSource(this.audioStream);
+                    this.micSource.connect(this.analyser);
                 }
                 
                 this.mediaRecorder = new MediaRecorder(this.audioStream);
@@ -576,15 +1085,64 @@ class TitanAIAssistant {
                     const durationInSeconds = Math.max(1, Math.round((Date.now() - this.recordingStartTime) / 1000));
                     const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
                     this.sendAudioToGemini(audioBlob, durationInSeconds);
-                    // 我们不再调用 track.stop() 来关闭麦克风轨道，
-                    // 这样在这个页面没有刷新之前，再次录音时就不会重复弹窗询问权限了。
                 };
                 
                 this.mediaRecorder.start();
                 this.recordingStartTime = Date.now();
                 this.isRecording = true;
                 this.voiceBtn.classList.add('recording');
-                this.input.placeholder = '正在聆听 (Listening)... 点击停止';
+                
+                if (this.maxAudioDurationTimer) clearTimeout(this.maxAudioDurationTimer);
+                this.maxAudioDurationTimer = setTimeout(() => {
+                    if (this.isRecording) {
+                        if (typeof this.playHapticSound === 'function') this.playHapticSound('send');
+                        this.appendMessage('system', '⏳ 录音已达到单次安全的 2 分钟上限，已为您自动停止并发送分析。');
+                        this.toggleVoiceRecording();
+                    }
+                }, 120000);
+
+                this.input.placeholder = '正在聆听 (上限2分钟)... 再次点击发送';
+                this.input.style.opacity = '0.3';
+                
+                const waveformCanvas = document.getElementById('titan-ai-waveform');
+                if (waveformCanvas) {
+                    waveformCanvas.style.display = 'block';
+                    const ctx = waveformCanvas.getContext('2d');
+                    
+                    const renderWaveform = () => {
+                        if (!this.isRecording) return;
+                        requestAnimationFrame(renderWaveform);
+                        
+                        const bufferLength = this.analyser.frequencyBinCount;
+                        const dataArray = new Uint8Array(bufferLength);
+                        this.analyser.getByteFrequencyData(dataArray);
+                        
+                        ctx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+                        const barWidth = (waveformCanvas.width / bufferLength) * 2;
+                        let x = 0;
+                        
+                        const gradient = ctx.createLinearGradient(0, 0, waveformCanvas.width, 0);
+                        gradient.addColorStop(0, '#0ea5e9');
+                        gradient.addColorStop(0.5, '#6366f1');
+                        gradient.addColorStop(1, '#ec4899');
+                        ctx.fillStyle = gradient;
+                        
+                        for(let i = 0; i < bufferLength; i++) {
+                            let valRatio = dataArray[i] / 255;
+                            valRatio = valRatio * valRatio + 0.1;
+                            if (valRatio > 1) valRatio = 1;
+                            
+                            const barHeight = valRatio * waveformCanvas.height;
+                            const y = (waveformCanvas.height - barHeight) / 2;
+                            
+                            ctx.beginPath();
+                            ctx.roundRect(x, y, barWidth - 1, barHeight, 2);
+                            ctx.fill();
+                            x += barWidth;
+                        }
+                    };
+                    renderWaveform();
+                }
                 
             } catch (err) {
                 console.error('Microphone access denied:', err);
@@ -595,9 +1153,26 @@ class TitanAIAssistant {
     }
 
     async sendAudioToGemini(audioBlob, durationInSeconds = 1) {
-        // 使用标准的弹性宽度，无需使用行内宽计算，只需要右对齐即可
+        const audioUrl = URL.createObjectURL(audioBlob);
         const voiceHTML = `
-            <div class="voice-message-bar" style="justify-content: space-between; min-width: 60px;">
+            <div class="voice-message-bar" title="点击播放/暂停刚才录制的语音" style="justify-content: space-between; min-width: 60px;" onclick="
+                let a = window.$titanUserAudio;
+                const srcMatch = window.$titanAudioUrl === '${audioUrl}';
+                const svg = this.querySelector('svg');
+                if (a && !a.paused && srcMatch) {
+                    a.pause();
+                    a.currentTime = 0;
+                    svg.style.color = '#38bdf8';
+                    window.$titanAudioUrl = null;
+                } else {
+                    if (a) { a.pause(); a.currentTime = 0; }
+                    window.$titanAudioUrl = '${audioUrl}';
+                    window.$titanUserAudio = new Audio('${audioUrl}');
+                    window.$titanUserAudio.play();
+                    svg.style.color = '#10b981';
+                    window.$titanUserAudio.onended = () => { svg.style.color = '#38bdf8'; window.$titanAudioUrl = null; };
+                }
+            ">
                 <span>${durationInSeconds}"</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
             </div>
@@ -616,6 +1191,7 @@ class TitanAIAssistant {
             this.pendingArea.style.display = 'none';
         }
 
+        this.lastInputWasVoice = true; // 标记这是语音请求
         this.appendMessage('user', pendingImgHTML + voiceHTML, true);
         this.showTyping();
         
@@ -640,7 +1216,8 @@ class TitanAIAssistant {
             }
             userMessage.content.push({ type: 'image_url', image_url: { url: `data:${audioBlob.type};base64,${base64Audio}` } });
 
-            this.sendToAPI(userMessage);
+            this.messageQueue.push(userMessage);
+            this.processQueue();
         };
     }
 
@@ -702,10 +1279,12 @@ class TitanAIAssistant {
 
         // 关闭模态框并清理视频流
         this.closeCamera();
+        this.playHapticSound('snap');
 
         // 仅保存在待发送预览区（Pending），等待用户输入提示词合并发出
         this.pendingImageDataUrl = dataURL;
         this.pendingImg.src = dataURL;
+        this.pendingHint.innerText = '📸 画面已锁定，随时发送...';
         this.pendingArea.style.display = 'flex';
         
         if (!this.isChatOpen) this.fab.click();
@@ -728,7 +1307,7 @@ class TitanAIAssistant {
 *（注意：你应当自然、毫不生硬地在与家长、学生的对话中引申或参考这些先进模型观念，严禁透漏任何诸如利润分成、具体课时单价等非教育层面的后台资料。）*
 `;
 
-        const systemPromptContent = `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科与理科知识。
+        const systemPromptContent = `你是“科技特长生全栈培养系统”的专属智能虚拟教师，你的名字叫“小创老师”。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科与理科知识。
 当有疑惑时，你可以充分参考你的内在理论体系引擎：${chengdianRAG}
 
 当前学生正在浏览的本系统中某个模块页面：${currentTitle} (${currentHeader})
@@ -736,10 +1315,10 @@ class TitanAIAssistant {
 ${currentFullContent}
 
 【💡核心回复规范 - 极其重要】：
-1. 绝对不要使用任何 Markdown 语法符号（例如用来加粗的星号 **，或者用来做标题的井号 #）。客户端无法渲染这些符号，会严重影响观感。
-2. 采用类似 Notion 的自然分段风格。使用清晰的换行进行段落分隔，语言要直接、简短、留白易读。
-3. 请使用充满亲和力的“真人真实语调”，坚决避免 AI 机器人般机械或冰冷的套话，就像朋友交流一样自然。
-4. 【关于 Emoji 的使用规范🚫🚫🚫】：不要机械或重复地使用固定少数的表情！务必要根据你的回复内容和具体的语义场景（如提到行星用🪐，讲到逻辑用🧠，指代代码用💻，表达警告用⚠️等），【自适应且丰富地】选用对应的各种 Emoji 表情。将表情当做辅助文字表达情感的工具，让整个回复版面内容显得极度生动多彩。`;
+1. 你的普通段落中，【绝对严禁】使用任何大头标题控制符如 #, *, -, >, = 等，必须用简单的回车换行与生动的 Emoji 组合（例如行星🪐，逻辑🧠，成就🏆）来进行留白排版。
+2. 【特赦权 / 图形架构化降维】：当涉及到机械结构（齿轮/杠杆）、代码、组织逻辑树的讲解阐释，你**必须**使用 Markdown 全代码块语法包裹（\`\`\`text \`\`\`），并以高级的 ASCII 关系图展现复杂、分层、专业的逻辑流或组装图（建议使用如 ┌───┐, │, └───┘, => 等高阶框符构件作画，杜绝敷衍的简单横线）。前端拥有带拷贝按钮的顶尖极客深色代码框来衬托你这幅神作！
+3. 请使用充满亲和力的“真人语调”，坚决避免 AI 机器人般机械或冰冷的套话。语言要简明扼要，直接、简短。
+4. 【多模态教学强引导】：当你在对话中讲解一些知识概念、或者鼓励学生亲自去搭建实体（如乐高/VEX/结构件）时，**无时无刻不要忘记极其热情地引导他们主动使用面板下方的【相机📸】按钮，把他们的实物作品或身边对应的现象拍给你看！** （用轻松的口吻，如：“遇到搞不懂的结构？随时点下面的相机按钮拍个照片或长截屏发给小创老师，我帮你一键分析！”或“拼出来了没？拍个图发给我验证一下鸭！”）要让孩子深刻感受到你是拥有视觉的随身极客伴侣。`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {
@@ -776,19 +1355,116 @@ ${currentFullContent}
 
             const data = await response.json();
             let aiReply = data.choices[0].message.content;
-            
-            // 简单的兜底清理：移除残余的 markdown 粗体和各级标题符号（防止大模型依旧输出）
-            aiReply = aiReply.replace(/\*\*/g, '')
-                             .replace(/### /g, '')
-                             .replace(/## /g, '')
-                             .replace(/# /g, '');
-            
             this.chatHistory.push({ role: 'assistant', content: aiReply });
-            this.appendMessage('ai', aiReply);
+            // --- 开始：全新增强版单向流智能打字机 (Unified Stream Engine) ---
+            const typing = document.getElementById('ai-typing-indicator');
+            if (typing) typing.remove();
+
+            // 摒弃物理切段，创建唯一的知识黑板大容器，保护 Markdown 闭合语法免受破坏！
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'msg-row ai';
+            rowDiv.style.animation = 'msg-spring-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+
+            const avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'msg msg-ai markdown-body';
+            
+            rowDiv.innerHTML = avatarHTML;
+            rowDiv.appendChild(msgDiv);
+            this.chatArea.appendChild(rowDiv);
+            this.scrollToBottom();
+
+            let i = 0;
+            // 内核：基于自适应停顿流的打字推演 (由 setTimeout 控制更自然)
+            const typeNextChar = () => {
+                if (i > aiReply.length) {
+                    // 全文下潜完成，收尾抛出完美无光标版本并赋予语法高亮 + Code Header
+                    if (window.hljs && window.marked) {
+                        msgDiv.innerHTML = window.marked.parse(aiReply);
+                        
+                        msgDiv.querySelectorAll('pre code').forEach((block) => {
+                            window.hljs.highlightElement(block);
+                            const pre = block.parentElement;
+                            if (pre.querySelector('.code-header')) return; 
+                            
+                            let langName = 'TEXT';
+                            const langClass = Array.from(block.classList).find(c => c.startsWith('language-'));
+                            if (langClass) langName = langClass.replace('language-', '').toUpperCase();
+                            
+                            const header = document.createElement('div');
+                            header.className = 'code-header';
+                            header.innerHTML = `
+                                <span class="code-lang">${langName}</span>
+                                <button type="button" class="code-copy">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    复制代码
+                                </button>
+                            `;
+                            
+                            const btn = header.querySelector('.code-copy');
+                            btn.onclick = () => {
+                                navigator.clipboard.writeText(block.innerText);
+                                btn.innerHTML = '✅ 已复制';
+                                setTimeout(() => { btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> 复制代码'; }, 2000);
+                            };
+                            pre.insertBefore(header, block);
+                        });
+                    } else {
+                        msgDiv.innerText = aiReply;
+                    }
+                    this.scrollToBottom();
+
+                    // 收尾善后工作
+                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips();
+                    this.isProcessingQueue = false;
+                    this.processQueue();
+                    
+                    if (this.isPhoneCallMode) {
+                        this.speakReply(aiReply, () => {
+                            if (this.isPhoneCallMode && !this.isRecording) {
+                                this.toggleVoiceRecording();
+                            }
+                        });
+                    }
+                    return;
+                }
+
+                // 运动打字态渲染
+                const currentText = aiReply.substring(0, i);
+                if (window.marked && window.hljs) {
+                    msgDiv.innerHTML = window.marked.parse(currentText + '▌');
+                } else {
+                    msgDiv.innerText = currentText + '▌';
+                }
+                this.scrollToBottom();
+
+                // 智能感知语意的“变速箱”：遇大段缓冲呼吸感，日常字句如丝绸平滑
+                let delay = 35; 
+                if (i > 0 && i < aiReply.length) {
+                    const lc = aiReply.charAt(i - 1);
+                    const cc = aiReply.charAt(i);
+                    // 遇到双回车空段落，留出半秒白墙缓冲给小学生喘息
+                    if (cc === '\n' && lc === '\n') {
+                        delay = 600;
+                    } else if (cc === '\n') {
+                        delay = 200; // 换小行稍等
+                    }
+                }
+
+                // 追加处理越界防守：遇到代码块时为了防止 HTML/Markdown 渲染时隐时现错位，一次性加速吐出更多！
+                // 或者我们可以保持平滑，用 1字 即可。为了极限防闪烁这里保持每次 1，因为 marked.js 渲染极快不闪。
+                i += 1;
+                setTimeout(typeNextChar, delay);
+            };
+
+            typeNextChar();
+            // --- 结束 ---
             
         } catch (error) {
             console.error('AI Link Error:', error);
             this.appendMessage('system', `[接口通讯失败] ${error.message}。请检查您的网络或 API 密匙配置是不是支持语音处理。`);
+            this.isProcessingQueue = false;
+            this.processQueue();
         }
     }
 
@@ -797,7 +1473,7 @@ ${currentFullContent}
         rowDiv.className = `msg-row ${role}`;
         
         let avatarHTML = '';
-        if (role === 'ai') avatarHTML = '<div class="avatar avatar-ai">🤖</div>';
+        if (role === 'ai') avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
         if (role === 'user') avatarHTML = '<div class="avatar avatar-user">👦</div>';
         
         const msgDiv = document.createElement('div');
@@ -832,7 +1508,7 @@ ${currentFullContent}
         rowDiv.id = 'ai-typing-indicator';
         rowDiv.className = 'msg-row ai';
         
-        const avatarHTML = '<div class="avatar avatar-ai">🤖</div>';
+        const avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
         const msgDiv = document.createElement('div');
         msgDiv.className = 'msg msg-ai typing-indicator';
         msgDiv.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
@@ -847,13 +1523,23 @@ ${currentFullContent}
     async sendMessage() {
         const text = this.input.value.trim();
         const hasImage = !!this.pendingImageDataUrl;
+        const hasFile = !!this.pendingTextData;
         
-        if (!text && !hasImage) return;
+        if (!text && !hasImage && !hasFile) return;
         
         this.input.value = '';
         let userMessageObject = null;
         
-        if (hasImage) {
+        this.lastInputWasVoice = false;
+        
+        if (hasFile && !hasImage) {
+            let combinedText = `[用户发送了文件]\n${this.pendingTextData}\n\n[用户问题]: ${text || '请帮我总结并分析这份文件的核心要点。'}`;
+            this.appendMessage('user', `<div style="background:rgba(255,255,255,0.1);padding:8px;border-radius:4px;margin-bottom:8px;font-size:12px;">📄 已上传文档附录</div><div>${text || '帮我看看这份文件的内容'}</div>`, true);
+            userMessageObject = { role: 'user', content: combinedText };
+            this.pendingTextData = null;
+            this.pendingArea.style.display = 'none';
+            if (this.fileInput) this.fileInput.value = '';
+        } else if (hasImage) {
             // 解析出不带前缀的纯 base64，如果是 Gemini 常规图片管道有时候也可能直接吃带前缀的。
             // 按照我们之前的兼容逻辑，一般分离。
             const pureBase64 = this.pendingImageDataUrl.split(',')[1];
@@ -865,7 +1551,7 @@ ${currentFullContent}
             userMessageObject = {
                 role: 'user',
                 content: [
-                    { type: 'text', text: text || '请看这张照片，深度分析它并回答。如果含有代码、考题、教具实体，请给出极具极客视角的见解。' },
+                    { type: 'text', text: text || '请看这幅照片。如果画面中有学生搭建的物理机械结构（例如杠杆、齿轮传动、器材）或其他现象，请结合科普原理解答，帮我解决当下的疑惑。' },
                     { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${pureBase64}` } }
                 ]
             };
@@ -877,14 +1563,134 @@ ${currentFullContent}
             userMessageObject = { role: 'user', content: text };
         }
         
+        this.playHapticSound('send');
+        
+        // 分发成就积分及飘字
+        if (hasImage) {
+            this.awardPoints(15, '深度全景图发问');
+        } else if (hasFile) {
+            this.awardPoints(20, '极客文档分析');
+        } else if (text.length > 5) {
+            this.awardPoints(5, '探索发问');
+        }
+        
+        this.messageQueue.push(userMessageObject);
+        this.processQueue();
+    }
+
+    async processQueue() {
+        if (this.isProcessingQueue || this.messageQueue.length === 0) return;
+        this.isProcessingQueue = true;
+        
+        let mergedMessage = null;
+        if (this.messageQueue.length === 1) {
+            mergedMessage = this.messageQueue.shift();
+        } else {
+            // 将积压在队列中的多个问题智能组装融合
+            let mergedTexts = [];
+            let imageAndFileContents = [];
+            
+            while (this.messageQueue.length > 0) {
+                const msg = this.messageQueue.shift();
+                if (typeof msg.content === 'string') {
+                    if (msg.content.trim()) mergedTexts.push(msg.content);
+                } else if (Array.isArray(msg.content)) {
+                    msg.content.forEach(part => {
+                        if (part.type === 'text' && part.text.trim()) mergedTexts.push(part.text);
+                        else imageAndFileContents.push(part);
+                    });
+                }
+            }
+            
+            let finalString = "【系统自动为您合并了连续的问题】：\n" + mergedTexts.join('\n\n进一步追加补充：');
+            if (imageAndFileContents.length > 0) {
+                mergedMessage = {
+                    role: 'user',
+                    content: [{ type: 'text', text: finalString }, ...imageAndFileContents]
+                };
+            } else {
+                mergedMessage = { role: 'user', content: finalString };
+            }
+        }
+        
         this.showTyping();
-        await this.sendToAPI(userMessageObject);
+        await this.sendToAPI(mergedMessage);
+    }
+
+    awardPoints(pts, reason) {
+        // 全局触发一个事件，让外层页面监听这个成就系统
+        document.dispatchEvent(new CustomEvent('titanAddExp', { detail: { points: pts, reason: reason } }));
+        
+        // 渲染百万级体验：爆炸粒子烟花+积分上浮 (右下角FAB附近)
+        const container = document.getElementById('titan-ai-container');
+        if (!container) return;
+        
+        // 生成上浮文字
+        const textEl = document.createElement('div');
+        textEl.className = 'ai-pts-floating';
+        textEl.innerHTML = `✨ +${pts} <span>${reason}</span>`;
+        container.appendChild(textEl);
+        setTimeout(() => textEl.remove(), 1800);
+        
+        // 生成 8 颗四散的极客粒子碎屑
+        const colors = ['#38bdf8', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+        for (let i = 0; i < 8; i++) {
+            const p = document.createElement('div');
+            p.className = 'ai-pts-particle';
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 30 + Math.random() * 40; // 扩散半径 30-70px
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance;
+            p.style.setProperty('--dx', `${dx}px`);
+            p.style.setProperty('--dy', `${dy}px`);
+            p.style.background = colors[Math.floor(Math.random() * colors.length)];
+            
+            p.style.animationDelay = `${Math.random() * 0.1}s`;
+            container.appendChild(p);
+            setTimeout(() => p.remove(), 800);
+        }
     }
 
     scrollToBottom() {
         this.chatArea.scrollTo({
             top: this.chatArea.scrollHeight,
             behavior: 'smooth'
+        });
+    }
+
+    updateQuickChips() {
+        const defaultChips = [
+            { label: '💡 只要提示', prompt: '不要直接回答，请给我一点推理关键线索的启发就好。' },
+            { label: '🤔 换个说法', prompt: '用小学生能轻易听明白的通用比方，帮我生动地重新解释一遍。' },
+            { label: '📝 出个考题', prompt: '根据这个知识点核心，出一道类似的探究或者计算题目给我练练手。' },
+            { label: '🔍 深入分析', prompt: '帮我更深一层拆解分析，告诉我背后的原理和最底层的运转逻辑。' },
+            { label: '⚙️ 极客视角', prompt: '用极其通俗易懂的机电硬件或代码工程世界的视角来讲解它。' },
+            { label: '👩‍💻 代码求证', prompt: '能给我写一个与之关联的极简 C++ 或 Python 核心伪代码实现来看看吗？' }
+        ];
+        
+        // 随时化提取 3-4 枚不同的启发策略胶囊
+        const shuffled = defaultChips.sort(() => 0.5 - Math.random());
+        const drawCount = Math.floor(Math.random() * 2) + 3; // 随机 3 个 或 4 个
+        const selected = shuffled.slice(0, drawCount);
+        
+        const chipsContainer = document.getElementById('titan-ai-chips');
+        if(!chipsContainer) return;
+        
+        chipsContainer.innerHTML = '';
+        selected.forEach(chipData => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ai-chip';
+            btn.dataset.prompt = chipData.prompt;
+            btn.innerText = chipData.label;
+            btn.onclick = (e) => {
+                this.input.value = e.currentTarget.dataset.prompt;
+                this.input.focus();
+                // 唤起物理反馈声音（借用系统刚写的音效方法）
+                if (typeof this.playHapticSound === 'function') this.playHapticSound('send'); 
+                this.sendBtn.click();
+            };
+            chipsContainer.appendChild(btn);
         });
     }
 }
