@@ -1476,9 +1476,14 @@ ${currentFullContent}
         this.chatHistory.push(userMessageObject);
         this.saveSession();
 
+        this.currentAbortController = new AbortController();
+        this.isTypingCancelled = false;
+        this.setSendButtonState('stop');
+
         try {
             const response = await fetch(this.settings.endpoint, {
                 method: 'POST',
+                signal: this.currentAbortController.signal,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.settings.apiKey}`
@@ -1553,6 +1558,21 @@ ${currentFullContent}
             let i = 0;
             // 内核：基于自适应停顿流的打字推演 (由 setTimeout 控制更自然)
             const typeNextChar = () => {
+                if (this.isTypingCancelled) {
+                    this.setSendButtonState('send');
+                    if (window.hljs && window.marked) {
+                        msgDiv.innerHTML = window.marked.parse(aiReply.substring(0, i));
+                        enhanceCodeBlocks();
+                    } else {
+                        msgDiv.innerText = aiReply.substring(0, i);
+                    }
+                    this.scrollToBottom(true);
+                    if (typeof this.updateQuickChips === 'function') this.updateQuickChips();
+                    this.isProcessingQueue = false;
+                    this.processQueue();
+                    return;
+                }
+
                 if (i > aiReply.length) {
                     // 全文下潜完成，收尾抛出完美无光标版本并赋予语法高亮 + Code Header
                     if (window.hljs && window.marked) {
@@ -1565,6 +1585,7 @@ ${currentFullContent}
 
                     // 收尾善后工作
                     if (typeof this.updateQuickChips === 'function') this.updateQuickChips();
+                    this.setSendButtonState('send');
                     this.isProcessingQueue = false;
                     this.processQueue();
                     
@@ -1612,8 +1633,15 @@ ${currentFullContent}
             // --- 结束 ---
             
         } catch (error) {
-            console.error('AI Link Error:', error);
-            this.appendMessage('system', `[接口通讯失败] ${error.message}。请检查您的网络或 API 密匙配置是不是支持语音处理。`);
+            if (error.name === 'AbortError') {
+                if (!this.isTypingCancelled) this.cancelOutput();
+                const typing = document.getElementById('ai-typing-indicator');
+                if (typing) typing.remove();
+            } else {
+                console.error('AI Link Error:', error);
+                this.appendMessage('system', `[接口通讯失败] ${error.message}。请检查您的网络或 API 密匙配置是不是支持语音处理。`);
+            }
+            this.setSendButtonState('send');
             this.isProcessingQueue = false;
             this.processQueue();
         }
@@ -1671,7 +1699,34 @@ ${currentFullContent}
         this.scrollToBottom(true);
     }
 
+    setSendButtonState(state) {
+        if (!this.sendBtn) return;
+        this.sendBtnState = state;
+        if (state === 'stop') {
+            this.sendBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"></rect></svg>';
+            this.sendBtn.style.color = '#ef4444';
+            this.sendBtn.title = '立刻中断输出 (Stop Generating)';
+        } else {
+            this.sendBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+            this.sendBtn.style.color = '';
+            this.sendBtn.title = '发送问题 (Send)';
+        }
+    }
+
+    cancelOutput() {
+        this.isTypingCancelled = true;
+        if (this.currentAbortController) {
+            this.currentAbortController.abort();
+            this.currentAbortController = null;
+        }
+        this.setSendButtonState('send');
+    }
+
     async sendMessage() {
+        if (this.sendBtnState === 'stop') {
+            this.cancelOutput();
+            return;
+        }
         const text = this.input.value.trim();
         const hasImage = !!this.pendingImageDataUrl;
         const hasFile = !!this.pendingTextData;
