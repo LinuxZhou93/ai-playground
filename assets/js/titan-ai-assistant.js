@@ -74,13 +74,80 @@ class TitanAIAssistant {
             // Rebind the activate button dynamically
             this.activateBtn = document.getElementById('titan-ai-activate-btn');
             if (this.activateBtn) {
-                this.activateBtn.onclick = () => {
-                    const code = prompt("请输入您的专属激活码 (成电创客/瞪羚会员专用):");
-                    if (code) {
-                        const success = this.activateMember(code);
-                        if (!success) alert("无效的激活码，请联系官方开启。");
-                        else alert("激活成功！无限对话权限已开启。");
+                this.activateBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (document.getElementById('titan-ai-auth-modal')) {
+                        document.getElementById('titan-ai-auth-input').focus();
+                        return;
                     }
+                    
+                    const modal = document.createElement('div');
+                    modal.id = 'titan-ai-auth-modal';
+                    modal.style.cssText = 'position: absolute; inset: 0; background: rgba(10, 15, 25, 0.85); z-index: 100000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); flex-direction: column; opacity: 0; transition: opacity 0.2s; border-radius: inherit;';
+                    
+                    modal.innerHTML = `
+                        <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 16px; padding: 24px; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(251, 191, 36, 0.1); transform: scale(0.95); transition: transform 0.2s;">
+                            <div style="color: #fbbf24; font-weight: 800; font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; font-family: 'Orbitron', 'Noto Sans SC', sans-serif;">
+                                <i class="fas fa-crown"></i> 认证权限
+                            </div>
+                            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 16px;">请输入您的成电创客/瞪羚专属体验码</div>
+                            <input type="text" id="titan-ai-auth-input" placeholder="输入专属激活码..." autocomplete="off" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; color: #fff; font-size: 14px; outline: none; margin-bottom: 20px; transition: border-color 0.2s;">
+                            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                                <button type="button" id="titan-ai-auth-cancel" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; transition: all 0.2s;">取消</button>
+                                <button type="button" id="titan-ai-auth-confirm" style="background: #fbbf24; border: none; color: #000; font-weight: bold; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(251, 191, 36, 0.3);">激 活</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    this.panel.appendChild(modal);
+                    
+                    // Trigger reflow for animation
+                    void modal.offsetWidth;
+                    modal.style.opacity = '1';
+                    modal.firstElementChild.style.transform = 'scale(1)';
+                    
+                    const input = document.getElementById('titan-ai-auth-input');
+                    const btnCancel = document.getElementById('titan-ai-auth-cancel');
+                    const btnConfirm = document.getElementById('titan-ai-auth-confirm');
+                    
+                    const closeAndRemove = () => {
+                        modal.style.opacity = '0';
+                        modal.firstElementChild.style.transform = 'scale(0.95)';
+                        setTimeout(() => { if(modal.parentNode) modal.remove(); }, 200);
+                    };
+                    
+                    btnCancel.onclick = closeAndRemove;
+                    
+                    input.onfocus = () => { input.style.borderColor = 'rgba(251, 191, 36, 0.5)'; input.style.boxShadow = '0 0 10px rgba(251, 191, 36, 0.1)'; };
+                    input.onblur = () => { input.style.borderColor = 'rgba(255,255,255,0.1)'; input.style.boxShadow = 'none'; };
+                    
+                    const doActivate = () => {
+                        const code = input.value.trim();
+                        if (code) {
+                            const success = this.activateMember(code);
+                            if (!success) {
+                                input.style.borderColor = '#ef4444';
+                                input.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.2)';
+                                input.value = '';
+                                input.placeholder = '激活码无效，请重新输入';
+                                setTimeout(() => input.focus(), 50);
+                            } else {
+                                closeAndRemove();
+                            }
+                        }
+                    };
+                    
+                    btnConfirm.onclick = doActivate;
+                    input.onkeypress = (ev) => { if (ev.key === 'Enter') doActivate(); };
+                    
+                    btnCancel.onmouseover = () => { btnCancel.style.background = 'rgba(255,255,255,0.05)'; btnCancel.style.color = '#fff'; };
+                    btnCancel.onmouseout = () => { btnCancel.style.background = 'transparent'; btnCancel.style.color = '#94a3b8'; };
+                    btnConfirm.onmouseover = () => btnConfirm.style.transform = 'translateY(-2px)';
+                    btnConfirm.onmouseout = () => btnConfirm.style.transform = 'translateY(0)';
+                    
+                    setTimeout(() => input.focus(), 300);
                 };
             }
         }
