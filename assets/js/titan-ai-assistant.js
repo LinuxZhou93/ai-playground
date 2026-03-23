@@ -236,6 +236,33 @@ class TitanAIAssistant {
             .ai-send:hover {
                 background: #0284c7;
             }
+            .ai-voice {
+                background: transparent;
+                border: 1px solid rgba(255,255,255,0.1);
+                min-width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                color: #94a3b8;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+            }
+            .ai-voice:hover {
+                background: rgba(255,255,255,0.1);
+                color: #fff;
+            }
+            .ai-voice.recording {
+                color: #ef4444;
+                border-color: rgba(239, 68, 68, 0.5);
+                animation: pulse-record 1.5s infinite;
+            }
+            @keyframes pulse-record {
+                0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+                70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            }
             .ai-btn-full {
                 flex: 1; padding: 10px; background: #0ea5e9; color: #fff;
                 border: none; border-radius: 6px; cursor: pointer; font-weight: bold;
@@ -281,6 +308,9 @@ class TitanAIAssistant {
                 </div>
                 
                 <div class="ai-input-area">
+                    <button class="ai-voice" id="titan-ai-voice" title="语音输入 (Voice Input)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                    </button>
                     <input type="text" class="ai-input" id="titan-ai-input" placeholder="输入你想问的问题 / Enter prompt..." autocomplete="off">
                     <button class="ai-send" id="titan-ai-send">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -302,6 +332,10 @@ class TitanAIAssistant {
         this.chatArea = document.getElementById('titan-ai-chat');
         this.input = document.getElementById('titan-ai-input');
         this.sendBtn = document.getElementById('titan-ai-send');
+        this.voiceBtn = document.getElementById('titan-ai-voice');
+        this.mediaRecorder = null;
+        this.audioChunks = [];
+        this.isRecording = false;
     }
 
     bindEvents() {
@@ -313,7 +347,6 @@ class TitanAIAssistant {
                 this.scrollToBottom();
             } else {
                 this.panel.classList.remove('open');
-                this.settingsPanel.classList.remove('active');
             }
         });
 
@@ -321,6 +354,124 @@ class TitanAIAssistant {
         this.input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendMessage();
         });
+        
+        this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
+    }
+
+    async toggleVoiceRecording() {
+        if (this.isRecording) {
+            this.mediaRecorder.stop();
+            this.isRecording = false;
+            this.voiceBtn.classList.remove('recording');
+            this.input.placeholder = '输入你想问的问题 / Enter prompt...';
+        } else {
+            // First check if browser supports SpeechRecognition, often better user experience and format validation fallback
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            // Start Audio capture
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                this.mediaRecorder = new MediaRecorder(stream);
+                this.audioChunks = [];
+                
+                this.mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) this.audioChunks.push(e.data);
+                };
+                
+                this.mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                    this.sendAudioToGemini(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                this.mediaRecorder.start();
+                this.isRecording = true;
+                this.voiceBtn.classList.add('recording');
+                this.input.placeholder = '正在聆听 (Listening)... 点击停止';
+                
+            } catch (err) {
+                console.error('Microphone access denied:', err);
+                this.appendMessage('system', '无法访问麦克风，请检查浏览器权限设置。');
+            }
+        }
+    }
+
+    async sendAudioToGemini(audioBlob) {
+        this.appendMessage('user', '🎤 [语音输入]');
+        this.showTyping();
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+            const base64Audio = reader.result.split(',')[1];
+            
+            // Format for Gemini Audio using standard API mapping if supported
+            // Using standard input_audio or multimodal image_url based on proxy features 
+            // Here we send the image_url schema (Data URI) which is very commonly natively mapped 
+            // by OneAPI/NewAPI to inlineData for Gemini multimodal models.
+            const userMessage = {
+                role: 'user',
+                content: [
+                    { type: 'text', text: '请听这段语音并根据语音内容回答我的问题。' },
+                    { 
+                        type: 'image_url', 
+                        image_url: {
+                            url: `data:${audioBlob.type};base64,${base64Audio}`
+                        }
+                    }
+                ]
+            };
+
+            this.sendToAPI(userMessage);
+        };
+    }
+
+    async sendToAPI(userMessageObject) {
+        // Init context if empty
+        if (this.chatHistory.length === 0) {
+            this.chatHistory.push({
+                role: 'system',
+                content: `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科、基础理科和前沿交叉学科知识，利用各种工具锻炼他们的思维能力与科学素养。
+当前学生正在浏览的页面上下文信息如下：
+- 当前模块: ${this.context.title}
+- 核心内容: ${this.context.header}
+- 详细指引: ${this.context.description}
+请使用亲和、专业、耐心且富有启发性的教育者语调来回答问题。解答应循序渐进，鼓励探讨，结合当前页面的工具和学术背景，避免使用过度生僻晦涩的科幻词汇或赛博朋克等花哨设定。`
+            });
+        }
+        
+        this.chatHistory.push(userMessageObject);
+
+        try {
+            const response = await fetch(this.settings.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.settings.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: this.settings.model,
+                    messages: this.chatHistory,
+                    temperature: 0.7,
+                    max_tokens: 1500
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || response.statusText);
+            }
+
+            const data = await response.json();
+            const aiReply = data.choices[0].message.content;
+            
+            this.chatHistory.push({ role: 'assistant', content: aiReply });
+            this.appendMessage('ai', aiReply);
+            
+        } catch (error) {
+            console.error('AI Link Error:', error);
+            this.appendMessage('system', `[接口通讯失败] ${error.message}。请检查您的网络或 API 密匙配置是不是支持语音处理。`);
+        }
     }
 
     appendMessage(role, text) {
@@ -356,51 +507,7 @@ class TitanAIAssistant {
         this.appendMessage('user', text);
         this.showTyping();
         
-        // Prepare context and history
-        if (this.chatHistory.length === 0) {
-            this.chatHistory.push({
-                role: 'system',
-                content: `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科、基础理科和前沿交叉学科知识，利用各种工具锻炼他们的思维能力与科学素养。
-当前学生正在浏览的页面上下文信息如下：
-- 当前模块: ${this.context.title}
-- 核心内容: ${this.context.header}
-- 详细指引: ${this.context.description}
-请使用亲和、专业、耐心且富有启发性的教育者语调来回答问题。解答应循序渐进，鼓励探讨，结合当前页面的工具和学术背景，避免使用过度生僻晦涩的科幻词汇或赛博朋克等花哨设定。`
-            });
-        }
-        
-        this.chatHistory.push({ role: 'user', content: text });
-
-        try {
-            const response = await fetch(this.settings.endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.settings.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: this.settings.model,
-                    messages: this.chatHistory,
-                    temperature: 0.7,
-                    max_tokens: 1500
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || response.statusText);
-            }
-
-            const data = await response.json();
-            const aiReply = data.choices[0].message.content;
-            
-            this.chatHistory.push({ role: 'assistant', content: aiReply });
-            this.appendMessage('ai', aiReply);
-            
-        } catch (error) {
-            console.error('AI Link Error:', error);
-            this.appendMessage('system', `[接口通讯失败] ${error.message}。请检查您的网络或 API 密匙配置。`);
-        }
+        await this.sendToAPI({ role: 'user', content: text });
     }
 
     scrollToBottom() {
