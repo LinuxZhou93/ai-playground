@@ -26,6 +26,8 @@ class TitanAIAssistant {
 
         this.chatHistory = [];
         this.messageQueue = [];
+        this.pendingImages = [];
+        this.pendingDocs = [];
         this.isProcessingQueue = false;
         this.init();
     }
@@ -577,8 +579,9 @@ class TitanAIAssistant {
                 background: rgba(0,0,0,0.4);
                 border-top: 1px solid rgba(56, 189, 248, 0.2);
                 display: none;
-                align-items: flex-end;
-                gap: 6px;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px;
                 position: relative;
             }
             .ai-pending-img {
@@ -767,8 +770,8 @@ class TitanAIAssistant {
                     <button type="button" class="ai-chip" data-prompt="📝 给我出一道类似的题目练手，附带答案解析">📝 出一道类似题</button>
                 </div>
                 <div class="ai-input-area">
-                    <input type="file" id="titan-ai-file-input" accept="image/*,.pdf,.doc,.docx,.txt" style="display: none;">
-                    <button type="button" class="ai-upload" id="titan-ai-upload-btn" title="传送门 / 导入作业或错题本以供深度分析 (Upload)">
+                    <input type="file" id="titan-ai-file-input" accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.ppt,.pptx" style="display: none;" multiple>
+                    <button type="button" class="ai-upload" id="titan-ai-upload-btn" title="传送门 / 导入本地照片、作业文档、表格或幻灯片以供深度分析 (Upload)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     </button>
                     <button type="button" class="ai-phone" id="titan-ai-phone-btn" title="实时语音对谈 / 开启沉浸式口语化交互辅导 (Voice Call)">
@@ -777,8 +780,11 @@ class TitanAIAssistant {
                     <button type="button" class="ai-tts-stop" id="titan-ai-tts-stop-btn" title="立刻打断 AI 说话 (Stop Audio)" style="display:none; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
                     </button>
-                    <button type="button" class="ai-camera" id="titan-ai-camera-btn" title="科创视觉实验 / 拍摄搭建的实体结构（如齿轮、杠杆）或遇到困难的现象，让小创老师现场为你观察并分析 (Camera)">
+                    <button type="button" class="ai-camera" id="titan-ai-camera-btn" title="启动前置摄像头 / 拍一拍实物现象 (Camera)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    </button>
+                    <button type="button" class="ai-screenshot" id="titan-ai-screenshot-btn" title="系统截屏 / 截取系统任何窗口给小创老师分析 (Screenshot)" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;display:flex;align-items:center;outline:none;transition:color 0.3s;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                     </button>
                     <button type="button" class="ai-voice" id="titan-ai-voice" title="点击录音 / 再次点击停止并发送。可结合刚刚拍下的照片进行跨模态发问 (Voice Input)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
@@ -956,17 +962,14 @@ class TitanAIAssistant {
             if (e.key === 'Enter') this.sendMessage();
         });
         
-        this.pendingCloseBtn.addEventListener('click', () => {
-            this.pendingImageDataUrl = null;
-            this.pendingTextData = null;
-            this.pendingArea.style.display = 'none';
-            if (this.fileInput) this.fileInput.value = '';
-        });
+        
         
         this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
         this.uploadBtn.addEventListener('click', () => this.fileInput.click());
         this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
         this.phoneBtn.addEventListener('click', () => this.togglePhoneCall());
+        const scBtn = document.getElementById('titan-ai-screenshot-btn');
+        if(scBtn) scBtn.addEventListener('click', () => this.handleScreenshot());
         if (this.ttsStopBtn) {
             this.ttsStopBtn.addEventListener('click', () => {
                 if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -1067,114 +1070,198 @@ class TitanAIAssistant {
     }
 
     _updateFileReadyUI(filename) {
-        if (this.pendingImageDataUrl) {
-            this.pendingHint.innerText = `📄 文件「${filename}」与图片融合就绪...`;
-            this.pendingImg.src = this.pendingImageDataUrl;
-        } else {
-            // 给文档文件一个白色方块占位图作为视觉提示
-            this.pendingImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
-            this.pendingHint.innerText = `📄 文件「${filename}」读取完毕...`;
+        if (this.pendingImages.length === 0 && this.pendingDocs.length === 0) {
+            this.pendingArea.style.display = 'none';
+            return;
         }
+        this.pendingArea.innerHTML = '';
         this.pendingArea.style.display = 'flex';
+        
+        let fileHTML = '';
+        this.pendingImages.forEach((img, idx) => {
+            fileHTML += `
+                <div style="position:relative; width:50px; height:50px;">
+                    <img src="${img}" style="width:100%; height:100%; object-fit:cover; border-radius:6px; border:1px solid rgba(255,255,255,0.2);">
+                    <button type="button" onclick="window.$titanAIAssistant.removePendingFile('image', ${idx})" style="position:absolute;top:-6px;right:-6px;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">✖</button>
+                </div>`;
+        });
+        
+        this.pendingDocs.forEach((doc, idx) => {
+            fileHTML += `
+                <div style="position:relative; background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; display:flex; align-items:center; gap:4px; font-size:11px; color:#bae6fd; max-width: 140px; border:1px solid rgba(56, 189, 248, 0.2);">
+                    📄 <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${doc.name}</span>
+                    <button type="button" onclick="window.$titanAIAssistant.removePendingFile('doc', ${idx})" style="position:absolute;top:-6px;right:-6px;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">✖</button>
+                </div>`;
+        });
+        
+        if (this.pendingImages.length + this.pendingDocs.length > 1) {
+            fileHTML += `<button type="button" onclick="window.$titanAIAssistant.clearAllPendingFiles()" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:11px;margin-left:auto;">全部清空</button>`;
+        }
+        
+        window.$titanAIAssistant = this;
+        this.pendingArea.innerHTML = fileHTML;
         
         if (!this.isChatOpen) this.fab.click();
         this.input.focus();
     }
+    
+    removePendingFile(type, idx) {
+        if (type === 'image') this.pendingImages.splice(idx, 1);
+        if (type === 'doc') this.pendingDocs.splice(idx, 1);
+        this._updateFileReadyUI();
+        if (this.fileInput && this.pendingImages.length === 0 && this.pendingDocs.length === 0) this.fileInput.value = '';
+    }
+    
+    clearAllPendingFiles() {
+        this.pendingImages = [];
+        this.pendingDocs = [];
+        this._updateFileReadyUI();
+        if (this.fileInput) this.fileInput.value = '';
+    }
+    
+    async handleScreenshot() {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: { mediaSource: "screen" } });
+            const track = stream.getVideoTracks()[0];
+            const imageCapture = new ImageCapture(track);
+            const bitmap = await imageCapture.grabFrame();
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            if (this.pendingImages.length < 6) {
+                this.pendingImages.push(dataUrl);
+                this._updateFileReadyUI();
+            } else {
+                alert('您最多只能同时上传 6 张图片供分析哦！');
+            }
+            track.stop();
+        } catch(err) {
+            console.error('截屏失败:', err);
+        }
+    }
 
     async handleFileUpload(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
         
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                this.pendingImageDataUrl = ev.target.result;
-                this.pendingImg.src = this.pendingImageDataUrl;
-                this.pendingArea.style.display = 'flex';
-                if (this.pendingTextData) {
-                    this.pendingHint.innerText = `📸 图片与已传文档融合就绪...`;
-                } else {
-                    this.pendingHint.innerText = `📸 相册图片「${file.name}」已就绪...`;
-                }
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            
+            if (file.type.startsWith('image/')) {
+                if (this.pendingImages.length >= 6) { alert('最多允许选取6张图片！'); continue; }
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    this.pendingImages.push(ev.target.result);
+                    this._updateFileReadyUI();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                if (this.pendingDocs.length >= 3) { alert('最多允许挂载3份文档！'); continue; }
                 
-                if (!this.isChatOpen) this.fab.click();
-                this.input.focus();
-            };
-            reader.readAsDataURL(file);
-        } else if (file.name.toLowerCase().endsWith('.docx')) {
-            const reader = new FileReader();
-            this.pendingHint.innerText = `📄 正在自动加载 Word 智能解析引擎...`;
-            this.pendingArea.style.display = 'flex';
-            if (!this.isChatOpen) this.fab.click();
-            
-            reader.onload = async (ev) => {
-                try {
-                    if (!window.mammoth) {
-                        await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
-                            script.onload = resolve;
-                            script.onerror = reject;
-                            document.head.appendChild(script);
-                        });
-                    }
-                    const result = await window.mammoth.extractRawText({ arrayBuffer: ev.target.result });
-                    const content = result.value.substring(0, 5000) || '(文档内容为空或全部是图片无法进行文本识别)';
-                    this.pendingTextData = `【文件解析：${file.name}】\n内容摘要：\n${content}`;
-                    this._updateFileReadyUI(file.name);
-                } catch (err) {
-                    console.error('DOCX 解析失败:', err);
-                    this.pendingTextData = `【文件解析：${file.name}】\n内容解析失败，可能是已加密或格式异常的文稿。`;
-                    this._updateFileReadyUI(file.name);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        } else if (file.name.toLowerCase().endsWith('.pdf')) {
-            const reader = new FileReader();
-            this.pendingHint.innerText = `📄 正在自动外挂 PDF 机器视觉解析引擎...`;
-            this.pendingArea.style.display = 'flex';
-            if (!this.isChatOpen) this.fab.click();
-            
-            reader.onload = async (ev) => {
-                try {
-                    if (!window.pdfjsLib) {
-                        await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-                            script.onload = resolve;
-                            script.onerror = reject;
-                            document.head.appendChild(script);
-                        });
-                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-                    }
+                if (file.name.toLowerCase().endsWith('.docx')) {
+                    const reader = new FileReader();
+                    this.pendingDocs.push({ name: file.name, content: '正在全力加载并解析 Word 结构...' });
+                    const docIdx = this.pendingDocs.length - 1;
+                    this._updateFileReadyUI();
                     
-                    const loadingTask = window.pdfjsLib.getDocument({ data: new Uint8Array(ev.target.result) });
-                    const pdfDocument = await loadingTask.promise;
-                    let fullText = '';
-                    const maxPages = Math.min(pdfDocument.numPages, 10); // 截取前10页进行高速解析
-                    for (let i = 1; i <= maxPages; i++) {
-                        const page = await pdfDocument.getPage(i);
-                        const textContent = await page.getTextContent();
-                        fullText += textContent.items.map(item => item.str).join(' ') + '\\n';
-                    }
-                    const content = fullText.substring(0, 6000) || '(文档内容无法提取，可能为纯图像扫描件)';
-                    this.pendingTextData = `【文件解析：${file.name}】\n内容摘要：\n${content}`;
-                    this._updateFileReadyUI(file.name);
-                } catch (err) {
-                    console.error('PDF 解析失败:', err);
-                    this.pendingTextData = `【文件解析：${file.name}】\n内容解析失败，可能已被加密、设权或文档已顺坏。`;
-                    this._updateFileReadyUI(file.name);
+                    reader.onload = async (ev) => {
+                        try {
+                            if (!window.mammoth) {
+                                await new Promise((res, rej) => {
+                                    const s = document.createElement('script');
+                                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+                                    s.onload = res; s.onerror = rej;
+                                    document.head.appendChild(s);
+                                });
+                            }
+                            const result = await window.mammoth.extractRawText({ arrayBuffer: ev.target.result });
+                            this.pendingDocs[docIdx].content = result.value.substring(0, 8000) || '(文档内容无法识别)';
+                            this._updateFileReadyUI();
+                        } catch (err) {
+                            this.pendingDocs[docIdx].content = '(解析失败: 加密或损坏文档)';
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+                    const reader = new FileReader();
+                    this.pendingDocs.push({ name: file.name, content: '正在加载表格解析分析器...' });
+                    const docIdx = this.pendingDocs.length - 1;
+                    this._updateFileReadyUI();
+                    
+                    reader.onload = async (ev) => {
+                        try {
+                            if (!window.XLSX) {
+                                await new Promise((res, rej) => {
+                                    const s = document.createElement('script');
+                                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                                    s.onload = res; s.onerror = rej;
+                                    document.head.appendChild(s);
+                                });
+                            }
+                            const workbook = window.XLSX.read(ev.target.result, {type: 'array'});
+                            let fullTxt = '';
+                            workbook.SheetNames.forEach(sheetName => {
+                                const csv = window.XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+                                fullTxt += `[表单页: ${sheetName}]\n${csv}\n\n`;
+                            });
+                            this.pendingDocs[docIdx].content = fullTxt.substring(0, 10000) || '(表格空)';
+                            this._updateFileReadyUI();
+                        } catch (err) {
+                            this.pendingDocs[docIdx].content = '(解析失败: 加密或损坏的表格)';
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else if (file.name.toLowerCase().endsWith('.pdf')) {
+                    const reader = new FileReader();
+                    this.pendingDocs.push({ name: file.name, content: '正在动用视觉提取 PDF 内文...' });
+                    const docIdx = this.pendingDocs.length - 1;
+                    this._updateFileReadyUI();
+                    
+                    reader.onload = async (ev) => {
+                        try {
+                            if (!window.pdfjsLib) {
+                                await new Promise((res, rej) => {
+                                    const s = document.createElement('script');
+                                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+                                    s.onload = res; s.onerror = rej;
+                                    document.head.appendChild(s);
+                                });
+                                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+                            }
+                            const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(ev.target.result) }).promise;
+                            let fullText = '';
+                            for (let j = 1; j <= Math.min(pdf.numPages, 10); j++) {
+                                const page = await pdf.getPage(j);
+                                const tc = await page.getTextContent();
+                                fullText += tc.items.map(item => item.str).join(' ') + '\n';
+                            }
+                            this.pendingDocs[docIdx].content = fullText.substring(0, 8000) || '(纯图片PDF)';
+                            this._updateFileReadyUI();
+                        } catch (err) {
+                             this.pendingDocs[docIdx].content = '(解析失败: 加密或异常文档)';
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else if (file.name.toLowerCase().endsWith('.ppt') || file.name.toLowerCase().endsWith('.pptx')) {
+                    // PPT fallback warning
+                    this.pendingDocs.push({ name: file.name, content: '警告：不支持对 PPT 富媒体动效进行深度文字解剖。如有强诉求，强烈建议将本 PPT 转存为 PDF 后上传阅读效果最佳！这里仅记录文件名感知。' });
+                    this._updateFileReadyUI();
+                } else {
+                    const reader = new FileReader();
+                    this.pendingDocs.push({ name: file.name, content: '' });
+                    const docIdx = this.pendingDocs.length - 1;
+                    reader.onload = (ev) => {
+                        this.pendingDocs[docIdx].content = ev.target.result.substring(0, 8000);
+                        this._updateFileReadyUI();
+                    };
+                    reader.readAsText(file);
                 }
-            };
-            reader.readAsArrayBuffer(file);
-        } else {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const content = ev.target.result.substring(0, 6000); // 防超长截断
-                this.pendingTextData = `【文件解析：${file.name}】\n内容摘要：\n${content}`;
-                this._updateFileReadyUI(file.name);
-            };
-            reader.readAsText(file);
+            }
         }
     }
 
@@ -1408,33 +1495,38 @@ class TitanAIAssistant {
             </div>
         `;
         
-        let pendingImgHTML = '';
-        const hasImage = !!this.pendingImageDataUrl;
-        let pureImgBase64 = null;
-        
-        const hasFile = !!this.pendingTextData;
+        const hasImage = this.pendingImages.length > 0;
+        const hasFile = this.pendingDocs.length > 0;
         let fileTextPromptPart = '';
+        let pendingMediaHTML = '';
+        const imagesBase64List = [];
 
         if (hasFile) {
-            pendingImgHTML += `<div style="background:rgba(255,255,255,0.1);padding:8px;border-radius:4px;margin-bottom:8px;font-size:12px;">📄 已附加文档内容</div>`;
-            fileTextPromptPart = `[附加文档资料]\n${this.pendingTextData}\n\n`;
-            this.pendingTextData = null;
-            this.pendingArea.style.display = 'none';
+            pendingMediaHTML += `<div style="background:rgba(255,255,255,0.1);padding:6px;border-radius:4px;margin-bottom:8px;font-size:12px;display:flex;flex-wrap:wrap;gap:6px;">`;
+            this.pendingDocs.forEach(doc => {
+                pendingMediaHTML += `<span style="background:rgba(14,165,233,0.3);padding:2px 6px;border-radius:4px;">📄 ${doc.name}</span>`;
+                fileTextPromptPart += `[附件 ${doc.name}]\n${doc.content}\n\n`;
+            });
+            pendingMediaHTML += `</div>`;
         }
 
         if (hasImage) {
-            pendingImgHTML += `<img src="${this.pendingImageDataUrl}" class="ai-image-preview" style="margin-bottom: 8px;" />`;
-            pureImgBase64 = this.pendingImageDataUrl.split(',')[1];
-            
-            // 清理本地存根
-            this.pendingImageDataUrl = null;
-            this.pendingArea.style.display = 'none';
+            pendingMediaHTML += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">`;
+            this.pendingImages.forEach(img => {
+                imagesBase64List.push(img.split(',')[1]);
+                pendingMediaHTML += `<img src="${img}" class="ai-image-preview" style="height:60px;width:60px;object-fit:cover;border-radius:6px;margin:0;" />`;
+            });
+            pendingMediaHTML += `</div>`;
         }
 
+        // Reset arrays
+        this.pendingImages = [];
+        this.pendingDocs = [];
+        this._updateFileReadyUI();
         if (this.fileInput) this.fileInput.value = '';
 
         this.lastInputWasVoice = true; // 标记这是语音请求
-        this.appendMessage('user', pendingImgHTML + voiceHTML, true);
+        this.appendMessage('user', pendingMediaHTML + voiceHTML, true);
         this.showTyping();
         
         const reader = new FileReader();
@@ -1531,17 +1623,12 @@ class TitanAIAssistant {
         this.playHapticSound('snap');
 
         // 仅保存在待发送预览区（Pending），等待用户输入提示词合并发出
-        this.pendingImageDataUrl = dataURL;
-        this.pendingImg.src = dataURL;
-        if (this.pendingTextData) {
-             this.pendingHint.innerText = '📸 画面与已传文档融合锁定，随时发送...';
+        if (this.pendingImages.length < 6) {
+            this.pendingImages.push(dataURL);
         } else {
-             this.pendingHint.innerText = '📸 画面已锁定，随时发送...';
+            alert('最多容纳 6 张相片！');
         }
-        this.pendingArea.style.display = 'flex';
-        
-        if (!this.isChatOpen) this.fab.click();
-        this.input.focus();
+        this._updateFileReadyUI();
     }
 
     async sendToAPI(userMessageObject) {
@@ -1852,46 +1939,27 @@ ${currentFullContent}
         
         this.lastInputWasVoice = false;
         
-        if (hasFile && !hasImage) {
-            let combinedText = `[附加文档资料]\n${this.pendingTextData}\n\n[用户问题]: ${text || '请分析附加的文件内容。'}`;
-            let htmlMsg = `<div style="background:rgba(255,255,255,0.1);padding:8px;border-radius:4px;margin-bottom:8px;font-size:12px;">📄 已附加文档内容</div><div>${text || '帮我看看这份文件的内容'}</div>`;
-            this.appendMessage('user', htmlMsg, true);
-            userMessageObject = { role: 'user', content: combinedText };
-            this.pendingTextData = null;
-            this.pendingArea.style.display = 'none';
-            if (this.fileInput) this.fileInput.value = '';
-        } else if (hasImage) {
-            // 支持同时有文件和图片
-            const pureBase64 = this.pendingImageDataUrl.split(',')[1];
-            
-            let htmlMsg = `<img src="${this.pendingImageDataUrl}" class="ai-image-preview" style="margin-bottom:8px; display:block;" />`;
+        if (hasFile || hasImage) {
+            let aiTextPrompt = text || (hasImage ? '请看上述图像。结合画面为您解析。' : '请帮我详细分析我发送的文档。');
             if (hasFile) {
-                htmlMsg += `<div style="background:rgba(255,255,255,0.1);padding:8px;border-radius:4px;margin-bottom:8px;font-size:12px;">📄 并且附加了文档内容</div>`;
+                aiTextPrompt = `${fileTextPromptPart}\n\n[用户问题]: ${aiTextPrompt}`;
             }
-            if (text) {
-                htmlMsg += `<div>${text}</div>`;
-            } else if (hasFile) {
-                htmlMsg += `<div>请分析这幅画面及附加文件。</div>`;
-            }
-            this.appendMessage('user', htmlMsg, true);
             
-            let aiTextPrompt = text || '请看这幅照片。如果画面中有学生搭建的物理机械结构（例如杠杆、齿轮传动、器材）或其他现象，请结合科普原理解答，帮我解决当下的疑惑。';
-            if (hasFile) {
-                aiTextPrompt = `[附加文档资料]\n${this.pendingTextData}\n\n[用户问题]: ${aiTextPrompt}`;
-            }
-
-            userMessageObject = {
-                role: 'user',
-                content: [
-                    { type: 'text', text: aiTextPrompt },
-                    { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${pureBase64}` } }
-                ]
-            };
+            let finalHtmlMsg = pendingMediaHTML;
+            if (text) finalHtmlMsg += `<div style="margin-top:8px;">${text}</div>`;
+            else finalHtmlMsg += `<div style="margin-top:8px;font-style:italic;opacity:0.7;">(发送了多媒体文件)</div>`;
             
-            this.pendingImageDataUrl = null;
-            this.pendingTextData = null;
-            this.pendingArea.style.display = 'none';
-            if (this.fileInput) this.fileInput.value = '';
+            this.appendMessage('user', finalHtmlMsg, true);
+            
+            if (hasImage) {
+                let contentArray = [{ type: 'text', text: aiTextPrompt }];
+                imagesBase64List.forEach(b64 => {
+                     contentArray.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } });
+                });
+                userMessageObject = { role: 'user', content: contentArray };
+            } else {
+                userMessageObject = { role: 'user', content: aiTextPrompt };
+            }
         } else {
             this.appendMessage('user', text);
             userMessageObject = { role: 'user', content: text };
