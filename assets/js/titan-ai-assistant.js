@@ -52,7 +52,12 @@ class TitanAIAssistant {
         } else {
             this.statusBar.innerHTML = `
                 <span><i class="fas fa-user-circle" style="color:#94a3b8;margin-right:4px;"></i> 访客模式 (体验中)</span>
-                <div class="status-tag">剩余次数: ${remaining}/10</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <button type="button" class="ai-activate-btn" id="titan-ai-activate-btn" title="激活会员特权 (Activate Member)" style="padding: 2px 6px; margin: 0; min-width: 24px; height: 20px; border-radius: 4px; border: 1px solid rgba(251, 191, 36, 0.5);">
+                        <i class="fas fa-key" style="font-size: 10px;"></i>
+                    </button>
+                    <div class="status-tag">剩余次数: ${remaining}/10</div>
+                </div>
             `;
             if (remaining <= 0) {
                 this.input.disabled = true;
@@ -64,6 +69,19 @@ class TitanAIAssistant {
                 this.input.style.cursor = 'text';
                 this.input.style.opacity = '1';
                 this.input.placeholder = "问我任何问题...";
+            }
+            
+            // Rebind the activate button dynamically
+            this.activateBtn = document.getElementById('titan-ai-activate-btn');
+            if (this.activateBtn) {
+                this.activateBtn.onclick = () => {
+                    const code = prompt("请输入您的专属激活码 (成电创客/瞪羚会员专用):");
+                    if (code) {
+                        const success = this.activateMember(code);
+                        if (!success) alert("无效的激活码，请联系官方开启。");
+                        else alert("激活成功！无限对话权限已开启。");
+                    }
+                };
             }
         }
     }
@@ -1253,9 +1271,6 @@ class TitanAIAssistant {
                     <button type="button" class="ai-chip" data-prompt="📝 给我出一道类似的题目练手，附带答案解析">📝 出一道类似题</button>
                 </div>
                 <div class="ai-input-area" id="titan-ai-input-area">
-                    <button type="button" class="ai-activate-btn" id="titan-ai-activate-btn" title="激活会员特权 (Activate Member)">
-                        <i class="fas fa-key"></i>
-                    </button>
                     <input type="file" id="titan-ai-file-input" accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.ppt,.pptx" style="display: none;" multiple>
                     <button type="button" class="ai-upload" id="titan-ai-upload-btn" title="传送门 / 导入本地照片、作业文档、表格或幻灯片以供深度分析 (Upload)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
@@ -1315,9 +1330,10 @@ class TitanAIAssistant {
         // 插入顶部权益状态栏
         this.statusBar = document.createElement('div');
         this.statusBar.className = 'ai-status-bar';
-        this.panel.insertBefore(this.statusBar, this.inputArea ? this.inputArea : null);
-        // If chatArea already exists, statusBar should be above it.
-        // The original chatArea was part of the panelHTML, so we need to remove it and re-insert.
+        const header = document.getElementById('titan-ai-drag-handle');
+        this.panel.insertBefore(this.statusBar, header.nextSibling);
+
+        // 如果原有聊天区存在则删除重新插入，以确保在 statusBar 之后，提示泡泡之前
         const existingChatArea = document.getElementById('titan-ai-chat');
         if (existingChatArea) {
             existingChatArea.remove();
@@ -1585,16 +1601,7 @@ class TitanAIAssistant {
         const scBtn = document.getElementById('titan-ai-screenshot-btn');
         if(scBtn) scBtn.addEventListener('click', () => this.handleScreenshot());
         
-        if (this.activateBtn) {
-            this.activateBtn.addEventListener('click', () => {
-                const code = prompt("请输入您的专属激活码 (成电创客/瞪羚会员专用):");
-                if (code) {
-                    const success = this.activateMember(code);
-                    if (!success) alert("无效的激活码，请联系官方开启。");
-                    else alert("激活成功！无限对话权限已开启。");
-                }
-            });
-        }
+        // 激活钥匙逻辑已移入 updateMemberStatusUI 中动态绑定
 
         if (this.ttsStopBtn) {
             this.ttsStopBtn.addEventListener('click', () => {
