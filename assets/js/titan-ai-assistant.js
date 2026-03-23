@@ -533,7 +533,7 @@ class TitanAIAssistant {
                 background: rgba(255,255,255,0.1);
                 color: #fff;
             }
-            .ai-upload, .ai-phone, .ai-tts-stop {
+            .ai-upload, .ai-phone, .ai-tts-stop, .ai-screenshot {
                 background: transparent;
                 border: 1px solid rgba(255,255,255,0.1);
                 min-width: 32px;
@@ -547,7 +547,7 @@ class TitanAIAssistant {
                 transition: all 0.2s;
                 flex-shrink: 0;
             }
-            .ai-upload:hover, .ai-phone:hover, .ai-tts-stop:hover {
+            .ai-upload:hover, .ai-phone:hover, .ai-tts-stop:hover, .ai-screenshot:hover {
                 background: rgba(255,255,255,0.1);
                 color: #fff;
             }
@@ -637,20 +637,43 @@ class TitanAIAssistant {
             .voice-message-bar {
                 display: flex;
                 align-items: center;
-                justify-content: flex-end;
                 gap: 8px;
                 cursor: pointer;
-                border-radius: 12px;
+                border-radius: 8px;
+                padding: 8px 14px;
+                background: rgba(16, 185, 129, 0.85);
+                box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+                border: 1px solid rgba(16, 185, 129, 0.5);
+                margin-top: 8px;
+                transition: all 0.2s;
+                position: relative;
+            }
+            .voice-message-bar:hover {
+                background: rgba(16, 185, 129, 1);
+                box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
             }
             .voice-message-bar span {
                 font-weight: bold;
-                color: #e2e8f0;
+                color: #ffffff;
                 font-size: 14px;
             }
             .voice-message-bar svg {
-                width: 18px;
-                height: 18px;
-                color: #38bdf8;
+                width: 20px;
+                height: 20px;
+                color: #ffffff;
+            }
+            .voice-wave-1, .voice-wave-2 {
+                transition: opacity 0.2s;
+            }
+            .voice-message-bar.playing .voice-wave-1 {
+                animation: wave-fade 0.8s infinite;
+            }
+            .voice-message-bar.playing .voice-wave-2 {
+                animation: wave-fade 0.8s infinite 0.4s;
+            }
+            @keyframes wave-fade {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 1; }
             }
             
             .typing-indicator {
@@ -783,7 +806,7 @@ class TitanAIAssistant {
                     <button type="button" class="ai-camera" id="titan-ai-camera-btn" title="启动前置摄像头 / 拍一拍实物现象 (Camera)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                     </button>
-                    <button type="button" class="ai-screenshot" id="titan-ai-screenshot-btn" title="系统截屏 / 截取系统任何窗口给小创老师分析 (Screenshot)" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;display:flex;align-items:center;outline:none;transition:color 0.3s;">
+                    <button type="button" class="ai-screenshot" id="titan-ai-screenshot-btn" title="系统截屏 / 截取系统任何窗口给小创老师分析 (Screenshot)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                     </button>
                     <button type="button" class="ai-voice" id="titan-ai-voice" title="点击录音 / 再次点击停止并发送。可结合刚刚拍下的照片进行跨模态发问 (Voice Input)">
@@ -1564,27 +1587,32 @@ class TitanAIAssistant {
 
     async sendAudioToGemini(audioBlob, durationInSeconds = 1) {
         const audioUrl = URL.createObjectURL(audioBlob);
+        const barWidth = Math.min(240, Math.max(80, 60 + durationInSeconds * 4));
         const voiceHTML = `
-            <div class="voice-message-bar" title="点击播放/暂停刚才录制的语音" style="justify-content: space-between; min-width: 60px;" onclick="
+            <div class="voice-message-bar" title="点击播放/暂停刚才录制的语音" style="width: ${barWidth}px;" onclick="
                 let a = window.$titanUserAudio;
                 const srcMatch = window.$titanAudioUrl === '${audioUrl}';
-                const svg = this.querySelector('svg');
                 if (a && !a.paused && srcMatch) {
                     a.pause();
                     a.currentTime = 0;
-                    svg.style.color = '#38bdf8';
+                    this.classList.remove('playing');
                     window.$titanAudioUrl = null;
                 } else {
                     if (a) { a.pause(); a.currentTime = 0; }
+                    document.querySelectorAll('.voice-message-bar.playing').forEach(el => el.classList.remove('playing'));
                     window.$titanAudioUrl = '${audioUrl}';
                     window.$titanUserAudio = new Audio('${audioUrl}');
                     window.$titanUserAudio.play();
-                    svg.style.color = '#10b981';
-                    window.$titanUserAudio.onended = () => { svg.style.color = '#38bdf8'; window.$titanAudioUrl = null; };
+                    this.classList.add('playing');
+                    window.$titanUserAudio.onended = () => { this.classList.remove('playing'); window.$titanAudioUrl = null; };
                 }
             ">
-                <span>${durationInSeconds}"</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                <span style="flex: 1; text-align: left;">${durationInSeconds}"</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+                    <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" class="voice-wave-1"></path>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" class="voice-wave-2"></path>
+                </svg>
             </div>
         `;
         
