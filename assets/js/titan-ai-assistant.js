@@ -1226,28 +1226,46 @@ class TitanAIAssistant {
                     });
                 }
                 
-                hint.innerText = '正在捕获屏幕...';
-                document.body.appendChild(hint); // Temporarily keep hint alive during lag
+                hint.innerText = '正在极速处理截屏，请稍候...';
+                document.body.appendChild(hint); 
                 
-                const canvas = await window.html2canvas(document.body, {
-                    x: rect.left + window.scrollX,
-                    y: rect.top + window.scrollY,
-                    width: rect.width,
-                    height: rect.height,
+                const dpr = window.devicePixelRatio || 1;
+                // Capture the entire page first to avoid html2canvas clipping bugs
+                const fullCanvas = await window.html2canvas(document.body, {
                     useCORS: true,
-                    scale: window.devicePixelRatio || 1,
-                    backgroundColor: null
+                    allowTaint: true,
+                    scale: dpr,
+                    backgroundColor: null,
+                    logging: false
                 });
+                
+                // Manually crop the desired selection rect from the high-res canvas
+                const croppedCanvas = document.createElement('canvas');
+                croppedCanvas.width = rect.width * dpr;
+                croppedCanvas.height = rect.height * dpr;
+                const ctx = croppedCanvas.getContext('2d');
+                
+                ctx.drawImage(
+                    fullCanvas,
+                    (rect.left + window.scrollX) * dpr,
+                    (rect.top + window.scrollY) * dpr,
+                    rect.width * dpr,
+                    rect.height * dpr,
+                    0, 0,
+                    rect.width * dpr,
+                    rect.height * dpr
+                );
                 
                 hint.remove();
                 if (this.pendingImages.length < 6) {
-                    this.pendingImages.push(canvas.toDataURL('image/jpeg', 0.9));
+                    this.pendingImages.push(croppedCanvas.toDataURL('image/jpeg', 0.9));
                     this._updateFileReadyUI();
                 } else {
                     alert('最多只能同时上传 6 张图片供分析！');
                 }
             } catch(err) {
                 console.error('网页截屏失败:', err);
+                alert('截屏组件暂时遇到系统障碍: ' + err.message);
                 if (hint) hint.remove();
             }
         };
