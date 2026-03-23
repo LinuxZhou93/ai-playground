@@ -1316,7 +1316,7 @@ ${currentFullContent}
 
 【💡核心回复规范 - 极其重要】：
 1. 你的普通段落中，【绝对严禁】使用任何大头标题控制符如 #, *, -, >, = 等，必须用简单的回车换行与生动的 Emoji 组合（例如行星🪐，逻辑🧠，成就🏆）来进行留白排版。
-2. 【特赦权 / 图形架构化降维】：当涉及到机械结构（齿轮/杠杆）、代码、组织逻辑树的讲解阐释，你**必须**使用 Markdown 全代码块语法包裹（\`\`\`text \`\`\`），并以高级的 ASCII 关系图展现复杂、分层、专业的逻辑流或组装图（建议使用如 ┌───┐, │, └───┘, => 等高阶框符构件作画，杜绝敷衍的简单横线）。前端拥有带拷贝按钮的顶尖极客深色代码框来衬托你这幅神作！
+2. 【特级作图规则 (ASCII Blueprint)】：你是专业的“科技特长生全栈总架构师”，每当讲解机械结构(如齿轮/杠杆)、组织逻辑、现象成因或数据流时，你**必须**使用 Markdown 全代码块（\`\`\`text \`\`\`）包裹，并以极高难度的系统工程 ASCII 全景架构图进行呈现！决不允许画几个简单的横线应付，必须利用高级制表符（如 ┌───┐, │, └───┘, ├, ┼, ◄, ▲, ▼, =>）画出包含嵌套子系统、清晰上下游流向、并带有精细参数注释的硬核工程图纸！图纸画得越专业、越庞大越能彰显你的地位！前端拥有带拷贝按钮的极客深色 IDE 代码窗来承载你的神作！
 3. 请使用充满亲和力的“真人语调”，坚决避免 AI 机器人般机械或冰冷的套话。语言要简明扼要，直接、简短。
 4. 【多模态教学强引导】：当你在对话中讲解一些知识概念、或者鼓励学生亲自去搭建实体（如乐高/VEX/结构件）时，**无时无刻不要忘记极其热情地引导他们主动使用面板下方的【相机📸】按钮，把他们的实物作品或身边对应的现象拍给你看！** （用轻松的口吻，如：“遇到搞不懂的结构？随时点下面的相机按钮拍个照片或长截屏发给小创老师，我帮你一键分析！”或“拼出来了没？拍个图发给我验证一下鸭！”）要让孩子深刻感受到你是拥有视觉的随身极客伴侣。`;
 
@@ -1374,6 +1374,38 @@ ${currentFullContent}
             this.chatArea.appendChild(rowDiv);
             this.scrollToBottom();
 
+            const enhanceCodeBlocks = () => {
+                if (!window.hljs) return;
+                msgDiv.querySelectorAll('pre code').forEach((block) => {
+                    const pre = block.parentElement;
+                    if (pre.querySelector('.code-header')) return; 
+                    
+                    window.hljs.highlightElement(block);
+                    
+                    let langName = 'TEXT';
+                    const langClass = Array.from(block.classList).find(c => c.startsWith('language-'));
+                    if (langClass) langName = langClass.replace('language-', '').toUpperCase();
+                    
+                    const header = document.createElement('div');
+                    header.className = 'code-header';
+                    header.innerHTML = `
+                        <span class="code-lang">${langName}</span>
+                        <button type="button" class="code-copy">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            复制代码
+                        </button>
+                    `;
+                    
+                    const btn = header.querySelector('.code-copy');
+                    btn.onclick = () => {
+                        navigator.clipboard.writeText(block.innerText);
+                        btn.innerHTML = '✅ 已复制';
+                        setTimeout(() => { btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> 复制代码'; }, 2000);
+                    };
+                    pre.insertBefore(header, block);
+                });
+            };
+
             let i = 0;
             // 内核：基于自适应停顿流的打字推演 (由 setTimeout 控制更自然)
             const typeNextChar = () => {
@@ -1381,34 +1413,7 @@ ${currentFullContent}
                     // 全文下潜完成，收尾抛出完美无光标版本并赋予语法高亮 + Code Header
                     if (window.hljs && window.marked) {
                         msgDiv.innerHTML = window.marked.parse(aiReply);
-                        
-                        msgDiv.querySelectorAll('pre code').forEach((block) => {
-                            window.hljs.highlightElement(block);
-                            const pre = block.parentElement;
-                            if (pre.querySelector('.code-header')) return; 
-                            
-                            let langName = 'TEXT';
-                            const langClass = Array.from(block.classList).find(c => c.startsWith('language-'));
-                            if (langClass) langName = langClass.replace('language-', '').toUpperCase();
-                            
-                            const header = document.createElement('div');
-                            header.className = 'code-header';
-                            header.innerHTML = `
-                                <span class="code-lang">${langName}</span>
-                                <button type="button" class="code-copy">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                    复制代码
-                                </button>
-                            `;
-                            
-                            const btn = header.querySelector('.code-copy');
-                            btn.onclick = () => {
-                                navigator.clipboard.writeText(block.innerText);
-                                btn.innerHTML = '✅ 已复制';
-                                setTimeout(() => { btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> 复制代码'; }, 2000);
-                            };
-                            pre.insertBefore(header, block);
-                        });
+                        enhanceCodeBlocks();
                     } else {
                         msgDiv.innerText = aiReply;
                     }
@@ -1433,6 +1438,8 @@ ${currentFullContent}
                 const currentText = aiReply.substring(0, i);
                 if (window.marked && window.hljs) {
                     msgDiv.innerHTML = window.marked.parse(currentText + '▌');
+                    // ✨ 实时为刚刚生成的任何 pre 追加深色 Header 面板及彩色语法高亮！
+                    enhanceCodeBlocks();
                 } else {
                     msgDiv.innerText = currentText + '▌';
                 }
