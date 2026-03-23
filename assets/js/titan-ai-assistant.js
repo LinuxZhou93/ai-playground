@@ -268,6 +268,24 @@ class TitanAIAssistant {
                 flex: 1; padding: 10px; background: #0ea5e9; color: #fff;
                 border: none; border-radius: 6px; cursor: pointer; font-weight: bold;
             }
+            .voice-message-bar {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 8px;
+                cursor: pointer;
+                border-radius: 12px;
+            }
+            .voice-message-bar span {
+                font-weight: bold;
+                color: #e2e8f0;
+                font-size: 14px;
+            }
+            .voice-message-bar svg {
+                width: 18px;
+                height: 18px;
+                color: #38bdf8;
+            }
             
             .typing-indicator {
                 display: flex; gap: 4px; padding: 12px 16px;
@@ -384,13 +402,15 @@ class TitanAIAssistant {
                 };
                 
                 this.mediaRecorder.onstop = () => {
+                    const durationInSeconds = Math.max(1, Math.round((Date.now() - this.recordingStartTime) / 1000));
                     const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-                    this.sendAudioToGemini(audioBlob);
+                    this.sendAudioToGemini(audioBlob, durationInSeconds);
                     // 我们不再调用 track.stop() 来关闭麦克风轨道，
                     // 这样在这个页面没有刷新之前，再次录音时就不会重复弹窗询问权限了。
                 };
                 
                 this.mediaRecorder.start();
+                this.recordingStartTime = Date.now();
                 this.isRecording = true;
                 this.voiceBtn.classList.add('recording');
                 this.input.placeholder = '正在聆听 (Listening)... 点击停止';
@@ -403,8 +423,16 @@ class TitanAIAssistant {
         }
     }
 
-    async sendAudioToGemini(audioBlob) {
-        this.appendMessage('user', '🎤 [语音输入]');
+    async sendAudioToGemini(audioBlob, durationInSeconds = 1) {
+        // 使用动态宽度，让气泡有微信长短条的感觉，基准60px，每秒增加约15px，最长220px
+        const barWidth = Math.min(60 + durationInSeconds * 15, 220);
+        const voiceHTML = `
+            <div class="voice-message-bar" style="width: ${barWidth}px;">
+                <span>${durationInSeconds}"</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+            </div>
+        `;
+        this.appendMessage('user', voiceHTML, true);
         this.showTyping();
         
         const reader = new FileReader();
@@ -489,10 +517,14 @@ class TitanAIAssistant {
         }
     }
 
-    appendMessage(role, text) {
+    appendMessage(role, text, isHTML = false) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg msg-${role}`;
-        msgDiv.innerText = text;
+        if (isHTML) {
+            msgDiv.innerHTML = text;
+        } else {
+            msgDiv.innerText = text;
+        }
         
         // Remove typing indicator if exists
         const typing = document.getElementById('ai-typing-indicator');
