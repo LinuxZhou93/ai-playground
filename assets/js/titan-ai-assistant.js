@@ -169,8 +169,9 @@ class TitanAIAssistant {
                 padding: 12px 16px;
                 border-radius: 12px;
                 font-size: 13px;
-                line-height: 1.5;
+                line-height: 1.6;
                 word-wrap: break-word;
+                white-space: pre-wrap;
             }
             .msg-user {
                 background: rgba(56, 189, 248, 0.15);
@@ -437,12 +438,14 @@ class TitanAIAssistant {
         if (this.chatHistory.length === 0) {
             this.chatHistory.push({
                 role: 'system',
-                content: `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科、基础理科和前沿交叉学科知识，利用各种工具锻炼他们的思维能力与科学素养。
-当前学生正在浏览的页面上下文信息如下：
-- 当前模块: ${this.context.title}
-- 核心内容: ${this.context.header}
-- 详细指引: ${this.context.description}
-请使用亲和、专业、耐心且富有启发性的教育者语调来回答问题。解答应循序渐进，鼓励探讨，结合当前页面的工具和学术背景，避免使用过度生僻晦涩的科幻词汇或赛博朋克等花哨设定。`
+                content: `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科与理科知识。
+当前学生正在浏览的模块：${this.context.title} (${this.context.header})
+
+【💡核心回复规范 - 极其重要】：
+1. 绝对不要使用任何 Markdown 语法符号（例如用来加粗的星号 **，或者用来做标题的井号 #）。客户端无法渲染这些符号，会严重影响观感。
+2. 采用类似 Notion 的自然分段风格。使用清晰的换行进行段落分隔，语言要直接、简短、留白易读。
+3. 请使用充满亲和力的“真人真实语调”，就像一位热心、温柔的学长或导师在和朋友聊天一样，坚决避免 AI 机器人般机械或冰冷的套话。
+4. 必须在适当的地方（如罗列点前、或者情感表达处）自然地使用一些 Emoji 表情（例如 ✨、💡、🎯、🙌、😄 等）来增强视觉效果，让内容更生动活泼。`
             });
         }
         
@@ -469,7 +472,13 @@ class TitanAIAssistant {
             }
 
             const data = await response.json();
-            const aiReply = data.choices[0].message.content;
+            let aiReply = data.choices[0].message.content;
+            
+            // 简单的兜底清理：移除残余的 markdown 粗体和各级标题符号（防止大模型依旧输出）
+            aiReply = aiReply.replace(/\*\*/g, '')
+                             .replace(/### /g, '')
+                             .replace(/## /g, '')
+                             .replace(/# /g, '');
             
             this.chatHistory.push({ role: 'assistant', content: aiReply });
             this.appendMessage('ai', aiReply);
