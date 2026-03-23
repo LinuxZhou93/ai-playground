@@ -6,10 +6,11 @@ class TitanAIAssistant {
         if (document.getElementById('titan-ai-container')) return; // Already initialized
         
         this.isChatOpen = false;
+        const fullContent = document.body ? document.body.innerText.replace(/\s+/g, ' ').substring(0, 3000) : '';
         this.context = {
             title: document.title,
             header: document.querySelector('h1')?.innerText || '',
-            description: document.querySelector('p')?.innerText || ''
+            fullContent: fullContent
         };
         
         // Settings (Obfuscated internal config to prevent direct scanning)
@@ -164,8 +165,39 @@ class TitanAIAssistant {
                 background: rgba(56, 189, 248, 0.2);
                 border-radius: 4px;
             }
+            .msg-row {
+                display: flex;
+                width: 100%;
+                gap: 12px;
+                align-items: flex-start;
+            }
+            .msg-row.user {
+                justify-content: flex-end;
+            }
+            .msg-row.ai {
+                justify-content: flex-start;
+            }
+            .msg-row.system {
+                justify-content: center;
+            }
+            .avatar {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                flex-shrink: 0;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .avatar-ai {
+                background: rgba(14, 165, 233, 0.15);
+                border-color: rgba(56, 189, 248, 0.3);
+            }
             .msg {
-                max-width: 85%;
+                max-width: 80%;
                 padding: 12px 16px;
                 border-radius: 12px;
                 font-size: 13px;
@@ -323,7 +355,9 @@ class TitanAIAssistant {
                 </div>
 
                 <div class="ai-chat-area" id="titan-ai-chat">
-                    <div class="msg msg-system">智能助教已准备就绪，正在结合当前学科内容为您服务。有问题随时问我！</div>
+                    <div class="msg-row system">
+                        <div class="msg msg-system">智能学科助理已准备完毕，将深度结合此网页所展示的核心知识向您解答疑问！</div>
+                    </div>
                 </div>
                 
                 <div class="ai-input-area">
@@ -424,10 +458,9 @@ class TitanAIAssistant {
     }
 
     async sendAudioToGemini(audioBlob, durationInSeconds = 1) {
-        // 使用动态宽度，让气泡有微信长短条的感觉，基准60px，每秒增加约15px，最长220px
-        const barWidth = Math.min(60 + durationInSeconds * 15, 220);
+        // 使用标准的弹性宽度，无需使用行内宽计算，只需要右对齐即可
         const voiceHTML = `
-            <div class="voice-message-bar" style="width: ${barWidth}px;">
+            <div class="voice-message-bar" style="justify-content: space-between; min-width: 60px;">
                 <span>${durationInSeconds}"</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
             </div>
@@ -468,6 +501,8 @@ class TitanAIAssistant {
                 role: 'system',
                 content: `你是“科技特长生全栈培养系统”的专属智能助教。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科与理科知识。
 当前学生正在浏览的模块：${this.context.title} (${this.context.header})
+以下是系统刚刚抓取到的该网页内的核心文本上下文（供你解答时进行深度参考，你的回答必须要尽量结合甚至引用这些文字）：
+${this.context.fullContent}
 
 【💡核心回复规范 - 极其重要】：
 1. 绝对不要使用任何 Markdown 语法符号（例如用来加粗的星号 **，或者用来做标题的井号 #）。客户端无法渲染这些符号，会严重影响观感。
@@ -518,6 +553,13 @@ class TitanAIAssistant {
     }
 
     appendMessage(role, text, isHTML = false) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = `msg-row ${role}`;
+        
+        let avatarHTML = '';
+        if (role === 'ai') avatarHTML = '<div class="avatar avatar-ai">🤖</div>';
+        if (role === 'user') avatarHTML = '<div class="avatar avatar-user">👦</div>';
+        
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg msg-${role}`;
         if (isHTML) {
@@ -526,11 +568,19 @@ class TitanAIAssistant {
             msgDiv.innerText = text;
         }
         
+        if (role === 'user') {
+            rowDiv.appendChild(msgDiv);
+            if (avatarHTML) rowDiv.insertAdjacentHTML('beforeend', avatarHTML);
+        } else {
+            if (avatarHTML) rowDiv.insertAdjacentHTML('beforeend', avatarHTML);
+            rowDiv.appendChild(msgDiv);
+        }
+        
         // Remove typing indicator if exists
         const typing = document.getElementById('ai-typing-indicator');
         if (typing) typing.remove();
         
-        this.chatArea.appendChild(msgDiv);
+        this.chatArea.appendChild(rowDiv);
         this.scrollToBottom();
     }
     
@@ -538,11 +588,19 @@ class TitanAIAssistant {
         const exists = document.getElementById('ai-typing-indicator');
         if (exists) return;
         
-        const div = document.createElement('div');
-        div.id = 'ai-typing-indicator';
-        div.className = 'msg msg-ai typing-indicator';
-        div.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
-        this.chatArea.appendChild(div);
+        const rowDiv = document.createElement('div');
+        rowDiv.id = 'ai-typing-indicator';
+        rowDiv.className = 'msg-row ai';
+        
+        const avatarHTML = '<div class="avatar avatar-ai">🤖</div>';
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg msg-ai typing-indicator';
+        msgDiv.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
+        
+        rowDiv.innerHTML = avatarHTML;
+        rowDiv.appendChild(msgDiv);
+        
+        this.chatArea.appendChild(rowDiv);
         this.scrollToBottom();
     }
 
