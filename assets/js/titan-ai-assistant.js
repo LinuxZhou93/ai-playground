@@ -265,6 +265,7 @@ class TitanAIAssistant {
                 align-items: center;
                 justify-content: center;
                 transition: background 0.2s;
+                flex-shrink: 0;
             }
             .ai-send:hover {
                 background: #0284c7;
@@ -281,6 +282,7 @@ class TitanAIAssistant {
                 align-items: center;
                 justify-content: center;
                 transition: all 0.2s;
+                flex-shrink: 0;
             }
             .ai-voice:hover {
                 background: rgba(255,255,255,0.1);
@@ -298,6 +300,7 @@ class TitanAIAssistant {
                 align-items: center;
                 justify-content: center;
                 transition: all 0.2s;
+                flex-shrink: 0;
             }
             .ai-camera:hover {
                 background: rgba(255,255,255,0.1);
@@ -315,6 +318,25 @@ class TitanAIAssistant {
             #titan-ai-snap { width: 100%; margin-top: 12px; padding: 12px; background: #0ea5e9; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
             #titan-ai-snap:hover { background: #38bdf8; }
             .ai-camera-close { position: absolute; top: -40px; right: 0; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+            
+            .ai-pending-area {
+                padding: 10px 16px;
+                background: rgba(0,0,0,0.4);
+                border-top: 1px solid rgba(56, 189, 248, 0.2);
+                display: none;
+                align-items: flex-end;
+                gap: 6px;
+                position: relative;
+            }
+            .ai-pending-img {
+                width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);
+            }
+            .ai-pending-close {
+                background: rgba(239,68,68,0.9); border: none; color: white; width: 22px; height: 22px;
+                border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+                position: absolute; left: 66px; top: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            }
+            .ai-pending-hint { font-size: 12px; color: #38bdf8; margin-bottom: 6px; flex: 1; text-align: right;}
             
             .ai-image-preview {
                 max-width: 200px;
@@ -416,9 +438,14 @@ class TitanAIAssistant {
                     </div>
                 </div>
                 
+                <div class="ai-pending-area" id="titan-ai-pending">
+                    <img id="titan-ai-pending-img" class="ai-pending-img" src="" />
+                    <button class="ai-pending-close" id="titan-ai-pending-close">✖</button>
+                    <span class="ai-pending-hint">📸 已就绪，请补充问题...</span>
+                </div>
                 <div class="ai-input-area">
-                    <button class="ai-camera" id="titan-ai-camera-btn" title="拍照识别 (Camera)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    <button class="ai-camera" id="titan-ai-camera-btn" title="全能极客拍照 (Camera)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                     </button>
                     <button class="ai-voice" id="titan-ai-voice" title="语音输入 (Voice Input)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
@@ -463,6 +490,11 @@ class TitanAIAssistant {
         this.snapBtn = document.getElementById('titan-ai-snap');
         this.cameraCloseBtn = document.getElementById('titan-ai-camera-close');
         
+        this.pendingArea = document.getElementById('titan-ai-pending');
+        this.pendingImg = document.getElementById('titan-ai-pending-img');
+        this.pendingCloseBtn = document.getElementById('titan-ai-pending-close');
+        this.pendingImageDataUrl = null;
+        
         this.selectionBtn = document.getElementById('titan-ai-selection');
         this.mediaRecorder = null;
         this.audioStream = null;
@@ -485,6 +517,11 @@ class TitanAIAssistant {
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendMessage();
+        });
+        
+        this.pendingCloseBtn.addEventListener('click', () => {
+            this.pendingImageDataUrl = null;
+            this.pendingArea.style.display = 'none';
         });
         
         this.voiceBtn.addEventListener('click', () => this.toggleVoiceRecording());
@@ -653,25 +690,13 @@ class TitanAIAssistant {
         // 关闭模态框并清理视频流
         this.closeCamera();
 
-        // 到聊天流里面发一条图片消息
+        // 仅保存在待发送预览区（Pending），等待用户输入提示词合并发出
+        this.pendingImageDataUrl = dataURL;
+        this.pendingImg.src = dataURL;
+        this.pendingArea.style.display = 'flex';
+        
         if (!this.isChatOpen) this.fab.click();
-        const imgHTML = `<img src="${dataURL}" class="ai-image-preview" />`;
-        this.appendMessage('user', imgHTML, true);
-        this.showTyping();
-
-        const userMessage = {
-            role: 'user',
-            content: [
-                { type: 'text', text: '请看这张照片，深度分析它并回答。如果含有代码、考题、教具实体，请给出极具极客视角的见解。' },
-                { 
-                    type: 'image_url', 
-                    image_url: {
-                        url: dataURL
-                    }
-                }
-            ]
-        };
-        this.sendToAPI(userMessage);
+        this.input.focus();
     }
 
     async sendToAPI(userMessageObject) {
@@ -808,13 +833,39 @@ ${currentFullContent}
 
     async sendMessage() {
         const text = this.input.value.trim();
-        if (!text) return;
+        const hasImage = !!this.pendingImageDataUrl;
+        
+        if (!text && !hasImage) return;
         
         this.input.value = '';
-        this.appendMessage('user', text);
-        this.showTyping();
+        let userMessageObject = null;
         
-        await this.sendToAPI({ role: 'user', content: text });
+        if (hasImage) {
+            // 解析出不带前缀的纯 base64，如果是 Gemini 常规图片管道有时候也可能直接吃带前缀的。
+            // 按照我们之前的兼容逻辑，一般分离。
+            const pureBase64 = this.pendingImageDataUrl.split(',')[1];
+            
+            let baseTextHTML = text ? `<div style="margin-top:8px;">${text}</div>` : '';
+            let htmlMsg = `<img src="${this.pendingImageDataUrl}" class="ai-image-preview" />${baseTextHTML}`;
+            this.appendMessage('user', htmlMsg, true);
+            
+            userMessageObject = {
+                role: 'user',
+                content: [
+                    { type: 'text', text: text || '请看这张照片，深度分析它并回答。如果含有代码、考题、教具实体，请给出极具极客视角的见解。' },
+                    { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${pureBase64}` } }
+                ]
+            };
+            
+            this.pendingImageDataUrl = null;
+            this.pendingArea.style.display = 'none';
+        } else {
+            this.appendMessage('user', text);
+            userMessageObject = { role: 'user', content: text };
+        }
+        
+        this.showTyping();
+        await this.sendToAPI(userMessageObject);
     }
 
     scrollToBottom() {
