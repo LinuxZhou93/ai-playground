@@ -334,6 +334,7 @@ class TitanAIAssistant {
         this.sendBtn = document.getElementById('titan-ai-send');
         this.voiceBtn = document.getElementById('titan-ai-voice');
         this.mediaRecorder = null;
+        this.audioStream = null;
         this.audioChunks = [];
         this.isRecording = false;
     }
@@ -365,13 +366,16 @@ class TitanAIAssistant {
             this.voiceBtn.classList.remove('recording');
             this.input.placeholder = '输入你想问的问题 / Enter prompt...';
         } else {
-            // First check if browser supports SpeechRecognition, often better user experience and format validation fallback
+            // Check browser support
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             
-            // Start Audio capture
+            // Start Audio capture, use cached stream if already granted
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                this.mediaRecorder = new MediaRecorder(stream);
+                if (!this.audioStream) {
+                    this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+                
+                this.mediaRecorder = new MediaRecorder(this.audioStream);
                 this.audioChunks = [];
                 
                 this.mediaRecorder.ondataavailable = e => {
@@ -381,7 +385,8 @@ class TitanAIAssistant {
                 this.mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
                     this.sendAudioToGemini(audioBlob);
-                    stream.getTracks().forEach(track => track.stop());
+                    // 我们不再调用 track.stop() 来关闭麦克风轨道，
+                    // 这样在这个页面没有刷新之前，再次录音时就不会重复弹窗询问权限了。
                 };
                 
                 this.mediaRecorder.start();
@@ -391,7 +396,8 @@ class TitanAIAssistant {
                 
             } catch (err) {
                 console.error('Microphone access denied:', err);
-                this.appendMessage('system', '无法访问麦克风，请检查浏览器权限设置。');
+                this.appendMessage('system', '无法访问麦克风，请检查浏览器权限设置或使用本地服务器 (localhost) 访问。');
+                this.audioStream = null; // 重置流，可能用户第一次拒绝了
             }
         }
     }
