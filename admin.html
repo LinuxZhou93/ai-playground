@@ -1255,6 +1255,56 @@
         }
 
         // Bridge Logic
+        // --- Supabase Realtime Bridge ---
+        let globalSupabaseClient = null;
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = msg;
+            toast.style.transform = 'translateX(0)';
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.transform = 'translateX(150%)';
+                toast.style.opacity = '0';
+            }, 3500);
+        }
+
+        function initSupabaseRealtime(url, key) {
+            if (globalSupabaseClient) return; // Already init
+            if (typeof supabase === 'undefined') {
+                console.error("Supabase JS client library not loaded.");
+                return;
+            }
+
+            globalSupabaseClient = supabase.createClient(url, key);
+
+            // Channel for AI Chat Logs
+            globalSupabaseClient.channel('admin_ai_logs')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_chat_logs' }, payload => {
+                    console.log('Realtime New Chat Log!', payload);
+                    const sectionAnalysis = document.getElementById('section-analysis');
+                    if (sectionAnalysis && sectionAnalysis.style.display !== 'none') {
+                        fetchAnalysisLogs(); // Soft refresh
+                    } else {
+                        showToast(`📡 全局监听: 实时多模态问答池更新!`);
+                    }
+                })
+                .subscribe();
+
+            // Channel for Learning Logs
+            globalSupabaseClient.channel('admin_learning_logs')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'student_learning_logs' }, payload => {
+                    console.log('Realtime New Learning Log!', payload);
+                    const sectionAnalytics = document.getElementById('section-analytics');
+                    if (sectionAnalytics && sectionAnalytics.style.display !== 'none') {
+                        fetchLearningAnalytics(); 
+                    } else {
+                        // Optionally not distract user for every learning log unless viewing the cockpit
+                    }
+                })
+                .subscribe();
+        }
+
         const savedUrl = localStorage.getItem('s_url');
         const savedKey = localStorage.getItem('s_key');
         if (savedUrl && savedKey) {
@@ -1269,6 +1319,8 @@
                     populateUI(ld);
                 } catch (e) { }
             }
+            // Auto init realtime connection
+            initSupabaseRealtime(savedUrl, savedKey);
         }
 
         // Auto-Reload when user is selected
@@ -1291,6 +1343,8 @@
 
             loadCloud(url, key);
             loadUserList(url, key); // Fetch all users for dropdown
+            initSupabaseRealtime(url, key); // Initialize realtime WebSockets
+
         }
 
         async function loadUserList(url, key) {

@@ -2389,60 +2389,75 @@
                 }
             }
 
-            // Refactored Study Stats to accept client/user
+            // Refactored Study Stats to sync strictly with AI Chat Logs & true interaction
             async function fetchHomeStudyStats(client, user) {
-                // Dates
+                // Dates needed for filtering
                 const now = new Date();
                 const todayStr = now.toISOString().split('T')[0];
                 const yest = new Date(now); yest.setDate(yest.getDate() - 1);
                 const yestStr = yest.toISOString().split('T')[0];
-
+                
                 const day = now.getDay() || 7;
                 if (day !== 1) now.setHours(-24 * (day - 1));
                 else now.setHours(0, 0, 0, 0);
                 const weekStartStr = now.toISOString().split('T')[0];
 
+                if (!user || (!user.id && !user.email)) return;
+                
+                // Fallback ID simulation if needed
+                const targetUid = user.id || (user.email ? user.email.substring(0,25) : null);
+                if(!targetUid) return;
+
+                // Query ai_chat_logs to get ALL interactions this week
                 const { data, error } = await client
-                    .from('study_logs')
-                    .select('activity_date, duration_minutes, created_at, title, activity_type')
-                    .eq('user_email', user.email)
-                    .gte('activity_date', weekStartStr)
+                    .from('ai_chat_logs')
+                    .select('created_at, role, content, metadata')
+                    .eq('user_id', targetUid)
+                    .gte('created_at', weekStartStr)
                     .order('created_at', { ascending: false });
 
-                if (error) return; // Silent fail
+                if (error || !data) {
+                    console.warn("Study Logs Sync Ignored:", error?.message);
+                    return; 
+                }
 
-                // Calculate
-                let tTime = 0, tCount = 0;
-                let yTime = 0; // yCount not shown
-                let wTime = 0, wCount = 0;
+                let tCount = 0; // Today interaction counts
+                let yCount = 0; // Yest bounds
+                let wCount = 0;
 
                 data.forEach(log => {
-                    const dur = log.duration_minutes || 0;
-                    wTime += dur;
-                    wCount++;
-
-                    if (log.activity_date === todayStr) {
-                        tTime += dur;
-                        tCount++;
-                    }
-                    if (log.activity_date === yestStr) {
-                        yTime += dur;
+                    // Only count user active inputs as "Missions / Operations"
+                    if (log.role === 'user') {
+                        wCount++;
+                        const logDate = log.created_at.split('T')[0];
+                        if (logDate === todayStr) tCount++;
+                        if (logDate === yestStr) yCount++;
                     }
                 });
 
-                // Update UI
+                // Rule of Thumb: Each active AI interaction (Mission) equates to roughly 3 minutes of focused study time (reading, pondering, prompt-engineering)
+                const minPerMission = 3; 
+                const tTime = tCount * minPerMission;
+                const yTime = yCount * minPerMission;
+                const wTime = wCount * minPerMission;
+
+                // Update UI visually
                 const animateValue = (id, val, suffix) => {
                     const el = document.getElementById(id);
                     if (el) el.innerHTML = `${val}<span style="font-size:0.6em">${suffix}</span>`;
                 };
 
                 animateValue('stat-today-time', tTime, 'min');
-                document.getElementById('stat-today-count').innerText = `${tCount} Missions`;
+                const tCountEl = document.getElementById('stat-today-count');
+                if(tCountEl) tCountEl.innerText = `${tCount} Missions`;
+                
                 animateValue('stat-yesterday-time', yTime, 'min');
                 animateValue('stat-week-time', wTime, 'min');
-                document.getElementById('stat-week-count').innerText = `${wCount} Missions Completed`;
+                
+                const wCountEl = document.getElementById('stat-week-count');
+                if(wCountEl) wCountEl.innerText = `${wCount} Missions Completed`;
 
-                // Update Feed
+                // Update LATEST ACTIVITY Feed
                 updateActivityFeed(data);
             }
 
@@ -2450,29 +2465,32 @@
                 const feedContainer = document.getElementById('activity-feed-list');
                 if (!feedContainer) return;
 
-                const recentLogs = data.slice(0, 10); // Already sorted
-                const typeIcons = {
-                    tech: '💻', code: '💻',
-                    maker: '🛠️', build: '🛠️',
-                    innovate: '🎨', read: '🎨',
-                    academic: '📚', deep_work: '📚',
-                    team: '🤝', milestone: '🤝',
-                    review: '🧘', debug: '🧘'
-                };
+                // Filter down to only user inputs to show what they asked/explored
+                const userLogs = data.filter(d => d.role === 'user').slice(0, 15);
 
-                if (recentLogs.length === 0) {
-                    feedContainer.innerHTML = `<div style="text-align:center; color:#666; font-size:12px; padding:20px;">暂无记录</div>`;
+                if (userLogs.length === 0) {
+                    feedContainer.innerHTML = `<div style="text-align:center; color:#666; font-size:12px; padding:20px;">暂无交互记录，去向 Titan 提问吧！</div>`;
                 } else {
-                    feedContainer.innerHTML = recentLogs.map(log => {
-                        const icon = typeIcons[log.activity_type] || '🔹';
-                        const d = new Date(log.activity_date);
-                        const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+                    feedContainer.innerHTML = userLogs.map(log => {
+                        // Dynamic icon based on media logic or simple NLP
+                        let icon = '🤖';
+                        if (log.metadata && log.metadata.has_media) icon = '🖼️';
+                        else if (log.content.includes('火箭') || log.content.includes('太空') || log.content.includes('物理')) icon = '🚀';
+                        else if (log.content.includes('代码') || log.content.includes('编程') || log.content.includes('Python')) icon = '💻';
+                        else if (log.content.includes('画') || log.content.includes('生成')) icon = '🎨';
+
+                        const d = new Date(log.created_at);
+                        const dateStr = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+                        
+                        let safeText = log.content || 'Voice/Media Input';
+                        safeText = safeText.replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 30);
+                        if(log.content.length > 30) safeText += '...'; // Truncate
 
                         return `
-                         <div class="feed-item">
-                             <span class="feed-date">${dateStr}</span>
-                             <span class="feed-icon">${icon}</span>
-                             <span class="feed-text">${log.title}</span>
+                         <div class="feed-item" style="display:flex; align-items:flex-start; margin-bottom: 8px;">
+                             <div class="feed-date" style="width: 55px; font-size: 9px; line-height: 1.2;">${dateStr}</div>
+                             <div class="feed-icon" style="margin-right: 6px;">${icon}</div>
+                             <div class="feed-text" style="flex:1; white-space: normal; line-height:1.2; word-break: break-all;">${safeText}</div>
                          </div>
                          `;
                     }).join('');
