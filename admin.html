@@ -679,6 +679,21 @@
                 </div>
             </div>
 
+            <div class="grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px; margin-top: 24px;">
+                <!-- Chart 1: Dialogue Origins (Pie) -->
+                <div class="panel-card" style="padding: 20px;">
+                    <div style="font-weight: bold; color: white; margin-bottom: 8px;">AI Questions Heatmap / 提问来源面分布</div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">Tracks which course modules trigger the most AI help requests.</div>
+                    <div id="ai-chart-origins" style="width: 100%; height: 260px;"></div>
+                </div>
+                <!-- Chart 2: Top Keywords / Topics (Bar) -->
+                <div class="panel-card" style="padding: 20px;">
+                    <div style="font-weight: bold; color: white; margin-bottom: 8px;">Hot User Intents / 热门问答意图聚类</div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">Simple NLP extraction based on user prompts.</div>
+                    <div id="ai-chart-topics" style="width: 100%; height: 260px;"></div>
+                </div>
+            </div>
+
             <!-- Full width list -->
             <div class="panel-card" style="grid-column: span 3; margin-top: 0px;">
                 <div class="panel-header" style="margin-bottom: 16px;">
@@ -906,6 +921,73 @@
                 
                 document.getElementById('an-total-tokens').innerHTML = tokens.toLocaleString() + ' <span style="font-size:14px; color:var(--text-muted)">tk</span>';
                 document.getElementById('an-media-ratio').innerText = userInputs > 0 ? Math.round((mediaCount/userInputs)*100) + '%' : '0%';
+                
+                // --- ECharts Analysis Rendering ---
+                if (typeof echarts !== 'undefined') {
+                    // Process Origins (Pie)
+                    const originsMap = {};
+                    let totalVal = 0;
+                    
+                    // Simple NLP for Chinese/English prompts
+                    const wordMap = {};
+                    let texts = '';
+                    
+                    logs.forEach(lg => {
+                         if(lg.role === 'user') {
+                             const loc = (lg.metadata && lg.metadata.page_title) ? lg.metadata.page_title : 'General Talk';
+                             originsMap[loc] = (originsMap[loc] || 0) + 1;
+                             totalVal++;
+                             
+                             if(lg.content) texts += ' ' + lg.content;
+                         }
+                    });
+                    
+                    const pieData = Object.keys(originsMap).map(k => ({name: k, value: originsMap[k]}));
+                    
+                    // Stopwords exclusion (Naive implementation for demo)
+                    const stopWords = ['的','我','你','怎么','什么','这个','可以','吗','一下','一个','啊','呢','是','有没有','了','在'];
+                    const words = texts.split(/[\s，。！？、,!?]+/);
+                    words.forEach(w => {
+                        const kw = w.trim();
+                        if(kw.length > 1 && !stopWords.includes(kw)) {
+                            wordMap[kw] = (wordMap[kw] || 0) + 1;
+                        }
+                    });
+                    const topWords = Object.keys(wordMap).map(k => ({word: k, count: wordMap[k]})).sort((a,b)=>b.count-a.count).slice(0, 7);
+
+                    const originsChart = echarts.init(document.getElementById('ai-chart-origins'));
+                    originsChart.setOption({
+                        tooltip: { trigger: 'item' },
+                        series: [{
+                            type: 'pie',
+                            radius: ['50%', '70%'],
+                            avoidLabelOverlap: true,
+                            itemStyle: { borderRadius: 6, borderColor: '#0f172a', borderWidth: 2 },
+                            label: { color: '#94a3b8' },
+                            data: pieData.length ? pieData : [{name: 'Empty', value: 1}]
+                        }]
+                    });
+
+                    const topicsChart = echarts.init(document.getElementById('ai-chart-topics'));
+                    topicsChart.setOption({
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                        xAxis: { type: 'value', splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }, axisLabel: { show: false } },
+                        yAxis: { type: 'category', data: topWords.map(w=>w.word).reverse(), axisLabel: { color: '#e2e8f0', fontSize: 13 } },
+                        series: [{
+                            data: topWords.map(w=>w.count).reverse(),
+                            type: 'bar',
+                            itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{offset: 0, color: '#8b5cf6'}, {offset: 1, color: '#6d28d9'}]) },
+                            barWidth: '50%',
+                            borderRadius: [0, 4, 4, 0],
+                            label: { show: true, position: 'right', color: '#fff' }
+                        }]
+                    });
+                    
+                    window.addEventListener('resize', () => {
+                        originsChart.resize();
+                        topicsChart.resize();
+                    });
+                }
                 
             } catch (e) {
                 console.error("Dashboard Fetch Logs error", e);
@@ -1580,7 +1662,7 @@
     </script>
 
 <!-- TITAN AI ASSISTANT -->
-<script src="assets/js/titan-ai-assistant.js?v=2026.03.24_1"></script>
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.24_3"></script>
 </body>
 
 </html>

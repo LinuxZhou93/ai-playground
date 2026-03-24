@@ -269,8 +269,13 @@ class TitanAIAssistant {
             
             // 数据降维预处理：如果是多模态，提取文本摘要存入 content，Base64 仅保留 metadata 引用（防爆库）
             let cleanContent = content;
-            let finalMetadata = { ...metadata, timestamp: new Date().toISOString() };
-            
+            let finalMetadata = { 
+                ...metadata, 
+                timestamp: new Date().toISOString(),
+                page_url: window.location.pathname,
+                page_title: document.title.split('-')[0].trim() || document.title
+            };
+
             if (Array.isArray(content)) {
                 const textPart = content.find(c => c.type === 'text');
                 const mediaParts = content.filter(c => c.type !== 'text');
@@ -1339,11 +1344,48 @@ class TitanAIAssistant {
                 max-width: 100%;
                 height: auto;
             }
-             @media (max-width: 640px) {
+             @media (max-width: 768px) {
                 .ai-panel {
-                    position: fixed;
-                    bottom: 0; right: 0; left: 0; top: 0;
-                    width: 100%; height: 100%; border-radius: 0; border: none;
+                    position: fixed !important;
+                    bottom: 0 !important; right: 0 !important; left: 0 !important; top: 0 !important;
+                    width: 100% !important; height: 100% !important;
+                    border-radius: 0 !important; border: none !important;
+                    transform: none !important;
+                    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                .ai-panel:not(.open) {
+                    transform: translateY(100%) !important;
+                }
+                .ai-input-area {
+                    flex-wrap: wrap; 
+                    padding: 8px 12px;
+                    padding-bottom: env(safe-area-inset-bottom, 12px);
+                }
+                .ai-input {
+                    font-size: 16px; /* Prevent Safari zoom on focus */
+                }
+                .ai-chips-wrapper {
+                    padding: 0 12px 8px 12px;
+                }
+                .ai-chip {
+                    font-size: 12px;
+                    padding: 8px 14px;
+                }
+                .ai-camera-wrapper {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 0;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                }
+                .ai-camera-close {
+                    top: 20px;
+                    right: 20px;
+                }
+                /* Hide resize handles on mobile completely */
+                .ai-resize-handle, .ai-resize-handle-left {
+                    display: none !important;
                 }
             }
         `;
