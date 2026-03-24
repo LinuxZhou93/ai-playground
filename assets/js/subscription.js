@@ -72,6 +72,10 @@ const SubscriptionManager = {
         // 6. Check Page Access (URL Protection)
         this.checkPageAccess();
 
+        // 7. Auto Track Page Entry / 自动记录"进入模块"动作埋点
+        const currentModule = document.title.split('-')[0].trim() || 'Undefined Module';
+        this.trackLearningEvent(currentModule, 'ENTER_PAGE', window.location.pathname);
+
         console.log('SubscriptionManager: Ready');
         this.isReady = true;
     },
@@ -218,6 +222,24 @@ const SubscriptionManager = {
             document.body.style.display = 'none';
             alert('🔒 会员专享页面\n\n请先登录以验证您的会员身份。');
             window.location.href = 'index.html';
+        }
+    },
+
+    // --- Learning Tracking / 学情监测探针 ---
+    trackLearningEvent: async function (moduleName, actionType, actionValue) {
+        if (!this.client) return;
+        // 不阻断用户当前操作，采用异步静默推送
+        try {
+            const trackUserId = this.user ? this.user.id : null;
+            await this.client.from('student_learning_logs').insert({
+                user_id: trackUserId,
+                module_name: moduleName,
+                action_type: actionType,
+                action_value: actionValue
+            });
+            console.log(`📡 [Learning Tracked] ${moduleName} - ${actionType}`);
+        } catch (e) {
+            console.warn('学情数据库尚未就绪或日志写入失败:', e);
         }
     },
 

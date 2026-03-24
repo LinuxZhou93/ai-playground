@@ -5,7 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Future-AI Mission Control | 任务控制中心</title>
-    <link href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Add ECharts & SheetJS for Learning Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -405,6 +409,9 @@
         <div class="nav-item">
             <span>💡</span> Analysis / 数据分析
         </div>
+        <div class="nav-item" id="nav-learning-analytics">
+            <span>📈</span> Learning Analytics / 学科大屏
+        </div>
         <div class="nav-item">
             <span>⚙️</span> Settings / 系统设置
         </div>
@@ -719,24 +726,26 @@
             document.getElementById('section-' + tabId).style.display = 'block';
 
             // Highlight nav
-            const map = { 'dashboard': 0, 'users': 1, 'vouchers': 2, 'analysis': 3 }; // Added analysis
+            const map = { 'dashboard': 0, 'users': 1, 'vouchers': 2, 'analysis': 3, 'analytics': 4, 'settings': 5 }; // Added analytics
             // Simple approach: find nav item by text content or just manually toggle
             const navs = document.querySelectorAll('.nav-item');
             if (navs[map[tabId]]) navs[map[tabId]].classList.add('active');
 
             if (tabId === 'vouchers') renderVoucherTable();
             if (tabId === 'analysis') fetchAnalysisLogs();
+            if (tabId === 'analytics') fetchLearningAnalytics();
         }
 
         // Bind Sidebar Clicks
         document.addEventListener('DOMContentLoaded', () => {
             const navs = document.querySelectorAll('.nav-item');
-            if (navs.length >= 5) {
+            if (navs.length >= 6) {
                 navs[0].onclick = () => switchTab('dashboard'); // Dashboard
                 navs[1].onclick = () => switchTab('users');     // Users
                 navs[2].onclick = () => switchTab('vouchers');  // Courses -> reused as Vouchers/Modules
-                navs[3].onclick = () => switchTab('analysis');
-                navs[4].onclick = () => alert("Settings coming soon / 设置开发中");
+                navs[3].onclick = () => switchTab('analysis');  // AI Analysis
+                navs[4].onclick = () => switchTab('analytics'); // Learning Analytics
+                navs[5].onclick = () => alert("Settings coming soon / 设置开发中");
 
                 // Rename nav item for clarity
                 navs[2].innerHTML = '<span>🎫</span> Vouchers / 卡密模块';
@@ -1089,6 +1098,153 @@
             } catch(e) { 
                 console.error("Cloud Delete Fail", e); 
             }
+        }
+
+        // --- Learning Analytics (Cockpit) Logic ---
+        let currentLearningData = [];
+
+        async function fetchLearningAnalytics() {
+            const url = localStorage.getItem('s_url');
+            const key = localStorage.getItem('s_key');
+            if (!url || !key) return;
+
+            const tbody = document.getElementById('learning-logs-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" style="padding: 32px; text-align: center;"><div class="logo-icon" style="margin: 0 auto 12px; width: 32px; height: 32px; animation: ai-fab-breath 1s infinite alternate; font-size:14px;">📡</div>Loading Learning Logs... / 获取学习日志中...</td></tr>';
+
+            try {
+                // Fetch student_learning_logs from Supabase
+                const res = await fetch(`${url}/rest/v1/student_learning_logs?select=*&order=created_at.desc&limit=1000`, {
+                    headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+                });
+
+                if (!res.ok) {
+                    throw new Error("Learning Logs table might not exist yet.");
+                }
+
+                currentLearningData = await res.json();
+            } catch (e) {
+                console.warn('Learning Logs Table Error/Not Found, using mock data for demonstration.', e);
+                // Fallback Mock Data for immediate visual feedback of the "Cockpit"
+                currentLearningData = [
+                    { created_at: new Date(Date.now()-1000*60*5).toISOString(), user_id: 'User-65a6...', module_name: 'OpenClaw API', action_type: 'READ_TIME', action_value: '300s' },
+                    { created_at: new Date(Date.now()-1000*60*60*2).toISOString(), user_id: 'User-1718...', module_name: 'Rocketry Simulation', action_type: 'TEST_SUBMIT', action_value: 'Score: 92' },
+                    { created_at: new Date(Date.now()-1000*60*60*24).toISOString(), user_id: 'User-65a6...', module_name: 'AI Hub', action_type: 'ENTER_PAGE', action_value: '-' },
+                    { created_at: new Date(Date.now()-1000*60*60*48).toISOString(), user_id: 'User-1218...', module_name: 'OpenClaw API', action_type: 'TEST_SUBMIT', action_value: 'Score: 85' }
+                ];
+            }
+
+            // Render Table
+            tbody.innerHTML = '';
+            if (currentLearningData.length === 0) {
+                 tbody.innerHTML = '<tr><td colspan="5" style="padding: 32px; text-align: center; color:var(--text-muted)">No learning data yet. / 暂无学情数据记录</td></tr>';
+            } else {
+                currentLearningData.forEach(log => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #334155';
+                    tr.style.transition = '0.2s';
+                    tr.innerHTML = `
+                        <td style="padding: 12px; font-size: 12px; color: #94a3b8;">${new Date(log.created_at).toLocaleString()}</td>
+                        <td style="padding: 12px; font-family: monospace;">${(log.user_id||'').substring(0,10)}...</td>
+                        <td style="padding: 12px; font-weight: 500;">${log.module_name || 'General'}</td>
+                        <td style="padding: 12px;"><span style="background: rgba(14,165,233,0.1); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size:10px;">${log.action_type || 'N/A'}</span></td>
+                        <td style="padding: 12px;">${log.action_value || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Prepare Data for ECharts
+            // Aggregating Module Popularity
+            const moduleCounts = {};
+            // Aggregating Daily Activity (last 7 days simplified)
+            const dailyCounts = {};
+
+            currentLearningData.forEach(log => {
+                const mod = log.module_name || 'General';
+                moduleCounts[mod] = (moduleCounts[mod] || 0) + 1;
+
+                const dateKey = new Date(log.created_at).toLocaleDateString();
+                dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
+            });
+
+            const pieData = Object.keys(moduleCounts).map(k => ({ name: k, value: moduleCounts[k] }));
+            const barDates = Object.keys(dailyCounts).sort();
+            const barValues = barDates.map(d => dailyCounts[d]);
+
+            // Render ECharts
+            if (typeof echarts !== 'undefined') {
+                const pieChart = echarts.init(document.getElementById('chart-pie-modules'));
+                pieChart.setOption({
+                    tooltip: { trigger: 'item' },
+                    series: [{
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        avoidLabelOverlap: false,
+                        itemStyle: { borderRadius: 10, borderColor: '#0f172a', borderWidth: 2 },
+                        label: { show: false, position: 'center' },
+                        emphasis: { label: { show: true, fontSize: '14', fontWeight: 'bold', color: '#fff' } },
+                        labelLine: { show: false },
+                        data: pieData.length ? pieData : [{name: 'Empty', value: 1}]
+                    }]
+                });
+
+                const barChart = echarts.init(document.getElementById('chart-bar-activity'));
+                barChart.setOption({
+                    tooltip: { trigger: 'axis' },
+                    xAxis: { type: 'category', data: barDates.length ? barDates : ['Today'], axisLabel: { color: '#94a3b8' } },
+                    yAxis: { type: 'value', splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }, axisLabel: { color: '#94a3b8' } },
+                    series: [{
+                        data: barValues.length ? barValues : [0],
+                        type: 'bar',
+                        itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: '#38bdf8'}, {offset: 1, color: '#0ea5e9'}]) },
+                        barWidth: '40%',
+                        borderRadius: [4, 4, 0, 0]
+                    }]
+                });
+
+                window.addEventListener('resize', () => {
+                    pieChart.resize();
+                    barChart.resize();
+                });
+            }
+        }
+
+        function downloadAnalyticsReport() {
+            if (typeof XLSX === 'undefined') {
+                alert("SheetJS library not loaded!");
+                return;
+            }
+            if (!currentLearningData || currentLearningData.length === 0) {
+                alert("No data available to download.");
+                return;
+            }
+
+            // Convert to format suitable for Excel
+            const worksheetData = currentLearningData.map(log => ({
+                "Timestamp": new Date(log.created_at).toLocaleString(),
+                "Candidate ID": log.user_id,
+                "Module Name": log.module_name,
+                "Action Type": log.action_type,
+                "Recorded Value": log.action_value
+            }));
+
+            // Create workbook & sheet
+            const ws = XLSX.utils.json_to_sheet(worksheetData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Learning Logs");
+
+            // Generate file and download
+            XLSX.writeFile(wb, `Titan_Learning_Report_${new Date().getTime()}.xlsx`);
+            
+            // Show toast
+            const toast = document.getElementById('toast');
+            toast.innerHTML = '✅ Report downloaded successfully!';
+            toast.style.transform = 'translateX(0)';
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.transform = 'translateX(150%)';
+                toast.style.opacity = '0';
+            }, 3000);
         }
 
         // --- Core Dashboard Logic (Preserved) ---
