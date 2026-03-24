@@ -1116,6 +1116,17 @@
             transition: all 0.5s ease;
         }
 
+        /* Top-Tier: Film Grain / Noise Overlay */
+        .noise-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 9999990; /* Right below custom cursor */
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+        }
+
         /* Glowing Orbs for ambiance */
         .ambient-orb {
             position: absolute;
@@ -1383,6 +1394,7 @@
         .apple-btn-persistent {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 12px;
             background: #0ea5e9;
             color: #fff;
@@ -1394,12 +1406,21 @@
             letter-spacing: 1px;
             border: none;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             margin-top: 50px;
             box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
             position: relative;
             overflow: hidden;
             z-index: 50;
+        }
+        .apple-btn-persistent span {
+            display: inline-block;
+            transition: transform 0.2s ease-out;
+            pointer-events: none;
+        }
+        .apple-btn-persistent svg {
+            transition: transform 0.2s ease-out;
+            pointer-events: none;
         }
         .apple-btn-persistent::before {
             content: '';
@@ -1467,6 +1488,9 @@
     </style>
 
     <div id="apple-landing-wrapper">
+        <!-- Film Grain / Top-Tier Noise Overlay -->
+        <div class="noise-overlay"></div>
+
         <!-- Custom Cursor Elements -->
         <div class="custom-cursor" id="cursor"></div>
         <div class="custom-cursor-follower" id="cursor-follower"></div>
@@ -1633,8 +1657,28 @@
     </div>
 
     <script>
+        // Check session storage BEFORE anything renders to prevent flickering
+        document.addEventListener("DOMContentLoaded", () => {
+            const isEntered = sessionStorage.getItem('titan_entered') === 'true';
+            if (isEntered) {
+                const navType = performance.getEntriesByType("navigation")[0]?.type;
+                if (navType === 'reload') {
+                    // User manually refreshed 'F5' / 'Cmd+R', so we show the landing page again
+                    sessionStorage.removeItem('titan_entered');
+                } else {
+                    // User navigated back via link or back button, strip the landing immediately
+                    const el = document.getElementById('apple-landing-wrapper');
+                    if (el) {
+                        el.style.display = 'none';
+                        el.remove();
+                    }
+                }
+            }
+        });
+
         // Enter System Function
         function enterTitanEngine() {
+            sessionStorage.setItem('titan_entered', 'true');
             const el = document.getElementById('apple-landing-wrapper');
             if(el) {
                 el.style.opacity = '0';
@@ -1663,36 +1707,51 @@
             const orb2 = document.getElementById('orb-2');
 
             if(scrollBox) {
+                let targetScrollPct = 0;
+                let currentScrollPct = 0;
+
                 scrollBox.addEventListener('scroll', () => {
                     const h = scrollBox.clientHeight;
-                    // Scrolled index: 0, 1, 2, 3, 4
-                    const scrollPct = scrollBox.scrollTop / h;
-                    
-                    // Adapt the positions dynamically based on scroll percentage
-                    if(sphere) sphere.style.transform = `translateY(${scrollPct * 100}px) translateX(${scrollPct * 50}px) scale(${1 + scrollPct * 0.1})`;
-                    if(ring) ring.style.transform = `rotateX(${60 + scrollPct * 20}deg) rotateY(${20 - scrollPct * 30}deg) translateY(${-scrollPct * 80}px)`;
-                    if(cube) cube.style.transform = `rotate(${scrollPct * 90 - 15}deg) translateY(${scrollPct * 120}px) scale(${1 - scrollPct * 0.05})`;
-                    
-                    // Specific parallax for vector items (scatter heavily on horizontal / vertical mix)
-                    if(atom) atom.style.transform = `translateY(${-scrollPct * 200}px) translateX(${scrollPct * 300}px) rotate(${scrollPct * 180}deg)`;
-                    if(pyramid) pyramid.style.transform = `translateY(${scrollPct * 300}px) translateX(${-scrollPct * 200}px) rotate(${scrollPct * 90}deg)`;
-                    if(chip) chip.style.transform = `translateY(${-scrollPct * 180}px) translateX(${scrollPct * 250}px) rotate(${-scrollPct * 60}deg)`;
-                    if(network) network.style.transform = `translateX(${-scrollPct * 250}px) translateY(${-scrollPct * 150}px) scale(${1 + scrollPct * 0.3}) rotate(${scrollPct * -30}deg)`;
-                    if(orbit) orbit.style.transform = `translateY(${scrollPct * 350}px) translateX(${scrollPct * 150}px) scale(${1 - scrollPct * 0.1}) rotate(${scrollPct * -45}deg)`;
-                    if(hexagon) hexagon.style.transform = `translateY(${-scrollPct * 220}px) translateX(${-scrollPct * 300}px) rotate(${scrollPct * 150}deg)`;
-                    
-                    // Shift background aura colors smoothly using hue-rotate
-                    const hue = scrollPct * 60; // Up to 240deg color shift over 4 slides
-                    if(orb1) orb1.style.filter = `blur(150px) hue-rotate(${hue}deg)`;
-                    if(orb2) orb2.style.filter = `blur(150px) hue-rotate(${hue}deg)`;
-
-                    // Top-Tier Upgrade: Update Navigation Dots
-                    const currentIndex = Math.round(scrollPct);
-                    document.querySelectorAll('.nav-dot').forEach((dot, index) => {
-                        if (index === currentIndex) dot.classList.add('active');
-                        else dot.classList.remove('active');
-                    });
+                    targetScrollPct = scrollBox.scrollTop / h;
                 });
+
+                // Top-Tier Engine: 
+                // use requestAnimationFrame + Lerp for perfectly buttery 120fps physics interpolation!
+                const renderParallax = () => {
+                    // Smooth lerp (0.05 speed gives heavy drift, highly premium feel)
+                    currentScrollPct += (targetScrollPct - currentScrollPct) * 0.05;
+                    // Don't calculate unnecessarily
+                    if(Math.abs(targetScrollPct - currentScrollPct) > 0.001) {
+                        const scrollPct = currentScrollPct;
+                        
+                        // Adapt the positions dynamically based on smoothed scroll percentage
+                        if(sphere) sphere.style.transform = `translateY(${scrollPct * 100}px) translateX(${scrollPct * 50}px) scale(${1 + scrollPct * 0.1})`;
+                        if(ring) ring.style.transform = `rotateX(${60 + scrollPct * 20}deg) rotateY(${20 - scrollPct * 30}deg) translateY(${-scrollPct * 80}px)`;
+                        if(cube) cube.style.transform = `rotate(${scrollPct * 90 - 15}deg) translateY(${scrollPct * 120}px) scale(${1 - scrollPct * 0.05})`;
+                        
+                        // Specific parallax for vector items (scatter heavily on horizontal / vertical mix)
+                        if(atom) atom.style.transform = `translateY(${-scrollPct * 200}px) translateX(${scrollPct * 300}px) rotate(${scrollPct * 180}deg)`;
+                        if(pyramid) pyramid.style.transform = `translateY(${scrollPct * 300}px) translateX(${-scrollPct * 200}px) rotate(${scrollPct * 90}deg)`;
+                        if(chip) chip.style.transform = `translateY(${-scrollPct * 180}px) translateX(${scrollPct * 250}px) rotate(${-scrollPct * 60}deg)`;
+                        if(network) network.style.transform = `translateX(${-scrollPct * 250}px) translateY(${-scrollPct * 150}px) scale(${1 + scrollPct * 0.3}) rotate(${scrollPct * -30}deg)`;
+                        if(orbit) orbit.style.transform = `translateY(${scrollPct * 350}px) translateX(${scrollPct * 150}px) scale(${1 - scrollPct * 0.1}) rotate(${scrollPct * -45}deg)`;
+                        if(hexagon) hexagon.style.transform = `translateY(${-scrollPct * 220}px) translateX(${-scrollPct * 300}px) rotate(${scrollPct * 150}deg)`;
+                        
+                        // Shift background aura colors smoothly using hue-rotate
+                        const hue = scrollPct * 60; // Up to 240deg color shift over 4 slides
+                        if(orb1) orb1.style.filter = `blur(150px) hue-rotate(${hue}deg)`;
+                        if(orb2) orb2.style.filter = `blur(150px) hue-rotate(${hue}deg)`;
+
+                        // Update Navigation Dots based on rounded smooth value
+                        const currentIndex = Math.round(scrollPct);
+                        document.querySelectorAll('.nav-dot').forEach((dot, index) => {
+                            if (index === currentIndex) dot.classList.add('active');
+                            else dot.classList.remove('active');
+                        });
+                    }
+                    requestAnimationFrame(renderParallax);
+                };
+                requestAnimationFrame(renderParallax);
             }
 
             // Top-Tier Upgrade: IntersectionObserver for Slide text reveal fades
@@ -1750,7 +1809,28 @@
                         follower.style.border = '1px solid rgba(14, 165, 233, 0.8)';
                     }
                 });
+                
+                // Top-Tier Magnetic Pull Effect for Buttons
+                btn.addEventListener('mousemove', (e) => {
+                    const rect = btn.getBoundingClientRect();
+                    // Calculate distance from center of button
+                    const x = (e.clientX - rect.left - rect.width / 2) * 0.25; // 0.25 is magnetic strength
+                    const y = (e.clientY - rect.top - rect.height / 2) * 0.25;
+                    
+                    btn.style.transform = `translate(${x}px, ${y}px) scale(1.02)`;
+                    const span = btn.querySelector('span');
+                    const svg = btn.querySelector('svg');
+                    if(span) span.style.transform = `translate(${x*0.4}px, ${y*0.4}px)`;
+                    if(svg) svg.style.transform = `translate(${x*0.6}px, ${y*0.6}px)`;
+                });
+
                 btn.addEventListener('mouseleave', () => {
+                    btn.style.transform = `translate(0px, 0px) scale(1)`;
+                    const span = btn.querySelector('span');
+                    const svg = btn.querySelector('svg');
+                    if(span) span.style.transform = `translate(0px, 0px)`;
+                    if(svg) svg.style.transform = `translate(0px, 0px)`;
+                    
                     if(follower) {
                         follower.style.width = '32px';
                         follower.style.height = '32px';

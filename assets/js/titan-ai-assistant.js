@@ -660,6 +660,32 @@ class TitanAIAssistant {
                         return str.replace(/\$([^\$]+)\$/g, '<span class="ai-math-inline">$1</span>');
                     };
                     
+                    // 【深度 Notion 化】: 通过最高权重的全局 CSS 直接接管 msg-ai，彻底杜绝 marked 解析器隐式对象转换崩溃 (object Object) 的灾难 Bug！
+                    if (!document.getElementById('titan-notion-style')) {
+                        const style = document.createElement('style');
+                        style.id = 'titan-notion-style';
+                        style.innerHTML = `
+                            .msg-ai p { margin-bottom: 20px; line-height: 1.8; color: #f1f5f9; font-size: 15px; letter-spacing: 0.5px; }
+                            .msg-ai strong { color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 2px 6px; border-radius: 4px; font-weight: 800; border-bottom: 2px solid rgba(56, 189, 248, 0.3); letter-spacing: 0.5px; }
+                            .msg-ai blockquote {
+                                position: relative; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.3); border-left: 4px solid #6366f1; border-radius: 8px; padding: 14px 18px 14px 48px; margin: 20px 0; color: #cbd5e1; font-size: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); backdrop-filter: blur(4px); line-height: 1.8; font-weight: 500;
+                            }
+                            .msg-ai blockquote::before {
+                                content: "💡"; position: absolute; left: 16px; top: 16px; font-size: 22px; text-shadow: 0 0 10px rgba(99,102,241,0.5);
+                            }
+                            .msg-ai blockquote p { margin-bottom: 0; display: inline; }
+                            .msg-ai h1, .msg-ai h2, .msg-ai h3, .msg-ai h4 { color: #f8fafc; font-weight: 800; display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
+                            .msg-ai h1 { font-size: 1.5em; margin-top: 32px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; color: #fff;}
+                            .msg-ai h2 { font-size: 1.25em; margin-top: 28px; margin-bottom: 16px; background: linear-gradient(90deg, rgba(56,189,248,0.15) 0%, transparent 100%); padding: 8px 16px; border-left: 4px solid #38bdf8; border-radius: 0 6px 6px 0; text-shadow: 0 0 10px rgba(56,189,248,0.3); }
+                            .msg-ai h3 { font-size: 1.1em; margin-top: 24px; margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 6px 14px; border-radius: 6px; border-left: 3px solid #94a3b8; width: fit-content; }
+                            .msg-ai ul, .msg-ai ol { margin-bottom: 24px; padding-left: 20px; line-height: 1.8; color: #f1f5f9; font-size: 15px; }
+                            .msg-ai li { margin-bottom: 12px; color: #e2e8f0; font-weight: 500; padding-left: 4px; }
+                            .msg-ai li::marker { color: #38bdf8; }
+                            .msg-ai code:not(pre code) { background: rgba(244, 114, 182, 0.12); color: #f472b6; padding: 3px 8px; border-radius: 6px; font-family: 'Orbitron', 'Consolas', monospace; font-size: 0.9em; font-weight: 600; border: 1px solid rgba(244, 114, 182, 0.25); box-shadow: 0 0 5px rgba(244, 114, 182, 0.1); }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                    
                     // 核心链路：拦截 Markdown 的 a 标签，渲染成高保真模块穿梭按钮
                     renderer.link = function(href, title, text) {
                         let linkUrl = typeof href === 'object' ? href.href : href;
@@ -723,12 +749,15 @@ class TitanAIAssistant {
                                 // 创意类：直连官方分布式计算节点，废除经常超时的公共反代节点
                                 let shortPrompt = cleanAlt.length > 300 ? cleanAlt.substring(0, 300) : cleanAlt;
                                 const safePrompt = encodeURIComponent(shortPrompt + ', extremely detailed, unreal engine 5, 8k resolution, futuristic rendering');
-                                finalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=800&height=400&nologo=true`;
+                                const randomSeed = Math.floor(Math.random() * 1000000);
+                                finalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=800&height=400&nologo=true&model=flux&seed=${randomSeed}`;
                             } else {
                                 // 常识类：转用极度稳定的 Bing 图片直搜引擎镜像 (国内白名单)
                                 let shortPrompt = cleanAlt.length > 200 ? cleanAlt.substring(0, 200) : cleanAlt;
-                                const safeQuery = encodeURIComponent(shortPrompt + ' 高清图解'); // 移除"实照"，改用"图解"，防止知识类图表搜出粗糙课本翻拍图
-                                finalUrl = `https://tse2.mm.bing.net/th?q=${safeQuery}&w=1080&h=1080&pid=Api&mkt=zh-CN`;
+                                // 彻底去除易被 SEO 污染的"高清"字眼，改用硬核学术属性后缀，且智能区分中英环境
+                                const suffix = /^[a-zA-Z0-9\s\-_]+$/.test(shortPrompt.trim()) ? ' schematic diagram' : ' 结构原理图';
+                                const safeQuery = encodeURIComponent(shortPrompt + suffix); 
+                                finalUrl = `https://tse2.mm.bing.net/th?q=${safeQuery}&w=1080&h=1080&pid=Api`;
                             }
                             altText = cleanAlt;
                         }
@@ -2968,15 +2997,14 @@ ${currentFullContent}
 
 【💡 极致排版指令 - 高保真图形化 Notion Mastery】：
 你不仅仅是在对话，你是在为孩子渲染一份极具探索欲的高端 Notion 学习笔记。必须严格遵守以下法则：
-1. **去文字化 (Graphic First)**：绝不能像百科全书一样堆砌枯燥长文！面对任何专业解答，必须大幅精简字数（每次发言主文本尽量不超过 150 字），遇到重点概念、原理解释、抽象模型，**必须主动、高频地调用配图**（单次回答至少配 1 张图）。图形化的高清视觉体验最适合孩子！
-2. **Notion 卡片级骨架**：必须使用 Markdown 标题 (###)、加粗 (**)、列表项 (-)。核心的信息必须加粗。段落之间要充满呼吸感，拒绝大段密集文本。
+1. **去文字化 (Graphic First)**：绝不能像百科全书一样堆砌枯燥长文！面对任何专业解答，必须大幅精简字数（每次发言主文本尽量不超过 150 字），遇到重点概念、原理解释、抽象模型，**必须主动、高频地调用配图或制图**。图形化的高清视觉体验最适合孩子！
+2. **Notion 卡片级骨架严格语法**：必须使用 Markdown 标题 (###)、加粗 (**)、列表项 (-)。核心的信息必须加粗。段落之间要充满呼吸感。**【绝对禁止生肉露漏】：任何 Markdown 标识符后必须紧跟一个半角空格（例如 \`### 标题\` 而不是 \`###标题\`，\`- 列表\` 而不是 \`-列表\`），如果违规会导致无法解析并在页面上暴露出满屏的 # 或 * 号乱码！** 
 3. **极客符号与色彩指引**：每个标题和核心结论前，必须配一个契合语境的 Emoji 活跃气氛。
 4. **金句化引用**：核心结论、学习路线指引或“小创老师建议”，必须使用引用块 (> ) 进行封装，让重点视觉一目了然。
-5. **多维全栈可视化能力 (Visual Synergy Core)**：你是掌控全域视觉教育的导师，遇到不同场景必须调用最佳的可视化兵器：
-   - **📸 开启双模态视觉呈现 (Visual Synergy)**：这是你的看家本领，**必须高频使用！** 必须且只能输出纯 Markdown 图片语法 \`![标签: 描述](ai-render)\`：
-     - 情况A：看已有实景、实验结构、真实照片等（如："水循环机制"）。格式：\`![检索: 自然界水循环全景概览图](ai-render)\` (描述是高精度中文关键词)。
-     - 情况B：畅想未来、科幻、结构透视。格式：\`![生成: A breathtaking highly detailed sci-fi illustration of...] (ai-render)\` (纯英文长细节 Prompt)。
-     **【致命底线-针对Gemini等模型】：当前系统不支持内置 Function Call！你严禁输出类似于 \`{"action": "generate_image"}\` 等结构化 JSON 代码块，严禁解释，必须直接在正文中且仅用 \`![]()\` 原生语法干净利落地返回图文！**
+5. **多维全栈可视化能力 (Visual Synergy Core)**：你是掌控全域视觉教育的导师，遇到不同场景必须调用最佳的绘图/检索兵器。**【注意：暂时禁止调用渲染引擎作图】**：
+   - **📸 真实图解与照片全网检索**：当需要展示实景、实验物理结构、真实相片等（如："水循环机制"、"连杆结构"），你**必须且只能**输出纯 Markdown 图片语法调用内置搜索：\`![检索: 曲柄连杆机构原理图解](ai-render)\` (描述必须是高精度的中文学术关键词)。
+   - **📐 逻辑与几何制图（七大代码绘图引擎）**：当需要绘制思维导图、流程图、几何辅助线、类图等，禁止使用图片搜索或生图引擎，请直接且仅使用你已经熟练掌握的代码制图方案（例如：使用 Mermaid 语法块绘制脑图/流程图、使用原生 SVG 绘制纯净几何图、使用 QuickChart 等），直接输出它们的代码块即可！
+     **【致命底线-关于JSON截断】：本系统当前已禁用结构化 Tool Calling 返回。你绝对禁止在输出中夹杂任何形如 \`{"action": "generate_image"}\` 等废弃工具代码块，只能直接用 \`![检索:xxx](ai-render)\`，或者直接写出 Mermaid/SVG 原生代码块渲染。**
 6. **内链穿梭引擎 (Internal Routing)**：如果需要推荐学生去系统其它模块拔高（例如推荐“生命科学”、“数学猜想”模块），**必须使用超链接包裹模块名**。格式必须严格为 \`[模块名称](?module=auto_match)\`。**严禁对中括号或小括号使用反斜杠转义**！必须严格且原封不动输出 \`[模块名称](?module=auto_match)\` 结构，确保底层路由系统成功截获跳转！`;
 
         // Init context if empty
@@ -3174,51 +3202,58 @@ ${currentFullContent}
             // 核心功能：全域括号嵌套防漏气护盾 (Universal JSON Tool-Calling Interceptor)
             // 暴力切断任何由各种模型（包括 Gemini 等异常封装）私自外泄的变种 JSON 底层代码结构
             const cleanJSONToolCalls = (rawStr) => {
-                if (!rawStr || (!rawStr.includes('action') && !rawStr.includes('prompt') && !rawStr.includes('generate_image') && !rawStr.includes('image_gen'))) return rawStr;
+                if (!rawStr) return rawStr;
+                let result = rawStr;
+                let possibleStart = result.indexOf('{');
                 
-                let possibleStart = rawStr.indexOf('{');
+                // 启用无缝多重切分，拦截大模型在单次传输中塞入的多个 JSON 指令
                 while (possibleStart > -1) {
-                    let snippetForCheck = rawStr.substring(possibleStart, possibleStart + 150);
-                    // 只要大括号内开头出现极高概率的工具调用指纹，当场扑杀拦截！
-                    if (/["']?action(?:_input)?["']?\s*:|["']?(?:generate_image|dalle|image_gen)["']?/i.test(snippetForCheck)) {
+                    let snippetForCheck = result.substring(possibleStart, possibleStart + 300);
+                    // 只要大括号内开头能嗅探到任何形似工具调用的特征，立刻就地正法！
+                    if (/["']?action(?:_input)?["']?\s*:|["']?(?:generate_image|dalle|image_gen|prompt)["']?\s*:/i.test(snippetForCheck)) {
                         let openBrace = possibleStart;
                         let closeBrace = -1;
                         let depth = 0;
-                        for (let j = openBrace; j < rawStr.length; j++) {
-                            if (rawStr[j] === '{') depth++;
-                            if (rawStr[j] === '}') {
+                        for (let j = openBrace; j < result.length; j++) {
+                            if (result[j] === '{') depth++;
+                            if (result[j] === '}') {
                                 depth--;
                                 if (depth === 0) { closeBrace = j; break; }
                             }
                         }
                         
-                        let endIdx = closeBrace !== -1 ? closeBrace + 1 : rawStr.length;
-                        let block = rawStr.substring(openBrace, endIdx);
-                        
-                        // ============== 顶级容错提取 ==============
-                        // 使用 ([\s\S]*?) 暴力突破多行超级长串 prompt，并且使用 \1 反向引用彻底无视单双引号嵌套黑洞！
-                        let alt = "检索: 科学示意图";
-                        let pMatch = block.match(/['"]prompt['"]\s*:\s*(['"])([\s\S]*?)\1/i);
-                        if (pMatch && pMatch[2].length > 2) {
-                            alt = "生成: " + pMatch[2].substring(0, 350);
-                        } else {
-                            let tMatch = block.match(/['"]thought['"]\s*:\s*(['"])([\s\S]*?)\1/i);
-                            if (tMatch) alt = "检索: " + tMatch[2].substring(0, 150);
+                        if (closeBrace !== -1) {
+                            let block = result.substring(openBrace, closeBrace + 1);
+                            
+                            // 顶级容错提取：无论是标准的 prompt 还是不讲规矩的 action_input，统统能暴力拉取特征值
+                            let alt = "检索: 科学与工程图解";
+                            let promptObjMatch = block.match(/['"](?:prompt|action_input)['"]\s*:\s*(['"])([\s\S]*?)\1/i);
+                            if (promptObjMatch && promptObjMatch[2].length > 2) {
+                                alt = "生成: " + promptObjMatch[2].substring(0, 450);
+                            } else {
+                                let tMatch = block.match(/['"](?:thought|description)['"]\s*:\s*(['"])([\s\S]*?)\1/i);
+                                if (tMatch) alt = "检索: " + tMatch[2].substring(0, 150);
+                            }
+                            
+                            // 洗刷毒瘤字符 (换行、引号)，重新高压封存为纯天然原生 Markdown 语法
+                            let cleanAlt = alt.replace(/'|"/g, "").replace(/(\r\n|\n|\r)/gm, " ");
+                            let md = `\n\n![${cleanAlt}](ai-render://placeholder)\n\n`;
+                            
+                            // 就地无损覆盖合并，同时跳跃指针推进下一轮探测
+                            result = result.substring(0, openBrace) + md + result.substring(closeBrace + 1);
+                            possibleStart = result.indexOf('{', openBrace + md.length);
+                            continue;
                         }
-                        
-                        // 净化所有毒瘤字符 (换行、引号)，将提纯后的关键词直接送入全息影像流
-                        let cleanAlt = alt.replace(/'|"/g, "").replace(/(\r\n|\n|\r)/gm, " ");
-                        let md = `\n\n![${cleanAlt}](ai-render://placeholder)\n\n`;
-                        
-                        let resultStr = rawStr.substring(0, openBrace) + md + rawStr.substring(endIdx);
-                        // 清洗一切废弃裹尸布： ```json ... ```
-                        return resultStr.replace(/```json\s*/ig, '').replace(/```\s*$/g, '');
                     }
-                    possibleStart = rawStr.indexOf('{', possibleStart + 1);
+                    possibleStart = result.indexOf('{', possibleStart + 1);
                 }
                 
-                // 全域兜底修复：强行剔除那些被模型画蛇添足加上了反斜杠的失效链接（例如：\[生命科学\](?module=auto_match)）
-                return rawStr.replace(/\\\[(.*?)\\\]/g, '[$1]').replace(/\\\(\?module=auto_match\\\)/g, '(?module=auto_match)');
+                // 剔除大模型瞎加的废弃裹尸布： ```json ... ```，进行靶向清除防止污染下方正常的解释文本段落
+                result = result.replace(/```(?:json|javascript|js)?\s*?\n(?:[\s\S]*?)!\[/ig, '\n\n![');
+                result = result.replace(/!\[(.*?)\]\(ai-render:\/\/placeholder\)\s*?```/ig, '![$1](ai-render://placeholder)\n');
+                
+                // 全域兜底修复：强行剔除那些被模型画蛇添足加上了反斜杠的底层路由失效胶囊（例如：\[生命科学\](?module=auto_match)）
+                return result.replace(/\\\[(.*?)\\\]/g, '[$1]').replace(/\\\(\?module=auto_match\\\)/g, '(?module=auto_match)');
             };
 
             const typeNextChar = () => {
