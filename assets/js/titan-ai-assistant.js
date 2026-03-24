@@ -3389,7 +3389,7 @@ ${currentFullContent}
                 if (typing) typing.remove();
             } else {
                 console.error('AI Link Error:', error);
-                this.appendMessage('system', `[接口通讯失败] ${error.message}。请检查您的网络或 API 密匙配置是不是支持语音处理。`);
+                this.appendMessage('system', `[接口通讯失败] ${error.message}。请检查您的代理网络连接、API 密钥配置或模型服务可用性。`);
             }
             this.setSendButtonState('send');
             this.isProcessingQueue = false;
