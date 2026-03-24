@@ -76,8 +76,31 @@ const SubscriptionManager = {
         const currentModule = document.title.split('-')[0].trim() || 'Undefined Module';
         this.trackLearningEvent(currentModule, 'ENTER_PAGE', window.location.pathname);
 
+        // 8. Auto Track Global Interactions / 全局静默操纵埋点
+        this.bindGlobalInteractionTracker(currentModule);
+
         console.log('SubscriptionManager: Ready');
         this.isReady = true;
+    },
+
+    // --- Global Click Tracker ---
+    bindGlobalInteractionTracker: function(moduleName) {
+        document.addEventListener('click', (e) => {
+            const el = e.target.closest('button, a, .nav-item, .chart-card, [role="button"], .type-card');
+            if (!el) return;
+
+            // Extract useful name
+            let elementId = el.id || '';
+            let elementText = el.innerText ? el.innerText.substring(0, 30).trim().replace(/\n/g, ' ') : '';
+            if(!elementText && el.hasAttribute('title')) elementText = el.getAttribute('title');
+            if(!elementText && el.classList.length > 0) elementText = '.' + el.classList[0];
+
+            // Ignore empty or extremely noisy clicks
+            if(!elementText && !elementId) return;
+
+            const actionVal = (elementId ? `#${elementId} ` : '') + elementText;
+            this.trackLearningEvent(moduleName, 'CLICK', actionVal);
+        });
     },
 
     // --- Data Fetching ---

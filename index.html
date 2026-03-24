@@ -1090,6 +1090,704 @@
 
 <body>
 
+    <!-- ⚡️ APPLE-STYLE INTERACTIVE LANDING PAGE ⚡️ -->
+    <link href="https://fonts.loli.net/css2?family=Inter:wght@400;600;800;900&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- LANDING WRAPPER --- */
+        #apple-landing-wrapper {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 999999;
+            background: #f8fafc; /* Clean Apple white/grey */
+            overflow: hidden;
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            color: #0f172a;
+        }
+
+        /* --- INFINITE RESOLUTION C4D-STYLE ELEMENTS --- */
+        .landing-bg-elements {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            transition: all 0.5s ease;
+        }
+
+        /* Glowing Orbs for ambiance */
+        .ambient-orb {
+            position: absolute;
+            width: 1200px;
+            height: 1200px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.7;
+            z-index: 0;
+            pointer-events: none;
+            will-change: filter, transform;
+        }
+        .orb-1 { top: -300px; left: -200px; background: rgba(56, 189, 248, 0.35); }
+        .orb-2 { bottom: -300px; right: -200px; background: rgba(139, 92, 246, 0.35); }
+
+        /* C4D Glassy Sphere */
+        .glass-sphere {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1) 60%, transparent 80%);
+            box-shadow: 
+                inset -10px -10px 20px rgba(0, 165, 255, 0.2), 
+                inset 10px 10px 20px rgba(255,255,255,0.8),
+                0 20px 40px rgba(0,0,0,0.05);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: breathe-float 6s infinite alternate ease-in-out;
+            top: 20%; left: 15%;
+        }
+
+        /* C4D Frosted Torus (Ring) */
+        .glass-ring {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 24px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 
+                inset 0 0 10px rgba(255,255,255,0.8),
+                0 15px 35px rgba(0, 165, 255, 0.15);
+            backdrop-filter: blur(12px);
+            transform: rotateX(60deg) rotateY(20deg);
+            transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: breathe-float 8s infinite alternate ease-in-out;
+            bottom: 25%; right: 15%;
+        }
+
+        /* Floating SVGs vector objects to act as high-res objects */
+        .floating-obj {
+            position: absolute;
+            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.1));
+            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 2;
+            pointer-events: none;
+        }
+        .obj-atom { top: 15%; left: 8%; animation: breathe-float 8s infinite alternate-reverse; }
+        .obj-pyramid { bottom: 20%; right: 10%; animation: breathe-float 9s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+        .obj-chip { top: 25%; right: 15%; animation: breathe-float 7s infinite alternate ease-in-out; opacity: 0.8; }
+        .obj-network { bottom: 10%; left: 15%; animation: breathe-float 10s infinite alternate; }
+        .obj-orbit { top: 5%; left: 50%; opacity: 0.6; animation: breathe-float 12s infinite alternate ease-in-out; }
+        .obj-hexagon { top: 60%; right: 35%; animation: breathe-float 11s infinite alternate-reverse; opacity: 0.7; }
+
+        /* Pure CSS Glass Cube */
+        .glass-cube {
+            position: absolute;
+            top: 55%; right: 5%;
+            width: 90px; height: 90px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 20px;
+            transform: rotate(-15deg);
+            box-shadow: 0 20px 40px rgba(0, 165, 255, 0.15), inset 0 2px 20px rgba(255,255,255,0.9);
+            transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: cube-spin 20s infinite linear;
+        }
+
+        /* --- SCROLL SNAP CONTAINER --- */
+        .landing-scroll-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100vh;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+        
+        .landing-scroll-container::-webkit-scrollbar { display: none; }
+        .landing-scroll-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .landing-slide {
+            width: 100%;
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0 5%;
+            position: relative;
+            /* Added for the linear glow effect constraints */
+            perspective: 1000px;
+        }
+
+        .slide-content {
+            text-align: center;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
+        /* --- TOP-TIER WEBSITE UPGRADES --- */
+        /* 1. Scroll-triggered Smooth Reveal */
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(60px) scale(0.98);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-up.in-view {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        
+        /* 2. Vertical Pagination Dots (Apple Style) */
+        .landing-dots-nav {
+            position: fixed;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 100;
+        }
+        .nav-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, 0.2);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .nav-dot.active {
+            background: #0ea5e9;
+            transform: scale(2.5);
+            box-shadow: 0 0 12px rgba(14, 165, 233, 0.8);
+        }
+
+        /* 4. Custom Trailing Cursor */
+        .custom-cursor {
+            width: 8px; height: 8px; 
+            background: #0ea5e9; 
+            border-radius: 50%;
+            position: fixed; 
+            pointer-events: none; 
+            z-index: 9999999;
+            transform: translate(-50%, -50%);
+        }
+        .custom-cursor-follower {
+            width: 32px; height: 32px; 
+            border: 2px solid rgba(14, 165, 233, 0.5); 
+            border-radius: 50%;
+            position: fixed; 
+            pointer-events: none; 
+            z-index: 9999998;
+            transition: transform 0.15s ease-out, width 0.2s, height 0.2s, background 0.2s;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Slide typography */
+        .landing-badge {
+            display: inline-flex;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: #0ea5e9;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            padding: 10px 28px;
+            background: rgba(14, 165, 233, 0.1);
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+        }
+
+        .landing-title {
+            font-size: 96px; /* Increased by ~1.5x */
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin: 0 0 16px 0;
+            color: #0f172a;
+            line-height: 1.15;
+            text-shadow: 0 15px 40px rgba(255,255,255,0.9);
+        }
+        @keyframes title-breathe {
+            0% { filter: drop-shadow(0 0 10px rgba(56,189,248,0.2)) hue-rotate(-15deg); }
+            100% { filter: drop-shadow(0 0 35px rgba(99,102,241,0.7)) hue-rotate(15deg); }
+        }
+        
+        .landing-title-grad {
+            background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            animation: title-breathe 4s infinite alternate ease-in-out;
+            will-change: filter;
+        }
+
+        .landing-subtitle {
+            font-size: 36px;
+            font-weight: 700;
+            color: #334155;
+            margin: 5px 0 20px 0;
+            letter-spacing: 2px;
+        }
+
+        .landing-desc {
+            font-size: 24px;
+            color: #475569;
+            margin-top: 10px;
+            line-height: 1.6;
+            max-width: 800px;
+            font-weight: 600;
+        }
+
+        /* Focus Cards for Sections */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 40px;
+            padding: 80px 60px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.08), inset 0 2px 10px rgba(255,255,255,1);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        /* 3. Linear-style Mouse Tracking Glow - FIX */
+        .glass-card-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(14, 165, 233, 0.35), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 0; /* Important: Place glow behind text but inside card relative */
+            mix-blend-mode: color-burn;
+        }
+        .glass-card:hover .glass-card-glow {
+            opacity: 1;
+        }
+        .glass-card:hover {
+            box-shadow: 0 40px 100px rgba(0,0,0,0.12), inset 0 2px 10px rgba(255,255,255,1);
+        }
+
+        /* Entrance Button (Present on EVERY slide) */
+        .apple-btn-persistent {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #0ea5e9;
+            color: #fff;
+            padding: 16px 40px;
+            border-radius: 100px;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: 50px;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 50;
+        }
+        .apple-btn-persistent::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .apple-btn-persistent:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(14, 165, 233, 0.5);
+        }
+        .apple-btn-persistent:hover::before { opacity: 1; }
+        .apple-btn-persistent svg { width: 18px; height: 18px; transition: transform 0.3s; }
+        .apple-btn-persistent:hover svg { transform: translateX(6px); }
+
+        /* Scroll down arrow */
+        .scroll-down-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            animation: bounce 2s infinite;
+            z-index: 50;
+            pointer-events: none;
+        }
+        .scroll-down-hint svg { width: 24px; height: 24px; color: #cbd5e1; margin-top: 4px; }
+
+        /* Animations */
+        @keyframes breathe-float {
+            0% { transform: translateY(0px) scale(1); }
+            100% { transform: translateY(-20px) scale(1.05); }
+        }
+        @keyframes cube-spin {
+            0% { transform: rotate(-15deg) translateY(0); }
+            50% { transform: rotate(165deg) translateY(-30px); }
+            100% { transform: rotate(345deg) translateY(0); }
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+            40% { transform: translateY(-12px) translateX(-50%); }
+            60% { transform: translateY(-6px) translateX(-50%); }
+        }
+
+        @media (max-width: 768px) {
+            .landing-title { font-size: 36px; }
+            .landing-subtitle { font-size: 18px; }
+            .glass-card { padding: 40px 20px; border-radius: 24px; }
+            .apple-btn-persistent { padding: 14px 28px; font-size: 14px; margin-top: 30px;}
+            .obj-rocket { font-size: 60px; right: 2%; top: 10%;}
+            .obj-drone { font-size: 50px; left: 2%; bottom: 15%;}
+            .glass-sphere { width: 80px; height: 80px; }
+            .glass-ring { width: 90px; height: 90px; border-width: 16px; }
+        }
+    </style>
+
+    <div id="apple-landing-wrapper">
+        <!-- Custom Cursor Elements -->
+        <div class="custom-cursor" id="cursor"></div>
+        <div class="custom-cursor-follower" id="cursor-follower"></div>
+
+        <!-- Dot Navigation (Vercel/Apple Style) -->
+        <div class="landing-dots-nav">
+            <div class="nav-dot active" id="dot-0"></div>
+            <div class="nav-dot" id="dot-1"></div>
+            <div class="nav-dot" id="dot-2"></div>
+            <div class="nav-dot" id="dot-3"></div>
+            <div class="nav-dot" id="dot-4"></div>
+        </div>
+
+        <!-- Background Elements (Controlled by JS Parallax) -->
+        <div class="landing-bg-elements" id="landing-bg">
+            <div class="ambient-orb orb-1" id="orb-1"></div>
+            <div class="ambient-orb orb-2" id="orb-2"></div>
+            
+            <div class="glass-sphere" id="g-sphere"></div>
+            <div class="glass-ring" id="g-ring"></div>
+            <div class="glass-cube" id="g-cube">
+                <!-- Inner tech icon mapping styling -->
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(14, 165, 233, 0.8)" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            </div>
+
+            <!-- Premium Geometry Elements -->
+            <div class="floating-obj obj-atom" id="obj-atom">
+                <svg width="120" height="120" viewBox="0 0 100 100" fill="none">
+                   <ellipse cx="50" cy="50" rx="40" ry="12" transform="rotate(30 50 50)" stroke="rgba(14, 165, 233, 0.5)" stroke-width="2"/>
+                   <ellipse cx="50" cy="50" rx="40" ry="12" transform="rotate(90 50 50)" stroke="rgba(139, 92, 246, 0.5)" stroke-width="2"/>
+                   <ellipse cx="50" cy="50" rx="40" ry="12" transform="rotate(150 50 50)" stroke="rgba(14, 165, 233, 0.5)" stroke-width="2"/>
+                   <circle cx="50" cy="50" r="4" fill="rgba(139, 92, 246, 0.8)"/>
+                </svg>
+            </div>
+            <div class="floating-obj obj-pyramid" id="obj-pyramid">
+                <svg width="120" height="120" viewBox="0 0 120 120" stroke="rgba(139, 92, 246, 0.4)" stroke-width="1.5" fill="none">
+                    <polygon points="60,10 110,90 10,90"/>
+                    <line x1="60" y1="10" x2="60" y2="60"/>
+                    <line x1="10" y1="90" x2="60" y2="60"/>
+                    <line x1="110" y1="90" x2="60" y2="60"/>
+                </svg>
+            </div>
+            <div class="floating-obj obj-chip" id="obj-chip">
+                <svg width="100" height="100" viewBox="0 0 24 24" stroke="rgba(2, 132, 199, 0.5)" stroke-width="1.5" fill="none">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
+                    <rect x="9" y="9" width="6" height="6" />
+                    <line x1="9" y1="1" x2="9" y2="4" /><line x1="15" y1="1" x2="15" y2="4" />
+                    <line x1="9" y1="20" x2="9" y2="23" /><line x1="15" y1="20" x2="15" y2="23" />
+                    <line x1="20" y1="9" x2="23" y2="9" /><line x1="20" y1="14" x2="23" y2="14" />
+                    <line x1="1" y1="9" x2="4" y2="9" /><line x1="1" y1="14" x2="4" y2="14" />
+                </svg>
+            </div>
+            <div class="floating-obj obj-network" id="obj-network">
+                <svg width="120" height="120" viewBox="0 0 120 120" stroke="rgba(99, 102, 241, 0.5)" stroke-width="2" fill="none">
+                    <circle cx="20" cy="50" r="5" fill="rgba(99, 102, 241, 0.8)" />
+                    <circle cx="60" cy="20" r="5" fill="rgba(99, 102, 241, 0.8)" />
+                    <circle cx="60" cy="80" r="5" fill="rgba(99, 102, 241, 0.8)" />
+                    <circle cx="100" cy="50" r="5" fill="rgba(99, 102, 241, 0.8)" />
+                    <line x1="25" y1="50" x2="55" y2="25" /><line x1="25" y1="50" x2="55" y2="75" />
+                    <line x1="65" y1="20" x2="95" y2="45" /><line x1="65" y1="80" x2="95" y2="55" />
+                    <line x1="60" y1="25" x2="60" y2="75" stroke-dasharray="4" />
+                </svg>
+            </div>
+            <div class="floating-obj obj-orbit" id="obj-orbit">
+                <svg width="150" height="150" viewBox="0 0 150 150" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" fill="none">
+                    <circle cx="75" cy="75" r="30" stroke-dasharray="8" />
+                    <circle cx="75" cy="75" r="50" stroke-dasharray="4" />
+                    <circle cx="75" cy="75" r="70" stroke-dasharray="2" />
+                    <circle cx="75" cy="45" r="4" fill="currentColor" stroke="none" />
+                    <circle cx="125" cy="75" r="5" fill="currentColor" stroke="none" />
+                </svg>
+            </div>
+            <div class="floating-obj obj-hexagon" id="obj-hexagon">
+                <svg width="100" height="100" viewBox="0 0 100 100" stroke="rgba(236, 72, 153, 0.4)" stroke-width="2" fill="none">
+                    <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" />
+                    <polygon points="50,25 70,35 70,65 50,75 30,65 30,35" stroke-width="1" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="landing-scroll-container" id="landing-scroll" style="cursor: none;">
+            
+            <!-- SLIDE 1: Hero -->
+            <section class="landing-slide" data-index="0">
+                <div class="slide-content reveal-up in-view" style="z-index: 10;">
+                    <div class="landing-badge">成电创客 TITAN AI</div>
+                    <h1 class="landing-title">FutureAI<br><span class="landing-title-grad">科技特长生系统</span></h1>
+                    <p class="landing-subtitle">培育下一个时代的科技领航者</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: none;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+                <div class="scroll-down-hint">
+                    <span>向下滑动浏览四大核心目标</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+            </section>
+
+            <!-- SLIDE 2: Target 1 -->
+            <section class="landing-slide" data-index="1">
+                <div class="slide-content glass-card reveal-up" style="z-index: 10;">
+                    <div class="glass-card-glow"></div>
+                    <div class="landing-badge">Goal 01 / 自我管理</div>
+                    <h2 class="landing-title">启迪<span class="landing-title-grad">自我管理</span></h2>
+                    <p class="landing-desc">唤醒未知的内在潜能，构建专属于 AI 时代的内驱力与时间管理系统。让科技成为自我成长的核心双翼，主导自己的学习节奏。</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: none;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+                <div class="scroll-down-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+            </section>
+
+            <!-- SLIDE 3: Target 2 -->
+            <section class="landing-slide" data-index="2">
+                <div class="slide-content glass-card reveal-up" style="z-index: 10;">
+                    <div class="glass-card-glow"></div>
+                    <div class="landing-badge">Goal 02 / 基础思维</div>
+                    <h2 class="landing-title">重塑<span class="landing-title-grad">基础思维</span></h2>
+                    <p class="landing-desc">彻底告别传统的死记硬背。从底层计算逻辑出发，用代码与算法语言理解世界运行的规律，训练出强大的系统性思考能力与解题直觉。</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: none;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+                <div class="scroll-down-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+            </section>
+
+            <!-- SLIDE 4: Target 3 -->
+            <section class="landing-slide" data-index="3">
+                <div class="slide-content glass-card reveal-up" style="z-index: 10;">
+                    <div class="glass-card-glow"></div>
+                    <div class="landing-badge">Goal 03 / 学科知识</div>
+                    <h2 class="landing-title">跨越<span class="landing-title-grad">学科界限</span></h2>
+                    <p class="landing-desc">打破单向的学科孤岛。通过全息的真实工程项目制学习方式 (PBL)，在应用中实现跨学科硬核理论的融会贯通与实战验证。</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: none;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+                <div class="scroll-down-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+            </section>
+
+            <!-- SLIDE 5: Target 4 -->
+            <section class="landing-slide" data-index="4">
+                <div class="slide-content glass-card reveal-up" style="z-index: 10;">
+                    <div class="glass-card-glow"></div>
+                    <div class="landing-badge">Goal 04 / 全栈能力</div>
+                    <h2 class="landing-title">熔铸<span class="landing-title-grad">全栈实力</span></h2>
+                    <p class="landing-desc">从硬件物联网底层逻辑、到云端 AI 架构部署，锻造出面向科技前沿的综合体系构建能力。真正的创客，无所不能。</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: none;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // Enter System Function
+        function enterTitanEngine() {
+            const el = document.getElementById('apple-landing-wrapper');
+            if(el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-100px) scale(0.95)';
+                setTimeout(() => el.remove(), 800);
+            }
+        }
+
+        // Adaptive Scroll Parallax Logic for the C4D visual elements
+        document.addEventListener("DOMContentLoaded", () => {
+            const scrollBox = document.getElementById('landing-scroll');
+            
+            // Background Elements
+            const sphere = document.getElementById('g-sphere');
+            const ring = document.getElementById('g-ring');
+            const cube = document.getElementById('g-cube');
+            
+            const atom = document.getElementById('obj-atom');
+            const pyramid = document.getElementById('obj-pyramid');
+            const chip = document.getElementById('obj-chip');
+            const network = document.getElementById('obj-network');
+            const orbit = document.getElementById('obj-orbit');
+            const hexagon = document.getElementById('obj-hexagon');
+            
+            const orb1 = document.getElementById('orb-1');
+            const orb2 = document.getElementById('orb-2');
+
+            if(scrollBox) {
+                scrollBox.addEventListener('scroll', () => {
+                    const h = scrollBox.clientHeight;
+                    // Scrolled index: 0, 1, 2, 3, 4
+                    const scrollPct = scrollBox.scrollTop / h;
+                    
+                    // Adapt the positions dynamically based on scroll percentage
+                    if(sphere) sphere.style.transform = `translateY(${scrollPct * 100}px) translateX(${scrollPct * 50}px) scale(${1 + scrollPct * 0.1})`;
+                    if(ring) ring.style.transform = `rotateX(${60 + scrollPct * 20}deg) rotateY(${20 - scrollPct * 30}deg) translateY(${-scrollPct * 80}px)`;
+                    if(cube) cube.style.transform = `rotate(${scrollPct * 90 - 15}deg) translateY(${scrollPct * 120}px) scale(${1 - scrollPct * 0.05})`;
+                    
+                    // Specific parallax for vector items (scatter heavily on horizontal / vertical mix)
+                    if(atom) atom.style.transform = `translateY(${-scrollPct * 200}px) translateX(${scrollPct * 300}px) rotate(${scrollPct * 180}deg)`;
+                    if(pyramid) pyramid.style.transform = `translateY(${scrollPct * 300}px) translateX(${-scrollPct * 200}px) rotate(${scrollPct * 90}deg)`;
+                    if(chip) chip.style.transform = `translateY(${-scrollPct * 180}px) translateX(${scrollPct * 250}px) rotate(${-scrollPct * 60}deg)`;
+                    if(network) network.style.transform = `translateX(${-scrollPct * 250}px) translateY(${-scrollPct * 150}px) scale(${1 + scrollPct * 0.3}) rotate(${scrollPct * -30}deg)`;
+                    if(orbit) orbit.style.transform = `translateY(${scrollPct * 350}px) translateX(${scrollPct * 150}px) scale(${1 - scrollPct * 0.1}) rotate(${scrollPct * -45}deg)`;
+                    if(hexagon) hexagon.style.transform = `translateY(${-scrollPct * 220}px) translateX(${-scrollPct * 300}px) rotate(${scrollPct * 150}deg)`;
+                    
+                    // Shift background aura colors smoothly using hue-rotate
+                    const hue = scrollPct * 60; // Up to 240deg color shift over 4 slides
+                    if(orb1) orb1.style.filter = `blur(150px) hue-rotate(${hue}deg)`;
+                    if(orb2) orb2.style.filter = `blur(150px) hue-rotate(${hue}deg)`;
+
+                    // Top-Tier Upgrade: Update Navigation Dots
+                    const currentIndex = Math.round(scrollPct);
+                    document.querySelectorAll('.nav-dot').forEach((dot, index) => {
+                        if (index === currentIndex) dot.classList.add('active');
+                        else dot.classList.remove('active');
+                    });
+                });
+            }
+
+            // Top-Tier Upgrade: IntersectionObserver for Slide text reveal fades
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.querySelector('.reveal-up')?.classList.add('in-view');
+                    } else {
+                        // Optional: remove subclass to re-animate on re-enter
+                        entry.target.querySelector('.reveal-up')?.classList.remove('in-view');
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            document.querySelectorAll('.landing-slide').forEach(slide => {
+                observer.observe(slide);
+            });
+
+            // -----------------------------------------------------
+            // Top-Tier Upgrade: Custom Cursor Physics
+            // -----------------------------------------------------
+            const cursor = document.getElementById('cursor');
+            const follower = document.getElementById('cursor-follower');
+            let mouseX = window.innerWidth / 2; let mouseY = window.innerHeight / 2;
+            let followerX = mouseX; let followerY = mouseY;
+            
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                if(cursor) {
+                    cursor.style.left = `${mouseX}px`;
+                    cursor.style.top = `${mouseY}px`;
+                }
+            });
+
+            // Smooth interpolation for the follower
+            function loop() {
+                followerX += (mouseX - followerX) * 0.15;
+                followerY += (mouseY - followerY) * 0.15;
+                if(follower) {
+                    follower.style.left = `${followerX}px`;
+                    follower.style.top = `${followerY}px`;
+                }
+                requestAnimationFrame(loop);
+            }
+            loop();
+
+            // Hover state for cursor
+            document.querySelectorAll('.btn-hoverable').forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    if(follower) {
+                        follower.style.width = '64px';
+                        follower.style.height = '64px';
+                        follower.style.background = 'rgba(14, 165, 233, 0.1)';
+                        follower.style.border = '1px solid rgba(14, 165, 233, 0.8)';
+                    }
+                });
+                btn.addEventListener('mouseleave', () => {
+                    if(follower) {
+                        follower.style.width = '32px';
+                        follower.style.height = '32px';
+                        follower.style.background = 'transparent';
+                        follower.style.border = '2px solid rgba(14, 165, 233, 0.5)';
+                    }
+                });
+            });
+
+            // -----------------------------------------------------
+            // Top-Tier Upgrade: Linear-style mouse-tracking glow + 3D Card Tilt
+            // -----------------------------------------------------
+            document.querySelectorAll('.glass-card').forEach(card => {
+                card.addEventListener('mousemove', e => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Update Glow Highlight variable
+                    card.style.setProperty('--mouse-x', `${x}px`);
+                    card.style.setProperty('--mouse-y', `${y}px`);
+                    
+                    // Calculate 3D Tilt bounds
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -8; // Pitch max 8deg
+                    const rotateY = ((x - centerX) / centerX) * 8;  // Yaw max 8deg
+                    
+                    card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px)`;
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = `perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+                });
+            });
+        });
+    </script>
+
     <!-- BACKGROUND -->
     <canvas id="neuron-canvas"></canvas>
 

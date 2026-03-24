@@ -245,6 +245,199 @@ class TitanAIAssistant {
         }
     }
 
+    archiveCurrentSession() {
+        if (!this.chatHistory || this.chatHistory.length <= 1) {
+            this.clearChatWithoutArchive();
+            return;
+        }
+
+        this.cancelOutput(); 
+        this.isProcessingQueue = false;
+        this.messageQueue = [];
+        if (this.panel) {
+            this.panel.style.opacity = '0.5';
+            this.panel.style.filter = 'blur(10px) brightness(1.5)';
+        }
+
+        // ——【基于本地的智能上下文探针算法 (Client-Side Vectorization/NLP)】——
+        // 无需消耗大模型 Token，通过正则与特征集快速提炼本期对话的 Git Commit 主题
+        let fullText = this.chatHistory.filter(m => m.role !== 'system').map(m => {
+            if (typeof m.content === 'string') return m.content;
+            if (Array.isArray(m.content)) return m.content.map(c => c.text || '').join(' ');
+            return '';
+        }).join('\n');
+
+        let entities = [];
+        // 1. 优先捕获代码级英文词、混合框架名 (如 Node.js, VEX IQR, React)
+        const engMatches = fullText.match(/[A-Za-z0-9_-]{3,}/g) || [];
+        // 2. 提取处于重点强调符号内的核心概念
+        const bracketMatches = fullText.match(/[《【“"']([^》】”"']{2,15})[》】”"']/g) || [];
+        // 3. 粗颗粒提取以特定技术/工程名词结尾的关键短语
+        const zhMatches = fullText.match(/[\u4e00-\u9fa5]{2,10}(原理|系统|算法|模型|架构|功能|机制|代码|指令|方案)/g) || [];
+        
+        const stopWords = ['the', 'and', 'this', 'that', 'with', 'for', 'are', 'what', 'how', 'http', 'https', 'com'];
+        entities.push(...engMatches.filter(w => !stopWords.includes(w.toLowerCase())));
+        entities.push(...bracketMatches.map(s => s.replace(/[《【】》“"']/g, '')));
+        entities.push(...zhMatches);
+
+        // 频率热度排序：选取对话中“最高浓度”的几个特有名词
+        let counts = {};
+        entities.forEach(w => {
+            let core = w.trim().toLowerCase();
+            if (core.length > 2 && core.length < 15) counts[core] = (counts[core] || 0) + 1;
+        });
+        let sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+        let mainTopics = sorted.slice(0, 2).map(item => item[0]);
+        
+        if (mainTopics.length === 0) {
+            mainTopics = ["认知探测进程"]; // 极端情况兜底
+        }
+
+        // 为小学生生成易于理解的童趣版“学习存档”前缀
+        const branchTypes = ['🌟 探索日记', '🧠 脑力激荡', '🔬 研究手记', '🚀 灵感起飞', '🧩 问题解构'];
+        const commitType = branchTypes[Math.floor(Math.random() * branchTypes.length)];
+        const generatedTitle = `${commitType}：${mainTopics.join('与')}`;
+
+        // 提取问题与回答核心，生成大白话的存档描述
+        let firstUserMsg = this.chatHistory.find(m => m.role === 'user');
+        let rawQ = firstUserMsg && typeof firstUserMsg.content === 'string' ? firstUserMsg.content.trim().split(/[。！？\n]/)[0].substring(0, 30) : '未命名的探索';
+        
+        let firstAiMsg = this.chatHistory.find(m => m.role === 'assistant' || m.role === 'ai');
+        let aiClue = '';
+        if (firstAiMsg && typeof firstAiMsg.content === 'string') {
+            let pureText = firstAiMsg.content.replace(/[\*\#\`]/g, '').trim();
+            aiClue = pureText.split(/[。！？\n]/)[0].substring(0, 45);
+        }
+        
+        // 组装成易于理解的 K12 教育日志摘要
+        let descStr = `【我的问题】${rawQ}...\n【小创解答】${aiClue ? (aiClue + '...') : '等待验证'}\n【关键知识】${mainTopics.join(', ')}`;
+
+        const branchItem = {
+            id: 'TC-ARCH-' + new Date().getTime(),
+            date: new Date().toLocaleString(),
+            title: generatedTitle,
+            desc: descStr,
+            stats: `学习轮次：${this.chatHistory.length - 1} `,
+            data: [...this.chatHistory]
+        };
+
+        let archives = [];
+        try {
+            archives = JSON.parse(localStorage.getItem('titan_ai_branches') || '[]');
+        } catch(e) {}
+        archives.unshift(branchItem);
+        // Keep to 50 Max
+        archives = archives.slice(0, 50);
+        localStorage.setItem('titan_ai_branches', JSON.stringify(archives));
+
+        setTimeout(() => {
+            this.chatHistory = [];
+            this.chatArea.innerHTML = `
+                <div class="msg-row system">
+                    <div class="msg msg-system">✅ 记忆快照已由本地提交。<br>关联索引指向：${generatedTitle}。<br>底层磁场清空，等待唤醒新分支... ⚡️</div>
+                </div>
+            `;
+            this.clearAllPendingFiles();
+            this.saveSession();
+            
+            if (this.panel) {
+                this.panel.style.opacity = '1';
+                this.panel.style.filter = 'none';
+            }
+            if (typeof this.playHapticSound === 'function') this.playHapticSound('reset');
+            this.scrollToBottom();
+            
+            if (this.historyBtn) {
+                this.historyBtn.style.color = '#fff';
+                this.historyBtn.style.background = '#0ea5e9';
+                this.historyBtn.style.transform = 'scale(1.2)';
+                setTimeout(() => { this.historyBtn.style.cssText = ''; }, 600);
+            }
+        }, 600);
+    }
+
+    clearChatWithoutArchive() {
+        this.cancelOutput(); 
+        this.isProcessingQueue = false;
+        this.messageQueue = [];
+        this.chatHistory = [];
+        if(this.chatArea) {
+            this.chatArea.innerHTML = '<div class="msg-row system"><div class="msg msg-system">缓冲区空白。内存清理完毕，等待唤醒。⚡️</div></div>';
+        }
+        this.clearAllPendingFiles();
+        this.saveSession();
+    }
+
+    openHistoryArchives() {
+        if (!this.historyModal) return;
+        
+        const listDiv = document.getElementById('titan-ai-history-list');
+        let archives = [];
+        try {
+            // 兼容检索
+            archives = JSON.parse(localStorage.getItem('titan_ai_branches') || '[]');
+        } catch(e) {}
+        
+        listDiv.innerHTML = '';
+        if (archives.length === 0) {
+            listDiv.innerHTML = '<div class="ai-history-empty" style="padding: 50px 0;">📂 暂无记忆断面。<br><span style="font-size:11px; color:rgba(255,255,255,0.3);">请开展深度对话后点击顶部 (Commit) 保存。</span></div>';
+        } else {
+            archives.forEach((item, index) => {
+                // 防御性兼容：处理旧版脏数据或因为手工篡改导致的关键字段丢失
+                const displayTitle = item.title || '🗃️ [遗留] 未分类的学习记录';
+                const displayDate = item.date || item.timestamp || new Date().toLocaleString();
+                const displayDesc = item.desc || '（历史数据未包含深度描述特征成分）';
+                const displayStats = item.stats || '学习轮次：未知';
+                
+                // 将标签分颜色展示
+                const cColor = '#0ea5e9'; // 童趣清新蓝
+
+                const dom = document.createElement('div');
+                dom.className = 'ai-history-item';
+                
+                // 更倾向儿童认知友好的明快卡片呈现
+                dom.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                        <span style="font-weight: 700; font-size: 14px; color: ${cColor};">${displayTitle}</span>
+                        <span style="font-size: 11px; color: #64748b;">${displayDate}</span>
+                    </div>
+                    <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; white-space: pre-line; background: #0f172a; padding: 10px; border-radius: 6px; border-left: 3px solid ${cColor}; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">${displayDesc.replace(/</g, "&lt;")}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 10px;">
+                        <span style="font-size: 11px; color: #94a3b8;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:4px; vertical-align:-2px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>${displayStats}</span>
+                        <button title="销毁这条记录" style="background:none; border:none; color:#ef4444; font-size:14px; cursor:pointer;" onclick="event.stopPropagation(); window._deleteArchiveBranch('${item.id}', this);">🗑️</button>
+                    </div>
+                `;
+                
+                dom.onclick = () => { this.restoreArchivedSession(item); };
+                listDiv.appendChild(dom);
+            });
+            
+            // 声明挂载全局的快捷清理方法 (如果不存在)
+            if (!window._deleteArchiveBranch) {
+                window._deleteArchiveBranch = function(id, btnDom) {
+                    let arr = JSON.parse(localStorage.getItem('titan_ai_branches') || '[]');
+                    arr = arr.filter(x => x.id !== id && ('TC-ARCH-' + x.id) !== id); 
+                    localStorage.setItem('titan_ai_branches', JSON.stringify(arr));
+                    btnDom.closest('.ai-history-item').remove();
+                };
+            }
+        }
+        
+        this.historyModal.classList.add('show');
+    }
+
+    restoreArchivedSession(item) {
+        // 直接执行平滑加载，不弹丑陋烦人的 JS 确认窗，小学生会晕的
+        this.cancelOutput();
+        this.chatHistory = [...item.data];
+        if(this.historyModal) this.historyModal.classList.remove('show');
+        this.saveSession(); 
+        
+        // 如果想更顺畅，可以直接重新调用 _applyHistoryData 而不用 reload
+        // 但为了大局稳定，reload 更保险，先保持 reload。如果能用无刷新覆盖更好，但鉴于系统复杂性，直接 reload。
+        location.reload(); 
+    }
+
     /**
      * 【新增】高保真流水日志增量同步 (Low Overhead / Anti-Lag)
      * 每一轮对话完成后异步推送到 ai_chat_logs 归档表，实现百万级数据的“只增不减”
@@ -363,7 +556,10 @@ class TitanAIAssistant {
             existingRows.forEach(r => r.remove());
 
             history.forEach(msg => {
-                this.renderStaticMessage(msg.role, msg.content);
+                // 彻底阻断挂载时的隐藏提示词（System Prompt 或静默上下文）污染前台UI屏幕
+                if (msg.role !== 'system') {
+                    this.renderStaticMessage(msg.role, msg.content);
+                }
             });
             setTimeout(() => this.scrollToBottom(), 300);
         }
@@ -462,6 +658,98 @@ class TitanAIAssistant {
                     renderer.text = (arg) => {
                         const str = typeof arg === 'string' ? arg : (arg && arg.text ? arg.text : '');
                         return str.replace(/\$([^\$]+)\$/g, '<span class="ai-math-inline">$1</span>');
+                    };
+                    
+                    // 核心链路：拦截 Markdown 的 a 标签，渲染成高保真模块穿梭按钮
+                    renderer.link = function(href, title, text) {
+                        let linkUrl = typeof href === 'object' ? href.href : href;
+                        let innerText = typeof href === 'object' ? href.text : text;
+                        if (linkUrl.includes('?module=auto_match')) {
+                            let targetUrl = 'index.html'; // Default
+                            const textLower = innerText.toLowerCase();
+                            const moduleMap = [
+                                { keywords: ['火箭', '探空火箭', '航天', 'rocketry'], url: 'course-rocketry.html' },
+                                { keywords: ['生命', '生物', 'life', 'biology', '基因'], url: 'course-life.html' },
+                                { keywords: ['海洋', 'ocean', 'marine'], url: 'course-ocean.html' },
+                                { keywords: ['人工智能', 'ai', 'artificial intelligence'], url: 'course-ai.html' },
+                                { keywords: ['恐龙', 'dino', '古生物'], url: 'course-dino.html' },
+                                { keywords: ['天文', 'astronomy', '宇宙', 'space'], url: 'course-astronomy.html' },
+                                { keywords: ['军事', 'military', '国防', '武器'], url: 'course-military.html' },
+                                { keywords: ['无人机', 'drone', '低空'], url: 'drone.html' },
+                                { keywords: ['编程', '代码', 'coding', '极客'], url: 'coding.html' },
+                                { keywords: ['机器人', 'openclaw', '机械臂', 'robot'], url: 'course-openclaw.html' },
+                                { keywords: ['金融', 'fintech'], url: 'course-fintech.html' },
+                                { keywords: ['设计', '创意', 'design'], url: 'course-design.html' },
+                                { keywords: ['物理', '仿真', 'physics'], url: 'physics-hub.html' },
+                                { keywords: ['数学', '猜想', 'math', '代数'], url: 'math-hub.html' },
+                                { keywords: ['医学', 'medicine', '健康'], url: 'hub-medicine.html' },
+                                { keywords: ['英语', 'english', 'tech english'], url: 'course-tech-english.html' },
+                                { keywords: ['汽车', '赛车', 'racing'], url: 'racing.html' },
+                                { keywords: ['游戏', 'game', '灵境'], url: 'lingzhigame.html' }
+                            ];
+                            for (let mod of moduleMap) {
+                                if (mod.keywords.some(k => textLower.includes(k))) {
+                                    targetUrl = mod.url;
+                                    break;
+                                }
+                            }
+                            // 渲染成类似“极客跳转胶囊”的 UI
+                            return `<a href="javascript:void(0)" onclick="alert('即将挂载专属全栈子系统: ${innerText}'); document.getElementById('titan-ai-panel').style.opacity=0; setTimeout(()=>location.href='${targetUrl}', 300);" style="display:inline-flex; align-items:center; gap:4px; font-weight:800; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.4); padding:2px 8px; border-radius:12px; margin:0 4px; color:#38bdf8; text-decoration:none; transition:all 0.2s; box-shadow:0 0 10px rgba(56,189,248,0.2);" onmouseover="this.style.background='rgba(56,189,248,0.3)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(56,189,248,0.15)'; this.style.transform='scale(1)';"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>${innerText}</a>`;
+                        }
+                        return `<a href="${linkUrl}" target="_blank" style="color:#38bdf8; text-decoration:underline; text-underline-offset:3px;">${innerText}</a>`;
+                    };
+
+                    // 新增能力：拦截并复活AI幻觉生成的破损图片链接，通过双流模型动态检索或生图
+                    renderer.image = function(href, title, text) {
+                        let finalUrl = href;
+                        let altText = text || 'visualization';
+                        
+                        if (typeof href === 'object' && href !== null) {
+                            finalUrl = href.href;
+                            altText = href.text || altText;
+                            title = href.title;
+                        }
+
+                        let isGenerate = false;
+                        let cleanAlt = altText;
+                        
+                        // 如果链接为空、不是 http 开头，或者是常见的占位符，我们就将其接管并动态生成/检索
+                        if (!finalUrl || (!finalUrl.startsWith('http') && !finalUrl.startsWith('data:')) || finalUrl.includes('placeholder') || finalUrl.includes('example') || finalUrl.includes('ai-render')) {
+                            
+                            isGenerate = altText.includes('生成:') || altText.includes('生成：') || altText.includes('画图') || (altText.length > 50 && /[a-zA-Z]/.test(altText));
+                            cleanAlt = altText.replace(/生成:|生成：|检索:|检索：|\[检索\]|\[生成\]/g, '').trim();
+
+                            if (isGenerate) {
+                                // 创意类：直连官方分布式计算节点，废除经常超时的公共反代节点
+                                let shortPrompt = cleanAlt.length > 300 ? cleanAlt.substring(0, 300) : cleanAlt;
+                                const safePrompt = encodeURIComponent(shortPrompt + ', extremely detailed, unreal engine 5, 8k resolution, futuristic rendering');
+                                finalUrl = `https://image.pollinations.ai/prompt/${safePrompt}?width=800&height=400&nologo=true`;
+                            } else {
+                                // 常识类：转用极度稳定的 Bing 图片直搜引擎镜像 (国内白名单)
+                                let shortPrompt = cleanAlt.length > 200 ? cleanAlt.substring(0, 200) : cleanAlt;
+                                const safeQuery = encodeURIComponent(shortPrompt + ' 高清实照'); // 追加后缀权重，避开充满文字的乱七八糟图
+                                finalUrl = `https://tse2.mm.bing.net/th?q=${safeQuery}&w=800&h=400&c=7&rs=1&p=0`;
+                            }
+                            altText = cleanAlt;
+                        }
+
+                        // base64 SVG fallback image to prevent via.placeholder.com from being blocked
+                        const errorSvgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect width="800" height="400" fill="#0f172a"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#38bdf8">Image Rendering Failed</text></svg>`;
+                        const errorSvgUrl = 'data:image/svg+xml;base64,' + btoa(errorSvgStr);
+
+                        const safeAltObj = altText.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                        const statusBadge = `<div style="position:absolute; top:12px; left:12px; background:rgba(${isGenerate?'139,92,246':'16,185,129'},0.8); color:#fff; font-size:10px; font-weight:bold; padding:4px 8px; border-radius:4px; z-index:2; font-family:sans-serif; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2); box-shadow:0 2px 10px rgba(0,0,0,0.5);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;">${isGenerate ? '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' : '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'}</svg>${isGenerate ? 'AI 创想图' : '全网高清检索'}</div>`;
+                        const zoomBadge = `<div style="position:absolute; bottom:12px; right:12px; background:rgba(0,0,0,0.7); color:#fff; font-size:11px; padding:4px 8px; border-radius:4px; z-index:2; pointer-events:none; border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(4px); display:flex; align-items:center; gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>点击放大</div>`;
+
+                        return `<div class="ai-generated-img-wrapper" style="margin: 16px 0; border: 1px solid rgba(${isGenerate?'139,92,246':'16,185,129'}, 0.3); border-radius: 12px; overflow: hidden; position: relative; background: #0f172a; min-height: 120px; cursor: zoom-in; box-shadow: 0 10px 30px rgba(0,0,0,0.4);" onclick="if(window._showTitanFullImg) window._showTitanFullImg('${finalUrl}', '${safeAltObj}')">
+                            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#94a3b8; font-size:13px; z-index:0; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: pulse-core 1.5s infinite;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                捕获视觉切片中...
+                            </div>
+                            ${statusBadge}
+                            <img src="${finalUrl}" alt="${safeAltObj}" title="${title || safeAltObj}" style="position:relative; z-index:1; width: 100%; height: auto; display: block; filter: brightness(0.9) contrast(1.1); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); object-fit: cover; min-height: 120px;" onmouseover="this.style.filter='brightness(1.1) contrast(1.2)'; this.style.transform='scale(1.02)';" onmouseout="this.style.filter='brightness(0.9) contrast(1.1)'; this.style.transform='scale(1)';" onerror="this.onerror=null; this.src='${errorSvgUrl}';"/>
+                            ${zoomBadge}
+                        </div>`;
                     };
                     
                     window.marked.setOptions({
@@ -1340,11 +1628,102 @@ class TitanAIAssistant {
                 border-color: rgba(56, 189, 248, 0.5);
                 background: rgba(14, 165, 233, 0.08) !important;
             }
-            .mermaid svg {
-                max-width: 100%;
-                height: auto;
+            .mermaid svg { max-width: 100%; height: auto; }
+            
+            .ai-scroll-actions {
+                position: absolute; left: 50%; transform: translate(-50%, 15px); bottom: 100px; display: flex; flex-direction: column; gap: 8px;
+                z-index: 1000; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; pointer-events: none;
             }
+            .chat-scrolled-up .ai-scroll-actions {
+                opacity: 0.95; pointer-events: auto; transform: translate(-50%, 0);
+            }
+            .ai-scroll-actions button {
+                width: 32px; height: 32px; border-radius: 50%; background: #0ea5e9;
+                border: 2px solid #0284c7; color: #fff; display: flex; align-items: center; justify-content: center;
+                cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+            }
+            .ai-scroll-actions button svg { width: 16px; height: 16px; }
+            .ai-scroll-actions button:hover { background: #38bdf8; border-color: #bae6fd; transform: scale(1.1); box-shadow: 0 6px 20px rgba(56, 189, 248, 0.6); }
+
+            /* History Modal UI (Moved out of mobile-only query for desktop support!) */
+            .ai-history-modal {
+                position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000000;
+                display: none; align-items: center; justify-content: center; backdrop-filter: blur(8px);
+            }
+            .ai-history-modal.show { display: flex; animation: fade-in 0.3s; }
+            .ai-history-wrapper {
+                width: 90%; max-width: 500px; max-height: 80vh; background: #0f172a;
+                border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px;
+                display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(14, 165, 233, 0.2);
+            }
+            .ai-history-header {
+                padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between;
+                background: rgba(255,255,255,0.02); font-weight: bold; color: #38bdf8; align-items: center;
+            }
+            .ai-history-header button { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 16px; }
+            .ai-history-header button:hover { color: white; }
+            .ai-history-list {
+                padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;
+            }
+            .ai-history-item {
+                background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 12px;
+                border-radius: 8px; cursor: pointer; transition: 0.2s; position: relative; border-left: 3px solid #38bdf8;
+            }
+            .ai-history-item:hover { background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); }
+            .ai-history-time { font-size: 11px; color: #94a3b8; font-family: monospace; display: block; margin-bottom: 4px; }
+            .ai-history-title { font-size: 14px; color: #f1f5f9; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
+            .ai-history-stats { font-size: 10px; color: #64748b; margin-top: 6px; display: inline-block; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;}
+            .ai-history-empty { text-align: center; color: #64748b; padding: 40px 0; font-size: 13px; }
+
              @media (max-width: 768px) {
+                /* System-Wide Global Mobile Patch for ALL Legacy Pages */
+                body {
+                    overflow-x: hidden !important;
+                    width: 100% !important;
+                }
+                /* Defeat forced grids and flex rows laterally and transform into flow-layout */
+                .grid {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 16px !important;
+                }
+                /* Relax completely restrictive fixed heights so content pushes instead of overlaps */
+                .glass-panel, .glass-card, [class*="h-["], header, section {
+                    height: auto !important;
+                    min-height: 0 !important;
+                }
+                .container {
+                    padding-left: 15px !important;
+                    padding-right: 15px !important;
+                    width: 100% !important;
+                }
+                /* Recalibrate giant headings */
+                h1, .text-6xl, .text-7xl {
+                    font-size: 32px !important;
+                    line-height: 1.2 !important;
+                }
+                h2, .text-5xl, .text-4xl {
+                    font-size: 24px !important;
+                    line-height: 1.3 !important;
+                }
+                /* Give Charts enough room to render vertically */
+                [id^="chart-"] {
+                    width: 100% !important;
+                    min-height: 300px !important;
+                    height: 300px !important;
+                }
+                nav.fixed {
+                    position: relative !important;
+                }
+                /* Disable 3D transforms on legacy heavy cards */
+                .glass-panel, .glass-card {
+                    transform: none !important;
+                }
+                .glass-panel:hover, .glass-card:hover {
+                    transform: none !important;
+                }
+
+                /* AI Panel specific Mobile Rules */
                 .ai-panel {
                     position: fixed !important;
                     bottom: 0 !important; right: 0 !important; left: 0 !important; top: 0 !important;
@@ -1361,32 +1740,12 @@ class TitanAIAssistant {
                     padding: 8px 12px;
                     padding-bottom: env(safe-area-inset-bottom, 12px);
                 }
-                .ai-input {
-                    font-size: 16px; /* Prevent Safari zoom on focus */
-                }
-                .ai-chips-wrapper {
-                    padding: 0 12px 8px 12px;
-                }
-                .ai-chip {
-                    font-size: 12px;
-                    padding: 8px 14px;
-                }
-                .ai-camera-wrapper {
-                    width: 100%;
-                    height: 100%;
-                    border-radius: 0;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                }
-                .ai-camera-close {
-                    top: 20px;
-                    right: 20px;
-                }
-                /* Hide resize handles on mobile completely */
-                .ai-resize-handle, .ai-resize-handle-left {
-                    display: none !important;
-                }
+                .ai-input { font-size: 16px; }
+                .ai-chips-wrapper { padding: 0 12px 8px 12px; }
+                .ai-chip { font-size: 12px; padding: 8px 14px; }
+                .ai-camera-wrapper { width: 100%; height: 100%; border-radius: 0; display: flex; flex-direction: column; justify-content: center; }
+                .ai-camera-close { top: 20px; right: 20px; }
+                .ai-resize-handle, .ai-resize-handle-left { display: none !important; }
             }
         `;
         document.head.appendChild(style);
@@ -1401,8 +1760,11 @@ class TitanAIAssistant {
                 <div class="ai-header" id="titan-ai-drag-handle">
                     <div class="ai-header-title">小创老师 (Virtual Teacher)</div>
                     <div class="ai-header-controls">
-                        <button type="button" class="ai-expand-btn" id="titan-ai-reset-btn" title="开启新对话 / 清除长期记忆并释放内存空间 (New Chat)">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                        <button type="button" class="ai-expand-btn" id="titan-ai-history-btn" title="时间线档案馆 / Checkout 历史分支记录 (Git History)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
+                        </button>
+                        <button type="button" class="ai-expand-btn" id="titan-ai-reset-btn" title="提交记忆并开启新分支 (Commit & Archive)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                         </button>
                         <button type="button" class="ai-expand-btn" id="titan-ai-expand-btn" title="展开为学习桌面 / 适合精读长篇解答及阅览代码">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
@@ -1420,6 +1782,13 @@ class TitanAIAssistant {
                     <button type="button" class="ai-chip" data-prompt="🤔 结合生活中的物理/工程例子，用通俗语言帮我解释一下">🤔 通俗现象解释</button>
                     <button type="button" class="ai-chip" data-prompt="📝 给我出一道类似的题目练手，附带答案解析">📝 出一道类似题</button>
                 </div>
+                
+                <div class="ai-scroll-actions" id="titan-ai-scroll-actions">
+                    <button type="button" id="titan-ai-scroll-bottom" title="回到最新对话 (Scroll to bottom)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                    </button>
+                </div>
+
                 <div class="ai-input-area" id="titan-ai-input-area">
                     <input type="file" id="titan-ai-file-input" accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.ppt,.pptx" style="display: none;" multiple>
                     <button type="button" class="ai-upload" id="titan-ai-upload-btn" title="传送门 / 导入本地照片、作业文档、表格或幻灯片以供深度分析 (Upload)">
@@ -1456,6 +1825,16 @@ class TitanAIAssistant {
                     <canvas id="titan-ai-canvas" style="display:none;"></canvas>
                     <button type="button" id="titan-ai-snap">📸 拍照并发送</button>
                     <button type="button" class="ai-camera-close" id="titan-ai-camera-close">✖</button>
+                </div>
+            </div>
+            
+            <div class="ai-history-modal" id="titan-ai-history-modal">
+                <div class="ai-history-wrapper">
+                    <div class="ai-history-header">
+                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:6px;vertical-align:text-bottom;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>长时记忆档案馆 (Brain Archives)</span>
+                        <button type="button" id="titan-ai-history-close">✖</button>
+                    </div>
+                    <div class="ai-history-list" id="titan-ai-history-list"></div>
                 </div>
             </div>
 
@@ -1536,6 +1915,15 @@ class TitanAIAssistant {
         this.pendingImageDataUrl = null;
         this.pendingTextData = null;
         
+        this.scrollTopBtn = document.getElementById('titan-ai-scroll-top');
+        this.scrollBottomBtn = document.getElementById('titan-ai-scroll-bottom');
+        this.scrollActionsWrapper = document.getElementById('titan-ai-scroll-actions');
+        
+        this.historyBtn = document.getElementById('titan-ai-history-btn');
+        this.historyModal = document.getElementById('titan-ai-history-modal');
+        this.historyCloseBtn = document.getElementById('titan-ai-history-close');
+        this.historyList = document.getElementById('titan-ai-history-list');
+
         this.selectionBtn = document.getElementById('titan-ai-selection');
         this.chips = document.querySelectorAll('.ai-chip'); // 绑定启发式引导磁片
         this.mediaRecorder = null;
@@ -1577,40 +1965,40 @@ class TitanAIAssistant {
             });
         });
 
-        // 开启新对话逻辑 (New Chat) - 彻底重构：杜绝 Confirm 造成的闪烁与状态死锁
+        if (this.scrollBottomBtn) {
+            this.scrollBottomBtn.addEventListener('click', () => {
+                this.chatArea.scrollTo({ top: this.chatArea.scrollHeight, behavior: 'smooth' });
+                if (this.panel) this.panel.classList.remove('chat-scrolled-up');
+            });
+        }
+        if (this.chatArea && this.scrollActionsWrapper && this.panel) {
+            this.chatArea.addEventListener('scroll', () => {
+                // Determine if we are far away from the bottom (e.g., scrolled up by more than 150px)
+                const distanceToBottom = this.chatArea.scrollHeight - this.chatArea.scrollTop - this.chatArea.clientHeight;
+                if (distanceToBottom > 150) {
+                    this.panel.classList.add('chat-scrolled-up');
+                } else {
+                    this.panel.classList.remove('chat-scrolled-up');
+                }
+            });
+        }
+
+        // Commit & Archive 逻辑 (New Chat) - 将当前面板存入长时个人记忆库并清空展现
         this.resetBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            
-            // 1. 彻底切断当前的输出流与网络连接
-            this.cancelOutput(); 
-            this.isProcessingQueue = false;
-            this.messageQueue = [];
-            
-            // 2. 视觉反馈：瞬间扫除尘埃
-            this.panel.style.opacity = '0.5';
-            this.panel.style.filter = 'blur(10px) brightness(1.5)';
-            
-            setTimeout(() => {
-                this.chatHistory = [];
-                this.chatArea.innerHTML = `
-                    <div class="msg-row system">
-                        <div class="msg msg-system">收到！磁场扰动已归零，记忆模块重置完成。开始新的挑战吧！⚡️</div>
-                    </div>
-                `;
-                
-                // 3. 清理待发送的多模态文件
-                this.clearAllPendingFiles();
-                
-                // 4. 同步持久化存储 (彻底抹除)
-                this.saveSession();
-                
-                // 5. 状态恢复
-                this.panel.style.opacity = '1';
-                this.panel.style.filter = 'none';
-                if (typeof this.playHapticSound === 'function') this.playHapticSound('reset');
-                this.scrollToBottom();
-            }, 300);
+            this.archiveCurrentSession();
         });
+
+        // 历史档案馆拉取逻辑 - 展示 Git 时间线
+        if (this.historyBtn) {
+            this.historyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openHistoryArchives();
+            });
+            this.historyCloseBtn.addEventListener('click', () => {
+                this.historyModal.classList.remove('show');
+            });
+        }
 
         // 全局选区监听：在面板任何位置选文字都能触发分析气泡
         if (this.chatArea) {
@@ -2578,18 +2966,18 @@ class TitanAIAssistant {
 以下是系统刚刚抓取到的该网页内的当前页面核心文本（这是他此刻可能在问的直接上下文）：
 ${currentFullContent}
 
-【💡 极致排版指令 - Notion Mastery】：
-你不仅是 AI，你是在创作一件工艺品级的学习笔记。必须严格遵守以下法则：
-1. **分层骨架**：严禁单纯文字堆砌。必须使用 Markdown 多级标题 (#, ##) 对逻辑进行分段，并辅以分界线 (---)。
-2. **极客符号**：每个标题和核心结论前，必须配一个契合语境的 Emoji。
-3. **金句化引用**：核心推导、关键参数或“小创老师建议”，必须使用引用块 (> ) 进行封装。
-4. **多维全栈可视化能力 (Visual Synergy Core)**：你是掌控全域视觉教育的导师，遇到不同场景必须调用最佳的可视化兵器：
-   - **⚙️ Mermaid 架构与脑图**：分析软件架构、流程状态机使用 \`\`\`mermaid\`\`\` 流程图；总结知识脉络时强制使用 \`\`\`mermaid mindmap\`\`\`。
-   - **🛠️ 极客 ASCII 工程图**：涉及基础电路布局、齿轮咬合、简单的物理机械原理时，手打输出极致还原的 ASCII 纯字符工程图。
-   - **📸 AI 实时写实配图 (Pollinations)**：当需要展示震撼的宇宙、未来科技实物、逼真照片，或用户主动要求“画一张”、“看看长啥样”时。格式必须为：\`![图片描述](https://image.pollinations.ai/prompt/{一段细节爆表、加入光影摄像机参数的英文Prompt}?width=800&height=400&nologo=true)\`。
-   - **📊 数据统计图表 (QuickChart)**：针对算法速度对比、实验数据参数折线等。格式必须为：\`![数据图表](https://quickchart.io/chart?c={标准的Chart.js单行JSON配置，去除多余空格})\`。
-   - **📐 原生代码制图 (SVG/Math)**：讲解高精度几何辅助线或硬核界面，直接输出纯原生 \`<svg>\` 代码块；复杂的物理推演运算，必须用 \`$$\` 包裹进行高阶数学排版渲染。
-5. **超链接引用**：使用 Markdown 标准语法 \`[名称](URL)\` 提供文档链接。`;
+【💡 极致排版指令 - 高保真图形化 Notion Mastery】：
+你不仅仅是在对话，你是在为孩子渲染一份极具探索欲的高端 Notion 学习笔记。必须严格遵守以下法则：
+1. **去文字化 (Graphic First)**：绝不能像百科全书一样堆砌枯燥长文！面对任何专业解答，必须大幅精简字数（每次发言主文本尽量不超过 150 字），遇到重点概念、原理解释、抽象模型，**必须主动、高频地调用配图**（单次回答至少配 1 张图）。图形化的高清视觉体验最适合孩子！
+2. **Notion 卡片级骨架**：必须使用 Markdown 标题 (###)、加粗 (**)、列表项 (-)。核心的信息必须加粗。段落之间要充满呼吸感，拒绝大段密集文本。
+3. **极客符号与色彩指引**：每个标题和核心结论前，必须配一个契合语境的 Emoji 活跃气氛。
+4. **金句化引用**：核心结论、学习路线指引或“小创老师建议”，必须使用引用块 (> ) 进行封装，让重点视觉一目了然。
+5. **多维全栈可视化能力 (Visual Synergy Core)**：你是掌控全域视觉教育的导师，遇到不同场景必须调用最佳的可视化兵器：
+   - **📸 开启双模态视觉呈现 (Visual Synergy)**：这是你的看家本领，**必须高频使用！** 必须且只能输出纯 Markdown 图片语法 \`![标签: 描述](ai-render)\`：
+     - 情况A：看已有实景、实验结构、真实照片等（如："水循环机制"）。格式：\`![检索: 自然界水循环全景概览图](ai-render)\` (描述是高精度中文关键词)。
+     - 情况B：畅想未来、科幻、结构透视。格式：\`![生成: A breathtaking highly detailed sci-fi illustration of...] (ai-render)\` (纯英文长细节 Prompt)。
+     **【致命底线-针对Gemini等模型】：当前系统不支持内置 Function Call！你严禁输出类似于 \`{"action": "generate_image"}\` 等结构化 JSON 代码块，严禁解释，必须直接在正文中且仅用 \`![]()\` 原生语法干净利落地返回图文！**
+6. **内链穿梭引擎 (Internal Routing)**：如果需要推荐学生去系统其它模块拔高（例如推荐“生命科学”、“数学猜想”模块），**必须使用超链接包裹模块名**。格式必须严格为 \`[模块名称](?module=auto_match)\`。**严禁对中括号或小括号使用反斜杠转义**！必须严格且原封不动输出 \`[模块名称](?module=auto_match)\` 结构，确保底层路由系统成功截获跳转！`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {
@@ -2783,10 +3171,60 @@ ${currentFullContent}
             let lastBlockCount = 0;
             const tempContainer = document.createElement('div');
 
+            // 核心功能：全域括号嵌套防漏气护盾 (Universal JSON Tool-Calling Interceptor)
+            // 暴力切断任何由各种模型（包括 Gemini 等异常封装）私自外泄的变种 JSON 底层代码结构
+            const cleanJSONToolCalls = (rawStr) => {
+                if (!rawStr || (!rawStr.includes('action') && !rawStr.includes('prompt') && !rawStr.includes('generate_image') && !rawStr.includes('image_gen'))) return rawStr;
+                
+                let possibleStart = rawStr.indexOf('{');
+                while (possibleStart > -1) {
+                    let snippetForCheck = rawStr.substring(possibleStart, possibleStart + 150);
+                    // 只要大括号内开头出现极高概率的工具调用指纹，当场扑杀拦截！
+                    if (/["']?action(?:_input)?["']?\s*:|["']?(?:generate_image|dalle|image_gen)["']?/i.test(snippetForCheck)) {
+                        let openBrace = possibleStart;
+                        let closeBrace = -1;
+                        let depth = 0;
+                        for (let j = openBrace; j < rawStr.length; j++) {
+                            if (rawStr[j] === '{') depth++;
+                            if (rawStr[j] === '}') {
+                                depth--;
+                                if (depth === 0) { closeBrace = j; break; }
+                            }
+                        }
+                        
+                        let endIdx = closeBrace !== -1 ? closeBrace + 1 : rawStr.length;
+                        let block = rawStr.substring(openBrace, endIdx);
+                        
+                        // ============== 顶级容错提取 ==============
+                        // 使用 ([\s\S]*?) 暴力突破多行超级长串 prompt，并且使用 \1 反向引用彻底无视单双引号嵌套黑洞！
+                        let alt = "检索: 科学示意图";
+                        let pMatch = block.match(/['"]prompt['"]\s*:\s*(['"])([\s\S]*?)\1/i);
+                        if (pMatch && pMatch[2].length > 2) {
+                            alt = "生成: " + pMatch[2].substring(0, 350);
+                        } else {
+                            let tMatch = block.match(/['"]thought['"]\s*:\s*(['"])([\s\S]*?)\1/i);
+                            if (tMatch) alt = "检索: " + tMatch[2].substring(0, 150);
+                        }
+                        
+                        // 净化所有毒瘤字符 (换行、引号)，将提纯后的关键词直接送入全息影像流
+                        let cleanAlt = alt.replace(/'|"/g, "").replace(/(\r\n|\n|\r)/gm, " ");
+                        let md = `\n\n![${cleanAlt}](ai-render://placeholder)\n\n`;
+                        
+                        let resultStr = rawStr.substring(0, openBrace) + md + rawStr.substring(endIdx);
+                        // 清洗一切废弃裹尸布： ```json ... ```
+                        return resultStr.replace(/```json\s*/ig, '').replace(/```\s*$/g, '');
+                    }
+                    possibleStart = rawStr.indexOf('{', possibleStart + 1);
+                }
+                
+                // 全域兜底修复：强行剔除那些被模型画蛇添足加上了反斜杠的失效链接（例如：\[生命科学\](?module=auto_match)）
+                return rawStr.replace(/\\\[(.*?)\\\]/g, '[$1]').replace(/\\\(\?module=auto_match\\\)/g, '(?module=auto_match)');
+            };
+
             const typeNextChar = () => {
                 if (this.isTypingCancelled) {
                     this.setSendButtonState('send');
-                    const safetyReply = aiReply || '';
+                    let safetyReply = cleanJSONToolCalls(aiReply || '');
                     msgDiv.innerHTML = window.marked ? window.marked.parse(safetyReply.substring(0, i)) : safetyReply.substring(0, i);
                     enhanceCodeBlocks();
                     progressBar.remove();
@@ -2797,7 +3235,7 @@ ${currentFullContent}
 
                 if (i >= aiReply.length) {
                     // 打字正式完成，进入静态阅读模式 (Static Reading Mode)
-                    const safetyReply = aiReply || '';
+                    let safetyReply = cleanJSONToolCalls(aiReply || '');
                     const finalContent = window.marked ? window.marked.parse(safetyReply) : safetyReply;
                     if (msgDiv.innerHTML !== finalContent) {
                         msgDiv.innerHTML = finalContent;
@@ -2865,8 +3303,9 @@ ${currentFullContent}
                 i += step;
                 if (i > aiReply.length) i = aiReply.length;
 
-                // 极速稳象算法：先过滤裸露的星号乱码，再进行渲染
-                let cleanText = aiReply.substring(0, i); // Use aiReply directly
+                // 极速稳象算法：先拦截底层模型的代理JSON代码，再过滤裸露的星号乱码
+                let rawSnippet = aiReply.substring(0, i);
+                let cleanText = typeof cleanJSONToolCalls === 'function' ? cleanJSONToolCalls(rawSnippet) : rawSnippet;
                 cleanText = cleanText.replace(/(\r\n|\n|\r)\* /g, '$1• '); // 将星号列表强制转为圆点
                 cleanText = cleanText.replace(/([^\*])\*([^\*])/g, '$1$2'); // 尝试移除孤立的单星号
                 
@@ -3301,6 +3740,8 @@ ${currentFullContent}
             chipsContainer.appendChild(btn);
         });
     }
+
+    // (Duplicate old archive implementations removed to restore Github-style AI Archive module)
 }
 
 // Auto-initialize when DOM is ready
@@ -3309,3 +3750,81 @@ if (document.readyState === 'loading') {
 } else {
     new TitanAIAssistant();
 }
+
+// ==========================================
+// 全局沉浸式高清看图引擎 (Titan Lightbox)
+// ==========================================
+window._showTitanFullImg = function(url, alt) {
+    let overlay = document.getElementById('titan-img-lightbox');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'titan-img-lightbox';
+        overlay.style.cssText = 'position:fixed; inset:0; background:rgba(5,10,20,0.9); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); z-index:9999999; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; transition:all 0.3s ease; cursor:zoom-out;';
+        
+        const closeBtn = document.createElement('div');
+        closeBtn.innerHTML = '×';
+        closeBtn.title = '关闭 (Esc)';
+        closeBtn.style.cssText = 'position:absolute; top:20px; right:30px; color:#94a3b8; font-size:48px; font-weight:100; cursor:pointer; font-family:sans-serif; transition:color 0.2s; z-index:2;';
+        closeBtn.onmouseover = () => closeBtn.style.color = '#fff';
+        closeBtn.onmouseout = () => closeBtn.style.color = '#94a3b8';
+        
+        const img = document.createElement('img');
+        img.id = 'titan-img-lightbox-img';
+        img.style.cssText = 'max-width:90vw; max-height:80vh; border-radius:12px; box-shadow:0 30px 80px rgba(0,0,0,0.8), 0 0 50px rgba(56,189,248,0.15); transition:transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform:scale(0.9); position:relative; z-index:1; object-fit:contain; border:1px solid rgba(255,255,255,0.05);';
+        
+        const text = document.createElement('div');
+        text.id = 'titan-img-lightbox-text';
+        text.style.cssText = 'color:#e2e8f0; margin-top:20px; font-size:15px; font-weight:500; max-width:800px; text-align:center; padding:12px 24px; z-index:1; background:rgba(0,0,0,0.5); border-radius:100px; border:1px solid rgba(255,255,255,0.1); display:inline-block; letter-spacing:0.5px;';
+
+        const loading = document.createElement('div');
+        loading.id = 'titan-img-lightbox-loading';
+        loading.innerHTML = '<span style="color:#38bdf8; display:flex; align-items:center; gap:8px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="scan-blink" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> 解析超清量子数据中...</span>';
+        loading.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:0; font-size:16px; font-family:Orbitron, sans-serif;';
+
+        overlay.appendChild(loading);
+        overlay.appendChild(img);
+        overlay.appendChild(text);
+        overlay.appendChild(closeBtn);
+        document.body.appendChild(overlay);
+
+        const closeFunc = () => {
+            overlay.style.opacity = '0';
+            img.style.transform = 'scale(0.95)';
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        };
+        overlay.onclick = closeFunc;
+        // 支持 ESC 键关闭
+        document.addEventListener('keydown', (e) => { 
+            if(e.key === 'Escape' && overlay.style.display === 'flex') closeFunc(); 
+        });
+    }
+    
+    // 智能提取更高清的大图 
+    let hdUrl = url;
+    if (hdUrl.includes('mm.bing.net')) {
+        // 解锁 Bing 接口的 1080P 超清全貌参数
+        hdUrl = hdUrl.replace(/w=\d+&h=\d+/, 'w=1920&h=1080'); 
+    } else if (hdUrl.includes('pollinations.ai')) {
+        // 放飞直连画图物理引擎的超分上限至 1080P
+        hdUrl = hdUrl.replace(/width=\d+&height=\d+/, 'width=1920&height=1080');
+    }
+
+    const imgEl = document.getElementById('titan-img-lightbox-img');
+    const loadEl = document.getElementById('titan-img-lightbox-loading');
+    
+    imgEl.style.display = 'none';
+    loadEl.style.display = 'flex';
+    
+    imgEl.onload = () => {
+        loadEl.style.display = 'none';
+        imgEl.style.display = 'block';
+    };
+    imgEl.src = hdUrl;
+    
+    document.getElementById('titan-img-lightbox-text').innerText = alt || 'Vision Enhanced';
+    
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth; // Force Reflow
+    overlay.style.opacity = '1';
+    imgEl.style.transform = 'scale(1)';
+};
