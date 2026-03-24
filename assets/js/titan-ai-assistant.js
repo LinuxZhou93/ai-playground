@@ -727,8 +727,8 @@ class TitanAIAssistant {
                             } else {
                                 // 常识类：转用极度稳定的 Bing 图片直搜引擎镜像 (国内白名单)
                                 let shortPrompt = cleanAlt.length > 200 ? cleanAlt.substring(0, 200) : cleanAlt;
-                                const safeQuery = encodeURIComponent(shortPrompt + ' 高清实照'); // 追加后缀权重，避开充满文字的乱七八糟图
-                                finalUrl = `https://tse2.mm.bing.net/th?q=${safeQuery}&w=800&h=400&c=7&rs=1&p=0`;
+                                const safeQuery = encodeURIComponent(shortPrompt + ' 高清图解'); // 移除"实照"，改用"图解"，防止知识类图表搜出粗糙课本翻拍图
+                                finalUrl = `https://tse2.mm.bing.net/th?q=${safeQuery}&w=1080&h=1080&pid=Api&mkt=zh-CN`;
                             }
                             altText = cleanAlt;
                         }
