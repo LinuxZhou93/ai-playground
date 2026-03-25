@@ -1861,6 +1861,9 @@ class TitanAIAssistant {
                     <button type="button" class="ai-tts-stop" id="titan-ai-tts-stop-btn" title="立刻打断 AI 说话 (Stop Audio)" style="display:none; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
                     </button>
+                    <button type="button" class="ai-live-vision" id="titan-ai-live-btn" title="启动多模态实境指导 (Live Vision) - 实时视频与语音双向串流" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; border-radius: 8px; margin-right: 4px; box-shadow: 0 0 10px rgba(16,185,129,0.3);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
                     <button type="button" class="ai-camera" id="titan-ai-camera-btn" title="启动前置摄像头 / 拍一拍实物现象 (Camera)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                     </button>
@@ -1953,6 +1956,7 @@ class TitanAIAssistant {
         this.cameraModal = document.getElementById('titan-ai-camera-modal');
         this.uploadBtn = document.getElementById('titan-ai-upload-btn');
         this.fileInput = document.getElementById('titan-ai-file-input');
+        this.liveVisionBtn = document.getElementById('titan-ai-live-btn');
         // Cache correctly
         this.statusBar = document.querySelector('.ai-status-bar'); 
         this.inputArea = document.getElementById('titan-ai-input-area'); 
@@ -2218,6 +2222,16 @@ class TitanAIAssistant {
         this.cameraBtn.addEventListener('click', () => this.openCamera());
         this.cameraCloseBtn.addEventListener('click', () => this.closeCamera());
         this.snapBtn.addEventListener('click', () => this.takeSnapshot());
+        
+        if (this.liveVisionBtn) {
+            this.liveVisionBtn.addEventListener('click', () => {
+                if (window.titanLiveVision) {
+                    window.titanLiveVision.start();
+                } else {
+                    console.error('Titan Live Vision module not loaded!');
+                }
+            });
+        }
         
         document.addEventListener('mouseup', this.handleTextSelection.bind(this));
         document.addEventListener('touchend', this.handleTextSelection.bind(this));
