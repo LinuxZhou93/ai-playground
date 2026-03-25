@@ -132,13 +132,18 @@ class LiveVisionCopilot {
             this.videoStream = stream;
             this.video.srcObject = stream;
 
-            // 监听并渲染音频频谱
-            this.setupAudioVisualizer(stream);
+            // 初始化 MediaRecorder 用于真实音频截取
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.audioChunks = [];
+            this.mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) this.audioChunks.push(e.data);
+            };
+            this.mediaRecorder.onstop = () => this.processAudioAndVision();
 
-            // 启动智能语音识别与异步画面分析死循环
-            this.startSmartMultimodalLoop();
+            // 监听并渲染音频频谱的同时执行静音侦测 (VAD)
+            this.setupAudioVisualizerAndVAD(stream);
 
-            this.subtitle.innerHTML = "<span style='color: #10b981;'>系统多模态流已启动！</span>我现在可以通过摄像头看到你的画面。请试着对我说：<br>“小创老师，帮我看看画面里的机器人是怎么组装的？”";
+            this.subtitle.innerHTML = "<span style='color: #10b981;'>系统多模态流已全量接管！</span><br>我现在能够直接<b>听见</b>并<b>看见</b>了。请直接对着麦克风说话，停顿后我会自动作答！";
 
         } catch (err) {
             console.error("硬件调用失败:", err);
@@ -146,7 +151,7 @@ class LiveVisionCopilot {
         }
     }
 
-    setupAudioVisualizer(stream) {
+    setupAudioVisualizerAndVAD(stream) {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.analyser = this.audioContext.createAnalyser();
         const source = this.audioContext.createMediaStreamSource(stream);
@@ -155,28 +160,64 @@ class LiveVisionCopilot {
         const bufferLength = this.analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
+        // VAD 状态机
+        this.isSpeaking = false;
+        this.silenceTimer = null;
+        this.isProcessing = false;
+        this.isListening = true; // 由底部按钮控制
+
         const draw = () => {
             if (!this.isActive) return;
             requestAnimationFrame(draw);
             
             this.analyser.getByteFrequencyData(dataArray);
             
+            // 计算当前帧环境音量
+            let sum = 0;
+            for(let i=0; i<bufferLength; i++) sum += dataArray[i];
+            const avgVolume = sum / bufferLength;
+
+            // --- VAD 核心逻辑 ---
+            if (this.isListening && !this.isProcessing) {
+                if (avgVolume > 15) { 
+                    // 阈值：检测到明显的说话声音
+                    if (!this.isSpeaking) {
+                        this.isSpeaking = true;
+                        this.audioChunks = [];
+                        this.mediaRecorder.start();
+                        this.statusText.innerText = "状态: 接收语音流中... (RECORDING)";
+                        this.subtitle.innerHTML = `<span style="color:#10b981">[正在倾听...]</span>`;
+                    }
+                    if (this.silenceTimer) {
+                        clearTimeout(this.silenceTimer); // 打断静音计时
+                        this.silenceTimer = null;
+                    }
+                } else {
+                    // 声音低于阈值，进入静音判定
+                    if (this.isSpeaking && !this.silenceTimer) {
+                        this.silenceTimer = setTimeout(() => {
+                            if (this.isSpeaking) {
+                                this.isSpeaking = false;
+                                this.mediaRecorder.stop(); // 停止录音，触发 onstop 分析
+                            }
+                        }, 1200); // 停顿 1.2 秒即判定为一句话结束
+                    }
+                }
+            }
+            
+            // --- UI 渲染 ---
             this.ctxWave.clearRect(0, 0, this.canvasWave.width, this.canvasWave.height);
-            this.ctxWave.lineWidth = 3;
-            this.ctxWave.strokeStyle = '#10b981';
+            this.ctxWave.lineWidth = this.isSpeaking ? 5 : 2;
+            this.ctxWave.strokeStyle = this.isSpeaking ? '#ef4444' : '#10b981';
             this.ctxWave.beginPath();
 
             const sliceWidth = this.canvasWave.width * 1.0 / bufferLength;
             let x = 0;
-
             for (let i = 0; i < bufferLength; i++) {
                 const v = dataArray[i] / 255.0;
-                // 让波浪更有中心对称的科幻感
                 const y = this.canvasWave.height - v * this.canvasWave.height;
-                
                 if (i === 0) this.ctxWave.moveTo(x, y);
                 else this.ctxWave.lineTo(x, y);
-
                 x += sliceWidth;
             }
             this.ctxWave.lineTo(this.canvasWave.width, this.canvasWave.height);
@@ -185,122 +226,99 @@ class LiveVisionCopilot {
         draw();
     }
 
-    startSmartMultimodalLoop() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            this.subtitle.innerText = "当前浏览器不支持语音识别引擎，实境指导启动失败。请使用 Chrome/Edge/Safari 等现代浏览器。";
-            return;
+    async processAudioAndVision() {
+        if (this.isProcessing) return;
+        this.isProcessing = true;
+        this.subtitle.innerHTML = `<span style="color:#38bdf8; animation: pulse 1s infinite alternate;">[正在抽取音视频流交由大模型核心阵列分析...]</span>`;
+        this.statusText.innerText = "状态: 多模态融合推理中 (REASONING)";
+
+        try {
+            // 1. 获取刚刚说话的音频流 Blob 并转为 Base64
+            const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            await new Promise(resolve => reader.onloadend = resolve);
+            const base64Audio = reader.result.split(',')[1];
+            const cleanMimeType = audioBlob.type.split(';')[0] || 'audio/webm';
+
+            // 2. 抽取当前画面视觉帧
+            const offscreenCanvas = document.createElement('canvas');
+            const ctx = offscreenCanvas.getContext('2d');
+            offscreenCanvas.width = 640; 
+            offscreenCanvas.height = Math.floor(640 * (this.video.videoHeight / this.video.videoWidth));
+            ctx.drawImage(this.video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+            const base64Image = offscreenCanvas.toDataURL('image/jpeg', 0.5);
+
+            // 3. 构建多模态联合发包数据格式 (同时塞入音频文件和图片文件资源)
+            const apiMessages = [
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: "系统指令约束：这是一次实时多模态对讲。请仔细聆听附带的语音文件（这是学生刚才说的话）。然后用你的‘眼睛’查看附带的照片（这是学生同时让你看的实物/前置摄像头画面）。联合音频的意思和画面的内容，像真人老师一样直接回答，务必口语化并且绝对简短精悍、一针见血。严禁输出 Markdown 或任何复杂排版，只要口语文本。" },
+                        { type: "image_url", image_url: { url: base64Image } }
+                    ]
+                }
+            ];
+            
+            // 为了兼容 OpenAI 的音频输入机制 (Gemini 支持 inline_data), 我们利用原架构模拟组装
+            if (window.titanAIAssistant.settings.model.includes('gemini')) {
+                // 原生 Gemini/OpenAI 兼容包装，如果后端兼容 inline_data
+                 apiMessages[0].content.push({
+                     type: "inline_data",
+                     inline_data: { mime_type: cleanMimeType, data: base64Audio }
+                 });
+            } else {
+                 apiMessages[0].content.push({
+                     type: "input_audio",
+                     input_audio: { data: base64Audio, format: "wav" }
+                 });
+            }
+
+            if (!window.titanAIAssistant || !window.titanAIAssistant.settings.endpoint) throw new Error("API 网关未初始化");
+            
+            const response = await fetch(window.titanAIAssistant.settings.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.titanAIAssistant.settings.apiKey}` },
+                body: JSON.stringify({ model: window.titanAIAssistant.settings.model, messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
+            });
+
+            if (!response.ok) throw new Error(`API 返回状态异常 ${response.status}`);
+            const data = await response.json();
+            const aiReply = data.choices[0].message.content;
+
+            // 4. 清爽展示并调起大声朗读
+            this.subtitle.innerHTML = `<span style="color:#10b981">[小创指导]：</span>${aiReply}`;
+            this.statusText.innerText = "状态: 语音合成播报中 (TTS_PLAYING)";
+            
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(aiReply);
+            utterance.lang = 'zh-CN';
+            const voices = window.speechSynthesis.getVoices();
+            const premiumVoice = voices.find(v => v.lang.includes('zh') && (v.name.includes('Xiaoxiao') || v.name.includes('Ting-Ting')));
+            if (premiumVoice) utterance.voice = premiumVoice;
+            
+            utterance.onend = () => {
+                this.isProcessing = false;
+                this.statusText.innerText = "状态: 等待语音唤醒 (VAD_READY)";
+            };
+            window.speechSynthesis.speak(utterance);
+
+        } catch (err) {
+            console.error("Live Vision 分析失败", err);
+            this.subtitle.innerText = "多模态推流连接失败，请检查网络或 API 兼容性是否支持输入 Audio。";
+            this.isProcessing = false;
+            this.statusText.innerText = "状态: 等待语音唤醒 (ERROR)";
         }
-
-        this.recognition = new SpeechRecognition();
-        this.recognition.lang = 'zh-CN';
-        this.recognition.continuous = false; // 每次说完一句话自动结束并分析
-        this.recognition.interimResults = false;
-        
-        this.isProcessing = false;
-        this.isListening = true;
-
-        this.recognition.onresult = async (event) => {
-            const transcript = event.results[0][0].transcript;
-            if (!transcript.trim() || this.isProcessing) return;
-            
-            this.isProcessing = true;
-            this.subtitle.innerHTML = `<span style="color:#38bdf8">你说：</span>"${transcript}"<br><span style="color:#10b981; font-size: 14px; animation: pulse 1s infinite alternate;">[正在抽取多模态视觉帧并交由 Gemini 分析...]</span>`;
-            this.statusText.innerText = "状态: 抽取关键帧并分析中 (ANALYZING_VISION)";
-            
-            try {
-                // 1. 抽取当前画面帧
-                const offscreenCanvas = document.createElement('canvas');
-                const ctx = offscreenCanvas.getContext('2d');
-                // 压缩发送，减少 Token 浪费，保证 Flash 速度
-                offscreenCanvas.width = 640; 
-                offscreenCanvas.height = Math.floor(640 * (this.video.videoHeight / this.video.videoWidth));
-                ctx.drawImage(this.video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
-                const base64Image = offscreenCanvas.toDataURL('image/jpeg', 0.5);
-
-                // 2. 组装发给 AI 的内容结构 (依托底层 TitanAIAssistant 的发信系统)
-                const apiMessages = [
-                    {
-                        role: "user",
-                        content: [
-                            { type: "text", text: `[系统指令：这是通过 Live Vision 实境指导捕获的前置摄像头最新画面。请简短直接、口语化地像坐在学生对面一样回答。绝不要寒暄。]\n\n学生刚才说：“${transcript}”` },
-                            { type: "image_url", image_url: { url: base64Image } }
-                        ]
-                    }
-                ];
-
-                // 3. 极速调配底层代理 API
-                if (!window.titanAIAssistant || !window.titanAIAssistant.settings.endpoint) throw new Error("API 网关未初始化");
-                
-                const response = await fetch(window.titanAIAssistant.settings.endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.titanAIAssistant.settings.apiKey}` },
-                    body: JSON.stringify({ model: window.titanAIAssistant.settings.model, messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
-                });
-
-                if (!response.ok) throw new Error(`API HTTP Error ${response.status}`);
-                const data = await response.json();
-                const aiReply = data.choices[0].message.content;
-
-                // 4. 清爽展示并朗读反馈
-                this.subtitle.innerHTML = `<span style="color:#10b981">[小创指导]：</span>${aiReply}`;
-                this.statusText.innerText = "状态: 语音合成播报中 (TTS_PLAYING)";
-                
-                // 尝试打断先前的播报并在底层复刻 TTS 引擎
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(aiReply);
-                utterance.lang = 'zh-CN';
-                // 采用高级微软女声（如系统有）
-                const voices = window.speechSynthesis.getVoices();
-                const premiumVoice = voices.find(v => v.lang.includes('zh') && (v.name.includes('Xiaoxiao') || v.name.includes('Ting-Ting')));
-                if (premiumVoice) utterance.voice = premiumVoice;
-                
-                utterance.onend = () => {
-                    this.isProcessing = false;
-                    this.statusText.innerText = "状态: 等待语音唤醒 (VAD_READY)";
-                    if (this.isListening) {
-                        try { this.recognition.start(); } catch (e) {} // 恢复静默倾听
-                    }
-                };
-                window.speechSynthesis.speak(utterance);
-
-            } catch (err) {
-                console.error("Live Vision 分析失败", err);
-                this.subtitle.innerText = "分析失败，请检查网络或 API 连通性。";
-                this.isProcessing = false;
-                this.statusText.innerText = "状态: 接口故障，重试中 (ERROR)";
-                setTimeout(() => { if(this.isListening) try{ this.recognition.start(); }catch(e){} }, 2000);
-            }
-        };
-
-        this.recognition.onerror = (e) => {
-            console.log("识别杂音/断裂:", e.error);
-            if (e.error !== 'aborted') {
-                this.isProcessing = false;
-                setTimeout(() => { if(this.isListening) try{ this.recognition.start(); }catch(e){} }, 500);
-            }
-        };
-        
-        this.recognition.onend = () => {
-            // 如果不是因为我们自己切断，也没有在分析中，就自动重启以保持一直倾听
-            if (this.isListening && !this.isProcessing) {
-                try { this.recognition.start(); } catch(e) {}
-            }
-        };
-
-        this.recognition.start();
     }
 
     stop() {
         this.isActive = false;
         this.hud.style.display = 'none';
         
-        if (this.isListening && this.recognition) {
-            this.isListening = false;
-            this.recognition.stop();
+        if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+            this.mediaRecorder.stop();
         }
         window.speechSynthesis.cancel();
-
         
         if (this.videoStream) {
             this.videoStream.getTracks().forEach(track => track.stop());
