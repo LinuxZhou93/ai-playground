@@ -269,6 +269,10 @@ const SubscriptionManager = {
     // --- Actions ---
 
     handleLogin: async function (username, password) {
+        if (!this.client) {
+            alert('⚠️ 系统服务未就绪（认证组件未能成功加载）。\n这通常是由于网络连接不稳或浏览器插件阻拦导致，请刷新页面或更换网络后重试。');
+            return;
+        }
         const email = this.smartFormatEmail(username);
         try {
             const { data, error } = await this.client.auth.signInWithPassword({
@@ -291,6 +295,10 @@ const SubscriptionManager = {
     },
 
     handleRegister: async function (username, password) {
+        if (!this.client) {
+            alert('⚠️ 系统服务未就绪（认证组件未能成功加载）。\n这通常是由于网络连接不稳或浏览器插件阻拦导致，请刷新页面或更换网络后重试。');
+            return;
+        }
         // VALIDATION: Must be email or 11-digit phone number
         const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username);
         const isPhone = /^\d{11}$/.test(username);
@@ -377,8 +385,20 @@ const SubscriptionManager = {
                 const existing = new Date(this.profile.expiry_date);
                 if (existing > new Date()) currentExpiry = existing;
             }
-            const duration = voucher.duration_months || 12;
-            currentExpiry.setMonth(currentExpiry.getMonth() + duration);
+
+            // Fix falsy 0 issue: duration_months=0 evaluates to false, causing it to fall back to 12 months.
+            let duration = voucher.duration_months;
+            if (duration === undefined || duration === null) {
+                duration = 12; // default fallback if null
+            }
+            
+            // If duration is 0, it's likely a 7-day trial based on our admin generation logic.
+            // We can also verify by checking the code prefix.
+            if (duration === 0 || (voucher.code && voucher.code.includes('-7D-'))) {
+                currentExpiry.setDate(currentExpiry.getDate() + 7);
+            } else {
+                currentExpiry.setMonth(currentExpiry.getMonth() + duration);
+            }
 
             // 3. Update User Profile
             const { error: pError } = await this.client

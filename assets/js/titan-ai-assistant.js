@@ -39,9 +39,36 @@ class TitanAIAssistant {
     updateMemberStatusUI() {
         if (!this.statusBar || !this.input) return; 
         
-        // 核心修复：联通全栈 SubscriptionManager 订阅身份，注册用户只要没过期即是有效 VIP
+        const sm = window.SubscriptionManager;
+        
+        // --- 核心优化 (Core Fix): 避免加载闪烁 (Prevent Auth Flicker) ---
+        // 增加网络延迟情况下的“加载中”过渡态，不让界面的默认“访客模式”闪烁
+        if (sm && typeof sm.isReady !== 'undefined' && !sm.isReady) {
+            this.statusBar.innerHTML = `
+                <span><i class="fas fa-circle-notch fa-spin" style="color:#94a3b8;margin-right:4px;"></i> 链路同步中...</span>
+            `;
+            this.input.disabled = true;
+            this.input.placeholder = "正在校验身份与体验配额...";
+            this.input.style.opacity = '0.5';
+            this.input.style.cursor = 'wait';
+            
+            // Auto re-trigger when auth sync finishes
+            if(!this._isPollingAuth) {
+                this._isPollingAuth = true;
+                const checkReady = setInterval(() => {
+                    if(sm.isReady) {
+                        clearInterval(checkReady);
+                        this._isPollingAuth = false;
+                        this.updateMemberStatusUI();
+                    }
+                }, 100);
+            }
+            return;
+        }
+
+        // 联通全栈 SubscriptionManager 身份核验
         let isMember = this.settings.memberExpired > Date.now();
-        if (window.SubscriptionManager && window.SubscriptionManager.isSubscribed && window.SubscriptionManager.isSubscribed()) {
+        if (sm && sm.isSubscribed && sm.isSubscribed()) {
             isMember = true;
         }
         
@@ -675,13 +702,19 @@ class TitanAIAssistant {
                             }
                             .msg-ai blockquote p { margin-bottom: 0; display: inline; }
                             .msg-ai h1, .msg-ai h2, .msg-ai h3, .msg-ai h4 { color: #f8fafc; font-weight: 800; display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
-                            .msg-ai h1 { font-size: 1.5em; margin-top: 32px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; color: #fff;}
-                            .msg-ai h2 { font-size: 1.25em; margin-top: 28px; margin-bottom: 16px; background: linear-gradient(90deg, rgba(56,189,248,0.15) 0%, transparent 100%); padding: 8px 16px; border-left: 4px solid #38bdf8; border-radius: 0 6px 6px 0; text-shadow: 0 0 10px rgba(56,189,248,0.3); }
-                            .msg-ai h3 { font-size: 1.1em; margin-top: 24px; margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 6px 14px; border-radius: 6px; border-left: 3px solid #94a3b8; width: fit-content; }
+                            .msg-ai h1 { font-size: 1.6em; margin-top: 32px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; color: #fff; text-shadow: 0 0 15px rgba(56,189,248,0.4); }
+                            .msg-ai h2 { font-size: 1.35em; margin-top: 28px; margin-bottom: 16px; background: linear-gradient(90deg, rgba(56,189,248,0.15) 0%, transparent 100%); padding: 8px 16px; border-left: 4px solid #38bdf8; border-radius: 0 6px 6px 0; text-shadow: 0 0 10px rgba(56,189,248,0.3); }
+                            .msg-ai h3 { font-size: 1.15em; margin-top: 24px; margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 6px 14px; border-radius: 6px; border-left: 3px solid #94a3b8; width: fit-content; }
+                            .msg-ai h4 { font-size: 1.05em; margin-top: 20px; margin-bottom: 10px; color: #94a3b8; text-transform: uppercase; font-variant: small-caps; letter-spacing: 2px; }
                             .msg-ai ul, .msg-ai ol { margin-bottom: 24px; padding-left: 20px; line-height: 1.8; color: #f1f5f9; font-size: 15px; }
                             .msg-ai li { margin-bottom: 12px; color: #e2e8f0; font-weight: 500; padding-left: 4px; }
                             .msg-ai li::marker { color: #38bdf8; }
                             .msg-ai code:not(pre code) { background: rgba(244, 114, 182, 0.12); color: #f472b6; padding: 3px 8px; border-radius: 6px; font-family: 'Orbitron', 'Consolas', monospace; font-size: 0.9em; font-weight: 600; border: 1px solid rgba(244, 114, 182, 0.25); box-shadow: 0 0 5px rgba(244, 114, 182, 0.1); }
+                            .msg-ai table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 24px 0; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; background: rgba(15, 23, 42, 0.4); box-shadow: 0 8px 32px rgba(0,0,0,0.2); backdrop-filter: blur(8px); }
+                            .msg-ai th { background: rgba(56, 189, 248, 0.08); color: #38bdf8; font-weight: 800; text-align: left; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+                            .msg-ai td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; font-size: 14.5px; line-height: 1.6; }
+                            .msg-ai tr:last-child td { border-bottom: none; }
+                            .msg-ai tr:hover td { background: rgba(255,255,255,0.03); }
                         `;
                         document.head.appendChild(style);
                     }
@@ -742,7 +775,8 @@ class TitanAIAssistant {
                         // 如果链接为空、不是 http 开头，或者是常见的占位符，我们就将其接管并动态生成/检索
                         if (!finalUrl || (!finalUrl.startsWith('http') && !finalUrl.startsWith('data:')) || finalUrl.includes('placeholder') || finalUrl.includes('example') || finalUrl.includes('ai-render')) {
                             
-                            isGenerate = altText.includes('生成:') || altText.includes('生成：') || altText.includes('画图') || (altText.length > 50 && /[a-zA-Z]/.test(altText));
+                            // 核心分流：只要描述超过 30 个字，必定是在详细描述画面，走生成大模型！否则走普通必应学术检索！
+                            isGenerate = altText.includes('生成:') || altText.includes('生成：') || altText.includes('画图') || altText.length > 30;
                             cleanAlt = altText.replace(/生成:|生成：|检索:|检索：|\[检索\]|\[生成\]/g, '').trim();
 
                             if (isGenerate) {
@@ -776,7 +810,7 @@ class TitanAIAssistant {
                                 捕获视觉切片中...
                             </div>
                             ${statusBadge}
-                            <img src="${finalUrl}" alt="${safeAltObj}" title="${title || safeAltObj}" style="position:relative; z-index:1; width: 100%; height: auto; display: block; filter: brightness(0.9) contrast(1.1); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); object-fit: cover; min-height: 120px;" onmouseover="this.style.filter='brightness(1.1) contrast(1.2)'; this.style.transform='scale(1.02)';" onmouseout="this.style.filter='brightness(0.9) contrast(1.1)'; this.style.transform='scale(1)';" onerror="this.onerror=null; this.src='${errorSvgUrl}';"/>
+                            <img src="${finalUrl}" alt="${safeAltObj}" title="${title || safeAltObj}" style="position:relative; z-index:1; width: 100%; height: auto; display: block; filter: brightness(0.9) contrast(1.1); transform: scale(1.5); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); object-fit: cover; min-height: 120px;" onmouseover="this.style.filter='brightness(1.1) contrast(1.2)'; this.style.transform='scale(1.55)';" onmouseout="this.style.filter='brightness(0.9) contrast(1.1)'; this.style.transform='scale(1.5)';" onerror="this.onerror=null; this.src='${errorSvgUrl}';"/>
                             ${zoomBadge}
                         </div>`;
                     };
@@ -2851,7 +2885,18 @@ class TitanAIAssistant {
         }
         
         if (audio && audio.data) {
-            content.push({ type: 'image_url', image_url: { url: `data:${audio.type};base64,${audio.data}` } });
+            let audioFormat = 'wav';
+            if (audio.type.includes('webm')) audioFormat = 'webm';
+            if (audio.type.includes('mp3') || audio.type.includes('mpeg')) audioFormat = 'mp3';
+            if (audio.type.includes('ogg')) audioFormat = 'ogg';
+            
+            content.push({ 
+                type: 'input_audio', 
+                input_audio: { 
+                    data: audio.data,
+                    format: audioFormat
+                } 
+            });
         }
         
         return { role: 'user', content: content.length === 1 && content[0].type === 'text' ? content[0].text : content };
@@ -2997,15 +3042,20 @@ ${currentFullContent}
 
 【💡 极致排版指令 - 高保真图形化 Notion Mastery】：
 你不仅仅是在对话，你是在为孩子渲染一份极具探索欲的高端 Notion 学习笔记。必须严格遵守以下法则：
-1. **去文字化 (Graphic First)**：绝不能像百科全书一样堆砌枯燥长文！面对任何专业解答，必须大幅精简字数（每次发言主文本尽量不超过 150 字），遇到重点概念、原理解释、抽象模型，**必须主动、高频地调用配图或制图**。图形化的高清视觉体验最适合孩子！
+1. **去文字化 (Graphic First) & 绝对配图约束**：绝不能像百科全书一样堆砌枯燥长文！面对任何专业解答必须大幅精简字数。**强制要求：每次综合回答中，必须至少穿插 2 ~ 3 张内置检索图片或多维代码架构图表的任意组合！少于此数量判定为任务失败！** 图形化才是最高效的信息交付方案。
 2. **Notion 卡片级骨架严格语法**：必须使用 Markdown 标题 (###)、加粗 (**)、列表项 (-)。核心的信息必须加粗。段落之间要充满呼吸感。**【绝对禁止生肉露漏】：任何 Markdown 标识符后必须紧跟一个半角空格（例如 \`### 标题\` 而不是 \`###标题\`，\`- 列表\` 而不是 \`-列表\`），如果违规会导致无法解析并在页面上暴露出满屏的 # 或 * 号乱码！** 
 3. **极客符号与色彩指引**：每个标题和核心结论前，必须配一个契合语境的 Emoji 活跃气氛。
 4. **金句化引用**：核心结论、学习路线指引或“小创老师建议”，必须使用引用块 (> ) 进行封装，让重点视觉一目了然。
-5. **多维全栈可视化能力 (Visual Synergy Core)**：你是掌控全域视觉教育的导师，遇到不同场景必须调用最佳的绘图/检索兵器。**【注意：暂时禁止调用渲染引擎作图】**：
-   - **📸 真实图解与照片全网检索**：当需要展示实景、实验物理结构、真实相片等（如："水循环机制"、"连杆结构"），你**必须且只能**输出纯 Markdown 图片语法调用内置搜索：\`![检索: 曲柄连杆机构原理图解](ai-render)\` (描述必须是高精度的中文学术关键词)。
-   - **📐 逻辑与几何制图（七大代码绘图引擎）**：当需要绘制思维导图、流程图、几何辅助线、类图等，禁止使用图片搜索或生图引擎，请直接且仅使用你已经熟练掌握的代码制图方案（例如：使用 Mermaid 语法块绘制脑图/流程图、使用原生 SVG 绘制纯净几何图、使用 QuickChart 等），直接输出它们的代码块即可！
-     **【致命底线-关于JSON截断】：本系统当前已禁用结构化 Tool Calling 返回。你绝对禁止在输出中夹杂任何形如 \`{"action": "generate_image"}\` 等废弃工具代码块，只能直接用 \`![检索:xxx](ai-render)\`，或者直接写出 Mermaid/SVG 原生代码块渲染。**
-6. **内链穿梭引擎 (Internal Routing)**：如果需要推荐学生去系统其它模块拔高（例如推荐“生命科学”、“数学猜想”模块），**必须使用超链接包裹模块名**。格式必须严格为 \`[模块名称](?module=auto_match)\`。**严禁对中括号或小括号使用反斜杠转义**！必须严格且原封不动输出 \`[模块名称](?module=auto_match)\` 结构，确保底层路由系统成功截获跳转！`;
+5. **多维内嵌全栈可视化引擎 (The 7 Visual Engines)**：你是掌控全域视觉教育的导师，根据不同场景，必须精准匹配这 7 大核心表现形式（绝不允许输出未经渲染的 JSON 生肉！）：
+   - ① **Mermaid 架构解析图**：用于讲解复杂流程、工作循环。**【最高红线】：所有图表必须被标准 Markdown 代码块包裹，代码头部务必写明 \`\`\`mermaid。绝对禁止在图表前后附加“你可以复制这段代码到XXX查看”等任何废话！只给图！**
+   - ② **Mermaid 知识脑图**：知识点发散总结。**绝对不要说任何“这是一段 Mermaid 代码”的废话，闭嘴直接输出 \`\`\`mermaid 块！**
+   - ③ **SVG 纯净矢量透视图**：讲解物理滑块、几何剖面等。强制使用 \`\`\`xml 代码块包裹响应式 \`<svg>\`。**【色彩及废话红线】：必须使用深色暗黑黑客极客配色（犹如 #111 深灰底色，#00f0ff 荧光蓝线条）。绝对禁止在前后解释“你可以将这段代码保存为 svg 文件”，严禁此类低级人工智能占位废话！**
+   - ④ **Markdown 数据库表格**：遇到多参数对比或分类统计，强制输出标准、整齐的 Markdown 表格格式。
+   - ⑤ **代码树极客展示**：讲解文件架构或组织结构，使用高亮的 Shell 或 Tree 代码块包裹。
+   - ⑥ **LaTeX 学术数理推演**：纯数学或物理方程极客推演，严禁纯文本瞎拼，必须使用 \`$$...$$\` 唤醒引擎。
+   - ⑦ **Bing 高清实物检索与 AI 绘图引擎**：**【最高权限确认】：你已经内置并被授权了全部的联网图库搜索与生成能力！**当用户要求看图、搜索图片，或你认为需要补充实景细节时，**不得以“我无法搜索”为借口推脱，绝对不要让用户自己去搜！** 必须且**仅能**使用内置语法：\`![检索: 具体的超长专业描述词](ai-render)\`，前台系统会自动识别该语法并替你完成图片下发。
+     **【致命底线】：你绝对禁止输出类似于 \`{"action": "generate_image"}\` 或任何形式的 JSON 生肉请求！系统唯一的内置调用方式只能是原生 Markdown 图片格式。在每个核心知识点讲解后，必须强力驱动此引擎穿插配图来提升视觉丰富度！**
+6. **内链穿梭引擎 (Internal Routing)**：如果需要推荐学生去系统其它模块拔高（例如推荐“生命科学”、“数学猜想”模块），**必须使用超链接包裹模块名**。格式必须严格为 \`[模块名称](?module=auto_match)\`。**最核心警告：严禁对该标签添加加粗 (\*\*)、删除线等任何 Markdown 排版符，也严禁任何反斜杠转义 (\\)**！为了保障底层干预功能，你只能极其纯净地在行内输出如 \`你可以前往 [生命科学](?module=auto_match) 模块探索\` 这样的单纯文本结构！`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {
@@ -3159,6 +3209,42 @@ ${currentFullContent}
                         return;
                     }
                     
+                    // --- 核心进化：SVG 原生矢量白板渲染引擎 ---
+                    // 拦截代码块中的 SVG，将其升维打击为真正的白板制图，而不是显示枯燥的源码！
+                    if (['language-svg', 'language-xml', 'language-html'].some(c => block.classList.contains(c))) {
+                        const content = block.innerText.trim();
+                        if (content.includes('<svg') && content.includes('</svg>')) {
+                            const svgMatch = content.match(/<svg[\s\S]*?<\/svg>/i);
+                            if (svgMatch) {
+                                if (isStreaming) {
+                                    pre.style.opacity = '0.5';
+                                    return; // 等待流式输出完毕，暂不渲染半成品的 SVG 导致 DOM 崩溃
+                                }
+                                const svgDiv = document.createElement('div');
+                                svgDiv.className = 'ai-svg-render';
+                                svgDiv.style.cssText = 'background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 20px; margin: 24px 0; display: flex; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); backdrop-filter: blur(8px);';
+                                svgDiv.innerHTML = svgMatch[0];
+                                
+                                const svgEl = svgDiv.querySelector('svg');
+                                if(svgEl) {
+                                    if (!svgEl.getAttribute('width') && !svgEl.getAttribute('viewBox')) {
+                                        svgEl.style.width = '100%';
+                                    }
+                                    svgEl.style.maxWidth = '100%';
+                                    svgEl.style.height = 'auto'; // 自适应尺寸防溢出
+                                }
+                                
+                                pre.style.display = 'none'; // 隐藏无聊的源码
+                                pre.classList.add('svg-ready');
+                                if (!pre.nextElementSibling || !pre.nextElementSibling.classList.contains('ai-svg-render')) {
+                                    pre.parentNode.insertBefore(svgDiv, pre.nextSibling);
+                                }
+                                this.scrollToBottom();
+                                return;
+                            }
+                        }
+                    }
+                    
                     window.hljs.highlightElement(block);
                     
                     let langName = 'TEXT';
@@ -3249,11 +3335,21 @@ ${currentFullContent}
                 }
                 
                 // 剔除大模型瞎加的废弃裹尸布： ```json ... ```，进行靶向清除防止污染下方正常的解释文本段落
-                result = result.replace(/```(?:json|javascript|js)?\s*?\n(?:[\s\S]*?)!\[/ig, '\n\n![');
-                result = result.replace(/!\[(.*?)\]\(ai-render:\/\/placeholder\)\s*?```/ig, '![$1](ai-render://placeholder)\n');
+                // 【核心修复】：绝不能使用 [\\s\\S]*? 跨行匹配，否则会把有效 Mermaid 或代码块的 \`\`\` 闭合符连带下面原本正常的文字全吃掉！导致严重的嵌套崩溃！
+                result = result.replace(/```(?:json|javascript|js)?\s*!\[/ig, '\n\n![');
+                result = result.replace(/!\[(.*?)\]\(ai-render:\/\/placeholder\)\s*```/ig, '![$1](ai-render://placeholder)\n');
                 
-                // 全域兜底修复：强行剔除那些被模型画蛇添足加上了反斜杠的底层路由失效胶囊（例如：\[生命科学\](?module=auto_match)）
-                return result.replace(/\\\[(.*?)\\\]/g, '[$1]').replace(/\\\(\?module=auto_match\\\)/g, '(?module=auto_match)');
+                // 全域兜底修复：强行剔除那些被模型画蛇添足加上了反斜杠或粗体星号的底层路由失效胶囊
+                // 解决类似 **\[生命科学\] (?module=auto_match)** 导致的解析断裂
+                result = result.replace(/[*_]*\*\[(.*?)\][*_]*\s*\(\s*\?module=auto_match\s*\)/g, '[$1](?module=auto_match)');
+                
+                // 终极排版防漏 (Markdown Syntax Rescue)
+                // 强制剥除：① 加粗语法内部的多余空格；② 反斜杠逃逸。（已移除行首4空格暴力清除，防止摧毁合法 Python / 缩进类图结构）
+                result = result.replace(/\*\*\s+(.*?)\s+\*\*/g, '**$1**'); // 消除 ** 原理 ** 的多余空格
+                result = result.replace(/\*\*(.*?)\*\*\s*:/g, '**$1**:');   // 消除 **原理** : 的多余空格
+                result = result.replace(/\\\*/g, '*');               // 干掉 \* 产生的转义破坏
+                
+                return result;
             };
 
             const typeNextChar = () => {
@@ -3277,7 +3373,7 @@ ${currentFullContent}
                     }
                     
                     setTimeout(() => {
-                        this.enhanceCodeBlocks(msgDiv); // 仅执行一次结构增强
+                        enhanceCodeBlocks(); // 【核心解BUG】必须调用包内闭包环境定义的 enhanceCodeBlocks 才能正确接管当前的 msgDiv！！
                         progressBar.style.opacity = '0'; // 优雅消失，不抖动
                         setTimeout(() => { if(progressBar.parentNode) progressBar.remove(); }, 300);
                     }, 10);
