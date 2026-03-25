@@ -3570,19 +3570,50 @@ ${currentFullContent}
     }
     
     _showDesktopAppPrompt() {
-        this.appendMessage('system', `
-            <div style="padding: 6px 0;">
-                <div style="color: #10b981; font-weight: bold; margin-bottom: 8px; font-size: 14px; display:flex; align-items:center; gap:6px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                    极客进阶功能锁定 (Desktop Only)
+        // 创建一个赛博朋克风格的全屏幕沉浸式模态弹窗
+        const modalId = 'titan-desktop-modal';
+        if (document.getElementById(modalId)) return;
+
+        const modalHtml = `
+            <div id="${modalId}" style="position:fixed; inset:0; z-index: 100000; display:flex; align-items:center; justify-content:center; background: rgba(3,7,18,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); opacity: 0; transition: opacity 0.3s ease;">
+                
+                <div style="background: linear-gradient(180deg, #0f172a 0%, #020617 100%); border: 1px solid rgba(16,185,129,0.2); box-shadow: 0 25px 50px -12px rgba(16,185,129,0.15); border-radius: 24px; max-width: 480px; width: 90%; padding: 40px; position:relative; transform: translateY(20px) scale(0.95); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                    
+                    <!-- 闪烁的光晕特效 -->
+                    <div style="position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 120px; height: 120px; background: radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%); pointer-events:none;"></div>
+                    
+                    <!-- 关闭按钮 -->
+                    <button onclick="document.getElementById('${modalId}').style.opacity='0'; document.getElementById('${modalId}').children[0].style.transform='translateY(20px) scale(0.95)'; setTimeout(()=>document.getElementById('${modalId}').remove(), 300)" style="position: absolute; top: 16px; right: 20px; color: #64748b; background: none; border: none; font-size: 24px; cursor: pointer; transition: 0.2s;">×</button>
+                    
+                    <!-- 图标 -->
+                    <div style="display:flex; justify-content:center; margin-bottom: 24px;">
+                        <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color: #10b981; box-shadow: inset 0 0 20px rgba(16,185,129,0.1);">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" class="animate-pulse" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                        </div>
+                    </div>
+                
+                    <h2 style="font-family: 'Orbitron', 'Inter', sans-serif; color: #f8fafc; font-size: 22px; font-weight: bold; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px;">此功能仅向客户端开放</h2>
+                    
+                    <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; text-align: center; margin-bottom: 32px;">
+                        为了突破网页算力极限与音视频高帧流动的性能沙盒，<b>Live Vision 多模态指导</b> 已被锁定。<br><br>安装桌面级引擎，释放底层硬件权限与零延迟心跳连接。
+                    </p>
+                    
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <button onclick="window.open('download.html', '_blank'); document.getElementById('${modalId}').querySelector('.close-btn').click();" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(16,185,129,0.3);">前往下载中心 (Download Center)</button>
+                        <button class="close-btn" onclick="document.getElementById('${modalId}').style.opacity='0'; document.getElementById('${modalId}').children[0].style.transform='translateY(20px) scale(0.95)'; setTimeout(()=>document.getElementById('${modalId}').remove(), 300)" style="background: transparent; border: 1px solid #334155; color: #94a3b8; padding: 14px; border-radius: 12px; font-size: 14px; cursor: pointer; transition: 0.2s;">返回继续聊天</button>
+                    </div>
                 </div>
-                <div style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
-                    真正的实境多模态指导（实时视音频高频推流分析），会引发海量的网关高并发调包。它彻底压榨并重构了你的 CPU/GPU 与长连接通道。<b>所以，目前“看着您拼机器人”这个科幻级特权功能，仅向 Titan AI 桌面原生客户端开放！</b>
-                </div>
-                <button onclick="window.alert('Mac 和 Windows 客户端马上在首页开放下载通道，敬请期待！')" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s;">前去下载 Desktop 原生客户端</button>
             </div>
-        `);
-        this.scrollToBottom();
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // 激活动画
+        requestAnimationFrame(() => {
+            const modal = document.getElementById(modalId);
+            modal.style.opacity = '1';
+            modal.children[0].style.transform = 'translateY(0) scale(1)';
+        });
     }
 
     showTyping() {
