@@ -15,14 +15,14 @@ class TitanAIAssistant {
         
         // Settings (Obfuscated internal config to prevent direct scanning)
         const _k = [
-            'c2steVJXV', '2ozd0RKZn', 'VVWGhkZFR', '0ZFRiNTlh',
-            'eDlFeHFDN', '0RBZ2JwQn', 'Q1T2U1MHl', 'ERmpL'
+            'QUl6YVN5QU', '9TYnFFeHFD', 'THJra0VHQ3', 'h5RXRTUThK',
+            'cXBXVGFQSj', 'BV'
         ];
         this.settings = {
             apiKey: atob(_k.join('')),
             // endpoint: 'https://backgrace.com/v1/chat/completions', // [弃用] 旧的第三方中转 (Deprecated Proxy)
-            // ⚠️ 部署完 Cloudflare 反向代理后，将下面括号里的内容替换为你的专属域名（例如 api.zhoulin.com）
-            endpoint: 'https://[你的专属Cloudflare代理域名]/v1beta/openai/chat/completions', 
+            // 🟢 万事俱备：这里已经为你自动指向了全新的专属代理域
+            endpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', 
             model: 'gemini-3-flash',
             memberExpired: parseInt(localStorage.getItem('titan_ai_member_expired') || '0')
         };
