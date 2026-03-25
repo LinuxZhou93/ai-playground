@@ -2225,6 +2225,20 @@ class TitanAIAssistant {
         
         if (this.liveVisionBtn) {
             this.liveVisionBtn.addEventListener('click', () => {
+                // 检测是否运行在 Electron 原生桌面端环境
+                const isElectron = /electron/i.test(navigator.userAgent) || (window.process && window.process.type);
+                
+                if (!isElectron) {
+                    if (!this.isChatOpen) {
+                        this.fab.click();
+                        setTimeout(() => this._showDesktopAppPrompt(), 300);
+                    } else {
+                        this._showDesktopAppPrompt();
+                    }
+                    return;
+                }
+
+                // 若在桌面端，则痛快放行调用本地硬件
                 if (window.titanLiveVision) {
                     window.titanLiveVision.start();
                 } else {
@@ -3555,6 +3569,22 @@ ${currentFullContent}
         this.scrollToBottom(true);
     }
     
+    _showDesktopAppPrompt() {
+        this.appendMessage('system', `
+            <div style="padding: 6px 0;">
+                <div style="color: #10b981; font-weight: bold; margin-bottom: 8px; font-size: 14px; display:flex; align-items:center; gap:6px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    极客进阶功能锁定 (Desktop Only)
+                </div>
+                <div style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
+                    真正的实境多模态指导（实时视音频高频推流分析），会引发海量的网关高并发调包。它彻底压榨并重构了你的 CPU/GPU 与长连接通道。<b>所以，目前“看着您拼机器人”这个科幻级特权功能，仅向 Titan AI 桌面原生客户端开放！</b>
+                </div>
+                <button onclick="window.alert('Mac 和 Windows 客户端马上在首页开放下载通道，敬请期待！')" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s;">前去下载 Desktop 原生客户端</button>
+            </div>
+        `);
+        this.scrollToBottom();
+    }
+
     showTyping() {
         const exists = document.getElementById('ai-typing-indicator');
         if (exists) return;
