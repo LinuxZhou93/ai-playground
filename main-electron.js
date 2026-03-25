@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, systemPreferences } = require('electron')
 const path = require('path')
 
 function createWindow () {
@@ -18,7 +18,17 @@ function createWindow () {
   // mainWindow.webContents.openDevTools()
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // 主动向 macOS 请求麦克风硬件权限（这是 Electron 在 Mac 上录音的硬性要求）
+  if (process.platform === 'darwin') {
+    try {
+      const micAccess = await systemPreferences.askForMediaAccess('microphone');
+      console.log('Microphone access:', micAccess);
+    } catch (e) {
+      console.error('Failed to request microphone access', e);
+    }
+  }
+
   createWindow()
 
   app.on('activate', function () {
