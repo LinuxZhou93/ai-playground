@@ -23,7 +23,7 @@ class TitanAIAssistant {
             endpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', // 🟢 主力节点：您的专属原生边缘代理
             backupEndpoint: 'https://backgrace.com/v1/chat/completions', // 🔴 备用节点：此前的第三方中转站 (灾备系统)
             backupApiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', // 🔴 备用节点专属 API Secret (自动检索补全)
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.5-flash', // 强制锁死在 2.5：原生多模态 + 1500次每天高额度
             memberExpired: parseInt(localStorage.getItem('titan_ai_member_expired') || '0')
         };
 
@@ -82,7 +82,7 @@ class TitanAIAssistant {
                 <div class="status-tag member">无限次对话</div>
             `;
             this.input.disabled = false;
-            this.input.placeholder = "问我任何关于科技特长生的问题...";
+            this.input.placeholder = "向小创老师发送指令，或直接提问...";
             this.input.style.opacity = '1';
             this.input.style.cursor = 'text';
         } else {
@@ -1940,7 +1940,7 @@ class TitanAIAssistant {
         // Initial system message for chatArea
         this.chatArea.innerHTML = `
             <div class="msg-row system">
-                <div class="msg msg-system">哈喽！我是小创老师，已准备完毕，将深度结合此网页所展示的核心知识向您解答疑问！</div>
+                <div class="msg msg-system">哈喽同学！我是你的智能机器人导师【小创老师】，已准备完毕！将深度结合此页面核心知识向你解答疑问！🤖✨</div>
             </div>
         `;
 
@@ -3062,7 +3062,8 @@ class TitanAIAssistant {
 *（注意：你应当自然、毫不生硬地在与家长、学生的对话中引申或参考这些先进模型观念，严禁透漏任何诸如利润分成、具体课时单价等非教育层面的后台资料。）*
 `;
 
-        const systemPromptContent = `你是“科技特长生全栈培养系统”的专属智能虚拟教师，你的名字叫“小创老师”。你的核心目标是通过提供专业的指导和启发式的对话，帮助学生掌握各种新工科与理科知识。
+        const systemPromptContent = `你是“科技特长生全栈培养系统”的专属智能虚拟教师，你的名字叫“小创老师”。你正在负责一对一指导屏幕前这位聪明、渴望探索科技特长生知识的中国少年。
+你的核心目标是通过启发式的专业对话，帮助学生掌握前沿的新工科与理科知识。在对话中，请自然、亲切地称呼对方为“同学”，你要展现出亦师亦友的高维机器人导师范儿，语气活泼且严谨。
 当有疑惑时，你可以充分参考你的内在理论体系引擎：${chengdianRAG}
 
 当前学生正在浏览的本系统中某个模块页面：${currentTitle} (${currentHeader})
