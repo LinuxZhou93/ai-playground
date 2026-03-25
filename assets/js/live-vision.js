@@ -251,30 +251,39 @@ class LiveVisionCopilot {
             ctx.drawImage(this.video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
             const base64Image = offscreenCanvas.toDataURL('image/jpeg', 0.5);
 
-            // 3. 构建多模态联合发包数据格式 (复用 TitanAIAssistant 的统一防穿透算法池)
-            if (!window.titanAIAssistant || !window.titanAIAssistant.settings.endpoint) {
-                throw new Error("Titan AI 核心组件尚未初始化，请稍后刷新重试。");
-            }
+            // 3. 构建多模态联合发包数据格式 (强制对标主助手跑通时的“黄金 payload 结构”)
+            if (!window.titanAIAssistant || !window.titanAIAssistant.settings) throw new Error("Titan AI 系统组件尚未就绪");
+            
+            const apiPayload = {
+                model: 'gemini-3-flash-preview',
+                messages: [{
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: systemText },
+                        { 
+                            type: 'image_url', 
+                            image_url: { url: base64Image }  // 图像采用 DataURL 标准
+                        },
+                        {
+                            type: 'input_audio',
+                            input_audio: {
+                                data: base64Audio,
+                                format: 'wav'  // 👈 核心机密：即便我们是 webm 录音，也要强制伪装成 wav 才能过 Google 白名单
+                            }
+                        }
+                    ]
+                }],
+                temperature: 0.7,
+                max_tokens: 1024
+            };
 
-            const systemText = "系统指令约束：这是一次实时多模态对讲。请仔细聆听附带的语音文件（这是学生刚才说的话）。然后用你的‘眼睛’查看附带照片（实物/摄像头画面）。联合音频的意思和画面的内容，像真人老师一样直接回答，务必口语化并且简短精悍、一针见血。严禁输出任何 Markdown，给我干脆的声音播报用文本。";
-            
-            const apiMessages = [
-                window.titanAIAssistant._buildMultimodalMessage(
-                    systemText,
-                    [base64Image],
-                    { data: base64Audio, type: cleanMimeType }
-                )
-            ];
-            
             const response = await fetch(window.titanAIAssistant.settings.endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.titanAIAssistant.settings.apiKey}` },
-                body: JSON.stringify({ 
-                    model: 'gemini-3-flash-preview', 
-                    messages: apiMessages, 
-                    temperature: 0.7, 
-                    max_tokens: 1024 
-                })
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${window.titanAIAssistant.settings.apiKey}` 
+                },
+                body: JSON.stringify(apiPayload)
             });
 
             if (!response.ok) {
