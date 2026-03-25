@@ -250,6 +250,10 @@ class LiveVisionCopilot {
             const base64Image = offscreenCanvas.toDataURL('image/jpeg', 0.5);
 
             // 3. 构建多模态联合发包数据格式 (复用 TitanAIAssistant 的统一防穿透算法池)
+            if (!window.titanAIAssistant || !window.titanAIAssistant.settings.endpoint) {
+                throw new Error("Titan AI 核心组件尚未初始化，请稍后刷新重试。");
+            }
+
             const systemText = "系统指令约束：这是一次实时多模态对讲。请仔细聆听附带的语音文件（这是学生刚才说的话）。然后用你的‘眼睛’查看附带照片（实物/摄像头画面）。联合音频的意思和画面的内容，像真人老师一样直接回答，务必口语化并且简短精悍、一针见血。严禁输出任何 Markdown，给我干脆的声音播报用文本。";
             
             const apiMessages = [
@@ -259,16 +263,27 @@ class LiveVisionCopilot {
                     { data: base64Audio, type: cleanMimeType }
                 )
             ];
-
-            if (!window.titanAIAssistant || !window.titanAIAssistant.settings.endpoint) throw new Error("API 网关未初始化");
             
             const response = await fetch(window.titanAIAssistant.settings.endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.titanAIAssistant.settings.apiKey}` },
-                body: JSON.stringify({ model: window.titanAIAssistant.settings.model, messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
+                body: JSON.stringify({ 
+                    model: 'gemini-3-flash-preview', 
+                    messages: apiMessages, 
+                    temperature: 0.7, 
+                    max_tokens: 1024 
+                })
             });
 
-            if (!response.ok) throw new Error(`API 返回状态异常 ${response.status}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                let errorMsg = errorData.error?.message || `状态异常 ${response.status}`;
+                if (response.status === 429) {
+                     errorMsg = '当前链路负载较高，请稍等片刻后重试。'; // 针对用户的友好话术
+                }
+                throw new Error(errorMsg);
+            }
+            
             const data = await response.json();
             const aiReply = data.choices[0].message.content;
 
@@ -291,7 +306,7 @@ class LiveVisionCopilot {
 
         } catch (err) {
             console.error("Live Vision 分析失败", err);
-            this.subtitle.innerText = "多模态推流连接失败，请检查网络或 API 兼容性是否支持输入 Audio。";
+            this.subtitle.innerHTML = `<span style="color:#ef4444;">推流或服务受阻：</span>${err.message}`;
             this.isProcessing = false;
             this.statusText.innerText = "状态: 等待语音唤醒 (ERROR)";
         }

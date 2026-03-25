@@ -2230,15 +2230,16 @@ class TitanAIAssistant {
                 // 检测是否运行在 Electron 原生桌面端环境
                 const isElectron = /electron/i.test(navigator.userAgent) || (window.process && window.process.type);
                 
-                if (!isElectron) {
-                    if (!this.isChatOpen) {
-                        this.fab.click();
-                        setTimeout(() => this._showDesktopAppPrompt(), 300);
-                    } else {
-                        this._showDesktopAppPrompt();
-                    }
-                    return;
-                }
+                // [DEV_MODE] 取消页面环境锁定，强制允许在浏览器上点击调用进行功能跑通测试！
+                // if (!isElectron) {
+                //     if (!this.isChatOpen) {
+                //         this.fab.click();
+                //         setTimeout(() => this._showDesktopAppPrompt(), 300);
+                //     } else {
+                //         this._showDesktopAppPrompt();
+                //     }
+                //     return;
+                // }
 
                 // 若在桌面端，则痛快放行调用本地硬件
                 if (window.titanLiveVision) {
@@ -3962,9 +3963,9 @@ ${currentFullContent}
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new TitanAIAssistant());
+    document.addEventListener('DOMContentLoaded', () => { window.titanAIAssistant = new TitanAIAssistant(); });
 } else {
-    new TitanAIAssistant();
+    window.titanAIAssistant = new TitanAIAssistant();
 }
 
 // ==========================================
