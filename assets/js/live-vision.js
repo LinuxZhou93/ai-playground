@@ -177,16 +177,18 @@ class LiveVisionCopilot {
             for(let i=0; i<bufferLength; i++) sum += dataArray[i];
             const avgVolume = sum / bufferLength;
 
-            // --- VAD 核心逻辑 ---
+            // --- VAD 核心逻辑 (性能优化版) ---
+            const VAD_THRESHOLD = 12; // 降低阈值，捕捉更微弱的耳语
+            const SILENCE_MS = 800;    // 停顿 800ms 即触发，向豆包/ChatGPT 响应对标
+
             if (this.isListening && !this.isProcessing) {
-                if (avgVolume > 15) { 
+                if (avgVolume > VAD_THRESHOLD) { 
                     // 阈值：检测到明显的说话声音
                     if (!this.isSpeaking) {
                         this.isSpeaking = true;
                         this.audioChunks = [];
-                        this.mediaRecorder.start();
+                        if (this.mediaRecorder.state === 'inactive') this.mediaRecorder.start();
                         this.statusText.innerText = "状态: 接收语音流中... (RECORDING)";
-                        this.subtitle.innerHTML = `<span style="color:#10b981">[正在倾听...]</span>`;
                     }
                     if (this.silenceTimer) {
                         clearTimeout(this.silenceTimer); // 打断静音计时
@@ -198,9 +200,9 @@ class LiveVisionCopilot {
                         this.silenceTimer = setTimeout(() => {
                             if (this.isSpeaking) {
                                 this.isSpeaking = false;
-                                this.mediaRecorder.stop(); // 停止录音，触发 onstop 分析
+                                if (this.mediaRecorder.state === 'recording') this.mediaRecorder.stop(); // 停止录音，触发分析
                             }
-                        }, 1200); // 停顿 1.2 秒即判定为一句话结束
+                        }, SILENCE_MS); 
                     }
                 }
             }
