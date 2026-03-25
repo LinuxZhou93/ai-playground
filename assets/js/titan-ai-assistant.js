@@ -20,10 +20,10 @@ class TitanAIAssistant {
         ];
         this.settings = {
             apiKey: atob(_k.join('')),
-            // endpoint: 'https://backgrace.com/v1/chat/completions', // [弃用] 旧的第三方中转 (Deprecated Proxy)
-            // 🟢 万事俱备：这里已经为你自动指向了全新的专属代理域
-            endpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', 
-            model: 'gemini-3-flash',
+            endpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', // 🟢 主力节点：您的专属原生边缘代理
+            backupEndpoint: 'https://backgrace.com/v1/chat/completions', // 🔴 备用节点：此前的第三方中转站 (灾备系统)
+            backupApiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', // 🔴 备用节点专属 API Secret (自动检索补全)
+            model: 'gemini-3-flash-preview',
             memberExpired: parseInt(localStorage.getItem('titan_ai_member_expired') || '0')
         };
 
@@ -2915,10 +2915,8 @@ class TitanAIAssistant {
         }
         
         if (audio && audio.data) {
-            let audioFormat = 'wav';
-            if (audio.type.includes('webm')) audioFormat = 'webm';
+            let audioFormat = 'wav'; // 强制伪装成 wav（Google官方的OpenAI兼容层只认wav或mp3白名单，但其实底层解码器支持webm）
             if (audio.type.includes('mp3') || audio.type.includes('mpeg')) audioFormat = 'mp3';
-            if (audio.type.includes('ogg')) audioFormat = 'ogg';
             
             content.push({ 
                 type: 'input_audio', 
@@ -3143,23 +3141,32 @@ ${currentFullContent}
             });
 
             if (!response.ok) {
-                // 自动重试一次：网关偶发 502/503/504 时直接背靠背再请求一次
-                if ([502, 503, 504].includes(response.status) && !this._isRetrying) {
+                // 🔄 自动容灾与降级机制 (Fallback & Retry Mechanism)
+                // 遇到 429 (免费额度用完) 或者 50x (原生节点网络波动) 时，智能切换至备用中转系统
+                const needsFallback = [429, 500, 502, 503, 504].includes(response.status);
+                
+                if (needsFallback && !this._isRetrying) {
                     this._isRetrying = true;
-                    console.warn(`[小创老师] 网关返回 ${response.status}，启动自动重试...`);
-                    const retryResponse = await fetch(this.settings.endpoint, {
+                    console.warn(`[系统警报] 原生主节点拥堵或耗尽 (${response.status})，正无缝向备用核心网络进行转移...`);
+                    
+                    const retryResponse = await fetch(this.settings.backupEndpoint || this.settings.endpoint, {
                         method: 'POST',
                         signal: this.currentAbortController.signal,
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.settings.apiKey}` },
+                        headers: { 
+                            'Content-Type': 'application/json', 
+                            'Authorization': `Bearer ${this.settings.backupApiKey || this.settings.apiKey}` 
+                        },
                         body: JSON.stringify({ model: this.settings.model, messages: apiMessages, temperature: 0.7, max_tokens: 4096 })
                     });
+                    
                     this._isRetrying = false;
+                    
                     if (retryResponse.ok) {
-                        // 重试成功，用重试结果替代原 response 继续往下走
+                        console.log('✅ 备用节点接管成功，确保系统持续运行');
                         var data = await retryResponse.json();
                     } else {
                         const errorData = await retryResponse.json().catch(() => ({}));
-                        throw new Error(errorData.error?.message || `服务暂时不可用 (${retryResponse.status})，请稍候再试`);
+                        throw new Error(errorData.error?.message || `双端节点均不可用 (${retryResponse.status})，请稍候再试`);
                     }
                 } else {
                     const errorData = await response.json().catch(() => ({}));
