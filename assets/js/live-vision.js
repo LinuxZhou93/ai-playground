@@ -249,30 +249,16 @@ class LiveVisionCopilot {
             ctx.drawImage(this.video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
             const base64Image = offscreenCanvas.toDataURL('image/jpeg', 0.5);
 
-            // 3. 构建多模态联合发包数据格式 (同时塞入音频文件和图片文件资源)
-            const apiMessages = [
-                {
-                    role: "user",
-                    content: [
-                        { type: "text", text: "系统指令约束：这是一次实时多模态对讲。请仔细聆听附带的语音文件（这是学生刚才说的话）。然后用你的‘眼睛’查看附带的照片（这是学生同时让你看的实物/前置摄像头画面）。联合音频的意思和画面的内容，像真人老师一样直接回答，务必口语化并且绝对简短精悍、一针见血。严禁输出 Markdown 或任何复杂排版，只要口语文本。" },
-                        { type: "image_url", image_url: { url: base64Image } }
-                    ]
-                }
-            ];
+            // 3. 构建多模态联合发包数据格式 (复用 TitanAIAssistant 的统一防穿透算法池)
+            const systemText = "系统指令约束：这是一次实时多模态对讲。请仔细聆听附带的语音文件（这是学生刚才说的话）。然后用你的‘眼睛’查看附带照片（实物/摄像头画面）。联合音频的意思和画面的内容，像真人老师一样直接回答，务必口语化并且简短精悍、一针见血。严禁输出任何 Markdown，给我干脆的声音播报用文本。";
             
-            // 为了兼容 OpenAI 的音频输入机制 (Gemini 支持 inline_data), 我们利用原架构模拟组装
-            if (window.titanAIAssistant.settings.model.includes('gemini')) {
-                // 原生 Gemini/OpenAI 兼容包装，如果后端兼容 inline_data
-                 apiMessages[0].content.push({
-                     type: "inline_data",
-                     inline_data: { mime_type: cleanMimeType, data: base64Audio }
-                 });
-            } else {
-                 apiMessages[0].content.push({
-                     type: "input_audio",
-                     input_audio: { data: base64Audio, format: "wav" }
-                 });
-            }
+            const apiMessages = [
+                window.titanAIAssistant._buildMultimodalMessage(
+                    systemText,
+                    [base64Image],
+                    { data: base64Audio, type: cleanMimeType }
+                )
+            ];
 
             if (!window.titanAIAssistant || !window.titanAIAssistant.settings.endpoint) throw new Error("API 网关未初始化");
             
