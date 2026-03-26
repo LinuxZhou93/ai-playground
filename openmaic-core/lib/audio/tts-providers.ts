@@ -199,13 +199,7 @@ async function generateVolcengineTTS(
     throw new Error(`Volcengine TTS Request Failed: ${result.message}`);
   }
 
-  // Base64 to ArrayBuffer
-  const binaryString = Buffer.from(result.data, 'base64').toString('binary');
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
+  const bytes = new Uint8Array(Buffer.from(result.data, 'base64'));
 
   return {
     audio: bytes,

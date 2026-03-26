@@ -96,7 +96,7 @@ function createWindow () {
   // 另一层防御：拦截非本地跳转，但彻底放行我们的专属 Vercel 云端引擎和本地调试端口
   mainWindow.webContents.on('will-navigate', (e, url) => {
     const isLocalFile = url.startsWith('file://');
-    const isVercelEngine = (url.includes('vercel.app') || url.includes('zhousxiaomei.com')) || window.location.hostname.includes('zhousxiaomei.com');
+    const isVercelEngine = (url.includes('vercel.app') || url.includes('zhouxiaomai.com')) || window.location.hostname.includes('zhouxiaomai.com');
     const isLocalhostEngine = url.includes('localhost:3005');
     
     if (!isLocalFile && !isVercelEngine && !isLocalhostEngine) {
