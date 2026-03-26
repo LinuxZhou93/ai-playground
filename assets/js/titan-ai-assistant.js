@@ -244,8 +244,9 @@ class TitanAIAssistant {
     injectGlobalWindowControls() {
         if (document.getElementById('titan-global-window-controls')) return;
 
-        // 识别当前是否为主页
-        const isIndex = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname === '';
+        // 识别当前是否为桌面版的主页大厅
+        const isVercelApp = window.location.hostname.includes('vercel.app');
+        const isIndex = !isVercelApp && (window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname === '');
         
         // 创建全局霸屏管控面板
         const wrapper = document.createElement('div');
