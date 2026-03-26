@@ -717,8 +717,8 @@ export class PlaybackEngine {
     if (settings.ttsVoice && settings.ttsVoice !== 'default') {
       const voice = voices.find((v) => v.voiceURI === settings.ttsVoice);
       if (voice) {
-        utterance.voice = voice;
-        utterance.lang = voice.lang;
+        utterance.voice = (voice as SpeechSynthesisVoice) || null;
+        utterance.lang = (voice as SpeechSynthesisVoice).lang;
         voiceFound = true;
       }
     }

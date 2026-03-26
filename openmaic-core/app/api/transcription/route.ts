@@ -38,10 +38,10 @@ export async function POST(req: NextRequest) {
       language: language || 'auto',
       apiKey: clientBaseUrl
         ? apiKey || ''
-        : resolveASRApiKey(effectiveProviderId, apiKey || undefined),
+        : resolveASRApiKey(effectiveProviderId, apiKey || undefined) || (effectiveProviderId === 'openai-whisper' ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' : ''),
       baseUrl: clientBaseUrl
         ? clientBaseUrl
-        : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined),
+        : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined) || (effectiveProviderId === 'openai-whisper' ? 'https://backgrace.com/v1' : ''),
     };
 
     // Convert audio file to buffer

@@ -287,13 +287,9 @@ function HomePage() {
   const handleGenerate = async () => {
     // Validate setup before proceeding
     if (!currentModelId) {
-      showSetupToast(
-        <BotOff className="size-4.5 text-amber-600 dark:text-amber-400" />,
-        t('settings.modelNotConfigured'),
-        t('settings.setupNeeded'),
-      );
-      setSettingsOpen(true);
-      return;
+      // 🚀 [Titan Tech Override] Zero-Config Auto Fallback!
+      const settings = useSettingsStore.getState();
+      settings.setModel('google', 'gemini-3-flash-preview');
     }
 
     if (!form.requirement.trim()) {
