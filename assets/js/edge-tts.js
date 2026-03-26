@@ -22,30 +22,9 @@ class EdgeTTS {
                 return resolve();
             }
 
-            // 0. 【打包客户端专属降维打击】尝试调用 Electron 主进程的 Edge-TTS
-            // 只要环境是在 Electron 中，直接走 Node 级的伪装高拟真语音！
-            if (window.require) {
-                try {
-                    const { ipcRenderer } = window.require('electron');
-                    if (ipcRenderer) {
-                        console.log("⚡ 侦测到 Electron 打包环境，正在激活微软 Azure 高清神经女声专线...");
-                        this.cancel();
-                        
-                        // 从底层要回来的原生 MP3 Buffer 数据
-                        const buffer = await ipcRenderer.invoke('generate-edge-tts', text, 'zh-CN-XiaoxiaoNeural');
-                        
-                        // 装配成 Blob 和 URL
-                        const blob = new Blob([buffer], { type: 'audio/mp3' });
-                        const url = URL.createObjectURL(blob);
-                        
-                        this._playAudioUrl(url, onEndParams, resolve, reject);
-                        return; // 成功截胡，不再往下执行！
-                    }
-                } catch (e) {
-                    console.warn("Electron IPC 调用失败，这可能是开在普通浏览器里导致的降级。", e);
-                }
-            }
-
+            // 0. Electron 专属拦截已被移除：保持多端统一，优先使用用户配置的高级音色代理（而不是写死本地机器音），
+            // 并确保音频流走标准的浏览器或代理通道，以维持系统的 AEC (回声消除) 正常工作！
+            
             // 1. 如果用户在设置里配置了 OpenAI 格式的 TTS 代理，且开启了外部调用
             const { ttsProxyUrl, ttsApiKey } = window.titanAIAssistant?.settings || {};
             if (ttsProxyUrl && ttsApiKey && ttsProxyUrl.includes('/v1/audio/speech')) {

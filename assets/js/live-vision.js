@@ -200,7 +200,7 @@ class LiveVisionCopilot {
             // 直接采用 35 的平均判定阈值（能过滤掉绝大多数环境音，但说话时能轻易上到 40~60）
             // 不再使用“打断降门槛”的花里胡哨操作，杜绝死循环卡死！
             const VAD_THRESHOLD = 35; 
-            const SILENCE_MS = 1500;   // 停顿 1.5秒 即触发发包
+            const SILENCE_MS = 800;   // 停顿 0.8秒 即触发发包，极大降低业务感知延迟
 
             if (this.isListening) {
                 if (avgVolume > VAD_THRESHOLD) { 
