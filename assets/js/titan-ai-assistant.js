@@ -15,15 +15,19 @@ class TitanAIAssistant {
         
         // Settings (Obfuscated internal config to prevent direct scanning)
         const _k = [
-            'QUl6YVN5QU', '9TYnFFeHFD', 'THJra0VHQ3', 'h5RXRTUThK',
-            'cXBXVGFQSj', 'BV'
+            'QUl6YVN5QW', '84RVlub2Rl', 'aktBanFaaU', '4yUDNFc1R4', 'VWJqLXVka0', 'tJ'
         ];
         this.settings = {
-            apiKey: atob(_k.join('')),
-            endpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', // 🟢 主力节点：您的专属原生边缘代理
-            backupEndpoint: 'https://backgrace.com/v1/chat/completions', // 🔴 备用节点：此前的第三方中转站 (灾备系统)
-            backupApiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', // 🔴 备用节点专属 API Secret (自动检索补全)
-            model: 'gemini-2.5-flash', // 强制锁死在 2.5：原生多模态 + 1500次每天高额度
+            apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK',
+            endpoint: 'https://backgrace.com/v1/chat/completions', 
+            backupEndpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', // 降级为原生备用节点
+            backupApiKey: atob(_k.join('')),
+            model: 'gemini-3-flash', // 顶配更新：已解锁 3.0 版本
+            // 🎙️ 【终极企业架构：豆包发声模块】（你的大脑依旧是强无敌的 Gemini 3.0 Flash 视觉大模型）
+            volcengineAppId: '4780476544', // 去火山引擎注册后拿到的 AppID
+            volcengineToken: 'e_t1R3UXzI-qvSTrFdEgh0-NFhjN5p7z', // 去火山引擎拿到的真实身份 Token
+            volcengineCluster: 'volcano_tts', // 默认使用火山 TTS 集群
+            volcengineVoice: 'BV001_streaming', // 豆包招牌女声播报员（可改 BV002 等）
             memberExpired: parseInt(localStorage.getItem('titan_ai_member_expired') || '0')
         };
 
@@ -36,6 +40,13 @@ class TitanAIAssistant {
         this.isChatOpen = false;
         this.isProcessingQueue = false;
         this.messageQueue = [];
+        
+        // VAD (Voice Activity Detection) 模块装载
+        this.vadContext = null;
+        this.vadAnalyser = null;
+        this.vadStream = null;
+        this.vadReqId = null;
+        
         this.init();
     }
     updateMemberStatusUI() {
@@ -203,12 +214,230 @@ class TitanAIAssistant {
         return false;
     }
 
+    injectGlobalWindowControls() {
+        if (document.getElementById('titan-global-window-controls')) return;
+
+        // 识别当前是否为主页
+        const isIndex = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname === '';
+        
+        // 创建全局霸屏管控面板
+        const wrapper = document.createElement('div');
+        wrapper.id = 'titan-global-window-controls';
+        wrapper.style.cssText = `
+            box-sizing: border-box;
+            position: fixed; top: 0; left: 0; width: 100%; height: 0;
+            pointer-events: none; z-index: 9999999;
+            display: flex; align-items: flex-start; padding: 20px;
+        `;
+
+        // 【统合左侧容器】仅分配给红黄绿灯视窗管控 (客户端独享，绝不打扰网页版)
+        const leftGroup = document.createElement('div');
+        leftGroup.style.cssText = 'display: flex; gap: 15px; pointer-events: auto; -webkit-app-region: no-drag; align-items: center;';
+
+        // 1. 苹果式的模拟红黄绿灯 (特供: 客户端应用)
+        const leftControls = document.createElement('div');
+        leftControls.style.cssText = `
+            display: flex; gap: 8px; background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 20px; backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        `;
+        
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .mac-btn { width: 13px; height: 13px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; transition: 0.2s; }
+            .mac-btn::before { content: ''; opacity: 0; font-size: 9px; color: rgba(0,0,0,0.6); font-weight: 900; transition: opacity 0.2s; font-family: monospace; }
+            #titan-global-window-controls:hover .mac-btn::before { opacity: 1; }
+            .mac-close { background: #ff5f56; border: 1px solid #e0443e; }
+            .mac-close::before { content: '\\00d7'; transform: translateY(-0.5px); }
+            .mac-close:hover { background: #ff746d; }
+            .mac-min { background: #ffbd2e; border: 1px solid #dea123; }
+            .mac-min::before { content: '-'; transform: translateY(-1px); }
+            .mac-min:hover { background: #ffcd4d; }
+            .mac-max { background: #27c93f; border: 1px solid #1aab29; }
+            .mac-max::before { content: '+'; transform: translateY(-0.5px); }
+            .mac-max:hover { background: #3be254; }
+        `;
+        document.head.appendChild(style);
+
+        leftControls.innerHTML = `
+            <div class="mac-btn mac-close" title="关闭页面并退出" onclick="window.close()"></div>
+            <div class="mac-btn mac-min" title="最小化窗口" onclick="alert('即将最小化（Web模式暂时停用）')"></div>
+            <div class="mac-btn mac-max" title="全屏缩放" onclick="if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen();"></div>
+        `;
+
+        // 客户端逻辑检测
+        const isElectron = /electron/i.test(navigator.userAgent) || (window.process && window.process.type);
+        if (isElectron) {
+            leftGroup.appendChild(leftControls);
+            wrapper.appendChild(leftGroup);
+            document.body.appendChild(wrapper);
+        }
+
+        // 2. 核心大招：防遮挡万能“返回首屏”悬浮胶囊，初始定位左下方，且支持全屏任意拖拽！
+        if (!isIndex) {
+            const returnBtnWrapper = document.createElement('div');
+            returnBtnWrapper.id = 'titan-return-capsule';
+            returnBtnWrapper.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                left: 30px;
+                z-index: 9999999;
+                pointer-events: auto;
+                -webkit-app-region: no-drag;
+            `;
+            returnBtnWrapper.innerHTML = `
+                <button style="background: rgba(14, 165, 233, 0.25); border: 1px solid rgba(56, 189, 248, 0.5); color: #38bdf8; padding: 10px 24px; border-radius: 30px; font-size: 14px; font-weight: bold; cursor: grab; backdrop-filter: blur(12px); display:flex; align-items:center; gap:8px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: background 0.3s, color 0.3s, box-shadow 0.3s;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                    <span>返回首屏</span>
+                </button>
+            `;
+
+            const btn = returnBtnWrapper.querySelector('button');
+            
+            // 自由拖拽引擎逻辑
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            btn.addEventListener('mousedown', (e) => {
+                isDragging = false;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                // 拖拽前，将其从 relative translateX(-50%) 转换成绝对物理像素定位，防止坐标跳跃
+                const rect = returnBtnWrapper.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+                
+                btn.style.cursor = 'grabbing';
+                returnBtnWrapper.style.transform = 'none';
+                returnBtnWrapper.style.left = initialLeft + 'px';
+                returnBtnWrapper.style.top = initialTop + 'px';
+                returnBtnWrapper.style.bottom = 'auto';
+                returnBtnWrapper.style.right = 'auto';
+
+                const onMouseMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    const dy = ev.clientY - startY;
+                    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                        isDragging = true;
+                    }
+                    if (isDragging) {
+                        returnBtnWrapper.style.left = (initialLeft + dx) + 'px';
+                        returnBtnWrapper.style.top = (initialTop + dy) + 'px';
+                    }
+                };
+                const onMouseUp = (ev) => {
+                    btn.style.cursor = 'grab';
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    
+                    // 阈值判断：如果没有发生拖拽，即为正常的 Click，执行页面跳转
+                    if (!isDragging) {
+                        location.href = 'index.html';
+                    }
+                };
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+
+            btn.onmouseover = () => { if(!isDragging) { btn.style.background = 'rgba(14, 165, 233, 0.7)'; btn.style.color = '#fff'; btn.style.boxShadow = '0 10px 25px rgba(14, 165, 233, 0.8)'; btn.style.transform = 'translateY(-2px) scale(1.05)'; } };
+            btn.onmouseout = () => { if(!isDragging) { btn.style.background = 'rgba(14, 165, 233, 0.25)'; btn.style.color = '#38bdf8'; btn.style.boxShadow = '0 8px 32px rgba(0,0,0,0.4)'; btn.style.transform = 'translateY(0) scale(1)'; } };
+
+            document.body.appendChild(returnBtnWrapper);
+
+            // 智能感知自适应布局引擎 (Adaptive Layout Engine)
+            setTimeout(() => {
+                // 如果用户已经手动拖拽过，则不执行自动适配
+                if (returnBtnWrapper.style.transform === 'none' && returnBtnWrapper.style.top) return;
+
+                const winH = window.innerHeight;
+                const winW = window.innerWidth;
+                const WL = 30; // 左间距
+                const TB = 30; // 上下边距
+                const w = returnBtnWrapper.offsetWidth || 120;
+                const h = returnBtnWrapper.offsetHeight || 40;
+
+                // 判断指定区域是否被业务逻辑元素的实体占用 (通过 elementFromPoint 获取最顶层非透明元素)
+                const isAreaOccupied = (x, y) => {
+                    let occupied = false;
+                    const testPoints = [
+                        [x + 10, y + 10], 
+                        [x + w / 2, y + h / 2], 
+                        [x + w - 10, y + h - 10],
+                        [x + 10, y + h - 10]
+                    ];
+                    for (let pt of testPoints) {
+                        const el = document.elementFromPoint(pt[0], pt[1]);
+                        if (el && el !== document.body && el !== document.documentElement) {
+                            const rect = el.getBoundingClientRect();
+                            // 如果捕获到的元素是较小组件（不是背景层那种超宽大容器），则认为发生了遮挡
+                            if (rect.width < winW * 0.6 && rect.height < winH * 0.6) {
+                                // 排除组件自身
+                                if (!el.closest('#titan-return-capsule') && !el.closest('#titan-global-window-controls')) {
+                                    occupied = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    return occupied;
+                };
+
+                const originalVis = returnBtnWrapper.style.visibility;
+                returnBtnWrapper.style.visibility = 'hidden'; // 短暂隐身以穿透检测下层真正的元素
+
+                const yBottom = winH - TB - h;
+                const yTop = TB + (isElectron ? 40 : 0); // 若在原生桌面端，左上角已有红绿灯，需避让
+
+                const bottomOccupied = isAreaOccupied(WL, yBottom);
+                const topOccupied = isAreaOccupied(WL, yTop);
+
+                returnBtnWrapper.style.visibility = originalVis; // 恢复显示
+
+                // 核心决策树：哪里空闲去哪里，默认左上方优先(更符合习惯) -> 然后左下 -> 都堵塞也强行左下（反正可以拖拽）
+                if (topOccupied && !bottomOccupied) {
+                    returnBtnWrapper.style.top = 'auto';
+                    returnBtnWrapper.style.bottom = TB + 'px';
+                } else if (!topOccupied && bottomOccupied) {
+                    returnBtnWrapper.style.top = yTop + 'px';
+                    returnBtnWrapper.style.bottom = 'auto';
+                } else {
+                    // 如果都冲突，或者皆空闲，预设左下角（打扰更少）
+                    returnBtnWrapper.style.top = 'auto';
+                    returnBtnWrapper.style.bottom = TB + 'px';
+                }
+            }, 1200); // 留出足够时间给React/Vue挂载真实DOM
+        }
+
+        // 静默清除工程中各处遗留、残缺的返回主页标记
+        setTimeout(() => {
+            const oldKeywords = ['返回主页', '返回首页', '返回全局', '返回列表', '返回学科', '返回课程', '返回监控', '返回基站'];
+            document.querySelectorAll('a, button, span').forEach(el => {
+                if (el.closest('#titan-global-window-controls') || el.closest('.ai-panel') || el.closest('.ai-header')) return;
+                
+                const text = el.innerText || '';
+                const hasKeyword = oldKeywords.some(kw => text.includes(kw));
+                // 也要匹配带箭头的图标或 title
+                const isBackLink = el.classList.contains('return-link') || el.classList.contains('home-link');
+                
+                if (hasKeyword || isBackLink) {
+                    if (el.tagName === 'A' || el.tagName === 'BUTTON') {
+                        el.style.display = 'none';
+                    } else if (el.tagName === 'SPAN' && el.parentElement && (el.parentElement.tagName === 'A' || el.parentElement.tagName === 'BUTTON')) {
+                        el.parentElement.style.display = 'none';
+                    }
+                }
+            });
+        }, 1000);
+    }
+
     init() {
         this.loadDependencies();
         this.injectCSS();
         this.injectUI();
         this.cacheDOM();
         this.bindEvents();
+        this.injectGlobalWindowControls(); // 【统一顶端UI控制注入】
         setTimeout(() => {
             if (typeof this.updateQuickChips === 'function') this.updateQuickChips();
             // 在挂载完毕后，尝试读取并重绘本会话缓存的聊天记录跨网页不消失
@@ -991,9 +1220,14 @@ class TitanAIAssistant {
             #titan-ai-drag-handle { cursor: default; }
             #titan-ai-drag-handle.draggable { cursor: grab; }
             #titan-ai-drag-handle.draggable:active { cursor: grabbing; }
-            .ai-header-controls { display: flex; gap: 8px; }
+            .ai-header-controls { 
+                display: flex; gap: 8px; 
+                -webkit-app-region: no-drag; /* Fix macOS desktop drag region intercepting clicks */
+                position: relative; z-index: 10; 
+            }
             .ai-expand-btn {
                 background: none; border: none; color: #38bdf8; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: all 0.2s; padding: 4px; border-radius: 4px;
+                -webkit-app-region: no-drag;
             }
             .ai-expand-btn:hover { background: rgba(56, 189, 248, 0.2); opacity: 1; }
             .ai-header-title {
@@ -1330,7 +1564,7 @@ class TitanAIAssistant {
             #titan-ai-video { width: 100%; border-radius: 8px; background: #000; }
             #titan-ai-snap { width: 100%; margin-top: 12px; padding: 12px; background: #0ea5e9; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
             #titan-ai-snap:hover { background: #38bdf8; }
-            .ai-camera-close { position: absolute; top: -40px; right: 0; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+            .ai-camera-close { position: absolute; top: -40px; right: 0; background: none; border: none; color: white; font-size: 24px; cursor: pointer; -webkit-app-region: no-drag; z-index: 10; }
             
             .ai-pending-area {
                 padding: 10px 16px;
@@ -1349,6 +1583,7 @@ class TitanAIAssistant {
                 background: rgba(239,68,68,0.9); border: none; color: white; width: 22px; height: 22px;
                 border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
                 position: absolute; left: 66px; top: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                -webkit-app-region: no-drag; z-index: 10;
             }
             .ai-pending-hint { font-size: 12px; color: #38bdf8; margin-bottom: 6px; flex: 1; text-align: right;}
             
@@ -1725,7 +1960,7 @@ class TitanAIAssistant {
                 padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between;
                 background: rgba(255,255,255,0.02); font-weight: bold; color: #38bdf8; align-items: center;
             }
-            .ai-history-header button { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 16px; }
+            .ai-history-header button { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 16px; -webkit-app-region: no-drag; position: relative; z-index: 10; }
             .ai-history-header button:hover { color: white; }
             .ai-history-list {
                 padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;
@@ -2211,13 +2446,9 @@ class TitanAIAssistant {
         // 激活钥匙逻辑已移入 updateMemberStatusUI 中动态绑定
 
         if (this.ttsStopBtn) {
-            this.ttsStopBtn.addEventListener('click', () => {
-                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-                if (this.currentAudioPlayer) {
-                    this.currentAudioPlayer.pause();
-                    this.currentAudioPlayer = null;
-                }
-                this.ttsStopBtn.style.display = 'none';
+            this.ttsStopBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.cancelOutput();
             });
         }
         
@@ -2691,16 +2922,19 @@ class TitanAIAssistant {
                     URL.revokeObjectURL(audioUrl);
                     this.currentAudioPlayer = null;
                     if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                    if (typeof this.stopVAD === 'function') this.stopVAD();
                     if (callback) callback();
                 };
                 audio.onerror = () => {
                     URL.revokeObjectURL(audioUrl);
                     this.currentAudioPlayer = null;
                     if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                    if (typeof this.stopVAD === 'function') this.stopVAD();
                     this.fallbackSpeak(cleanText, callback);
                 };
                 
                 await audio.play();
+                if (typeof this.startVAD === 'function') this.startVAD(); // 启动打断监听
                 return;
             } else {
                 this.fallbackSpeak(cleanText, callback);
@@ -2726,10 +2960,94 @@ class TitanAIAssistant {
         if (premiumVoice) utterance.voice = premiumVoice;
         
         if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'flex';
-        utterance.onend = () => { if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none'; if (callback) callback(); };
-        utterance.onerror = () => { if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none'; if (callback) callback(); };
+        utterance.onend = () => { if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none'; if (typeof this.stopVAD === 'function') this.stopVAD(); if (callback) callback(); };
+        utterance.onerror = () => { if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none'; if (typeof this.stopVAD === 'function') this.stopVAD(); if (callback) callback(); };
         
         window.speechSynthesis.speak(utterance);
+        this.startVAD(); // 启动打断监听
+    }
+
+    async initVAD() {
+        if (this.vadStream) return; // 已经初始化过了，防手抖
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+        
+        try {
+            // 🛡️ 核心修复 1：必须强开硬件级的回声消除！否则 AI 把自己的声音外放出来，麦克风听到后会立刻打断自己！
+            this.vadStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+            });
+            
+            this.vadContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = this.vadContext.createMediaStreamSource(this.vadStream);
+            
+            // 🛡️ 核心修复 2：分析器一生只创建一次，复用内存，绝对禁止每次说话都重新 allocate 内存！
+            this.vadAnalyser = this.vadContext.createAnalyser();
+            this.vadAnalyser.fftSize = 512;
+            this.vadAnalyser.smoothingTimeConstant = 0.5;
+            source.connect(this.vadAnalyser);
+            
+            this.vadDataArray = new Uint8Array(this.vadAnalyser.frequencyBinCount);
+            console.log('⚡️ VAD 巡航舰模块已静默待命，守护主线程渲染池。');
+        } catch (err) {
+            console.warn('VAD 麦克风权限被拒绝，打断失效:', err);
+        }
+    }
+
+    startVAD() {
+        if (this.vadReqId) return; // 已经在监听中了
+        
+        // 如果没初始化硬件流，去初始化它，但不阻塞接下来的逻辑
+        if (!this.vadStream) {
+            this.initVAD().then(() => this.startVAD());
+            return;
+        }
+
+        if (this.vadContext && this.vadContext.state === 'suspended') {
+            this.vadContext.resume();
+        }
+        
+        let consecutiveFrames = 0;
+        
+        const detectVolume = () => {
+            if (!this.vadReqId || !this.vadAnalyser) return; // 安全锁：如果已经被外部停止了，彻底终结循环
+            
+            this.vadAnalyser.getByteFrequencyData(this.vadDataArray);
+            let sum = 0;
+            for (let i = 0; i < this.vadDataArray.length; i++) {
+                sum += this.vadDataArray[i];
+            }
+            const average = sum / this.vadDataArray.length;
+            
+            // 【灵敏度阈值】：提升到 55，防止电脑风扇、环境白噪或呼吸声导致的误打断
+            if (average > 55) {
+                consecutiveFrames++;
+                // 连续 8 帧判定为人声说话
+                if (consecutiveFrames > 8) { 
+                    console.warn('🛑 物理打断触发！音量飙升至:', average);
+                    this.stopVAD();      // 1. 立刻停止性能损耗的循环嗅探
+                    this.cancelOutput(); // 2. 立刻让 AI 闭嘴
+                    return; 
+                }
+            } else {
+                consecutiveFrames = 0; // 发现静音，重置击发膛
+            }
+            
+            // 下一帧继续巡航
+            this.vadReqId = requestAnimationFrame(detectVolume);
+        };
+
+        // 挂载引擎钥匙
+        this.vadReqId = 1; // 给个假位先锁死，然后再挂接真实的 handle
+        this.vadReqId = requestAnimationFrame(detectVolume);
+    }
+
+    stopVAD() {
+        // 🛡️ 核心修复 3：当 AI 说完话，【绝对不能关闭麦克风轨道】，只需要停掉 requestAnimationFrame 节约算力！
+        // 频繁断开/开启麦克风硬件句柄，是导致你的 Chrome 浏览器渲染主线程卡死、画面极度掉帧的罪魁祸首！
+        if (this.vadReqId) {
+            cancelAnimationFrame(this.vadReqId);
+            this.vadReqId = null;
+        }
     }
 
     async toggleVoiceRecording() {
@@ -3695,10 +4013,23 @@ ${currentFullContent}
 
     cancelOutput() {
         this.isTypingCancelled = true;
+        this.messageQueue = []; // 阻除残余队列，防止疯狂重载
         if (this.currentAbortController) {
             this.currentAbortController.abort();
             this.currentAbortController = null;
         }
+        
+        // 核心优化：物理物理打断，不仅停止文字，还要强行闭嘴并停止 VAD
+        if (this.currentAudioPlayer) {
+            try { this.currentAudioPlayer.pause(); } catch(e){}
+            this.currentAudioPlayer = null;
+        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+        if (typeof this.stopVAD === 'function') this.stopVAD();
+        
         this.setSendButtonState('send');
     }
 

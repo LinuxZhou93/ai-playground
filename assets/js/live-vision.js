@@ -102,18 +102,29 @@ class LiveVisionCopilot {
         
         // 绑定麦克风控制
         this.micToggleBtn.addEventListener('click', () => {
-             if (this.recognition) {
-                 if (this.isListening) {
-                     this.recognition.stop();
-                     this.isListening = false;
-                     this.micToggleBtn.innerText = '已暂停聆听 (点击唤醒)';
-                     this.micToggleBtn.style.background = '#64748b';
-                 } else {
-                     this.recognition.start();
-                     this.isListening = true;
-                     this.micToggleBtn.innerText = '正在聆听 (可点击暂停)';
-                     this.micToggleBtn.style.background = '#10b981';
+             if (this.isListening) {
+                 this.isListening = false;
+                 // 立即中断当前的 EdgeTTS 输出，提供“一键清净”的控制体验
+                 if (window.EdgeTTS) window.EdgeTTS.cancel();
+                 window.speechSynthesis.cancel();
+                 
+                 this.micToggleBtn.innerText = '已暂停聆听 (点击唤醒)';
+                 this.micToggleBtn.style.background = '#64748b';
+                 
+                 this.isDiscardingNextAudio = true; // ⭐ 修复：停止录音时不发包
+                 if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                     this.mediaRecorder.stop();
                  }
+                 this.isSpeaking = false;
+                 this.isProcessing = false;
+                 if (this.currentAbortController) {
+                     this.currentAbortController.abort();
+                     this.currentAbortController = null;
+                 }
+             } else {
+                 this.isListening = true;
+                 this.micToggleBtn.innerText = '正在聆听 (可点击暂停)';
+                 this.micToggleBtn.style.background = '#10b981';
              }
         });
     }
@@ -124,9 +135,13 @@ class LiveVisionCopilot {
         this.subtitle.innerText = "“正在建立与底层硬件摄像引擎及麦克风列阵的连接...”";
 
         try {
-            // 获取摄像头与麦克风 (环境光后置/或者默认前置广角)
+            // 通过设定高帧率强制抗击相机降帧暗光策略，同时去除 environment 限制（防止苹果生态下幽灵般地去连手机热点摄像头导致严重无线掉帧）
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" },
+                video: { 
+                    width: { ideal: 1280 }, 
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 60, min: 30 }
+                },
                 audio: { echoCancellation: true, noiseSuppression: true }
             });
             this.videoStream = stream;
@@ -147,7 +162,7 @@ class LiveVisionCopilot {
 
         } catch (err) {
             console.error("硬件调用失败:", err);
-            this.subtitle.innerHTML = "<span style='color: #ef4444;'>硬件调用失败：请确系已在系统级授权摄像头与麦克风权限！</span>";
+            this.subtitle.innerHTML = `<span style='color: #ef4444;'>硬件调用失败 (${err.name || 'Error'}): ${err.message || '未知原因'}</span><br>请确系已在系统级授权权限，或尝试通过 http://localhost 访问（不要用 file:// 协议）以满足浏览器安全要求。`;
         }
     }
 
@@ -165,6 +180,7 @@ class LiveVisionCopilot {
         this.silenceTimer = null;
         this.isProcessing = false;
         this.isListening = true; // 由底部按钮控制
+        this.voiceFramesCount = 0; // 记录连续高于阈值的帧数（防误触抖动）
 
         const draw = () => {
             if (!this.isActive) return;
@@ -172,30 +188,54 @@ class LiveVisionCopilot {
             
             this.analyser.getByteFrequencyData(dataArray);
             
-            // 计算当前帧环境音量
+            // 回归经典的平均采样算法 (能有效对抗电子底噪/电流麦引起的单频突刺极度有效)
             let sum = 0;
-            for(let i=0; i<bufferLength; i++) sum += dataArray[i];
-            const avgVolume = sum / bufferLength;
+            // 依然跳过极低频(0~1)的结构震动/风声轰隆声，取余下频段的平均能量
+            for(let i=2; i<bufferLength; i++) {
+                sum += dataArray[i];
+            }
+            const avgVolume = sum / (bufferLength - 2);
 
-            // --- VAD 核心逻辑 (防连发熔断版) ---
-            // 修复频发 429 的元凶：避免过于敏锐导致一两声咳嗽或环境杂音就单独发包
-            const VAD_THRESHOLD = 25; // 提高环境底噪过滤阈值（原本12，改至25，只有真正讲话才触发）
-            const SILENCE_MS = 1500;   // 停顿 1.5秒 即触发，将多句短语合并为一次完整请求，极其节省 Quota
+            // --- VAD 核心逻辑 (稳如泰山版) ---
+            // 直接采用 35 的平均判定阈值（能过滤掉绝大多数环境音，但说话时能轻易上到 40~60）
+            // 不再使用“打断降门槛”的花里胡哨操作，杜绝死循环卡死！
+            const VAD_THRESHOLD = 35; 
+            const SILENCE_MS = 1500;   // 停顿 1.5秒 即触发发包
 
-            if (this.isListening && !this.isProcessing) {
+            if (this.isListening) {
                 if (avgVolume > VAD_THRESHOLD) { 
-                    // 阈值：检测到明显的说话声音
-                    if (!this.isSpeaking) {
-                        this.isSpeaking = true;
-                        this.audioChunks = [];
-                        if (this.mediaRecorder.state === 'inactive') this.mediaRecorder.start();
-                        this.statusText.innerText = "状态: 接收语音流中... (RECORDING)";
-                    }
-                    if (this.silenceTimer) {
-                        clearTimeout(this.silenceTimer); // 打断静音计时
-                        this.silenceTimer = null;
+                    this.voiceFramesCount++;
+                    
+                    // 🌟 时域平滑：声音必须连续存在超过 5 帧（约 80 毫秒），彻底过滤打字、鼠标点击、碰撞等瞬间杂音
+                    if (this.voiceFramesCount >= 5) {
+                        // 阈值：检测到明显的连续说话声音
+                        
+                        // 🌟 核心打断机制 (Doubao style)：如果 AI 正在处理或正在说话，立马让它闭嘴！
+                        if (this.isProcessing) {
+                            this.isProcessing = false;
+                            if (this.currentAbortController) {
+                                this.currentAbortController.abort();
+                                this.currentAbortController = null;
+                            }
+                            if (window.EdgeTTS) window.EdgeTTS.cancel();
+                            window.speechSynthesis.cancel();
+                            this.subtitle.innerHTML = `<span style="color:#ef4444">[已被用户打断]</span> 重新倾听中...`;
+                        }
+
+                        if (!this.isSpeaking) {
+                            this.isSpeaking = true;
+                            this.audioChunks = [];
+                            if (this.mediaRecorder.state === 'inactive') this.mediaRecorder.start();
+                            this.statusText.innerText = "状态: 接收语音流中... (RECORDING)";
+                        }
+                        if (this.silenceTimer) {
+                            clearTimeout(this.silenceTimer); // 打断静音计时
+                            this.silenceTimer = null;
+                        }
                     }
                 } else {
+                    this.voiceFramesCount = 0; // 重置连续帧统计
+                    
                     // 声音低于阈值，进入静音判定
                     if (this.isSpeaking && !this.silenceTimer) {
                         this.silenceTimer = setTimeout(() => {
@@ -230,8 +270,13 @@ class LiveVisionCopilot {
     }
 
     async processAudioAndVision() {
+        if (this.isDiscardingNextAudio) {
+            this.isDiscardingNextAudio = false;
+            return;
+        }
         if (this.isProcessing) return;
         this.isProcessing = true;
+        this.currentAbortController = new AbortController();
         this.subtitle.innerHTML = `<span style="color:#38bdf8; animation: pulse 1s infinite alternate;">[正在抽取音视频流交由大模型核心阵列分析...]</span>`;
         this.statusText.innerText = "状态: 多模态融合推理中 (REASONING)";
 
@@ -261,13 +306,12 @@ class LiveVisionCopilot {
             const pageCtx = window.titanAIAssistant.context || {};
             const systemText = `你是“科技特长生系统”的专属智能虚拟教师【小创老师】。
 这是一次实时的多模态伴读互动。
-【最高视觉优先级】：请务必将注意力集中在我提供给你的“照片/画面镜头”上！你要敏锐地观察画面中学生的表情、动作、实物或周围环境。
-【最高听觉优先级】：仔细聆听并直接回应学生刚说的音频对话。
-【操作约束】：
-1. 你的回答必须100%基于你“看到”的画面细节和你“听到”的语音。
-2. （辅助信息：当前页面背景是【${pageCtx.title || '未知模块'}】。不要主动生硬地去念页面的概念，除非学生问到）。
-3. 如果学生没说话，请根据你从画面中观察到的好玩细节（比如学生的眼神、手里的东西、环境）来主动打招呼或开个玩笑。
-4. 绝对口语化，严禁输出Markdown，返回适合直接语音播报的干脆利落的短句！不能像冰冷的机器！`;
+【最高视觉优先级】：请务必将注意力集中在我提供给你的“照片/画面镜头”上！
+【最高听觉优先级】：仔细聆听并回应学生刚说的语音。
+【最后通牒/操作死线】：
+1. 绝对不可以像机器人一样分段报告“你的画面是... 你的语音是...”。
+2. 必须把视觉和听觉捕捉到的信息，完美揉合成【一小段】极其自然的、朋友般的口语对话！
+3. 严禁输出任何 Markdown、严禁分段、严禁使用破折号或项目符号！只输出纯文本的干脆短句即可！`;
             
             const apiMessages = [
                 window.titanAIAssistant._buildMultimodalMessage(
@@ -280,6 +324,7 @@ class LiveVisionCopilot {
             const response = await fetch(window.titanAIAssistant.settings.endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.titanAIAssistant.settings.apiKey}` },
+                signal: this.currentAbortController.signal,
                 body: JSON.stringify({ 
                     model: window.titanAIAssistant.settings.model, // 回归主界面的动态模型选择
                     messages: apiMessages, 
@@ -303,24 +348,58 @@ class LiveVisionCopilot {
             const data = await response.json();
             const aiReply = data.choices[0].message.content;
 
-            // 4. 清爽展示并调起大声朗读
-            this.subtitle.innerHTML = `<span style="color:#10b981">[小创指导]：</span>${aiReply}`;
+            // 4. 清爽展示并调起大声朗读（本地优化加持版）
+            // 移除原本突兀的绿色前缀，直接采用原生的赛博风格单色输出
+            this.subtitle.innerHTML = `<span style="color:#10b981; font-weight:800; font-family:monospace;">></span> ${aiReply}`;
             this.statusText.innerText = "状态: 语音合成播报中 (TTS_PLAYING)";
             
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(aiReply);
-            utterance.lang = 'zh-CN';
-            const voices = window.speechSynthesis.getVoices();
-            const premiumVoice = voices.find(v => v.lang.includes('zh') && (v.name.includes('Xiaoxiao') || v.name.includes('Ting-Ting')));
-            if (premiumVoice) utterance.voice = premiumVoice;
-            
-            utterance.onend = () => {
-                this.isProcessing = false;
-                this.statusText.innerText = "状态: 等待语音唤醒 (VAD_READY)";
-            };
-            window.speechSynthesis.speak(utterance);
+            // 净网：去掉所有的星号或强转符号避免生硬发音
+            const pureText = aiReply.replace(/[*#`_~]/g, '');
+
+            if (window.EdgeTTS) {
+                window.EdgeTTS.cancel(); // 提前打断上一句
+                
+                // BV001_streaming 是豆包官方的超高保真对话女声
+                window.EdgeTTS.speak(pureText, 'BV001_streaming', {
+                    callback: () => {
+                        this.isProcessing = false;
+                        this.statusText.innerText = "状态: 等待语音唤醒 (VAD_READY)";
+                    }
+                }).catch(err => {
+                    console.error("顶级 TTS 播放出错，强制降级为浏览器语音", err);
+                    fallbackToBrowserTTS();
+                });
+            } else {
+                fallbackToBrowserTTS();
+            }
+
+            const self = this;
+            function fallbackToBrowserTTS() {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(pureText);
+                utterance.lang = 'zh-CN';
+                
+                // 速率与音调的微调，尽量降低“机械感”
+                utterance.rate = 1.05;
+                utterance.pitch = 1.1; 
+                
+                // 优先寻找 Mac 增强语音如 Mei-Jia 或 Windows 的 Xiaoxiao
+                const voices = window.speechSynthesis.getVoices();
+                const premiumVoice = voices.find(v => v.lang.includes('zh') && (v.name.includes('Xiaoxiao') || v.name.includes('Mei-Jia') || v.name.includes('Sin-Ji') || v.name.includes('Enhanced')));
+                if (premiumVoice) utterance.voice = premiumVoice;
+                
+                utterance.onend = () => {
+                    self.isProcessing = false;
+                    self.statusText.innerText = "状态: 等待语音唤醒 (VAD_READY)";
+                };
+                window.speechSynthesis.speak(utterance);
+            }
 
         } catch (err) {
+            if (err.name === 'AbortError') {
+                console.log("推流或推理已被用户声音打断");
+                return; // 已经被打断，无需展示报错，也不需要改变 isProcessing，因为 VAD 那边已经处理了
+            }
             console.error("Live Vision 分析失败", err);
             this.subtitle.innerHTML = `<span style="color:#ef4444;">推流或服务受阻：</span>${err.message}`;
             this.isProcessing = false;
@@ -334,6 +413,11 @@ class LiveVisionCopilot {
         
         if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
             this.mediaRecorder.stop();
+        }
+        
+        // 关键修复：确保彻底打断高保真 EdgeTTS 和原生浏览器语音（解决用户反馈的中断/停止按钮失效问题）
+        if (window.EdgeTTS) {
+            window.EdgeTTS.cancel();
         }
         window.speechSynthesis.cancel();
         

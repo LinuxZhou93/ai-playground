@@ -1,7 +1,38 @@
-const { app, BrowserWindow, systemPreferences, Menu, shell } = require('electron')
+const { app, BrowserWindow, systemPreferences, Menu, shell, ipcMain } = require('electron')
 const path = require('path')
+const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
 
-// 配置基础系统菜单以恢复 Mac 原生的复制(Cmd+C)/粘贴(Cmd+V)/全选(Cmd+A) 等快捷键
+// ==========================================
+// 🎙️ 微软超清神经语音引擎 (Edge TTS 白嫖专线)
+// 只有在 Electron 主进程裸跑，才能无视源限制完美伪装
+// ==========================================
+const msTTS = new MsEdgeTTS();
+ipcMain.handle('generate-edge-tts', async (event, text, voiceName) => {
+    try {
+        console.log(`[主进程 TTS] 正在呼叫微软后台生成语音: ${voiceName || 'zh-CN-XiaoxiaoNeural'}`);
+        await msTTS.setMetadata(voiceName || 'zh-CN-XiaoxiaoNeural', OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+        const audioStream = await msTTS.toStream(text);
+        
+        return new Promise((resolve, reject) => {
+            let chunks = [];
+            audioStream.on('data', chunk => chunks.push(chunk));
+            audioStream.on('end', () => {
+                const buffer = Buffer.concat(chunks);
+                console.log(`[主进程 TTS] 音频生成成功，下发二进制包裹: ${buffer.length} bytes`);
+                resolve(buffer); // 将 Buffer 传送给前端
+            });
+            audioStream.on('error', reject);
+            
+            // 解决 Stream 可能未提供 close 事件引发的问题
+            audioStream.on('close', () => {
+                if (chunks.length > 0) resolve(Buffer.concat(chunks));
+            });
+        });
+    } catch (err) {
+        console.error("[主进程 TTS] 崩溃:", err);
+        throw err;
+    }
+});
 const template = [
   {
     label: app.name,
