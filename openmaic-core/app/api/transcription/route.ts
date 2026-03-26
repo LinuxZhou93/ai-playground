@@ -33,15 +33,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let finalApiKey = clientBaseUrl
+      ? apiKey || ''
+      : resolveASRApiKey(effectiveProviderId, apiKey || undefined);
+      
+    let finalBaseUrl = clientBaseUrl
+      ? clientBaseUrl
+      : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined);
+
+    // [Titan Tech Override] Ultimate Fallback
+    if (!finalApiKey && effectiveProviderId === 'openai-whisper') {
+      finalApiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+      if (!finalBaseUrl) {
+        finalBaseUrl = 'https://backgrace.com/v1';
+      }
+    }
+
     const config = {
       providerId: effectiveProviderId,
       language: language || 'auto',
-      apiKey: clientBaseUrl
-        ? apiKey || ''
-        : resolveASRApiKey(effectiveProviderId, apiKey || undefined) || (effectiveProviderId === 'openai-whisper' ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' : ''),
-      baseUrl: clientBaseUrl
-        ? clientBaseUrl
-        : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined) || (effectiveProviderId === 'openai-whisper' ? 'https://backgrace.com/v1' : ''),
+      apiKey: finalApiKey,
+      baseUrl: finalBaseUrl,
     };
 
     // Convert audio file to buffer
