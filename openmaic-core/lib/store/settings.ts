@@ -241,7 +241,7 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
   Object.keys(PROVIDERS).forEach((pid) => {
     const provider = PROVIDERS[pid as ProviderId];
     config[pid as ProviderId] = {
-      apiKey: pid === 'google' ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' : '',
+      apiKey: pid === 'google' ? 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb' : '',
       baseUrl: pid === 'google' ? 'https://backgrace.com/v1' : '',
       models: provider.models,
       name: provider.name,
@@ -268,11 +268,11 @@ const getDefaultAudioConfig = () => ({
     'glm-tts': { apiKey: '', baseUrl: '', enabled: false },
     'qwen-tts': { apiKey: '', baseUrl: '', enabled: false },
     'elevenlabs-tts': { apiKey: '', baseUrl: '', enabled: false },
-    'volcengine-tts': { apiKey: '', baseUrl: '', enabled: true },
+    'volcengine-tts': { apiKey: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', baseUrl: 'https://openspeech.bytedance.com/api/v1', enabled: true },
     'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
   } as Record<TTSProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
   asrProvidersConfig: {
-    'openai-whisper': { apiKey: '', baseUrl: '', enabled: true },
+    'openai-whisper': { apiKey: 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb', baseUrl: 'https://backgrace.com/v1', enabled: true },
     'browser-native': { apiKey: '', baseUrl: '', enabled: true },
     'qwen-asr': { apiKey: '', baseUrl: '', enabled: false },
   } as Record<ASRProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,

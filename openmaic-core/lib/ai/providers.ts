@@ -305,7 +305,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     name: 'Gemini',
     type: 'openai', // [Titan Tech Override] 强制让 proxy 中转站使用 OpenAI 协议来分发 Gemini
     requiresApiKey: true,
-    defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    defaultBaseUrl: 'https://backgrace.com/v1',
     icon: '/logos/gemini.svg',
     models: [
       {
