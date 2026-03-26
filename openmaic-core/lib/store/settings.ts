@@ -241,7 +241,7 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
   Object.keys(PROVIDERS).forEach((pid) => {
     const provider = PROVIDERS[pid as ProviderId];
     config[pid as ProviderId] = {
-      apiKey: pid === 'google' ? 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb' : '',
+      apiKey: pid === 'google' ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' : '',
       baseUrl: pid === 'google' ? 'https://backgrace.com/v1' : '',
       models: provider.models,
       name: provider.name,
@@ -1296,7 +1296,7 @@ export const useSettingsStore = create<SettingsState>()(
         merged.providerId = 'google';
         merged.modelId = 'gemini-3-flash-preview';
         if (merged.providersConfig && merged.providersConfig['google']) {
-          merged.providersConfig['google'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+          merged.providersConfig['google'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
           merged.providersConfig['google'].baseUrl = 'https://backgrace.com/v1';
         }
 
