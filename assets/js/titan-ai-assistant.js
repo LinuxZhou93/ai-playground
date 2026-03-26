@@ -31,6 +31,19 @@ class TitanAIAssistant {
             memberExpired: parseInt(localStorage.getItem('titan_ai_member_expired') || '0')
         };
         
+        
+        // 🛠️ [独立前端联动]：读取用户前端直连修改的配置 (高优先级)
+        try {
+            const customConfig = localStorage.getItem('titan_ai_custom_config');
+            if (customConfig) {
+                const parsed = JSON.parse(customConfig);
+                if (parsed.apiKey) this.settings.apiKey = parsed.apiKey;
+                if (parsed.endpoint) this.settings.endpoint = parsed.endpoint;
+                if (parsed.model) this.settings.model = parsed.model;
+                console.log('[Titan AI] 🔧 注入前端直连配置: ', parsed.model);
+            }
+        } catch(e){}
+        
         // 🎯 [核心系统联动]：动态继承 OpenMAIC (Zustand 持久化) 系统的全局配置
         try {
             const openmaicStorage = localStorage.getItem('settings-storage');
@@ -2093,6 +2106,10 @@ class TitanAIAssistant {
                 <div class="ai-header" id="titan-ai-drag-handle">
                     <div class="ai-header-title">小创老师 (Virtual Teacher)</div>
                     <div class="ai-header-controls">
+                        
+                        <button type="button" class="ai-expand-btn" id="titan-ai-settings-btn" title="配置模型参数与 API Key">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2-2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        </button>
                         <button type="button" class="ai-expand-btn" id="titan-ai-history-btn" title="时间线档案馆 / Checkout 历史分支记录 (Git History)">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
                         </button>
@@ -2164,6 +2181,20 @@ class TitanAIAssistant {
                 </div>
             </div>
             
+            <div class="ai-settings-modal" id="titan-ai-settings-modal" style="position: absolute; inset: 0; background: rgba(10, 15, 25, 0.85); z-index: 100000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.2s; border-radius: inherit;">
+                <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 16px; padding: 24px; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(14, 165, 233, 0.1); pointer-events: auto;">
+                    <div style="color: #0ea5e9; font-weight: 800; font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:6px;vertical-align:-3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>模型引擎配置</span>
+                        <button type="button" id="titan-ai-settings-close" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;">✖</button>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap: 10px; margin-bottom: 16px;">
+                        <input type="text" id="titan-ai-set-api" placeholder="请输入 API Key (sk-...)" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:#fff; font-size:13px; font-family:monospace; box-sizing:border-box;">
+                        <input type="text" id="titan-ai-set-endpoint" placeholder="Endpoint (含/chat/completions)" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:#fff; font-size:13px; box-sizing:border-box;">
+                        <input type="text" id="titan-ai-set-model" placeholder="Model (例: gemini-1.5-pro)" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:#fff; font-size:13px; box-sizing:border-box;">
+                    </div>
+                    <button id="titan-ai-set-save" style="width:100%; background: #0ea5e9; color: white; padding: 10px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); transition: all 0.2s;">保存并重载配置</button>
+                </div>
+            </div>
             <div class="ai-history-modal" id="titan-ai-history-modal">
                 <div class="ai-history-wrapper">
                     <div class="ai-history-header">
@@ -2238,6 +2269,14 @@ class TitanAIAssistant {
         this.cameraCloseBtn = document.getElementById('titan-ai-camera-close');
         
         this.dragHandle = document.getElementById('titan-ai-drag-handle');
+        this.settingsBtn = document.getElementById('titan-ai-settings-btn');
+        this.settingsModal = document.getElementById('titan-ai-settings-modal');
+        this.settingsCloseBtn = document.getElementById('titan-ai-settings-close');
+        this.settingsSaveBtn = document.getElementById('titan-ai-set-save');
+        this.settingsInputApi = document.getElementById('titan-ai-set-api');
+        this.settingsInputEndpoint = document.getElementById('titan-ai-set-endpoint');
+        this.settingsInputModel = document.getElementById('titan-ai-set-model');
+        
         this.expandBtn = document.getElementById('titan-ai-expand-btn');
         this.resetBtn = document.getElementById('titan-ai-reset-btn');
         this.activateBtn = document.getElementById('titan-ai-activate-btn');
