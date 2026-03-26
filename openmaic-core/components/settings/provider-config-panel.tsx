@@ -171,16 +171,20 @@ export function ProviderConfigPanel({
           <div className="relative flex-1">
             <Input
               name={`llm-api-key-${provider.id}`}
-              type={isForceLocked ? 'text' : (showApiKey ? 'text' : 'password')}
+              type={isForceLocked ? 'text' : showApiKey ? 'text' : 'password'}
               autoComplete="new-password"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              data-1p-ignore="true" 
-              data-lpignore="true" 
+              data-1p-ignore="true"
+              data-lpignore="true"
               data-bwignore="true"
               placeholder={isServerConfigured ? t('settings.optionalOverride') : 'sk-...'}
-              value={effectiveApiKey}
+              value={
+                isForceLocked
+                  ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK'
+                  : apiKey
+              }
               onChange={(e) => !isForceLocked && handleApiKeyChange(e.target.value)}
               onBlur={isForceLocked ? undefined : onSave}
               disabled={isForceLocked || (!requiresApiKey && !isServerConfigured)}
@@ -189,11 +193,14 @@ export function ProviderConfigPanel({
             />
             <button
               type="button"
-              onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => !isForceLocked && setShowApiKey(!showApiKey)}
+              className={cn(
+                "absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground",
+                isForceLocked && "cursor-not-allowed opacity-50"
+              )}
               disabled={!requiresApiKey || isForceLocked}
             >
-              {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {isForceLocked || showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
           <Button
