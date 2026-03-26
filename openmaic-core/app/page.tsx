@@ -124,17 +124,44 @@ function HomePage() {
             
             // [Titan Tech 特长生专属] 炫酷入场语音播报
             const currentNickname = useUserProfileStore.getState().nickname || '科技少将';
-            const settings = useSettingsStore.getState();
-            if (settings.ttsEnabled) {
-              startPreview({
-                text: `未来舰长${currentNickname}，你好！系统已成功挂载 FutureClass 引擎。我们准备好一起展开关于《${courseTopic}》的硬核推演了吗？`,
-                providerId: settings.ttsProviderId || 'browser-native-tts',
-                voice: settings.ttsVoice || 'default',
-                speed: settings.ttsSpeed || 1.1,
-                apiKey: settings.ttsProvidersConfig?.[settings.ttsProviderId]?.apiKey,
-                baseUrl: settings.ttsProvidersConfig?.[settings.ttsProviderId]?.baseUrl,
-              }).catch(e => console.log('Auto TTS Play failed:', e));
-            }
+            const welcomeText = `未来舰长${currentNickname}，你好！系统已成功挂载 Future Class 引擎。我们准备好一起展开关于《${courseTopic}》的硬核推演了吗？`;
+
+            // 🚀 【火山引擎大模型 TTS 直连】 强制统一使用指定的“呆萌川妹”高质量讲课音色
+            const appId = "4780476544";
+            const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
+            const reqid = 'req-fc-' + Date.now() + Math.random().toString().slice(2,8);
+
+            fetch('https://openspeech.bytedance.com/api/v1/tts', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer; ${token}`
+              },
+              body: JSON.stringify({
+                app: { appid: appId, token: token, cluster: "volcano_tts" },
+                user: { uid: "titan_student" },
+                audio: {
+                  voice_type: "zh_female_daimengchuanmei_moon_bigtts",
+                  encoding: "mp3",
+                  speed_ratio: 1.0,
+                  volume_ratio: 1.0,
+                  pitch_ratio: 1.0
+                },
+                request: { reqid: reqid, text: welcomeText, text_type: "plain", operation: "query" }
+              })
+            }).then(async (res) => {
+              const result = await res.json();
+              if (result.code === 3000) {
+                const binary = atob(result.data);
+                const array = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+                const audioBlob = new Blob([array], { type: 'audio/mp3' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new window.Audio(audioUrl);
+                audio.onended = () => URL.revokeObjectURL(audioUrl);
+                await audio.play();
+              }
+            }).catch(e => console.log('Auto TTS Play failed:', e));
         }, 500); // 稍微延迟以体现极客装配感
       }
 
