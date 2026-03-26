@@ -354,7 +354,7 @@ window.Launchpad = (() => {
                 position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
                 background: rgba(3, 7, 18, 0.95);
                 backdrop-filter: blur(20px);
-                z-index: 9999;
+                z-index: 10000000; /* Increased to ensure it covers titan-global-native-header which is 9999998 */
                 display: none;
                 flex-direction: column;
                 align-items: center;
@@ -362,6 +362,7 @@ window.Launchpad = (() => {
                 padding-bottom: 100px;
                 opacity: 0;
                 transition: opacity 0.3s;
+                -webkit-app-region: drag; /* Allow window drag by clicking empty background */
             }
             .launchpad-overlay.active { display: flex; opacity: 1; }
             .lp-header { 
@@ -375,6 +376,7 @@ window.Launchpad = (() => {
                 border-radius: 50px; color: white; font-family: 'Orbitron', sans-serif; letter-spacing: 1px;
                 transition: all 0.3s;
                 font-size: 16px;
+                -webkit-app-region: no-drag; /* Make input clickable */
             }
             .lp-search-bar:focus { 
                 background: rgba(255, 255, 255, 0.1); border-color: var(--primary, #00f3ff); 
@@ -385,6 +387,7 @@ window.Launchpad = (() => {
                 width: 100%; max-width: 1100px; padding: 0 30px; 
                 display: flex; flex-direction: column; gap: 50px; 
                 animation: lp-slide-up 0.5s ease-out; 
+                -webkit-app-region: no-drag; /* Make buttons clickable */
             }
             
             .lp-category-section { width: 100%; }
@@ -430,6 +433,7 @@ window.Launchpad = (() => {
                 color: rgba(255, 255, 255, 0.5); cursor: pointer; 
                 width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; 
                 background: rgba(0, 0, 0, 0.5); border-radius: 50%; z-index: 20; transition: all 0.2s; 
+                -webkit-app-region: no-drag; pointer-events: auto; /* Required to beat Electron drag interception */
             }
             .lp-close-btn:hover { color: white; background: rgba(255, 255, 255, 0.1); }
 
