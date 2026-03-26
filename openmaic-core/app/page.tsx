@@ -285,6 +285,39 @@ function HomePage() {
   };
 
   const handleGenerate = async () => {
+    // ⚔️ 【Titan Tech】主站全域身份鉴定防火墙
+    try {
+      const userEmail = localStorage.getItem('current_user_email');
+      const authStatusStr = localStorage.getItem('fc_subscription_status');
+      
+      // 1. 无身份游客，冷酷驱逐
+      if (!userEmail) {
+         alert('⚠️ 协议网络拒绝访问：未探测到 FutureClass 的注册数字密钥。\n请先返回特长生大厅中心进行授权驻扎！');
+         window.location.href = 'https://ai.zhouxiaomai.com/'; // 把他踢回主站大厅
+         return;
+      }
+      
+      // 2. 付费 / 免费 分流与额度控制
+      let isPro = false;
+      if (authStatusStr) {
+         const authData = JSON.parse(authStatusStr);
+         if (authData && authData.status === 'active') isPro = true;
+      }
+      
+      if (!isPro) {
+         let usage = parseInt(localStorage.getItem('titan_free_usage') || '0', 10);
+         if (usage >= 5) {
+            if (window.confirm('🔒 系统过载保护：您的【启蒙版】5次大模型演算配额已完全燃尽！\n指挥官，若需继续构建更深的科技视界，请升级您的算力舱段。是否立即跳转增配平台？')) {
+               window.location.href = 'https://ai.zhouxiaomai.com/pricing-demo.html';
+            }
+            return;
+         }
+         // 增加磨损度
+         localStorage.setItem('titan_free_usage', (usage + 1).toString());
+         console.log(`[FC Auth] 免费算力储备燃烧警告... 剩余次数: ${4 - usage}`);
+      }
+    } catch(e) { console.warn('Auth checks skipped', e); }
+
     // Validate setup before proceeding
     if (!currentModelId) {
       // 🚀 [Titan Tech Override] Zero-Config Auto Fallback!
