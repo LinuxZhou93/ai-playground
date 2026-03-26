@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>探空火箭工程实践 2.0 | 液态教室 FUTURECLASS</title>
+
+    <!-- UI Core -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="https://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #020617;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .rocket-grid {
+            background-image: linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Essential Slide Transitions */
+        .kernel-container {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 100;
+            display: none;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .kernel-container.active {
+            display: block;
+            pointer-events: auto;
+        }
+
+        .kernel-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .lesson-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 3px solid transparent;
+        }
+
+        .lesson-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(4px);
+        }
+
+        .lesson-item.active {
+            background: linear-gradient(90deg, rgba(249, 115, 22, 0.1), transparent);
+            border-left-color: #f97316;
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.05);
+        }
+
+        [v-cloak] { display: none; }
+
+        .btn-launch {
+            background: white;
+            color: black;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-launch:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.3);
+        }
+
+        /* 统一的单点返回按钮样式 */
+        .home-btn-fixed {
+            background: rgba(249, 115, 22, 0.15);
+            border: 1px solid rgba(249, 115, 22, 0.2);
+            color: #f97316;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        .home-btn-fixed:hover {
+            background: #f97316;
+            color: white;
+            box-shadow: 0 0 25px rgba(249, 115, 22, 0.4);
+        }
+    </style>
+</head>
+
+<body class="rocket-grid h-screen overflow-hidden">
+    <div id="app" class="h-full flex flex-col" v-cloak>
+        <!-- Master Navigation - Simplified -->
+        <nav class="h-14 glass border-b border-white/5 z-[110] relative flex items-center justify-between px-8">
+            <div class="flex items-center gap-6">
+                <div class="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center text-sm shadow-inner overflow-hidden">🚀</div>
+                <div>
+                    <h1 class="font-black text-sm tracking-tight text-white/80">探空火箭工程实践 <span class="text-[9px] font-normal text-slate-500 uppercase ml-2 tracking-widest">Liquid 2.0</span></h1>
+                </div>
+            </div>
+
+            <!-- Context Info -->
+            <div class="flex items-center gap-6">
+                <div class="flex gap-4">
+                    <span v-if="viewMode === 'classroom'" class="text-[10px] text-orange-500 font-black uppercase flex items-center gap-2 animate-pulse">
+                         ● 已进入授课内核
+                    </span>
+                    <span v-else class="text-[10px] text-slate-500 font-bold uppercase">Mission Ready</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Layout -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar: Universal Navigator -->
+            <aside class="w-80 glass border-r border-white/5 flex flex-col z-[105] relative shadow-2xl">
+                <div class="p-8 pb-4">
+                    <div class="flex justify-between items-end mb-3">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Progress</span>
+                        <span class="text-3xl font-black text-orange-500">{{ progressPercentage }}%</span>
+                    </div>
+                    <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-orange-500 transition-all duration-1000" :style="{ width: progressPercentage + '%' }"></div>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto px-4 py-6 space-y-2">
+                    <div v-for="lesson in lessons" :key="lesson.id" 
+                         @click="selectLesson(lesson)"
+                         class="lesson-item p-4 rounded-xl cursor-pointer group"
+                         :class="{ 'active': currentLesson?.id === lesson.id }">
+                        <div class="flex gap-4">
+                            <div class="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center text-[10px] font-black text-slate-500 transition-colors group-hover:text-white"
+                                 :class="{ 'bg-orange-500/20 text-orange-500': lesson.completed }">
+                                {{ lesson.completed ? '✓' : ('0' + lesson.id).slice(-2) }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-bold text-xs truncate mb-1" :class="currentLesson?.id === lesson.id ? 'text-white' : 'text-slate-400'">{{ lesson.title }}</h4>
+                                <p class="text-[9px] text-slate-600 uppercase tracking-widest font-mono">{{ lesson.category }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 统一唯一的返回大厅按钮 -->
+                <div class="p-4 border-t border-white/5 bg-black/40">
+                    <button v-if="viewMode === 'classroom'" @click="exitClassroom" 
+                            class="w-full py-4 rounded-2xl home-btn-fixed text-xs mb-3">
+                        ← 退出液态授课
+                    </button>
+                    <a href="learn.html" class="w-full py-4 rounded-2xl glass border border-white/10 text-slate-400 text-[10px] font-black uppercase text-center block tracking-widest hover:text-white hover:border-white/20 transition-all">
+                        ← 返回学习中心
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Creative Core -->
+            <main class="flex-1 relative bg-black">
+                <!-- Transition Mask -->
+                <div id="transition-mask" class="absolute inset-0 bg-orange-600 z-[150] translate-y-full"></div>
+
+                <!-- View: Overview -->
+                <div v-show="viewMode === 'overview'" id="overview-container" class="h-full overflow-y-auto">
+                    <div class="max-w-4xl mx-auto p-12 py-20">
+                        <div class="flex items-center gap-3 mb-6">
+                             <span class="px-2 py-0.5 rounded bg-orange-500/10 text-orange-500 text-[10px] font-black uppercase tracking-widest border border-orange-500/20">Rocketry Pilot Module</span>
+                        </div>
+                        
+                        <h2 class="text-6xl font-black mb-6 leading-tight tracking-tighter">{{ currentLesson?.title }}</h2>
+                        <p class="text-slate-500 text-lg max-w-2xl mb-12 leading-relaxed">{{ currentLesson?.content }}</p>
+
+                        <!-- Hero Preview Box -->
+                        <div class="relative group cursor-pointer mb-12" @click="startL4Lesson">
+                             <div class="aspect-video glass rounded-[3rem] overflow-hidden border border-white/5 relative z-10 transition-all duration-500 group-hover:shadow-[0_0_100px_rgba(249,115,22,0.1)]">
+                                  <img :src="currentLesson?.image" class="w-full h-full object-cover grayscale transition-all duration-1000 group-hover:grayscale-0 group-hover:scale-110">
+                                  <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+                                  
+                                  <!-- Hover Play Icon -->
+                                  <div class="absolute inset-0 flex items-center justify-center">
+                                       <div class="w-24 h-24 rounded-full bg-white text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-2xl">
+                                            <span class="text-3xl translate-x-1">▶</span>
+                                       </div>
+                                  </div>
+
+                                  <!-- Stats -->
+                                  <div class="absolute bottom-12 left-12 flex gap-4">
+                                       <div class="glass px-6 py-3 rounded-2xl">
+                                            <p class="text-[9px] text-slate-500 font-bold uppercase">Module Status</p>
+                                            <p class="text-xs font-black">L4 READY</p>
+                                       </div>
+                                  </div>
+                             </div>
+                        </div>
+
+                        <!-- Big Action -->
+                        <button @click="startL4Lesson" class="bg-white text-black px-12 py-5 rounded-3xl flex items-center gap-6 group hover:scale-105 transition-transform">
+                            <span class="font-black text-xl tracking-tighter">立刻启动授课内核</span>
+                            <span class="text-2xl group-hover:translate-x-2 transition-transform">➤</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- View: Classroom (FutureClass Kernel) -->
+                <div v-if="viewMode === 'classroom'" class="absolute inset-0 z-[100] animate-in fade-in zoom-in duration-1000">
+                     <iframe id="fc-kernel" 
+                             :src="kernelUrl" 
+                             class="w-full h-full border-none"
+                             allow="autoplay; camera; microphone; clipboard-write; speaker-selection"></iframe>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- PERSISTENT TITAN SYSTEM -->
+    <script src="assets/js/titan-ai-assistant.js?v=2.1"></script>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                const viewMode = ref('overview');
+                const progressPercentage = ref(0);
+
+                const lessons = ref([
+                    { id: 1, title: '电路之魂：PCB 设计基础及 EDA 工具', category: 'Hardware Core', image: 'assets/images/circuit_bg.png', kernelId: 'qC0KuF7GS2', content: '学习线模型与特性阻抗 (Z0)，掌握 RLGC 等效模型与特性阻抗推导逻辑。在 FutureClass 沉浸式内核中完成电路之魂的首次实战。' },
+                    { id: 2, title: '空气动力学：流体模拟逻辑', category: 'Physics', image: 'assets/images/agro-bg.png', kernelId: 'pX8Yw2Z9K', content: '由航空专家主讲，深入解析探空火箭在超音速状态下的升空平衡与动态姿态感应算法。' },
+                    { id: 3, title: '发射日：实地发射与数据采集', category: 'Launch', image: 'assets/images/hero_bg.png', kernelId: 'tZ5M7K3J1', content: '实现火箭从点火、升空、抛伞到平稳回收的完整闭环。在专业实战基地采集仿真数据、姿态数据。' }
+                ]);
+
+                const currentLesson = ref(lessons.value[0]);
+                const kernelUrl = ref("");
+
+                const selectLesson = (lesson) => {
+                    if(viewMode.value === 'classroom') {
+                        if(!confirm("切换章节将退出当前液态授课，确定吗？")) return;
+                    }
+                    viewMode.value = 'overview';
+                    currentLesson.value = lesson;
+                };
+
+                const startL4Lesson = () => {
+                    kernelUrl.value = `https://ai-playground-xi-three.vercel.app/classroom/${currentLesson.value.kernelId}`;
+                    const mask = document.getElementById('transition-mask');
+                    const tl = gsap.timeline();
+                    
+                    tl.to(mask, { yPercent: -100, duration: 0.8, ease: "expo.inOut" })
+                      .set({}, { onComplete: () => { viewMode.value = 'classroom'; } })
+                      .to(mask, { yPercent: -200, duration: 0.8, ease: "expo.inOut", delay: 0.2 });
+                };
+
+                const exitClassroom = () => {
+                    const mask = document.getElementById('transition-mask');
+                    const tl = gsap.timeline();
+                    tl.set(mask, { yPercent: 0 })
+                      .to(mask, { yPercent: -100, duration: 0.6, ease: "power4.inOut" })
+                      .set({}, { onComplete: () => { viewMode.value = 'overview'; } })
+                      .to(mask, { yPercent: -200, duration: 0.6, ease: "power4.inOut" });
+                };
+
+                return {
+                    viewMode, lessons, currentLesson, selectLesson, 
+                    startL4Lesson, exitClassroom, kernelUrl, progressPercentage
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

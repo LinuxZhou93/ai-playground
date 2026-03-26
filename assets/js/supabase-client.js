@@ -89,9 +89,18 @@ async function signInWithGitHub() {
 // OAuth Login (WeChat) - Requires Supabase configured provider
 async function signInWithWeChat() {
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
+    
+    // Explicitly define the redirect URL for WeChat OAuth trust list
+    const redirectUrl = window.location.origin + window.location.pathname;
+    
     const { data, error } = await _supabase.auth.signInWithOAuth({
         provider: 'wechat',
-        options: { redirectTo: window.location.origin }
+        options: { 
+            redirectTo: redirectUrl,
+            queryParams: {
+                // Potential extra params for WeChat
+            }
+        }
     });
     return { data, error };
 }

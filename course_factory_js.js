@@ -63,7 +63,7 @@ function generateCourse(definition) {
             if (html[i] === '{') braceCount++;
             if (html[i] === '}') {
                 braceCount--;
-                if (braceCount === -1) { // Found the closing brace of the main function
+                if (braceCount === 0) { // Found the matching closing brace
                     endIndex = i + 1;
                     break;
                 }
