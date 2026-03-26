@@ -508,16 +508,23 @@ export const useSettingsStore = create<SettingsState>()(
       const defaultImageConfig = getDefaultImageConfig();
       const defaultVideoConfig = getDefaultVideoConfig();
       const defaultWebSearchConfig = getDefaultWebSearchConfig();
+      // [Titan Tech Override] Apply Proxy ASR settings to defaults
+      if (defaultAudioConfig.asrProvidersConfig && defaultAudioConfig.asrProvidersConfig['openai-whisper']) {
+        defaultAudioConfig.asrProviderId = 'openai-whisper';
+        defaultAudioConfig.asrLanguage = 'zh';
+        defaultAudioConfig.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+        defaultAudioConfig.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
+      }
 
       return {
-        // Initial state (use migrated data if available)
-        providerId: migratedData?.providerId || 'openai',
-        modelId: migratedData?.modelId || '',
+        // [Titan Tech Permanent Override] Initial state LLM credentials
+        providerId: 'google',
+        modelId: 'gemini-3-flash-preview',
         providersConfig: migratedData?.providersConfig || getDefaultProvidersConfig(),
         ttsModel: migratedData?.ttsModel || 'openai-tts',
         selectedAgentIds: migratedData?.selectedAgentIds || ['default-1', 'default-2', 'default-3'],
         maxTurns: migratedData?.maxTurns?.toString() || '10',
-        agentMode: 'auto' as const,
+        agentMode: 'preset' as const,
         autoAgentCount: 3,
 
         // Playback controls
