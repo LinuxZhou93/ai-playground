@@ -350,15 +350,41 @@ function HomePage() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#f8fafc] text-slate-800 relative flex flex-col items-center xl:items-start xl:pl-[12%] p-4 pt-16 md:p-8 md:pt-16 lg:pr-[400px] overflow-x-hidden font-sans">
+    <div className="min-h-[100dvh] w-full bg-[#f8fafc] text-slate-800 relative flex flex-col items-center justify-center p-4 pt-16 md:p-8 overflow-x-hidden font-sans">
       {/* ═══ 活泼的极光与马卡龙波点网格 (C4D 软光风格) ═══ */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px] opacity-60" />
       </div>
-      {/* ═══ Top-right pill (Titan 强控特长生模式：屏蔽右上方各类用户级开关和设置项) ═══ */}
-      {/* 
-        此处原含有 Settings、Theme、Locale 的胶囊导航，已拔除以封闭安全黑盒。
-      */}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes c4d-float {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-25px) rotate(6deg); }
+          100% { transform: translateY(0px) rotate(0deg); }
+        }
+        @keyframes c4d-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.05); opacity: 1; }
+        }
+        .c4d-element { animation: c4d-float 6s ease-in-out infinite, c4d-pulse 8s ease-in-out infinite; }
+        .c4d-element.delay-1 { animation-delay: 1s, 2s; }
+        .c4d-element.delay-2 { animation-delay: 2s, 1s; }
+        .c4d-element.delay-3 { animation-delay: 3s, 0s; }
+        .c4d-element.delay-4 { animation-delay: 4s, 3s; }
+        .preserve-3d { transform-style: preserve-3d; }
+      `}} />
+
+      {/* ═══ Top-right pill (RESTORED: Settings Configuration) ═══ */}
+      <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="flex items-center justify-center p-3 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] active:scale-95 transition-all duration-300"
+          title={t('settings.title')}
+        >
+          <Settings className="size-5" />
+        </button>
+      </div>
+
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={(open) => {
@@ -368,20 +394,30 @@ function HomePage() {
         initialSection={settingsSection}
       />
 
-      {/* ═══ Background Decor (C4D 糖果色弥散光球) ═══ */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div
-          className="absolute -top-20 -left-10 w-[500px] h-[500px] bg-indigo-300/40 rounded-full blur-[100px] animate-pulse"
-          style={{ animationDuration: '8s' }}
-        />
-        <div
-          className="absolute top-40 right-10 w-[400px] h-[400px] bg-rose-300/40 rounded-full blur-[90px] animate-pulse delay-1000"
-          style={{ animationDuration: '7s' }}
-        />
-        <div
-          className="absolute bottom-10 left-1/3 w-[600px] h-[600px] bg-amber-200/50 rounded-full blur-[120px] animate-pulse delay-750"
-          style={{ animationDuration: '10s' }}
-        />
+      {/* ═══ Background Decor (C4D 糖果色弥散光球 + 立体几何) ═══ */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 perspective-[1000px]">
+        {/* Glow Effects */}
+        <div className="absolute -top-20 -left-10 w-[500px] h-[500px] bg-indigo-300/40 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-40 right-10 w-[400px] h-[400px] bg-rose-300/40 rounded-full blur-[90px] animate-pulse delay-1000" style={{ animationDuration: '7s' }} />
+        <div className="absolute bottom-10 left-1/3 w-[600px] h-[600px] bg-amber-200/50 rounded-full blur-[120px] animate-pulse delay-750" style={{ animationDuration: '10s' }} />
+
+        {/* ── C4D Floating Elements ── */}
+        
+        {/* 1. Purple Sphere */}
+        <div className="c4d-element absolute top-[15%] left-[10%] xl:left-[18%] w-16 h-16 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 shadow-[inset_-6px_-6px_15px_rgba(0,0,0,0.2),_10px_20px_30px_rgba(129,140,248,0.4)] backdrop-blur-3xl z-10" />
+
+        {/* 2. Frosted Glass Ring */}
+        <div className="c4d-element delay-1 preserve-3d absolute top-[20%] right-[8%] xl:right-[15%] w-20 h-20 md:w-32 md:h-32 rounded-full border-[10px] md:border-[16px] border-rose-400/80 shadow-[0_15px_40px_rgba(251,113,133,0.3),_inset_0_4px_10px_rgba(255,255,255,0.5)] z-0" style={{ transform: 'rotateX(50deg) rotateY(25deg)' }} />
+
+        {/* 3. Orange Rounded Cube */}
+        <div className="c4d-element delay-2 absolute bottom-[25%] left-[8%] xl:left-[15%] w-16 h-16 md:w-28 md:h-28 rounded-[20px] md:rounded-[32px] bg-gradient-to-tr from-amber-300 to-orange-400 shadow-[inset_-5px_-5px_20px_rgba(0,0,0,0.15),_10px_20px_40px_rgba(251,191,36,0.35)] rotate-12 z-10" />
+
+        {/* 4. Turquoise Prism/Triangle */}
+        <div className="c4d-element delay-3 absolute bottom-[18%] right-[10%] xl:right-[20%] w-0 h-0 border-l-[30px] md:border-l-[45px] border-l-transparent border-r-[30px] md:border-r-[45px] border-r-transparent border-b-[52px] md:border-b-[78px] border-b-cyan-400/90 drop-shadow-[0_20px_35px_rgba(34,211,238,0.4)] rotate-[-15deg] z-0" />
+
+        {/* 5. Mini Crystal Bubbles */}
+        <div className="c4d-element delay-4 absolute top-[40%] right-[25%] w-8 h-8 rounded-full bg-white/80 shadow-[inset_-2px_-2px_8px_rgba(0,0,0,0.1),_0_10px_20px_rgba(0,0,0,0.08)] backdrop-blur-xl" />
+        <div className="c4d-element delay-1 absolute bottom-[40%] left-[20%] w-5 h-5 rounded-full bg-white/80 shadow-[inset_-1px_-1px_5px_rgba(0,0,0,0.1),_0_6px_15px_rgba(0,0,0,0.08)] backdrop-blur-xl" />
       </div>
 
       {/* ═══ Hero section: title + input (centered, wider) ═══ */}
@@ -391,7 +427,7 @@ function HomePage() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className={cn(
           'relative z-20 w-full max-w-[800px] flex flex-col items-center',
-          classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-[10vh]',
+          classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-12rem)]' : ''
         )}
       >
         {/* ── Titan UI Logo: FutureClass ── */}
