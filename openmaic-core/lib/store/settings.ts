@@ -1187,10 +1187,20 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: 'settings-storage',
-      version: 2,
+      version: 3,
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<SettingsState>;
+
+        // v2 → v3: Force clear legacy proxy keys stuck in local storage
+        if (version < 3) {
+          if (state.providersConfig && state.providersConfig['google']) {
+            state.providersConfig['google'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          }
+          if (state.asrProvidersConfig && state.asrProvidersConfig['openai-whisper']) {
+            state.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          }
+        }
 
         // v0 → v1: clear hardcoded default model so user must actively select
         if (version === 0) {
