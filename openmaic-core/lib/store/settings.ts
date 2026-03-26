@@ -257,8 +257,8 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 
 // Initialize default audio config
 const getDefaultAudioConfig = () => ({
-  ttsProviderId: 'browser-native-tts' as TTSProviderId,
-  ttsVoice: 'default',
+  ttsProviderId: 'volcengine-tts' as TTSProviderId,
+  ttsVoice: 'zh_child_feifei_moon_bigtts',
   ttsSpeed: 1.0,
   asrProviderId: 'browser-native' as ASRProviderId,
   asrLanguage: 'zh',
@@ -268,6 +268,7 @@ const getDefaultAudioConfig = () => ({
     'glm-tts': { apiKey: '', baseUrl: '', enabled: false },
     'qwen-tts': { apiKey: '', baseUrl: '', enabled: false },
     'elevenlabs-tts': { apiKey: '', baseUrl: '', enabled: false },
+    'volcengine-tts': { apiKey: '', baseUrl: '', enabled: true },
     'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
   } as Record<TTSProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
   asrProvidersConfig: {
@@ -512,8 +513,17 @@ export const useSettingsStore = create<SettingsState>()(
       if (defaultAudioConfig.asrProvidersConfig && defaultAudioConfig.asrProvidersConfig['openai-whisper']) {
         defaultAudioConfig.asrProviderId = 'openai-whisper';
         defaultAudioConfig.asrLanguage = 'zh';
-        defaultAudioConfig.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+        defaultAudioConfig.asrProvidersConfig['openai-whisper'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
         defaultAudioConfig.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
+      }
+
+      // [Titan Tech Override] Apply Direct Volcengine TTS to defaults (Does NOT go through Backgrace)
+      if (defaultAudioConfig.ttsProvidersConfig && defaultAudioConfig.ttsProvidersConfig['volcengine-tts']) {
+        defaultAudioConfig.ttsProviderId = 'volcengine-tts';
+        defaultAudioConfig.ttsVoice = 'zh_child_feifei_moon_bigtts';
+        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
+        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
+        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].enabled = true;
       }
 
       return {
@@ -1299,11 +1309,11 @@ export const useSettingsStore = create<SettingsState>()(
         ensureBuiltInVideoProviders(merged as Partial<SettingsState>);
         ensureValidProviderSelections(merged as Partial<SettingsState>);
 
-        // [Titan Tech Permanent Override] Hardcode Core LLM credentials
+        // [Titan Tech Permanent Override] Hardcode Core LLM credentials (via Backgrace Proxy)
         merged.providerId = 'google';
         merged.modelId = 'gemini-3-flash-preview';
         if (merged.providersConfig && merged.providersConfig['google']) {
-          merged.providersConfig['google'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          merged.providersConfig['google'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
           merged.providersConfig['google'].baseUrl = 'https://backgrace.com/v1';
         }
 
@@ -1311,8 +1321,17 @@ export const useSettingsStore = create<SettingsState>()(
         merged.asrProviderId = 'openai-whisper';
         merged.asrLanguage = 'zh';
         if (merged.asrProvidersConfig && merged.asrProvidersConfig['openai-whisper']) {
-          merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
           merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
+        }
+
+        // [Titan Tech Permanent Override] Hardcode TTS (Direct Volcengine/Doubao) - bypass Backgrace for voice synthesis
+        merged.ttsProviderId = 'volcengine-tts';
+        merged.ttsVoice = 'zh_child_feifei_moon_bigtts';
+        if (merged.ttsProvidersConfig && merged.ttsProvidersConfig['volcengine-tts']) {
+           merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
+           merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
+           merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
         }
 
         return merged as SettingsState;
