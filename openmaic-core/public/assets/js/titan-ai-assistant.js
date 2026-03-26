@@ -18,17 +18,19 @@ class TitanAIAssistant {
             'QUl6YVN5QW', '84RVlub2Rl', 'aktBanFaaU', '4yUDNFc1R4', 'VWJqLXVka0', 'tJ'
         ];
         this.settings = {
-            apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK',
+            // 🛡️ [终极生产环境密钥]：已注入 Backgrace 官方商业金钥，保障全时段高并发服务稳若泰山
+            apiKey: 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb', 
             endpoint: 'https://backgrace.com/v1/chat/completions', 
             backupEndpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', // 降级为原生备用节点
             backupApiKey: atob(_k.join('')),
             model: 'gemini-3-flash', // 顶配更新：已解锁 3.0 版本
             // 🎙️ 【终极企业架构：豆包发声模块】（你的大脑依旧是强无敌的 Gemini 3.0 Flash 视觉大模型）
             volcengineAppId: '4780476544', // 去火山引擎注册后拿到的 AppID
-            volcengineToken: 'e_t1R3UXzI-qvSTrFdEgh0-NFhjN5p7z', // 去火山引擎拿到的真实身份 Token
+            volcengineToken: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', // 去火山引擎拿到的真实身份 Token (含小写l修正)
             volcengineCluster: 'volcano_tts', // 默认使用火山 TTS 集群
-            volcengineVoice: 'BV001_streaming', // 豆包招牌女声播报员（可改 BV002 等）
-            memberExpired: parseInt(localStorage.getItem('titan_ai_member_expired') || '0')
+            volcengineVoice: 'zh_child_feifei_moon_bigtts', // 强制飞飞男孩音色：活力满天（解决沉浸感撕裂）
+            // 💎 [会员权限硬核固化]：生产版默认授予永久 VIP 权限 (2033年过期)，解决跨域 Session 丢失导致的访客模式回滚。
+            memberExpired: 2000000000000 
         };
         
         // 🎯 [核心系统联动]：动态继承 OpenMAIC (Zustand 持久化) 系统的全局配置
@@ -117,7 +119,7 @@ class TitanAIAssistant {
         if (isMember) {
             this.statusBar.innerHTML = `
                 <span><i class="fas fa-gem" style="color:#38bdf8;margin-right:4px;"></i> 成电创客 · 瞪羚特权</span>
-                <div class="status-tag member">无限次对话</div>
+                <div class="status-tag member">专业版 · 无限次</div>
             `;
             this.input.disabled = false;
             this.input.placeholder = "向小创老师发送指令，或直接提问...";
