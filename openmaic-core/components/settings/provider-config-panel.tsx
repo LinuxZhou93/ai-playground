@@ -107,6 +107,9 @@ export function ProviderConfigPanel({
     onConfigChange(apiKey, baseUrl, requires);
   };
 
+  const isForceLocked = provider.id === 'google';
+  const effectiveApiKey = isForceLocked ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' : apiKey;
+
   const handleTestApi = useCallback(async () => {
     setTestStatus('testing');
     setTestMessage('');
@@ -126,7 +129,7 @@ export function ProviderConfigPanel({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          apiKey,
+          apiKey: effectiveApiKey,
           baseUrl,
           model: `${provider.id}:${testModelId}`,
           providerType: provider.type,
@@ -168,7 +171,7 @@ export function ProviderConfigPanel({
           <div className="relative flex-1">
             <Input
               name={`llm-api-key-${provider.id}`}
-              type={showApiKey ? 'text' : 'password'}
+              type={isForceLocked ? 'text' : (showApiKey ? 'text' : 'password')}
               autoComplete="new-password"
               autoCapitalize="none"
               autoCorrect="off"
@@ -177,17 +180,18 @@ export function ProviderConfigPanel({
               data-lpignore="true" 
               data-bwignore="true"
               placeholder={isServerConfigured ? t('settings.optionalOverride') : 'sk-...'}
-              value={apiKey}
-              onChange={(e) => handleApiKeyChange(e.target.value)}
-              onBlur={onSave}
-              disabled={!requiresApiKey && !isServerConfigured}
+              value={effectiveApiKey}
+              onChange={(e) => !isForceLocked && handleApiKeyChange(e.target.value)}
+              onBlur={isForceLocked ? undefined : onSave}
+              disabled={isForceLocked || (!requiresApiKey && !isServerConfigured)}
               className="h-8 pr-8"
+              readOnly={isForceLocked}
             />
             <button
               type="button"
               onClick={() => setShowApiKey(!showApiKey)}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              disabled={!requiresApiKey}
+              disabled={!requiresApiKey || isForceLocked}
             >
               {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
