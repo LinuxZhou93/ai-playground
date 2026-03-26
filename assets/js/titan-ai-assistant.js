@@ -2936,51 +2936,83 @@ class TitanAIAssistant {
         }
 
         try {
-            // 尝试调用 OpenAI 兼容的高级语音合成接口进行拟态发音
-            const ttsEndpoint = this.settings.endpoint.replace('/chat/completions', '/audio/speech');
-            const response = await fetch(ttsEndpoint, {
+            // 🚀 【火山引擎大模型 TTS 引擎直连】
+            // 绕过之前的配置面板，直接硬编码使用最顶级的“呆萌川妹”音色 (极大提升小学生群体的沉浸感)
+            const appId = "4780476544";
+            const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
+            const reqid = 'req-titan-' + Date.now() + Math.random().toString().slice(2,8);
+
+            const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.settings.apiKey}`
+                    'Authorization': `Bearer; ${token}`
                 },
                 body: JSON.stringify({
-                    model: 'tts-1',
-                    input: cleanText,
-                    voice: 'nova' // 知性女声，更拟人
+                    app: {
+                        appid: appId,
+                        token: token,
+                        cluster: "volcano_tts"
+                    },
+                    user: { uid: "titan_student" },
+                    audio: {
+                        voice_type: "zh_female_daimengchuanmei_moon_bigtts", // 呆萌川妹
+                        encoding: "mp3",
+                        speed_ratio: 1.0,
+                        volume_ratio: 1.0,
+                        pitch_ratio: 1.0
+                    },
+                    request: {
+                        reqid: reqid,
+                        text: cleanText.substring(0, 300), // 火山tts单次大概支持三百字，这已足够当前教育问答切片
+                        text_type: "plain",
+                        operation: "query"
+                    }
                 })
             });
 
             if (response.ok) {
-                const audioBlob = await response.blob();
-                const audioUrl = URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioUrl);
-                
-                this.currentAudioPlayer = audio;
-                if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'flex';
-                
-                audio.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    this.currentAudioPlayer = null;
-                    if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
-                    if (typeof this.stopVAD === 'function') this.stopVAD();
-                    if (callback) callback();
-                };
-                audio.onerror = () => {
-                    URL.revokeObjectURL(audioUrl);
-                    this.currentAudioPlayer = null;
-                    if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
-                    if (typeof this.stopVAD === 'function') this.stopVAD();
+                const result = await response.json();
+                if (result.code === 3000) {
+                    // 解码火山引擎返回的 Base64 音频
+                    const binary = atob(result.data);
+                    const array = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+                    const audioBlob = new Blob([array], { type: 'audio/mp3' });
+                    
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    
+                    this.currentAudioPlayer = audio;
+                    if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'flex';
+                    
+                    audio.onended = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        this.currentAudioPlayer = null;
+                        if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                        if (typeof this.stopVAD === 'function') this.stopVAD();
+                        if (callback) callback();
+                    };
+                    audio.onerror = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        this.currentAudioPlayer = null;
+                        if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                        if (typeof this.stopVAD === 'function') this.stopVAD();
+                        this.fallbackSpeak(cleanText, callback);
+                    };
+                    
+                    await audio.play();
+                    if (typeof this.startVAD === 'function') this.startVAD(); // 启动打断监听
+                    return;
+                } else {
+                    console.error('火山引擎 TTS 报错:', result.message);
                     this.fallbackSpeak(cleanText, callback);
-                };
-                
-                await audio.play();
-                if (typeof this.startVAD === 'function') this.startVAD(); // 启动打断监听
-                return;
+                }
             } else {
                 this.fallbackSpeak(cleanText, callback);
             }
         } catch (e) {
+            console.error('TTS 直连失败:', e);
             this.fallbackSpeak(cleanText, callback);
         }
     }
