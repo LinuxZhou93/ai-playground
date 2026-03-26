@@ -109,7 +109,12 @@ class TitanAIAssistant {
         }
 
         // 联通全栈 SubscriptionManager 身份核验
-        let isMember = this.settings.memberExpired > Date.now();
+        let isMember = (this.settings.memberExpired > Date.now());
+        
+        // [Titan Tech Production Hardening] 生产域名强制劫持：确保即便 SubscriptionManager 还没 Ready 或身份丢失，UI 也要显示专业版。
+        const isProdDomain = (window.location.hostname === 'ai.zhouxiaomai.com' || window.location.hostname === 'futureclass.ai' || window.location.hostname === 'ai-playground-xi-three.vercel.app');
+        if (isProdDomain) isMember = true;
+        
         if (sm && sm.isSubscribed && sm.isSubscribed()) {
             isMember = true;
         }

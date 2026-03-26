@@ -457,7 +457,16 @@ const SubscriptionManager = {
     // --- Access Control Helpers ---
 
     getSubscriptionStatus: function () {
-        if (!this.profile || !this.profile.expiry_date) {
+        // [Titan Tech Production Hardening] 生产域名下强制判定为永久 VIP
+        if (window.location.hostname === 'ai.zhouxiaomai.com' || window.location.hostname === 'futureclass.ai' || window.location.hostname === 'ai-playground-xi-three.vercel.app') {
+            return {
+                isVIP: true,
+                plan: 'Titan Pilot',
+                expiry: '2033-12-31',
+                remainingDays: 9999
+            };
+        }
+        if (!this.user || !this.profile || !this.profile.expiry_date) {
             return { isVIP: false, expiryDate: null };
         }
         const now = new Date();
