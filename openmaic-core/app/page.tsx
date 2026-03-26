@@ -124,7 +124,7 @@ function HomePage() {
             
             // [Titan Tech 特长生专属] 炫酷入场语音播报
             const currentNickname = useUserProfileStore.getState().nickname || '科技少将';
-            const welcomeText = `未来舰长${currentNickname}，你好！系统已成功挂载 Future Class 引擎。我们准备好一起展开关于《${courseTopic}》的硬核推演了吗？`;
+            const welcomeText = `小创客${currentNickname}，你好！系统已成功挂载 Future Class 引擎。我们准备好一起展开关于《${courseTopic}》的硬核推演了吗？`;
 
             // 🚀 【火山引擎大模型 TTS 直连】 强制统一使用指定的“呆萌川妹”高质量讲课音色
             const appId = "4780476544";
@@ -801,7 +801,7 @@ function GreetingBar() {
                 <span className="leading-none select-none flex items-center gap-1">
                   <span>
                     <span className="text-xs text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
-                      未来舰长：
+                      小创客：
                     </span>
                     <span className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
                       {displayName}
