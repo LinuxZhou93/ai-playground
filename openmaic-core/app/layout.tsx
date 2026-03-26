@@ -37,17 +37,15 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var s1 = localStorage.getItem('settings-storage');
-                var s2 = localStorage.getItem('settings_storage');
-                var needsRefresh = false;
-                if (s1 && (s1.includes('sk-4nI8bNhmk') || s1.includes('"version":2'))) {
-                  localStorage.removeItem('settings-storage');
-                  needsRefresh = true;
-                }
-                if (s2 && (s2.includes('sk-4nI8bNhmk') || s2.includes('"version":2'))) {
-                  localStorage.removeItem('settings_storage');
-                  needsRefresh = true;
-                }
+                // 强制清除旧的设置缓存，确保硬编码凭证生效
+                const keys = ['settings-storage', 'settings_storage'];
+                let needsRefresh = false;
+                keys.forEach(k => {
+                  if (localStorage.getItem(k) !== null) {
+                    localStorage.removeItem(k);
+                    needsRefresh = true;
+                  }
+                });
                 if (needsRefresh) {
                   window.location.reload();
                 }
