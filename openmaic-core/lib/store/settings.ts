@@ -241,7 +241,7 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
   Object.keys(PROVIDERS).forEach((pid) => {
     const provider = PROVIDERS[pid as ProviderId];
     config[pid as ProviderId] = {
-      apiKey: pid === 'google' ? 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb' : '',
+      apiKey: pid === 'google' ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' : '',
       baseUrl: pid === 'google' ? 'https://backgrace.com/v1' : '',
       models: provider.models,
       name: provider.name,
@@ -272,7 +272,7 @@ const getDefaultAudioConfig = () => ({
     'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
   } as Record<TTSProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
   asrProvidersConfig: {
-    'openai-whisper': { apiKey: 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb', baseUrl: 'https://backgrace.com/v1', enabled: true },
+    'openai-whisper': { apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', baseUrl: 'https://backgrace.com/v1', enabled: true },
     'browser-native': { apiKey: '', baseUrl: '', enabled: true },
     'qwen-asr': { apiKey: '', baseUrl: '', enabled: false },
   } as Record<ASRProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
@@ -513,7 +513,7 @@ export const useSettingsStore = create<SettingsState>()(
       if (defaultAudioConfig.asrProvidersConfig && defaultAudioConfig.asrProvidersConfig['openai-whisper']) {
         defaultAudioConfig.asrProviderId = 'openai-whisper';
         defaultAudioConfig.asrLanguage = 'zh';
-        defaultAudioConfig.asrProvidersConfig['openai-whisper'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+        defaultAudioConfig.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
         defaultAudioConfig.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
       }
 
@@ -1318,7 +1318,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (!merged.providersConfig['google']) {
           merged.providersConfig['google'] = { apiKey: '', baseUrl: '', models: [] };
         }
-        merged.providersConfig['google'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+        merged.providersConfig['google'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
         merged.providersConfig['google'].baseUrl = 'https://backgrace.com/v1';
 
         // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy)
@@ -1328,7 +1328,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (!merged.asrProvidersConfig['openai-whisper']) {
           merged.asrProvidersConfig['openai-whisper'] = { apiKey: '', baseUrl: '', enabled: true };
         }
-        merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+        merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
         merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
 
         // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access)

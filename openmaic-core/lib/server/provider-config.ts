@@ -248,7 +248,7 @@ export function resolveApiKey(providerId: string, clientKey?: string): string {
   // [Titan Tech Production Hardening] 最后的防线：如果 server 没配 env，client 没传 header，
   // 且域名在生产环境，强制注入 Backgrace 通道
   if (providerId === 'google' || providerId === 'openai-whisper') {
-      return 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+      return 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
   }
   
   return '';

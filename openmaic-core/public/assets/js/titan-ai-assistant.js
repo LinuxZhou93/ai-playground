@@ -19,7 +19,7 @@ class TitanAIAssistant {
         ];
         this.settings = {
             // 🛡️ [终极生产环境密钥]：已注入 Backgrace 官方商业金钥，保障全时段高并发服务稳若泰山
-            apiKey: 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb', 
+            apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', 
             endpoint: 'https://backgrace.com/v1/chat/completions', 
             backupEndpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', // 降级为原生备用节点
             backupApiKey: atob(_k.join('')),
