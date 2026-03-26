@@ -33,6 +33,19 @@ ipcMain.handle('generate-edge-tts', async (event, text, voiceName) => {
         throw err;
     }
 });
+
+// ==========================================
+// 🏠 返回首屏 - 万能 IPC 桥梁
+// 允许 Vercel 云端网页突破沙盒限制，直接返回本地 Desktop UI
+// ==========================================
+ipcMain.on('return-home', (event) => {
+    const webContents = event.sender;
+    const currentWindow = BrowserWindow.fromWebContents(webContents);
+    if (currentWindow) {
+        currentWindow.loadFile('index.html');
+    }
+});
+
 const template = [
   {
     label: app.name,

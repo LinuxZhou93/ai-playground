@@ -360,7 +360,14 @@ class TitanAIAssistant {
                     
                     // 阈值判断：如果没有发生拖拽，即为正常的 Click，执行页面跳转
                     if (!isDragging) {
-                        location.href = 'index.html';
+                        try {
+                            // 优先尝试探测 Electron nodeIntegration 以穿透 Vercel 回到本地
+                            const { ipcRenderer } = window.require('electron');
+                            ipcRenderer.send('return-home');
+                        } catch (e) {
+                            // Fallback for non-Electron or pure web environment
+                            location.href = '/'; 
+                        }
                     }
                 };
                 
