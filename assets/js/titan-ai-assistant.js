@@ -2956,7 +2956,7 @@ class TitanAIAssistant {
                     },
                     user: { uid: "titan_student" },
                     audio: {
-                        voice_type: "zh_female_daimengchuanmei_moon_bigtts", // 呆萌川妹
+                        voice_type: "zh_child_feifei_moon_bigtts", // 飞飞 (活力男童)
                         encoding: "mp3",
                         speed_ratio: 1.0,
                         volume_ratio: 1.0,

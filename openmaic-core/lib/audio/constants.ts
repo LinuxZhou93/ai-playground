@@ -1027,7 +1027,7 @@ export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'glm-tts': 'tongtong',
   'qwen-tts': 'Cherry',
   'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
-  'volcengine-tts': 'zh_female_daimengchuanmei_moon_bigtts',
+  'volcengine-tts': 'zh_child_feifei_moon_bigtts',
   'browser-native-tts': 'default',
 };
 
