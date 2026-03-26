@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FUTURE CLASS | 特权订阅与算能配置中心</title>
+    <!-- Fonts -->
+    <link href="https://fonts.loli.net/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700;900&family=Inter:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        titan: {
+                            dark: '#03050c',
+                            blue: '#00f0ff',
+                            purple: '#7000ff',
+                            gold: '#ffd600',
+                            red: '#ff003c',
+                            green: '#00ff9d',
+                            glass: 'rgba(15, 20, 35, 0.7)'
+                        },
+                        bggradient: {
+                            'from': '#0a0d1a',
+                            'to': '#020308',
+                        }
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif'],
+                        noto: ['Noto Sans SC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #03050c;
+            color: #cbd5e1;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* 极致的暗色弥散背景 */
+        .glass-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -10;
+            background: radial-gradient(circle at 50% 0%, #1a1b38 0%, #03050c 60%);
+        }
+
+        .halo {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: -5;
+            animation: breathe 8s infinite alternate;
+        }
+
+        .halo-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: rgba(0, 240, 255, 0.15); }
+        .halo-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: rgba(112, 0, 255, 0.15); animation-duration: 10s; }
+
+        @keyframes breathe {
+            0% { transform: scale(1) translateY(0); opacity: 0.6; }
+            100% { transform: scale(1.1) translateY(30px); opacity: 1; }
+        }
+
+        /* 3D Pricing Cards */
+        .pricing-grid {
+            perspective: 2000px;
+        }
+
+        .tier-card {
+            background: rgba(15, 20, 35, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform-style: preserve-3d;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .tier-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .tier-card:hover {
+            transform: translateY(-15px) translateZ(30px) rotateX(5deg);
+            background: rgba(20, 25, 45, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 40px 80px rgba(0, 240, 255, 0.1);
+        }
+        
+        .tier-card:hover::before { opacity: 1; }
+
+        /* 特立独行的推荐高亮款 (例如季度版) */
+        .tier-card.featured {
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            background: linear-gradient(145deg, rgba(15, 20, 35, 0.8) 0%, rgba(0, 240, 255, 0.05) 100%);
+            box-shadow: 0 30px 60px rgba(0, 240, 255, 0.15), inset 0 0 40px rgba(0, 240, 255, 0.05);
+            transform: translateZ(20px) scale(1.02);
+            z-index: 10;
+        }
+
+        .tier-card.featured:hover {
+            transform: translateY(-20px) translateZ(50px) scale(1.05) rotateX(5deg);
+            border-color: rgba(0, 240, 255, 0.8);
+            box-shadow: 0 50px 100px rgba(0, 240, 255, 0.25), inset 0 0 60px rgba(0, 240, 255, 0.1);
+        }
+
+        /* 巅峰典藏版 (年度) */
+        .tier-card.black-gold {
+            border: 1px solid rgba(255, 214, 0, 0.3);
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.9) 0%, rgba(50, 40, 0, 0.9) 100%);
+        }
+        
+        .tier-card.black-gold:hover {
+            border-color: rgba(255, 214, 0, 0.8);
+            box-shadow: 0 40px 80px rgba(255, 214, 0, 0.2);
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: 20px;
+            right: -35px;
+            background: #00f0ff;
+            color: #000;
+            padding: 5px 40px;
+            font-family: 'Orbitron';
+            font-size: 10px;
+            font-weight: 900;
+            transform: rotate(45deg);
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+        }
+
+        .black-gold .featured-badge {
+            background: #ffd600;
+            box-shadow: 0 0 20px rgba(255, 214, 0, 0.5);
+        }
+
+        /* typography */
+        .price-num {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 56px;
+            letter-spacing: -2px;
+            color: white;
+            display: inline-flex;
+            align-items: baseline;
+        }
+
+        .price-currency {
+            font-size: 24px;
+            font-weight: 500;
+            margin-right: 5px;
+            opacity: 0.6;
+        }
+
+        .price-period {
+            font-size: 14px;
+            font-weight: 400;
+            color: #94a3b8;
+            margin-left: 5px;
+            font-family: 'Inter';
+        }
+
+        .strike-price {
+            text-decoration: line-through;
+            color: #64748b;
+            font-family: 'Orbitron';
+            font-size: 18px;
+            margin-left: 10px;
+            font-weight: normal;
+        }
+
+        /* List Items */
+        .feature-list {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex-grow: 1; /* Pushes button to bottom */
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            font-size: 13.5px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        .feature-list li svg {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            margin-top: 3px;
+            flex-shrink: 0;
+            color: #00f0ff;
+        }
+
+        .black-gold .feature-list li svg { color: #ffd600; }
+        .disabled-feature { opacity: 0.3; }
+        .disabled-feature svg { color: #475569; }
+
+        /* Act Button */
+        .btn-action {
+            margin-top: 40px;
+            width: 100%;
+            padding: 16px 0;
+            border-radius: 12px;
+            font-family: 'Orbitron';
+            font-weight: 900;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-align: center;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-base {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+        }
+        .btn-base:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); }
+
+        .btn-primary {
+            background: #00f0ff;
+            color: #000;
+            box-shadow: 0 10px 20px rgba(0, 240, 255, 0.2);
+            border: none;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(0, 240, 255, 0.4);
+            background: #fff;
+        }
+
+        .btn-gold {
+            background: linear-gradient(90deg, #ffd600, #ffaa00);
+            color: #000;
+            box-shadow: 0 10px 20px rgba(255, 214, 0, 0.2);
+            border: none;
+        }
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(255, 214, 0, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* VS Comparison Table */
+        .vs-table-wrapper {
+            margin-top: 100px;
+            border-radius: 24px;
+            background: rgba(5, 7, 15, 0.8);
+            border: 1px solid rgba(255,255,255,0.05);
+            backdrop-filter: blur(15px);
+            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+        }
+
+        .vs-table { width: 100%; border-collapse: collapse; }
+        .vs-table th, .vs-table td {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .vs-table tr:last-child th, .vs-table tr:last-child td { border-bottom: none; }
+        
+        .vs-table th {
+            font-family: 'Orbitron';
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.02);
+            text-transform: uppercase;
+        }
+
+        .vs-table th:first-child { text-align: left; padding-left: 40px; }
+        .vs-table td:first-child { 
+            text-align: left; 
+            padding-left: 40px; 
+            font-weight: 600; 
+            color: #e2e8f0; 
+            font-family: 'Noto Sans SC';
+        }
+
+        .col-pro {
+            background: rgba(0, 240, 255, 0.03);
+            position: relative;
+        }
+        .col-pro::after {
+            content: '';
+            position: absolute;
+            top:0; left:0; width: 1px; height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(0,240,255,0.2), transparent);
+        }
+        .col-pro::before {
+            content: '';
+            position: absolute;
+            top:0; right:0; width: 1px; height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(0,240,255,0.2), transparent);
+        }
+
+        /* Animations */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fwScaleUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fwScaleUp {
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Stagger delays */
+        .del-1 { animation-delay: 0.1s; }
+        .del-2 { animation-delay: 0.2s; }
+        .del-3 { animation-delay: 0.3s; }
+        .del-4 { animation-delay: 0.4s; }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="glass-bg">
+        <div class="halo halo-1"></div>
+        <div class="halo halo-2"></div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="max-w-[1400px] mx-auto px-6 py-20 min-h-screen flex flex-col justify-center">
+        
+        <!-- Header -->
+        <header class="text-center mb-16 fade-up">
+            <h1 class="font-orbitron font-black text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-200 mb-6 tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                JOIN THE <span class="text-titan-blue">FUTURE</span>
+            </h1>
+            <p class="font-noto text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                为具有天赋的孩子点燃核力。在此选择激活适合孩子思维跃迁的算力引擎。
+            </p>
+        </header>
+
+        <!-- PRICING GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pricing-grid relative z-10 w-full">
+
+            <!-- TIER 1: TRIAL -->
+            <div class="tier-card fade-up del-1">
+                <h3 class="font-orbitron text-xl font-bold text-slate-300 tracking-wider mb-2">TRIAL / 启蒙</h3>
+                <p class="text-slate-500 text-xs mb-8 font-noto">7天全沉浸无损试用体验</p>
+                <div class="mb-4">
+                    <div class="price-num"><span class="price-currency">¥</span>0</div>
+                </div>
+                <ul class="feature-list font-noto">
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>基础学科（数理化）大纲检索</span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>每日 10,000 Token AI 互动算力</span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>标准系统机械合成单模语音</span>
+                    </li>
+                    <li class="disabled-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span>不支持“火山豆包TTS”引擎</span>
+                    </li>
+                    <li class="disabled-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span>无硬件(天问/ESP32) 联调权限</span>
+                    </li>
+                </ul>
+                <button class="btn-action btn-base">开始考核</button>
+            </div>
+
+            <!-- TIER 2: MONTHLY -->
+            <div class="tier-card fade-up del-2">
+                <h3 class="font-orbitron text-xl font-bold text-titan-blue tracking-wider mb-2">PRO·MONTH / 月度特训</h3>
+                <p class="text-slate-400 text-xs mb-8 font-noto">短期针对性突击提能（原价49方案，现重构）</p>
+                <div class="mb-4">
+                    <div class="price-num"><span class="price-currency">¥</span>199<span class="price-period">/月</span></div>
+                </div>
+                <ul class="feature-list font-noto">
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span><strong class="text-white">高阶课程大纲全解锁</strong></span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>每月 20 万中等 Token 算力池保障</span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>解锁<strong class="text-titan-blue">火山高保真播音阵列</strong></span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>有限启动“天问单片机 IDE”模块</span>
+                    </li>
+                    <li class="disabled-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span>无云端存档库体系对接</span>
+                    </li>
+                </ul>
+                <button class="btn-action btn-base hover:text-titan-blue hover:border-titan-blue">挂载引擎</button>
+            </div>
+
+            <!-- TIER 3: QUARTERLY (FEATURED) -->
+            <div class="tier-card featured fade-up del-3">
+                <div class="featured-badge">MOST POPULAR</div>
+                <h3 class="font-orbitron text-2xl font-black text-white tracking-wider mb-2 drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]">PRO·SEASON / 极客季</h3>
+                <p class="text-cyan-200 text-xs mb-6 font-noto">完整周期系统性建立“科技素养与认知”</p>
+                <div class="mb-4 flex items-end">
+                    <div class="price-num"><span class="price-currency">¥</span>399<span class="price-period">/季</span></div>
+                    <div class="strike-price">¥597</div>
+                </div>
+                <ul class="feature-list font-noto">
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span><strong class="text-white">包含『月度特训』各项全部功能</strong></span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>季度导师周刊，<strong class="text-titan-blue">深层家长 AI 能力洞察图</strong></span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>解锁全部《火箭航天/AI机器人》等极客实训</span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>代码作品云端跨设备存管（支持代码部署）</span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>高优算力网络负载分发排位（拒绝高峰拥堵）</span>
+                    </li>
+                </ul>
+                <button class="btn-action btn-primary">预订赛季</button>
+            </div>
+
+            <!-- TIER 4: ANNUAL BLACK GOLD -->
+            <div class="tier-card black-gold fade-up del-4">
+                <div class="featured-badge">VIP / 顶级圈层</div>
+                <h3 class="font-orbitron text-2xl font-black text-titan-gold tracking-wider mb-2">TITAN CORE / 年卡黑金</h3>
+                <p class="text-yellow-200/60 text-xs mb-6 font-noto">给孩子的特长生全栈闭环航母基站</p>
+                <div class="mb-4">
+                    <div class="price-num"><span class="price-currency">¥</span>3999<span class="price-period">/年</span></div>
+                </div>
+                <ul class="feature-list font-noto">
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span><strong class="text-white">独占席位：无限期的无限顶级算力支持</strong></span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>送<strong class="text-titan-gold text-sm decoration-wavy underline">【天问科技创客实体硬件套件】控制盒子</strong></span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>定制化升学辅导：极客比赛项目全路径陪跑辅助</span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>专属线上大咖实训闭门会邀请资格</span>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        <span>大模型记忆力永不重置（孩子的定制智脑分身）</span>
+                    </li>
+                </ul>
+                <button class="btn-action btn-gold">锁定极客席位</button>
+            </div>
+
+        </div>
+
+        <!-- COMPETITOR COMPARISON TABLE -->
+        <div class="vs-table-wrapper fade-up del-4">
+            <div class="p-6 md:p-10 border-b border-white/5 flex flex-col items-center text-center">
+                <h2 class="font-orbitron font-bold text-2xl text-white mb-2">FEATURES DEPLOYMENT / 核心维度的降维打击</h2>
+                <p class="font-noto text-sm text-slate-400">抛弃“刷题平板”，直击【逻辑与架构】——我们与竞品的终极质变</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="vs-table">
+                    <thead>
+                        <tr>
+                            <th width="30%">评测切面 / CORE SPEC</th>
+                            <th width="35%" style="color:#64748b">某“名师”录播APP / 枯燥教辅硬件</th>
+                            <th width="35%" class="col-pro" style="color:#00f0ff; font-weight:900;"> FUTURE CLASS 科技特长生实训舱 </th>
+                        </tr>
+                    </thead>
+                    <tbody class="font-noto">
+                        <tr>
+                            <td>授课交互形态</td>
+                            <td class="text-slate-500">机械念经，被迫看几个小时无法打断的视频</td>
+                            <td class="col-pro font-medium text-white shadow-[inset_0_1px_0_rgba(0,240,255,0.05)]">
+                                搭载了具备 <strong class="text-titan-blue">VAD 打断机制</strong> 并且可生成交互板书的大模型，孩子随时举手提问！
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>底层视听降碳</td>
+                            <td class="text-slate-500">廉价机器音，或统一配音员</td>
+                            <td class="col-pro font-medium text-white shadow-[inset_0_1px_0_rgba(0,240,255,0.05)]">
+                                接入火山同款<strong class="text-titan-blue">顶级高保真 TTS</strong>，带来沉浸式“真人名师”语境声线。
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>知识面穿透边界</td>
+                            <td class="text-slate-500">强行拉到应试题海大纲的应试闭环</td>
+                            <td class="col-pro font-medium text-white shadow-[inset_0_1px_0_rgba(0,240,255,0.05)]">
+                                从深微世界（芯片）一路向上拉入 <strong class="text-titan-gold">深空黑洞探测网状扩展架构</strong>，极大拉宽格局。
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>硬核软硬件协同</td>
+                            <td class="text-slate-500">学了一堆理论不知怎么组装</td>
+                            <td class="col-pro font-medium text-white shadow-[inset_0_1px_0_rgba(0,240,255,0.05)]">
+                                （年卡）直接打通线上 <strong class="text-titan-green font-orbitron">IDE-TIANWEN</strong> 与配套硬件的烧录互联，真正的硅谷黑客式养成！
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

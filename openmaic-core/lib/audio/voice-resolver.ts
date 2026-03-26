@@ -80,7 +80,8 @@ export function getAvailableProvidersWithVoices(
     const hasApiKey = providerConfig?.apiKey && providerConfig.apiKey.trim().length > 0;
     const isServerConfigured = providerConfig?.isServerConfigured === true;
 
-    if (hasApiKey || isServerConfigured) {
+    // 🚀 强解耦逻辑：如果是火山引擎，必定无条件强制渲染在其可用提供商列表中，不再要求用户自行输入配置！
+    if (providerId === 'volcengine-tts' || hasApiKey || isServerConfigured) {
       result.push({
         providerId,
         providerName: config.name,

@@ -122,6 +122,7 @@ function getTTSProviderName(providerId: TTSProviderId, t: (key: string) => strin
     'glm-tts': t('settings.providerGLMTTS'),
     'qwen-tts': t('settings.providerQwenTTS'),
     'elevenlabs-tts': t('settings.providerElevenLabsTTS'),
+    'volcengine-tts': t('settings.providerVolcengineTTS') || '豆包 TTS (火山大模型)',
     'browser-native-tts': t('settings.providerBrowserNativeTTS'),
   };
   return names[providerId];

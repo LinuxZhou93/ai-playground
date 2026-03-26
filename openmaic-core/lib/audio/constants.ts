@@ -668,6 +668,60 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     speedRange: { min: 0.7, max: 1.2, default: 1.0 },
   },
 
+  'volcengine-tts': {
+    id: 'volcengine-tts',
+    name: '豆包 TTS (火山大模型)',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://openspeech.bytedance.com/api/v1',
+    icon: '/logos/volcengine.svg',
+    voices: [
+      {
+        id: 'zh_female_daimengchuanmei_moon_bigtts',
+        name: '呆萌川妹 (推荐)',
+        language: 'zh-CN',
+        gender: 'female',
+        description: '活泼可爱的四川方言女声',
+      },
+      {
+        id: 'zh_male_yangguangqingnian_moon_bigtts',
+        name: '阳光青年',
+        language: 'zh-CN',
+        gender: 'male',
+        description: '充满活力的阳光男声',
+      },
+      {
+        id: 'zh_male_shaonianzixin_moon_bigtts',
+        name: '少年梓辛',
+        language: 'zh-CN',
+        gender: 'male',
+        description: '清澈干净的学生男声',
+      },
+      {
+        id: 'zh_male_beijingxiaoye_moon_bigtts',
+        name: '北京小爷',
+        language: 'zh-CN',
+        gender: 'male',
+        description: '带有北京口音的爽朗男声',
+      },
+      {
+        id: 'zh_female_baqiyujie_moon_bigtts',
+        name: '霸气御姐',
+        language: 'zh-CN',
+        gender: 'female',
+        description: '自信大气的成熟女声',
+      },
+      {
+        id: 'zh_female_zhixingnvxing_moon_bigtts',
+        name: '知性女性',
+        language: 'zh-CN',
+        gender: 'female',
+        description: '温和知性的讲师女声',
+      },
+    ],
+    supportedFormats: ['mp3', 'wav', 'pcm', 'ogg'],
+    speedRange: { min: 0.5, max: 2.0, default: 1.0 },
+  },
+
   'browser-native-tts': {
     id: 'browser-native-tts',
     name: '浏览器原生 (Web Speech API)',
@@ -896,6 +950,7 @@ export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'glm-tts': 'tongtong',
   'qwen-tts': 'Cherry',
   'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
+  'volcengine-tts': 'zh_female_daimengchuanmei_moon_bigtts',
   'browser-native-tts': 'default',
 };
 

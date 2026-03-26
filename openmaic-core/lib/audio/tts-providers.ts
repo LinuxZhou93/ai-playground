@@ -114,7 +114,7 @@ export async function generateTTS(
   }
 
   // Validate API key if required
-  if (provider.requiresApiKey && !config.apiKey) {
+  if (provider.requiresApiKey && !config.apiKey && config.providerId !== 'volcengine-tts') {
     throw new Error(`API key required for TTS provider: ${config.providerId}`);
   }
 
@@ -134,6 +134,9 @@ export async function generateTTS(
     case 'elevenlabs-tts':
       return await generateElevenLabsTTS(config, text);
 
+    case 'volcengine-tts':
+      return await generateVolcengineTTS(config, text);
+
     case 'browser-native-tts':
       throw new Error(
         'Browser Native TTS must be handled client-side using Web Speech API. This provider cannot be used on the server.',
@@ -142,6 +145,72 @@ export async function generateTTS(
     default:
       throw new Error(`Unsupported TTS provider: ${config.providerId}`);
   }
+}
+
+/**
+ * Volcengine BigTTS implementation (direct API call with hardcoded student premium keys)
+ */
+async function generateVolcengineTTS(
+  config: TTSModelConfig,
+  text: string,
+): Promise<TTSGenerationResult> {
+  const baseUrl = config.baseUrl || TTS_PROVIDERS['volcengine-tts'].defaultBaseUrl;
+  
+  // Hardcoded keys as requested for instant "Out Of The Box" FutureClass operations
+  const appId = "4780476544";
+  const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
+  const reqid = 'req-srv-' + Date.now() + Math.random().toString().slice(2,8);
+
+  const response = await fetch(`${baseUrl}/tts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer; ${token}`,
+    },
+    body: JSON.stringify({
+      app: {
+          appid: appId,
+          token: token,
+          cluster: "volcano_tts"
+      },
+      user: { uid: "titan_student" },
+      audio: {
+          voice_type: config.voice || "zh_female_daimengchuanmei_moon_bigtts",
+          encoding: "mp3",
+          speed_ratio: config.speed || 1.0,
+          volume_ratio: 1.0,
+          pitch_ratio: 1.0
+      },
+      request: {
+          reqid: reqid,
+          text: text,
+          text_type: "plain",
+          operation: "query"
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Volcengine TTS API error: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  if (result.code !== 3000) {
+    throw new Error(`Volcengine TTS Request Failed: ${result.message}`);
+  }
+
+  // Base64 to ArrayBuffer
+  const binaryString = Buffer.from(result.data, 'base64').toString('binary');
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  return {
+    audio: bytes,
+    format: 'mp3',
+  };
 }
 
 /**
