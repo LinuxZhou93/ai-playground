@@ -241,8 +241,8 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
   Object.keys(PROVIDERS).forEach((pid) => {
     const provider = PROVIDERS[pid as ProviderId];
     config[pid as ProviderId] = {
-      apiKey: '',
-      baseUrl: '',
+      apiKey: pid === 'openai' ? 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb' : '',
+      baseUrl: pid === 'openai' ? 'https://backgrace.com/v1' : '',
       models: provider.models,
       name: provider.name,
       type: provider.type,
@@ -1291,6 +1291,16 @@ export const useSettingsStore = create<SettingsState>()(
         ensureBuiltInImageProviders(merged as Partial<SettingsState>);
         ensureBuiltInVideoProviders(merged as Partial<SettingsState>);
         ensureValidProviderSelections(merged as Partial<SettingsState>);
+
+        // [Titan Tech Permanent Override] Hardcode API credentials
+        merged.providerId = 'openai';
+        merged.modelId = 'gpt-4o';
+        if (merged.providersConfig && merged.providersConfig['openai']) {
+          merged.providersConfig['openai'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+          merged.providersConfig['openai'].baseUrl = 'https://backgrace.com/v1';
+          merged.providersConfig['openai'].name = '奇幻实验室 (Hardcoded)';
+        }
+
         return merged as SettingsState;
       },
     },
