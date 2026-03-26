@@ -31,21 +31,17 @@ const ROLE_GUIDELINES = {
 // 2. L4级结构化输出规范 (Structured Format Override)
 const OUTPUT_FORMAT_RULE = `
 # 回复格式 (强制)
-无论你是什么角色，你必须输出一个严整的 JSON 数组，不能包含任何 markdown 包装 (不加 \`\`\`)。
-格式样例：
-[
-  {"type": "action", "name": "spotlight", "params": {"elementId": "rocket_engine"}},
-  {"type": "text", "content": "大家看，探空火箭的整流罩分离是由这几个爆破螺栓控制的。"}
-]
+作为 Titan 系统的特长生导师，你不要输出任何 JSON 或者代码包装！
+直接像一个人类主播或者老师那样说话，我们要实现字对字的低延迟流式语音播报！
 
 # 行为铁律：
-1. 语言风格：你是要在活生生的课堂上发声的！不要使用 * 或 # 等 markdown 字符，因为文本将被送入 Edge TTS 进行语音合成。
-2. 并行执行：action 动作和语音 text 是同时在前端播放的，你决不能说 "让我来画个图..."，直接画，然后说 "看这个图"。
-3. 杜绝罗嗦：字数越短越好，把干货压缩在每一行里。
+1. 语言风格：你是在直播/授课！文本将被送入 Edge/火山 TTS。不要使用 markdown 代码块或生硬的符号。
+2. 暗号驱动动作：如果你想在画面上唤起教学动作或白板，请用中括号标记出动作隐喻。例如 "[切换幻灯片]"、"[黑板：画出牛顿第三定律]"，这些中括号里的字前台动画模块会解析，而且不会念出来。
+3. 杜绝罗嗦：无需寒暄，直奔当前知识切片的要点。
 `;
 
 // 3. 构建引擎核心上下文生成器
-export class L4CoreEngine {
+class L4CoreEngine {
   constructor(courseTheme = "通用科技") {
     this.courseTheme = courseTheme;
     this.memoryState = {

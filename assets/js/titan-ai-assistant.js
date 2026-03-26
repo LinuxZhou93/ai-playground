@@ -30,6 +30,33 @@ class TitanAIAssistant {
             volcengineVoice: 'BV001_streaming', // 豆包招牌女声播报员（可改 BV002 等）
             memberExpired: parseInt(localStorage.getItem('titan_ai_member_expired') || '0')
         };
+        
+        // 🎯 [核心系统联动]：动态继承 OpenMAIC (Zustand 持久化) 系统的全局配置
+        try {
+            const openmaicStorage = localStorage.getItem('settings-storage');
+            if (openmaicStorage) {
+                const parsed = JSON.parse(openmaicStorage);
+                if (parsed && parsed.state && parsed.state.providersConfig) {
+                    const state = parsed.state;
+                    const providerId = state.providerId;
+                    const modelId = state.modelId;
+                    const config = state.providersConfig[providerId];
+                    
+                    if (config) {
+                        if (config.apiKey) this.settings.apiKey = config.apiKey;
+                        if (modelId) this.settings.model = modelId;
+                        
+                        // 提取并自动拼接正确的聊天补全端点
+                        const activeUrl = config.baseUrl || config.defaultBaseUrl || 'https://api.openai.com/v1';
+                        this.settings.endpoint = activeUrl.replace(/\/+$/, '') + '/chat/completions';
+                        
+                        console.log(`[Titan AI] 🚀 成功与 OpenMAIC 核心接轨! Provider: ${providerId} | Model: ${modelId}`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("[Titan AI] 未检测到 OpenMAIC 同源配置，降级使用内建金钥。", e);
+        }
 
         this.chatHistory = [];
         this.messageQueue = [];

@@ -108,6 +108,20 @@ function HomePage() {
       if (Object.keys(updates).length > 0) {
         setForm((prev) => ({ ...prev, ...updates }));
       }
+
+      // [Titan AI / FutureClass 特长生生态联动钩子]
+      // 拦截来自课程页面的传参，生成动态的授课剧本预设
+      const params = new URLSearchParams(window.location.search);
+      const courseTopic = params.get('courseTopic');
+      const outline = params.get('outline');
+      if (courseTopic) {
+        const payload = `【FutureClass 自动排课系统：${courseTopic}】\n\n请为我规划生成这节硬核科技课的互动分镜。\n课程核心切片内容如下 (供参考):\n${outline || '无详细大纲，请你自由发挥讲解'}\n\n要求：\n1. 由小创老师主讲，辅以学生互动。\n2. 直接切入硬核技术点，生成板书结构。\n3. 在开场和关键节点安排 spotlight 或者 3D 动画指示 (如可能)。`;
+        setTimeout(() => {
+            updateForm('requirement', payload);
+            // 这里还可以配合直接调用 handleGenerate()
+        }, 500); // 稍微延迟以体现极客装配感
+      }
+
     } catch {
       /* localStorage unavailable */
     }
@@ -478,7 +492,7 @@ function HomePage() {
         {/* ── Logo ── */}
         <motion.img
           src="/logo-horizontal.png"
-          alt="OpenMAIC"
+          alt="FutureClass"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
@@ -669,7 +683,7 @@ function HomePage() {
 
       {/* Footer — flows with content, at the very end */}
       <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40 font-mono tracking-widest text-[#0ea5e9]">
-        OpenMAIC Open Source Project | ⚡️ MODIFIED FOR TITAN TECH SYSTEM
+        FutureClass | 科技特长生实训系统 | ⚡️ POWERED BY TITAN TECH
       </div>
     </div>
   );
