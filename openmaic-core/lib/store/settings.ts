@@ -1331,16 +1331,18 @@ export const useSettingsStore = create<SettingsState>()(
         merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
         merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
 
-        // [Titan Tech Permanent Override] Hardcode TTS (Direct Volcengine/Doubao)
-        merged.ttsProviderId = 'volcengine-tts';
-        merged.ttsVoice = 'zh_child_feifei_moon_bigtts';
+        // [Titan Tech Permanent Override] Hardcode TTS (Nuclear Proxy Fallback)
+        // Note: Switched from volcengine-tts to openai-tts via backgrace because the provided 
+        // Bytedance AppID returns 403 'requested resource not granted' (unpaid/unauthorized cluster).
+        merged.ttsProviderId = 'openai-tts';
+        merged.ttsVoice = 'nova'; // 'nova' is a friendly young female voice, similar to the intended 'zh_child_feifei'
         if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {};
-        if (!merged.ttsProvidersConfig['volcengine-tts']) {
-           merged.ttsProvidersConfig['volcengine-tts'] = { apiKey: '', baseUrl: 'https://openspeech.bytedance.com/api/v1', enabled: true };
+        if (!merged.ttsProvidersConfig['openai-tts']) {
+          merged.ttsProvidersConfig['openai-tts'] = { apiKey: '', baseUrl: '', enabled: true };
         }
-        merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
-        merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
-        merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
+        merged.ttsProvidersConfig['openai-tts'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+        merged.ttsProvidersConfig['openai-tts'].baseUrl = 'https://backgrace.com/v1';
+        merged.ttsProvidersConfig['openai-tts'].enabled = true;
 
         return merged as SettingsState;
       },
