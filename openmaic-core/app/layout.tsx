@@ -33,6 +33,28 @@ export default function RootLayout({
       <head>
         <link href="/assets/css/titan-ai-assistant.css" rel="stylesheet" />
         <script src="https://kit.fontawesome.com/b2a7bd117b.js" crossOrigin="anonymous" async></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var s1 = localStorage.getItem('settings-storage');
+                var s2 = localStorage.getItem('settings_storage');
+                var needsRefresh = false;
+                if (s1 && (s1.includes('sk-4nI8bNhmk') || s1.includes('"version":2'))) {
+                  localStorage.removeItem('settings-storage');
+                  needsRefresh = true;
+                }
+                if (s2 && (s2.includes('sk-4nI8bNhmk') || s2.includes('"version":2'))) {
+                  localStorage.removeItem('settings_storage');
+                  needsRefresh = true;
+                }
+                if (needsRefresh) {
+                  window.location.reload();
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
       </head>
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}
