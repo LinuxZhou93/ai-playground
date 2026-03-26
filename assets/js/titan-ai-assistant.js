@@ -236,9 +236,9 @@ class TitanAIAssistant {
 
         // 1. 苹果式的模拟红黄绿灯 (网页版专属)
         const leftControls = document.createElement('div');
-        var isElectron = window.navigator.userAgent.toLowerCase().includes('electron');
+        const isDesktopApp = window.navigator.userAgent.toLowerCase().includes('electron');
         leftControls.style.cssText = `
-            display: ${isElectron ? 'none' : 'flex'}; gap: 8px; background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 20px; backdrop-filter: blur(10px);
+            display: ${isDesktopApp ? 'none' : 'flex'}; gap: 8px; background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 20px; backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         `;
         
