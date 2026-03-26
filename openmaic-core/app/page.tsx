@@ -46,6 +46,7 @@ import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
+import { useTTSPreview } from '@/lib/audio/use-tts-preview';
 
 const log = createLogger('Home');
 
@@ -80,6 +81,8 @@ function HomePage() {
   // Draft cache for requirement text
   const { cachedValue: cachedRequirement, updateCache: updateRequirementCache } =
     useDraftCache<string>({ key: 'requirementDraft' });
+
+  const { startPreview } = useTTSPreview();
 
   // Model setup state
   const currentModelId = useSettingsStore((s) => s.modelId);
@@ -118,7 +121,20 @@ function HomePage() {
         const payload = `【FutureClass 自动排课系统：${courseTopic}】\n\n请为我规划生成这节硬核科技课的互动分镜。\n课程核心切片内容如下 (供参考):\n${outline || '无详细大纲，请你自由发挥讲解'}\n\n要求：\n1. 由小创老师主讲，辅以学生互动。\n2. 直接切入硬核技术点，生成板书结构。\n3. 在开场和关键节点安排 spotlight 或者 3D 动画指示 (如可能)。`;
         setTimeout(() => {
             updateForm('requirement', payload);
-            // 这里还可以配合直接调用 handleGenerate()
+            
+            // [Titan Tech 特长生专属] 炫酷入场语音播报
+            const currentNickname = useUserProfileStore.getState().nickname || '科技少将';
+            const settings = useSettingsStore.getState();
+            if (settings.ttsEnabled) {
+              startPreview({
+                text: `未来舰长${currentNickname}，你好！系统已成功挂载 FutureClass 引擎。我们准备好一起展开关于《${courseTopic}》的硬核推演了吗？`,
+                providerId: settings.ttsProviderId || 'browser-native-tts',
+                voice: settings.ttsVoice || 'default',
+                speed: settings.ttsSpeed || 1.1,
+                apiKey: settings.ttsProvidersConfig?.[settings.ttsProviderId]?.apiKey,
+                baseUrl: settings.ttsProvidersConfig?.[settings.ttsProviderId]?.baseUrl,
+              }).catch(e => console.log('Auto TTS Play failed:', e));
+            }
         }, 500); // 稍微延迟以体现极客装配感
       }
 

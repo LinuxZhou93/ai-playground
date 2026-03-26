@@ -66,7 +66,8 @@ function createWindow () {
     backgroundColor: '#050510',
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      autoplayPolicy: 'no-user-gesture-required'
     }
   })
 
