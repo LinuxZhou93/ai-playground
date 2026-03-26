@@ -334,130 +334,15 @@ function HomePage() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-4 pt-16 md:p-8 md:pt-16 overflow-x-hidden">
-      {/* ═══ Top-right pill (unchanged) ═══ */}
-      <div
-        ref={toolbarRef}
-        className="fixed top-4 right-4 z-50 flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1.5 rounded-full border border-gray-100/50 dark:border-gray-700/50 shadow-sm"
-      >
-        {/* Language Selector */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setLanguageOpen(!languageOpen);
-              setThemeOpen(false);
-            }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
-          >
-            {locale === 'zh-CN' ? 'CN' : 'EN'}
-          </button>
-          {languageOpen && (
-            <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[120px]">
-              <button
-                onClick={() => {
-                  setLocale('zh-CN');
-                  setLanguageOpen(false);
-                }}
-                className={cn(
-                  'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-                  locale === 'zh-CN' &&
-                    'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                )}
-              >
-                简体中文
-              </button>
-              <button
-                onClick={() => {
-                  setLocale('en-US');
-                  setLanguageOpen(false);
-                }}
-                className={cn(
-                  'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
-                  locale === 'en-US' &&
-                    'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                )}
-              >
-                English
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
-
-        {/* Theme Selector */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setThemeOpen(!themeOpen);
-              setLanguageOpen(false);
-            }}
-            className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
-          >
-            {theme === 'light' && <Sun className="w-4 h-4" />}
-            {theme === 'dark' && <Moon className="w-4 h-4" />}
-            {theme === 'system' && <Monitor className="w-4 h-4" />}
-          </button>
-          {themeOpen && (
-            <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">
-              <button
-                onClick={() => {
-                  setTheme('light');
-                  setThemeOpen(false);
-                }}
-                className={cn(
-                  'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                  theme === 'light' &&
-                    'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                )}
-              >
-                <Sun className="w-4 h-4" />
-                {t('settings.themeOptions.light')}
-              </button>
-              <button
-                onClick={() => {
-                  setTheme('dark');
-                  setThemeOpen(false);
-                }}
-                className={cn(
-                  'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                  theme === 'dark' &&
-                    'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                )}
-              >
-                <Moon className="w-4 h-4" />
-                {t('settings.themeOptions.dark')}
-              </button>
-              <button
-                onClick={() => {
-                  setTheme('system');
-                  setThemeOpen(false);
-                }}
-                className={cn(
-                  'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                  theme === 'system' &&
-                    'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                )}
-              >
-                <Monitor className="w-4 h-4" />
-                {t('settings.themeOptions.system')}
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
-
-        {/* Settings Button */}
-        <div className="relative">
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
-          >
-            <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
-          </button>
-        </div>
+    <div className="min-h-[100dvh] w-full bg-[#f8fafc] text-slate-800 relative flex flex-col items-center xl:items-start xl:pl-[12%] p-4 pt-16 md:p-8 md:pt-16 lg:pr-[400px] overflow-x-hidden font-sans">
+      {/* ═══ 活泼的极光与马卡龙波点网格 (C4D 软光风格) ═══ */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px] opacity-60" />
       </div>
+      {/* ═══ Top-right pill (Titan 强控特长生模式：屏蔽右上方各类用户级开关和设置项) ═══ */}
+      {/* 
+        此处原含有 Settings、Theme、Locale 的胶囊导航，已拔除以封闭安全黑盒。
+      */}
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={(open) => {
@@ -467,15 +352,19 @@ function HomePage() {
         initialSection={settingsSection}
       />
 
-      {/* ═══ Background Decor ═══ */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* ═══ Background Decor (C4D 糖果色弥散光球) ═══ */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div
-          className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '4s' }}
+          className="absolute -top-20 -left-10 w-[500px] h-[500px] bg-indigo-300/40 rounded-full blur-[100px] animate-pulse"
+          style={{ animationDuration: '8s' }}
         />
         <div
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '6s' }}
+          className="absolute top-40 right-10 w-[400px] h-[400px] bg-rose-300/40 rounded-full blur-[90px] animate-pulse delay-1000"
+          style={{ animationDuration: '7s' }}
+        />
+        <div
+          className="absolute bottom-10 left-1/3 w-[600px] h-[600px] bg-amber-200/50 rounded-full blur-[120px] animate-pulse delay-750"
+          style={{ animationDuration: '10s' }}
         />
       </div>
 
@@ -489,30 +378,39 @@ function HomePage() {
           classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-[10vh]',
         )}
       >
-        {/* ── Logo ── */}
-        <motion.img
-          src="/logo-horizontal.png"
-          alt="FutureClass"
+        {/* ── Titan UI Logo: FutureClass ── */}
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{
-            delay: 0.1,
-            type: 'spring',
-            stiffness: 200,
-            damping: 20,
-          }}
-          className="h-12 md:h-16 mb-2 -ml-2 md:-ml-3"
-        />
+          transition={{ delay: 0.1, type: 'spring', stiffness: 200, damping: 20 }}
+          className="flex flex-col items-center justify-center mb-6 select-none"
+        >
+          <div className="flex items-center gap-4">
+             <div className="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-amber-400 to-orange-600 rounded-2xl flex items-center justify-center text-white text-3xl md:text-4xl font-black shadow-xl shadow-orange-500/20 ring-4 ring-orange-500/10">
+               FC
+             </div>
+             <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-800 dark:text-white flex items-baseline">
+                FutureClass
+                <span className="text-orange-500 align-baseline -ml-1 animate-pulse">.</span>
+             </h1>
+          </div>
+        </motion.div>
 
         {/* ── Slogan ── */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="text-sm text-muted-foreground/60 mb-8"
+          className="flex flex-col items-center mb-10"
         >
-          {t('home.slogan')}
-        </motion.p>
+          <p className="text-sm md:text-base font-bold tracking-[0.2em] font-mono uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-orange-500 to-purple-500 mb-2">
+            L4 Multi-Agent Educational Engine
+          </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+             <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+             Titan Tech 系统已接入 · 科技特长生专属
+          </div>
+        </motion.div>
 
         {/* ── Unified input area ── */}
         <motion.div
@@ -521,13 +419,36 @@ function HomePage() {
           transition={{ delay: 0.35 }}
           className="w-full"
         >
-          <div className="w-full rounded-2xl border border-border/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-xl shadow-black/[0.03] dark:shadow-black/20 transition-shadow focus-within:shadow-2xl focus-within:shadow-violet-500/[0.06]">
+          <div className="w-full rounded-[2rem] border-2 border-white/60 bg-white/60 backdrop-blur-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] relative overflow-hidden group transition-all hover:bg-white/70 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)]">
+            {/* 顶部的柔和彩虹反射高光 */}
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-300 via-rose-300 to-amber-300 opacity-60"></div>
             {/* ── Greeting + Profile + Agents ── */}
             <div className="relative z-20 flex items-start justify-between">
               <GreetingBar />
               <div className="pr-3 pt-3.5 shrink-0">
                 <AgentBar />
               </div>
+            </div>
+
+            {/* ── C4D 糖果学龄速配雷达 ── */}
+            <div className="px-5 pt-1 pb-3 flex flex-wrap items-center gap-2 border-b border-border/40 mb-2">
+              <span className="text-[11px] font-bold text-slate-400 mr-1 uppercase tracking-wider">学龄匹配</span>
+              {[
+                { label: '🚀 趣味小学', color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200', prompt: '\n\n【教学锚点】：当前受众为小学生。请使用生动活泼的语言、大量生活类比来进行互动。遇到公式请化繁为简。' },
+                { label: '🔬 实战初中', color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200', prompt: '\n\n【教学锚点】：当前受众为中学生。请保证理论严谨性，同时切入真实工程场景进行原理解剖。' },
+                { label: '🌌 极客高中', color: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border-indigo-200', prompt: '\n\n【教学锚点】：当前受众为高级极客高中生。不需要做幼龄化铺垫，请直接切入底层逻辑与微积分等深度专业知识。' },
+              ].map((badge) => (
+                <button
+                  key={badge.label}
+                  onClick={() => {
+                    const cleanReq = form.requirement.replace(/\n\n【教学锚点】：.*/g, '');
+                    updateForm('requirement', cleanReq + badge.prompt);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold border shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 ${badge.color}`}
+                >
+                  {badge.label}
+                </button>
+              ))}
             </div>
 
             {/* Textarea */}
@@ -576,10 +497,10 @@ function HomePage() {
                 onClick={handleGenerate}
                 disabled={!canGenerate}
                 className={cn(
-                  'shrink-0 h-8 rounded-lg flex items-center justify-center gap-1.5 transition-all px-3',
+                  'shrink-0 h-10 rounded-2xl flex items-center justify-center gap-2 transition-all px-5 font-extrabold tracking-wide shadow-xl duration-300 transform',
                   canGenerate
-                    ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm cursor-pointer'
-                    : 'bg-muted text-muted-foreground/40 cursor-not-allowed',
+                    ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50 hover:-translate-y-1 cursor-pointer'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none',
                 )}
               >
                 <span className="text-xs font-medium">{t('toolbar.enterClassroom')}</span>
@@ -713,7 +634,7 @@ function GreetingBar() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const displayName = nickname || t('profile.defaultNickname');
+  const displayName = nickname || '科技少将';
 
   // Click-outside to collapse
   useEffect(() => {
@@ -788,11 +709,11 @@ function GreetingBar() {
           onClick={() => setOpen(true)}
         >
           <div className="shrink-0 relative">
-            <div className="size-8 rounded-full overflow-hidden ring-[1.5px] ring-border/30 group-hover:ring-violet-400/60 dark:group-hover:ring-violet-400/40 transition-all duration-300">
+            <div className="size-10 rounded-full overflow-hidden ring-[3px] ring-white shadow-sm group-hover:scale-105 transition-all duration-300">
               <img src={avatar} alt="" className="size-full object-cover" />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-white dark:bg-slate-800 border border-border/40 flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity">
-              <Pencil className="size-[7px] text-muted-foreground/70" />
+            <div className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center group-hover:bg-violet-50 transition-colors">
+              <Pencil className="size-[8px] text-violet-500" />
             </div>
           </div>
           <div className="flex-1 min-w-0">
@@ -801,7 +722,7 @@ function GreetingBar() {
                 <span className="leading-none select-none flex items-center gap-1">
                   <span>
                     <span className="text-xs text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
-                      {t('home.greeting')}
+                      未来舰长：
                     </span>
                     <span className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
                       {displayName}

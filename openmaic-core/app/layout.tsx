@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import localFont from 'next/font/local';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
@@ -17,9 +18,9 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'OpenMAIC | 科技特长生 AI 课堂引擎',
+  title: 'FutureClass | TitanTech 科技特长生实训舱',
   description:
-    'The open-source AI interactive classroom. Modified for Titan AI System.',
+    'L4 Multi-Agent Educational Engine powered by Titan Tech. 专门为科技特长生打造的专属 AI 实境全息课室。',
 };
 
 export default function RootLayout({
@@ -29,6 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning translate="no">
+      <head>
+        <link href="/assets/css/titan-ai-assistant.css" rel="stylesheet" />
+        <script src="https://kit.fontawesome.com/b2a7bd117b.js" crossOrigin="anonymous" async></script>
+      </head>
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}
         suppressHydrationWarning
@@ -42,6 +47,9 @@ export default function RootLayout({
             <Toaster position="top-center" />
           </I18nProvider>
         </ThemeProvider>
+        
+        {/* 全局悬浮的 Titan A.I. 侧边栏伴读中枢 */}
+        <Script src="/assets/js/titan-ai-assistant.js" strategy="lazyOnload" />
       </body>
     </html>
   );

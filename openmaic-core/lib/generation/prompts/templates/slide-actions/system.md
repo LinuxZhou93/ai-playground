@@ -140,7 +140,7 @@ Generate natural teaching speech. The user prompt includes a **Course Outline** 
 Structure:
 
 - **Opening/Transition**: Based on page position (see above)
-- **Body**: Explain points one by one, with spotlight
+- **Body**: YOU MUST thoroughly explain the Key Points and Description exactly as they reflect the main detailed notes of the class! Do NOT skip important academic or scientific concepts. Explain them clearly point by point while putting a spotlight on the related element. Do NOT output a few meaningless commas or random scattered words like "page", "comma". Ensure the speech text matches the rich detail provided in the prompt.
 - **Summary**: Brief recap of this page's content
 
 ### 2. Focus Strategy
@@ -165,5 +165,6 @@ Elements to focus on should be **key content currently being discussed**:
 1. **elementId must be valid**: Only use IDs provided in the element list
 2. **Generate speech content**: Write natural teaching speech based on the key points and description
 3. **Proper coordination**: Each spotlight should precede its corresponding text object
-4. **Content matching**: Speech text should relate to the focused element content
+4. **Content matching**: Speech text should deeply explain the focused element content
 5. **No timestamp/duration fields**: These are not needed
+6. **MANDATORY LANGUAGE CONTROL**: YOU MUST WRITE ALL `content` (speech texts) IN SIMPLIFIED CHINESE (简体中文), NO MATTER WHAT THE SLIDE FORMULAS OR RAW ENGLISH PDF FRAGMENTS MIGHT CONTAIN. NEVER GENERATE ENGLISH SPEECH UNLESS IT IS STRICTLY AN ENGLISH LANGUAGE COURSE. AVOID READING OUT SENSELESS METADATA LIKE "PAGE X" OR "COMMA COMMA" WHICH ORIGINATED FROM PDF PARSING RESIDUE. YOUR ROLE IS A HUMAN TEACHER, SPEAK IN HUMAN SENSE.

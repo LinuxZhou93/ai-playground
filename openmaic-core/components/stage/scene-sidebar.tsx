@@ -126,7 +126,10 @@ export function SceneSidebar({
             className="flex items-center gap-2 cursor-pointer rounded-lg px-1.5 -mx-1.5 py-1 -my-1 hover:bg-gray-100/80 dark:hover:bg-gray-800/60 active:scale-[0.97] transition-all duration-150"
             title={t('generation.backToHome')}
           >
-            <img src="/logo-horizontal.png" alt="OpenMAIC" className="h-6" />
+            <div className="flex items-center gap-2 select-none group cursor-pointer hover:opacity-80 transition-opacity">
+               <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-600 rounded-lg flex items-center justify-center text-white text-xs font-black shadow-md shadow-orange-500/20 ring-2 ring-orange-500/10 group-hover:rotate-6 transition-transform">FC</div>
+               <span className="font-black text-slate-800 dark:text-white tracking-tight">FutureClass</span>
+            </div>
           </button>
           <button
             onClick={() => onCollapseChange(true)}

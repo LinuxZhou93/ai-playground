@@ -633,8 +633,52 @@ export class PlaybackEngine {
       return;
     }
 
+    const rawChunk = this.browserTTSChunks[this.browserTTSChunkIndex];
+    // 🛡️ 强制净化器：如果一段文字全部是标点符号、空格或者乱码（绝大多数没有实质字母或汉字），直接跳过发音以免产生底层的 "comma comma" 报错怪音！
+    const textHasAlnumOrCJK = /[a-zA-Z\u4e00-\u9fff\u3400-\u4dbf]/.test(rawChunk);
+    if (!textHasAlnumOrCJK) {
+       this.browserTTSChunkIndex++;
+       if (this.mode === 'playing') {
+         // 使用 Promise.resolve 避免堆栈过深，快速跳过纯标点片段
+         Promise.resolve().then(() => this.playBrowserTTSChunk());
+       }
+       return;
+    }
+
+    // 🌋【特长生系统斩草除根级升级】：强制注入火山引擎（豆包TTS）高保真中文女声。
+    // 在收到任何文本块时，不再发给本地生涩、容易读错字母的机器播音员。通过大模型实时转储解决所有发音痛点。
+    try {
+      const doubaoRes = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer;e_t1R3UXzI-qvSTrFdEgh0-NFhjN5p7z'
+        },
+        body: JSON.stringify({
+          app: { appid: '4780476544', token: 'e_t1R3UXzI-qvSTrFdEgh0-NFhjN5p7z', cluster: 'volcano_tts' },
+          user: { uid: "titan_student_future" },
+          audio: { voice_type: 'BV001_streaming', encoding: "mp3", speed_ratio: 1.0 },
+          request: { reqid: "vq_" + Date.now(), text: rawChunk, operation: "query" }
+        })
+      });
+      
+      const doubaoData = await doubaoRes.json();
+      if (doubaoData.data) {
+        // 创建豆包高保真流媒体播放管线，劫持原有机器音
+        const premiumAudio = new window.Audio("data:audio/mp3;base64," + doubaoData.data);
+        premiumAudio.onended = () => {
+          this.browserTTSChunkIndex++;
+          if (this.mode === 'playing') this.playBrowserTTSChunk();
+        };
+        await premiumAudio.play();
+        return; // ✅ 豆包大模型已成功发音，直接结束本轮循环。全盘接管！
+      }
+    } catch (volcErr) {
+       console.warn("🌋 豆包TTS网络抖动，退回底层机器原生引擎保障发信...", volcErr);
+    }
+
     const settings = useSettingsStore.getState();
-    const chunkText = this.browserTTSChunks[this.browserTTSChunkIndex];
+    const chunkText = rawChunk;
     const utterance = new SpeechSynthesisUtterance(chunkText);
 
     // Apply settings
@@ -657,10 +701,9 @@ export class PlaybackEngine {
     }
     if (!voiceFound) {
       // No usable voice configured — detect text language so the browser
-      // auto-selects an appropriate voice.
-      const cjkRatio =
-        (chunkText.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length / chunkText.length;
-      utterance.lang = cjkRatio > CJK_LANG_THRESHOLD ? 'zh-CN' : 'en-US';
+      // 特长生模式下系统全域强制采用带有双语解析能力的 zh-CN 中文引擎。
+      // 否则面对带有大量物理常数、英文缩写或特殊公式片段时，引擎会立刻人格分裂并爆出纯美式的“page zero”或者怪异外星乱码的朗读错误感。
+      utterance.lang = 'zh-CN';
     }
 
     utterance.onend = () => {

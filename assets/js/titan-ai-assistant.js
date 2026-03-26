@@ -1094,6 +1094,7 @@ class TitanAIAssistant {
                     window.mermaid.initialize({ 
                         startOnLoad: false, 
                         theme: 'dark',
+                        suppressErrorRendering: true, // 核心防爆盾
                         themeVariables: { primaryColor: '#0ea5e9' }
                     });
                 }
@@ -1941,6 +1942,10 @@ class TitanAIAssistant {
                 background: rgba(14, 165, 233, 0.1);
                 border-bottom-color: #7dd3fc;
             }
+            /* === 流式保护防爆盾 === */
+            svg[id^="d3id"] { display: none !important; pointer-events: none !important; }
+            .error-icon, .error-text, .mermaid-error { display: none !important; opacity: 0; }
+            
             .mermaid {
                 background: rgba(14, 165, 233, 0.05) !important;
                 border: 1px solid rgba(56, 189, 248, 0.2);

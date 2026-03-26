@@ -79,10 +79,13 @@ function createWindow () {
     return { action: 'deny' }
   })
 
-  // 另一层防御：如果代码里用的不是 _blank 而是直接 a 标签跳转外网
+  // 另一层防御：拦截非本地跳转，但彻底放行我们的专属 Vercel 云端引擎和本地调试端口
   mainWindow.webContents.on('will-navigate', (e, url) => {
-    // 只要不是本地 file:// 协议开头的网页，一律扔给外部原生浏览器处理
-    if (!url.startsWith('file://')) {
+    const isLocalFile = url.startsWith('file://');
+    const isVercelEngine = url.includes('vercel.app');
+    const isLocalhostEngine = url.includes('localhost:3005');
+    
+    if (!isLocalFile && !isVercelEngine && !isLocalhostEngine) {
       e.preventDefault()
       shell.openExternal(url)
     }
