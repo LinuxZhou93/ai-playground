@@ -1292,12 +1292,20 @@ export const useSettingsStore = create<SettingsState>()(
         ensureBuiltInVideoProviders(merged as Partial<SettingsState>);
         ensureValidProviderSelections(merged as Partial<SettingsState>);
 
-        // [Titan Tech Permanent Override] Hardcode API credentials
+        // [Titan Tech Permanent Override] Hardcode Core LLM credentials
         merged.providerId = 'google';
         merged.modelId = 'gemini-3-flash-preview';
         if (merged.providersConfig && merged.providersConfig['google']) {
           merged.providersConfig['google'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
           merged.providersConfig['google'].baseUrl = 'https://backgrace.com/v1';
+        }
+
+        // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy) to bypass Network blocks
+        merged.asrProviderId = 'openai-whisper';
+        merged.asrLanguage = 'zh';
+        if (merged.asrProvidersConfig && merged.asrProvidersConfig['openai-whisper']) {
+          merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
         }
 
         return merged as SettingsState;
