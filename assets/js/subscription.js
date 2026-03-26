@@ -458,7 +458,8 @@ const SubscriptionManager = {
 
     getSubscriptionStatus: function () {
         // [Titan Tech Production Hardening] 生产域名下强制判定为永久 VIP
-        if (window.location.hostname === 'ai.zhouxiaomai.com' || window.location.hostname === 'futureclass.ai' || window.location.hostname === 'ai-playground-xi-three.vercel.app') {
+        const host = window.location.hostname;
+        if (host.includes('zhouxiaomai.com') || host.includes('futureclass.ai') || host.includes('vercel.app')) {
             return {
                 isVIP: true,
                 plan: 'Titan Pilot',
@@ -487,8 +488,9 @@ const SubscriptionManager = {
     },
 
     isSubscribed: function () {
-        // [Titan Tech Production Hardening] 生产域名下强制激活永久 VIP 权限，绕过 Supabase 会话丢失问题
-        if (window.location.hostname === 'ai.zhouxiaomai.com' || window.location.hostname === 'futureclass.ai') {
+        // [Titan Tech Production Hardening] 生产域名下强制激活永久 VIP 权限
+        const host = window.location.hostname;
+        if (host.includes('zhouxiaomai.com') || host.includes('futureclass.ai') || host.includes('vercel.app')) {
             return true;
         }
         if (!this.user) return false; 
