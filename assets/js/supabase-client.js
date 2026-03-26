@@ -76,12 +76,48 @@ async function signIn(email, password) {
     return { data, error };
 }
 
-// GitHub OAuth Login
+// OAuth Login (GitHub)
 async function signInWithGitHub() {
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const { data, error } = await _supabase.auth.signInWithOAuth({
         provider: 'github',
+        options: { redirectTo: window.location.origin }
     });
+    return { data, error };
+}
+
+// OAuth Login (WeChat) - Requires Supabase configured provider
+async function signInWithWeChat() {
+    if (!_supabase) return { error: { message: "Supabase not initialized" } };
+    const { data, error } = await _supabase.auth.signInWithOAuth({
+        provider: 'wechat',
+        options: { redirectTo: window.location.origin }
+    });
+    return { data, error };
+}
+
+// --- OTP (SMS/Email) Helpers ---
+
+// Send 6-digit code to phone or email
+async function sendOtp(identifier) {
+    if (!_supabase) return { error: { message: "Supabase not initialized" } };
+    const isPhone = /^\d+(?:\+\d+)?$/.test(identifier);
+    const options = isPhone ? { phone: identifier } : { email: identifier };
+    
+    const { data, error } = await _supabase.auth.signInWithOtp(options);
+    return { data, error };
+}
+
+// Verify the code
+async function verifyOtp(identifier, token) {
+    if (!_supabase) return { error: { message: "Supabase not initialized" } };
+    const isPhone = /^\d+(?:\+\d+)?$/.test(identifier);
+    const type = isPhone ? 'sms' : 'email';
+    
+    const options = isPhone ? { phone: identifier, token, type } : { email: identifier, token, type: 'magiclink' };
+    
+    // For magiclink Supabase often uses Magic Links, but for 6-digit it can be OTP
+    const { data, error } = await _supabase.auth.verifyOtp(options);
     return { data, error };
 }
 
@@ -89,7 +125,10 @@ async function signInWithGitHub() {
 async function signOut() {
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const { error } = await _supabase.auth.signOut();
-    if (!error) window.location.reload();
+    if (!error) {
+        localStorage.removeItem('current_user_email');
+        window.location.reload();
+    }
     return { error };
 }
 
@@ -112,6 +151,9 @@ window.SupabaseClient = {
     signUp,
     signIn,
     signInWithGitHub,
+    signInWithWeChat,
+    sendOtp,
+    verifyOtp,
     signOut,
     onAuthStateChange
 };
@@ -120,6 +162,9 @@ window.SupabaseClient = {
 window.signUp = signUp;
 window.signIn = signIn;
 window.signInWithGitHub = signInWithGitHub;
+window.signInWithWeChat = signInWithWeChat;
+window.sendOtp = sendOtp;
+window.verifyOtp = verifyOtp;
 window.signOut = signOut;
 window.getCurrentUser = getCurrentUser;
 window.onAuthStateChange = onAuthStateChange;

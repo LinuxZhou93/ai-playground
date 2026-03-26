@@ -241,10 +241,10 @@
 
                 <div class="input-box">
                     <div class="input-label">
-                        <span>IDENTITY_CODE</span>
-                        <span style="color:var(--neon-blue)">STATUS: ACTIVE</span>
+                        <span>IDENTITY_CODE_EMAIL</span>
+                        <span style="color:var(--neon-blue)">STATUS: REQUIRE INPUT</span>
                     </div>
-                    <input type="text" class="tech-input" placeholder="ENTER ID" value="ZHOULIN.ADMIN">
+                    <input type="email" id="emailInput" class="tech-input" placeholder="ENTER EMAIL" value="">
                 </div>
 
                 <div class="input-box">
@@ -252,15 +252,20 @@
                         <span>ACCESS_PHRASE</span>
                         <span>ENCRYPTION: AES-256</span>
                     </div>
-                    <input type="password" class="tech-input" placeholder="••••••••" value="12345678">
+                    <input type="password" id="passwordInput" class="tech-input" placeholder="••••••••" value="">
                 </div>
 
-                <button class="primary-btn" onclick="initiateLogin()">
-                    AUTHORIZE ACCESS
-                </button>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="primary-btn" id="loginBtn" onclick="handleAuth('login')" style="margin-bottom: 0;">
+                        AUTHORIZE ACCESS
+                    </button>
+                    <button class="primary-btn" id="registerBtn" onclick="handleAuth('register')" style="margin-bottom: 0; background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue);">
+                        CREATE IDENTITY
+                    </button>
+                </div>
 
-                <div style="text-align: center; font-size: 10px; color: grey;">
-                    SECURE CONNECTION ESTABLISHED
+                <div id="statusMsg" style="text-align: center; font-size: 10px; color: grey; min-height: 12px;">
+                    WAITING FOR INPUT...
                 </div>
             </div>
         </div>
@@ -289,18 +294,98 @@
     </section>
 
     <!-- SCRIPTS LOADED AT BOTTOM WITH ERROR HANDLING -->
+    <!-- Supabase SDK and Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/supabase-client.js"></script>
+
     <!-- Using unpkg which is generally reliable, but we add checks -->
     <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
 
     <script>
-        function initiateLogin() {
-            const btn = document.querySelector('.primary-btn');
-            btn.innerText = "ACCESS GRANTED...";
-            btn.style.background = "#00f3ff";
-            setTimeout(() => {
-                window.location.href = "index.html";
-            }, 800);
+        // Use Supabase Client to handle Login and Registration
+        async function handleAuth(action) {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const statusMsg = document.getElementById('statusMsg');
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+
+            if (!email || !password) {
+                statusMsg.style.color = '#ff0055';
+                statusMsg.innerText = "ERROR: INVALID CREDENTIALS FORMAT";
+                return;
+            }
+
+            statusMsg.style.color = 'var(--neon-blue)';
+            statusMsg.innerText = "VERIFYING IDENTITY...";
+
+            if (action === 'login') {
+                loginBtn.innerText = "AUTHENTICATING...";
+                const { data, error } = await window.SupabaseClient.signIn(email, password);
+                if (error) {
+                    statusMsg.style.color = '#ff0055';
+                    statusMsg.innerText = "ERROR: " + error.message.toUpperCase();
+                    loginBtn.innerText = "AUTHORIZE ACCESS";
+                } else {
+                    loginBtn.innerText = "ACCESS GRANTED";
+                    loginBtn.style.background = "#00f3ff";
+                    statusMsg.style.color = '#00ffaa';
+                    statusMsg.innerText = "CONNECTION SECURED. REDIRECTING...";
+                    setTimeout(() => {
+                        window.location.href = "index.html";
+                    }, 800);
+                }
+            } else if (action === 'register') {
+                registerBtn.innerText = "INITIALIZING...";
+                const { data, error } = await window.SupabaseClient.signUp(email, password);
+                if (error) {
+                    statusMsg.style.color = '#ff0055';
+                    statusMsg.innerText = "REGISTRATION ERROR: " + error.message.toUpperCase();
+                    registerBtn.innerText = "CREATE IDENTITY";
+                } else {
+                    registerBtn.innerText = "IDENTITY CREATED";
+                    statusMsg.style.color = '#00ffaa';
+                    statusMsg.innerText = "REGISTRATION COMPLETE. YOU MAY NOW LOGIN.";
+                    setTimeout(() => {
+                        registerBtn.innerText = "CREATE IDENTITY";
+                    }, 2000);
+                }
+            }
         }
+
+        // Listen for "Enter" keypress on password field
+        window.addEventListener('DOMContentLoaded', () => {
+            const pwInput = document.getElementById('passwordInput');
+            if (pwInput) {
+                pwInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        handleAuth('login');
+                    }
+                });
+            }
+            
+            // Check if already logged in
+            if (window.SupabaseClient) {
+                window.SupabaseClient.getCurrentUser().then(user => {
+                    if (user) {
+                        const statusMsg = document.getElementById('statusMsg');
+                        if (statusMsg) {
+                            statusMsg.style.color = '#00ffaa';
+                            statusMsg.innerText = "ACTIVE SESSION DETECTED. REDIRECTING...";
+                        }
+                        const loginBtn = document.getElementById('loginBtn');
+                        if (loginBtn) {
+                            loginBtn.innerText = "REDIRECTING...";
+                            loginBtn.style.background = "#00f3ff";
+                        }
+                        setTimeout(() => {
+                            window.location.href = "index.html";
+                        }, 500);
+                    }
+                });
+            }
+        });
 
         // 3D BACKGROUND LOGIC (Wrapped in try/catch to prevent page break)
         try {
