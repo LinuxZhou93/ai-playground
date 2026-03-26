@@ -1312,27 +1312,35 @@ export const useSettingsStore = create<SettingsState>()(
         // [Titan Tech Permanent Override] Hardcode Core LLM credentials (via Backgrace Proxy)
         merged.providerId = 'google';
         merged.modelId = 'gemini-3-flash-preview';
-        if (merged.providersConfig && merged.providersConfig['google']) {
-          merged.providersConfig['google'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
-          merged.providersConfig['google'].baseUrl = 'https://backgrace.com/v1';
+        
+        // Ensure configs exist and are updated
+        if (!merged.providersConfig) merged.providersConfig = {};
+        if (!merged.providersConfig['google']) {
+          merged.providersConfig['google'] = { apiKey: '', baseUrl: '', models: [] };
         }
+        merged.providersConfig['google'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+        merged.providersConfig['google'].baseUrl = 'https://backgrace.com/v1';
 
-        // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy) to bypass Network blocks
+        // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy)
         merged.asrProviderId = 'openai-whisper';
         merged.asrLanguage = 'zh';
-        if (merged.asrProvidersConfig && merged.asrProvidersConfig['openai-whisper']) {
-          merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
-          merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
+        if (!merged.asrProvidersConfig) merged.asrProvidersConfig = {};
+        if (!merged.asrProvidersConfig['openai-whisper']) {
+          merged.asrProvidersConfig['openai-whisper'] = { apiKey: '', baseUrl: '', enabled: true };
         }
+        merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-4nI8bNhmkL4J2W0c4aFc0428CbEa4b3d8816F4F0328b9cEb';
+        merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
 
-        // [Titan Tech Permanent Override] Hardcode TTS (Direct Volcengine/Doubao) - bypass Backgrace for voice synthesis
+        // [Titan Tech Permanent Override] Hardcode TTS (Direct Volcengine/Doubao)
         merged.ttsProviderId = 'volcengine-tts';
         merged.ttsVoice = 'zh_child_feifei_moon_bigtts';
-        if (merged.ttsProvidersConfig && merged.ttsProvidersConfig['volcengine-tts']) {
-           merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
-           merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
-           merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
+        if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {};
+        if (!merged.ttsProvidersConfig['volcengine-tts']) {
+           merged.ttsProvidersConfig['volcengine-tts'] = { apiKey: '', baseUrl: 'https://openspeech.bytedance.com/api/v1', enabled: true };
         }
+        merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
+        merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
+        merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
 
         return merged as SettingsState;
       },
