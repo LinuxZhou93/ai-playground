@@ -28,7 +28,7 @@ class TitanAIAssistant {
             volcengineAppId: '4780476544', // 去火山引擎注册后拿到的 AppID
             volcengineToken: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', // 去火山引擎拿到的真实身份 Token (含小写l修正)
             volcengineCluster: 'volcano_tts', // 默认使用火山 TTS 集群
-            volcengineVoice: 'zh_child_feifei_moon_bigtts', // 强制飞飞男孩音色：活力满天（解决沉浸感撕裂）
+            volcengineVoice: 'BV700_V2_streaming', // 强制灿灿2.0音色：因为账号开通的是双端模型 (Dual-Terminal)
             // 💎 [会员权限硬核固化]：生产版默认授予永久 VIP 权限 (2033年过期)，解决跨域 Session 丢失导致的访客模式回滚。
             memberExpired: 2000000000000 
         };
