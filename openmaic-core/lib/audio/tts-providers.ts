@@ -156,9 +156,10 @@ async function generateVolcengineTTS(
 ): Promise<TTSGenerationResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['volcengine-tts'].defaultBaseUrl;
   
-  // Hardcoded keys as requested for instant "Out Of The Box" FutureClass operations
+  // 🚀 User's Specific Credentials for Doubao Dedicated Large Model
   const appId = "4780476544";
-  const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
+  const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z"; // Access Token
+  const secretKey = "bOZ-NC-raInT7RrQDLxuMI2Sbq6gIQhm"; // Secret Key (Ready for HMAC256 auth on dedicated endpoints)
   const reqid = 'req-srv-' + Date.now() + Math.random().toString().slice(2,8);
 
   const response = await fetch(`${baseUrl}/tts`, {
