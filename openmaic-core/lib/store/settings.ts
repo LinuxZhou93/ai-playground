@@ -1324,9 +1324,17 @@ export const useSettingsStore = create<SettingsState>()(
         merged.modelId = 'gemini-3-flash-preview';
         
         // Ensure configs exist and are updated
-        if (!merged.providersConfig) merged.providersConfig = {};
+        if (!merged.providersConfig) merged.providersConfig = {} as ProvidersConfig;
         if (!merged.providersConfig['google']) {
-          merged.providersConfig['google'] = { apiKey: '', baseUrl: '', models: [] };
+          merged.providersConfig['google'] = {
+            apiKey: '',
+            baseUrl: '',
+            models: [],
+            name: 'Google',
+            type: 'google',
+            requiresApiKey: true,
+            isBuiltIn: true,
+          };
         }
         merged.providersConfig['google'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
         merged.providersConfig['google'].baseUrl = 'https://backgrace.com/v1';
@@ -1334,24 +1342,30 @@ export const useSettingsStore = create<SettingsState>()(
         // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy)
         merged.asrProviderId = 'openai-whisper';
         merged.asrLanguage = 'zh';
-        if (!merged.asrProvidersConfig) merged.asrProvidersConfig = {};
+        if (!merged.asrProvidersConfig) merged.asrProvidersConfig = {} as any;
         if (!merged.asrProvidersConfig['openai-whisper']) {
-          merged.asrProvidersConfig['openai-whisper'] = { apiKey: '', baseUrl: '', enabled: true };
+          merged.asrProvidersConfig['openai-whisper'] = {
+            apiKey: '',
+            baseUrl: '',
+            enabled: true,
+          };
         }
         merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
         merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
 
         // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access)
-        // Fixed: Bytedance OpenSpeech requires Voice IDs that strictly match the purchased capability.
-        // User has '双端模型' (Dual-Terminal) enabled. Using BV700_V2_streaming (灿灿2.0).
         merged.ttsProviderId = 'volcengine-tts';
         merged.ttsVoice = 'BV700_V2_streaming';
-        if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {};
+        if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {} as any;
         if (!merged.ttsProvidersConfig['volcengine-tts']) {
-          merged.ttsProvidersConfig['volcengine-tts'] = { apiKey: '', baseUrl: '', enabled: true };
+          merged.ttsProvidersConfig['volcengine-tts'] = {
+            apiKey: '',
+            baseUrl: '',
+            enabled: true,
+          };
         }
         merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
-        merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
+        merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1/tts';
         merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
 
         return merged as SettingsState;
