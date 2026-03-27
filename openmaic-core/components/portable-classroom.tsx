@@ -3,7 +3,7 @@
 import { Stage } from '@/components/stage';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { useStageStore } from '@/lib/store';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MediaStageProvider } from '@/lib/contexts/media-stage-context';
 import type { PortablePackage } from '@/lib/server/classroom-export';
 
@@ -27,6 +27,8 @@ interface PortableClassroomProps {
 export function PortableClassroom({ packageData, classroomId, onSceneChange }: PortableClassroomProps) {
   const { setStage, setScenes, setCurrentSceneId } = useStageStore();
   const [ready, setReady] = useState(false);
+  const onSceneChangeRef = useRef(onSceneChange);
+  onSceneChangeRef.current = onSceneChange;
 
   useEffect(() => {
     if (packageData) {
@@ -38,10 +40,22 @@ export function PortableClassroom({ packageData, classroomId, onSceneChange }: P
       setReady(true);
     } else if (classroomId) {
       // 模式 B: 通过 ID 加载 (保持原有链路)
-      // 此处逻辑可调用原有的 loadFromStorage
       setReady(true);
     }
   }, [packageData, classroomId, setStage, setScenes, setCurrentSceneId]);
+
+  // 通过 store 订阅场景变化，触发外部回调
+  useEffect(() => {
+    if (!onSceneChangeRef.current) return;
+    const unsub = useStageStore.subscribe(
+      (state, prevState) => {
+        if (state.currentSceneId && state.currentSceneId !== prevState.currentSceneId) {
+          onSceneChangeRef.current?.(state.currentSceneId);
+        }
+      }
+    );
+    return unsub;
+  }, []);
 
   if (!ready) return <div>Loading courseware...</div>;
 
@@ -49,7 +63,7 @@ export function PortableClassroom({ packageData, classroomId, onSceneChange }: P
     <ThemeProvider>
       <MediaStageProvider value={classroomId || packageData?.data.id || 'portable'}>
         <div className="portable-classroom-container h-full w-full overflow-hidden">
-          <Stage onSceneChange={onSceneChange} />
+          <Stage />
         </div>
       </MediaStageProvider>
     </ThemeProvider>
