@@ -217,7 +217,11 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync section from prop when dialog opens
       setActiveSection(initialSection);
     }
-  }, [open, initialSection]);
+    // Safety check: if google is selected but hidden, switch to openai
+    if (selectedProviderId === ('google' as ProviderId)) {
+      setSelectedProviderId('openai' as ProviderId);
+    }
+  }, [open, initialSection, selectedProviderId]);
 
   // Model editing state
   const [editingModel, setEditingModel] = useState<EditingModel | null>(null);
@@ -471,16 +475,18 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
   };
 
   // Get all providers from providersConfig
-  const allProviders = Object.entries(providersConfig).map(([id, config]) => ({
-    id: id as ProviderId,
-    name: config.name,
-    type: config.type,
-    defaultBaseUrl: config.defaultBaseUrl,
-    icon: config.icon,
-    requiresApiKey: config.requiresApiKey,
-    models: config.models,
-    isServerConfigured: config.isServerConfigured,
-  }));
+  const allProviders = Object.entries(providersConfig)
+    .filter(([id]) => id !== ('google' as ProviderId))
+    .map(([id, config]) => ({
+      id: id as ProviderId,
+      name: config.name,
+      type: config.type,
+      defaultBaseUrl: config.defaultBaseUrl,
+      icon: config.icon,
+      requiresApiKey: config.requiresApiKey,
+      models: config.models,
+      isServerConfigured: config.isServerConfigured,
+    }));
 
   // Sections that show a provider list column
   const _hasProviderList = [
