@@ -112,8 +112,11 @@
 
             <div class="flex items-center gap-6">
                 <div class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full animate-pulse" :class="statusColor.dot"></span>
-                    <span class="text-[9px] font-black uppercase tracking-widest" :class="statusColor.text">{{ syncingStatus }}</span>
+                    <span class="status-dot w-2 h-2 rounded-full animate-pulse transition-all duration-700" 
+                          :class="statusColor.dot"
+                          :style="{ boxShadow: statusColor.glow }"></span>
+                    <span class="text-[9px] font-black uppercase tracking-widest transition-colors duration-700" 
+                          :class="statusColor.text">{{ syncingStatus }}</span>
                 </div>
                 <button v-if="viewMode === 'classroom'" @click="exitClassroom" 
                         class="px-6 py-2 rounded-full glass border border-orange-600/30 text-orange-500 text-[10px] font-black hover:bg-orange-600/10 transition-all uppercase tracking-[2px]">
@@ -277,6 +280,12 @@
                                current.value = cloudLessons[0];
                                course.value.title = data.title;
                                syncingStatus.value = "Cloud Kernel Synced";
+                               
+                               // Premium Success Animation
+                               gsap.fromTo(".status-dot", 
+                                   { scale: 1, opacity: 1 }, 
+                                   { scale: 2.5, opacity: 0, duration: 1, repeat: 2, ease: "power2.out" }
+                               );
                            } else {
                                console.warn("[Titan Cloud] No data found in Supabase. Falling back to local Mock.");
                                syncingStatus.value = "Local Kernel Mock";
@@ -324,9 +333,21 @@
                 });
 
                 const statusColor = computed(() => {
-                   if (syncingStatus.value === 'Cloud Kernel Synced') return { dot: 'bg-green-400 shadow-[0_0_10px_#4ade80]', text: 'text-green-400' };
-                   if (syncingStatus.value === 'Syncing with Titan Cloud...') return { dot: 'bg-orange-500', text: 'text-orange-500' };
-                   return { dot: 'bg-slate-500', text: 'text-slate-500' };
+                   if (syncingStatus.value === 'Cloud Kernel Synced') return { 
+                       dot: 'bg-green-400', 
+                       text: 'text-green-400',
+                       glow: '0 0 12px #4ade80, 0 0 20px #22c55e'
+                   };
+                   if (syncingStatus.value === 'Syncing with Titan Cloud...') return { 
+                       dot: 'bg-orange-500', 
+                       text: 'text-orange-500',
+                       glow: '0 0 8px #f97316'
+                   };
+                   return { 
+                       dot: 'bg-slate-500', 
+                       text: 'text-slate-500',
+                       glow: 'none'
+                   };
                 });
 
                 return { viewMode, course, lessons, current, kernelUrl, syncingStatus, statusColor, launch, exitClassroom, selectLesson, getCover };
