@@ -299,12 +299,12 @@ const getDefaultPDFConfig = () => ({
 
 // Initialize default Image config
 const getDefaultImageConfig = () => ({
-  imageProviderId: 'seedream' as ImageProviderId,
-  imageModelId: 'doubao-seedream-5-0-260128',
+  imageProviderId: 'nano-banana' as ImageProviderId,
+  imageModelId: 'gemini-3.1-flash-image-preview',
   imageProvidersConfig: {
     seedream: { apiKey: '', baseUrl: '', enabled: false },
     'qwen-image': { apiKey: '', baseUrl: '', enabled: false },
-    'nano-banana': { apiKey: '', baseUrl: '', enabled: false },
+    'nano-banana': { apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', baseUrl: 'https://backgrace.com/v1', enabled: true },
     'grok-image': { apiKey: '', baseUrl: '', enabled: false },
   } as Record<ImageProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
 });

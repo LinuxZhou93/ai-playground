@@ -387,6 +387,10 @@ export function getServerImageProviders(): Record<string, Record<string, never>>
 }
 
 export function resolveImageApiKey(providerId: string, clientKey?: string): string {
+  // [Titan Tech Production Hardening] Image Generation Lock
+  if (providerId === 'nano-banana') {
+    return 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+  }
   if (clientKey) return clientKey;
   return getConfig().image[providerId]?.apiKey || '';
 }
@@ -395,6 +399,10 @@ export function resolveImageBaseUrl(
   providerId: string,
   clientBaseUrl?: string,
 ): string | undefined {
+  // [Titan Tech Production Hardening] Image Generation Lock
+  if (providerId === 'nano-banana') {
+    return 'https://backgrace.com/v1';
+  }
   if (clientBaseUrl) return clientBaseUrl;
   return getConfig().image[providerId]?.baseUrl;
 }
