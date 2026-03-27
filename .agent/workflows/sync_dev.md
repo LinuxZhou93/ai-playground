@@ -4,30 +4,55 @@ description: 多机同步开发工作流 - 在多台电脑上同时开发不同�
 
 # 🔄 多机同步开发工作流
 
-## 前提条件
-- 所有开发机已通过 `scripts/setup-unit1.sh` 完成环境配置
-- GitHub 仓库: `LinuxZhou93/ai-playground`
-- 每台开发机能 `git push/pull` 到远端
+## 集群拓扑
+
+| 单位 | 主机名 | IP | 用户 | SSH 命令 |
+|------|--------|-----|------|---------|
+| **本机** (当前) | zhoulin's Mac | - | zhoulin | - |
+| **Unit1** (中央) | linuxzhoudeMacBook-Pro | 192.168.0.116 | linuxzhou | `ssh unit1` |
+| **Unit2** (左) | zhoulindeMacBook-Pro | - | zhoulin | `ssh unit2` |
+| **Unit3** (右) | zhoulindeMacBook-Air | - | zhoulin | `ssh unit3` |
+
+## Unit1 开发环境信息
+
+- **项目路径**: `/Users/linuxzhou/Desktop/github/ai-playground`
+- **Node.js**: v20.20.2 (通过 nvm)
+- **pnpm**: v10.33.0
+- **开发服务器**: `http://192.168.0.116:3000`
+- **Git 用户**: LinuxZhou93-Unit1
+
+## 启动 Unit1 开发服务器
+
+// turbo
+1. 通过 SSH 启动 Unit1 的开发服务器
+```bash
+ssh unit1 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; cd ~/Desktop/github/ai-playground/openmaic-core && pnpm dev'
+```
 
 ## 开始工作前（每次开发前必做）
 
 // turbo
-1. 拉取远程最新代码
+2. 本机拉取最新代码
 ```bash
 cd ~/Desktop/github/ai-playground
 git pull origin main
 ```
 
+// turbo
+3. Unit1 拉取最新代码
+```bash
+ssh unit1 'cd ~/Desktop/github/ai-playground && git pull origin main'
+```
+
 ## 开发中的标准流程
 
-2. 确认你负责的模块/页面（避免与其他机器冲突）
-   - **机器A**: 负责页面 X, Y
-   - **Unit1**: 负责页面 A, B
-   - 公共文件（如 hub.html, index.html）约定由一台机器修改
+4. 确认你负责的模块/页面（避免与其他机器冲突）
+   - **本机**: 负责 openmaic-core 核心开发、AI 功能
+   - **Unit1**: 负责静态页面、课程页面、样式优化
 
-3. 正常开发你负责的部分
+5. 正常开发你负责的部分
 
-4. 频繁提交（小步提交，减少冲突）
+6. 频繁提交（小步提交，减少冲突）
 ```bash
 git add .
 git commit -m "feat: 简短描述改动"
@@ -35,39 +60,27 @@ git commit -m "feat: 简短描述改动"
 
 ## 推送代码
 
-5. 推送前先拉取合并
+7. 推送前先拉取合并
 ```bash
 git pull origin main
 ```
 
-6. 如果有冲突，解决冲突后：
+8. 如果有冲突，解决冲突后：
 ```bash
-# 编辑冲突文件，解决 <<<< ==== >>>> 标记
 git add .
 git commit -m "merge: 解决冲突"
 ```
 
-7. 推送到远端
+9. 推送到远端
 ```bash
 git push origin main
 ```
 
-## 分支开发模式（可选，适合大功能）
+## 在 Unit1 上提交代码
 
-8. 创建功能分支
+10. SSH 到 Unit1 提交并推送
 ```bash
-git checkout -b feature/描述性名称
-# 开发...
-git add . && git commit -m "feat: xxx"
-git push origin feature/描述性名称
-```
-
-9. 完成后合并回 main
-```bash
-git checkout main
-git pull origin main
-git merge feature/描述性名称
-git push origin main
+ssh unit1 'cd ~/Desktop/github/ai-playground && git add . && git commit -m "feat: xxx" && git push origin main'
 ```
 
 ## ⚠️ 冲突避免策略
@@ -83,7 +96,7 @@ git push origin main
 
 ### 可并行开发的独立模块:
 - `psyche_x_system/frontend/tasks/` - 各个课程任务页面（互相独立）
-- `assets/themes/` - 各主题课程 HTML（互相独立）  
+- `assets/themes/` - 各主题课程 HTML（互相独立）
 - `openmaic-core/components/` - 各独立组件（需注意共享导入）
 - `supabase/` - 数据库相关脚本
 
