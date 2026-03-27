@@ -530,7 +530,7 @@ export const useSettingsStore = create<SettingsState>()(
       // [Titan Tech Override] Apply Direct Volcengine TTS to defaults (Does NOT go through Backgrace)
       if (defaultAudioConfig.ttsProvidersConfig && defaultAudioConfig.ttsProvidersConfig['volcengine-tts']) {
         defaultAudioConfig.ttsProviderId = 'volcengine-tts';
-        defaultAudioConfig.ttsVoice = 'zh_child_feifei_moon_bigtts';
+        defaultAudioConfig.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
         defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
         defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
         defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].enabled = true;
@@ -1198,129 +1198,6 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-storage',
       version: 3,
-      // Migrate persisted state
-      migrate: (persistedState: unknown, version: number) => {
-        const state = persistedState as Partial<SettingsState>;
-
-        // v2 → v3: Force clear legacy proxy keys stuck in local storage
-        if (version < 3) {
-          if (state.providersConfig && state.providersConfig['google']) {
-            state.providersConfig['google'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
-          }
-          if (state.asrProvidersConfig && state.asrProvidersConfig['openai-whisper']) {
-            state.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
-          }
-        }
-
-        // v0 → v1: clear hardcoded default model so user must actively select
-        if (version === 0) {
-          if (state.providerId === 'openai' && state.modelId === 'gpt-4o-mini') {
-            state.modelId = '';
-          }
-        }
-
-        // Ensure providersConfig has all built-in providers (also in merge below)
-        ensureBuiltInProviders(state);
-
-        // Ensure image/video configs have all built-in providers
-        ensureBuiltInImageProviders(state);
-        ensureBuiltInVideoProviders(state);
-
-        // Migrate from old ttsModel to new ttsProviderId
-        if (state.ttsModel && !state.ttsProviderId) {
-          // Map old ttsModel values to new ttsProviderId
-          if (state.ttsModel === 'openai-tts') {
-            state.ttsProviderId = 'openai-tts';
-          } else if (state.ttsModel === 'azure-tts') {
-            state.ttsProviderId = 'azure-tts';
-          } else {
-            // Default to OpenAI
-            state.ttsProviderId = 'openai-tts';
-          }
-        }
-
-        // Add default audio config if missing
-        if (!state.ttsProvidersConfig || !state.asrProvidersConfig) {
-          const defaultAudioConfig = getDefaultAudioConfig();
-          Object.assign(state, defaultAudioConfig);
-        }
-
-        // Add default PDF config if missing
-        if (!state.pdfProvidersConfig) {
-          const defaultPDFConfig = getDefaultPDFConfig();
-          Object.assign(state, defaultPDFConfig);
-        }
-
-        // Add default Image config if missing
-        if (!state.imageProvidersConfig) {
-          const defaultImageConfig = getDefaultImageConfig();
-          Object.assign(state, defaultImageConfig);
-        }
-
-        // Add default Video config if missing
-        if (!state.videoProvidersConfig) {
-          const defaultVideoConfig = getDefaultVideoConfig();
-          Object.assign(state, defaultVideoConfig);
-        }
-
-        // v1 → v2: Replace deep research with web search
-        if (version < 2) {
-          delete (state as Record<string, unknown>).deepResearchProviderId;
-          delete (state as Record<string, unknown>).deepResearchProvidersConfig;
-        }
-
-        // Add default media generation toggles if missing
-        if (state.imageGenerationEnabled === undefined) {
-          state.imageGenerationEnabled = false;
-        }
-        if (state.videoGenerationEnabled === undefined) {
-          state.videoGenerationEnabled = false;
-        }
-
-        // Add default audio toggles if missing
-        if ((state as Record<string, unknown>).ttsEnabled === undefined) {
-          (state as Record<string, unknown>).ttsEnabled = true;
-        }
-        if ((state as Record<string, unknown>).asrEnabled === undefined) {
-          (state as Record<string, unknown>).asrEnabled = true;
-        }
-
-        // Existing users already have their config set up — mark auto-config as done
-        if ((state as Record<string, unknown>).autoConfigApplied === undefined) {
-          (state as Record<string, unknown>).autoConfigApplied = true;
-        }
-
-        if ((state as Record<string, unknown>).agentMode === undefined) {
-          (state as Record<string, unknown>).agentMode = 'preset';
-        }
-        if ((state as Record<string, unknown>).autoAgentCount === undefined) {
-          (state as Record<string, unknown>).autoAgentCount = 3;
-        }
-
-        // Migrate Web Search: old flat fields → new provider-based config
-        if (!state.webSearchProvidersConfig) {
-          const stateRecord = state as Record<string, unknown>;
-          const oldApiKey = (stateRecord.webSearchApiKey as string) || '';
-          const oldIsServerConfigured =
-            (stateRecord.webSearchIsServerConfigured as boolean) || false;
-          state.webSearchProviderId = 'tavily' as WebSearchProviderId;
-          state.webSearchProvidersConfig = {
-            tavily: {
-              apiKey: oldApiKey,
-              baseUrl: '',
-              enabled: true,
-              isServerConfigured: oldIsServerConfigured,
-            },
-          } as SettingsState['webSearchProvidersConfig'];
-          delete stateRecord.webSearchApiKey;
-          delete stateRecord.webSearchIsServerConfigured;
-        }
-
-        ensureValidProviderSelections(state);
-
-        return state;
-      },
-      version: 3, // [Titan Tech] Bumped to clear legacy sk-4nI8... keys from localStorage
       migrate: (persistedState: any, version: number) => {
         if (version < 3) {
           // Force clear potentially stuck legacy configs to ensure new hardcoded values win
@@ -1418,7 +1295,6 @@ if (typeof window !== 'undefined') {
           newConfig.google.apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
           newConfig.google.baseUrl = 'https://backgrace.com/v1';
           
-          // 同时也强制同步 OpenAI 协议，因为我们在 AIProviders 中将 Gemini 视作 OpenAI 兼容类
           if (!newConfig.openai) newConfig.openai = {} as any;
           newConfig.openai.apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
           newConfig.openai.baseUrl = 'https://backgrace.com/v1';
@@ -1435,8 +1311,6 @@ if (typeof window !== 'undefined') {
     }
   };
   
-  // 立即执行一次
   forceSync();
-  // 水合后再次执行确保万无一失
   setTimeout(forceSync, 1000);
 }
