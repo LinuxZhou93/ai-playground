@@ -1,36 +1,51 @@
 const { app, BrowserWindow, systemPreferences, Menu, shell, ipcMain } = require('electron')
 const path = require('path')
-const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
+// const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
 
 // ==========================================
 // 🎙️ 微软超清神经语音引擎 (Edge TTS 白嫖专线)
 // 只有在 Electron 主进程裸跑，才能无视源限制完美伪装
 // ==========================================
-const msTTS = new MsEdgeTTS();
+// const msTTS = new MsEdgeTTS();
+// ==========================================
+// 🎙️ 火山引擎 (豆包) TTS 引擎 - 生产级直连
+// 确保 Electron 桌面端与 OpenMAIC 课件音色高度统一
+// ==========================================
 ipcMain.handle('generate-edge-tts', async (event, text, voiceName) => {
     try {
-        console.log(`[主进程 TTS] 正在呼叫微软后台生成语音: ${voiceName || 'zh-CN-XiaoxiaoNeural'}`);
-        await msTTS.setMetadata(voiceName || 'zh-CN-XiaoxiaoNeural', OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-        const audioStream = await msTTS.toStream(text);
-        
-        return new Promise((resolve, reject) => {
-            let chunks = [];
-            audioStream.on('data', chunk => chunks.push(chunk));
-            audioStream.on('end', () => {
-                const buffer = Buffer.concat(chunks);
-                console.log(`[主进程 TTS] 音频生成成功，下发二进制包裹: ${buffer.length} bytes`);
-                resolve(buffer); // 将 Buffer 传送给前端
-            });
-            audioStream.on('error', reject);
-            
-            // 解决 Stream 可能未提供 close 事件引发的问题
-            audioStream.on('close', () => {
-                if (chunks.length > 0) resolve(Buffer.concat(chunks));
-            });
+        const appId = "4780476544";
+        const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
+        const voice = voiceName || "zh_male_shaonianzixin_moon_bigtts";
+        const reqid = 'req-ipc-' + Date.now();
+
+        console.log(`[主进程 TTS] 正在呼叫火山引擎生成语音: ${voice}`);
+
+        const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer; ${token}`
+            },
+            body: JSON.stringify({
+                app: { appid: appId, token: token, cluster: "volcano_tts" },
+                user: { uid: "titan_electron" },
+                audio: { voice_type: voice, encoding: "mp3" },
+                request: { reqid: reqid, text: text, operation: "query" }
+            })
         });
+
+        if (!response.ok) throw new Error(`Volcengine API Error: ${response.statusText}`);
+        
+        const result = await response.json();
+        if (result.code !== 3000) throw new Error(`Volcengine Error: ${result.message}`);
+
+        const buffer = Buffer.from(result.data, 'base64');
+        console.log(`[主进程 TTS] 豆包语音合成成功: ${buffer.length} bytes`);
+        return buffer;
+
     } catch (err) {
         console.error("[主进程 TTS] 崩溃:", err);
-        throw err;
+        return null; // 返回 null 触发前端 fallback
     }
 });
 
