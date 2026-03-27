@@ -241,14 +241,18 @@ export function getServerProviders(): Record<string, { models?: string[]; baseUr
 
 /** Resolve API key: client key > server key > hardcoded fallback (for prod hardening) > empty string */
 export function resolveApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey && clientKey.startsWith('sk-')) return clientKey;
-  const serverKey = getConfig().providers[providerId]?.apiKey;
-  if (serverKey) return serverKey;
+  // 🚀 [Titan Tech Nuclear Option] 优先检测是否为旧的/无效的 Key
+  const OLD_KEY_PREFIX = 'sk-4nI8';
+  const PROD_KEY = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+
+  if (clientKey && clientKey.startsWith('sk-') && !clientKey.startsWith(OLD_KEY_PREFIX)) return clientKey;
   
-  // [Titan Tech Production Hardening] 最后的防线：如果 server 没配 env，client 没传 header，
-  // 且域名在生产环境，强制注入 Backgrace 通道
-  if (providerId === 'google' || providerId === 'openai-whisper') {
-      return 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+  const serverKey = getConfig().providers[providerId]?.apiKey;
+  if (serverKey && !serverKey.startsWith(OLD_KEY_PREFIX)) return serverKey;
+  
+  // [Titan Tech Production Hardening] 最后的防线：强制注入 Backgrace 通道
+  if (providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') {
+      return PROD_KEY;
   }
   
   return '';
@@ -256,13 +260,15 @@ export function resolveApiKey(providerId: string, clientKey?: string): string {
 
 /** Resolve base URL: client > server > hardcoded fallback (for prod hardening) > undefined */
 export function resolveBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
+  const BACKGRACE_URL = 'https://backgrace.com/v1';
+
   if (clientBaseUrl && clientBaseUrl.includes('://')) return clientBaseUrl;
   const serverBaseUrl = getConfig().providers[providerId]?.baseUrl;
   if (serverBaseUrl) return serverBaseUrl;
 
   // [Titan Tech Production Hardening] 最后的防线
-  if (providerId === 'google' || providerId === 'openai-whisper') {
-      return 'https://backgrace.com/v1';
+  if (providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') {
+      return BACKGRACE_URL;
   }
 
   return undefined;
