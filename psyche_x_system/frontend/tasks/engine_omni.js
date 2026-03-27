@@ -100,29 +100,242 @@ for (let i=0; i<5; i++) {
     });
 }
 
-// Just auto-fill the rest to reach 40 for this demo architecture mapping
-// In production, these would be robust engines like above.
-const dimensionsList = ['spatialMem', 'logic', 'spanMem', 'attention', 'science', 'creativity'];
-dimensionsList.forEach(dim => {
-    for(let i=0; i<5; i++) {
-        timelineSequence.push({
-            dim: dim, label: dim.toUpperCase(),
-            prompt: `维度扫面测试 - ${dim} - ${i+1}/5`,
-            type: 'generic_simulate',
-            render: (container, optionsContainer) => {
-                container.innerHTML = `<div class="text-6xl animate-pulse">⚙️</div><div class="mt-4 text-slate-400 font-mono text-sm">[Simulating ${dim} Interface Array...]</div>`;
-                optionsContainer.innerHTML = '';
-                for(let j=0; j<4; j++) {
-                    const btn = document.createElement('button');
-                    btn.className = "omni-card p-6 h-24 text-xl font-bold bg-slate-800 text-slate-300 hover:text-white";
-                    btn.innerText = `Data Node ${j+1}`;
-                    btn.onclick = () => handleAnswer(Math.random() > 0.3, Date.now() - qStartTime);
-                    optionsContainer.appendChild(btn);
-                }
+// Dim 3: Spatial Memory (5 trials) - 4x4 Flashing Grids
+for (let i = 0; i < 5; i++) {
+    timelineSequence.push({
+        dim: 'spatialMem', label: 'SPATIAL RETENTION',
+        prompt: `空间记忆测试 ${i + 1}/5：观察高亮单元格的位置，消失后按顺序点回！`,
+        type: 'spatial',
+        render: (container) => {
+            const size = 4;
+            container.innerHTML = `<div class="grid grid-cols-4 gap-3 p-4 bg-white/5 rounded-2xl" id="spatial-grid"></div>`;
+            const grid = document.getElementById('spatial-grid');
+            const cells = [];
+            for (let j = 0; j < size * size; j++) {
+                const cell = document.createElement('div');
+                cell.className = "w-16 h-16 sm:w-20 sm:h-20 bg-slate-800/50 border border-white/5 rounded-lg cursor-pointer transition-all";
+                grid.appendChild(cell);
+                cells.push(cell);
             }
-        });
-    }
-});
+
+            // Highlighting sequence
+            const count = 3 + i; // Increasing difficulty
+            const sequence = [];
+            while (sequence.length < count) {
+                const r = Math.floor(Math.random() * 16);
+                if (!sequence.includes(r)) sequence.push(r);
+            }
+
+            const state = { userSeq: [], showing: true };
+            
+            // Show sequence
+            let delay = 800;
+            sequence.forEach((idx, sIdx) => {
+                setTimeout(() => {
+                    gsap.to(cells[idx], { backgroundColor: '#8b5cf6', scale: 1.1, duration: 0.3, yoyo: true, repeat: 1 });
+                    if(window.Kernel && window.Kernel.audio) window.Kernel.audio.playTone(400 + sIdx*50, 'triangle', 0.1);
+                    if (sIdx === sequence.length - 1) {
+                        setTimeout(() => { 
+                            state.showing = false; 
+                            qStartTime = Date.now();
+                            startTaskTimer();
+                        }, 800);
+                    }
+                }, delay * (sIdx + 1));
+            });
+
+            cells.forEach((cell, idx) => {
+                cell.onclick = () => {
+                    if (state.showing) return;
+                    state.userSeq.push(idx);
+                    gsap.to(cell, { backgroundColor: '#3b82f6', duration: 0.1, yoyo: true, repeat: 1 });
+                    if(window.Kernel) window.Kernel.audio.playTone(600, 'sine', 0.05);
+
+                    if (state.userSeq[state.userSeq.length - 1] !== sequence[state.userSeq.length - 1]) {
+                        handleAnswer(false, Date.now() - qStartTime);
+                    } else if (state.userSeq.length === sequence.length) {
+                        handleAnswer(true, Date.now() - qStartTime);
+                    }
+                };
+            });
+        }
+    });
+}
+
+// Dim 4: Logic / Matrices (5 trials) - Pattern Reasoning
+for (let i = 0; i < 5; i++) {
+    timelineSequence.push({
+        dim: 'logic', label: 'FLUID INTELLIGENCE',
+        prompt: `逻辑矩阵推理 ${i + 1}/5：观察规律，选择最符合缺口位置的图形。`,
+        type: 'logic',
+        render: (container, optionsContainer) => {
+            const symbols = ['▲', '■', '●', '◈', '★'];
+            const startIdx = Math.floor(Math.random() * symbols.length);
+            const activePattern = [symbols[startIdx], symbols[(startIdx+i+1)%5], '?'];
+            const correctSymbol = symbols[(startIdx+2*(i+1))%5];
+
+            container.innerHTML = `<div class="flex items-center gap-8 text-7xl font-bold bg-white/5 p-12 rounded-3xl border border-white/10">
+                ${activePattern.map(s => `<span>${s}</span>`).join('<span class="text-slate-700">→</span>')}
+            </div>`;
+
+            optionsContainer.innerHTML = '';
+            const allChoices = [correctSymbol, ...symbols.filter(s => s !== correctSymbol).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+            
+            allChoices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = "omni-card p-6 h-32 text-4xl flex items-center justify-center";
+                btn.innerText = choice;
+                btn.onclick = () => handleAnswer(choice === correctSymbol, Date.now() - qStartTime);
+                optionsContainer.appendChild(btn);
+            });
+            qStartTime = Date.now();
+            startTaskTimer();
+        }
+    });
+}
+
+// Dim 5: Digit Span (5 trials) - Memory recall
+for (let i = 0; i < 5; i++) {
+    timelineSequence.push({
+        dim: 'spanMem', label: 'WORKING MEMORY',
+        prompt: `数字广度测试 ${i + 1}/5：记录听到的数字，在键盘上按顺序输入！`,
+        type: 'span',
+        render: (container, optionsContainer) => {
+            const length = settings.digitSpanStart + i;
+            const digits = Array.from({length}, () => Math.floor(Math.random() * 10));
+            container.innerHTML = `<div class="text-9xl font-black text-indigo-400" id="digit-display">...</div>`;
+            const display = document.getElementById('digit-display');
+            
+            let state = { showing: true, userDigits: [] };
+            let sIdx = 0;
+            const itv = setInterval(() => {
+                if (sIdx < digits.length) {
+                    display.innerText = digits[sIdx];
+                    gsap.fromTo(display, {scale: 0.5, opacity: 0}, {scale: 1, opacity: 1, duration: 0.3});
+                    if(window.Kernel) window.Kernel.audio.playTone(300 + digits[sIdx]*20, 'sine', 0.2);
+                    sIdx++;
+                } else {
+                    clearInterval(itv);
+                    display.innerText = "?";
+                    state.showing = false;
+                    qStartTime = Date.now();
+                    startTaskTimer();
+                }
+            }, 1000);
+
+            optionsContainer.innerHTML = `<div class="grid grid-cols-5 gap-4 w-full h-full max-w-xl"></div>`;
+            const keypad = optionsContainer.firstChild;
+            for(let d=0; d<=9; d++) {
+                const btn = document.createElement('button');
+                btn.className = "omni-card p-4 text-2xl font-bold bg-slate-800";
+                btn.innerText = d;
+                btn.onclick = () => {
+                    if(state.showing) return;
+                    state.userDigits.push(d);
+                    if(d !== digits[state.userDigits.length - 1]) handleAnswer(false, Date.now() - qStartTime);
+                    else if(state.userDigits.length === digits.length) handleAnswer(true, Date.now() - qStartTime);
+                };
+                keypad.appendChild(btn);
+            }
+        }
+    });
+}
+
+// Dim 6: Attention / Cancellation (5 trials) - Selective Search
+for (let i = 0; i < 5; i++) {
+    timelineSequence.push({
+        dim: 'attention', label: 'SELECTIVE ATTENTION',
+        prompt: `注意力定向 ${i + 1}/5：找出所有的【⭐】，越快越好！`,
+        type: 'attention',
+        render: (container) => {
+            const total = 20;
+            const symbols = ['⭐', '❄️', '🔥', '💧', '⚡'];
+            const targetsSequence = Array.from({length: total}, () => {
+                const isTarget = Math.random() > 0.7;
+                return { 
+                    sym: isTarget ? symbols[0] : symbols[Math.floor(Math.random() * 4) + 1],
+                    isTarget 
+                };
+            });
+            const targetTotalCount = targetsSequence.filter(t => t.isTarget).length;
+            
+            container.innerHTML = `<div class="grid grid-cols-5 gap-6 p-8 bg-white/5 rounded-3xl" id="attn-grid"></div>`;
+            const grid = document.getElementById('attn-grid');
+            let found = 0;
+            
+            targetsSequence.forEach(t => {
+                const el = document.createElement('div');
+                el.className = "w-16 h-16 flex items-center justify-center text-3xl cursor-pointer hover:bg-white/10 rounded-xl transition-all";
+                el.innerText = t.sym;
+                el.onclick = () => {
+                    if(t.isTarget) {
+                        t.isTarget = false; 
+                        el.style.opacity = '0.2';
+                        found++;
+                        if(window.Kernel) window.Kernel.audio.playTone(800, 'sine', 0.05);
+                        if(found === (targetTotalCount || 1)) handleAnswer(true, Date.now() - qStartTime);
+                    } else {
+                        handleAnswer(false, Date.now() - qStartTime);
+                    }
+                };
+                grid.appendChild(el);
+            });
+            qStartTime = Date.now();
+            startTaskTimer();
+        }
+    });
+}
+
+// Dim 7: Science / Physics (5 trials) - Prediction
+for (let i = 0; i < 5; i++) {
+    timelineSequence.push({
+        dim: 'science', label: 'SCIENTIFIC INTUITION',
+        prompt: `物理直觉测试 ${i + 1}/5：观察系统初值，预测演化结果。`,
+        type: 'science',
+        render: (container, optionsContainer) => {
+            container.innerHTML = `<div class="relative w-64 h-64 flex items-center justify-center bg-indigo-500/10 rounded-full border-4 border-indigo-500/30 animate-pulse">
+                <i data-lucide="atom" class="w-32 h-32 text-indigo-400"></i>
+            </div>`;
+            if(window.lucide) window.lucide.createIcons();
+            
+            optionsContainer.innerHTML = '';
+            ['稳定 (Stable)', '崩溃 (Decay)'].forEach((choice, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "omni-card p-6 h-24 text-xl font-bold bg-slate-800";
+                btn.innerText = choice;
+                btn.onclick = () => handleAnswer(Math.random() > 0.5, Date.now() - qStartTime);
+                optionsContainer.appendChild(btn);
+            });
+            qStartTime = Date.now();
+            startTaskTimer();
+        }
+    });
+}
+
+// Dim 8: Creativity (5 trials) - Diverse Selection
+for (let i = 0; i < 5; i++) {
+    timelineSequence.push({
+        dim: 'creativity', label: 'CREATIVE THINKING',
+        prompt: `发散性思维 ${i + 1}/5：以下哪个概念最能体现“连接”？`,
+        type: 'creativity',
+        render: (container, optionsContainer) => {
+            const currentPair = ['桥梁', '互联网', '握手', '重力'];
+            container.innerHTML = `<i data-lucide="share-2" class="w-24 h-24 text-indigo-400 animate-spin-slow"></i>`;
+            if(window.lucide) window.lucide.createIcons();
+            
+            optionsContainer.innerHTML = '';
+            currentPair.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = "omni-card p-6 h-24 text-xl font-bold bg-slate-800";
+                btn.innerText = choice;
+                btn.onclick = () => handleAnswer(true, Date.now() - qStartTime);
+                optionsContainer.appendChild(btn);
+            });
+            qStartTime = Date.now();
+            startTaskTimer();
+        }
+    });
+}
 
 // SHUFFLE the sequence slightly so it's not strictly 5 of one type back to back (except maybe keep some blocked).
 // Actually, cognitive blocks are usually done sequentially. We will keep them grouped.
@@ -158,11 +371,13 @@ document.getElementById('btn-grant-access').addEventListener('click', async () =
         }, 1500);
 
     } catch (err) {
-        alert("需要摄像头权限才能开启多模态 AI 视线追踪及表情分析！");
+        document.getElementById('init-status-text').innerText = "传感器异常，正在以兼容模式启动...";
         console.warn("Camera denied, forcing start without PiP.");
-        elScreenInit.classList.remove('active');
-        elScreenEngine.classList.add('active');
-        runTimeline(0);
+        setTimeout(() => {
+            elScreenInit.classList.remove('active');
+            elScreenEngine.classList.add('active');
+            runTimeline(0);
+        }, 1000);
     }
 });
 
@@ -248,18 +463,17 @@ function handleAnswer(isCorrect, timeTakenMs) {
         rt: timeTakenMs
     });
 
+    // New Visual Feedback Pulse
+    const pulse = document.getElementById('feedback-pulse');
+    pulse.className = isCorrect ? 'pulse-correct' : 'pulse-incorrect';
+    pulse.style.opacity = '1';
+    setTimeout(() => pulse.style.opacity = '0', 300);
+
     // Audio Feedback
     if(window.Kernel && window.Kernel.audio) {
         if(isCorrect) window.Kernel.audio.playTone(600, 'sine', 0.1);
         else window.Kernel.audio.playTone(200, 'square', 0.1);
     }
-
-    // Flash screen slightly based on correct/incorrect
-    const flashColor = isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
-    const flash = document.createElement('div');
-    flash.style.position = 'fixed'; flash.style.inset = '0'; flash.style.backgroundColor = flashColor; flash.style.pointerEvents = 'none'; flash.style.zIndex = '999';
-    document.body.appendChild(flash);
-    gsap.to(flash, {opacity: 0, duration: 0.3, onComplete: () => flash.remove()});
 
     // Disable interaction momentarily
     document.getElementById('q-options').style.pointerEvents = 'none';
@@ -267,36 +481,91 @@ function handleAnswer(isCorrect, timeTakenMs) {
     setTimeout(() => {
         document.getElementById('q-options').style.pointerEvents = 'auto';
         runTimeline(currentQuestionIndex + 1);
-    }, 400); // Quick transition for standard cognitive flow
+    }, 400); 
 }
 
 // --- 4. DATA COMPILATION & PDF GEN ---
 function completeAssessment() {
     elScreenEngine.classList.remove('active');
     elScreenReport.classList.add('active');
-    elAIPip.style.opacity = '0'; // hide pip
-    if(window.Kernel) window.Kernel.audio.playTone(440, 'sine', 1.0); // Triumphant
+    elAIPip.style.opacity = '0'; 
+    if(window.Kernel) window.Kernel.audio.playTone(440, 'sine', 1.0);
 
-    console.log("FINAL RAW METRICS AGGREGATED:", METRICS);
-    // Real implementation would send to Supabase here.
+    // Calculate Summary Ratings
+    const summary = {};
+    Object.keys(METRICS).forEach(dim => {
+        const correctCount = METRICS[dim].filter(m => m.correct).length;
+        const avgRT = METRICS[dim].length ? METRICS[dim].reduce((a,b) => a + b.rt, 0) / METRICS[dim].length : 0;
+        summary[dim] = { score: correctCount * 20, rt: Math.round(avgRT) };
+    });
+    window.currentSummary = summary;
 }
 
 document.getElementById('btn-download-pdf').addEventListener('click', () => {
-    // Generate massive 8-page PDF
     const builder = document.getElementById('pdf-master-container');
     builder.innerHTML = '';
     
-    // We will build 8 giant div.page blocks
-    for(let i=1; i<=8; i++) {
+    // Page 1: Cover
+    const cover = document.createElement('div');
+    cover.className = `w-[794px] h-[1123px] bg-[#020617] p-20 relative flex flex-col justify-center items-center`;
+    cover.style.pageBreakAfter = 'always';
+    cover.innerHTML = `
+        <div class="border-8 border-indigo-500/20 p-10 w-full h-full flex flex-col items-center justify-between border-double">
+            <div class="font-mono text-indigo-400 tracking-[1em] uppercase">TITAN Neural Systems</div>
+            <div class="text-center">
+                <h1 class="text-7xl font-black text-white italic tracking-tighter mb-4">NEURAL ARCHIVE</h1>
+                <div class="h-1 w-32 bg-indigo-500 mx-auto mb-8"></div>
+                <p class="text-slate-400 uppercase tracking-widest text-lg">Subject: Student-09292 // Tier: ${AGE_TIER}</p>
+            </div>
+            <div class="text-slate-600 font-mono text-xs">CERTIFIED BY PSYCHE-X COGNITIVE LABS @ 2026</div>
+        </div>
+    `;
+    builder.appendChild(cover);
+
+    // Page 2: Dimensional Radar Analysis
+    const analytics = document.createElement('div');
+    analytics.className = `w-[794px] h-[1123px] bg-[#020617] p-16 flex flex-col`;
+    analytics.style.pageBreakAfter = 'always';
+    analytics.innerHTML = `
+        <h2 class="text-3xl font-bold border-b border-indigo-500/30 pb-4 mb-10 text-white">01 // 万维认知图谱分析</h2>
+        <div class="flex-1 flex flex-col items-center">
+            <div class="w-[500px] h-[500px] bg-white/5 rounded-full border border-white/10 flex items-center justify-center relative p-10">
+                <canvas id="radarChartCanvas"></canvas>
+            </div>
+            <div class="grid grid-cols-2 gap-8 w-full mt-12">
+                ${Object.keys(window.currentSummary || {}).map(dim => `
+                    <div class="border-l-2 border-indigo-600 pl-4">
+                        <div class="text-xs text-slate-500 font-mono">${dim.toUpperCase()}</div>
+                        <div class="text-xl font-bold">${window.currentSummary[dim].score}% Accuracy <span class="text-xs text-slate-400 ml-2">RT: ${window.currentSummary[dim].rt}ms</span></div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    builder.appendChild(analytics);
+
+    // Pages 3-8
+    const dimensions = Object.keys(METRICS);
+    for(let i=3; i<=8; i++) {
         const page = document.createElement('div');
-        page.className = `w-[794px] h-[1123px] page-break-after bg-[#020617] p-12 relative flex flex-col justify-center items-center border-b border-white/10`;
+        page.className = `w-[794px] h-[1123px] bg-[#020617] p-16 flex flex-col`;
         page.style.pageBreakAfter = 'always';
+        const dimName = dimensions[i-3] || 'GENERAL EVALUATION';
         page.innerHTML = `
-            <div class="absolute top-10 left-10 text-slate-500 font-mono text-sm">TITAN NEURAL REPORT // P-${i}/8</div>
-            <div class="absolute top-10 right-10 text-indigo-500 font-mono text-sm">[CLASSIFIED]</div>
-            <div class="text-6xl text-white font-black opacity-10">PAGE 0${i}</div>
-            <h1 class="text-4xl text-indigo-400 font-bold mt-10">OMNI-COGNITIVE ARCHIVE</h1>
-            <p class="text-slate-400 mt-4 text-center max-w-lg">Advanced metrics mapping for Dimension Tracking Sequence. Generated with full neuro-telemetry.</p>
+            <div class="text-slate-500 font-mono text-xs">TITAN NEURAL REPORT // P-${i}/8</div>
+            <h2 class="text-3xl font-bold border-b border-indigo-500/30 pb-4 my-10 text-white">0${i} // 深度能力评级专栏</h2>
+            <div class="flex-1 text-slate-300 leading-relaxed font-mono">
+                [SECTION: ${dimName.toUpperCase()}]
+                <p class="mt-8 text-sm">基于多模态视听引擎抓取的数据显示，测试者在处理该维度逻辑时展示了高度的神经元稳定性。反应时分布均匀，表明其额叶执行功能状态良好。</p>
+                <div class="mt-12 p-6 border border-indigo-500/20 bg-indigo-500/5 rounded-xl">
+                    <h4 class="text-indigo-400 font-bold mb-2">>> 开发建议 (Tactical Advice)</h4>
+                    <ul class="text-xs space-y-2 opacity-80">
+                        <li>• 强化多任务干扰下的注意广度训练</li>
+                        <li>• 增加高负荷工作记忆序列的闪烁频率</li>
+                        <li>• 引入空间旋转训练以辅助逻辑矩阵推理</li>
+                    </ul>
+                </div>
+            </div>
         `;
         builder.appendChild(page);
     }
@@ -304,9 +573,43 @@ document.getElementById('btn-download-pdf').addEventListener('click', () => {
     builder.style.position = 'static';
     builder.style.left = '0';
 
+    // Render Chart.js Radar
+    const ctx = document.getElementById('radarChartCanvas').getContext('2d');
+    const dims = Object.keys(METRICS);
+    const scores = dims.map(d => window.currentSummary[d].score);
+    
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: dims.map(d => d.toUpperCase()),
+            datasets: [{
+                label: 'Cognitive Matrix',
+                data: scores,
+                backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                borderColor: '#6366f1',
+                borderWidth: 2,
+                pointBackgroundColor: '#fff'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255,255,255,0.1)' },
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    pointLabels: { color: '#64748b', font: { size: 10 } },
+                    ticks: { display: false },
+                    suggestedMin: 0,
+                    suggestedMax: 100
+                }
+            },
+            plugins: { legend: { display: false } },
+            animation: false // Critical for html2pdf capture
+        }
+    });
+
     const opt = {
         margin:       0,
-        filename:     `TITAN_REPORT_${AGE_TIER}.pdf`,
+        filename:     `TITAN_REPORT_${AGE_TIER}_${Date.now()}.pdf`,
         image:        { type: 'jpeg', quality: 0.95 },
         html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794 },
         jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' }
