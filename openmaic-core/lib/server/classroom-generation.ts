@@ -293,7 +293,7 @@ export async function generateClassroom(
     {
       imageGenerationEnabled: input.enableImageGeneration,
       videoGenerationEnabled: input.enableVideoGeneration,
-      researchContext,
+      researchContext: urlContent ? `以下是视频的全量转录文本，请务必基于此内容提取核心知识点（而非泛泛而谈）：\n${urlContent.content}` : researchContext,
       teacherContext,
     },
   );

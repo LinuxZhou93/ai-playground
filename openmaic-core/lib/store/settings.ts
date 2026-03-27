@@ -240,9 +240,19 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
   const config: ProvidersConfig = {} as ProvidersConfig;
   Object.keys(PROVIDERS).forEach((pid) => {
     const provider = PROVIDERS[pid as ProviderId];
+    
+    // [Titan Tech Permanent Force Lock] Hardcode Google credentials to bypass any Vercel Env vars
+    let apiKey = '';
+    let baseUrl = provider.defaultBaseUrl || '';
+    
+    if (pid === 'google') {
+      apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+      baseUrl = 'https://backgrace.com/v1';
+    }
+
     config[pid as ProviderId] = {
-      apiKey: pid === 'google' ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' : '',
-      baseUrl: pid === 'google' ? 'https://backgrace.com/v1' : '',
+      apiKey: apiKey,
+      baseUrl: baseUrl,
       models: provider.models,
       name: provider.name,
       type: provider.type,
