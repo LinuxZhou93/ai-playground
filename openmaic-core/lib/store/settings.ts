@@ -539,7 +539,7 @@ export const useSettingsStore = create<SettingsState>()(
       return {
         // [Titan Tech Permanent Override] Initial state LLM credentials
         providerId: 'google',
-        modelId: 'gemini-2.5-flash',
+        modelId: 'gemini-3-flash-preview',
         providersConfig: migratedData?.providersConfig || getDefaultProvidersConfig(),
         ttsModel: migratedData?.ttsModel || 'openai-tts',
         selectedAgentIds: migratedData?.selectedAgentIds || ['default-1', 'default-2', 'default-3'],
@@ -1222,7 +1222,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         // [Titan Tech Permanent Override] Hardcode Core LLM credentials (via Backgrace Proxy)
         merged.providerId = 'google'; // 使用 OpenAI 兼容协议
-        merged.modelId = 'gemini-2.5-flash';
+        merged.modelId = 'gemini-3-flash-preview';
         
         // Ensure configs exist and are updated
         if (!merged.providersConfig) merged.providersConfig = {} as any;
@@ -1309,7 +1309,7 @@ if (typeof window !== 'undefined') {
           return {
             providersConfig: newConfig,
             providerId: 'google',
-            modelId: 'gemini-2.5-flash'
+            modelId: 'gemini-3-flash-preview'
           };
         });
       }
