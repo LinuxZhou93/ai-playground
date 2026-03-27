@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>科技岛探险 v2.0 - WoW Creator 测评舱</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Chart.js for Radar Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf for generating 4-page PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Google Fonts for Kids (Fredoka) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 min-h-screen text-slate-800 font-kids overflow-hidden flex flex-col items-center justify-center">
+
+    <!-- Background Elements -->
+    <div id="bg-elements" class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <!-- Floating elements will be injected here via JS -->
+    </div>
+
+    <!-- Main Container (App Window) -->
+    <main id="app-container" class="relative z-10 w-full max-w-5xl h-[95vh] sm:h-[90vh] bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border-[6px] border-white/20 flex flex-col overflow-hidden m-4">
+        
+        <!-- Header (Progress Map & Timer) -->
+        <header id="quiz-header" class="hidden shrink-0 flex items-center justify-between p-4 sm:p-6 pb-2 border-b-4 border-slate-100/50 relative z-20 bg-white/80">
+            <!-- Mini Map -->
+            <div class="flex items-center gap-2 sm:gap-4 flex-1">
+                <div class="flex gap-2">
+                    <div id="map-step-1" class="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-slate-200 bg-slate-100 text-2xl flex items-center justify-center opacity-50 transition-all duration-300">🌲</div>
+                    <div id="map-step-2" class="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-slate-200 bg-slate-100 text-2xl flex items-center justify-center opacity-50 transition-all duration-300">💎</div>
+                    <div id="map-step-3" class="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-4 border-slate-200 bg-slate-100 text-2xl flex items-center justify-center opacity-50 transition-all duration-300">🚀</div>
+                </div>
+                <div class="ml-2 sm:ml-4">
+                    <div id="module-title" class="text-lg sm:text-2xl font-black text-slate-400 uppercase tracking-widest drop-shadow-sm">加载中...</div>
+                    <div class="text-sm font-bold text-slate-400">探险进度：<span id="progress-text">0/0</span></div>
+                </div>
+            </div>
+
+            <!-- Timer Widget -->
+            <div class="flex items-center gap-4">
+                <div class="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#f1f5f9" stroke-width="8"></circle>
+                        <circle id="timer-ring" cx="50" cy="50" r="45" fill="none" stroke="#ef4444" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="0" class="transition-all duration-1000 ease-linear"></circle>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center flex-col">
+                        <span id="timer-text" class="text-2xl sm:text-3xl font-black text-slate-800">30</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Wrapper for Screens -->
+        <div id="screens-container" class="flex-1 relative overflow-hidden bg-slate-50">
+            
+            <!-- ===================== 1. START SCREEN ===================== -->
+            <section id="screen-start" class="screen-section active absolute inset-0 flex flex-col items-center justify-center p-8 bg-[url('assets/images/bg-start.svg')] bg-cover bg-center">
+                <div class="absolute inset-0 bg-white/40 backdrop-blur-sm z-0"></div> <!-- Overlay -->
+                
+                <div class="relative z-10 w-full max-w-2xl bg-white/90 p-8 sm:p-12 rounded-[3rem] shadow-2xl border-8 border-indigo-100 text-center transform hover:scale-[1.01] transition-transform">
+                    <div class="w-32 h-32 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full shadow-lg flex items-center justify-center mx-auto mb-6 border-4 border-white">
+                        <span class="text-6xl animate-bounce drop-shadow-md">🚀</span>
+                    </div>
+                    
+                    <h1 class="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-pink-500 mb-2 leading-tight">
+                        科技岛探险
+                    </h1>
+                    <h2 class="text-xl sm:text-2xl font-bold text-indigo-400 tracking-widest uppercase mb-8">小创客多维能力评测系统 v2.0</h2>
+                    
+                    <div class="space-y-6 w-full max-w-sm mx-auto">
+                        <!-- Name Input -->
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-2xl">👦👧</span>
+                            </div>
+                            <input type="text" id="student-name" placeholder="请输入你的霸气代号" class="w-full pl-14 pr-6 py-4 rounded-2xl border-4 border-slate-200 text-xl font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all bg-slate-50">
+                        </div>
+                        
+                        <!-- Mode Selection -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <button id="mode-kid" class="mode-btn active relative overflow-hidden bg-white border-4 border-indigo-400 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 group transition-all">
+                                <div class="absolute inset-0 bg-indigo-50 opacity-100 group-hover:bg-indigo-100 transition"></div>
+                                <span class="text-4xl relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform">🐣</span>
+                                <span class="text-sm font-bold text-indigo-700 relative z-10">低龄模式<br>4-7岁</span>
+                            </button>
+                            <button id="mode-std" class="mode-btn relative overflow-hidden bg-white border-4 border-slate-200 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 group transition-all opacity-50 cursor-not-allowed">
+                                <span class="text-4xl relative z-10 grayscale">🧠</span>
+                                <span class="text-sm font-bold text-slate-500 relative z-10">标准模式<br>8-12岁 (即将开启)</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Start Action -->
+                        <button id="btn-start" class="w-full relative group mt-4">
+                            <div class="absolute inset-0 bg-indigo-600 rounded-2xl blur opacity-70 group-hover:opacity-100 transition duration-200"></div>
+                            <div class="relative px-8 py-5 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-2xl border-b-4 border-indigo-700 text-white font-black text-2xl flex items-center justify-center gap-3 transform group-active:translate-y-1 group-active:border-b-0 transition-all">
+                                <span>启动飞船</span>
+                                <i data-lucide="play-circle" class="w-8 h-8"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================== 2. QUIZ SCREEN ===================== -->
+            <section id="screen-quiz" class="screen-section absolute inset-0 flex flex-col p-4 sm:p-8 overflow-y-auto w-full h-full pb-32">
+                <div class="max-w-4xl w-full mx-auto flex-1 flex flex-col items-center justify-center relative">
+                    
+                    <!-- Question Container -->
+                    <div class="w-full bg-white rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.08)] border-[6px] border-white p-6 sm:p-10 flex flex-col items-center transition-all duration-300 transform" id="q-card">
+                        
+                        <!-- Question Text -->
+                        <h2 id="question-text" class="text-2xl sm:text-4xl font-black text-slate-800 text-center mb-8 leading-tight tracking-wide">
+                            题目加载中...
+                        </h2>
+                        
+                        <!-- Dynamic Image/Content Area -->
+                        <div id="question-image-container" class="hidden w-full max-h-[35vh] sm:max-h-[45vh] bg-slate-50 rounded-[2rem] border-4 border-slate-100 p-4 mb-8 flex items-center justify-center overflow-hidden relative">
+                            <!-- Injected SVG or HTML or Image -->
+                        </div>
+
+                        <!-- Options Grid (Auto layout) -->
+                        <div id="options-grid" class="w-full grid gap-4 sm:gap-6 mt-auto">
+                            <!-- JS Injected Options -->
+                        </div>
+
+                    </div>
+                    
+                </div>
+            </section>
+
+            <!-- ===================== 3. REPORT SCREEN (HIDE FROM VIEW, RENDER FOR PDF) ===================== -->
+            <!-- We will render a highly detailed multi-page PDF container offline -->
+            <section id="screen-report" class="screen-section absolute inset-0 bg-slate-100 overflow-y-auto">
+                
+                <!-- This UI is for screen viewing (Summary) -->
+                <div class="min-h-full flex flex-col items-center justify-center p-8 text-center relative z-10">
+                    <!-- Particles Background Container JS -->
+                    <div id="report-confetti" class="absolute inset-0 pointer-events-none z-0"></div>
+                    
+                    <div class="w-48 h-48 bg-white rounded-full shadow-2xl flex items-center justify-center mb-8 z-10 border-8 border-yellow-300 animate-pulse">
+                        <span class="text-8xl">🏆</span>
+                    </div>
+                    <h1 class="text-5xl font-black text-slate-800 mb-4 z-10">探险圆满成功！</h1>
+                    <p class="text-2xl text-slate-600 mb-12 z-10">小创客 <strong id="summary-name" class="text-indigo-600 text-3xl"></strong>，系统正在为你生成绝密档案！</p>
+                    
+                    <div class="bg-white p-8 rounded-3xl shadow-lg border-2 border-slate-100 z-10 flex flex-col gap-4 w-full max-w-md">
+                        <div class="flex items-center justify-between text-lg font-bold">
+                            <span class="text-slate-500">计算维度数据</span>
+                            <span class="text-green-500"><i data-lucide="check-circle" class="w-6 h-6 inline"></i></span>
+                        </div>
+                        <div class="flex items-center justify-between text-lg font-bold">
+                            <span class="text-slate-500">生成图表矩阵</span>
+                            <span class="text-green-500"><i data-lucide="check-circle" class="w-6 h-6 inline"></i></span>
+                        </div>
+                        <div class="flex items-center justify-between text-lg font-bold mb-4">
+                            <span class="text-slate-500">获取小创导师评语</span>
+                            <span class="text-green-500"><i data-lucide="check-circle" class="w-6 h-6 inline"></i></span>
+                        </div>
+                        <button id="btn-download-pdf" class="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-xl shadow-xl shadow-indigo-500/30 hover:scale-105 transition-transform flex items-center justify-center gap-3">
+                            <i data-lucide="file-down" class="w-6 h-6"></i>
+                            保存完整专业报告 (PDF)
+                        </button>
+                        <button onclick="location.reload()" class="w-full py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors">
+                            重新测试
+                        </button>
+                    </div>
+                </div>
+
+                <!--
+                  HIDDEN PDF TEMPLATE (Strict A4 layouts: 794x1123 px aspect ratio)
+                  This container is positioned absolutely off-screen so we can render it to PDF 
+                  without breaking the responsive UI.
+                -->
+                <div id="pdf-container" class="absolute top-0 left-[-9999px] w-[794px] bg-white text-slate-800 origin-top-left flex flex-col" style="font-family: 'Noto Sans SC', sans-serif;">
+                    
+                    <!-- PDF PAGE 1: COVER -->
+                    <div class="a4-page relative h-[1123px] w-[794px] flex flex-col items-center justify-center p-12 bg-slate-50 overflow-hidden box-border page-break-after">
+                        <div class="absolute -top-40 -left-40 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl"></div>
+                        <div class="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl"></div>
+                        
+                        <div class="mb-12">
+                            <span class="text-9xl">🚀</span>
+                        </div>
+                        <h1 class="text-5xl font-black text-indigo-900 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700">科技特长生多维能力</h1>
+                        <h2 class="text-4xl font-bold text-slate-700 mb-24">专属测评评估档案</h2>
+                        
+                        <div class="w-full max-w-sm bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col gap-6">
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                                <span class="text-xl text-slate-500 font-bold">小创客代号</span>
+                                <span id="pdf-name" class="text-2xl font-black text-indigo-600">加载中</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                                <span class="text-xl text-slate-500 font-bold">测评时间</span>
+                                <span id="pdf-date" class="text-xl font-bold text-slate-700">2026.03.27</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xl text-slate-500 font-bold">测评总耗时</span>
+                                <span id="pdf-total-time" class="text-xl font-bold text-slate-700">-- 秒</span>
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-12 left-0 right-0 text-center opacity-50 font-bold text-slate-400">
+                            Powered by WoW Creator & Titan AI Engine v2.0
+                        </div>
+                    </div>
+
+                    <!-- PDF PAGE 2: OVERVIEW & RADAR -->
+                    <div class="a4-page relative h-[1123px] w-[794px] p-12 bg-white box-border page-break-after">
+                        <div class="border-b-4 border-indigo-600 pb-4 mb-8 flex justify-between items-end">
+                            <h2 class="text-4xl font-black text-slate-800">Part 1. 综合能力概览</h2>
+                            <span class="text-slate-400 font-bold">OVERVIEW</span>
+                        </div>
+                        
+                        <!-- Radar Chart Area -->
+                        <div class="w-full h-[500px] bg-slate-50 rounded-3xl p-8 border border-slate-100 flex items-center justify-center mb-8 relative">
+                            <canvas id="pdfRadarChart"></canvas>
+                        </div>
+                        
+                        <!-- Key Metrics & Speed -->
+                        <div class="grid grid-cols-2 gap-6 mb-8">
+                            <div class="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
+                                <div class="text-indigo-500 text-lg font-bold mb-2 uppercase">最强认知优势</div>
+                                <div id="pdf-strength" class="text-3xl font-black text-indigo-900">-</div>
+                            </div>
+                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                <div class="text-slate-500 text-lg font-bold mb-2 uppercase">平均反应速度 (秒/题)</div>
+                                <div class="text-3xl font-black text-slate-800"><span id="pdf-avg-time">-</span><span class="text-xl text-slate-400 ml-2">s</span></div>
+                            </div>
+                        </div>
+
+                        <!-- AI Coach Comment -->
+                        <div class="bg-purple-50 p-8 rounded-3xl border-2 border-purple-100 relative">
+                            <span class="absolute top-6 left-6 text-4xl opacity-20">❝</span>
+                            <div class="pl-12">
+                                <h3 class="text-xl font-bold text-purple-800 mb-2">小创导师综合定性评价</h3>
+                                <p id="pdf-comment" class="text-lg text-slate-700 leading-relaxed font-medium">系统正在基于您的各项分数和答题反应速度，生成长文本定性评价...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PDF PAGE 3: DETAILED ANALYSIS -->
+                    <div class="a4-page relative h-[1123px] w-[794px] p-12 bg-white box-border page-break-after">
+                        <div class="border-b-4 border-indigo-600 pb-4 mb-8 flex justify-between items-end">
+                            <h2 class="text-4xl font-black text-slate-800">Part 2. 维度深度切片</h2>
+                            <span class="text-slate-400 font-bold">ANALYSIS</span>
+                        </div>
+
+                        <div class="flex flex-col gap-6">
+                            <!-- Logic -->
+                            <div class="border-l-8 border-green-500 bg-slate-50 p-6 rounded-r-2xl">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-2xl font-black text-slate-800">智慧森林 (逻辑与数学)</h3>
+                                    <span class="text-2xl font-black text-green-600" id="score-logic">0</span>
+                                </div>
+                                <p class="text-slate-600 text-lg">反映了少儿对空间结构、数字规律的敏感度，是未来编程与数理科学的绝对核心底座。该维度的成绩直接体现了理科强潜能。</p>
+                            </div>
+
+                            <!-- Creativity -->
+                            <div class="border-l-8 border-purple-500 bg-slate-50 p-6 rounded-r-2xl">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-2xl font-black text-slate-800">奇光异彩洞 (想象与创造)</h3>
+                                    <span class="text-2xl font-black text-purple-600" id="score-creativity">0</span>
+                                </div>
+                                <p class="text-slate-600 text-lg">不拘泥于标准答案的发散思维能力。高分意味着极强的知识迁移与创新组合能力，能打破常规解决未来的复杂工程问题。</p>
+                            </div>
+
+                            <!-- Science -->
+                            <div class="border-l-8 border-blue-500 bg-slate-50 p-6 rounded-r-2xl">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-2xl font-black text-slate-800">宇宙空间站 (科普与广度)</h3>
+                                    <span class="text-2xl font-black text-blue-600" id="score-science">0</span>
+                                </div>
+                                <p class="text-slate-600 text-lg">日常自然现象的原理感知。常识广度决定了认知的天花板，具有更广阔科学视野的孩子在跨学科学习中更占优势。</p>
+                            </div>
+
+                            <!-- Speed/Focus -->
+                            <div class="border-l-8 border-yellow-500 bg-slate-50 p-6 rounded-r-2xl mt-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-2xl font-black text-slate-800">隐性指标：反应速度与专注力</h3>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 mt-4">
+                                    <div class="bg-white p-4 rounded-xl border border-slate-200 text-center">
+                                        <div class="text-sm text-slate-400 font-bold mb-1">最快作答题数 (冲动) (< 3s)</div>
+                                        <div class="text-2xl font-black text-red-500" id="score-fast">0</div>
+                                    </div>
+                                    <div class="bg-white p-4 rounded-xl border border-slate-200 text-center">
+                                        <div class="text-sm text-slate-400 font-bold mb-1">黄金区间题数 (专注) (3-15s)</div>
+                                        <div class="text-2xl font-black text-green-500" id="score-optimal">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PDF PAGE 4: PLAN & CTA -->
+                    <div class="a4-page relative h-[1123px] w-[794px] p-12 bg-slate-800 text-white box-border">
+                        <div class="absolute inset-0 bg-[url('assets/images/bg-report.svg')] opacity-10 bg-cover bg-center"></div>
+                        
+                        <div class="relative z-10 flex flex-col h-full">
+                            <h2 class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 mb-8 pt-12">未来行动计划</h2>
+                            
+                            <p class="text-2xl leading-relaxed mb-12 text-slate-300">
+                                每一个孩子都是独一无二的创造者。评测无法定义完整的人生，但能帮我们找到更高效的切入点。<br><br>
+                                针对此次报告，我们正式邀请您加入 <strong>WoW Creator 项目</strong> 的综合培养生态体系中。
+                            </p>
+                            
+                            <div class="bg-white/10 backdrop-blur-md p-8 rounded-3xl border border-white/20 mb-auto">
+                                <h3 class="text-2xl font-bold mb-6 text-yellow-400">🔥 下一步专属通道</h3>
+                                <ul class="space-y-6 text-xl text-slate-200">
+                                    <li class="flex items-start gap-4">
+                                        <span class="text-3xl">✅</span>
+                                        <div><strong>联系评估专家周老师</strong><br><span class="text-slate-400 text-lg">进行 1V1 数据深度解读。</span></div>
+                                    </li>
+                                    <li class="flex items-start gap-4">
+                                        <span class="text-3xl">✅</span>
+                                        <div><strong>匹配实训舱等级</strong><br><span class="text-slate-400 text-lg">获取最适合他（她）起点级别的专属排课。</span></div>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="text-center mt-12 pb-12 border-t border-white/20 pt-12">
+                                <h4 class="text-3xl font-black tracking-widest uppercase text-slate-400 mb-2">TITAN TECH</h4>
+                                <p class="text-slate-500 text-lg">AI-Augmented Human Capability Enhancement</p>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- END PDF CONTAINER -->
+            </section>
+        </div>
+
+        <!-- Float Widget : 小创老师 (AI Teacher Companion) -->
+        <div id="ai-companion" class="absolute bottom-6 left-6 sm:bottom-10 sm:left-10 z-50 flex items-end gap-3 transform translate-y-[200%] transition-transform duration-700 ease-elastic">
+            <div class="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-tr from-cyan-400 to-blue-500 rounded-full border-4 border-white shadow-xl flex items-center justify-center relative group overflow-hidden">
+                <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                <!-- Avatar placeholder (e.g. Robot emoji) -->
+                <span class="text-4xl sm:text-6xl z-10 drop-shadow-md pb-1">🤖</span>
+            </div>
+            <div class="bg-white px-5 py-3 sm:px-6 sm:py-4 rounded-3xl rounded-bl-none shadow-[0_10px_30px_rgba(0,0,0,0.15)] max-w-[200px] sm:max-w-xs border-2 border-slate-100 relative">
+                <span id="ai-speech" class="text-sm sm:text-base font-bold text-slate-700 leading-snug">准备好挑战了吗？冲呀！</span>
+                <!-- Triangle point -->
+                <div class="absolute bottom-1 -left-3 border-8 border-transparent border-r-white border-b-white"></div>
+            </div>
+        </div>
+
+        <!-- Encouragement Overlay Splash -->
+        <div id="splash-overlay" class="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-center opacity-0 hidden backdrop-blur-sm bg-black/20">
+            <div id="splash-emoji" class="text-[150px] sm:text-[200px] animate-bounce filter drop-shadow-[0_0_30px_rgba(255,255,255,0.8)]">🎉</div>
+            <h2 class="text-4xl sm:text-6xl font-black text-white mt-8 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] tracking-widest" id="splash-text">太棒啦！</h2>
+        </div>
+
+    </main>
+
+    <!-- Initialization Scripts -->
+    <script>
+        lucide.createIcons();
+    </script>
+    <script src="js/app.js"></script>
+</body>
+</html>
