@@ -225,7 +225,13 @@ export async function generateTTSForClassroom(
     return;
   }
   const ttsBaseUrl = resolveTTSBaseUrl(providerId) || TTS_PROVIDERS[providerId]?.defaultBaseUrl;
-  const voice = DEFAULT_TTS_VOICES[providerId] || 'default';
+  
+  // 🚀 [Titan Tech] 强制音色对齐：确保课件生成使用与 Titan Assistant 一致的“少年梓梓”
+  let voice = DEFAULT_TTS_VOICES[providerId] || 'default';
+  if (providerId === 'volcengine-tts') {
+    voice = 'zh_male_shaonianzixin_moon_bigtts';
+  }
+  
   const format = TTS_PROVIDERS[providerId]?.supportedFormats?.[0] || 'mp3';
 
   for (const scene of scenes) {

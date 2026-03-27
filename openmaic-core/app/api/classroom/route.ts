@@ -53,6 +53,12 @@ export async function GET(request: NextRequest) {
       return apiError(API_ERROR_CODES.INVALID_REQUEST, 400, 'Invalid classroom id');
     }
 
+    if (request.nextUrl.searchParams.get('export') === 'true') {
+      const { exportClassroomPackage } = await import('@/lib/server/classroom-export');
+      const pkg = await exportClassroomPackage(id);
+      return apiSuccess({ package: pkg });
+    }
+
     const classroom = await readClassroom(id);
     if (!classroom) {
       return apiError(API_ERROR_CODES.INVALID_REQUEST, 404, 'Classroom not found');

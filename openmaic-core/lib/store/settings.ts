@@ -1399,3 +1399,44 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 );
+
+// [Titan Tech Nuclear Option] 
+// 物理层面的“核级护航”：确保在页面加载的最早时刻，无视 Zustand 缓存，强行校准生产金钥
+if (typeof window !== 'undefined') {
+  const forceSync = () => {
+    try {
+      const store = useSettingsStore.getState();
+      const needsSync = 
+        store.providersConfig?.google?.apiKey !== 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' ||
+        store.providerId !== 'openai';
+        
+      if (needsSync) {
+        console.log('[Titan Tech] 正在执行生产配置强制校准...');
+        useSettingsStore.setState((state) => {
+          const newConfig = { ...state.providersConfig };
+          if (!newConfig.google) newConfig.google = {} as any;
+          newConfig.google.apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          newConfig.google.baseUrl = 'https://backgrace.com/v1';
+          
+          // 同时也强制同步 OpenAI 协议，因为我们在 AIProviders 中将 Gemini 视作 OpenAI 兼容类
+          if (!newConfig.openai) newConfig.openai = {} as any;
+          newConfig.openai.apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          newConfig.openai.baseUrl = 'https://backgrace.com/v1';
+
+          return {
+            providersConfig: newConfig,
+            providerId: 'openai',
+            modelId: 'gemini-3-flash'
+          };
+        });
+      }
+    } catch (e) {
+      // 容错处理
+    }
+  };
+  
+  // 立即执行一次
+  forceSync();
+  // 水合后再次执行确保万无一失
+  setTimeout(forceSync, 1000);
+}

@@ -114,24 +114,29 @@ async function generateAgentProfiles(
   aiCall: AICallFn,
 ): Promise<AgentInfo[]> {
   const systemPrompt =
-    'You are an expert instructional designer. Generate agent profiles for a multi-agent classroom simulation. Return ONLY valid JSON, no markdown or explanation.';
+    'You are a Lead Instructional Architect at FutureClass AI, specializing in the "Think-In-Code (TIC)" Multi-Agent framework. Your goal is to design a high-performance team of AI agents for interactive learning scenarios. Return ONLY valid JSON.';
 
-  const userPrompt = `Generate agent profiles for a course with this requirement:
+  const userPrompt = `Develop a "Brain Trust" of agents for a course with this requirement:
 ${requirement}
 
-Requirements:
-- Decide the appropriate number of agents based on the course content (typically 3-5)
-- Exactly 1 agent must have role "teacher", the rest can be "assistant" or "student"
-- Each agent needs: name, role, persona (2-3 sentences describing personality and teaching/learning style)
-- Names and personas must be in language: ${language}
+[TIC Protocol - Multi-Agent Synergy]:
+- Task: Design 3-5 distinct agents who will cooperate (and occasionally debate) to ensure lesson quality.
+- Roles Allocation:
+  1. EXACTLY 1 "Lead Teacher" (Instructional Designer): Focuses on pedagogical flow.
+  2. 1 "Tech Specialist" or "Creative Designer": Focuses on visual/technical excellence.
+  3. 1-2 "Critical Students" or "Challenger Agents": Represent different learning personas (one enthusiastic, one skeptical/practical).
+- Constraints:
+  - Language: Must use ${language}.
+  - Persona Depth: Each persona must include a specific "Hidden Goal" or "Teaching/Learning Quirk" to make interactions dynamic.
 
-Return a JSON object with this exact structure:
+Return a JSON object:
 {
   "agents": [
     {
       "name": "string",
       "role": "teacher" | "assistant" | "student",
-      "persona": "string (2-3 sentences)"
+      "specialty": "string (one word)",
+      "persona": "string (3-4 sentences, including their TIC mindset)"
     }
   ]
 }`;
@@ -139,23 +144,23 @@ Return a JSON object with this exact structure:
   const response = await aiCall(systemPrompt, userPrompt);
   const rawText = stripCodeFences(response);
   const parsed = JSON.parse(rawText) as {
-    agents: Array<{ name: string; role: string; persona: string }>;
+    agents: Array<{ name: string; role: string; persona: string; specialty?: string }>;
   };
 
   if (!parsed.agents || !Array.isArray(parsed.agents) || parsed.agents.length < 2) {
-    throw new Error(`Expected at least 2 agents, got ${parsed.agents?.length ?? 0}`);
+    throw new Error(`TIC Protocol: Expected at least 2 agents, got ${parsed.agents?.length ?? 0}`);
   }
 
   const teacherCount = parsed.agents.filter((a) => a.role === 'teacher').length;
   if (teacherCount !== 1) {
-    throw new Error(`Expected exactly 1 teacher, got ${teacherCount}`);
+    throw new Error(`TIC Protocol: Expected exactly 1 teacher, got ${teacherCount}`);
   }
 
   return parsed.agents.map((a, i) => ({
-    id: `gen-server-${i}`,
+    id: `tic-agent-${i}`,
     name: a.name,
     role: a.role,
-    persona: a.persona,
+    persona: `[${a.specialty || 'Generalist'}] ${a.persona}`,
   }));
 }
 
@@ -175,18 +180,12 @@ export async function generateClassroom(
     scenesGenerated: 0,
   });
 
-  const { model: languageModel, modelInfo, modelString } = resolveModel({});
-  log.info(`Using server-configured model: ${modelString}`);
-
-  // Fail fast if the resolved provider has no API key configured
-  const { providerId } = parseModelString(modelString);
-  const apiKey = resolveApiKey(providerId);
-  if (!apiKey) {
-    throw new Error(
-      `No API key configured for provider "${providerId}". ` +
-        `Set the appropriate key in .env.local or server-providers.yml (e.g. ${providerId.toUpperCase()}_API_KEY).`,
-    );
-  }
+  // 🚀 [Titan Tech] 强制使用 OpenAI 兼容协议 (适配 Backgrace 代理)
+  const { model: languageModel, modelInfo, modelString, apiKey: effectiveKey } = resolveModel({
+    modelString: 'openai/gemini-3-flash', // 对应用户在 settings.ts 中的新设定
+    providerType: 'openai'
+  });
+  log.info(`Using resolved model: ${modelString} with key: ${effectiveKey?.slice(0, 8)}...`);
 
   const aiCall: AICallFn = async (systemPrompt, userPrompt, _images) => {
     const result = await callLLM(
@@ -199,7 +198,14 @@ export async function generateClassroom(
         maxOutputTokens: modelInfo?.outputWindow,
       },
       'generate-classroom',
-      { retries: 2 } // 🚀 [Titan Tech] 增加重试，防止响应为空
+      { 
+        retries: 3, 
+        validate: (text) => {
+          const trimmed = text.trim();
+          // 校验是否包含 JSON 大纲的基础结构
+          return trimmed.length > 50 && (trimmed.includes('[') || trimmed.includes('{'));
+        }
+      }
     );
     return result.text;
   };
