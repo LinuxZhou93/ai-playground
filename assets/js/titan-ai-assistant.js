@@ -28,7 +28,7 @@ class TitanAIAssistant {
             volcengineAppId: '4780476544', // 去火山引擎注册后拿到的 AppID
             volcengineToken: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', // 去火山引擎拿到的真实身份 Token (含小写l修正)
             volcengineCluster: 'volcano_tts', // 默认使用火山 TTS 集群
-            volcengineVoice: 'BV700_V2_streaming', // 强制灿灿2.0音色：因为账号开通的是双端模型 (Dual-Terminal)
+            volcengineVoice: 'zh_male_shaonianzixin_moon_bigtts', // 少年梓梓音色
             // 💎 [会员权限硬核固化]：生产版默认授予永久 VIP 权限 (2033年过期)，解决跨域 Session 丢失导致的访客模式回滚。
             memberExpired: 2000000000000 
         };
@@ -49,8 +49,9 @@ class TitanAIAssistant {
                         if (modelId) this.settings.model = modelId;
                         
                         // 提取并自动拼接正确的聊天补全端点
-                        const activeUrl = config.baseUrl || config.defaultBaseUrl || 'https://api.openai.com/v1';
-                        this.settings.endpoint = activeUrl.replace(/\/+$/, '') + '/chat/completions';
+                        let activeUrl = config.baseUrl || config.defaultBaseUrl || 'https://api.openai.com/v1';
+                        activeUrl = activeUrl.replace(/\/+$/, '');
+                        this.settings.endpoint = activeUrl + '/chat/completions';
                         
                         console.log(`[Titan AI] 🚀 成功与 OpenMAIC 核心接轨! Provider: ${providerId} | Model: ${modelId}`);
                     }
@@ -2954,7 +2955,7 @@ class TitanAIAssistant {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer; ${token}`
+                    'Authorization': `Bearer;${token}`
                 },
                 body: JSON.stringify({
                     app: {

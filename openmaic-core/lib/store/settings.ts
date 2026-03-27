@@ -258,7 +258,7 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 // Initialize default audio config
 const getDefaultAudioConfig = () => ({
   ttsProviderId: 'volcengine-tts' as TTSProviderId,
-  ttsVoice: 'zh_child_feifei_moon_bigtts',
+  ttsVoice: 'zh_male_shaonianzixin_moon_bigtts',
   ttsSpeed: 1.0,
   asrProviderId: 'browser-native' as ASRProviderId,
   asrLanguage: 'zh',
@@ -1355,7 +1355,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access)
         merged.ttsProviderId = 'volcengine-tts';
-        merged.ttsVoice = 'BV700_V2_streaming';
+        merged.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
         if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {} as any;
         if (!merged.ttsProvidersConfig['volcengine-tts']) {
           merged.ttsProvidersConfig['volcengine-tts'] = {
@@ -1365,7 +1365,7 @@ export const useSettingsStore = create<SettingsState>()(
           };
         }
         merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
-        merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1/tts';
+        merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
         merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
 
         return merged as SettingsState;

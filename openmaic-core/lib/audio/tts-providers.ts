@@ -176,7 +176,7 @@ async function generateVolcengineTTS(
       },
       user: { uid: "titan_student" },
       audio: {
-          voice_type: config.voice || "zh_child_feifei_moon_bigtts",
+          voice_type: config.voice || "zh_male_shaonianzixin_moon_bigtts",
           encoding: "mp3",
           speed_ratio: config.speed || 1.0,
           volume_ratio: 1.0,
