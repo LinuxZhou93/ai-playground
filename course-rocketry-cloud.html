@@ -99,6 +99,28 @@
     </div>
 
     <div id="app" class="h-full flex flex-col" v-cloak>
+        <!-- Debug Panel Overlay -->
+        <div v-if="showDebug" class="fixed bottom-4 right-4 w-96 glass p-6 rounded-3xl z-[200] border-orange-500/30 text-[10px] shadow-2xl overflow-hidden">
+            <div class="flex justify-between mb-4">
+                <span class="font-black text-orange-500 uppercase">Titan Cloud Diagnostic</span>
+                <button @click="showDebug = false" class="text-slate-500 hover:text-white">✕</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-slate-500 uppercase mb-1">Endpoints</p>
+                    <p class="font-mono text-slate-300 break-all">{{ SUPABASE_URL }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500 uppercase mb-1">Sync Status</p>
+                    <p class="font-bold text-white">{{ syncingStatus }}</p>
+                </div>
+                <div class="max-h-64 overflow-y-auto">
+                    <p class="text-slate-500 uppercase mb-1">Raw Response</p>
+                    <pre class="bg-black/50 p-2 rounded border border-white/5 font-mono text-[8px] text-green-500/80">{{ JSON.stringify(rawData, null, 2) }}</pre>
+                </div>
+                <button @click="forceLocal" class="w-full py-2 bg-white/5 border border-white/10 rounded text-slate-400 hover:bg-white/10 transition-all uppercase font-bold tracking-tighter">Force Local Fallback</button>
+            </div>
+        </div>
         <!-- Mothership Header -->
         <nav class="h-16 glass border-b border-white/5 flex items-center justify-between px-10 z-[110] shrink-0">
             <div class="flex items-center gap-6">
@@ -111,7 +133,7 @@
             </div>
 
             <div class="flex items-center gap-6">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 cursor-help" @click="showDebug = !showDebug">
                     <span class="status-dot w-2 h-2 rounded-full animate-pulse transition-all duration-700" 
                           :class="statusColor.dot"
                           :style="{ boxShadow: statusColor.glow }"></span>
@@ -166,9 +188,23 @@
             </aside>
 
             <!-- Deployment Field -->
-            <main class="flex-1 relative bg-black overflow-hidden">
+            <main class="flex-1 relative bg-black overflow-hidden flex flex-col items-center justify-center">
+                <!-- Debug Fallback (Visible if no lessons) -->
+                <div v-if="lessons.length === 0" class="text-center p-20 z-10 glass rounded-[3rem] border-red-500/20 max-w-2xl">
+                    <div class="text-6xl mb-6">📡</div>
+                    <h3 class="text-2xl font-black mb-4">Mothership Sync Interrupted</h3>
+                    <p class="text-slate-400 mb-8">云端数据握手失败。这通常是因为 Supabase 表中没有对应记录或 API 连接超时。</p>
+                    <div class="px-6 py-3 bg-red-600/10 border border-red-600/30 rounded text-red-500 font-mono text-xs mb-8">
+                        STATUS: {{ syncingStatus }}
+                    </div>
+                    <div class="flex gap-4 justify-center">
+                        <button @click="location.reload()" class="px-8 py-3 bg-orange-600 text-white rounded-full font-black uppercase text-xs">Retry Cloud</button>
+                        <button @click="forceLocal" class="px-8 py-3 bg-white/10 text-white rounded-full border border-white/20 font-black uppercase text-xs">Use Local Mock</button>
+                    </div>
+                </div>
+
                 <!-- Mission Overview -->
-                <div v-show="viewMode === 'overview'" class="h-full overflow-y-auto">
+                <div v-show="viewMode === 'overview' && lessons.length > 0" class="h-full w-full overflow-y-auto">
                     <div class="max-w-5xl mx-auto p-16 py-24 min-h-full flex flex-col justify-center">
                         <div class="mb-10">
                              <span class="px-3 py-1 rounded bg-orange-600/10 text-orange-500 text-[10px] font-black uppercase tracking-[3px] border border-orange-600/20 italic">Rocketry Pilot // Chapter {{ current?.idx }}</span>
@@ -246,55 +282,94 @@
                 const lessons = ref(ROCKETRY_CHAPTERS);
                 const current = ref(ROCKETRY_CHAPTERS[0]);
                 const kernelUrl = ref("");
-                const syncingStatus = ref("L4 Engine Connected");
+                const syncingStatus = ref("Initializing...");
+                const showDebug = ref(false);
+                const rawData = ref(null);
 
                 const loadCloudData = async () => {
                    try {
-                       if (typeof supabase !== 'undefined') {
-                           syncingStatus.value = "Syncing with Titan Cloud...";
-                           const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                           
-                           // Query the courses and slides
-                           const { data, error } = await client
-                               .from('courses')
-                               .select('*, slides(*)')
-                               .eq('slug', 'rocketry-engineer')
-                               .single();
-                               
-                           if (!error && data && data.slides?.length > 0) {
-                               console.log("%c[Titan Cloud] 🚀 Real Cloud Data Integrated!", "color: #4ade80; font-weight: bold; font-size: 14px;");
-                               
-                               // Transform Cloud Data to match precise API schema
-                               const cloudLessons = data.slides
-                                   .sort((a,b) => a.order_index - b.order_index) // Sort by true schema exact column
-                                   .map((s, index) => ({
-                                       idx: index + 1,
-                                       id: s.id.toString(),
-                                       title: s.title,
-                                       category: 'Lesson', // Hardcoded as 'type' column does not exist
-                                       kernelId: s.interaction_config?.kernelId,
-                                       desc: s.content
-                                   }));
+                       console.log("%c[Titan Diagnostic] 🛰 Starting Cloud Handshake...", "color: #3b82f6; font-weight: bold;");
+                       
+                       if (typeof supabase === 'undefined') {
+                           console.error("[Titan Diagnostic] ❌ Supabase Library NOT LOADED! Check script tags.");
+                           syncingStatus.value = "Library Error";
+                           return;
+                       }
 
-                               lessons.value = cloudLessons;
-                               current.value = cloudLessons[0];
-                               course.value.title = data.title;
-                               syncingStatus.value = "Cloud Kernel Synced";
-                               
-                               // Premium Success Animation
-                               gsap.fromTo(".status-dot", 
-                                   { scale: 1, opacity: 1 }, 
-                                   { scale: 2.5, opacity: 0, duration: 1, repeat: 2, ease: "power2.out" }
-                               );
-                           } else {
-                               console.warn("[Titan Cloud] No data found in Supabase. Falling back to local Mock.");
-                               syncingStatus.value = "Local Kernel Mock";
-                           }
+                       syncingStatus.value = "Connecting to Titan Cloud...";
+                       const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                       
+                       console.log("[Titan Diagnostic] 📡 Phase 1: Fetching course...");
+                       // Try slug matching with more flexibility (using LIKE)
+                       const courseRes = await client
+                           .from('courses')
+                           .select('*')
+                           .ilike('slug', '%rocketry-engineer%')
+                           .maybeSingle();
+                           
+                       if (courseRes.error || !courseRes.data) {
+                           console.error("[Titan Diagnostic] ❌ Course not found:", courseRes.error?.message || "Record missing");
+                           syncingStatus.value = "Course Not Found";
+                           return;
+                       }
+
+                       const courseData = courseRes.data;
+                       console.log("[Titan Diagnostic] ✅ Course found:", courseData.title, "ID:", courseData.id);
+
+                       console.log("[Titan Diagnostic] 📡 Phase 2: Fetching slides...");
+                       const slidesRes = await client
+                           .from('slides')
+                           .select('*')
+                           .eq('course_id', courseData.id);
+                           
+                       if (slidesRes.error) {
+                           console.error("[Titan Diagnostic] ❌ Slides fetch error:", slidesRes.error.message);
+                           syncingStatus.value = "Slides Load Error";
+                           return;
+                       }
+
+                       const slidesData = slidesRes.data;
+                       rawData.value = { course: courseData, slides: slidesData };
+
+                       if (slidesData && slidesData.length > 0) {
+                           console.log("%c[Titan Diagnostic] ✅ All data linked! Processing " + slidesData.length + " slides.", "color: #4ade80;");
+                           
+                           // Transform with safety
+                           const cloudLessons = slidesData
+                               .sort((a,b) => (a.order_index || 0) - (b.order_index || 0))
+                               .map((s, index) => ({
+                                   idx: index + 1,
+                                   id: s.id.toString(),
+                                   title: s.title || "Untitled Lesson",
+                                   category: 'Lesson',
+                                   kernelId: s.interaction_config?.kernelId || 'qC0KuF7GS2',
+                                   desc: s.content || "No description."
+                               }));
+
+                           lessons.value = cloudLessons;
+                           current.value = cloudLessons[0];
+                           course.value.title = courseData.title;
+                           syncingStatus.value = "Cloud Kernel Synced";
+                           
+                           gsap.fromTo(".status-dot", 
+                               { scale: 1, opacity: 1 }, 
+                               { scale: 2.5, opacity: 0, duration: 1, repeat: 2, ease: "power2.out" }
+                           );
+                       } else {
+                           console.warn("[Titan Diagnostic] ⚠️ Course exists but slides are missing.");
+                           syncingStatus.value = "Empty Content";
                        }
                    } catch (e) {
-                       console.error("[Titan Cloud] Connection failed:", e);
-                       syncingStatus.value = "Local Kernel Mock";
+                       console.error("[Titan Diagnostic] 💥 Critical Logic Crash:", e);
+                       syncingStatus.value = "Runtime Error";
                    }
+                };
+
+                const forceLocal = () => {
+                    console.log("[Titan Diagnostic] 🔄 Forcing Local Mock Data...");
+                    lessons.value = ROCKETRY_CHAPTERS;
+                    current.value = ROCKETRY_CHAPTERS[0];
+                    syncingStatus.value = "Local Kernel Mock";
                 };
 
                 const launch = () => {
@@ -350,7 +425,7 @@
                    };
                 });
 
-                return { viewMode, course, lessons, current, kernelUrl, syncingStatus, statusColor, launch, exitClassroom, selectLesson, getCover };
+                return { viewMode, course, lessons, current, kernelUrl, syncingStatus, statusColor, launch, exitClassroom, selectLesson, getCover, forceLocal, showDebug, rawData };
             }
         }).mount('#app');
     </script>
