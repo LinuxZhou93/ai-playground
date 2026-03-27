@@ -91,117 +91,93 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     busyRef.current = true;
     try {
       // [Titan Tech Permanent Lock] Always use browser native ASR for zero-latency local processing.
-      // Force ignore settings and skip server-side transcription risks.
-      if (typeof window !== 'undefined') {
-        // Check if Speech Recognition is supported
-        if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-          onError?.('您的浏览器不支持语音识别功能，请使用 Chrome 或 Edge 浏览器。');
-          busyRef.current = false;
-          return;
-        }
+      if (typeof window === 'undefined') return;
 
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-
-        // 🚀 强制锁定语言为中文
-        recognition.lang = 'zh-CN';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-          recognition.onstart = () => {
-            setIsRecording(true);
-            setRecordingTime(0);
-
-            // Start timer
-            timerRef.current = setInterval(() => {
-              setRecordingTime((prev) => prev + 1);
-            }, 1000);
-          };
-
-          recognition.onresult = (event: {
-            results: {
-              [index: number]: { [index: number]: { transcript: string } };
-            };
-          }) => {
-            const transcript = event.results[0][0].transcript;
-            onTranscription?.(transcript);
-          };
-
-          recognition.onerror = (event: { error: string }) => {
-            log.error('Speech recognition error:', event.error);
-            let errorMessage = '语音识别失败';
-
-            switch (event.error) {
-              case 'aborted':
-                // Non-fatal: caused by our own cancel/stop logic or rapid toggle
-                busyRef.current = false;
-                setIsRecording(false);
-                setRecordingTime(0);
-                if (timerRef.current) {
-                  clearInterval(timerRef.current);
-                  timerRef.current = null;
-                }
-                return;
-              case 'no-speech':
-                errorMessage = '未检测到语音输入';
-                break;
-              case 'audio-capture':
-                errorMessage = '无法访问麦克风';
-                break;
-              case 'not-allowed':
-                errorMessage = '麦克风权限被拒绝';
-                break;
-              case 'network':
-                errorMessage = '网络错误';
-                break;
-              default:
-                errorMessage = `语音识别错误: ${event.error}`;
-            }
-
-            onError?.(errorMessage);
-            busyRef.current = false;
-            setIsRecording(false);
-            setRecordingTime(0);
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-              timerRef.current = null;
-            }
-          };
-
-          recognition.onend = () => {
-            busyRef.current = false;
-            setIsRecording(false);
-            setRecordingTime(0);
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-              timerRef.current = null;
-            }
-          };
-
-          recognition.start();
-          speechRecognitionRef.current = recognition;
-          return;
-        }
+      // Check if Speech Recognition is supported
+      if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+        onError?.('您的浏览器不支持语音识别功能，请使用 Chrome 或 Edge 浏览器。');
+        busyRef.current = false;
+        return;
       }
 
-      // Server-side ASR logic removed to ensure local stability.
-      return;
-    } catch (error) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
 
-      // Start recording
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
+      // 🚀 强制锁定语言为中文
+      recognition.lang = 'zh-CN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
 
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setRecordingTime(0);
+
+        // Start timer
+        timerRef.current = setInterval(() => {
+          setRecordingTime((prev) => prev + 1);
+        }, 1000);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        onTranscription?.(transcript);
+      };
+
+      recognition.onerror = (event: any) => {
+        log.error('Speech recognition error:', event.error);
+        let errorMessage = '语音识别失败';
+
+        switch (event.error) {
+          case 'aborted':
+            busyRef.current = false;
+            setIsRecording(false);
+            setRecordingTime(0);
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            return;
+          case 'no-speech':
+            errorMessage = '未检测到语音输入';
+            break;
+          case 'audio-capture':
+            errorMessage = '无法访问麦克风';
+            break;
+          case 'not-allowed':
+            errorMessage = '麦克风权限被拒绝';
+            break;
+          default:
+            errorMessage = `语音识别错误: ${event.error}`;
+        }
+
+        onError?.(errorMessage);
+        busyRef.current = false;
+        setIsRecording(false);
+        setRecordingTime(0);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      };
+
+      recognition.onend = () => {
+        busyRef.current = false;
+        setIsRecording(false);
+        setRecordingTime(0);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      };
+
+      recognition.start();
+      speechRecognitionRef.current = recognition;
     } catch (error) {
       busyRef.current = false;
       log.error('Failed to start recording:', error);
-      onError?.('无法访问麦克风，请检查权限设置');
+      onError?.('无法启动语音识别');
     }
+  }, [onTranscription, onError]);
   }, [onTranscription, onError, transcribeAudio]);
 
   // Stop recording
