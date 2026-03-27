@@ -112,8 +112,8 @@
 
             <div class="flex items-center gap-6">
                 <div class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
-                    <span class="text-[9px] font-black text-orange-500 uppercase tracking-widest">{{ syncingStatus }}</span>
+                    <span class="w-1.5 h-1.5 rounded-full animate-pulse" :class="statusColor.dot"></span>
+                    <span class="text-[9px] font-black uppercase tracking-widest" :class="statusColor.text">{{ syncingStatus }}</span>
                 </div>
                 <button v-if="viewMode === 'classroom'" @click="exitClassroom" 
                         class="px-6 py-2 rounded-full glass border border-orange-600/30 text-orange-500 text-[10px] font-black hover:bg-orange-600/10 transition-all uppercase tracking-[2px]">
@@ -261,15 +261,15 @@
                            if (!error && data && data.slides?.length > 0) {
                                console.log("%c[Titan Cloud] 🚀 Real Cloud Data Integrated!", "color: #4ade80; font-weight: bold; font-size: 14px;");
                                
-                               // Transform Cloud Data to match UI structure
+                               // Transform Cloud Data to match precise API schema
                                const cloudLessons = data.slides
-                                   .sort((a,b) => a.order - b.order) // Sort by 'order' column
-                                   .map(s => ({
-                                       idx: s.order + 1,
+                                   .sort((a,b) => a.order_index - b.order_index) // Sort by true schema exact column
+                                   .map((s, index) => ({
+                                       idx: index + 1,
                                        id: s.id.toString(),
                                        title: s.title,
-                                       category: s.type || 'Lesson',
-                                       kernelId: s.kernel_config?.kernelId,
+                                       category: 'Lesson', // Hardcoded as 'type' column does not exist
+                                       kernelId: s.interaction_config?.kernelId,
                                        desc: s.content
                                    }));
 
@@ -323,7 +323,13 @@
                     loadCloudData();
                 });
 
-                return { viewMode, course, lessons, current, kernelUrl, syncingStatus, launch, exitClassroom, selectLesson, getCover };
+                const statusColor = computed(() => {
+                   if (syncingStatus.value === 'Cloud Kernel Synced') return { dot: 'bg-green-400 shadow-[0_0_10px_#4ade80]', text: 'text-green-400' };
+                   if (syncingStatus.value === 'Syncing with Titan Cloud...') return { dot: 'bg-orange-500', text: 'text-orange-500' };
+                   return { dot: 'bg-slate-500', text: 'text-slate-500' };
+                });
+
+                return { viewMode, course, lessons, current, kernelUrl, syncingStatus, statusColor, launch, exitClassroom, selectLesson, getCover };
             }
         }).mount('#app');
     </script>

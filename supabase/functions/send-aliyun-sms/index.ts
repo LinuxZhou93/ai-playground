@@ -8,8 +8,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 const ALIYUN_ACCESS_KEY_ID = Deno.env.get('ALIYUN_ACCESS_KEY_ID');
 const ALIYUN_ACCESS_KEY_SECRET = Deno.env.get('ALIYUN_ACCESS_KEY_SECRET');
-const ALIYUN_SIGN_NAME = Deno.env.get('ALIYUN_SIGN_NAME') || '小创客';
-const ALIYUN_TEMPLATE_CODE = Deno.env.get('ALIYUN_TEMPLATE_CODE') || 'SMS_333430599';
+const ALIYUN_SIGN_NAME = '速通互联验证码'; // Hardcoded to prevent CLI encoding issues
+const ALIYUN_TEMPLATE_CODE = Deno.env.get('ALIYUN_TEMPLATE_CODE') || '100001';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -63,19 +63,22 @@ serve(async (req) => {
 
     if (dbError) throw new Error(`Database error: ${dbError.message}`);
 
-    // 2. Aliyun Signature & Send
+    // 2. Aliyun Signature & Send (Using Dypnsapi SendSmsVerifyCode)
+    // Note: PhoneNumbers -> PhoneNumber, Action -> SendSmsVerifyCode
+    // Host -> dypnsapi.aliyuncs.com
     const params: Record<string, string> = {
       AccessKeyId: ALIYUN_ACCESS_KEY_ID!,
-      Action: 'SendSms',
+      Action: 'SendSmsVerifyCode',
       Format: 'JSON',
-      PhoneNumbers: phone,
-      RegionId: 'cn-hangzhou',
+      PhoneNumber: phone.replace(/^\+86/, ''),
+      RegionId: 'ap-southeast-1',
+      SchemeName: '测试方案',
       SignName: ALIYUN_SIGN_NAME,
       SignatureMethod: 'HMAC-SHA1',
       SignatureNonce: Math.random().toString(36).substring(2),
       SignatureVersion: '1.0',
       TemplateCode: ALIYUN_TEMPLATE_CODE,
-      TemplateParam: JSON.stringify({ code }),
+      TemplateParam: JSON.stringify({ code, min: "5" }),
       Timestamp: new Date().toISOString().replace(/\.\d{3}/, ''),
       Version: '2017-05-25',
     };
@@ -88,7 +91,7 @@ serve(async (req) => {
     const stringToSign = `GET&${percentEncode('/')}&${percentEncode(canonicalizedQueryString)}`;
     const signature = await hmacSha1(`${ALIYUN_ACCESS_KEY_SECRET}&`, stringToSign);
 
-    const url = `https://dysmsapi.aliyuncs.com/?${canonicalizedQueryString}&Signature=${percentEncode(signature)}`;
+    const url = `https://dypnsapi.aliyuncs.com/?${canonicalizedQueryString}&Signature=${percentEncode(signature)}`;
     
     const aliResponse = await fetch(url);
     const result = await aliResponse.json();

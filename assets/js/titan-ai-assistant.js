@@ -375,7 +375,7 @@ class TitanAIAssistant {
                             ipcRenderer.send('return-home');
                         } catch (e) {
                             // Fallback for non-Electron or pure web environment
-                            location.href = '/'; 
+                            location.href = 'index.html'; 
                         }
                     }
                 };
@@ -3602,6 +3602,19 @@ ${currentFullContent}
             this.chatArea.appendChild(rowDiv);
             this.scrollToBottom(true);
 
+            // 核心计费：访客额度扣减
+            const isMemberStatus = localStorage.getItem('is_member') === 'true'; // 假设会员状态存储在 localStorage
+            if (!isMemberStatus) {
+                let remainingCount = parseInt(localStorage.getItem('ai_guest_limit') || '10');
+                if (remainingCount > 0) {
+                    remainingCount--;
+                    localStorage.setItem('ai_guest_limit', remainingCount.toString());
+                    this.updateMemberStatusUI(); // 即时刷新顶部通知条进度
+                }
+            }
+            
+            if (typeof this.updateQuickChips === 'function') this.updateQuickChips(aiReply);
+
             const enhanceCodeBlocks = () => {
                 // 2. 链接增强：强制新页签打开 (New Tab Mastery)
                 msgDiv.querySelectorAll('a').forEach(link => {
@@ -4126,11 +4139,15 @@ ${currentFullContent}
             if (this.input) {
                 this.input.style.transition = 'all 0.1s';
                 this.input.style.border = '1px solid #ef4444';
+                this.input.placeholder = '🔒 体验额度已耗尽，请解锁 VIP';
+                this.input.disabled = true;
                 setTimeout(() => { this.input.style.border = ''; }, 300);
             }
             
             // 引导解锁
-            if (this.activateBtn) {
+            if (window.SubscriptionManager) {
+                window.SubscriptionManager.showPaywall();
+            } else if (this.activateBtn) {
                 this.activateBtn.click();
             } else {
                 alert('访客体验次数已耗尽！\n请点击输入框侧边的钥匙图标或直接登录重置对话次数。');

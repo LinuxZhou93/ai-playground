@@ -81,6 +81,12 @@ const SubscriptionManager = {
 
         console.log('SubscriptionManager: Ready');
         this.isReady = true;
+
+        // 初始化访客限额 (如果不存在)
+        if (!localStorage.getItem('ai_guest_limit')) localStorage.setItem('ai_guest_limit', '10');
+        if (!localStorage.getItem('futureclass_guest_limit')) localStorage.setItem('futureclass_guest_limit', '5');
+
+        this.applyGlobalLockUI();
     },
 
     // --- Global Click Tracker ---
@@ -204,8 +210,6 @@ const SubscriptionManager = {
                 };
             }
         }
-    },
-
     updateUI: function () {
         // 1. Generic Dock/Global Display
         const genericName = document.getElementById('user-name-display');
@@ -246,6 +250,51 @@ const SubscriptionManager = {
                 avatar.style.border = '3px solid #666';
             }
         }
+
+        this.applyGlobalLockUI();
+    },
+
+    applyGlobalLockUI: function() {
+        const status = this.getSubscriptionStatus();
+        if (status.isVIP) {
+            document.querySelectorAll('.node-item, .skill-node, .course-card').forEach(el => {
+                el.classList.remove('titan-locked');
+                const lock = el.querySelector('.titan-lock-icon');
+                if (lock) lock.remove();
+                el.style.filter = '';
+                el.style.opacity = '';
+                el.style.pointerEvents = '';
+            });
+            return;
+        }
+
+        // 非 VIP 锁定逻辑
+        const whiteList = ['AI Intro', '飞书 Feishu', 'Scratch', '科技宝箱', '个人中心'];
+        document.querySelectorAll('.node-item, .skill-node, .course-card, .nav-item').forEach(el => {
+            const text = el.innerText || '';
+            const isWhite = whiteList.some(w => text.includes(w));
+            
+            if (!isWhite) {
+                el.classList.add('titan-locked');
+                el.style.filter = 'grayscale(1) brightness(0.7)';
+                el.style.position = 'relative';
+                
+                if (!el.querySelector('.titan-lock-icon')) {
+                    const lock = document.createElement('div');
+                    lock.className = 'titan-lock-icon';
+                    lock.innerHTML = '🔒';
+                    lock.style.cssText = 'position:absolute; top:5px; right:5px; font-size:12px; z-index:10;';
+                    el.appendChild(lock);
+                }
+
+                // 拦截点击
+                el.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.showPaywall();
+                };
+            }
+        });
     },
 
     // --- Page Level Protection ---
@@ -457,16 +506,6 @@ const SubscriptionManager = {
     // --- Access Control Helpers ---
 
     getSubscriptionStatus: function () {
-        // [Titan Tech Production Hardening] 生产域名下强制判定为永久 VIP
-        const host = window.location.hostname;
-        if (host.includes('zhouxiaomai.com') || host.includes('futureclass.ai') || host.includes('vercel.app')) {
-            return {
-                isVIP: true,
-                plan: 'Titan Pilot',
-                expiry: '2033-12-31',
-                remainingDays: 9999
-            };
-        }
         if (!this.user || !this.profile || !this.profile.expiry_date) {
             return { isVIP: false, expiryDate: null };
         }
@@ -488,11 +527,6 @@ const SubscriptionManager = {
     },
 
     isSubscribed: function () {
-        // [Titan Tech Production Hardening] 生产域名下强制激活永久 VIP 权限
-        const host = window.location.hostname;
-        if (host.includes('zhouxiaomai.com') || host.includes('futureclass.ai') || host.includes('vercel.app')) {
-            return true;
-        }
         if (!this.user) return false; 
         const status = this.getSubscriptionStatus();
         return status.isVIP;
@@ -652,11 +686,7 @@ const SubscriptionManager = {
                 body: { phone, code }
             });
 
-            if (error) {
-                console.error('[Verify Error]', error);
-                return { error: { message: "校验失败: " + (error.message || "验证码错误") } };
-            }
-
+            console.log('[Verify Success Payload]', data);
             // Successfully verified and logged in via Bridge
             if (data && data.user) {
                 // If the edge function returns a new session or we just force reload,
