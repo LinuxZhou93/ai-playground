@@ -176,7 +176,8 @@ async function generateVolcengineTTS(
       },
       user: { uid: "titan_student" },
       audio: {
-          voice_type: config.voice || "zh_male_shaonianzixin_moon_bigtts",
+          // 🚀 [Titan AI 全站底层锁死]：强制使用“少年梓梓” (zh_male_shaonianzixin_moon_bigtts)，保障教育场景音色一致性
+          voice_type: "zh_male_shaonianzixin_moon_bigtts", 
           encoding: "mp3",
           speed_ratio: config.speed || 1.0,
           volume_ratio: 1.0,

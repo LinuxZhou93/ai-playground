@@ -2223,11 +2223,15 @@ class TitanAIAssistant {
         this.panel.insertBefore(this.chatArea, this.statusBar.nextSibling); // Insert chatArea after statusBar
 
         // Initial system message for chatArea
+        const welcomeText = "哈喽同学！我是你的智能机器人导师【小创老师】，已准备完毕！将深度结合此页面核心知识向你解答疑问！🤖✨";
         this.chatArea.innerHTML = `
             <div class="msg-row system">
-                <div class="msg msg-system">哈喽同学！我是你的智能机器人导师【小创老师】，已准备完毕！将深度结合此页面核心知识向你解答疑问！🤖✨</div>
+                <div class="msg msg-system">${welcomeText}</div>
             </div>
         `;
+        
+        // 尝试在初始化时记录欢迎语，但不强制在静默状态下直接发声（避免浏览器策略拦截报错）
+        this.chatHistory.push({ role: 'assistant', content: welcomeText });
 
         this.updateMemberStatusUI();
     }
@@ -2945,51 +2949,25 @@ class TitanAIAssistant {
         }
 
         try {
-            // 🚀 【火山引擎大模型 TTS 引擎直连】
-            // 绕过之前的配置面板，直接硬编码使用最顶级的“呆萌川妹”音色 (极大提升小学生群体的沉浸感)
-            const appId = "4780476544";
-            const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
-            const reqid = 'req-titan-' + Date.now() + Math.random().toString().slice(2,8);
-
-            const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer;${token}`
-                },
-                body: JSON.stringify({
-                    app: {
-                        appid: appId,
-                        token: token,
-                        cluster: "volcano_tts"
-                    },
-                    user: { uid: "titan_student" },
-                    audio: {
-                        voice_type: "zh_child_feifei_moon_bigtts", // 飞飞 (活力男童)
-                        encoding: "mp3",
-                        speed_ratio: 1.0,
-                        volume_ratio: 1.0,
-                        pitch_ratio: 1.0
-                    },
-                    request: {
-                        reqid: reqid,
-                        text: cleanText.substring(0, 300), // 火山tts单次大概支持三百字，这已足够当前教育问答切片
-                        text_type: "plain",
-                        operation: "query"
+            // 🚀 【核心修复：切换至 Electron 原生 IPC 链路】
+            // 放弃在浏览器环境中直接 Fetch 火山引擎 API (易受跨域和网络拦截影响)
+            // 改为调用主进程中已硬编码凭证的 generate-edge-tts 接口，确保音色一致性
+            const isElectron = /electron/i.test(navigator.userAgent) || (window.process && window.process.type);
+            
+            if (isElectron && window.require) {
+                const { ipcRenderer } = window.require('electron');
+                
+                // 强制请求“少年梓梓”音色，这是项目在 settings.ts 中默认硬化的生产级音色
+                const voice = "zh_male_shaonianzixin_moon_bigtts";
+                
+                ipcRenderer.invoke('generate-edge-tts', cleanText, voice).then(async (audioBuffer) => {
+                    if (!audioBuffer) {
+                        this.fallbackSpeak(cleanText, callback);
+                        return;
                     }
-                })
-            });
 
-            if (response.ok) {
-                const result = await response.json();
-                if (result.code === 3000) {
-                    // 解码火山引擎返回的 Base64 音频
-                    const binary = atob(result.data);
-                    const array = new Uint8Array(binary.length);
-                    for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
-                    const audioBlob = new Blob([array], { type: 'audio/mp3' });
-                    
-                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const blob = new Blob([audioBuffer], { type: 'audio/mp3' });
+                    const audioUrl = URL.createObjectURL(blob);
                     const audio = new Audio(audioUrl);
                     
                     this.currentAudioPlayer = audio;
@@ -3002,26 +2980,27 @@ class TitanAIAssistant {
                         if (typeof this.stopVAD === 'function') this.stopVAD();
                         if (callback) callback();
                     };
+                    
                     audio.onerror = () => {
                         URL.revokeObjectURL(audioUrl);
                         this.currentAudioPlayer = null;
                         if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
-                        if (typeof this.stopVAD === 'function') this.stopVAD();
-                        this.fallbackSpeak(cleanText, callback);
+                        this.fallbackSpeak(cleantext, callback);
                     };
                     
                     await audio.play();
-                    if (typeof this.startVAD === 'function') this.startVAD(); // 启动打断监听
-                    return;
-                } else {
-                    console.error('火山引擎 TTS 报错:', result.message);
+                    if (typeof this.startVAD === 'function') this.startVAD();
+                }).catch(err => {
+                    console.error('IPC TTS 失败:', err);
                     this.fallbackSpeak(cleanText, callback);
-                }
+                });
             } else {
+                // 🚀 【双端兼容：浏览器端 Fallback】
+                // 在 Web 页面环境下，使用系统原生的 Webspeech API 朗读
                 this.fallbackSpeak(cleanText, callback);
             }
         } catch (e) {
-            console.error('TTS 直连失败:', e);
+            console.error('TTS 调用崩溃:', e);
             this.fallbackSpeak(cleanText, callback);
         }
     }
@@ -3875,6 +3854,11 @@ ${currentFullContent}
                         setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
                     };
                     rowDiv.appendChild(actions);
+                    
+                    // 🚀 【核心修复：流式结束即时主动召唤发声逻辑】
+                    // 只有在非静默（如语音录制刚结束后的自动流式响应）或者用户显式互动场景下，触发发声
+                    this.speakReply(aiReply);
+                    
                     return;
                 }
 

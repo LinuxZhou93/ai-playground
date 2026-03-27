@@ -13,9 +13,8 @@ const path = require('path')
 // ==========================================
 ipcMain.handle('generate-edge-tts', async (event, text, voiceName) => {
     try {
-        const appId = "4780476544";
-        const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
-        const voice = voiceName || "zh_male_shaonianzixin_moon_bigtts";
+        // 🚀 [Titan AI 主进程锁死]：忽略传入的 voiceName，底层强制使用“少年梓梓”
+        const voice = "zh_male_shaonianzixin_moon_bigtts";
         const reqid = 'req-ipc-' + Date.now();
 
         console.log(`[主进程 TTS] 正在呼叫火山引擎生成语音: ${voice}`);
