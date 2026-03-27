@@ -1309,6 +1309,19 @@ export const useSettingsStore = create<SettingsState>()(
         ensureValidProviderSelections(state);
 
         return state;
+      version: 3, // [Titan Tech] Bump version to clear legacy sk-4nI8... keys from localStorage
+      migrate: (persistedState: any, version: number) => {
+        if (version < 3) {
+          // Force clear potentially stuck legacy configs to ensure new hardcoded values win
+          if (persistedState && typeof persistedState === 'object') {
+            delete persistedState.providersConfig;
+            delete persistedState.ttsProvidersConfig;
+            delete persistedState.asrProvidersConfig;
+            delete persistedState.providerId;
+            delete persistedState.modelId;
+          }
+        }
+        return persistedState;
       },
       // Custom merge: always sync built-in providers on every rehydrate,
       // so newly added providers/models appear without clearing cache.
