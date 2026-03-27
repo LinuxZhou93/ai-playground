@@ -1308,8 +1308,11 @@ export const useSettingsStore = create<SettingsState>()(
 
         ensureValidProviderSelections(state);
 
+        ensureValidProviderSelections(state);
+
         return state;
-      version: 3, // [Titan Tech] Bump version to clear legacy sk-4nI8... keys from localStorage
+      },
+      version: 3, // [Titan Tech] Bumped to clear legacy sk-4nI8... keys from localStorage
       migrate: (persistedState: any, version: number) => {
         if (version < 3) {
           // Force clear potentially stuck legacy configs to ensure new hardcoded values win
@@ -1333,47 +1336,10 @@ export const useSettingsStore = create<SettingsState>()(
         ensureValidProviderSelections(merged as Partial<SettingsState>);
 
         // [Titan Tech Permanent Override] Hardcode Core LLM credentials (via Backgrace Proxy)
-        merged.providerId = 'google';
-        merged.modelId = 'gemini-3-flash-preview';
-        
-        // Ensure configs exist and are updated
-        if (!merged.providersConfig) merged.providersConfig = {} as ProvidersConfig;
-        if (!merged.providersConfig['google']) {
-          merged.providersConfig['google'] = {
-            apiKey: '',
-            baseUrl: '',
-            models: [],
-            name: 'Google',
-            type: 'google',
-            requiresApiKey: true,
-            isBuiltIn: true,
-          };
-        }
-        merged.providersConfig['google'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
-        merged.providersConfig['google'].baseUrl = 'https://backgrace.com/v1';
-
-        // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy)
-        merged.asrProviderId = 'openai-whisper';
-        merged.asrLanguage = 'zh';
-        if (!merged.asrProvidersConfig) merged.asrProvidersConfig = {} as any;
-        if (!merged.asrProvidersConfig['openai-whisper']) {
-          merged.asrProvidersConfig['openai-whisper'] = {
-            apiKey: '',
-            baseUrl: '',
-            enabled: true,
-          };
-        }
-        merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
-        merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
-
-        // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access)
-        merged.ttsProviderId = 'volcengine-tts';
-        merged.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
-        
-        // [Titan Tech Permanent Override] Hardcode LLM (Backgrace Gemini 3.0 Production Key)
         merged.providerId = 'openai'; // 使用 OpenAI 兼容协议
         merged.modelId = 'gemini-3-flash';
         
+        // Ensure configs exist and are updated
         if (!merged.providersConfig) merged.providersConfig = {} as any;
         
         // 强制植入 Backgrace 生产金钥，确保全时段稳定
@@ -1388,30 +1354,36 @@ export const useSettingsStore = create<SettingsState>()(
           merged.providersConfig['openai'].baseUrl = 'https://backgrace.com/v1';
         }
 
-        if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {} as any;
-        if (!merged.ttsProvidersConfig['volcengine-tts']) {
-          merged.ttsProvidersConfig['volcengine-tts'] = {
-            apiKey: '',
-            baseUrl: '',
-            enabled: true,
-          };
-        }
-        merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
-        merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
-        merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
-
-        // [Titan Tech Permanent Override] Hardcode ASR (Backgrace Whisper Production Key)
+        // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy)
         merged.asrProviderId = 'openai-whisper';
+        merged.asrLanguage = 'zh';
         if (!merged.asrProvidersConfig) merged.asrProvidersConfig = {} as any;
         if (!merged.asrProvidersConfig['openai-whisper']) {
           merged.asrProvidersConfig['openai-whisper'] = {
             apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK',
             baseUrl: 'https://backgrace.com/v1',
             enabled: true,
-          } as any;
+          };
         } else {
           merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
           merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
+        }
+
+        // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access)
+        merged.ttsProviderId = 'volcengine-tts';
+        merged.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
+        
+        if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {} as any;
+        if (!merged.ttsProvidersConfig['volcengine-tts']) {
+          merged.ttsProvidersConfig['volcengine-tts'] = {
+            apiKey: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z',
+            baseUrl: 'https://openspeech.bytedance.com/api/v1',
+            enabled: true,
+          };
+        } else {
+          merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
+          merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
+          merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
         }
 
         return merged as SettingsState;
