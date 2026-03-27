@@ -1356,6 +1356,25 @@ export const useSettingsStore = create<SettingsState>()(
         // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access)
         merged.ttsProviderId = 'volcengine-tts';
         merged.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
+        
+        // [Titan Tech Permanent Override] Hardcode LLM (Backgrace Gemini 3.0 Production Key)
+        merged.providerId = 'openai'; // 使用 OpenAI 兼容协议
+        merged.modelId = 'gemini-3-flash';
+        
+        if (!merged.providersConfig) merged.providersConfig = {} as any;
+        
+        // 强制植入 Backgrace 生产金钥，确保全时段稳定
+        if (!merged.providersConfig['openai']) {
+          merged.providersConfig['openai'] = {
+            id: 'openai',
+            apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK',
+            baseUrl: 'https://backgrace.com/v1',
+          } as any;
+        } else {
+          merged.providersConfig['openai'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          merged.providersConfig['openai'].baseUrl = 'https://backgrace.com/v1';
+        }
+
         if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {} as any;
         if (!merged.ttsProvidersConfig['volcengine-tts']) {
           merged.ttsProvidersConfig['volcengine-tts'] = {
