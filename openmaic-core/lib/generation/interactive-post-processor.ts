@@ -22,8 +22,88 @@ export function postProcessInteractiveHtml(html: string): string {
     processed = injectKatex(processed);
   }
 
+  // Inject Advanced Visual Libraries (Mermaid, P5.js, ECharts, Lucide)
+  processed = injectVisualLibraries(processed);
+
   return processed;
 }
+
+/**
+ * Inject Advanced Visual Libraries (Mermaid, P5.js, ECharts, Lucide) before </head>.
+ */
+function injectVisualLibraries(html: string): string {
+  const injection = `
+<!-- Advanced Visual Libraries Injection -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  /* Base styles for visual components */
+  .mermaid { background: transparent; display: flex; justify-content: center; margin: 20px 0; }
+  #p5-container { display: flex; justify-content: center; margin: 20px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+  .echarts-chart { width: 100%; height: 400px; margin: 20px 0; }
+  
+  /* Glassmorphism utility classes */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize Mermaid
+    if (window.mermaid) {
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'neural',
+            securityLevel: 'loose',
+            fontFamily: 'Inter, system-ui, sans-serif'
+        });
+    }
+
+    // Initialize Lucide Icons
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+    
+    // Auto-initialize P5 canvas if a container exists
+    if (window.setupP5 && typeof window.setupP5 === 'function') {
+        new p5(window.setupP5, 'p5-container');
+    }
+});
+</script>
+`;
+
+  // Use indexOf + substring for safe injection
+  const headCloseIdx = html.indexOf('</head>');
+  if (headCloseIdx !== -1) {
+    return (
+      html.substring(0, headCloseIdx) +
+      injection +
+      '\n</head>' +
+      html.substring(headCloseIdx + 7)
+    );
+  }
+
+  const bodyCloseIdx = html.indexOf('</body>');
+  if (bodyCloseIdx !== -1) {
+    return (
+      html.substring(0, bodyCloseIdx) +
+      injection +
+      '\n</body>' +
+      html.substring(bodyCloseIdx + 7)
+    );
+  }
+
+  return html + injection;
+}
+
 
 /**
  * Convert LaTeX delimiters while protecting <script> tags.

@@ -144,20 +144,24 @@ Video example:
 
 ### Interactive Scene Guidelines
 
-Use `interactive` type when a concept benefits significantly from hands-on interaction and visualization. Good candidates include:
+Use `interactive` type when a concept benefits significantly from hands-on interaction and visualization. The platform supports **High-Fidelity Visual Libraries** for these scenes:
+- **P5.js**: For dynamic physics simulations, creative coding, and state-driven animations.
+- **Mermaid**: For structural diagrams, flowcharts, and mind maps.
+- **ECharts**: For professional data visualizations and complex charts.
+- **Lucide**: For modern iconography.
 
-- **Physics simulations**: Force composition, projectile motion, wave interference, circuits
-- **Math visualizations**: Function graphing, geometric transformations, probability distributions
-- **Data exploration**: Interactive charts, statistical sampling, regression fitting
-- **Chemistry**: Molecular structure, reaction balancing, pH titration
-- **Programming concepts**: Algorithm visualization, data structure operations
+**Good candidates include**:
+- **Physics simulations**: Force composition, projectile motion (P5.js)
+- **Structural Knowledge**: Process flows, organizational charts (Mermaid)
+- **Data exploration**: Interactive trends, statistical dashboards (ECharts)
+- **Math visualizations**: Geometric transformations, function behavior (P5.js/SVG)
 
 **Constraints**:
+- Limit to **1-2 interactive scenes per course**.
+- Interactive scenes **require** an `interactiveConfig` object.
+- In `interactiveConfig.designIdea`, explicitly mention which library (P5.js, Mermaid, ECharts) should be used.
+- The design style should follow a "NotebookLM" inspired glassmorphism aesthetic.
 
-- Limit to **1-2 interactive scenes per course** (they are resource-intensive)
-- Interactive scenes **require** an `interactiveConfig` object
-- Do NOT use interactive for purely textual/conceptual content - use slides instead
-- The `interactiveConfig.designIdea` should describe the specific interactive elements and user interactions
 
 ### PBL Scene Guidelines
 

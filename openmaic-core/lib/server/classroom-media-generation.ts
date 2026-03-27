@@ -176,26 +176,43 @@ export function replaceMediaPlaceholders(scenes: Scene[], mediaMap: Record<strin
   if (Object.keys(mediaMap).length === 0) return;
 
   for (const scene of scenes) {
-    if (scene.type !== 'slide') continue;
-    const canvas = (
-      scene.content as {
-        canvas?: { elements?: Array<{ id: string; src?: string; type?: string }> };
+    // 1. Handle Slide scenes (Canvas elements)
+    if (scene.type === 'slide') {
+      const canvas = (
+        scene.content as {
+          canvas?: { elements?: Array<{ id: string; src?: string; type?: string }> };
+        }
+      )?.canvas;
+      if (canvas?.elements) {
+        for (const el of canvas.elements) {
+          if (
+            (el.type === 'image' || el.type === 'video') &&
+            typeof el.src === 'string' &&
+            isMediaPlaceholder(el.src) &&
+            mediaMap[el.src]
+          ) {
+            el.src = mediaMap[el.src];
+          }
+        }
       }
-    )?.canvas;
-    if (!canvas?.elements) continue;
+    }
 
-    for (const el of canvas.elements) {
-      if (
-        (el.type === 'image' || el.type === 'video') &&
-        typeof el.src === 'string' &&
-        isMediaPlaceholder(el.src) &&
-        mediaMap[el.src]
-      ) {
-        el.src = mediaMap[el.src];
+    // 2. Handle Interactive scenes (HTML content)
+    if (scene.type === 'interactive') {
+      const content = scene.content as { html?: string };
+      if (content.html) {
+        let updatedHtml = content.html;
+        for (const [placeholder, url] of Object.entries(mediaMap)) {
+          // Replace both plain placeholders and ai-render:// protocol
+          updatedHtml = updatedHtml.replaceAll(placeholder, url);
+          updatedHtml = updatedHtml.replaceAll(`ai-render://${placeholder}`, url);
+        }
+        content.html = updatedHtml;
       }
     }
   }
 }
+
 
 // ---------------------------------------------------------------------------
 // TTS generation
