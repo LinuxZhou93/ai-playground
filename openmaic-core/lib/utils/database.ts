@@ -167,6 +167,19 @@ export interface GeneratedAgentRecord {
   createdAt: number;
 }
 
+/**
+ * LearningSnapshots table - Offline / Local fallback for Edu-Git
+ */
+export interface LearningSnapshotLocalRecord {
+  id: string; // PK: commit ID
+  stageId: string; // FK -> stages.id
+  sceneIndex: number;
+  aiSummary: string;
+  notes: string;
+  chatHistory: any[];
+  timestamp: number;
+}
+
 /** Build the compound primary key for mediaFiles: `${stageId}:${elementId}` */
 export function mediaFileKey(stageId: string, elementId: string): string {
   return `${stageId}:${elementId}`;
@@ -192,6 +205,7 @@ class MAICDatabase extends Dexie {
   stageOutlines!: EntityTable<StageOutlinesRecord, 'stageId'>;
   mediaFiles!: EntityTable<MediaFileRecord, 'id'>;
   generatedAgents!: EntityTable<GeneratedAgentRecord, 'id'>;
+  learningSnapshots!: EntityTable<LearningSnapshotLocalRecord, 'id'>;
 
   constructor() {
     super(DATABASE_NAME);
@@ -308,6 +322,21 @@ class MAICDatabase extends Dexie {
       stageOutlines: 'stageId',
       mediaFiles: 'id, stageId, [stageId+type]',
       generatedAgents: 'id, stageId',
+    });
+
+    // Version 9: Add learningSnapshots table for Edu-Git (offline fallback) 
+    this.version(9).stores({
+      stages: 'id, updatedAt',
+      scenes: 'id, stageId, order, [stageId+order]',
+      audioFiles: 'id, createdAt',
+      imageFiles: 'id, createdAt',
+      snapshots: '++id',
+      chatSessions: 'id, stageId, [stageId+createdAt]',
+      playbackState: 'stageId',
+      stageOutlines: 'stageId',
+      mediaFiles: 'id, stageId, [stageId+type]',
+      generatedAgents: 'id, stageId',
+      learningSnapshots: 'id, stageId, [stageId+sceneIndex]',
     });
   }
 }

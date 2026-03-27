@@ -6,6 +6,8 @@ import { PENDING_SCENE_ID } from '@/lib/store/stage';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { LearningGitDrawer } from './learning-git-drawer';
+import { useLearningGitStore } from '@/lib/store/learning-git';
 import { SceneSidebar } from './stage/scene-sidebar';
 import { Header } from './header';
 import { CanvasArea } from '@/components/canvas/canvas-area';
@@ -774,6 +776,21 @@ export function Stage({
   const handleNextScene = useCallback(() => {
     if (isPendingScene) return; // Already on pending, nowhere to go
     const currentIndex = scenes.findIndex((s) => s.id === currentSceneId);
+    
+    // [Edu-Git] Auto Commit trigger before moving on
+    const currentStageObj = useStageStore.getState().stage;
+    if (currentStageObj && currentIndex >= 0 && currentIndex < scenes.length) {
+       const curSceneObj = scenes[currentIndex];
+       let summary = `掌握了 ${curSceneObj.title || '幻灯片'} 的核心知识`;
+       // Try catching the last important thing said around here
+       const textAction = curSceneObj.actions?.find(a => a.type === 'speech');
+       if (textAction && 'text' in textAction) {
+           summary = `巩固点: ${textAction.text.substring(0, 40)}...`;
+       }
+       // Fire and forget commit
+       useLearningGitStore.getState().createSnapshot(currentStageObj.id, currentIndex, summary, { });
+    }
+
     if (currentIndex < scenes.length - 1) {
       gatedSceneSwitch(scenes[currentIndex + 1].id);
     } else if (hasNextPending) {
@@ -1230,6 +1247,21 @@ export function Stage({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edu-Git 学习笔记本 */}
+      <LearningGitDrawer />
+
+      {/* 呼出一个极度低调的高级感笔记入口，通常置于右侧最边缘中央停靠 */}
+      <button 
+         onClick={() => useLearningGitStore.getState().toggleDrawer()}
+         className="fixed right-0 top-1/2 transform -translate-y-1/2 translate-x-[2px] hover:translate-x-0 transition-transform bg-blue-600/90 hover:bg-blue-500 text-white shadow-xl shadow-blue-500/20 py-4 px-1 rounded-l-md border border-r-0 border-blue-400 group z-40 hidden md:flex items-center justify-center opacity-70 hover:opacity-100"
+         title="千人千面学习系统：笔记与进度回放"
+      >
+         <span className="vertical-writing-mode text-xs font-semibold tracking-widest" style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}>
+           我的学习
+         </span>
+      </button>
+
     </div>
   );
 }
