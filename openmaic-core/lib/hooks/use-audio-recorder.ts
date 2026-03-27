@@ -90,25 +90,23 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     if (busyRef.current) return;
     busyRef.current = true;
     try {
-      // Get current ASR configuration
+      // [Titan Tech Permanent Lock] Always use browser native ASR for zero-latency local processing.
+      // Force ignore settings and skip server-side transcription risks.
       if (typeof window !== 'undefined') {
-        const { useSettingsStore } = await import('@/lib/store/settings');
-        const { asrProviderId, asrLanguage } = useSettingsStore.getState();
+        // Check if Speech Recognition is supported
+        if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+          onError?.('您的浏览器不支持语音识别功能，请使用 Chrome 或 Edge 浏览器。');
+          busyRef.current = false;
+          return;
+        }
 
-        // Use browser native ASR if configured
-        if (asrProviderId === 'browser-native') {
-          // Check if Speech Recognition is supported
-          if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-            onError?.('您的浏览器不支持语音识别功能');
-            return;
-          }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
 
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          const recognition = new SpeechRecognition();
-
-          recognition.lang = asrLanguage || 'zh-CN';
-          recognition.continuous = false;
-          recognition.interimResults = false;
+        // 🚀 强制锁定语言为中文
+        recognition.lang = 'zh-CN';
+        recognition.continuous = false;
+        recognition.interimResults = false;
 
           recognition.onstart = () => {
             setIsRecording(true);
@@ -186,37 +184,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
       }
 
-      // Use MediaRecorder for server-side ASR
-      // Request microphone permission
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Create MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
-      });
-
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        // Stop all audio tracks
-        stream.getTracks().forEach((track) => track.stop());
-
-        // Merge audio chunks
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: 'audio/webm',
-        });
-
-        // Send to server for transcription
-        await transcribeAudio(audioBlob);
-        busyRef.current = false;
-      };
+      // Server-side ASR logic removed to ensure local stability.
+      return;
+    } catch (error) {
 
       // Start recording
       mediaRecorder.start();
