@@ -182,7 +182,7 @@ export async function generateClassroom(
 
   // 🚀 [Titan Tech] 强制使用 OpenAI 兼容协议 (适配 Backgrace 代理)
   const { model: languageModel, modelInfo, modelString, apiKey: effectiveKey } = resolveModel({
-    modelString: 'openai/gemini-3-flash', // 对应用户在 settings.ts 中的新设定
+    modelString: 'google:gemini-3-flash-preview', // 对应用户在 settings.ts 中的新设定
     providerType: 'openai'
   });
   log.info(`Using resolved model: ${modelString} with key: ${effectiveKey?.slice(0, 8)}...`);
@@ -215,12 +215,23 @@ export async function generateClassroom(
   // 🚀 [Titan Tech] URL Content Extraction Logic
   // Check if the requirement is a URL (YouTube/Bilibili etc.)
   let enhancedRequirement = requirement;
+  let urlContent: any = null;
   try {
     const { extractUrlContent } = await import('@/lib/server/url-extractor');
-    const urlContent = await extractUrlContent(requirement);
+    urlContent = await extractUrlContent(requirement);
     if (urlContent) {
       log.info(`Extracted content from ${urlContent.source}: ${urlContent.title}`);
-      enhancedRequirement = `基于以下视频内容进行教学设计：\n\n${urlContent.content}\n\n[用户补充说明]: ${requirement}`;
+      enhancedRequirement = `### 教学设计上下文 (来自视频解析)
+视频标题: ${urlContent.title}
+来源: ${urlContent.source}
+详细内容/转录:
+${urlContent.content}
+
+### 用户原始需求:
+${requirement}
+
+---
+请基于以上详细转录内容设计高度专业的 PPT 课件。`;
       
       await options.onProgress?.({
         step: 'researching',
@@ -228,6 +239,9 @@ export async function generateClassroom(
         message: `已解析视频: ${urlContent.title}`,
         scenesGenerated: 0,
       });
+    } else {
+      // 没有任何解析结果时的补救：尝试基础摘要
+      enhancedRequirement = `教学主题: ${requirement}\n请基于该主题生成专业课程设计。`;
     }
   } catch (urlErr) {
     log.warn('URL extraction failed, continuing with raw requirement:', urlErr);
@@ -324,7 +338,7 @@ export async function generateClassroom(
   const stage: Stage = {
     id: stageId,
     name: outlines[0]?.title || requirement.slice(0, 50),
-    description: undefined,
+    description: urlContent?.title ? `基于视频: ${urlContent.title}` : undefined,
     language: lang,
     style: 'interactive',
     createdAt: Date.now(),

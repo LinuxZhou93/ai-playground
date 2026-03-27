@@ -1,4 +1,6 @@
 import { createLogger } from '@/lib/logger';
+import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search/tavily';
+import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 
 const log = createLogger('UrlExtractor');
 
@@ -10,89 +12,67 @@ export interface ExtractedContent {
 }
 
 /**
- * Titan AI 专属视频技能：全量内容提取器
- * 支持 YouTube 字幕抓取与 Bilibili 官方字幕解析
- */
-export async function extractUrlContent(url: string): Promise<ExtractedContent | null> {
-  const trimmedUrl = url.trim();
-  
-  if (trimmedUrl.match(/youtube\.com\/watch\?v=|youtu\.be\//i)) {
-    return await extractYouTubeContent(trimmedUrl);
-  }
-  
-  if (trimmedUrl.match(/bilibili\.com\/video\/BV/i)) {
-    return await extractBilibiliContent(trimmedUrl);
-  }
-
-  return null;
-}
-
-/**
- * YouTube 字幕抓取 (借鉴 youtube-transcript 核心算法)
+ * YouTube 字幕抓取逻辑
  */
 async function extractYouTubeContent(url: string): Promise<ExtractedContent | null> {
   try {
-    const videoId = url.match(/(?:v=|\/be\/)([\w-]{11})/)?.[1];
+    let videoId = '';
+    const vMatch = url.match(/[?&]v=([^&]+)/);
+    if (vMatch) {
+      videoId = vMatch[1];
+    } else {
+      const beMatch = url.match(/youtu\.be\/([^?&]+)/) || url.match(/youtube\.com\/(?:live|shorts)\/([^?&]+)/);
+      if (beMatch) videoId = beMatch[1];
+    }
+
     if (!videoId) return null;
 
-    // 1. 获取基本元数据
-    const metaRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
-    const meta = metaRes.ok ? await metaRes.json() : { title: 'YouTube 视频' };
+    let title = 'YouTube 视频';
+    try {
+      const oRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`);
+      if (oRes.ok) title = (await oRes.json()).title;
+    } catch (e) {}
 
-    // 2. 尝试抓取字幕列表 (通过获取页面并搜索 timedtext 指标)
-    log.info(`Attempting full transcript fetch for YouTube: ${videoId}`);
     const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
     });
     const html = await pageRes.text();
     
-    // 搜索 captions 配置
-    const captionsMatch = html.match(/"captions":\s*({.*?}),\s*"videoDetails"/);
     let transcriptText = '';
+    const captionsMatch = html.match(/"captions":\s*({.*?}),\s*"videoDetails"/);
     
     if (captionsMatch) {
       try {
         const captionsJson = JSON.parse(captionsMatch[1]);
         const tracks = captionsJson.playerCaptionsTracklistRenderer?.captionTracks;
         if (tracks && tracks.length > 0) {
-          // 优先取中文字幕，否则取第一条
-          const track = tracks.find((t: any) => t.languageCode === 'zh') || tracks[0];
+          const track = tracks.find((t: any) => t.languageCode === 'zh') || tracks.find((t: any) => t.languageCode === 'en') || tracks[0];
           const trackRes = await fetch(track.baseUrl + '&fmt=json3');
           const trackJson = await trackRes.json();
-          transcriptText = trackJson.events
-            .filter((e: any) => e.segs)
-            .map((e: any) => e.segs.map((s: any) => s.utf8).join(''))
-            .join(' ');
+          transcriptText = trackJson.events.filter((e: any) => e.segs).map((e: any) => e.segs.map((s: any) => s.utf8).join('')).join(' ');
         }
-      } catch (parseErr) {
-        log.warn('YouTube captions parsing failed:', parseErr);
-      }
+      } catch (e) {}
     }
 
     const content = transcriptText 
       ? `[全量视频转录内容]:\n${transcriptText.slice(0, 8000)}` 
-      : `[视频元数据]:\n标题: ${meta.title}\n作者: ${meta.author_name}\n(注: 未能提取到字幕，请根据标题进行课程设计)`;
+      : `[提示]: 未能自动提取字幕轨道。视频标题为 "${title}"。`;
 
-    return {
-      title: meta.title,
-      source: 'YouTube',
-      content
-    };
+    return { title, source: 'YouTube', content: `视频链接: https://www.youtube.com/watch?v=${videoId}\n${content}` };
   } catch (e) {
-    log.warn('YouTube deep extraction failed:', e);
+    log.error('YouTube extraction error:', e);
     return null;
   }
 }
 
 /**
- * Bilibili 全量字幕抓取 (基于 cid 解析)
+ * Bilibili 深层提取逻辑
  */
 async function extractBilibiliContent(url: string): Promise<ExtractedContent | null> {
   try {
     const bvid = url.match(/BV[\w]*/i)?.[0];
     if (!bvid) return null;
 
-    // 1. 获取 cid
     const viewRes = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {
       headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.bilibili.com' }
     });
@@ -101,8 +81,6 @@ async function extractBilibiliContent(url: string): Promise<ExtractedContent | n
     
     const { title, desc, cid, aid } = viewJson.data;
 
-    // 2. 获取字幕链接
-    log.info(`Fetching Bilibili transcript for: ${title}`);
     const playerRes = await fetch(`https://api.bilibili.com/x/player/v2?aid=${aid}&cid=${cid}`, {
       headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.bilibili.com' }
     });
@@ -117,17 +95,55 @@ async function extractBilibiliContent(url: string): Promise<ExtractedContent | n
       transcriptText = subData.body.map((item: any) => item.content).join(' ');
     }
 
-    const content = transcriptText
-      ? `[Bilibili 全量转录文本]:\n${transcriptText.slice(0, 8000)}`
-      : `[Bilibili 视频摘要]:\n标题: ${title}\n简介: ${desc}`;
-
-    return {
-      title,
-      source: 'Bilibili',
-      content
-    };
+    const content = transcriptText ? `[Bilibili 全量转录文本]:\n${transcriptText.slice(0, 8000)}` : `[Bilibili 摘要]: ${title}\n${desc}`;
+    return { title, source: 'Bilibili', content: `视频链接: ${url}\n${content}` };
   } catch (e) {
-    log.warn('Bilibili deep extraction failed:', e);
     return null;
   }
+}
+
+/**
+ * Titan AI 专属视频技能：全量内容提取器
+ */
+export async function extractUrlContent(url: string, enableSearchFallback = true): Promise<ExtractedContent | null> {
+  const trimmedUrl = url.trim();
+  
+  let result: ExtractedContent | null = null;
+
+  if (trimmedUrl.match(/youtube\.com\/watch\?|youtu\.be\/|youtube\.com\/live\/|youtube\.com\/shorts\//i)) {
+    result = await extractYouTubeContent(trimmedUrl);
+  } else if (trimmedUrl.match(/bilibili\.com\/video\/BV/i)) {
+    result = await extractBilibiliContent(trimmedUrl);
+  }
+
+  // 如果原生提取失败且开启了搜索补全
+  if ((!result || !result.content || result.content.includes('未能自动提取字幕')) && enableSearchFallback) {
+    log.info('Native extraction limited, attempting Tavily web search fallback...');
+    const apiKey = resolveWebSearchApiKey();
+    if (apiKey) {
+      try {
+        const searchResult = await searchWithTavily({ 
+          query: `site:youtube.com OR site:bilibili.com 详细内容解析 ${trimmedUrl}`, 
+          apiKey,
+          maxResults: 5
+        });
+        const fallbackContent = formatSearchResultsAsContext(searchResult);
+        if (fallbackContent) {
+          if (result) {
+            result.content = `${result.content}\n\n[联网补充辅助资料]:\n${fallbackContent}`;
+          } else {
+            result = {
+              title: '视频网页内容 (联网解析)',
+              source: 'WebSearch-Fallback',
+              content: fallbackContent
+            };
+          }
+        }
+      } catch (e) {
+        log.warn('Web search fallback failed:', e);
+      }
+    }
+  }
+
+  return result;
 }
