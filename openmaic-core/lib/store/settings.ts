@@ -1283,20 +1283,27 @@ if (typeof window !== 'undefined') {
   const forceSync = () => {
     try {
       const store = useSettingsStore.getState();
+      const OLD_KEY_PREFIX = 'sk-4nI8'; // 旧的失效 Key 前缀
+      const PROD_KEY = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+      
+      const currentGoogleKey = store.providersConfig?.google?.apiKey;
+      const currentOpenAIKey = store.providersConfig?.openai?.apiKey;
+
       const needsSync = 
-        store.providersConfig?.google?.apiKey !== 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' ||
+        (currentGoogleKey && currentGoogleKey.startsWith(OLD_KEY_PREFIX)) ||
+        (currentOpenAIKey && currentOpenAIKey.startsWith(OLD_KEY_PREFIX)) ||
         store.providerId !== 'openai';
         
       if (needsSync) {
-        console.log('[Titan Tech] 正在执行生产配置强制校准...');
+        console.log('[Titan Tech] 检测到残留旧配置，正在执行核级同步...');
         useSettingsStore.setState((state) => {
           const newConfig = { ...state.providersConfig };
           if (!newConfig.google) newConfig.google = {} as any;
-          newConfig.google.apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          newConfig.google.apiKey = PROD_KEY;
           newConfig.google.baseUrl = 'https://backgrace.com/v1';
           
           if (!newConfig.openai) newConfig.openai = {} as any;
-          newConfig.openai.apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          newConfig.openai.apiKey = PROD_KEY;
           newConfig.openai.baseUrl = 'https://backgrace.com/v1';
 
           return {
@@ -1307,7 +1314,7 @@ if (typeof window !== 'undefined') {
         });
       }
     } catch (e) {
-      // 容错处理
+      console.error('[Titan Tech] 同步失败:', e);
     }
   };
   
