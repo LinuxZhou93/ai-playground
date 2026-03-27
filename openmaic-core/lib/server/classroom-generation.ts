@@ -199,13 +199,36 @@ export async function generateClassroom(
         maxOutputTokens: modelInfo?.outputWindow,
       },
       'generate-classroom',
+      { retries: 2 } // 🚀 [Titan Tech] 增加重试，防止响应为空
     );
     return result.text;
   };
 
   const lang = normalizeLanguage(input.language);
+  
+  // 🚀 [Titan Tech] URL Content Extraction Logic
+  // Check if the requirement is a URL (YouTube/Bilibili etc.)
+  let enhancedRequirement = requirement;
+  try {
+    const { extractUrlContent } = await import('@/lib/server/url-extractor');
+    const urlContent = await extractUrlContent(requirement);
+    if (urlContent) {
+      log.info(`Extracted content from ${urlContent.source}: ${urlContent.title}`);
+      enhancedRequirement = `基于以下视频内容进行教学设计：\n\n${urlContent.content}\n\n[用户补充说明]: ${requirement}`;
+      
+      await options.onProgress?.({
+        step: 'researching',
+        progress: 12,
+        message: `已解析视频: ${urlContent.title}`,
+        scenesGenerated: 0,
+      });
+    }
+  } catch (urlErr) {
+    log.warn('URL extraction failed, continuing with raw requirement:', urlErr);
+  }
+
   const requirements: UserRequirements = {
-    requirement,
+    requirement: enhancedRequirement,
     language: lang,
   };
   const pdfText = pdfContent?.text || undefined;

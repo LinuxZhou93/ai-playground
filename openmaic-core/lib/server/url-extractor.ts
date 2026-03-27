@@ -9,62 +9,125 @@ export interface ExtractedContent {
   source: string;
 }
 
+/**
+ * Titan AI 专属视频技能：全量内容提取器
+ * 支持 YouTube 字幕抓取与 Bilibili 官方字幕解析
+ */
 export async function extractUrlContent(url: string): Promise<ExtractedContent | null> {
   const trimmedUrl = url.trim();
   
-  // 识别 YouTube
   if (trimmedUrl.match(/youtube\.com\/watch\?v=|youtu\.be\//i)) {
-    log.info(`Recognized YouTube URL: ${trimmedUrl}`);
     return await extractYouTubeContent(trimmedUrl);
   }
   
-  // 识别 Bilibili
   if (trimmedUrl.match(/bilibili\.com\/video\/BV/i)) {
-    log.info(`Recognized Bilibili URL: ${trimmedUrl}`);
     return await extractBilibiliContent(trimmedUrl);
   }
 
   return null;
 }
 
+/**
+ * YouTube 字幕抓取 (借鉴 youtube-transcript 核心算法)
+ */
 async function extractYouTubeContent(url: string): Promise<ExtractedContent | null> {
   try {
-    // 尝试获取视频元数据。在服务器端我们通常使用 oEmbed 或 直接 Fetch (虽然可能被拦截)
-    // 为了极致稳定性，我们首选获取 oEmbed JSON
-    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
-    const res = await fetch(oembedUrl);
-    if (!res.ok) return null;
+    const videoId = url.match(/(?:v=|\/be\/)([\w-]{11})/)?.[1];
+    if (!videoId) return null;
+
+    // 1. 获取基本元数据
+    const metaRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    const meta = metaRes.ok ? await metaRes.json() : { title: 'YouTube 视频' };
+
+    // 2. 尝试抓取字幕列表 (通过获取页面并搜索 timedtext 指标)
+    log.info(`Attempting full transcript fetch for YouTube: ${videoId}`);
+    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+    });
+    const html = await pageRes.text();
     
-    const data = await res.json();
+    // 搜索 captions 配置
+    const captionsMatch = html.match(/"captions":\s*({.*?}),\s*"videoDetails"/);
+    let transcriptText = '';
+    
+    if (captionsMatch) {
+      try {
+        const captionsJson = JSON.parse(captionsMatch[1]);
+        const tracks = captionsJson.playerCaptionsTracklistRenderer?.captionTracks;
+        if (tracks && tracks.length > 0) {
+          // 优先取中文字幕，否则取第一条
+          const track = tracks.find((t: any) => t.languageCode === 'zh') || tracks[0];
+          const trackRes = await fetch(track.baseUrl + '&fmt=json3');
+          const trackJson = await trackRes.json();
+          transcriptText = trackJson.events
+            .filter((e: any) => e.segs)
+            .map((e: any) => e.segs.map((s: any) => s.utf8).join(''))
+            .join(' ');
+        }
+      } catch (parseErr) {
+        log.warn('YouTube captions parsing failed:', parseErr);
+      }
+    }
+
+    const content = transcriptText 
+      ? `[全量视频转录内容]:\n${transcriptText.slice(0, 8000)}` 
+      : `[视频元数据]:\n标题: ${meta.title}\n作者: ${meta.author_name}\n(注: 未能提取到字幕，请根据标题进行课程设计)`;
+
     return {
-      title: data.title,
-      description: `来自 YouTube 的视频: ${data.author_name}`,
+      title: meta.title,
       source: 'YouTube',
-      content: `[视频标题]: ${data.title}\n[作者]: ${data.author_name}\n[URL]: ${url}`
+      content
     };
   } catch (e) {
-    log.warn('YouTube extraction failed:', e);
+    log.warn('YouTube deep extraction failed:', e);
     return null;
   }
 }
 
+/**
+ * Bilibili 全量字幕抓取 (基于 cid 解析)
+ */
 async function extractBilibiliContent(url: string): Promise<ExtractedContent | null> {
   try {
-    // B站可以通过直接 fetch 页面标题辅助
-    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (!res.ok) return null;
+    const bvid = url.match(/BV[\w]*/i)?.[0];
+    if (!bvid) return null;
+
+    // 1. 获取 cid
+    const viewRes = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.bilibili.com' }
+    });
+    const viewJson = await viewRes.json();
+    if (viewJson.code !== 0) return null;
     
-    const text = await res.text();
-    const titleMatch = text.match(/<title>(.*?)<\/title>/i);
-    const title = titleMatch ? titleMatch[1].replace('_下架', '').replace('_哔哩哔哩_bilibili', '') : '未知视频';
+    const { title, desc, cid, aid } = viewJson.data;
+
+    // 2. 获取字幕链接
+    log.info(`Fetching Bilibili transcript for: ${title}`);
+    const playerRes = await fetch(`https://api.bilibili.com/x/player/v2?aid=${aid}&cid=${cid}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.bilibili.com' }
+    });
+    const playerJson = await playerRes.json();
+    const subtitles = playerJson.data?.subtitle?.subtitles;
     
+    let transcriptText = '';
+    if (subtitles && subtitles.length > 0) {
+      const subUrl = 'https:' + subtitles[0].subtitle_url;
+      const subContentRes = await fetch(subUrl);
+      const subData = await subContentRes.json();
+      transcriptText = subData.body.map((item: any) => item.content).join(' ');
+    }
+
+    const content = transcriptText
+      ? `[Bilibili 全量转录文本]:\n${transcriptText.slice(0, 8000)}`
+      : `[Bilibili 视频摘要]:\n标题: ${title}\n简介: ${desc}`;
+
     return {
       title,
       source: 'Bilibili',
-      content: `[视频标题]: ${title}\n[URL]: ${url}\n（这是一个来自 Bilibili 的视频链接，请根据标题和 URL 相关信息进行教学设计。）`
+      content
     };
   } catch (e) {
-    log.warn('Bilibili extraction failed:', e);
+    log.warn('Bilibili deep extraction failed:', e);
     return null;
   }
 }

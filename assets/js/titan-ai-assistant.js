@@ -2949,17 +2949,11 @@ class TitanAIAssistant {
         }
 
         try {
-            // 🚀 【核心修复：切换至 Electron 原生 IPC 链路】
-            // 放弃在浏览器环境中直接 Fetch 火山引擎 API (易受跨域和网络拦截影响)
-            // 改为调用主进程中已硬编码凭证的 generate-edge-tts 接口，确保音色一致性
             const isElectron = /electron/i.test(navigator.userAgent) || (window.process && window.process.type);
+            const voice = "zh_male_shaonianzixin_moon_bigtts";
             
             if (isElectron && window.require) {
                 const { ipcRenderer } = window.require('electron');
-                
-                // 强制请求“少年梓梓”音色，这是项目在 settings.ts 中默认硬化的生产级音色
-                const voice = "zh_male_shaonianzixin_moon_bigtts";
-                
                 ipcRenderer.invoke('generate-edge-tts', cleanText, voice).then(async (audioBuffer) => {
                     if (!audioBuffer) {
                         this.fallbackSpeak(cleanText, callback);
@@ -2985,7 +2979,7 @@ class TitanAIAssistant {
                         URL.revokeObjectURL(audioUrl);
                         this.currentAudioPlayer = null;
                         if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
-                        this.fallbackSpeak(cleantext, callback);
+                        this.fallbackSpeak(cleanText, callback);
                     };
                     
                     await audio.play();
@@ -2995,9 +2989,54 @@ class TitanAIAssistant {
                     this.fallbackSpeak(cleanText, callback);
                 });
             } else {
-                // 🚀 【双端兼容：浏览器端 Fallback】
-                // 在 Web 页面环境下，使用系统原生的 Webspeech API 朗读
-                this.fallbackSpeak(cleanText, callback);
+                // 🚀 【Titan AI Web 直接接入火山引擎】
+                // 强制使用生产级 Token，实现全平台高保真音色一致性
+                const appId = "4780476544";
+                const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
+                const reqid = 'req-' + Date.now();
+
+                const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer; ${token}`
+                    },
+                    body: JSON.stringify({
+                        app: { appid: appId, token: token, cluster: "volcano_tts" },
+                        user: { uid: "titan_web" },
+                        audio: { voice_type: voice, encoding: "mp3" },
+                        request: { reqid: reqid, text: cleanText, operation: "query" }
+                    })
+                });
+
+                if (!response.ok) {
+                    this.fallbackSpeak(cleanText, callback);
+                    return;
+                }
+
+                const result = await response.json();
+                if (result.code === 3000 && result.data) {
+                    const binaryString = atob(result.data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                    
+                    const blob = new Blob([bytes], { type: 'audio/mp3' });
+                    const audioUrl = URL.createObjectURL(blob);
+                    const audio = new Audio(audioUrl);
+                    
+                    this.currentAudioPlayer = audio;
+                    if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'flex';
+                    
+                    audio.onended = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        this.currentAudioPlayer = null;
+                        if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                        if (callback) callback();
+                    };
+                    await audio.play();
+                } else {
+                    this.fallbackSpeak(cleanText, callback);
+                }
             }
         } catch (e) {
             console.error('TTS 调用崩溃:', e);
