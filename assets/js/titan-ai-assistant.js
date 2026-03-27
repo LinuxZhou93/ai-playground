@@ -3546,20 +3546,28 @@ ${currentFullContent}
             });
             apiMessages = apiMessages.concat(cleanedRecentMessages);
 
-            const response = await fetch(this.settings.endpoint, {
-                method: 'POST',
-                signal: this.currentAbortController.signal,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.settings.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: this.settings.model,
-                    messages: apiMessages,
-                    temperature: 0.7,
-                    max_tokens: 4096
-                })
-            });
+            let response;
+            try {
+                response = await fetch(this.settings.endpoint, {
+                    method: 'POST',
+                    signal: this.currentAbortController.signal,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.settings.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: this.settings.model,
+                        messages: apiMessages,
+                        temperature: 0.7,
+                        max_tokens: 4096
+                    })
+                });
+            } catch (networkErr) {
+                if (networkErr.name === 'AbortError') throw networkErr;
+                console.warn('[Titan AI] 🚨 原生直连崩溃 (代理未开或DNS受阻)，正准备切换容灾中继隧道...', networkErr);
+                // 伪装为一个 502 Bad Gateway 以骗过原生容灾系统，强行触发降级
+                response = { ok: false, status: 502, statusText: 'Network Disconnected', json: async () => ({ error: { message: networkErr.message } }) };
+            }
 
             if (!response.ok) {
                 // 🔄 自动容灾与降级机制 (Fallback & Retry Mechanism)
