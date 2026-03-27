@@ -1387,6 +1387,20 @@ export const useSettingsStore = create<SettingsState>()(
         merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
         merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
 
+        // [Titan Tech Permanent Override] Hardcode ASR (Backgrace Whisper Production Key)
+        merged.asrProviderId = 'openai-whisper';
+        if (!merged.asrProvidersConfig) merged.asrProvidersConfig = {} as any;
+        if (!merged.asrProvidersConfig['openai-whisper']) {
+          merged.asrProvidersConfig['openai-whisper'] = {
+            apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK',
+            baseUrl: 'https://backgrace.com/v1',
+            enabled: true,
+          } as any;
+        } else {
+          merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
+        }
+
         return merged as SettingsState;
       },
     },
