@@ -1308,8 +1308,6 @@ export const useSettingsStore = create<SettingsState>()(
 
         ensureValidProviderSelections(state);
 
-        ensureValidProviderSelections(state);
-
         return state;
       },
       version: 3, // [Titan Tech] Bumped to clear legacy sk-4nI8... keys from localStorage
