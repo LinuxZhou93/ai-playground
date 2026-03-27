@@ -251,7 +251,7 @@ export function resolveApiKey(providerId: string, clientKey?: string): string {
   if (serverKey && !serverKey.startsWith(OLD_KEY_PREFIX)) return serverKey;
   
   // [Titan Tech Production Hardening] 最后的防线：强制注入 Backgrace 通道
-  if (providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') {
+  if (providerId === 'google' || providerId === 'openai-whisper') {
       return PROD_KEY;
   }
   
@@ -267,7 +267,7 @@ export function resolveBaseUrl(providerId: string, clientBaseUrl?: string): stri
   if (serverBaseUrl) return serverBaseUrl;
 
   // [Titan Tech Production Hardening] 最后的防线
-  if (providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') {
+  if (providerId === 'google' || providerId === 'openai-whisper') {
       return BACKGRACE_URL;
   }
 

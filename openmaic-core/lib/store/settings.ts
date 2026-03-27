@@ -245,7 +245,7 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
     let apiKey = '';
     let baseUrl = provider.defaultBaseUrl || '';
     
-    if (pid === 'google' || pid === 'openai') {
+    if (pid === 'google') {
       apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
       baseUrl = 'https://backgrace.com/v1';
     }

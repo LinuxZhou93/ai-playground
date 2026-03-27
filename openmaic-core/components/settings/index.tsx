@@ -217,10 +217,10 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync section from prop when dialog opens
       setActiveSection(initialSection);
     }
-    // Safety check: if google is selected but hidden, switch to openai
-    if (selectedProviderId === ('google' as ProviderId)) {
-      setSelectedProviderId('openai' as ProviderId);
-    }
+    // Google is now visible, no need to force switch away
+    // if (selectedProviderId === ('google' as ProviderId)) {
+    //   setSelectedProviderId('openai' as ProviderId);
+    // }
   }, [open, initialSection, selectedProviderId]);
 
   // Model editing state
@@ -476,7 +476,6 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
 
   // Get all providers from providersConfig
   const allProviders = Object.entries(providersConfig)
-    .filter(([id]) => id !== ('google' as ProviderId))
     .map(([id, config]) => ({
       id: id as ProviderId,
       name: config.name,
