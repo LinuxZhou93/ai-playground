@@ -28,7 +28,7 @@ class TitanAIAssistant {
             volcengineAppId: '4780476544', // 去火山引擎注册后拿到的 AppID
             volcengineToken: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', // 去火山引擎拿到的真实身份 Token (含小写l修正)
             volcengineCluster: 'volcano_tts', // 默认使用火山 TTS 集群
-            volcengineVoice: 'zh_male_shaonianzixin_moon_bigtts', // 少年梓梓音色
+            volcengineVoice: 'zh_male_shaonianzixin_moon_bigtts', // 🎯 核心音色设定：豆包 - 少年梓辛
             // 💎 [会员权限硬核固化]：生产版默认授予永久 VIP 权限 (2033年过期)，解决跨域 Session 丢失导致的访客模式回滚。
             memberExpired: 2000000000000 
         };
@@ -874,9 +874,9 @@ class TitanAIAssistant {
         
         let avatarHTML = '';
         if (role === 'ai' || role === 'assistant') {
-            avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
+            avatarHTML = `<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
         } else if (role === 'user') {
-            avatarHTML = '<div class="avatar avatar-user"><img src="assets/img/user_boy.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
+            avatarHTML = `<div class="avatar avatar-user"><img src="assets/img/user_boy.png" onerror="this.outerHTML='<i class=\\'fas fa-user-circle\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
         }
 
         const msgClass = (role === 'ai' || role === 'assistant') ? 'msg msg-ai markdown-body' : 'msg msg-user';
@@ -1176,7 +1176,7 @@ class TitanAIAssistant {
                 border-radius: 50%;
                 z-index: 99999;
                 cursor: pointer;
-                background: url('assets/img/xiao_chuang_head.png') center/cover no-repeat;
+                background: #0ea5e9 center/cover no-repeat; /* 兜底纯色背景，防止图片 404 导致控制区空白 */
                 box-shadow: 0 0 20px rgba(14, 165, 233, 0.4), inset 0 0 10px rgba(255,255,255,0.4);
                 border: 2px solid rgba(255, 255, 255, 0.2);
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2950,7 +2950,7 @@ class TitanAIAssistant {
 
         try {
             const isElectron = /electron/i.test(navigator.userAgent) || (window.process && window.process.type);
-            const voice = "zh_male_shaonianzixin_moon_bigtts";
+            const voice = this.settings.volcengineVoice || "zh_male_shaonianzixin_moon_bigtts";
             
             if (isElectron && window.require) {
                 const { ipcRenderer } = window.require('electron');
@@ -3634,7 +3634,7 @@ ${currentFullContent}
             rowDiv.className = 'msg-row ai';
             rowDiv.style.animation = 'msg-spring-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
 
-            const avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
+            const avatarHTML = `<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg msg-ai markdown-body';
             msgDiv.setAttribute('draggable', 'false'); // 核心修复：严禁拖拽，释放选区感应
@@ -4000,8 +4000,8 @@ ${currentFullContent}
         rowDiv.className = `msg-row ${role}`;
         
         let avatarHTML = '';
-        if (role === 'ai') avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
-        if (role === 'user') avatarHTML = '<div class="avatar avatar-user"><img src="assets/img/user_boy.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
+        if (role === 'ai') avatarHTML = `<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
+        if (role === 'user') avatarHTML = `<div class="avatar avatar-user"><img src="assets/img/user_boy.png" onerror="this.outerHTML='<i class=\\'fas fa-user-circle\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
         
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg msg-${role}`;
