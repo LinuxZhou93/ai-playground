@@ -93,27 +93,17 @@ document.getElementById('btn-grant-access').addEventListener('click', async () =
         elCameraFeed.srcObject = stream;
         elCameraFeed.play();
         elAIPip.classList.remove('hidden');
-        document.getElementById('init-status-text').innerText = "视听传感已握手。正在采集特征点...";
+        document.getElementById('init-status-text').innerText = "视听传感回路已接通。系统就绪。";
         
         playTone(800, 'sine', 0.5);
-        
-        // --- PRIVACY PROTECTION (V10.2): Snap & Stop ---
-        setTimeout(() => {
-            // Take a "Mental Snapshot" and then stop the camera tracks
-            const tracks = stream.getTracks();
-            tracks.forEach(track => track.stop()); 
-            elCameraFeed.srcObject = null;
-            document.getElementById('init-status-text').innerText = "特征已记录，物理链路已安全关闭。测评即将启动。";
-        }, 3000);
-
         setTimeout(() => {
             elScreenInit.classList.remove('active');
             elScreenEngine.classList.add('active');
             runTimeline(0);
-        }, 5000);
+        }, 1500);
 
     } catch (err) {
-        document.getElementById('init-status-text').innerText = "传感器异常，正在以离线匿名模式启动...";
+        document.getElementById('init-status-text').innerText = "传感器异常，正在以兼容模式启动...";
         setTimeout(() => {
             elScreenInit.classList.remove('active');
             elScreenEngine.classList.add('active');
@@ -501,22 +491,17 @@ function runTimeline(index) {
     currentQuestionIndex = index;
     const task = timelineSequence[index];
     
-    // SYNC DOM ID WITH OMNI_ASSESSMENT.HTML (V10.2 BUGFIX)
-    const elDomainLabel = document.getElementById('task-domain-label');
-    const elPrompt = document.getElementById('q-prompt');
-    const elProgress = document.getElementById('task-progress');
-    const elContainer = document.getElementById('q-media-container');
-    const elOptions = document.getElementById('q-options');
+    document.getElementById('label-dim').innerText = task.label;
+    document.getElementById('label-prompt').innerText = task.prompt;
+    document.getElementById('label-progress').innerText = `Sequence: ${index + 1} / ${timelineSequence.length}`;
 
-    if(elDomainLabel) elDomainLabel.innerText = task.label;
-    if(elPrompt) elPrompt.innerText = task.prompt;
-    if(elProgress) elProgress.innerText = `${String(index + 1).padStart(2, '0')} / ${timelineSequence.length}`;
+    const container = document.getElementById('engine-stage-container');
+    const options = document.getElementById('engine-options-container');
+    container.innerHTML = '';
+    options.innerHTML = '';
 
-    elContainer.innerHTML = '';
-    elOptions.innerHTML = '';
-
-    gsap.fromTo([elContainer, elOptions], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 });
-    task.render(elContainer, elOptions);
+    gsap.fromTo([container, options], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 });
+    task.render(container, options);
 }
 
 function completeAssessment() {
