@@ -20,12 +20,19 @@ const generateLogic = (count, tier) => {
         if(tier === '4-7') {
             htmlImg = `<div class="text-6xl tracking-widest">${a} ${b} ${a} ${b} ❓</div>`;
             correctAnim = a; wrongBase = b;
-        } else {
+        } else if(tier === '7-9') {
             let c = fruits[Math.floor(Math.random()*fruits.length)];
             while(c===a || c===b) c = fruits[Math.floor(Math.random()*fruits.length)];
-            // A B C A B C
             htmlImg = `<div class="text-5xl tracking-widest">${a} ${b} ${c} ${a} ${b} ❓</div>`;
             correctAnim = c; wrongBase = a;
+        } else {
+            // 10-12: More complex patterns (A B B A C C ❓) or (A B C D A ❓)
+            let c = fruits[Math.floor(Math.random()*fruits.length)];
+            let d = fruits[Math.floor(Math.random()*fruits.length)];
+            while(c===a || c===b) c = fruits[Math.floor(Math.random()*fruits.length)];
+            while(d===a || d===b || d===c) d = fruits[Math.floor(Math.random()*fruits.length)];
+            htmlImg = `<div class="text-4xl tracking-widest">${a} ${b} ${c} ${d} ${a} ${b} ${c} ❓</div>`;
+            correctAnim = d; wrongBase = b;
         }
         
         let c = fruits[Math.floor(Math.random()*fruits.length)];
@@ -52,13 +59,14 @@ const generateLogic = (count, tier) => {
 // --- Memory ---
 const generateMemory = (count, tier) => {
     let qs = [];
-    let size = tier === '4-7' ? 3 : 4;
+    let size = tier === '4-7' ? 3 : (tier === '7-9' ? 4 : 5);
     for(let i=0; i<count; i++) {
-        let len = tier === '4-7' ? 3 + Math.floor(i/2) : 4 + Math.floor(i/2);
+        let baseLen = tier === '4-7' ? 3 : (tier === '7-9' ? 4 : 5);
+        let len = baseLen + Math.floor(i/2);
         qs.push({
             module: "记忆广度舱", dimension: "memory",
             prompt: `请记住亮起的格子顺序，并依次点击它们！（${len}个目标）`,
-            type: "memory", gridSize: size, sequenceLength: Math.min(len, 8)
+            type: "memory", gridSize: size, sequenceLength: Math.min(len, 10)
         });
     }
     return qs;
@@ -81,7 +89,10 @@ const scienceAdvancedBank = [
     { p: "植物宝宝长大最需要什么进行光合作用？", a: "☀️ 阳光", w: ["🍬 糖果", "🌧️ 雨水", "💨 微风"] },
     { p: "电灯泡是谁发明的？", a: "💡 爱迪生", w: ["🍎 牛顿", "🦅 莱特兄弟", "🚀 马斯克"] },
     { p: "天空下雨又打雷的时候，为什么先看到闪电？", a: "⚡ 光速比声速快", w: ["🔊 声速比光速快", "🤷 同时发生", "👀 眼睛在前面"] },
-    { p: "潜水艇靠什么在水里上升和下降？", a: "💧 排水注水", w: ["🪽 巨大的翅膀", "🔥 燃烧燃料", "🎈 吹泡泡"] }
+    { p: "潜水艇靠什么在水里上升和下降？", a: "💧 排水注水", w: ["🪽 巨大的翅膀", "🔥 燃烧燃料", "🎈 吹泡泡"] },
+    { p: "地球的大气层中含量最多的气体是？", a: "💨 氮气", w: ["🌬️ 氧气", "🔥 二氧化碳", "🫧 氢气"] },
+    { p: "人的心脏位于身体的哪一侧？", a: "🫀 左侧", w: ["🫁 右侧", "🧠 正中央", "🦶 腹部"] },
+    { p: "电脑的大脑通常被简称为？", a: "💻 CPU", w: ["💾 USB", "🖥️ GPU", "⌨️ RAM"] }
 ];
 const generateScience = (count, tier) => {
     let b = tier === '4-7' ? scienceBank : scienceAdvancedBank;
@@ -112,7 +123,9 @@ const engineeringBank = [
     { p: "要盖很高很高的大楼，最好用什么做骨架？", a: "🏗️钢铁", w: ["🪵木头", "🧱泥土", "🧻报纸"] },
     { p: "如果想飞上天空，必须要有？", a: "🪽翅膀或推力", w: ["🚗大轮胎", "⚓沉重的铁锚", "☂️雨伞"] },
     { p: "要把很重的石头撬起来，最好用？", a: "🦯长棍子", w: ["🧵细线", "🧤手套", "📰报纸"] },
-    { p: "三个齿轮咬合在一起，最左边往右转，最右边往哪转？", a: "➡️往右转", w: ["⬅️往左转", "⏸️不转", "🔄一起转"] }
+    { p: "三个齿轮咬合在一起，最左边往右转，最右边往哪转？", a: "➡️往右转", w: ["⬅️往左转", "⏸️不转", "🔄一起转"] },
+    { p: "电梯是靠什么拉动的？", a: "⛓️ 钢丝绳索", w: ["🛞 巨大轮胎", "🫧 泡泡推力", "🪽 隐形翅膀"] },
+    { p: "在斜坡上运送重物，用什么方法最省力？", a: "🪵 滚木垫底", w: ["👟 穿防滑鞋", "🧤 戴厚手套", "📦 绑根细绳"] }
 ];
 const generateEngineering = (count, tier) => {
     let qs = [];
@@ -213,21 +226,21 @@ let allQuestions = [];
 if (ageTier === '4-7') {
     allQuestions = [
         ...generateReaction(5),
-        ...generateLogic(7, '4-7'),
+        ...generateLogic(10, '4-7'),
         ...generateMemory(8, '4-7'),
-        ...generateScience(6, '4-7'),
-        ...generateEngineering(6, '4-7'),
-        ...generateExecution(4),
-        ...generateCreativity(4),
+        ...generateScience(8, '4-7'),
+        ...generateEngineering(8, '4-7'),
+        ...generateExecution(5),
+        ...generateCreativity(5),
         ...aiCameraQ
     ];
 } else if (ageTier === '7-9') {
     allQuestions = [
         ...generateReaction(5),
-        ...generateLogic(7, '7-9'),
-        ...generateMemory(8, '7-9'),
-        ...generateScience(6, '7-9'),
-        ...generateEngineering(6, '7-9'),
+        ...generateLogic(10, '7-9'),
+        ...generateMemory(10, '7-9'),
+        ...generateScience(8, '7-9'),
+        ...generateEngineering(8, '7-9'),
         ...generateExecution(4),
         ...generateCreativity(4),
         ...aiCameraQ
@@ -236,15 +249,17 @@ if (ageTier === '4-7') {
     // 10-12 Default
     allQuestions = [
         ...generateReaction(5),
-        ...generateLogic(7, '10-12'),
-        ...generateMemory(8, '10-12'),
-        ...generateScience(6, '10-12'),
-        ...generateEngineering(6, '10-12'),
+        ...generateLogic(10, '10-12'),
+        ...generateMemory(10, '10-12'),
+        ...generateScience(8, '10-12'),
+        ...generateEngineering(8, '10-12'),
         ...generateExecution(4),
         ...generateCreativity(4),
         ...aiCameraQ
     ];
 }
+// Sum for 7-9 and 10-12: 5 + 10 + 10 + 8 + 8 + 4 + 4 + 1 = 50.
+// Sum for 4-7: 5 + 10 + 8 + 8 + 8 + 5 + 5 + 1 = 50.
 
 console.log(`[TITAN V3] Assembled ${allQuestions.length} questions for tier ${ageTier}`);
 
@@ -268,14 +283,14 @@ let rawScores = {
 
 // Max potential raw logic scores to calculate percentages later
 const MAX_SCORES = {
-    logic: 8 * 5,
-    memory: 8 * 5,
-    science: 7 * 5,
-    engineering: 6 * 5,
+    logic: 10 * 5,
+    memory: 10 * 5,
+    science: 8 * 5,
+    engineering: 8 * 5,
     creativity: 5 * 5, // max 25
     verbal: 20,
     speed: 5 * 10, // speed gives 10 if super fast
-    focus: 40 * 10 
+    focus: 50 * 10 
 };
 
 let capturedPhoto = null;
