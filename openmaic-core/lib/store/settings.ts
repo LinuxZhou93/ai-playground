@@ -268,7 +268,7 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 // Initialize default audio config
 const getDefaultAudioConfig = () => ({
   ttsProviderId: 'volcengine-tts' as TTSProviderId,
-  ttsVoice: 'zh_male_shaonianzixin_moon_bigtts', // 🚀 [Titan AI 全站一致性] 默认锁死为“少年梓梓”音色
+  ttsVoice: 'zh_male_shaonianzixin_uranus_bigtts', // 🚀 [Titan AI 全站一致性] 默认锁死为“少年梓梓” (天王星版)音色
   ttsSpeed: 1.0,
   asrProviderId: 'browser-native' as ASRProviderId,
   asrLanguage: 'zh',
@@ -1256,7 +1256,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access)
         merged.ttsProviderId = 'volcengine-tts';
-        merged.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
+        merged.ttsVoice = 'zh_male_shaonianzixin_uranus_bigtts';
         
         if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {} as any;
         if (!merged.ttsProvidersConfig['volcengine-tts']) {

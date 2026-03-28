@@ -739,11 +739,11 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
         description: '朝气阳光的学生男声',
       },
       {
-        id: 'zh_male_shaonianzixin_moon_bigtts',
-        name: '少年梓辛 (班长男声)',
+        id: 'zh_male_shaonianzixin_uranus_bigtts',
+        name: '少年梓辛 (天王星版)',
         language: 'zh-CN',
         gender: 'male',
-        description: '清澈干净的学生男声',
+        description: '清澈干净的学生男声 - SeedTTS 2.0',
       },
       {
         id: 'zh_female_qiaokelilaoshi_moon_bigtts',

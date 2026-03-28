@@ -92,6 +92,9 @@
 
 import type { TTSModelConfig } from './types';
 import { TTS_PROVIDERS } from './constants';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('TTS-Provider');
 
 /**
  * Result of TTS generation
@@ -166,7 +169,8 @@ async function generateVolcengineTTS(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer; ${token}`,
+      // 🚀 火山引擎标准鉴权格式修正
+      'Authorization': `Bearer;${token}`, 
     },
     body: JSON.stringify({
       app: {
@@ -176,8 +180,7 @@ async function generateVolcengineTTS(
       },
       user: { uid: "titan_student" },
       audio: {
-          // 🚀 [Titan AI 全站底层锁死]：强制使用“少年梓梓” (zh_male_shaonianzixin_moon_bigtts)，保障教育场景音色一致性
-          voice_type: "zh_male_shaonianzixin_moon_bigtts", 
+          voice_type: "zh_male_shaonianzixin_uranus_bigtts", 
           encoding: "mp3",
           speed_ratio: config.speed || 1.0,
           volume_ratio: 1.0,
@@ -193,12 +196,15 @@ async function generateVolcengineTTS(
   });
 
   if (!response.ok) {
-    throw new Error(`Volcengine TTS API error: ${response.statusText}`);
+    const errorBody = await response.text().catch(() => "Unknown error");
+    log.error(`Volcengine HTTP Error: ${response.status} ${response.statusText}`, errorBody);
+    throw new Error(`Volcengine TTS API error: ${response.status} ${response.statusText}`);
   }
 
   const result = await response.json();
   if (result.code !== 3000) {
-    throw new Error(`Volcengine TTS Request Failed: ${result.message}`);
+    log.error(`Volcengine Business Logic Error: [${result.code}] ${result.message}`, result);
+    throw new Error(`Volcengine TTS Request Failed: [${result.code}] ${result.message}`);
   }
 
   const bytes = new Uint8Array(Buffer.from(result.data, 'base64'));

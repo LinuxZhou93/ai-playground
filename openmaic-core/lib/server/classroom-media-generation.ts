@@ -246,7 +246,7 @@ export async function generateTTSForClassroom(
   // 🚀 [Titan Tech] 强制音色对齐：确保课件生成使用与 Titan Assistant 一致的“少年梓辛”
   let voice = DEFAULT_TTS_VOICES[providerId] || 'default';
   if (providerId === 'volcengine-tts') {
-    voice = 'zh_male_shaonianzixin_moon_bigtts';
+    voice = 'zh_male_shaonianzixin_uranus_bigtts';
   }
   
   const format = TTS_PROVIDERS[providerId]?.supportedFormats?.[0] || 'mp3';
@@ -264,6 +264,7 @@ export async function generateTTSForClassroom(
       const audioId = `tts_${action.id}`;
 
       try {
+        log.info(`Generating TTS for ${action.id}: "${speechAction.text.slice(0, 30)}..."`);
         const result = await generateTTS(
           { providerId, apiKey, baseUrl: ttsBaseUrl, voice, speed: speechAction.speed },
           speechAction.text,
@@ -274,9 +275,9 @@ export async function generateTTSForClassroom(
 
         speechAction.audioId = audioId;
         speechAction.audioUrl = mediaServingUrl(baseUrl, classroomId, `audio/${filename}`);
-        log.info(`Generated TTS: ${filename} (${result.audio.length} bytes)`);
+        log.info(`Generated TTS SUCCESS: ${filename} (${result.audio.length} bytes)`);
       } catch (err) {
-        log.warn(`TTS generation failed for action ${action.id}:`, err);
+        log.error(`TTS generation FAILED for action ${action.id}:`, err);
       }
     }
   }

@@ -11,6 +11,7 @@ const log = createLogger('TTS');
 /** Provider-specific max text length limits. */
 export const TTS_MAX_TEXT_LENGTH: Partial<Record<TTSProviderId, number>> = {
   'glm-tts': 1024,
+  'volcengine-tts': 1024, // 🚀 火山引擎大模型音色单次请求上限建议 1024 字符
 };
 
 /**
