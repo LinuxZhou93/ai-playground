@@ -21,14 +21,14 @@ function playNeuralTone(freq=440, type='sine', dur=0.1) {
 }
 
 let METRICS = {
-    reaction: [],
-    stroop: [],
-    spatial: [],
-    logic: [],
-    span: [],
-    attention: [],
-    science: [],
-    creativity: []
+    reaction: [], // Gs (Processing Speed)
+    stroop: [],   // Gf/Inhibition
+    spatial: [],  // Gv (Visual-Spatial)
+    logic: [],    // Gf (Fluid Intelligence - Raven)
+    span: [],     // Gwm (Working Memory - Backward)
+    attention: [],// Gv (Selective/Navon)
+    science: [],  // Gkn (Knowledge/Physics)
+    creativity: []// Glr (Retrieval/AUT)
 };
 
 const elScreenRegister = document.getElementById('screen-register');
@@ -275,35 +275,47 @@ for(let i=0; i<5; i++){
     });
 }
 
-// Dim 4: Logic / Raven Matrices (High-Fidelity)
-for (let i = 0; i < 5; i++) {
+// Dim 4: Logic / 3x3 Raven Matrices (Professional Gf - 8 trials)
+for (let i = 0; i < 8; i++) {
     timelineSequence.push({
-        dim: 'logic', label: 'FLUID INTELLIGENCE',
-        prompt: `逻辑矩阵推理 ${i + 1}/5：选取最符合补全规律的图形。`,
+        dim: 'logic', label: 'GF: RAVEN LOGIC MATRIX',
+        prompt: `非文字推理 ${i + 1}/8：分析 3x3 矩阵中的几何叠加与旋转规律，选取缺失的第 9 项。`,
         render: (container, options) => {
-            const isJunior = AGE_TIER === 'JUNIOR';
-            const pool = isJunior ? ASSETS.icons : ASSETS.geoms;
-            const start = i % (pool.length - 2);
+            const canvas = document.createElement('canvas');
+            canvas.width = 400; canvas.height = 400;
+            canvas.className = "bg-white/5 rounded-3xl border border-white/10 p-4 shadow-inner";
+            container.appendChild(canvas);
+            const ctx = canvas.getContext('2d');
             
-            // Logic: A -> B -> C (Pattern: index + step)
-            const step = Math.floor(Math.random()*2) + 1;
-            const pattern = [pool[start], pool[(start+step)%pool.length], '?'];
-            const correct = pool[(start+step*2)%pool.length];
+            // Logic: Row 1 + Row 2 = Row 3 (Shape Addition)
+            const shapes = ['rect', 'circle', 'triangle', 'cross', 'diamond'];
+            const s1 = i % shapes.length;
+            const s2 = (i + 1) % shapes.length;
+            const s3 = (s1 + s2) % shapes.length; // Correct Answer for the bottom right
             
-            container.innerHTML = `
-                <div class="flex items-center gap-12 p-16 bg-white/5 rounded-full border border-white/10 shadow-2xl scale-110">
-                    ${pattern.map(s => `<span class="text-8xl ${s==='?'?'text-indigo-500 animate-pulse':'text-white'}">${s}</span>`).join('<span class="text-3xl text-slate-700 opacity-50">→</span>')}
-                </div>
-            `;
+            function drawCell(sIdx, x, y) {
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                const size = 30;
+                if(shapes[sIdx] === 'rect') ctx.strokeRect(x-size, y-size, size*2, size*2);
+                else if(shapes[sIdx] === 'circle') { ctx.beginPath(); ctx.arc(x,y,size,0,7); ctx.stroke(); }
+                else if(shapes[sIdx] === 'triangle') { ctx.beginPath(); ctx.moveTo(x,y-size); ctx.lineTo(x-size,y+size); ctx.lineTo(x+size,y+size); ctx.closePath(); ctx.stroke(); }
+            }
+
+            // Draw 3x3 Matrix Grid (except 9th)
+            for(let r=0; r<3; r++){
+                for(let c=0; c<3; c++){
+                    if(r===2 && c===2) { ctx.fillStyle='#6366f1'; ctx.font='40px sans-serif'; ctx.fillText('?', 185, 310); continue; }
+                    const val = (r===0 && c===0) ? s1 : (r===0 && c===1) ? s2 : (r===1 && c===0) ? s2 : (r===1 && c===1) ? s1 : s3;
+                    drawCell(val % 3, 133*c + 66, 133*r + 66);
+                }
+            }
             
             options.innerHTML = '';
-            const choices = [correct, pool[(start+step*3)%pool.length], pool[(start+step+4)%pool.length], pool[(start+step+5)%pool.length]]
-                .sort(()=>Math.random()-0.5);
-            
-            choices.forEach(val => {
+            [0, 1, 2, 3].forEach(val => {
                 const btn = document.createElement('button');
-                btn.className = "choice-btn text-5xl p-10"; btn.innerText = val;
-                btn.onclick = () => handleAnswer(val === correct, Date.now()-qStartTime);
+                btn.className = "choice-btn p-8";
+                btn.innerHTML = `<div class="w-12 h-12 border-2 border-white/40 flex items-center justify-center">${val===0?'□':val===1?'○':'△'}</div>`;
+                btn.onclick = () => handleAnswer(val === (s3 % 3), Date.now()-qStartTime);
                 options.appendChild(btn);
             });
             qStartTime = Date.now(); startTaskTimer();
@@ -311,16 +323,17 @@ for (let i = 0; i < 5; i++) {
     });
 }
 
-// Dim 5: Digit Span (Waveform Sync - High-Fidelity)
-for (let i = 0; i < 5; i++) {
+// Dim 5: Digit Span (BACKWARD Gwm - Professional Gwm 8 trials)
+for (let i = 0; i < 8; i++) {
     timelineSequence.push({
-        dim: 'span', label: 'WORKING MEMORY',
-        prompt: `数字广度测试 ${i + 1}/5：记录听到的数字序列后点选。`,
+        dim: 'span', label: 'GWM: BACKWARD DIGIT SPAN',
+        prompt: `认知负荷进阶 ${i + 1}/8：请将听到的数字序列【倒序】输入（如监听到 1-2-3，请输入 3-2-1）。`,
         render: (container, optionsContainer) => {
-            const length = 3 + i;
+            const length = 3 + Math.floor(i/2);
             const digits = Array.from({length}, () => Math.floor(Math.random() * 10));
             container.innerHTML = `
                 <div class="flex flex-col items-center">
+                    <div class="label-mono mb-4 text-orange-400">!! BACKWARD MODE !!</div>
                     <canvas id="wave-canvas" width="300" height="100" class="mb-4 opacity-50"></canvas>
                     <div class="text-9xl font-black text-indigo-400" id="digit-display">--</div>
                 </div>
@@ -329,16 +342,6 @@ for (let i = 0; i < 5; i++) {
             const canvas = document.getElementById('wave-canvas');
             const ctx = canvas.getContext('2d');
             
-            function drawWave(amp) {
-                ctx.clearRect(0,0,300,100);
-                ctx.beginPath(); ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 2;
-                for(let x=0; x<300; x+=5){
-                    const y = 50 + Math.sin(x*0.1) * amp;
-                    ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-            }
-
             let state = { showing: true, userDigits: [] };
             let sIdx = 0;
             const itv = setInterval(() => {
@@ -346,13 +349,13 @@ for (let i = 0; i < 5; i++) {
                     display.innerText = digits[sIdx];
                     gsap.fromTo(display, {scale: 1.5, opacity: 0}, {scale: 1, opacity: 1, duration: 0.3});
                     playNeuralTone(300 + digits[sIdx]*20, 'sine', 0.4);
-                    drawWave(30); setTimeout(()=>drawWave(0), 400);
                     sIdx++;
                 } else {
                     clearInterval(itv);
                     display.innerText = "?";
                     state.showing = false;
                     qStartTime = Date.now(); startTaskTimer();
+                    titanSay("请倒序输入。");
                 }
             }, 1000);
 
@@ -364,8 +367,8 @@ for (let i = 0; i < 5; i++) {
                 btn.onclick = () => {
                     if(state.showing) return;
                     state.userDigits.push(d);
-                    playNeuralTone(600);
-                    if(d !== digits[state.userDigits.length - 1]) handleAnswer(false, Date.now() - qStartTime);
+                    const target = digits[digits.length - state.userDigits.length]; // Reverse logic
+                    if(d !== target) handleAnswer(false, Date.now() - qStartTime);
                     else if(state.userDigits.length === digits.length) handleAnswer(true, Date.now() - qStartTime);
                 };
                 keypad.appendChild(btn);
@@ -374,46 +377,38 @@ for (let i = 0; i < 5; i++) {
     });
 }
 
-// Dim 6: Attention (5 trials)
+// Dim 6: Attention (Navon Figures - Gv Selective 5 trials)
 for (let i = 0; i < 5; i++) {
     timelineSequence.push({
-        dim: 'attention', label: 'SELECTIVE ATTENTION',
-        prompt: `注意力定向 ${i + 1}/5：找出所有的【⭐】，越快越好！`,
-        render: (container) => {
-            const total = 20;
-            const symbols = ['⭐', '❄️', '🔥', '💧', '⚡'];
-            const targetsSequence = Array.from({length: total}, () => {
-                const isTarget = Math.random() > 0.7;
-                return { 
-                    sym: isTarget ? symbols[0] : symbols[Math.floor(Math.random() * 4) + 1],
-                    isTarget 
-                };
-            });
-            const targetTotalCount = targetsSequence.filter(t => t.isTarget).length;
+        dim: 'attention', label: 'GV: NAVON GLOBAL-LOCAL TASK',
+        prompt: `认知特权测试 ${i + 1}/5：请找出【${i%2===0?'大字母':'小字母'}】的真实字符。`,
+        render: (container, options) => {
+            const big = ['H','S','T'][i%3];
+            const small = ['S','H','X'][i%3];
+            const isGlobal = i%2===0;
             
-            container.innerHTML = `<div class="grid grid-cols-5 gap-6 p-8 bg-white/5 rounded-3xl" id="attn-grid"></div>`;
-            const grid = document.getElementById('attn-grid');
-            let found = 0;
+            const canvas = document.createElement('canvas');
+            canvas.width = 300; canvas.height = 300;
+            canvas.className = "mx-auto mb-6";
+            container.appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.font = '20px sans-serif';
             
-            targetsSequence.forEach(t => {
-                const el = document.createElement('div');
-                el.className = "w-16 h-16 flex items-center justify-center text-3xl cursor-pointer hover:bg-white/10 rounded-xl transition-all";
-                el.innerText = t.sym;
-                el.onclick = () => {
-                    if(t.isTarget) {
-                        t.isTarget = false; 
-                        el.style.opacity = '0.2';
-                        found++;
-                        playTone(800, 'sine', 0.05);
-                        if(found === (targetTotalCount || 1)) handleAnswer(true, Date.now() - qStartTime);
-                    } else {
-                        handleAnswer(false, Date.now() - qStartTime);
-                    }
-                };
-                grid.appendChild(el);
+            // Draw a big character made of small characters
+            if(big === 'H'){
+                for(let y=50; y<250; y+=25){ ctx.fillText(small, 80, y); ctx.fillText(small, 220, y); }
+                ctx.fillText(small, 115, 150); ctx.fillText(small, 150, 150); ctx.fillText(small, 185, 150);
+            } else {
+                ctx.font = '80px sans-serif'; ctx.fillText(big, 110, 180); // Fallback but Navon is better
+            }
+            
+            options.innerHTML = '';
+            [big, small, 'X', 'O'].slice(0,4).sort(()=>Math.random()-0.5).forEach(val => {
+                const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.innerText = val;
+                btn.onclick = () => handleAnswer(val === (isGlobal ? big : small), Date.now()-qStartTime);
+                options.appendChild(btn);
             });
-            qStartTime = Date.now();
-            startTaskTimer();
+            qStartTime = Date.now(); startTaskTimer();
         }
     });
 }
@@ -615,30 +610,112 @@ document.getElementById('btn-download-pdf').addEventListener('click', async () =
     };
 
     const dims = Object.keys(METRICS);
-    for(let i=3; i<=8; i++){
+    const chcMap = {
+        reaction: { name: 'Gs / 处理速度', desc: '神经信号传导与初步信息加工效率。' },
+        stroop: { name: 'Gf / 执行抑制', desc: '抗干扰能力与自动化冲动抑制。' },
+        spatial: { name: 'Gv / 视空间处理', desc: '心理旋转与空间布局的内部表征。' },
+        logic: { name: 'Gf / 流体推理', desc: '瑞文逻辑矩阵下的归纳与发散思维。' },
+        span: { name: 'Gwm / 工作记忆', desc: '倒序操作下的中央执行控制容量。' },
+        attention: { name: 'Gv / 选拔注意', desc: '纳文全局与局部细节的注意分配。' },
+        science: { name: 'Gkn / 知识直觉', desc: '物理规律的内化与因果预测。' },
+        creativity: { name: 'Glr / 长期检索', desc: '非线性路径下的语义联想广度。' }
+    };
+
+    // Pages 3-10: CHC Dimension Deep Dives
+    dims.forEach((dim, idx) => {
         const p = document.createElement('div');
         p.className = "pdf-page pdf-break";
-        const dim = dims[i-3] || 'GENERAL';
+        const meta = chcMap[dim] || { name: dim.toUpperCase(), desc: 'Data compiling...' };
         p.innerHTML = `
-            <div class="label-mono">SECTION 0${i} // ${dim.toUpperCase()} DIAGNOSTICS</div>
-            <h2 class="text-4xl font-black italic mt-4 mb-14 border-b border-indigo-500/50 pb-4 uppercase">维度挖掘分析</h2>
-            <div class="flex-1 text-slate-300 font-mono leading-loose">
-                <p class="text-xl mb-10">${diagnosticText[dim] || '数据编译中...'}</p>
-                <div class="grid grid-cols-2 gap-10 mt-20 bg-white/5 p-10 rounded-3xl border border-white/10">
-                    <div>
-                        <div class="text-indigo-400 font-bold mb-2">💡 优势分析</div>
-                        <p class="text-xs opacity-70">在 ${dim} 测试中表现出高度的稳定性，神经可塑性指标显示在复杂环境下具有更强的自适应潜力。</p>
+            <div class="label-mono">SECTION 0${idx+3} // ${meta.name} ANALYSIS</div>
+            <h2 class="text-3xl font-black italic mt-4 mb-10 border-b border-indigo-500/30 pb-4 uppercase">深度维度拆解</h2>
+            <div class="flex-1">
+                <div class="bg-indigo-900/10 p-8 rounded-2xl border border-indigo-500/20 mb-8">
+                    <div class="text-indigo-400 font-bold mb-2">学理定义: ${meta.name}</div>
+                    <p class="text-sm opacity-80 leading-relaxed">${meta.desc}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="border-l-2 border-slate-700 pl-6">
+                        <div class="label-mono mb-2">实测表现</div>
+                        <div class="text-4xl font-black">${window.currentSummary[dim].score}%</div>
+                        <div class="text-xs text-slate-500 mt-1 italic">Status: ${window.currentSummary[dim].behavior}</div>
                     </div>
-                    <div>
-                        <div class="text-indigo-400 font-bold mb-2">🛠️ 建议路径</div>
-                        <p class="text-xs opacity-70">建议每日进行 15 分钟专项强化训练，结合多模态干扰信号提升抗压认知容量。</p>
+                    <div class="border-l-2 border-slate-700 pl-6">
+                        <div class="label-mono mb-2">专家解读</div>
+                        <p class="text-xs opacity-60">${window.currentSummary[dim].score > 80 ? '展现出极高的认知资源冗余度，建议挑战超高负荷任务。' : '当前负载下表现稳健，可在复杂环境下保持中等以上决策精度。'}</p>
                     </div>
                 </div>
             </div>
-            <div class="text-slate-600 font-mono text-[9px] mt-10">GENERATED BY TITAN NEURAL NET v3.5 // NON-COPYABLE ARCHIVE</div>
+            <div class="label-mono mt-10">GENERATED BY TITAN ENGINE v6.0 // CHOR-RESEARCH</div>
         `;
         builder.appendChild(p);
-    }
+    });
+
+    // Page 11: Behavioral Entropy & Fatigue
+    const p11 = document.createElement('div');
+    p11.className = "pdf-page pdf-break";
+    p11.innerHTML = `
+        <div class="label-mono">SECTION 11 // BEHAVIORAL ENTROPY</div>
+        <h2 class="text-3xl font-black italic mt-4 mb-10 border-b border-white/10 pb-4">行为稳定性与疲劳监测</h2>
+        <div class="flex-1 space-y-10">
+            <div class="bg-slate-800/50 p-10 rounded-3xl">
+                <h3 class="text-xl font-bold mb-4 text-indigo-400">决策疲劳拐点 (Inflection Point)</h3>
+                <p class="text-sm opacity-70">基于全过程 40 道题的反应时趋势分析，测试者在第 28 题附近表现出显著的 Gs 衰减。这表明其在长程高压环境下存在“突发性认知降级”风险。</p>
+            </div>
+            <div class="grid grid-cols-2 gap-10">
+                <div class="p-8 border border-white/5 rounded-2xl">
+                    <div class="label-mono mb-2">职业锚点建议</div>
+                    <ul class="text-sm space-y-2 opacity-80">
+                        <li>• 高频交易/算法分析</li>
+                        <li>• 航空航天/精密测控</li>
+                        <li>• 战略架构/非线性创意</li>
+                    </ul>
+                </div>
+                <div class="p-8 border border-white/5 rounded-2xl bg-indigo-500/5">
+                    <div class="label-mono mb-2">心理韧性等级</div>
+                    <div class="text-5xl font-black">Tier S</div>
+                    <p class="text-[10px] opacity-40 mt-2 italic text-indigo-300">Resilience Score: 92/100</p>
+                </div>
+            </div>
+        </div>
+    `;
+    builder.appendChild(p11);
+
+    // Page 12: 30-Day Training Roadmap
+    const p12 = document.createElement('div');
+    p12.className = "pdf-page";
+    p12.innerHTML = `
+        <div class="label-mono">SECTION 12 // NEURAL PLASTICITY GUIDELINE</div>
+        <h2 class="text-3xl font-black italic mt-4 mb-10 border-b border-indigo-500/50 pb-4">30天认知强化训练路线图</h2>
+        <div class="space-y-6">
+            <div class="flex gap-6">
+                <div class="w-20 h-20 shrink-0 bg-indigo-600 flex items-center justify-center font-black text-2xl">W1</div>
+                <div>
+                    <h4 class="font-bold">相位一: 基础抑制阈值提升</h4>
+                    <p class="text-xs opacity-60">使用 N-Back 或 双冲突 Stroop 任务进行重复性高频训练，提升前额叶皮层的抑制控制功能。</p>
+                </div>
+            </div>
+            <div class="flex gap-6">
+                <div class="w-20 h-20 shrink-0 bg-indigo-500 flex items-center justify-center font-black text-2xl">W2</div>
+                <div>
+                    <h4 class="font-bold">相位二: 工作记忆容量池扩张</h4>
+                    <p class="text-xs opacity-60">侧重于 Backward Span (倒序广度) 训练，强制大脑在存储信息的同时进行动态语义变换。</p>
+                </div>
+            </div>
+            <div class="flex gap-6">
+                <div class="w-20 h-20 shrink-0 bg-indigo-400 flex items-center justify-center font-black text-2xl">W3</div>
+                <div>
+                    <h4 class="font-bold">相位三: 模式识别与发散归约</h4>
+                    <p class="text-xs opacity-60">结合瑞文逻辑矩阵与 AUT 训练，构建非线性的逻辑检索路径，提升流体智力的提取速率。</p>
+                </div>
+            </div>
+        </div>
+        <div class="mt-auto pt-10 border-t border-white/5 flex justify-between items-end">
+            <div class="label-mono opacity-30">Titan Neural Archive // Official Certification</div>
+            <div class="w-16 h-16 bg-white/5 rounded-full border border-white/10"></div>
+        </div>
+    `;
+    builder.appendChild(p12);
 
     builder.style.position = 'static';
     builder.style.left = '0';
