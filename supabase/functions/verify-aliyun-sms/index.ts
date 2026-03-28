@@ -63,7 +63,7 @@ serve(async (req) => {
             user_metadata: { source: 'aliyun_sms', normalized_phone: authPhone }
         });
         
-        targetUser = newUser.user;
+        targetUser = newUser.user || undefined;
         console.log(`[Verify] New user created: ${targetUser?.id}`);
     } else {
         console.log(`[Verify] Existing user found: ${targetUser.id}`);
@@ -86,7 +86,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
-  } catch (error) {
+  } catch (error: any) {
     // Return 200 to prevent Supabase frontend from throwing a generic FunctionsHttpError
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

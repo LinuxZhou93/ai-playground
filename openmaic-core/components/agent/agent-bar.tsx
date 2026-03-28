@@ -599,12 +599,9 @@ export function AgentBar() {
           )}
         </>
       )}
-      {showVoice &&
-        (ttsEnabled ? (
-          <Volume2 className="size-3.5 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
-        ) : (
-          <VolumeX className="size-3.5 text-muted-foreground/30" />
-        ))}
+      {showVoice && ttsEnabled && (
+        <Volume2 className="size-3.5 text-green-400/60 shrink-0" />
+      )}
     </div>
   );
 
@@ -638,14 +635,7 @@ export function AgentBar() {
         <span className="text-[10px] text-muted-foreground/50 shrink-0 w-[52px] text-right">
           {getAgentRole(agent)}
         </span>
-        {showVoice && (
-          <AgentVoicePill
-            agent={agent}
-            agentIndex={agentIndex}
-            availableProviders={availableProviders}
-            disabled={!ttsEnabled}
-          />
-        )}
+        {/* Voice config hidden from students — managed in preferences */}
       </div>
     );
   };
@@ -661,8 +651,8 @@ export function AgentBar() {
             )}
             onClick={() => setOpen(!open)}
           >
-            <span className="text-xs text-muted-foreground/60 group-hover:text-muted-foreground transition-colors hidden sm:block font-medium flex-1 text-left truncate">
-              {open ? t('agentBar.expandedTitle') : t('agentBar.readyToLearn')}
+            <span className="text-[11px] text-muted-foreground/50 group-hover:text-muted-foreground/70 transition-colors hidden sm:block font-medium flex-1 text-left truncate select-none">
+              AI 课堂团队
             </span>
             {avatarRow}
             {open ? (

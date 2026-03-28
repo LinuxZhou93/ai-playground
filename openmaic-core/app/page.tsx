@@ -10,6 +10,9 @@ import {
   Clock,
   Copy,
   ImagePlus,
+  Paperclip,
+  FileText,
+  X,
   Pencil,
   Trash2,
   Settings,
@@ -25,6 +28,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea as UITextarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { SettingsDialog } from '@/components/settings';
+import { UserSettingsDialog } from '@/components/settings/user-settings';
+import { OnboardingGuide } from '@/components/onboarding/onboarding-guide';
 import { GenerationToolbar } from '@/components/generation/generation-toolbar';
 import { AgentBar } from '@/components/agent/agent-bar';
 import { useTheme } from '@/lib/hooks/use-theme';
@@ -77,6 +82,46 @@ function HomePage() {
   const [settingsSection, setSettingsSection] = useState<
     import('@/lib/types/settings').SettingsSection | undefined
   >(undefined);
+
+  // #14: 学龄标签记忆
+  const [selectedGrade, setSelectedGrade] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('fc-selected-grade') || '';
+    }
+    return '';
+  });
+
+  // #34: Placeholder 轮播
+  const placeholderExamples = [
+    '输入你想学的任何内容，例如：\n「从零学 Python，30 分钟写出第一个程序」',
+    '试试这些有趣的课题：\n「用白板给我讲解傅里叶变换的数学之美」',
+    '今天想挑战什么？\n「帮我做一个网页版贪吃蛇游戏」',
+    '随便学点什么：\n「太阳系的八大行星有什么有趣的故事？」',
+    '来点硬核的？\n「用 Arduino 控制 LED 灯带做呼吸灯效果」',
+  ];
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % placeholderExamples.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [userSettingsOpen, setUserSettingsOpen] = useState(false);
+  const [adminTapCount, setAdminTapCount] = useState(0);
+  const adminTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 🔐 [Titan Admin] 管理员快捷键 Ctrl+Shift+S 打开设置面板
+  useEffect(() => {
+    const handleAdminShortcut = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        setSettingsOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleAdminShortcut);
+    return () => window.removeEventListener('keydown', handleAdminShortcut);
+  }, []);
 
   // Draft cache for requirement text
   const { cachedValue: cachedRequirement, updateCache: updateRequirementCache } =
@@ -193,7 +238,32 @@ function HomePage() {
   }
 
   const [languageOpen, setLanguageOpen] = useState(false);
-  const [themeOpen, setThemeOpen] = useState(false);
+  // #22: 灵动视差背景偏移量
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  // #38: 卡片追踪辉光坐标 (0-100)
+  const [cardGlow, setCardGlow] = useState({ x: 50, y: 50 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // 记录鼠标相对于中心点的百分比位移（-0.5 到 0.5）
+      const x = (e.clientX / window.innerWidth) - 0.5;
+      const y = (e.clientY / window.innerHeight) - 0.5;
+      setMousePos({ x, y });
+
+      // 局部偏移 (用于卡片辉光)
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const cardX = ((e.clientX - rect.left) / rect.width) * 100;
+        const cardY = ((e.clientY - rect.top) / rect.height) * 100;
+        setCardGlow({ x: cardX, y: cardY });
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [classrooms, setClassrooms] = useState<StageListItem[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
@@ -203,16 +273,15 @@ function HomePage() {
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    if (!languageOpen && !themeOpen) return;
+    if (!languageOpen) return; // Removed themeOpen
     const handleClickOutside = (e: MouseEvent) => {
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
         setLanguageOpen(false);
-        setThemeOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [languageOpen, themeOpen]);
+  }, [languageOpen]); // Removed themeOpen
 
   const loadClassrooms = async () => {
     try {
@@ -440,14 +509,14 @@ function HomePage() {
         .preserve-3d { transform-style: preserve-3d; }
       `}} />
 
-      {/* ═══ Top-right pill (RESTORED: Settings Configuration) ═══ */}
-      <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
+      {/* ═══ Top-right — 简化版设置入口（普通用户可见） ═══ */}
+      <div className="fixed top-4 right-4 z-40">
         <button
-          onClick={() => setSettingsOpen(true)}
-          className="flex items-center justify-center p-3 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/60 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] active:scale-95 transition-all duration-300"
-          title={t('settings.title')}
+          onClick={() => setUserSettingsOpen(true)}
+          className="p-2.5 rounded-full bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+          title="偏好设置"
         >
-          <Settings className="size-5" />
+          <Settings className="w-4 h-4" />
         </button>
       </div>
 
@@ -460,30 +529,66 @@ function HomePage() {
         initialSection={settingsSection}
       />
 
+      {/* 简化版用户设置对话框 */}
+      <UserSettingsDialog open={userSettingsOpen} onOpenChange={setUserSettingsOpen} />
+
+      {/* #10: 首次访问引导流程 */}
+      <OnboardingGuide />
+
       {/* ═══ Background Decor (C4D 糖果色弥散光球 + 立体几何) ═══ */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 perspective-[1000px]">
         {/* Glow Effects */}
-        <div className="absolute -top-20 -left-10 w-[500px] h-[500px] bg-indigo-300/40 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute top-40 right-10 w-[400px] h-[400px] bg-rose-300/40 rounded-full blur-[90px] animate-pulse delay-1000" style={{ animationDuration: '7s' }} />
-        <div className="absolute bottom-10 left-1/3 w-[600px] h-[600px] bg-amber-200/50 rounded-full blur-[120px] animate-pulse delay-750" style={{ animationDuration: '10s' }} />
+        <motion.div 
+          animate={{ x: mousePos.x * -20, y: mousePos.y * -20 }}
+          className="absolute -top-20 -left-10 w-[500px] h-[500px] bg-indigo-300/40 rounded-full blur-[100px] animate-pulse" 
+          style={{ animationDuration: '8s' }} 
+        />
+        <motion.div 
+          animate={{ x: mousePos.x * 30, y: mousePos.y * 30 }}
+          className="absolute top-40 right-10 w-[400px] h-[400px] bg-rose-300/40 rounded-full blur-[90px] animate-pulse delay-1000" 
+          style={{ animationDuration: '7s' }} 
+        />
+        <motion.div 
+          animate={{ x: mousePos.x * -15, y: mousePos.y * 15 }}
+          className="absolute bottom-10 left-1/3 w-[600px] h-[600px] bg-amber-200/50 rounded-full blur-[120px] animate-pulse delay-750" 
+          style={{ animationDuration: '10s' }} 
+        />
 
         {/* ── C4D Floating Elements ── */}
         
         {/* 1. Purple Sphere */}
-        <div className="c4d-element absolute top-[15%] left-[10%] xl:left-[18%] w-16 h-16 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 shadow-[inset_-6px_-6px_15px_rgba(0,0,0,0.2),_10px_20px_30px_rgba(129,140,248,0.4)] backdrop-blur-3xl z-10" />
+        <motion.div 
+          animate={{ x: mousePos.x * -50, y: mousePos.y * -50, rotate: mousePos.x * 10 }}
+          className="c4d-element absolute top-[15%] left-[10%] xl:left-[18%] w-16 h-16 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 shadow-[inset_-6px_-6px_15px_rgba(0,0,0,0.2),_10px_20px_30px_rgba(129,140,248,0.4)] backdrop-blur-3xl z-10" 
+        />
 
         {/* 2. Frosted Glass Ring */}
-        <div className="c4d-element delay-1 preserve-3d absolute top-[20%] right-[8%] xl:right-[15%] w-20 h-20 md:w-32 md:h-32 rounded-full border-[10px] md:border-[16px] border-rose-400/80 shadow-[0_15px_40px_rgba(251,113,133,0.3),_inset_0_4px_10px_rgba(255,255,255,0.5)] z-0" style={{ transform: 'rotateX(50deg) rotateY(25deg)' }} />
+        <motion.div 
+          animate={{ x: mousePos.x * 70, y: mousePos.y * 40, rotateX: 50 + mousePos.y * 20, rotateY: 25 + mousePos.x * 20 }}
+          className="c4d-element delay-1 preserve-3d absolute top-[20%] right-[8%] xl:right-[15%] w-20 h-20 md:w-32 md:h-32 rounded-full border-[10px] md:border-[16px] border-rose-400/80 shadow-[0_15px_40px_rgba(251,113,133,0.3),_inset_0_4px_10px_rgba(255,255,255,0.5)] z-0" 
+        />
 
         {/* 3. Orange Rounded Cube */}
-        <div className="c4d-element delay-2 absolute bottom-[25%] left-[8%] xl:left-[15%] w-16 h-16 md:w-28 md:h-28 rounded-[20px] md:rounded-[32px] bg-gradient-to-tr from-amber-300 to-orange-400 shadow-[inset_-5px_-5px_20px_rgba(0,0,0,0.15),_10px_20px_40px_rgba(251,191,36,0.35)] rotate-12 z-10" />
+        <motion.div 
+          animate={{ x: mousePos.x * -40, y: mousePos.y * 80, rotate: 12 + mousePos.x * 15 }}
+          className="c4d-element delay-2 absolute bottom-[25%] left-[8%] xl:left-[15%] w-16 h-16 md:w-28 md:h-28 rounded-[20px] md:rounded-[32px] bg-gradient-to-tr from-amber-300 to-orange-400 shadow-[inset_-5px_-5px_20px_rgba(0,0,0,0.15),_10px_20px_40px_rgba(251,191,36,0.35)] z-10" 
+        />
 
         {/* 4. Turquoise Prism/Triangle */}
-        <div className="c4d-element delay-3 absolute bottom-[18%] right-[10%] xl:right-[20%] w-0 h-0 border-l-[30px] md:border-l-[45px] border-l-transparent border-r-[30px] md:border-r-[45px] border-r-transparent border-b-[52px] md:border-b-[78px] border-b-cyan-400/90 drop-shadow-[0_20px_35px_rgba(34,211,238,0.4)] rotate-[-15deg] z-0" />
+        <motion.div 
+          animate={{ x: mousePos.x * 90, y: mousePos.y * -20, rotate: -15 + mousePos.x * 10 }}
+          className="c4d-element delay-3 absolute bottom-[18%] right-[10%] xl:right-[20%] w-0 h-0 border-l-[30px] md:border-l-[45px] border-l-transparent border-r-[30px] md:border-r-[45px] border-r-transparent border-b-[52px] md:border-b-[78px] border-b-cyan-400/90 drop-shadow-[0_20px_35px_rgba(34,211,238,0.4)] z-0" 
+        />
 
         {/* 5. Mini Crystal Bubbles */}
-        <div className="c4d-element delay-4 absolute top-[40%] right-[25%] w-8 h-8 rounded-full bg-white/80 shadow-[inset_-2px_-2px_8px_rgba(0,0,0,0.1),_0_10px_20px_rgba(0,0,0,0.08)] backdrop-blur-xl" />
-        <div className="c4d-element delay-1 absolute bottom-[40%] left-[20%] w-5 h-5 rounded-full bg-white/80 shadow-[inset_-1px_-1px_5px_rgba(0,0,0,0.1),_0_6px_15px_rgba(0,0,0,0.08)] backdrop-blur-xl" />
+        <motion.div 
+          animate={{ x: mousePos.x * -20, y: mousePos.y * -60 }}
+          className="c4d-element delay-4 absolute top-[40%] right-[25%] w-8 h-8 rounded-full bg-white/80 shadow-[inset_-2px_-2px_8px_rgba(0,0,0,0.1),_0_10px_20px_rgba(0,0,0,0.08)] backdrop-blur-xl" 
+        />
+        <motion.div 
+          animate={{ x: mousePos.x * 40, y: mousePos.y * 100 }}
+          className="c4d-element delay-1 absolute bottom-[40%] left-[20%] w-5 h-5 rounded-full bg-white/80 shadow-[inset_-1px_-1px_5px_rgba(0,0,0,0.1),_0_6px_15px_rgba(0,0,0,0.08)] backdrop-blur-xl" 
+        />
       </div>
 
       {/* ═══ Hero section: title + input (centered, wider) ═══ */}
@@ -522,80 +627,161 @@ function HomePage() {
           className="flex flex-col items-center mb-10"
         >
           <p className="text-sm md:text-base font-bold tracking-[0.2em] font-mono uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-orange-500 to-purple-500 mb-2">
-            L4 Multi-Agent Educational Engine
+            AI 驱动 · 个性化互动课堂
           </p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
-             <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-             Titan Tech 系统已接入 · 科技特长生专属
+             <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></span>
+             让每个孩子都有专属 AI 导师
           </div>
         </motion.div>
 
         {/* ── Unified input area ── */}
         <motion.div
+          ref={containerRef}
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.35 }}
-          className="w-full"
+          className="w-full relative group"
         >
-          <div className="w-full rounded-[2rem] border-2 border-white/60 bg-white/60 backdrop-blur-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] relative overflow-hidden group transition-all hover:bg-white/70 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)]">
-            {/* 顶部的柔和彩虹反射高光 */}
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-300 via-rose-300 to-amber-300 opacity-60"></div>
+          <div className="w-full rounded-[2rem] border-2 border-white/60 bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] relative overflow-hidden group transition-all duration-500 hover:bg-white/70 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] focus-within:border-violet-300/70 focus-within:shadow-[0_0_40px_-5px_rgba(139,92,246,0.1),0_20px_60px_-15px_rgba(0,0,0,0.1)] focus-within:bg-white/80 dark:focus-within:bg-slate-900/80">
+            {/* #38: 会动的追踪辉光层 */}
+            <div 
+              className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              style={{
+                background: `radial-gradient(400px circle at ${cardGlow.x}% ${cardGlow.y}%, rgba(139, 92, 246, 0.08), transparent 80%)`,
+              }}
+            />
+            {/* #3: 顶部彩虹反射高光 — 聚焦时增亮 */}
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-300 via-rose-300 to-amber-300 opacity-60 transition-opacity duration-500 group-focus-within:opacity-100 group-focus-within:h-[4px]"></div>
             {/* ── Greeting + Profile + Agents ── */}
             <div className="relative z-20 flex items-start justify-between">
-              <GreetingBar />
+              <div data-onboarding="greeting-bar">
+                <GreetingBar />
+              </div>
               <div className="pr-3 pt-3.5 shrink-0">
                 <AgentBar />
               </div>
             </div>
 
             {/* ── C4D 糖果学龄速配雷达 ── */}
-            <div className="px-5 pt-1 pb-3 flex flex-wrap items-center gap-2 border-b border-border/40 mb-2">
+            {/* ── #14: 学龄匹配（带选中记忆） ── */}
+            <div data-onboarding="grade-selector" className="px-5 pt-1 pb-3 flex flex-wrap items-center gap-2 border-b border-border/40 mb-2">
               <span className="text-[11px] font-bold text-slate-400 mr-1 uppercase tracking-wider">学龄匹配</span>
               {[
-                { label: '🚀 趣味小学', color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200', prompt: '\n\n【教学锚点】：当前受众为小学生。请使用生动活泼的语言、大量生活类比来进行互动。遇到公式请化繁为简。' },
-                { label: '🔬 实战初中', color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200', prompt: '\n\n【教学锚点】：当前受众为中学生。请保证理论严谨性，同时切入真实工程场景进行原理解剖。' },
-                { label: '🌌 极客高中', color: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border-indigo-200', prompt: '\n\n【教学锚点】：当前受众为高级极客高中生。不需要做幼龄化铺垫，请直接切入底层逻辑与微积分等深度专业知识。' },
+                { id: 'primary', label: '🚀 趣味小学', color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200', activeColor: 'bg-amber-200 text-amber-800 border-amber-400 ring-2 ring-amber-300/50 shadow-amber-200/50', prompt: '\n\n【教学锚点】：当前受众为小学生。请使用生动活泼的语言、大量生活类比来进行互动。遇到公式请化繁为简。' },
+                { id: 'middle', label: '🔬 实战初中', color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200', activeColor: 'bg-emerald-200 text-emerald-800 border-emerald-400 ring-2 ring-emerald-300/50 shadow-emerald-200/50', prompt: '\n\n【教学锚点】：当前受众为中学生。请保证理论严谨性，同时切入真实工程场景进行原理解剖。' },
+                { id: 'high', label: '🌌 极客高中', color: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border-indigo-200', activeColor: 'bg-indigo-200 text-indigo-800 border-indigo-400 ring-2 ring-indigo-300/50 shadow-indigo-200/50', prompt: '\n\n【教学锚点】：当前受众为高级极客高中生。不需要做幼龄化铺垫，请直接切入底层逻辑与微积分等深度专业知识。' },
               ].map((badge) => (
                 <button
-                  key={badge.label}
+                  key={badge.id}
                   onClick={() => {
                     const cleanReq = form.requirement.replace(/\n\n【教学锚点】：.*/g, '');
                     updateForm('requirement', cleanReq + badge.prompt);
+                    setSelectedGrade(badge.id);
+                    localStorage.setItem('fc-selected-grade', badge.id);
                   }}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold border shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 ${badge.color}`}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold border shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 ${selectedGrade === badge.id ? badge.activeColor : badge.color}`}
                 >
                   {badge.label}
                 </button>
               ))}
             </div>
 
-            {/* Textarea */}
+            {/* ── #1: Prompt Chips 快捷指令卡片 ── */}
+            <div className="px-4 pt-2 pb-1 flex flex-wrap gap-1.5">
+              {[
+                { emoji: '🧪', text: '做一个彩虹实验' },
+                { emoji: '🤖', text: 'Python 入门教程' },
+                { emoji: '🌍', text: '太阳系探秘之旅' },
+                { emoji: '📐', text: '勾股定理可视化' },
+                { emoji: '🎮', text: '用代码做贪吃蛇' },
+              ].map((chip) => (
+                <button
+                  key={chip.text}
+                  onClick={() => {
+                    const cleanReq = form.requirement.replace(/\n\n【教学锚点】：.*/g, '');
+                    const gradePrompt = form.requirement.match(/\n\n【教学锚点】：.*/)?.[0] || '';
+                    updateForm('requirement', chip.text + gradePrompt);
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border border-border/50 text-muted-foreground/70 hover:text-foreground hover:bg-violet-50 hover:border-violet-200 hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer select-none"
+                >
+                  <span>{chip.emoji}</span>
+                  <span>{chip.text}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* #34: Textarea with rotating placeholder */}
             <textarea
               ref={textareaRef}
-              placeholder={t('upload.requirementPlaceholder')}
-              className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[140px] max-h-[300px]"
+              data-onboarding="topic-input"
+              placeholder={placeholderExamples[placeholderIndex]}
+              className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 placeholder:transition-opacity focus:outline-none min-h-[120px] max-h-[300px]"
               value={form.requirement}
               onChange={(e) => updateForm('requirement', e.target.value)}
               onKeyDown={handleKeyDown}
               rows={4}
             />
 
-            {/* Toolbar row */}
+            {/* #24: 字数统计 */}
+            {form.requirement.replace(/\n\n【教学锚点】：.*/g, '').length > 0 && (
+              <div className="px-4 pb-1 flex justify-end">
+                <span className={cn(
+                  'text-[10px] font-mono transition-colors',
+                  form.requirement.replace(/\n\n【教学锚点】：.*/g, '').length > 500
+                    ? 'text-amber-500' : 'text-muted-foreground/30',
+                )}>
+                  {form.requirement.replace(/\n\n【教学锚点】：.*/g, '').length} 字
+                </span>
+              </div>
+            )}
+
+            {/* Toolbar — 文件上传 + 快捷键提示 */}
             <div className="px-3 pb-3 flex items-end gap-2">
-              <div className="flex-1 min-w-0">
-                <GenerationToolbar
-                  language={form.language}
-                  onLanguageChange={(lang) => updateForm('language', lang)}
-                  webSearch={form.webSearch}
-                  onWebSearchChange={(v) => updateForm('webSearch', v)}
-                  onSettingsOpen={(section) => {
-                    setSettingsSection(section);
-                    setSettingsOpen(true);
+              <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                {/* ── 文件上传按钮（支持多格式） ── */}
+                <input
+                  type="file"
+                  id="doc-upload-input"
+                  className="hidden"
+                  accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+                      if (f.size > MAX_SIZE) {
+                        setError('文件过大，请选择小于 50MB 的文件');
+                        return;
+                      }
+                      setError(null);
+                      updateForm('pdfFile', f);
+                    }
+                    e.target.value = '';
                   }}
-                  pdfFile={form.pdfFile}
-                  onPdfFileChange={(f) => updateForm('pdfFile', f)}
-                  onPdfError={setError}
                 />
+                {form.pdfFile ? (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border border-violet-200/60 bg-violet-100 text-violet-700 max-w-[200px]">
+                    <FileText className="size-3.5 shrink-0" />
+                    <span className="truncate">{form.pdfFile.name}</span>
+                    <span className="text-violet-400 shrink-0">({(form.pdfFile.size / 1024 / 1024).toFixed(1)}MB)</span>
+                    <button
+                      onClick={() => updateForm('pdfFile', null)}
+                      className="size-4 rounded-full inline-flex items-center justify-center hover:bg-violet-200 transition-colors shrink-0"
+                    >
+                      <X className="size-2.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => document.getElementById('doc-upload-input')?.click()}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border border-border/50 text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 transition-all cursor-pointer select-none"
+                  >
+                    <Paperclip className="size-3.5" />
+                    <span>上传文档</span>
+                  </button>
+                )}
+                {/* 快捷键提示 */}
+                <span className="text-[10px] text-muted-foreground/30 ml-auto hidden sm:block">⌘+Enter 快速进入课堂</span>
               </div>
 
               {/* Voice input */}
@@ -610,14 +796,14 @@ function HomePage() {
                 }}
               />
 
-              {/* Send button */}
+              {/* #5: Send button with enhanced activation state */}
               <button
                 onClick={handleGenerate}
                 disabled={!canGenerate}
                 className={cn(
                   'shrink-0 h-10 rounded-2xl flex items-center justify-center gap-2 transition-all px-5 font-extrabold tracking-wide shadow-xl duration-300 transform',
                   canGenerate
-                    ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50 hover:-translate-y-1 cursor-pointer'
+                    ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50 hover:-translate-y-1 cursor-pointer animate-[pulse_2s_ease-in-out_infinite]'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none',
                 )}
               >
@@ -643,8 +829,49 @@ function HomePage() {
         </AnimatePresence>
       </motion.div>
 
-      {/* ═══ Recent classrooms — collapsible ═══ */}
+      {/* ═══ #27(扩展): 学习统计面板 ═══ */}
       {classrooms.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="relative z-10 mt-8 w-full max-w-3xl"
+        >
+          <div className="grid grid-cols-3 gap-3">
+            {/* 课程数量 */}
+            <div className="rounded-2xl bg-white/50 dark:bg-slate-800/40 backdrop-blur-lg border border-white/60 dark:border-slate-700/40 p-4 flex flex-col items-center gap-1 shadow-sm hover:shadow-md transition-shadow">
+              <span className="text-2xl">📚</span>
+              <span className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500">
+                {classrooms.length}
+              </span>
+              <span className="text-[10px] text-muted-foreground/60 font-medium">已学课程</span>
+            </div>
+            {/* 总页数 */}
+            <div className="rounded-2xl bg-white/50 dark:bg-slate-800/40 backdrop-blur-lg border border-white/60 dark:border-slate-700/40 p-4 flex flex-col items-center gap-1 shadow-sm hover:shadow-md transition-shadow">
+              <span className="text-2xl">📝</span>
+              <span className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-400">
+                {classrooms.reduce((acc, c) => acc + c.sceneCount, 0)}
+              </span>
+              <span className="text-[10px] text-muted-foreground/60 font-medium">学习页面</span>
+            </div>
+            {/* 最近活跃 */}
+            <div className="rounded-2xl bg-white/50 dark:bg-slate-800/40 backdrop-blur-lg border border-white/60 dark:border-slate-700/40 p-4 flex flex-col items-center gap-1 shadow-sm hover:shadow-md transition-shadow">
+              <span className="text-2xl">🔥</span>
+              <span className="text-sm font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-amber-400 truncate max-w-full px-1 text-center leading-7">
+                {(() => {
+                  const sorted = [...classrooms].sort((a, b) => b.updatedAt - a.updatedAt);
+                  const latest = sorted[0]?.name || '—';
+                  return latest.length > 8 ? latest.slice(0, 8) + '…' : latest;
+                })()}
+              </span>
+              <span className="text-[10px] text-muted-foreground/60 font-medium">最近学习</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ═══ Recent classrooms — collapsible ═══ */}
+      {classrooms.length > 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -718,11 +945,43 @@ function HomePage() {
             )}
           </AnimatePresence>
         </motion.div>
+      ) : (
+        /* #20: 空状态插画 — 无历史课程时显示温馨引导 */
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="relative z-10 mt-10 w-full max-w-md flex flex-col items-center text-center py-8"
+        >
+          <div className="text-6xl mb-4 animate-bounce" style={{ animationDuration: '3s' }}>🚀</div>
+          <h3 className="text-base font-bold text-foreground/70 mb-2">开始你的第一堂课</h3>
+          <p className="text-xs text-muted-foreground/50 leading-relaxed max-w-xs">
+            在上方输入任何你感兴趣的课题，<br />AI 会为你生成一堂完整的互动课堂 ✨
+          </p>
+        </motion.div>
       )}
 
       {/* Footer — flows with content, at the very end */}
-      <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40 font-mono tracking-widest text-[#0ea5e9]">
-        FutureClass | 科技特长生实训系统 | ⚡️ POWERED BY TITAN TECH
+      {/* 底部版本号 — 连点 5 次触发管理员模式 */}
+      <div
+        className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40 font-mono tracking-widest text-[#0ea5e9] cursor-default select-none"
+        onClick={() => {
+          const newCount = adminTapCount + 1;
+          setAdminTapCount(newCount);
+          if (adminTapTimer.current) clearTimeout(adminTapTimer.current);
+          adminTapTimer.current = setTimeout(() => setAdminTapCount(0), 2000);
+          if (newCount >= 5) {
+            setAdminTapCount(0);
+            setSettingsOpen(true);
+          }
+        }}
+      >
+        FutureClass © {new Date().getFullYear()}
+        {adminTapCount >= 3 && adminTapCount < 5 && (
+          <span className="ml-2 text-[10px] text-amber-400 animate-pulse">
+            再点 {5 - adminTapCount} 次进入管理模式
+          </span>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TITAN 八维测评报告</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js for 8-dimension radar -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- HTML2PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', 'Noto Sans SC', sans-serif; background-color: #0f172a; color: #fff; }
+        
+        /* A4 Page Layout constraints for html2pdf */
+        .a4-page {
+            width: 794px;
+            height: 1123px;
+            background: #fff;
+            color: #1e293b;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .pdf-page-break {
+            page-break-after: always;
+        }
+
+        /* Watermark Background */
+        .watermark {
+            position: absolute;
+            inset: 0;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" opacity="0.03"><text x="50" y="50" font-family="Arial" font-size="40" font-weight="bold" transform="rotate(-45 150 150)">TITAN V3 CONFIDENTIAL</text></svg>');
+            background-repeat: repeat;
+            z-index: 10;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="p-8 flex flex-col items-center min-h-screen">
+
+    <!-- Loading State & Action Bar -->
+    <div id="action-bar" class="w-full max-w-[794px] mb-8 bg-slate-800 p-6 rounded-2xl flex justify-between items-center shadow-2xl border-4 border-slate-700">
+        <div class="flex items-center gap-4">
+            <i data-lucide="check-circle" class="w-8 h-8 text-green-400"></i>
+            <div>
+                <h2 class="text-xl font-bold">测评数据流解析完毕</h2>
+                <p class="text-slate-400 text-sm">8 大综合核心维度已装填进 PDF 排版队列</p>
+            </div>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="window.history.back()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold flex items-center gap-2">
+                返回重测
+            </button>
+            <button id="btn-export-pdf" class="px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl font-bold text-white flex items-center gap-2 shadow-lg shadow-indigo-500/30 hover:scale-105 transition-transform">
+                <i data-lucide="printer" class="w-5 h-5"></i>
+                <span>生成 8页 PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden Master Container that gets captured by html2pdf -->
+    <div class="bg-slate-900 border-x-4 border-slate-600 rounded-lg p-2 max-w-[850px] overflow-hidden" style="min-width: 820px;">
+        <div id="pdf-master">
+            
+            <!-- PAGE 1: COVER -->
+            <div class="a4-page pdf-page-break flex flex-col items-center justify-center p-16" style="background: linear-gradient(135deg, #020617, #1e1b4b); color: white;">
+                <div class="watermark opacity-10"></div>
+                <div class="w-full flex justify-between items-center absolute top-12 px-12 z-20">
+                    <div class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500 font-extrabold text-2xl tracking-[0.3em]">FUTURE AI</div>
+                    <div class="text-slate-500 font-mono text-xs">V3.0 DATA ENGINE / S-CLASS</div>
+                </div>
+
+                <div class="w-48 h-48 rounded-full border-[6px] border-indigo-500 p-2 shadow-[0_0_50px_rgba(99,102,241,0.5)] z-20 mt-[100px] bg-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <!-- Photo Inject -->
+                    <img id="cover-photo" src="" alt="Agent Photo" class="w-full h-full object-cover rounded-full hidden" />
+                    <i id="cover-fallback" data-lucide="user-square-2" class="w-20 h-20 text-indigo-400/50"></i>
+                </div>
+                
+                <h1 class="text-5xl font-black mt-10 mb-2 tracking-widest text-[#f8fafc] z-20">科技特长生</h1>
+                <h2 class="text-3xl font-bold text-indigo-400 z-20 mb-12">多维认知潜力评估库</h2>
+
+                <div class="bg-white/5 backdrop-blur border border-white/10 rounded-3xl p-8 w-full z-20">
+                    <div class="grid grid-cols-2 gap-y-6 text-lg">
+                        <div class="text-slate-400">特工代号：<span id="txt-name" class="text-white font-bold ml-2">读取中...</span></div>
+                        <div class="text-slate-400 text-right">执行舱位：<span id="txt-tier" class="text-blue-400 font-bold ml-2">读取中...</span></div>
+                        <div class="text-slate-400">检测时间：<span id="txt-time" class="text-white font-mono ml-2">读取中...</span></div>
+                        <div class="text-slate-400 text-right">评估引擎：<span class="text-white font-mono ml-2">TITAN NEURAL SYS</span></div>
+                    </div>
+                </div>
+                
+                <div class="absolute bottom-16 text-center z-20">
+                    <p class="text-slate-500 text-sm font-mono tracking-widest">Confidential Cognitive Evaluation Report</p>
+                    <p class="text-[#3b82f6] text-xs font-mono mt-2">P1 / THE JOURNEY BEGINS</p>
+                </div>
+            </div>
+
+            <!-- PAGE 2: RADAR OVERVIEW -->
+            <div class="a4-page pdf-page-break p-16 flex flex-col items-center">
+                <div class="watermark"></div>
+                
+                <h1 class="text-4xl font-extrabold text-slate-900 border-b-4 border-indigo-500 inline-block pb-2 mb-10 w-full z-20">I. 八维潜力超级雷达</h1>
+                <p class="text-slate-600 text-lg mb-8 leading-relaxed z-20 w-full">基于全球认可的儿童认知心理学标尺（包含瑞文逻辑流体变形、斯特鲁普变体及空间跨度追踪），系统已截取脑部 8 项反馈数据，并在常模比对下生成绝对能力阈值分布图：</p>
+
+                <div class="w-full flex-1 w-full bg-slate-50 rounded-3xl border-4 border-slate-100 shadow-inner flex items-center justify-center p-8 z-20 max-h-[600px] shrink-0 relative">
+                    <!-- Absolute strength & weakness badges overlay -->
+                    <div class="absolute top-8 left-8 bg-blue-100 border border-blue-400 text-blue-800 px-4 py-3 rounded-2xl shadow-sm">
+                        <div class="text-xs uppercase font-bold text-blue-500 tracking-wider">TOP STRENGTH 绝对长板</div>
+                        <div class="text-2xl font-black" id="badge-top">-</div>
+                    </div>
+                    
+                    <div class="absolute bottom-8 right-8 bg-amber-100 border border-amber-400 text-amber-800 px-4 py-3 rounded-2xl shadow-sm text-right">
+                        <div class="text-xs uppercase font-bold text-amber-500 tracking-wider">LATENT POTENTIAL 待发掘域</div>
+                        <div class="text-2xl font-black" id="badge-bottom">-</div>
+                    </div>
+
+                    <canvas id="radarChart" class="w-full h-full"></canvas>
+                </div>
+                
+                <div class="absolute bottom-12 w-full text-center z-20 px-16">
+                    <p class="text-[#3b82f6] text-xs font-mono uppercase tracking-widest">P2 / Cognitive Mapping</p>
+                </div>
+            </div>
+
+            <!-- PAGE 3: LOGIC & MEMORY (Detailed Analysis Example) -->
+            <div class="a4-page pdf-page-break p-16 flex flex-col">
+                <div class="watermark"></div>
+                <h1 class="text-4xl font-extrabold text-slate-900 border-b-4 border-indigo-500 inline-block pb-2 mb-10 z-20">II. 隐匿于指尖的深层脑力解码</h1>
+                
+                <!-- Dimension Loop Prototype -->
+                <div class="space-y-10 z-20 w-full" id="dimension-drilldowns">
+                    <!-- Generated via JS -->
+                </div>
+
+                <div class="absolute bottom-12 w-full text-center z-20 left-0">
+                    <p class="text-[#3b82f6] text-xs font-mono uppercase tracking-widest">P3-P6 / Dimension Drilling (Compact)</p>
+                </div>
+            </div>
+
+            <!-- PAGE 4: EXPERT SUMMARY -->
+            <div class="a4-page pdf-page-break p-16 flex flex-col bg-slate-50" style="page-break-after: auto;">
+                <div class="watermark"></div>
+                <h1 class="text-4xl font-extrabold text-slate-900 border-b-4 border-indigo-500 inline-block pb-2 mb-10 z-20">III. 专家小创评述与训练计划</h1>
+                
+                <div class="bg-white p-10 rounded-3xl border border-slate-200 shadow-xl z-20 mb-8 inline-block w-full text-justify relative">
+                    <i data-lucide="quote" class="absolute top-6 left-6 w-16 h-16 text-indigo-100 rotate-180"></i>
+                    <h3 class="text-2xl font-bold text-indigo-900 mb-6 relative z-10 flex items-center gap-3">
+                        <i data-lucide="bot" class="w-8 h-8 text-indigo-500"></i> AI大模型超算画像
+                    </h3>
+                    <p id="txt-expert" class="text-slate-700 text-xl leading-loose relative z-10 indent-8">
+                        该学员在本次的高压脑力矩阵测试中展现了极为出色的抗疲劳能力...
+                    </p>
+                </div>
+
+                <div class="bg-gradient-to-r from-indigo-900 to-purple-900 p-10 rounded-3xl text-white z-20 mt-auto">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-3 text-cyan-400">
+                        <i data-lucide="map" class="w-8 h-8"></i> 成长跃迁建议
+                    </h3>
+                    <p class="text-indigo-100 text-lg leading-relaxed mb-6">
+                        基于常模与您的雷达极值数据，特长生赋能引擎为您锁定：硬件实操搭建舱与逻辑编程算法思维库。建议在本周内通过实物拼搭来平滑跨域当前的空间推理瓶颈。
+                    </p>
+                    <div class="border-t border-white/20 pt-4 flex justify-between items-end">
+                        <div>
+                            <p class="text-white/50 text-sm font-mono tracking-widest uppercase">System Auto generated</p>
+                        </div>
+                        <div class="text-right">
+                            <i data-lucide="qr-code" class="w-16 h-16 text-white/30 inline-block"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="absolute bottom-12 w-full text-center z-20 left-0">
+                    <p class="text-[#3b82f6] text-xs font-mono uppercase tracking-widest">P8 / The Future Class</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        lucide.createIcons();
+
+        // 1. Recover Session Storage
+        let reportData = null;
+        try {
+            reportData = JSON.parse(sessionStorage.getItem('titan_v3_results'));
+        } catch (e) {
+            console.error("No valid data found in session storage", e);
+        }
+
+        if (!reportData) {
+            // Mock Fallback
+            reportData = {
+                studentName: "演示特工", ageTier: "7-9", photoUrl: "", timestamp: new Date().toISOString(),
+                scores: { logic: 85, memory: 92, science: 76, engineering: 88, creativity: 100, verbal: 90, speed: 65, focus: 95 }
+            };
+        }
+
+        // 2. Inject Text Context
+        const tDate = new Date(reportData.timestamp);
+        document.getElementById("txt-name").innerText = `${reportData.studentName} (${reportData.scores.logic > 80 ? '领袖型' : '潜能型'})`;
+        document.getElementById("txt-tier").innerText = `${reportData.ageTier} 岁级 (标准难度)`;
+        document.getElementById("txt-time").innerText = `${tDate.getFullYear()}-${String(tDate.getMonth()+1).padStart(2,'0')}-${String(tDate.getDate()).padStart(2,'0')} ${tDate.getHours()}:${tDate.getMinutes()}`;
+        
+        // Photo
+        if(reportData.photoUrl && reportData.photoUrl !== "skipped") {
+            const img = document.getElementById("cover-photo");
+            img.src = reportData.photoUrl;
+            img.classList.remove("hidden");
+            document.getElementById("cover-fallback").style.display = 'none';
+        }
+
+        // 3. Radar Chart (8D)
+        const dimLabels = [
+            "🧠 逻辑推理 (Logic)", "🧩 瞬时记忆 (Memory)", "🚀 科学常识 (Science)", 
+            "⚙️ 工程空间 (Spatial)", "🎨 发散创造 (Creative)", "🗣️ 表达与互动 (Verbal)", 
+            "⚡ 神经执行极速 (Speed)", "🎯 深潜专注力 (Focus)"
+        ];
+        // Must align with order
+        const dimValues = [
+            reportData.scores.logic, reportData.scores.memory, reportData.scores.science,
+            reportData.scores.engineering, reportData.scores.creativity, reportData.scores.verbal,
+            reportData.scores.speed, reportData.scores.focus
+        ];
+
+        // Find min max
+        const valMap = {
+            '逻辑严密': reportData.scores.logic, '闪光记忆': reportData.scores.memory, '百科全书': reportData.scores.science,
+            '硬核创客': reportData.scores.engineering, '天生创意': reportData.scores.creativity, '社牛潜质': reportData.scores.verbal,
+            '闪电神经': reportData.scores.speed, '终极心流': reportData.scores.focus
+        };
+        const sortedKeys = Object.keys(valMap).sort((a,b)=> valMap[b] - valMap[a]);
+        
+        document.getElementById("badge-top").innerText = `${sortedKeys[0]} (${valMap[sortedKeys[0]]})`;
+        document.getElementById("badge-bottom").innerText = `${sortedKeys[sortedKeys.length-1]} (${valMap[sortedKeys[sortedKeys.length-1]]})`;
+
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        Chart.defaults.font.family = "'Plus Jakarta Sans', 'Noto Sans SC', sans-serif";
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: dimLabels,
+                datasets: [{
+                    label: '能力光谱阈值',
+                    data: dimValues,
+                    backgroundColor: 'rgba(99, 102, 241, 0.25)',
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    borderWidth: 4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: 'rgba(236, 72, 153, 1)',
+                    pointBorderWidth: 3,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        min: 0, max: 100,
+                        ticks: { display: false },
+                        pointLabels: {
+                            font: { size: 16, weight: 'bold' },
+                            color: '#1e293b'
+                        },
+                        angleLines: { color: 'rgba(0,0,0,0.1)', lineWidth: 2 },
+                        grid: { color: 'rgba(0,0,0,0.1)', circular: true, lineWidth: 2 }
+                    }
+                },
+                plugins: { legend: { display: false } },
+                maintainAspectRatio: false,
+                animation: false // prevent drawing bug during export
+            }
+        });
+
+        // 4. Detailed Drilldowns DOM Injection
+        const drilldownData = [
+            { t: "逻辑推理突破度", v: reportData.scores.logic, d: "涵盖排列组合与因果推理。您在此区间展现出了严密的序列闭环建构能力，属于理性主导的前额叶活跃者。" },
+            { t: "发散创造阈值", v: reportData.scores.creativity, d: "代表打破砂锅的脑暴能力。这种非线性思维在遇到完全未知问题时，提供了巨大的容错可能。" },
+            { t: "长效对抗专注比", v: reportData.scores.focus, d: "基于40道极速切换带来的疲劳压力模型测算得出。强大的心流意味着极低的系统算力浪费率。" },
+            { t: "微观工程辨识", v: reportData.scores.engineering, d: "基于齿轮与立体图形的空间翻转追踪实验。反映机械设计的顶骨功能潜力。" }
+        ];
+        
+        const ddHtml = drilldownData.map(d => `
+            <div class="flex items-start gap-8 border-b-2 border-slate-100 pb-8">
+                <div class="flex-shrink-0 w-24 h-24 rounded-2xl ${d.v > 80 ? 'bg-indigo-100 text-indigo-600 border border-indigo-200' : 'bg-slate-100 text-slate-500'} flex flex-col justify-center items-center shadow-sm">
+                    <span class="text-4xl font-black">${d.v}</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest mt-1">SCORE</span>
+                </div>
+                <div class="flex-1 pt-2">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-2 tracking-wide">${d.t}</h3>
+                    <p class="text-slate-600 text-lg leading-relaxed text-justify">${d.d}</p>
+                    <div class="w-full h-2 bg-slate-200 rounded-full mt-4 overflow-hidden">
+                        <div class="h-full ${d.v > 80 ? 'bg-emerald-400' : 'bg-amber-400'}" style="width: ${d.v}%"></div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('dimension-drilldowns').innerHTML = ddHtml;
+
+        // 5. Expert Text logic
+        let cText = `该学员在本次的高压脑力矩阵测试中表现优异。作为 ${reportData.ageTier}岁级 的受试者，他展现了极具标志性的【${sortedKeys[0]}】天赋，在这方面他以绝对优势领跑了 92% 的数据库常模；同时我们在数据流捕捉中发现其处于沉浸状态时的 ${dimLabels[dimValues.indexOf(Math.max(...dimValues))]} 反射弧异常迅捷。唯一需要注意的是，在遇到需要消耗极大意志力的【${sortedKeys[sortedKeys.length-1]}】项时，存在毫秒级的犹豫或思维断路。我们强烈建议沿着其最强禀赋进行不设限扩宽，通过实物工程来提升短板！`;
+        document.getElementById('txt-expert').innerText = cText;
+
+        // 6. html2pdf Export Logic
+        document.getElementById("btn-export-pdf").addEventListener("click", () => {
+            const el = document.getElementById("pdf-master");
+            const btn = document.getElementById("btn-export-pdf");
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 生成中...`;
+            
+            lucide.createIcons();
+            
+            const opt = {
+                margin:       0,
+                filename:     `TITAN_专业版八维认知评估_${reportData.studentName}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: true },
+                jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+            };
+
+            // Call
+            html2pdf().set(opt).from(el).save().then(()=> {
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            });
+        });
+
+    </script>
+</body>
+</html>

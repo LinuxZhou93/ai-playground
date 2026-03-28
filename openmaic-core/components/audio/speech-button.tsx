@@ -55,87 +55,113 @@ export function SpeechButton({
   const isMd = size === 'md';
   const sizeClasses = isMd ? 'h-8 w-8' : 'h-6 w-6';
   const iconSize = isMd ? 'w-4 h-4' : 'w-3.5 h-3.5';
-  const barH = isMd ? 14 : 10;
+  const barH = isMd ? 16 : 12;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled || isProcessing}
-          onClick={handleClick}
-          className={cn(
-            'relative flex items-center justify-center rounded-lg transition-all duration-200 shrink-0 cursor-pointer',
-            sizeClasses,
-            active
-              ? 'bg-violet-500/90 dark:bg-violet-600/80 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)] dark:shadow-[0_0_12px_rgba(139,92,246,0.3)]'
-              : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80',
-            disabled && 'opacity-40 pointer-events-none',
-            className,
-          )}
-        >
-          {/* Breathing ring when recording */}
-          {isRecording && (
-            <span
-              className="absolute inset-[-4px] rounded-[10px] border border-violet-400/40 dark:border-violet-400/25"
-              style={{
-                animation: 'speech-ring 2s ease-in-out infinite',
-              }}
-            />
-          )}
+    <div className="relative flex items-center gap-1.5">
+      {/* #11: 录音中文字提示 */}
+      {isRecording && (
+        <span className="text-[10px] font-medium text-violet-500 animate-pulse whitespace-nowrap select-none">
+          录音中...
+        </span>
+      )}
+      {isProcessing && (
+        <span className="text-[10px] font-medium text-muted-foreground/50 whitespace-nowrap select-none">
+          识别中...
+        </span>
+      )}
 
-          {isProcessing ? (
-            <Loader2 className={cn(iconSize, 'animate-spin')} />
-          ) : isRecording ? (
-            /* Mini equalizer bars */
-            <span className="flex items-center gap-[2.5px] relative z-10">
-              {[0, 1, 2].map((i) => (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            disabled={disabled || isProcessing}
+            onClick={handleClick}
+            className={cn(
+              'relative flex items-center justify-center rounded-lg transition-all duration-200 shrink-0 cursor-pointer',
+              sizeClasses,
+              active
+                ? 'bg-violet-500/90 dark:bg-violet-600/80 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)] dark:shadow-[0_0_12px_rgba(139,92,246,0.3)]'
+                : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80',
+              disabled && 'opacity-40 pointer-events-none',
+              className,
+            )}
+          >
+            {/* #11: 双层呼吸脉冲环 */}
+            {isRecording && (
+              <>
                 <span
-                  key={i}
-                  className="rounded-full bg-white"
+                  className="absolute inset-[-4px] rounded-[10px] border border-violet-400/40 dark:border-violet-400/25"
                   style={{
-                    width: isMd ? 2.5 : 2,
-                    animation: `speech-bar ${0.4 + i * 0.15}s ease-in-out ${i * 0.1}s infinite alternate`,
-                    height: 3,
+                    animation: 'speech-ring 2s ease-in-out infinite',
                   }}
                 />
-              ))}
-            </span>
-          ) : (
-            <Mic className={cn(iconSize, 'relative z-10')} />
-          )}
+                <span
+                  className="absolute inset-[-8px] rounded-[14px] border border-violet-300/20 dark:border-violet-400/10"
+                  style={{
+                    animation: 'speech-ring 2s ease-in-out 0.5s infinite',
+                  }}
+                />
+              </>
+            )}
 
-          {/* Injected keyframes */}
-          <style jsx>{`
-            @keyframes speech-bar {
-              0% {
-                height: 3px;
+            {isProcessing ? (
+              <Loader2 className={cn(iconSize, 'animate-spin')} />
+            ) : isRecording ? (
+              /* #11: 增强版 5 条均衡器波形 */
+              <span className="flex items-center gap-[2px] relative z-10">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <span
+                    key={i}
+                    className="rounded-full bg-white"
+                    style={{
+                      width: isMd ? 2.5 : 2,
+                      animation: `speech-bar ${0.3 + i * 0.1}s ease-in-out ${i * 0.08}s infinite alternate`,
+                      height: 3,
+                    }}
+                  />
+                ))}
+              </span>
+            ) : (
+              <Mic className={cn(iconSize, 'relative z-10')} />
+            )}
+
+            {/* Injected keyframes */}
+            <style jsx>{`
+              @keyframes speech-bar {
+                0% {
+                  height: 3px;
+                }
+                50% {
+                  height: ${barH * 0.6}px;
+                }
+                100% {
+                  height: ${barH}px;
+                }
               }
-              100% {
-                height: ${barH}px;
+              @keyframes speech-ring {
+                0%,
+                100% {
+                  opacity: 0.3;
+                  transform: scale(1);
+                }
+                50% {
+                  opacity: 0.7;
+                  transform: scale(1.08);
+                }
               }
-            }
-            @keyframes speech-ring {
-              0%,
-              100% {
-                opacity: 0.3;
-                transform: scale(1);
-              }
-              50% {
-                opacity: 0.7;
-                transform: scale(1.08);
-              }
-            }
-          `}</style>
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">
-        {isProcessing
-          ? t('roundtable.processing')
-          : isRecording
-            ? t('voice.stopListening')
-            : t('voice.startListening')}
-      </TooltipContent>
-    </Tooltip>
+            `}</style>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          {isProcessing
+            ? t('roundtable.processing')
+            : isRecording
+              ? t('voice.stopListening')
+              : t('voice.startListening')}
+        </TooltipContent>
+      </Tooltip>
+    </div>
   );
 }
+

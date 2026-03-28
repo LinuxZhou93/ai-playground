@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TITAN 万维认知测评 - 视听多模态引擎</title>
+    <title>TITAN 八维认知测评舱</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,320 +11,150 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Chart.js for reports -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- html2pdf for generating 8-page PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <!-- Kernel & Shared -->
-    <script src="../kernel.js"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Google Fonts for Kids (Fredoka) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --bg-dark: #020617;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --accent-blue: #3b82f6;
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', 'Noto Sans SC', sans-serif;
-            background-color: var(--bg-dark);
-            color: #f8fafc;
-            overflow: hidden;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        /* Glass Windows */
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-        }
-
-        /* Multimodal PiP */
-        #ai-vision-pip {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            width: 200px;
-            height: 150px;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 2px solid rgba(59, 130, 246, 0.3);
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
-            z-index: 50;
-            background: #000;
-            transition: all 0.3s ease;
-        }
-
-        video#camera-feed {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1); /* Mirror */
-            opacity: 0.7;
-        }
-
-        .scanning-line {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: #3b82f6;
-            box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
-            animation: scan 2s linear infinite;
-            z-index: 10;
-        }
-
-        @keyframes scan {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-
-        /* Metric HUD */
-        .hud-scan-text {
-            position: absolute;
-            bottom: 8px;
-            left: 8px;
-            font-family: monospace;
-            font-size: 10px;
-            color: #60a5fa;
-            text-shadow: 0 0 5px rgba(96, 165, 250, 0.8);
-            z-index: 20;
-        }
+        body { font-family: 'Fredoka', 'Noto Sans SC', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .screen { visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; position: absolute; inset: 0; }
+        .screen.active { visibility: visible; opacity: 1; pointer-events: auto; }
         
-        /* Option Cards */
-        .omni-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            cursor: pointer;
-        }
+        .opt-card { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; }
+        .opt-card:active { transform: scale(0.95); }
+        .opt-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border-color: #6366f1; }
+        
+        .mem-cell { transition: all 0.2s; border-radius: 12px; }
+        .mem-cell.flash { background-color: #fcd34d !important; transform: scale(1.1); box-shadow: 0 0 20px rgba(251,191,36,0.6); }
 
-        .omni-card:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(99, 102, 241, 0.5);
-            transform: translateY(-4px);
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
-        }
-
-        .omni-card:active {
-            transform: scale(0.95);
-        }
-
-        /* Screen Transitions */
-        .screen {
-            position: absolute;
-            inset: 0;
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .screen.active {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Feedback Pulse */
-        #feedback-pulse {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .pulse-correct {
-            background: radial-gradient(circle, rgba(34, 197, 94, 0.15) 0%, transparent 70%);
-            box-shadow: inset 0 0 100px rgba(34, 197, 94, 0.2);
-        }
-
-        .pulse-incorrect {
-            background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 70%);
-            box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.2);
-        }
-
-        /* Background Grain & Orbs */
-        .bg-orb {
-            position: fixed;
-            width: 600px;
-            height: 600px;
-            border-radius: 50%;
-            filter: blur(120px);
-            z-index: -1;
-            opacity: 0.15;
-            pointer-events: none;
-        }
+        .particle { position: absolute; border-radius: 50%; animation: floatUp linear infinite; pointer-events: none; }
+        @keyframes floatUp { from { transform: translateY(100vh); opacity: 0; } 20% { opacity: 0.6; } 100% { transform: translateY(-20vh); opacity: 0; } }
     </style>
 </head>
-    <!-- Animated Background -->
-    <div class="bg-orb bg-indigo-600 top-[-200px] left-[-200px] animate-pulse"></div>
-    <div class="bg-orb bg-blue-600 bottom-[-200px] right-[-200px] animate-pulse" style="animation-delay: 1s"></div>
-    <div id="feedback-pulse"></div>
+<body class="bg-slate-900 min-h-screen text-slate-800 overflow-hidden flex flex-col items-center justify-center p-4">
 
-    <!-- Multimodal Vision/Audio PiP (AI Perception) -->
-    <div id="ai-vision-pip" class="hidden">
-        <video id="camera-feed" autoplay playsinline muted></video>
-        <div class="scanning-line"></div>
-        <div class="absolute inset-0 border border-blue-500/30 rounded-16 pointer-events-none"></div>
-        <div class="hud-scan-text">
-            <div class="flex items-center gap-1"><span class="w-1 h-1 bg-blue-500 rounded-full animate-ping"></span> TRACKING...</div>
-            <div>FOCUS: <span id="hud-focus">96%</span></div>
-            <div>EMOTION: <span id="hud-emotion">CALM</span></div>
-        </div>
-        <!-- Status dot -->
-        <div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_#ef4444]"></div>
-    </div>
+    <!-- Back to Hub Button -->
+    <button onclick="window.location.href='../hub.html'" class="fixed top-4 left-4 z-50 w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white hover:bg-white/20 transition group border border-white/20 shadow-lg">
+        <i data-lucide="arrow-left" class="w-6 h-6 group-hover:-translate-x-1 transition-transform"></i>
+    </button>
 
-    <!-- MAIN VIEWS -->
-    
-    <!-- 0. SCREEN: REGISTER (COMMERCIAL) -->
-    <div id="screen-register" class="screen active flex flex-col items-center justify-center p-6 sm:p-12">
-        <div class="glass-panel w-full max-w-md p-10 relative overflow-hidden group">
-            <div class="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl transition-transform group-hover:scale-150 duration-1000"></div>
-            
-            <div class="text-center mb-10">
-                <div class="inline-block px-3 py-1 mb-4 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-[10px] uppercase tracking-widest text-indigo-400 font-mono">
-                    TITAN Neural Identity v3.5
+    <!-- App Container -->
+    <main id="app-container" class="relative z-10 w-full max-w-5xl h-[90vh] bg-white rounded-[2rem] shadow-2xl border-4 border-slate-200 flex flex-col overflow-hidden">
+        
+        <!-- Header -->
+        <header id="quiz-header" class="hidden shrink-0 flex items-center justify-between p-4 sm:p-6 border-b-2 border-slate-100 bg-white/80 backdrop-blur-sm z-20">
+            <div class="flex-1 mr-4">
+                <div class="h-4 bg-slate-200 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-blue-400 to-indigo-500 w-0 transition-all duration-300"></div>
                 </div>
-                <h1 class="text-3xl font-black text-white italic tracking-tight">建立测评档案</h1>
-                <p class="text-slate-500 text-sm mt-2">请输入参与者真实信息以生成精确的认知报告</p>
-            </div>
-
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-[10px] text-slate-500 uppercase tracking-widest font-mono mb-2">Participant Name / 姓名</label>
-                    <input type="text" id="input-name" placeholder="请输入姓名..." class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-5 py-3.5 text-white placeholder-slate-700 focus:border-indigo-500 focus:outline-none transition-all">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] text-slate-500 uppercase tracking-widest font-mono mb-2">Age / 年龄</label>
-                        <input type="number" id="input-age" value="7" min="4" max="18" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-indigo-500 focus:outline-none transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-slate-500 uppercase tracking-widest font-mono mb-2">Grade / 年级</label>
-                        <select id="input-grade" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-5 py-3.5 text-white focus:border-indigo-500 focus:outline-none transition-all appearance-none">
-                            <option>Kindergarten</option>
-                            <option selected>Grade 1</option>
-                            <option>Grade 2</option>
-                            <option>Grade 3+</option>
-                        </select>
-                    </div>
-                </div>
-                <button id="btn-start-init" class="w-full py-4 bg-white text-black font-black rounded-xl hover:bg-indigo-400 transition-all flex items-center justify-center gap-2 mt-4 active:scale-95">
-                    确认并同步神经链接 <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 1. Initialization & Permissions -->
-    <div id="screen-init" class="screen flex flex-col items-center justify-center p-6 sm:p-12">
-        <div class="glass-panel p-10 max-w-2xl w-full text-center">
-            <div class="w-20 h-20 mx-auto bg-indigo-500/20 rounded-2xl border border-indigo-400/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
-                <i data-lucide="scan-face" class="w-10 h-10 text-indigo-400"></i>
-            </div>
-            <h1 class="text-3xl font-black mb-2 tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">系统初始化序列</h1>
-            <p id="init-status-text" class="text-slate-400 mb-8 font-mono">正在挂载多模态感知驱动...</p>
-            
-            <div class="space-y-4 text-left max-w-md mx-auto mb-10 border border-slate-700 rounded-xl p-4 bg-black/30 w-full font-mono text-sm inline-block">
-                <div class="flex items-center justify-between">
-                    <span class="text-slate-500">Neuro-Kernel Core</span>
-                    <span class="text-green-400">OK</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-slate-500">Audio Synth Engine</span>
-                    <span class="text-green-400">OK</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-slate-500">Age Tier Matrix</span>
-                    <span id="label-age-tier" class="text-yellow-400">AWAITING</span>
+                <div class="text-sm font-bold mt-2 flex justify-between">
+                    <span id="module-title" class="text-blue-600 tracking-wide">加载舱位...</span>
+                    <span id="progress-text" class="text-slate-500">0/40</span>
                 </div>
             </div>
-
-            <button id="btn-grant-access" class="px-8 py-4 bg-white text-black font-black rounded-xl hover:bg-slate-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                授权视听传感 & 接入终端
-            </button>
-        </div>
-    </div>
-
-    <!-- 2. Test Engine Runner -->
-    <div id="screen-engine" class="screen flex flex-col pt-6 pb-12 px-8 w-full max-w-5xl mx-auto">
-        <!-- HUD Header -->
-        <header class="w-full flex justify-between items-center mb-10 shrink-0">
-            <div>
-                <h2 id="task-domain-label" class="text-3xl font-black text-indigo-400 tracking-widest uppercase">LOGIC MATRIX</h2>
-                <div class="font-mono text-slate-500 mt-1">PROTOCOL: <span id="task-progress">01/40</span></div>
-            </div>
-            
-            <div class="flex items-center gap-6">
-                <!-- Reaction Timer Bar -->
-                <div class="w-48 bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div id="time-bar" class="bg-indigo-500 h-full w-full transition-all duration-100 ease-linear shadow-[0_0_10px_#6366f1]"></div>
-                </div>
-                <div class="font-mono text-xl font-bold text-white w-12 text-right"><span id="time-text">30</span>s</div>
+            <div class="score-badge px-4 py-2 bg-indigo-100 text-indigo-600 rounded-xl font-bold border-2 border-indigo-200 flex items-center gap-2 shadow-sm">
+                <i data-lucide="zap" class="w-4 h-4 text-indigo-500"></i>
+                <span id="mode-text">标准评估模式</span>
             </div>
         </header>
 
-        <!-- Question Body -->
-        <div class="flex-1 flex flex-col items-center justify-center w-full relative">
+        <!-- Screens wrapper -->
+        <div class="flex-1 relative bg-slate-50">
             
-            <!-- Prompt -->
-            <h3 id="q-prompt" class="text-2xl sm:text-4xl font-bold text-center mb-12 leading-tight">加载中...</h3>
+            <!-- 1. Start Screen -->
+            <section id="screen-start" class="screen active flex flex-col items-center justify-center p-8 bg-gradient-to-b from-indigo-900 to-slate-900 text-white">
+                <h1 class="text-5xl sm:text-7xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 text-center drop-shadow-lg tracking-widest uppercase">
+                    TITAN
+                </h1>
+                <p id="deck-label" class="text-2xl text-blue-200 mb-10 font-medium tracking-wider bg-blue-900/50 px-6 py-2 rounded-full border border-blue-500/30">八维认知智能评测舱</p>
+                
+                <div class="w-full max-w-sm space-y-4">
+                    <input type="text" id="student-name" placeholder="请输入特工代号 (姓名)" class="w-full text-center px-6 py-4 rounded-2xl border-4 border-indigo-500/50 bg-indigo-900/50 text-xl font-bold text-white outline-none focus:border-cyan-400 placeholder-indigo-300 backdrop-blur-md">
+                    <button id="btn-start" class="w-full px-8 py-5 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl border-b-4 border-blue-700 text-white font-bold text-2xl flex items-center justify-center gap-3 transform active:translate-y-1 active:border-b-0 hover:brightness-110 transition-all shadow-[0_0_30px_rgba(34,211,238,0.3)]">
+                        <span>启动舱门</span>
+                        <i data-lucide="rocket" class="w-6 h-6"></i>
+                    </button>
+                    <p class="text-center text-slate-400 text-sm font-mono mt-4">请允许使用麦克风与摄像头以完成全面评估</p>
+                </div>
+            </section>
 
-            <!-- Dynamic Media / Grid Area (Canvas or Divs) -->
-            <div id="q-media-container" class="w-full max-w-2xl min-h-[300px] flex items-center justify-center bg-black/20 rounded-3xl border border-white/5 mb-10 relative overflow-hidden">
-                <!-- Dynamic injection slot (Can be SVG, Canvas, or text) -->
-            </div>
+            <!-- 2. Standard Quiz Screen -->
+            <section id="screen-quiz" class="screen flex flex-col p-4 sm:p-8 overflow-y-auto">
+                <div class="w-full max-w-4xl mx-auto flex flex-col items-center flex-1">
+                    <h2 id="question-prompt" class="text-2xl sm:text-4xl font-bold text-slate-800 text-center mb-8 leading-relaxed">
+                        题目加载中
+                    </h2>
+                    
+                    <!-- Dynamic Question Area (Image, Emojis, Memory Grid etc.) -->
+                    <div id="question-display-area" class="w-full max-w-2xl min-h-[16rem] bg-white rounded-[2rem] shadow-sm border-4 border-slate-100 flex items-center justify-center mb-8 p-4 relative overflow-hidden text-center">
+                    </div>
 
-            <!-- Options Grid -->
-            <div id="q-options" class="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-                <!-- Injected via JS -->
+                    <!-- AI Media Area (Camera / Audio) -->
+                    <div id="ai-media-area" class="hidden w-full max-w-xl mx-auto flex-col items-center justify-center gap-6 mb-8">
+                        <div class="relative w-full aspect-video bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-indigo-200">
+                            <!-- Video feed -->
+                            <video id="camera-feed" class="w-full h-full object-cover hidden" autoplay playsinline></video>
+                            
+                            <!-- Captured image preview -->
+                            <img id="photo-preview" class="w-full h-full object-cover hidden" />
+                        </div>
+                        
+                        <!-- AI Controls -->
+                        <div id="ai-controls" class="flex items-center gap-4">
+                            <button id="btn-capture-photo" class="hidden px-8 py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold rounded-2xl shadow-lg border-b-4 border-rose-700 active:border-b-0 active:translate-y-1 transition text-xl flex items-center gap-2">
+                                <i data-lucide="camera" class="w-6 h-6"></i> 拍一张大头照！
+                            </button>
+                            <button id="btn-next-ai" class="hidden px-8 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold rounded-2xl shadow-lg border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1 transition text-xl flex items-center gap-2">
+                                继续探测 <i data-lucide="arrow-right" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Options Grid -->
+                    <div id="options-grid" class="grid w-full max-w-3xl gap-4 sm:gap-6 pb-8">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Final Pre-Report Screen -->
+            <section id="screen-report-loader" class="screen flex flex-col items-center justify-center p-8 bg-slate-900 text-white">
+                <i data-lucide="radar" class="w-24 h-24 text-indigo-400 animate-spin" style="animation-duration: 3s;"></i>
+                <h2 class="text-3xl font-black mt-8 mb-4 tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">正在生成八维认知诊断档案...</h2>
+                <p class="text-slate-400 font-mono">数据已采集完毕，即将为您跳转至深度解读大盘。</p>
+            </section>
+
+        </div>
+        
+        <!-- Generic Success Visualizer -->
+        <div id="overlay-success" class="fixed inset-0 pointer-events-none z-50 flex items-center justify-center opacity-0">
+            <div class="w-48 h-48 bg-green-400 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(74,222,128,0.8)] transform scale-50" id="success-circle">
+                <i data-lucide="check" class="w-24 h-24 text-white"></i>
             </div>
         </div>
-    </div>
-
-    <!-- 3. Final Report Generator Screen -->
-    <div id="screen-report" class="screen">
-        <div class="glass-panel p-12 max-w-2xl w-full text-center flex flex-col items-center">
-            <i data-lucide="check-circle-2" class="w-20 h-20 text-green-500 mb-6 drop-shadow-[0_0_20px_rgba(34,197,94,0.3)]"></i>
-            <h1 class="text-4xl font-black mb-4">数据重组完成</h1>
-            <p class="text-slate-400 mb-8">AI 多模态分析与认知神经数据已上传核对，耗时曲线构建完毕。</p>
-            
-            <div class="flex gap-4">
-                <button id="btn-download-pdf" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold shadow-[0_0_20px_rgba(99,102,241,0.4)] flex items-center gap-2 transition-all">
-                    <i data-lucide="file-text" class="w-5 h-5"></i> 提取深维 8页 PDF 档案
-                </button>
-                <button onclick="window.location.href='../hub.html'" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-all text-slate-300">
-                    返回大厅
-                </button>
+        <!-- Generic Error Visualizer -->
+        <div id="overlay-error" class="fixed inset-0 pointer-events-none z-50 flex items-center justify-center opacity-0">
+            <div class="w-48 h-48 bg-red-400 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(248,113,113,0.8)] transform scale-50" id="error-circle">
+                <i data-lucide="x" class="w-24 h-24 text-white"></i>
             </div>
         </div>
-    </div>
 
-    <!-- Hidden PDF Layout Container (Rendered to Canvas in bg) -->
-    <div id="pdf-master-container" class="absolute top-[-9999px] left-0 w-[794px] bg-[#020617] flex flex-col p-0 m-0 z-[-100]">
-        <!-- PDF content will be dynamically built in JS -->
-    </div>
+    </main>
 
+    <script src="engine_ques_v3.js"></script>
     <script>
         lucide.createIcons();
+        for (let i = 0; i < 30; i++) {
+            let p = document.createElement('div');
+            p.className = 'particle bg-white/5';
+            p.style.width = Math.random() * 40 + 10 + 'px';
+            p.style.height = p.style.width;
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = Math.random() * 6 + 4 + 's';
+            p.style.animationDelay = Math.random() * 5 + 's';
+            document.body.appendChild(p);
+        }
     </script>
-    <script src="engine_omni.js"></script>
 </body>
 </html>
