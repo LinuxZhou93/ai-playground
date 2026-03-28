@@ -315,9 +315,6 @@ export function resolveTTSBaseUrl(providerId: string, clientBaseUrl?: string): s
   if (serverBaseUrl) return serverBaseUrl;
 
   // [Titan Tech Production Hardening] TTS 只有 volcengine 需要特殊处理
-  if (providerId === 'volcengine-tts') {
-    return '4780476544'; // 借用 baseUrl 槽位存储 AppID
-  }
   if (providerId === 'openai-tts') {
     return 'https://backgrace.com/v1';
   }

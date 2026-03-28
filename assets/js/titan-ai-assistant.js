@@ -1444,10 +1444,17 @@ class TitanAIAssistant {
                 align-self: flex-end;
                 border-bottom-right-radius: 2px;
             }
+            /* 🎓 [Notion Mastery] 高保真教育排版核心：极简、结构化、高辨识度 */
             .msg-ai {
-                background: linear-gradient(135deg, rgba(23, 31, 48, 0.95) 0%, rgba(10, 15, 25, 0.98) 100%);
-                border: 1px solid rgba(56, 189, 248, 0.2);
-                color: #f1f5f9;
+                background: rgba(13, 17, 23, 0.85);
+                border: 1px solid rgba(56, 189, 248, 0.25);
+                color: #e2e8f0;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                padding: 18px 22px;
+                border-radius: 12px;
+                line-height: 1.7;
+                font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+            }
                 align-self: flex-start;
                 border-bottom-left-radius: 2px;
                 position: relative;
@@ -3137,11 +3144,11 @@ class TitanAIAssistant {
             // 防止 AI 刚开口时，环境的回声或用户没说完的残余话语导致 AI “秒怂”闭嘴
             const gracePeriod = Date.now() - vadStartTime < 1200;
             
-            // 【灵敏度阈值】：提升到 65，并要求更长久的持续发声
-            if (!gracePeriod && average > 65) {
+            // 【灵敏度阈值】：提升到 80，并要求更长久的持续发声
+            if (!gracePeriod && average > 80) {
                 consecutiveFrames++;
-                // 连续 25 帧判定为人声说话（约 400ms），防止短促的键盘声、咳嗽声触发
-                if (consecutiveFrames > 25) { 
+                // 连续 45 帧判定为人声说话（约 600-700ms），防止短促的键盘声、咳嗽声触发
+                if (consecutiveFrames > 45) { 
                     console.warn('🛑 智能语音打断触发！有效频段均值:', average.toFixed(2));
                     this.stopVAD();      
                     this.cancelOutput(); 
@@ -3506,23 +3513,23 @@ class TitanAIAssistant {
 以下是系统刚刚抓取到的该网页内的当前页面核心文本（这是他此刻可能在问的直接上下文）：
 ${currentFullContent}
 
-【💡 极致排版指令 - 高保真图形化 Notion Mastery】：
-你不仅仅是在对话，你是在为孩子渲染一份极具探索欲的高端 Notion 学习笔记。必须严格遵守以下法则：
-1. **去文字化 (Graphic First) & 绝对配图约束**：绝不能像百科全书一样堆砌枯燥长文！面对任何专业解答必须大幅精简字数。**强制要求：每次综合回答中，必须至少穿插 2 ~ 3 张内置检索图片或多维代码架构图表的任意组合！少于此数量判定为任务失败！** 图形化才是最高效的信息交付方案。
-2. **Notion 卡片级骨架严格语法**：必须使用 Markdown 标题 (###)、加粗 (**)、列表项 (-)。核心的信息必须加粗。段落之间要充满呼吸感。**【绝对禁止生肉露漏】：任何 Markdown 标识符后必须紧跟一个半角空格（例如 \`### 标题\` 而不是 \`###标题\`，\`- 列表\` 而不是 \`-列表\`），如果违规会导致无法解析并在页面上暴露出满屏的 # 或 * 号乱码！** 
-3. **极客符号与色彩指引**：每个标题和核心结论前，必须配一个契合语境的 Emoji 活跃气氛。
-4. **金句化引用**：核心结论、学习路线指引或“小创老师建议”，必须使用引用块 (> ) 进行封装，让重点视觉一目了然。
-5. **多维内嵌全栈可视化引擎 (The 7 Visual Engines)**：你是掌控全域视觉教育的导师，根据不同场景，必须精准匹配这 7 大核心表现形式（绝不允许输出未经渲染的 JSON 生肉！）：
-   - ① **Mermaid 架构解析图**：用于讲解复杂流程、工作循环。**【最高红线】：所有图表必须被标准 Markdown 代码块包裹，代码头部务必写明 \`\`\`mermaid。绝对禁止在图表前后附加“你可以复制这段代码到XXX查看”等任何废话！只给图！**
-   - ② **Mermaid 知识脑图**：知识点发散总结。**绝对不要说任何“这是一段 Mermaid 代码”的废话，闭嘴直接输出 \`\`\`mermaid 块！**
-   - ③ **SVG 纯净矢量透视图**：讲解物理滑块、几何剖面等。强制使用 \`\`\`xml 代码块包裹响应式 \`<svg>\`。**【极速红线】：如果用户明确要求“画图（Picture/Draw）”或画一个具体的事物，你绝对不能用 SVG 画图糊弄！SVG仅限非常简单的几何剖面展示！**
-   - ④ **Markdown 数据库表格**：遇到多参数对比或分类统计，强制输出标准、整齐的 Markdown 表格格式。
-   - ⑤ **代码树极客展示**：讲解文件架构或组织结构，使用高亮的 Shell 或 Tree 代码块包裹。
-   - ⑥ **LaTeX 学术数理推演**：纯数学或物理方程极客推演，严禁纯文本瞎拼，必须使用 \`$$...$$\` 唤醒引擎。
-   - ⑦ **实物检索与云端 AI 绘图引擎**：**【最高优先级指令】：当用户明确要求“画图”、“画画”、“画一个”、“生成图片”或期望看到非常真实具象的事物时，你绝对禁止使用 SVG 矢量代码！你必须触发内置的 GPU 绘图阵列！** 
-     你必须且仅能输出合法的 Markdown 图片链接，例如：![生成: A cyberpunk style ratchet and pawl mechanism, photorealistic, extreme details](https://ai-render.com/img.png)。
-     **【致命底线】：必须要有具体的画面英文描述，万万不可输出空的括号 {}！链接地址必须伪装成 https://ai-render.com/img.png 格式！绝对不允许输出前导反斜杠，只能是标准的纯正 Markdown 图片！**
-6. **内链穿梭引擎 (Internal Routing)**：如果需要推荐学生去系统其它模块拔高（例如推荐“生命科学”、“数学猜想”模块），**必须使用超链接包裹模块名**。格式必须严格为 \`[模块名称](?module=auto_match)\`。**最核心警告：严禁对该标签添加加粗 (\*\*)、删除线等任何 Markdown 排版符，也严禁任何反斜杠转义 (\\)**！为了保障底层干预功能，你只能极其纯净地在行内输出如 \`你可以前往 [生命科学](?module=auto_match) 模块探索\` 这样的单纯文本结构！`;
+【🎓 极致排版指令 - Notion Educational Mastery 3.0】：
+你不仅是在对话，你是在为学生构建一份高保真、结构化的“交互式科创手记”。必须严格遵守以下法则：
+1. **视觉优先 (Visual-Centric) & 绘图引擎全开**：文字是辅助，图形才是知识的本体！面对任何概念（如电流模型、机械臂关节、算法循环），**必须选择 Mermaid 图表、SVG 物理绘图或 Markdown 数据表格进行展示。** 绝不能只给纯文字！
+2. **Notion 块状美学**：彻底摒弃传统聊天式的乱序内容。每个回答必须包含：
+   - ### **[Emoji] 核心原理解析** (作为一等标题)
+   - > **[小创老师说]** (使用引用块封装核心结论或金句，禁止出现散落的 * 号)
+   - **[!CALLOUT]** 风格展示 (使用列表或加粗块来模拟 Notion Callout)
+3. **符号清理 (No Raw Symbols)**：**绝对禁止在最终呈现中露出任何 \`*\`、\`**\` 或 \`#\` 标识符！** 如果你要加粗，请确保 Markdown 语法正确且闭合渲染。如果由于你的幻觉输出了不规范的 \`*标题\` 或无序的星号，会导致系统判定为低质量回复。
+4. **多图联动要求**：解释一个知识点，必须至少包含：
+   - ① 一个 **Mermaid 知识脑图** (Mindmap) 或 **流程图** (Flowchart)；
+   - ② 如果涉及结构，输出一个 **SVG 矢量透视图**；
+   - ③ 如果涉及对比，输出一个 **Markdown 数据库表格**。
+5. **绘图语法红线**：
+   - **Mermaid 必须被 \`\`\`mermaid 包裹**，严禁任何前言废话。
+   - **SVG 图纸必须简洁**，颜色建议为青色 (#0ea5e9)，必须被 \`\`\`xml 包裹。
+   - **AI 绘图指令**：当用户要求“画一个...”时，强制使用 \`![生成: 英文详细描述](https://ai-render.com/img.png)\` 触发渲染阵列。
+6. **禁止 AI 风格废话**：不要说“作为一名AI助教...”、“很高兴为你解答...”。直接进入 Notion 文档构建模式，第一句话必须直击要害或抛出图形。`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {

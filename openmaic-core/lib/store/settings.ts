@@ -268,7 +268,7 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 // Initialize default audio config
 const getDefaultAudioConfig = () => ({
   ttsProviderId: 'volcengine-tts' as TTSProviderId,
-  ttsVoice: 'zh_male_shaonianzixin_moon_bigtts',
+  ttsVoice: 'zh_male_shaonianzixin_moon_bigtts', // 🚀 [Titan AI 全站一致性] 默认锁死为“少年梓梓”音色
   ttsSpeed: 1.0,
   asrProviderId: 'browser-native' as ASRProviderId,
   asrLanguage: 'zh',
