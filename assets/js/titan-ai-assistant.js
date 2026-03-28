@@ -3031,9 +3031,18 @@ class TitanAIAssistant {
                         URL.revokeObjectURL(audioUrl);
                         this.currentAudioPlayer = null;
                         if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                        if (typeof this.stopVAD === 'function') this.stopVAD();
                         if (callback) callback();
                     };
+                    audio.onerror = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        this.currentAudioPlayer = null;
+                        if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
+                        if (typeof this.stopVAD === 'function') this.stopVAD();
+                        this.fallbackSpeak(cleanText, callback);
+                    };
                     await audio.play();
+                    if (typeof this.startVAD === 'function') this.startVAD();
                 } else {
                     this.fallbackSpeak(cleanText, callback);
                 }
@@ -3107,32 +3116,41 @@ class TitanAIAssistant {
         }
         
         let consecutiveFrames = 0;
+        const vadStartTime = Date.now();
         
         const detectVolume = () => {
-            if (!this.vadReqId || !this.vadAnalyser) return; // 安全锁：如果已经被外部停止了，彻底终结循环
+            if (!this.vadReqId || !this.vadAnalyser) return; 
             
             this.vadAnalyser.getByteFrequencyData(this.vadDataArray);
+            
+            // 🛡️ 核心优化 4：限定监测频段（仅关注 100Hz - 3800Hz 人声范围）
+            // 每一个 bin 约 90Hz (512 FFT), 取 1 到 45 左右，过滤掉高频风扇声和底噪
             let sum = 0;
-            for (let i = 0; i < this.vadDataArray.length; i++) {
+            const startBin = 2; // 跳过极低频
+            const endBin = 45;
+            for (let i = startBin; i < endBin; i++) {
                 sum += this.vadDataArray[i];
             }
-            const average = sum / this.vadDataArray.length;
+            const average = sum / (endBin - startBin);
             
-            // 【灵敏度阈值】：提升到 55，防止电脑风扇、环境白噪或呼吸声导致的误打断
-            if (average > 55) {
+            // 🛡️ 核心优化 5：智能保护期（刚开始说话的 1.2 秒内禁止打断）
+            // 防止 AI 刚开口时，环境的回声或用户没说完的残余话语导致 AI “秒怂”闭嘴
+            const gracePeriod = Date.now() - vadStartTime < 1200;
+            
+            // 【灵敏度阈值】：提升到 65，并要求更长久的持续发声
+            if (!gracePeriod && average > 65) {
                 consecutiveFrames++;
-                // 连续 8 帧判定为人声说话
-                if (consecutiveFrames > 8) { 
-                    console.warn('🛑 物理打断触发！音量飙升至:', average);
-                    this.stopVAD();      // 1. 立刻停止性能损耗的循环嗅探
-                    this.cancelOutput(); // 2. 立刻让 AI 闭嘴
+                // 连续 25 帧判定为人声说话（约 400ms），防止短促的键盘声、咳嗽声触发
+                if (consecutiveFrames > 25) { 
+                    console.warn('🛑 智能语音打断触发！有效频段均值:', average.toFixed(2));
+                    this.stopVAD();      
+                    this.cancelOutput(); 
                     return; 
                 }
             } else {
-                consecutiveFrames = 0; // 发现静音，重置击发膛
+                consecutiveFrames = 0; 
             }
             
-            // 下一帧继续巡航
             this.vadReqId = requestAnimationFrame(detectVolume);
         };
 
