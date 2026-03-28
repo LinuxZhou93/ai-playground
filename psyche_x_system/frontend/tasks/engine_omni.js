@@ -7,12 +7,18 @@
 
 // --- 1. GLOBALS & CONFIG ---
 let USER_PROFILE = { name: 'Subject', age: 7, grade: '1' };
-let AGE_TIER = 'Junior'; 
+let AGE_TIER = 'JUNIOR'; 
 let currentQuestionIndex = 0;
-let timeLimitMS = 15000; 
-let qStartTime = 0;
-let currentTimer = null;
-let syncInterruptions = 0;
+// ... (rest of globals)
+
+const ASSETS = {
+    icons: ['🍎','⭐','🐟','🦋','🌙','🍀'],
+    geoms: ['□','△','○','◇','▷','▽']
+};
+
+function playNeuralTone(freq=440, type='sine', dur=0.1) {
+    if(window.Kernel && window.Kernel.audio) window.Kernel.audio.playTone(freq, type, dur);
+}
 
 let METRICS = {
     reaction: [],
@@ -106,10 +112,29 @@ document.getElementById('btn-grant-access').addEventListener('click', async () =
     }
 });
 
+let mouseTrail = [];
+window.addEventListener('mousemove', (e) => {
+    if(qStartTime > 0) mouseTrail.push({x: e.clientX, y: e.clientY, t: Date.now()});
+    if(mouseTrail.length > 500) mouseTrail.shift();
+});
+
 function handleAnswer(correct, rt) {
     clearInterval(currentTimer);
     const task = timelineSequence[currentQuestionIndex];
-    METRICS[task.dim].push({ correct, rt, timestamp: Date.now() });
+    
+    // Calculate Jitter (Mean variance of speed)
+    let jitter = 0;
+    if(mouseTrail.length > 2) {
+        let speeds = [];
+        for(let j=1; j<mouseTrail.length; j++){
+            let d = Math.sqrt(Math.pow(mouseTrail[j].x-mouseTrail[j-1].x,2) + Math.pow(mouseTrail[j].y-mouseTrail[j-1].y,2));
+            speeds.push(d);
+        }
+        jitter = speeds.reduce((a,b)=>a+b,0) / speeds.length;
+    }
+
+    METRICS[task.dim].push({ correct, rt, jitter, timestamp: Date.now() });
+    mouseTrail = []; // Reset for next item
 
     // Feedback Visuals
     const pulse = document.getElementById('feedback-pulse');
@@ -141,35 +166,60 @@ function startTaskTimer() {
 
 const timelineSequence = [];
 
-// Dim 1: Reaction
+// Dim 1: Reaction (Neural Burst - High-Fidelity)
 for(let i=0; i<5; i++){
     timelineSequence.push({
         dim: 'reaction', label: 'NEURAL VELOCITY',
-        prompt: `神经反应测试 ${i+1}/5：看到绿色目标出现点击！`,
+        prompt: `神经反应测试 ${i+1}/5：当“神经核心”呈现绿色并向外扩张时点击！`,
         render: (container) => {
-            container.innerHTML = `<div id="target" class="w-24 h-24 rounded-full bg-slate-800 border-4 border-white/5 flex items-center justify-center text-4xl">...</div>`;
-            const t = document.getElementById('target');
+            container.innerHTML = `
+                <div id="target-container" class="relative w-64 h-64 flex items-center justify-center">
+                    <div id="target-aura" class="absolute inset-0 rounded-full border-2 border-indigo-500/20 scale-50 opacity-0"></div>
+                    <div id="target-core" class="w-20 h-20 rounded-full bg-slate-800 border-4 border-white/10 flex items-center justify-center text-xs text-slate-500 font-mono tracking-widest">STABLE</div>
+                </div>
+            `;
+            const core = document.getElementById('target-core');
+            const aura = document.getElementById('target-aura');
+            
             setTimeout(() => {
                 qStartTime = Date.now();
-                t.className = "w-24 h-24 rounded-full bg-green-500 shadow-[0_0_40px_rgba(34,197,94,0.6)] flex items-center justify-center text-5xl animate-pulse";
-                t.innerText = "!";
-                t.onclick = () => handleAnswer(true, Date.now() - qStartTime);
-            }, 1000 + Math.random()*2000);
+                core.className = "w-24 h-24 rounded-full bg-green-500 shadow-[0_0_60px_#22c55e] flex items-center justify-center text-black font-bold text-xl transition-all duration-300";
+                core.innerText = "FIRE";
+                gsap.to(aura, { scale: 1.5, opacity: 1, repeat: -1, duration: 0.6, ease: "power2.out" });
+                core.onclick = () => {
+                    gsap.killTweensOf(aura);
+                    handleAnswer(true, Date.now() - qStartTime);
+                };
+            }, 1000 + Math.random()*2500);
         }
     });
 }
 
-// Dim 2: Stroop
-const STROOP_COLORS = [{n:'红',c:'#ef4444'}, {n:'蓝',c:'#3b82f6'}, {n:'绿',c:'#22c55e'}, {n:'黄',c:'#eab308'}];
+// Dim 2: Stroop (Inhibition with Neural Noise - High-Fidelity)
 for(let i=0; i<5; i++){
     timelineSequence.push({
         dim: 'stroop', label: 'INHIBITION CONTROL',
-        prompt: `抗干扰测试 ${i+1}/5：选取文字的【真实颜色】。`,
+        prompt: `执行抑制测试 ${i+1}/5：忽略文字干扰，选择显示的【真实颜色】。`,
         render: (container, options) => {
+            container.className += " relative overflow-hidden";
+            // Add Noise Overlay
+            const noise = document.createElement('div');
+            noise.className = "absolute inset-0 pointer-events-none opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] animate-pulse";
+            container.appendChild(noise);
+
             const conflict = Math.random() > 0.5;
             const text = STROOP_COLORS[Math.floor(Math.random()*4)];
             const color = conflict ? STROOP_COLORS.find(c => c !== text) : text;
-            container.innerHTML = `<div class="text-8xl font-black" style="color:${color.c}">${text.n}</div>`;
+            
+            const textEl = document.createElement('div');
+            textEl.className = "text-9xl font-black italic tracking-widest drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]";
+            textEl.style.color = color.c;
+            textEl.innerText = text.n;
+            container.appendChild(textEl);
+            
+            // Random jitter to the text
+            gsap.to(textEl, { x: 5, y: 5, repeat: -1, yoyo: true, duration: 0.05 });
+
             options.innerHTML = '';
             STROOP_COLORS.forEach(c => {
                 const btn = document.createElement('button');
@@ -182,26 +232,29 @@ for(let i=0; i<5; i++){
     });
 }
 
-// Dim 3: Spatial Memory
+// Dim 3: Spatial Memory (Neural Lattice - High-Fidelity)
 for(let i=0; i<5; i++){
     timelineSequence.push({
         dim: 'spatial', label: 'SPATIAL RETENTION',
-        prompt: `空间记忆 ${i+1}/5：记忆闪烁位置并还原。`,
+        prompt: `空间记忆测试 ${i+1}/5：记录晶格点的闪烁序列并复原。`,
         render: (container) => {
-            container.innerHTML = `<div class="grid grid-cols-4 gap-3 p-4 bg-white/5 rounded-2xl" id="grid"></div>`;
+            container.innerHTML = `<div class="grid grid-cols-4 gap-4 p-6 bg-white/5 rounded-3xl border border-white/10" id="grid" style="perspective: 1000px;"></div>`;
             const grid = document.getElementById('grid');
             const cells = [];
             for(let j=0;j<16;j++){
                 const c = document.createElement('div');
-                c.className = "w-16 h-16 bg-slate-800 rounded-lg transition-all";
+                c.className = "w-16 h-16 bg-slate-800 rounded-xl transition-all duration-300 transform-gpu cursor-pointer hover:bg-slate-700";
                 grid.appendChild(c); cells.push(c);
             }
             const seq = Array.from({length:3+i}, () => Math.floor(Math.random()*16));
             let sIdx = 0;
             const itv = setInterval(() => {
                 if(sIdx < seq.length){
-                    gsap.fromTo(cells[seq[sIdx]], {backgroundColor:'#8b5cf6'}, {backgroundColor:'#1e293b', duration:0.5});
-                    playTone(400+sIdx*100); sIdx++;
+                    gsap.fromTo(cells[seq[sIdx]], 
+                        { backgroundColor: '#8b5cf6', rotateY: 180, scale: 1.2 }, 
+                        { backgroundColor: '#1e293b', rotateY: 0, scale: 1.0, duration: 0.5 }
+                    );
+                    playNeuralTone(500+sIdx*80, 'triangle', 0.15); sIdx++;
                 } else {
                     clearInterval(itv);
                     qStartTime = Date.now(); startTaskTimer();
@@ -209,32 +262,48 @@ for(let i=0; i<5; i++){
                     cells.forEach((c, idx) => {
                         c.onclick = () => {
                             userSeq.push(idx);
+                            gsap.fromTo(c, {scale: 0.8}, {scale: 1, duration: 0.2});
                             c.style.backgroundColor = '#3b82f6';
+                            playNeuralTone(800);
                             if(idx !== seq[userSeq.length-1]) handleAnswer(false, 0);
                             else if(userSeq.length === seq.length) handleAnswer(true, Date.now()-qStartTime);
                         };
                     });
                 }
-            }, 800);
+            }, 900);
         }
     });
 }
 
-// Dim 4: Logic
-for(let i=0; i<5; i++){
+// Dim 4: Logic / Raven Matrices (High-Fidelity)
+for (let i = 0; i < 5; i++) {
     timelineSequence.push({
         dim: 'logic', label: 'FLUID INTELLIGENCE',
-        prompt: `逻辑矩阵推理 ${i+1}/5：选择符合逻辑规律的图形。`,
+        prompt: `逻辑矩阵推理 ${i + 1}/5：选取最符合补全规律的图形。`,
         render: (container, options) => {
-            const syms = ['▲','●','■','★','◆'];
-            const start = i % syms.length;
-            const pattern = [syms[start], syms[(start+1)%5], '?'];
-            container.innerHTML = `<div class="text-7xl space-x-4">${pattern.join(' → ')}</div>`;
+            const isJunior = AGE_TIER === 'JUNIOR';
+            const pool = isJunior ? ASSETS.icons : ASSETS.geoms;
+            const start = i % (pool.length - 2);
+            
+            // Logic: A -> B -> C (Pattern: index + step)
+            const step = Math.floor(Math.random()*2) + 1;
+            const pattern = [pool[start], pool[(start+step)%pool.length], '?'];
+            const correct = pool[(start+step*2)%pool.length];
+            
+            container.innerHTML = `
+                <div class="flex items-center gap-12 p-16 bg-white/5 rounded-full border border-white/10 shadow-2xl scale-110">
+                    ${pattern.map(s => `<span class="text-8xl ${s==='?'?'text-indigo-500 animate-pulse':'text-white'}">${s}</span>`).join('<span class="text-3xl text-slate-700 opacity-50">→</span>')}
+                </div>
+            `;
+            
             options.innerHTML = '';
-            syms.forEach(s => {
+            const choices = [correct, pool[(start+step*3)%pool.length], pool[(start+step+4)%pool.length], pool[(start+step+5)%pool.length]]
+                .sort(()=>Math.random()-0.5);
+            
+            choices.forEach(val => {
                 const btn = document.createElement('button');
-                btn.className = "choice-btn text-3xl"; btn.innerText = s;
-                btn.onclick = () => handleAnswer(s === syms[(start+2)%5], Date.now()-qStartTime);
+                btn.className = "choice-btn text-5xl p-10"; btn.innerText = val;
+                btn.onclick = () => handleAnswer(val === correct, Date.now()-qStartTime);
                 options.appendChild(btn);
             });
             qStartTime = Date.now(); startTaskTimer();
@@ -242,31 +311,48 @@ for(let i=0; i<5; i++){
     });
 }
 
-// Dim 5: Digit Span (5 trials)
+// Dim 5: Digit Span (Waveform Sync - High-Fidelity)
 for (let i = 0; i < 5; i++) {
     timelineSequence.push({
         dim: 'span', label: 'WORKING MEMORY',
-        prompt: `数字广度测试 ${i + 1}/5：记录听到的数字，在键盘上按顺序输入！`,
+        prompt: `数字广度测试 ${i + 1}/5：记录听到的数字序列后点选。`,
         render: (container, optionsContainer) => {
             const length = 3 + i;
             const digits = Array.from({length}, () => Math.floor(Math.random() * 10));
-            container.innerHTML = `<div class="text-9xl font-black text-indigo-400" id="digit-display">...</div>`;
+            container.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <canvas id="wave-canvas" width="300" height="100" class="mb-4 opacity-50"></canvas>
+                    <div class="text-9xl font-black text-indigo-400" id="digit-display">--</div>
+                </div>
+            `;
             const display = document.getElementById('digit-display');
+            const canvas = document.getElementById('wave-canvas');
+            const ctx = canvas.getContext('2d');
             
+            function drawWave(amp) {
+                ctx.clearRect(0,0,300,100);
+                ctx.beginPath(); ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 2;
+                for(let x=0; x<300; x+=5){
+                    const y = 50 + Math.sin(x*0.1) * amp;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
             let state = { showing: true, userDigits: [] };
             let sIdx = 0;
             const itv = setInterval(() => {
                 if (sIdx < digits.length) {
                     display.innerText = digits[sIdx];
-                    gsap.fromTo(display, {scale: 0.5, opacity: 0}, {scale: 1, opacity: 1, duration: 0.3});
-                    playTone(300 + digits[sIdx]*20, 'sine', 0.2);
+                    gsap.fromTo(display, {scale: 1.5, opacity: 0}, {scale: 1, opacity: 1, duration: 0.3});
+                    playNeuralTone(300 + digits[sIdx]*20, 'sine', 0.4);
+                    drawWave(30); setTimeout(()=>drawWave(0), 400);
                     sIdx++;
                 } else {
                     clearInterval(itv);
                     display.innerText = "?";
                     state.showing = false;
-                    qStartTime = Date.now();
-                    startTaskTimer();
+                    qStartTime = Date.now(); startTaskTimer();
                 }
             }, 1000);
 
@@ -274,11 +360,11 @@ for (let i = 0; i < 5; i++) {
             const keypad = optionsContainer.firstChild;
             for(let d=0; d<=9; d++) {
                 const btn = document.createElement('button');
-                btn.className = "choice-btn text-xl p-4";
-                btn.innerText = d;
+                btn.className = "choice-btn text-2xl p-4"; btn.innerText = d;
                 btn.onclick = () => {
                     if(state.showing) return;
                     state.userDigits.push(d);
+                    playNeuralTone(600);
                     if(d !== digits[state.userDigits.length - 1]) handleAnswer(false, Date.now() - qStartTime);
                     else if(state.userDigits.length === digits.length) handleAnswer(true, Date.now() - qStartTime);
                 };
@@ -332,25 +418,42 @@ for (let i = 0; i < 5; i++) {
     });
 }
 
-// Dim 7: Science (5 Interactive trials)
+// Dim 7: Science (Newtonian Physics - High-Fidelity)
 for (let i = 0; i < 5; i++) {
     timelineSequence.push({
         dim: 'science', label: 'PREDICTIVE PHYSICS',
-        prompt: `物理模拟 ${i + 1}/5：预测小球在斜面上的最终落点。`,
+        prompt: `物理模拟 ${i + 1}/5：观察重力环境，点击球体最终接触的区域。`,
         render: (container, options) => {
             const canvas = document.createElement('canvas');
-            canvas.width = 400; canvas.height = 200;
-            canvas.className = "bg-black/30 rounded-xl border border-white/5 mx-auto mb-4";
+            canvas.width = 600; canvas.height = 300;
+            canvas.className = "bg-slate-900 border border-indigo-500/20 rounded-3xl mb-4";
             container.appendChild(canvas);
             const ctx = canvas.getContext('2d');
-            ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(50, 50); ctx.lineTo(350, 150); ctx.stroke();
-            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(60, 50, 6, 0, 7); ctx.fill();
+            
+            // Physics State
+            let x = 50, y = 50, vx = 5 + Math.random()*5, vy = 0, g = 0.2;
+            const targets = [150, 300, 450];
+            const correctT = targets[i % 3];
+
+            function animate() {
+                if (y > 280) return; // Stop at floor
+                ctx.clearRect(0,0,600,300);
+                // Draw Targets
+                targets.forEach(tx => {
+                    ctx.fillStyle = tx === correctT ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)';
+                    ctx.fillRect(tx-30, 280, 60, 20);
+                });
+                // Update Ball
+                vy += g; x += vx; y += vy;
+                ctx.fillStyle = '#6366f1'; ctx.beginPath(); ctx.arc(x,y,8,0,7); ctx.fill();
+                requestAnimationFrame(animate);
+            }
+            animate();
             
             options.innerHTML = '';
-            ['落点 A (25%)', '落点 B (50%)', '落点 C (75%)'].forEach((choice, idx) => {
-                const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.innerText = choice;
-                btn.onclick = () => handleAnswer(idx === 2, 1500);
+            targets.forEach((val, idx) => {
+                const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.innerText = `Zone ${idx+1}`;
+                btn.onclick = () => handleAnswer(val === correctT, 2000);
                 options.appendChild(btn);
             });
             qStartTime = Date.now(); startTaskTimer();
@@ -416,7 +519,12 @@ function completeAssessment() {
     Object.keys(METRICS).forEach(dim => {
         const correct = METRICS[dim].filter(m => m.correct).length;
         const avgRT = METRICS[dim].length ? METRICS[dim].reduce((a,b)=>a+b.rt, 0)/METRICS[dim].length : 0;
-        summary[dim] = { score: correct * (100 / (METRICS[dim].length || 1)), rt: Math.round(avgRT) };
+        const avgJitter = METRICS[dim].length ? METRICS[dim].reduce((a,b)=>a+(b.jitter||0), 0)/METRICS[dim].length : 0;
+        summary[dim] = { 
+            score: correct * (100 / (METRICS[dim].length || 1)), 
+            rt: Math.round(avgRT),
+            behavior: avgJitter > 20 ? 'HIGH_CONFLICT' : 'STABLE'
+        };
     });
     window.currentSummary = summary;
 }
