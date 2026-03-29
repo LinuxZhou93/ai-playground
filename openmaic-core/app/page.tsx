@@ -242,6 +242,21 @@ function HomePage() {
                    setAutoStartStatus('正在生成互动分镜...');
                    handleGenerate('true', payload); // 直接传入 payload 绕过闭包陷阱
                 }, 1500);
+
+                // 🛡️ [Titan OS] 12秒超时兜底：如果页面还未跳转，强制硬导航
+                setTimeout(() => {
+                   if (window.location.pathname === '/' || window.location.pathname === '') {
+                     console.warn('⚠️ [Titan OS] 超时兜底触发！强制跳转到 /generation-preview');
+                     const hasSession = sessionStorage.getItem('generationSession');
+                     if (hasSession) {
+                       window.location.href = '/generation-preview';
+                     } else {
+                       // session 都没写成功，说明 handleGenerate 根本没执行到核心逻辑
+                       console.error('❌ [Titan OS] Session 空缺，回退到首页');
+                       window.location.href = '/';
+                     }
+                   }
+                }, 12000);
             }
         }, 500); // 稍微延迟以体现极客装配感
       }
@@ -485,10 +500,20 @@ function HomePage() {
           sessionStorage.setItem('autoStart', 'true');
       }
 
-      router.push('/generation-preview');
+      // 🚀 [Titan OS] 自动发车使用硬跳转，绕过 useEffect 闭包中 router.push 可能静默失败的问题
+      if (autoStartFlag === 'true') {
+        console.log('🚀 [Titan OS] Session 已写入，正在执行硬跳转至 /generation-preview ...');
+        window.location.href = '/generation-preview';
+      } else {
+        router.push('/generation-preview');
+      }
     } catch (err) {
       log.error('Error preparing generation:', err);
       setError(err instanceof Error ? err.message : t('upload.generateFailed'));
+      // 🛡️ [Titan OS] 自动发车异常时也要关闭遮罩，避免死锁
+      if (autoStartFlag === 'true') {
+        setIsAutoStarting(false);
+      }
     }
   };
 
