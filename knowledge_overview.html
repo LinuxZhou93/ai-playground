@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能预习中心 | TITAN OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+    <style>
+        :root {
+            --primary: #00f3ff;
+            --secondary: #7000ff;
+            --bg-deep: #030712;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: var(--bg-deep); 
+            color: white; 
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* 极客背景网格 */
+        .cyber-grid {
+            position: fixed; inset: 0; z-index: -1;
+            background-image: linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(circle at 50% 50%, black, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at 50% 50%, black, transparent 80%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 40px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* 顶部 AI 导师区域 */
+        .ai-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+        .ai-avatar {
+            width: 80px; height: 80px;
+            border-radius: 20px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+            background: url('assets/img/xiao_chuang_avatar.png') center/cover;
+            position: relative;
+        }
+        .ai-avatar::after {
+            content: ''; position: absolute; inset: -5px;
+            border: 1px solid var(--primary); border-radius: 24px;
+            opacity: 0.5; animation: pulse 2s infinite;
+        }
+        .ai-title {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+        }
+        .ai-status { color: var(--primary); font-size: 12px; font-weight: bold; margin-top: 4px; }
+
+        /* 核心内容面板 */
+        .content-wrap {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .main-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 60px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .topic-label {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--primary);
+            font-size: 14px; font-weight: 700;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .topic-title {
+            font-size: 48px; font-weight: 900;
+            margin-bottom: 30px;
+            line-height: 1.1;
+        }
+        
+        .intro-text {
+            font-size: 18px; color: rgba(255,255,255,0.7);
+            line-height: 1.8;
+            margin-bottom: 40px;
+            min-height: 120px;
+        }
+
+        .knowledge-points {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .point-item {
+            display: flex; gap: 15px;
+            opacity: 0; transform: translateY(20px);
+        }
+        .point-icon {
+            width: 24px; height: 24px; color: var(--primary); flex-shrink: 0; margin-top: 4px;
+        }
+        .point-content h4 { font-size: 16px; margin-bottom: 6px; color: white; }
+        .point-content p { font-size: 14px; color: rgba(255,255,255,0.5); }
+
+        /* 进度侧边栏 */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .loader-card {
+            background: rgba(112, 0, 255, 0.05);
+            border: 1px solid rgba(112, 0, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px;
+            text-align: center;
+        }
+        .brain-loader {
+            width: 120px; height: 120px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        .brain-circle {
+            position: absolute; inset: 0;
+            border: 2px solid transparent;
+            border-top-color: var(--secondary);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+        }
+
+        .ready-btn {
+            width: 100%;
+            padding: 20px;
+            border-radius: 100px;
+            border: none;
+            background: #333;
+            color: rgba(255,255,255,0.3);
+            font-weight: 900;
+            font-size: 16px;
+            letter-spacing: 2px;
+            cursor: not-allowed;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase;
+            font-family: 'Orbitron', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+        .ready-btn.active {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.3);
+            transform: scale(1.02);
+        }
+        .ready-btn.active:hover { transform: scale(1.05) translateY(-2px); }
+
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.15); opacity: 0; } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 1024px) {
+            .content-wrap { grid-template-columns: 1fr; }
+            .side-panel { flex-direction: column; }
+            .topic-title { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cyber-grid"></div>
+    
+    <div class="container">
+        <!-- AI 导师入口 -->
+        <header class="ai-header">
+            <div class="ai-avatar"></div>
+            <div>
+                <h3 class="ai-title">TITAN INTELLIGENCE</h3>
+                <p class="ai-status">● 小创老师正在提取核心知识点...</p>
+            </div>
+        </header>
+
+        <div class="content-wrap">
+            <!-- 预习主卡片 -->
+            <main class="main-card">
+                <div class="topic-label" id="lvl-tag">ACADEMIC_PATH // PRIMARY</div>
+                <h1 class="topic-title" id="course-title">等待初始化...</h1>
+                
+                <div class="intro-text" id="ai-intro">
+                    <!-- AI 流式内容预留 -->
+                </div>
+
+                <div class="knowledge-points" id="knowledge-list">
+                    <!-- 动态注入知识点 -->
+                </div>
+            </main>
+
+            <!-- 侧边进度 -->
+            <aside class="side-panel">
+                <div class="loader-card">
+                    <div class="brain-loader">
+                        <div class="brain-circle"></div>
+                        <div class="brain-circle" style="inset: 15px; animation-duration: 2s; opacity: 0.5;"></div>
+                        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: Orbitron; font-size: 14px;" id="load-percent">0%</div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--secondary); letter-spacing: 2px;">SYNTHESIZING COURSEWARE</div>
+                </div>
+
+                <button class="ready-btn" id="start-btn">
+                    PREPARING EXPERIENCE
+                </button>
+                
+                <p style="font-size: 11px; text-align: center; opacity: 0.4; line-height: 1.5;">
+                    在大脑预热的同时，课件环境正在后台全速同步。<br>预计 60 秒内就绪。
+                </p>
+            </aside>
+        </div>
+    </div>
+
+    <!-- 逻辑控制 -->
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const topic = urlParams.get('topic') || '未来科技与人工智能';
+        const rawLevel = urlParams.get('level') || 'scan';
+        const targetUrl = urlParams.get('target') || 'index.html';
+
+        // 认知维度映射 (针对小朋友进行语义降维)
+        const levelMap = {
+            'scan': { tag: '闪电突击 // 重点精华', intro: '嘿！我已经为你把这节课的精华都抓出来啦。咱们快快看一眼，直接掌握最酷的部分！' },
+            'case': { tag: '实战基地 // 现场演示', intro: '准备好动手了吗？我正带着你飞向实验室，看看这些神奇的技术在现实中是怎么运行的！' },
+            'logic': { tag: '高级大脑 // 深度推演', intro: '哇哦，是个小小科学家！我们要开始深度脑力风暴啦，一起来解开这个世界背后的终极秘密吧！' }
+        };
+        const config = levelMap[rawLevel] || levelMap['scan'];
+
+        // 1. 初始化页面信息
+        const displayTopic = topic && topic !== 'undefined' ? topic : '未知探索领域';
+        document.getElementById('course-title').innerText = displayTopic;
+        document.getElementById('lvl-tag').innerText = config.tag;
+
+        // 2. 模拟 AI 流式打字机效果
+        const introElement = document.getElementById('ai-intro');
+        const welcomeText = `嘿！同学。针对“${displayTopic}”，我已开启【${config.tag.split('//')[1].trim()}】学习模式。${config.intro} 在课件同步完成前，请先预习以下关键节点：`;
+        
+        let i = 0;
+        function typeIntro() {
+            if (i < welcomeText.length) {
+                introElement.innerHTML += welcomeText.charAt(i);
+                i++;
+                setTimeout(typeIntro, 20);
+            } else {
+                showPoints();
+            }
+        }
+
+        // 3. 模拟知识点淡入
+        const points = [
+            { t: "核心概念", d: "理解其最底层的逻辑组件，不只是看表面功能。" },
+            { t: "现实连接", d: "看看这些技术是如何在星际航行或日常生活中真实落地的。" },
+            { t: "实战挑战", d: "待会你需要亲自动手，调试出一套能运行的智能系统。" }
+        ];
+
+        function showPoints() {
+            const list = document.getElementById('knowledge-list');
+            points.forEach((p, idx) => {
+                setTimeout(() => {
+                    const el = document.createElement('div');
+                    el.className = 'point-item';
+                    el.innerHTML = `
+                        <div class="point-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+                        <div class="point-content">
+                            <h4>${p.t}</h4>
+                            <p>${p.d}</p>
+                        </div>
+                    `;
+                    list.appendChild(el);
+                    el.animate([
+                        { opacity: 0, transform: 'translateY(20px)' },
+                        { opacity: 1, transform: 'translateY(0)' }
+                    ], { duration: 600, fill: 'forwards' });
+                }, idx * 400);
+            });
+        }
+
+        // 4. 模拟加载进度与按钮激活
+        let progress = 0;
+        const loadTimer = setInterval(() => {
+            progress += Math.random() * 5;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(loadTimer);
+                activateBtn();
+            }
+            document.getElementById('load-percent').innerText = Math.floor(progress) + '%';
+        }, 500);
+
+        function activateBtn() {
+            const btn = document.getElementById('start-btn');
+            btn.innerText = "🚀 进入实战基地 (START)";
+            btn.classList.add('active');
+
+            // 手动构造 URL 以支持 file:// 协议下的正确定向
+            let finalUrl = targetUrl;
+            const params = new URLSearchParams();
+            params.set('topic', topic);
+            params.set('level', rawLevel);
+            
+            finalUrl += (finalUrl.includes('?') ? '&' : '?') + params.toString();
+
+            // 升级：知识预习完成后“自动跳转”，实现超滑转场！
+            document.querySelector('.ai-status').innerText = "● 课堂同步完成！正在为您自动连接实训舱...";
+            document.querySelector('.ai-status').style.color = "#10b981";
+            
+            // 延迟 1 秒后自动触发跳转
+            setTimeout(() => {
+                location.href = finalUrl;
+            }, 1000);
+        }
+
+        window.onload = typeIntro;
+    </script>
+</body>
+</html>

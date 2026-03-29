@@ -80,6 +80,7 @@ class TitanAIAssistant {
         this.lastVoiceTime = Date.now();
         
         this.init();
+        window.TitanAIAssistantInstance = this;
     }
     updateMemberStatusUI() {
         if (!this.statusBar || !this.input) return; 
@@ -250,6 +251,59 @@ class TitanAIAssistant {
             return true;
         }
         return false;
+    }
+
+    // --- AI 课程推荐卡片渲染引擎 (AI Course Recommendation Engine) ---
+    processRecommendations(responseText, container) {
+        const recRegex = /```json\s*(\{[\s\S]*?"titan_recommendation"[\s\S]*?\})\s*```/g;
+        let match;
+        const recommendations = [];
+
+        while ((match = recRegex.exec(responseText)) !== null) {
+            try {
+                const data = JSON.parse(match[1]).titan_recommendation;
+                if (Array.isArray(data)) recommendations.push(...data);
+            } catch (e) { console.warn('[Titan] 推荐指令解析失败', e); }
+        }
+
+        if (recommendations.length > 0) {
+            const recWrapper = document.createElement('div');
+            recWrapper.className = 'ai-rec-wrapper';
+            recWrapper.style.cssText = 'margin-top: 16px; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px; overflow: hidden; background: rgba(14, 165, 233, 0.05);';
+            recWrapper.innerHTML = `
+                <div style="padding: 10px 16px; font-size: 13px; font-weight: 700; color: #38bdf8; border-bottom: 1px solid rgba(56, 189, 248, 0.15); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-map-signs"></i> 小创老师精选推荐 (${recommendations.length})
+                </div>
+                <div style="padding: 8px;"></div>
+            `;
+            const grid = recWrapper.querySelector('div:last-child');
+
+            recommendations.slice(0, 3).forEach(rec => {
+                const card = document.createElement('div');
+                card.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin: 4px 8px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(56, 189, 248, 0.15); cursor: pointer; transition: all 0.2s;';
+                card.innerHTML = `
+                    <div style="font-size: 24px; flex-shrink: 0;">${rec.icon || '🚀'}</div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 2px;">${rec.name}</div>
+                        <div style="font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${rec.desc || '点击探索该主题实验室'}</div>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color: #38bdf8; opacity: 0.5; font-size: 12px;"></i>
+                `;
+                card.onmouseover = () => { card.style.background = 'rgba(14, 165, 233, 0.15)'; card.style.borderColor = 'rgba(56, 189, 248, 0.4)'; };
+                card.onmouseout = () => { card.style.background = 'rgba(0,0,0,0.3)'; card.style.borderColor = 'rgba(56, 189, 248, 0.15)'; };
+                card.onclick = () => {
+                    this.playHapticSound('click');
+                    if (window.titanUI && window.titanUI.trackInterest) {
+                        window.titanUI.trackInterest(rec.category || 'coding');
+                    }
+                    location.href = rec.link || 'hub-auto-101.html';
+                };
+                grid.appendChild(card);
+            });
+
+            container.appendChild(recWrapper);
+            this.scrollToBottom(true);
+        }
     }
 
     injectGlobalWindowControls() {
@@ -548,6 +602,84 @@ class TitanAIAssistant {
                 }
             });
         }
+    }
+
+    /**
+     * 静默自动存档 —— 不中断对话、不清空聊天记录
+     * 触发时机：每 5 轮对话 / 关闭面板时
+     * 原理：把当前对话快照写入 localStorage，如果本会话已有存档则覆盖更新
+     */
+    silentAutoArchive() {
+        if (!this.chatHistory || this.chatHistory.length <= 1) return;
+
+        // 复用 archiveCurrentSession 中的 NLP 主题提取逻辑
+        let fullText = this.chatHistory.filter(m => m.role !== 'system').map(m => {
+            if (typeof m.content === 'string') return m.content;
+            if (Array.isArray(m.content)) return m.content.map(c => c.text || '').join(' ');
+            return '';
+        }).join('\n');
+
+        let entities = [];
+        const engMatches = fullText.match(/[A-Za-z0-9_-]{3,}/g) || [];
+        const bracketMatches = fullText.match(/[《【"\"']([^》】"\"']{2,15})[》】"\"']/g) || [];
+        const zhMatches = fullText.match(/[\u4e00-\u9fa5]{2,10}(原理|系统|算法|模型|架构|功能|机制|代码|指令|方案)/g) || [];
+        const stopWords = ['the', 'and', 'this', 'that', 'with', 'for', 'are', 'what', 'how', 'http', 'https', 'com'];
+        entities.push(...engMatches.filter(w => !stopWords.includes(w.toLowerCase())));
+        entities.push(...bracketMatches.map(s => s.replace(/[《【】》"\"']/g, '')));
+        entities.push(...zhMatches);
+
+        let counts = {};
+        entities.forEach(w => {
+            let core = w.trim().toLowerCase();
+            if (core.length > 2 && core.length < 15) counts[core] = (counts[core] || 0) + 1;
+        });
+        let sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+        let mainTopics = sorted.slice(0, 2).map(item => item[0]);
+        if (mainTopics.length === 0) mainTopics = ['自由探索'];
+
+        const branchTypes = ['🌟 探索日记', '🧠 脑力激荡', '🔬 研究手记', '🚀 灵感起飞', '🧩 问题解构'];
+        const commitType = branchTypes[Math.floor(Math.random() * branchTypes.length)];
+        const generatedTitle = `${commitType}：${mainTopics.join('与')}`;
+
+        let firstUserMsg = this.chatHistory.find(m => m.role === 'user');
+        let rawQ = firstUserMsg && typeof firstUserMsg.content === 'string' ? firstUserMsg.content.trim().split(/[。！？\n]/)[0].substring(0, 30) : '未命名的探索';
+        let firstAiMsg = this.chatHistory.find(m => m.role === 'assistant' || m.role === 'ai');
+        let aiClue = '';
+        if (firstAiMsg && typeof firstAiMsg.content === 'string') {
+            aiClue = firstAiMsg.content.replace(/[\*\#\`]/g, '').trim().split(/[。！？\n]/)[0].substring(0, 45);
+        }
+        let descStr = `【我的问题】${rawQ}...\n【小创解答】${aiClue ? (aiClue + '...') : '等待验证'}\n【关键知识】${mainTopics.join(', ')}`;
+
+        let archives = [];
+        try {
+            archives = JSON.parse(localStorage.getItem('titan_ai_branches') || '[]');
+        } catch(e) {}
+
+        // 为当前会话生成唯一标识（基于首次用户消息的时间戳）
+        if (!this._sessionArchiveId) {
+            this._sessionArchiveId = 'TC-AUTO-' + Date.now();
+        }
+
+        // 查找是否已有本会话的存档（覆盖更新而不是新建）
+        const existingIdx = archives.findIndex(a => a.id === this._sessionArchiveId);
+        const archiveItem = {
+            id: this._sessionArchiveId,
+            date: new Date().toLocaleString(),
+            title: generatedTitle,
+            desc: descStr,
+            stats: `学习轮次：${this.chatHistory.filter(m => m.role !== 'system').length}`,
+            data: [...this.chatHistory]
+        };
+
+        if (existingIdx >= 0) {
+            archives[existingIdx] = archiveItem; // 覆盖更新
+        } else {
+            archives.unshift(archiveItem); // 新增
+        }
+
+        archives = archives.slice(0, 50);
+        localStorage.setItem('titan_ai_branches', JSON.stringify(archives));
+        console.log('[Titan] 静默自动存档完成:', generatedTitle);
     }
 
     archiveCurrentSession() {
@@ -2317,6 +2449,8 @@ class TitanAIAssistant {
                 }
             } else {
                 this.panel.classList.remove('open');
+                // 🔐 关闭面板时自动静默存档，防止对话丢失
+                this.silentAutoArchive();
             }
             this.saveSession(); 
         });
@@ -3542,7 +3676,8 @@ ${currentFullContent}
    - **Mermaid 必须被 \`\`\`mermaid 包裹**，严禁任何前言废话。
    - **SVG 图纸必须简洁**，颜色建议为青色 (#0ea5e9)，必须被 \`\`\`xml 包裹。
    - **AI 绘图指令**：当用户要求“画一个...”时，强制使用 \`![生成: 英文详细描述](https://ai-render.com/img.png)\` 触发渲染阵列。
-6. **禁止 AI 风格废话**：不要说“作为一名AI助教...”、“很高兴为你解答...”。直接进入 Notion 文档构建模式，第一句话必须直击要害或抛出图形。`;
+6. **禁止 AI 风格废话**：不要说“作为一名AI助教...”、“很高兴为你解答...”。直接进入 Notion 文档构建模式，第一句话必须直击要害或抛出图形。
+7. **学习导航员 (Navigator Mode)**：除了回答问题，每次回复最末尾必须输出一个 JSON 代码块（用json围栏包裹），推荐 3 个相关课程。推荐库：脑机接口->hub-auto-101.html, 机器人->hub-auto-102.html, 自动驾驶->hub-auto-103.html, 编程->hub-auto-104.html, 航天->hub-auto-105.html, 新材料->hub-auto-106.html。JSON 包含 titan_recommendation 数组，每项含 name/link/icon/category/desc 字段。严禁解释此 JSON。`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {
@@ -3645,6 +3780,11 @@ ${currentFullContent}
             let aiReply = data.choices[0].message.content;
             this.chatHistory.push({ role: 'assistant', content: aiReply });
             this.saveSession();
+            // 🔐 每 5 轮对话自动静默存档
+            const userRounds = this.chatHistory.filter(m => m.role === 'user').length;
+            if (userRounds > 0 && userRounds % 5 === 0) {
+                this.silentAutoArchive();
+            }
             // --- 开始：全新增强版单向流智能打字机 (Unified Stream Engine) ---
             const typing = document.getElementById('ai-typing-indicator');
             if (typing) typing.remove();
@@ -4630,7 +4770,7 @@ class TitanAdaptiveUI {
         // 3. 构建 HTML (保留核心固定入口，如科技宝箱和个人中心)
         let dockHTML = `
             <!-- 核心交互：科技宝箱 -->
-            <div id="newLaunchpadEntry" class="dock-icon-box" style="border-color:var(--primary); box-shadow:0 0 20px rgba(0,240,255,0.4); transform: scale(1.05);">
+            <div id="newLaunchpadEntry" class="dock-icon-box" onclick="window.Launchpad.open()" style="border-color:var(--primary); box-shadow:0 0 20px rgba(0,240,255,0.4); transform: scale(1.05);">
                 <div class="dock-icon-bg" style="font-size: 32px;">🚀</div>
                 <div class="dock-label" style="color:var(--primary); font-weight:bold;">科技宝箱</div>
             </div>

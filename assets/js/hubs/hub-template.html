@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="assets/css/titan-core.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link rel="stylesheet" href="assets/css/cognitive-selector.css">
     <script src="assets/js/hubs/hub-data.js?v=1"></script>
     <style>
         .cyber-grid { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.15;
@@ -98,6 +99,43 @@
             </div>
         </div>
     </section>
+    
+    <!-- 认知维度选择器浮层 -->
+    <div id="cognitive-selector">
+        <div class="selector-close" onclick="window.hideCognitiveSelector()">✕</div>
+        <div class="selector-content">
+            <div class="assistant-intro">
+                <div class="assistant-avatar"></div>
+                <div class="assistant-speech">嘿！我是小创老师。这门课你想怎么学？</div>
+            </div>
+            
+            <div class="dimension-grid">
+                <!-- 快速扫描 -->
+                <div class="dimension-card" onclick="window.launchCourse('scan')">
+                    <div class="dimension-icon">⚡</div>
+                    <div class="dimension-name">闪电突击</div>
+                    <div class="dimension-info">只想看重点精华？<br>我带你快快过一遍！</div>
+                    <div class="card-glow"></div>
+                </div>
+                
+                <!-- 案例实战 -->
+                <div class="dimension-card" onclick="window.launchCourse('case')">
+                    <div class="dimension-icon">🛠️</div>
+                    <div class="dimension-name">实战基地</div>
+                    <div class="dimension-info">想看是怎么做的？<br>我们去实验室看演示！</div>
+                    <div class="card-glow"></div>
+                </div>
+                
+                <!-- 底层逻辑 -->
+                <div class="dimension-card" onclick="window.launchCourse('logic')">
+                    <div class="dimension-icon">🧬</div>
+                    <div class="dimension-name">超级大脑</div>
+                    <div class="dimension-info">想搞懂背后的秘密？<br>像科学家一样去研究！</div>
+                    <div class="card-glow"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- TITAN AI ASSISTANT -->
     <script src="assets/js/titan-ai-assistant.js?v=2026.03.26_10"></script>
@@ -140,7 +178,9 @@
             const sectorsGrid = document.getElementById('sub-sectors-grid');
             if (data.subSectors && data.subSectors.length > 0) {
                 sectorsGrid.innerHTML = data.subSectors.map(s => `
-                    <a href="#" class="block glass-panel p-8 holo-card group cursor-pointer gs-reveal-up border-l-4" style="border-left-color: ${category.themeColor}">
+                    <div class="block glass-panel p-8 holo-card group cursor-pointer gs-reveal-up border-l-4" 
+                         style="border-left-color: ${category.themeColor}"
+                         onclick="window.showCognitiveSelector('${s.title.replace(/'/g, "\\'")}', '${s.classroom}')">
                         <div class="flex justify-between items-start mb-8">
                             <div class="text-[3rem] opacity-20 font-black font-orbitron leading-none group-hover:opacity-100 transition-opacity" style="color: ${category.themeColor}">${s.id}</div>
                             <span class="text-[10px] font-mono px-2 py-1 bg-green-500 bg-opacity-10 text-green-400 rounded-sm border border-green-500 border-opacity-20">${s.label}</span>
@@ -150,7 +190,7 @@
                         <div class="w-full bg-black bg-opacity-50 h-1.5 rounded-full overflow-hidden">
                             <div class="w-0 h-full group-hover:w-full transition-all duration-1000 ease-out" style="background-color: ${category.themeColor}"></div>
                         </div>
-                    </a>
+                    </div>
                 `).join('');
             } else if (sectorsGrid) {
                 sectorsGrid.innerHTML = '<div class="col-span-full text-center opacity-50 py-20 font-mono">/// NO ARCHIVE SECTORS FOUND FOR THIS MODULE ///</div>';
@@ -167,6 +207,38 @@
                 card.addEventListener('mouseleave', () => { card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)`; });
             });
         }
+
+        // --- 维度选择器逻辑 ---
+        let currentTargetCourse = { title: '', url: '' };
+        window.showCognitiveSelector = (title, url) => {
+            currentTargetCourse = { title, url };
+            document.getElementById('sel-course-name').innerText = title;
+            const selector = document.getElementById('cognitive-selector');
+            selector.style.display = 'flex';
+            gsap.to(selector, { opacity: 1, duration: 0.5, ease: "power2.out" });
+        };
+
+        window.hideCognitiveSelector = () => {
+            const selector = document.getElementById('cognitive-selector');
+            gsap.to(selector, { opacity: 0, duration: 0.3, ease: "power2.in", onComplete: () => {
+                selector.style.display = 'none';
+            }});
+        };
+
+        // 发起课程 (选择维度后触发)
+        window.launchCourse = (level) => {
+            const { title, url } = currentTargetCourse;
+            // 默认直接跳转到云端全屏实战课堂 (跳过本地 openmaic-classroom.html 包装)
+            const destination = 'https://ai.zhouxiaomai.com/';
+            
+            // 跳转到预习页 (由于模版在 assets/js/hubs/，需向上跳三级回到根目录)
+            const previewUrl = `../../../knowledge_overview.html?topic=${encodeURIComponent(title)}&level=${level}&target=${encodeURIComponent(destination)}`;
+            
+            // 退出动画
+            gsap.to(".selector-content", { y: -50, opacity: 0, duration: 0.5, ease: "power2.in", onComplete: () => {
+                window.location.href = previewUrl;
+            }});
+        };
 
         window.addEventListener('load', () => {
             initVirtualHub();

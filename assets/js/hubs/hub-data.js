@@ -41,10 +41,10 @@ window.TitanHubData = {
             desc: '脑机接口工程是一门将神经科学、信号处理与人工智能深度融合的颠覆性交叉学科。致力于打破碳基生命与硅基计算的边界，实现大脑意念对外部设备的直接控制，以及外部信息向神经系统的高速写入。',
             category: 'academic',
             subSectors: [
-                { id: '01', title: '非侵入式脑电解码', label: 'DECODING', color: 'violet', desc: '基于高密度穿戴式干电极系统与时空图卷积神经网络，实现对人类运动意图与语言构想的毫秒级意念读取与三维重建。' },
-                { id: '02', title: '神经外骨骼控制', label: 'PROSTHETIC', color: 'fuchsia', desc: '深度整合运动皮层信号与机械动力学模型，研发能通过纯意念平滑驱动的仿生外骨骼与第三机械臂，修复残障运动功能。' },
-                { id: '03', title: '双向神经接口', label: 'WRITE_MODE', color: 'indigo', desc: '突破单向读取限制，研发基于无创光遗传学与超声射频的精确“神经写入”技术，为大脑直接注入视觉画面或体感触觉反馈。' },
-                { id: '04', title: '认知增强系统', label: 'COGNITION', color: 'emerald', desc: '探索海马体记忆波形，研究利用闭环神经刺激靶向提升注意力、加速学习记忆过程的前沿无损干预技术及伦理应用。' }
+                { id: '01', title: '非侵入式脑电解码', label: 'DECODING', color: 'violet', desc: '基于高密度穿戴式干电极系统与时空图卷积神经网络，实现思维信号的三维重建。', classroom: 'course-robotics.html' },
+                { id: '02', title: '神经外骨骼控制', label: 'PROSTHETIC', color: 'fuchsia', desc: '深度整合运动皮层信号与机械动力学模型，研发纯意念驱动的仿生外骨骼。', classroom: 'course-robotics-advanced.html' },
+                { id: '03', title: '双向神经接口', label: 'WRITE_MODE', color: 'indigo', desc: '研发基于无创光遗传学的精确“神经写入”技术，为大脑注入视觉画面反馈。', classroom: 'course-robotics.html' },
+                { id: '04', title: '认知增强系统', label: 'COGNITION', color: 'emerald', desc: '探索海马体记忆波形，研究利用闭环神经刺激靶向提升注意力。', classroom: 'course-robotics-advanced.html' }
             ],
             telemetry: {
                 main: { label: 'SYNAPSE_ACTIVITY', value: '42.8 TFlops', trend: '↑ 12.4% ABOVE NORM', color: 'fuchsia' },
@@ -59,10 +59,10 @@ window.TitanHubData = {
             desc: '专注于高自由度仿生关节、实时姿态平衡算法与具身智能在复杂物理环境中的深度协同，旨在构建具备类人交互能力与精细操作柔性的下一代通用移动平台。',
             category: 'academic',
             subSectors: [
-                { id: '01', title: '高度集成驱动器', label: 'ACTUATORS', color: 'sky', desc: '研发具备高功率密度、高力矩闭环反馈与低能耗比的集成式关节动力源，支撑长续航与高负荷运动性能。' },
-                { id: '02', title: '实时平衡算法', label: 'KINEMATICS', color: 'blue', desc: '基于模型预测控制（MPC）与强化学习（RL）的动态平衡算法，实现机器人在崎岖地形下的稳健行走。' },
-                { id: '03', title: '触觉皮肤传感器', label: 'SENSORY', color: 'cyan', desc: '柔性触觉传感阵列覆盖，提供高分辨率的压力与热度反馈，实现更安全的人机物理协作。' },
-                { id: '04', title: '视觉SLAM感知', label: 'VISION', color: 'indigo', desc: '多传感器融合技术，实现对复杂环境的三维语义地图构建与目标实时追踪定位。' }
+                { id: '01', title: '高度集成驱动器', label: 'ACTUATORS', color: 'sky', desc: '研发具备高功率密度、高力矩闭环反馈与低能耗比的集成式关节动力源。', classroom: 'course-robotics.html' },
+                { id: '02', title: '实时平衡算法', label: 'KINEMATICS', color: 'blue', desc: '基于模型预测控制（MPC）的动态平衡算法，实现机器人在崎岖地形下的稳健行走。', classroom: 'course-robotics-advanced.html' },
+                { id: '03', title: '触觉皮肤传感器', label: 'SENSORY', color: 'cyan', desc: '柔性触觉传感阵列覆盖，提供高分辨率的压力反馈，实现更安全的人机协作。', classroom: 'course-robotics.html' },
+                { id: '04', title: '视觉SLAM感知', label: 'VISION', color: 'indigo', desc: '多传感器融合技术，实现对复杂环境的三维语义地图构建与目标实时追踪。', classroom: 'course-robotics-advanced.html' }
             ]
         }
         // ... more hubs will be added dynamically or stored in a separate JSON

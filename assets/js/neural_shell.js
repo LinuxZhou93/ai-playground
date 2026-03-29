@@ -14,7 +14,7 @@ const NeuralShell = {
     init: function() {
         console.log(`[NEURAL SHELL] Initializing Hub: ${this.config.subject}`);
         this.injectStyles();
-        this.renderDock();
+        // this.renderDock(); // 移除重叠的多余 Dock 栏
         this.renderNeuralBar();
         this.applyAtmosphere();
     },

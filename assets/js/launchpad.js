@@ -469,7 +469,11 @@ window.Launchpad = (() => {
         // Group apps
         const groups = { labs: [], academic: [], discovery: [], system: [] };
 
-        apps.forEach(app => {
+        // --- TEE INTEGRATION ---
+        const evolvedApps = window.TitanEvolutionEngine ? 
+            window.TitanEvolutionEngine.getEvolvedApps(apps) : apps;
+
+        evolvedApps.forEach(app => {
             if (!app.name) return; // Skip invalid
             if (app.name.toLowerCase().includes(filterText) && groups[app.category]) {
                 groups[app.category].push(app);
@@ -664,6 +668,14 @@ window.Launchpad = (() => {
         const dock = document.querySelector(containerSelector);
         if (!dock) return;
 
+        // --- TITAN 2.0 ORIENTATION MODE SYNC ---
+        // 初始注入新手村呼吸光效
+        if (window.TitanEvolutionEngine && window.TitanEvolutionEngine.isNewbie()) {
+            dock.classList.add('orientation-mode');
+        } else {
+            dock.classList.remove('orientation-mode');
+        }
+
         // Keep the first element (The Launchpad Rocket Button) and remove the rest
         // assuming the first one is the "Start" button.
         // If we want to be safer, we can look for the specific ID.
@@ -674,7 +686,11 @@ window.Launchpad = (() => {
         // Ensure overflow is correct for scrolling
         dock.style.justifyContent = 'flex-start'; // Align left so scrolling works naturally
 
-        apps.forEach((app, i) => {
+        // --- TEE INTEGRATION ---
+        const evolvedApps = window.TitanEvolutionEngine ? 
+            window.TitanEvolutionEngine.getEvolvedApps(apps) : apps;
+
+        evolvedApps.forEach((app, i) => {
             // Do not render full academic/discipline hubs in the bottom dock to save space
             if (app.link && app.link.startsWith('hub-')) return;
 
@@ -739,7 +755,18 @@ window.Launchpad = (() => {
         setTimeout(updateDock, 100);
     }
 
-    return { init, open, close, updateDock, initDock, getApps: () => apps };
+    // Initialize TEE Listener
+    window.addEventListener('titan_evolution_trigger', () => {
+        console.log("🎬 Evolution UI Animation Triggered");
+        // 为 VFX 庆典留出 800ms 的闪烁与收缩时间
+        setTimeout(() => {
+            renderPages();
+            const dockSelector = document.querySelector('.dock-container') ? '.dock-container' : '#dock-items';
+            initDock(dockSelector);
+        }, 800);
+    });
+
+    return { init, open, close, updateDock, initDock, getApps: () => apps, render: renderPages };
 })();
 
 // Auto-init for reliability

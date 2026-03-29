@@ -210,6 +210,7 @@ const SubscriptionManager = {
                 };
             }
         }
+    },
     updateUI: function () {
         // 1. Generic Dock/Global Display
         const genericName = document.getElementById('user-name-display');
@@ -495,7 +496,14 @@ const SubscriptionManager = {
             }
 
             alert('🎉 充值成功！\n您的会员有效期已延长至: ' + currentExpiry.toLocaleDateString());
-            window.location.reload();
+            
+            // --- TITAN 2.0: ENERGY CORE ACTIVATION VFX ---
+            if (window.VFXEngine && window.VFXEngine.playEvolutionSequence) {
+                // 借用演化序列的大闪烁效果，稍后可定制专门的金色版本
+                window.VFXEngine.playEvolutionSequence();
+            }
+            
+            setTimeout(() => window.location.reload(), 2000);
 
         } catch (e) {
             console.error('Redeem Error:', e);
@@ -550,7 +558,10 @@ const SubscriptionManager = {
         const modal = document.getElementById('auth-modal');
         if (modal) {
             const title = modal.querySelector('h2');
-            if (title) title.innerHTML = '🔒 会员专享中心<br><small style="font-size:12px; color:#ff8c94; font-weight:normal;">联系客服(微信: 13699466775) 限时领取季度激活码</small>';
+            if (title) title.innerHTML = '⚠️ 系统能源不足 (Power Depleted)<br><small style="font-size:12px; color:#ff8c94; font-weight:normal;">检测到核心模块未激活，请注入“钛晶能量”以继续探索。</small>';
+            
+            const submitBtn = modal.querySelector('.auth-submit-btn');
+            if (submitBtn) submitBtn.textContent = '充能并重塑系统';
         }
     },
 
