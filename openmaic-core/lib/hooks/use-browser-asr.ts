@@ -9,7 +9,14 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('BrowserASR');
 
-// Note: Window.SpeechRecognition declaration is in components/ai-elements/prompt-input.tsx
+// Extend Window interface for Web Speech API
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 export type ASRErrorCode =
   | 'not-supported'

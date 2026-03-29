@@ -1280,8 +1280,8 @@ class TitanAIAssistant {
             @keyframes scan-sweep { 0% { top: 0; opacity: 1; } 80% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
             .scan-blink { display: inline-block; width: 6px; height: 6px; background: #38bdf8; border-radius: 50%; animation: pulse-core 0.5s infinite; margin-right: 4px; }
             @keyframes ai-fab-breath {
-                0%, 100% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.4), inset 0 0 10px rgba(255,255,255,0.4); transform: translateY(0); }
-                50% { box-shadow: 0 0 25px rgba(14, 165, 233, 0.7), inset 0 0 15px rgba(255,255,255,0.6); transform: translateY(-5px); }
+                0%, 100% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.4); transform: scale(1); }
+                50% { box-shadow: 0 0 30px rgba(14, 165, 233, 0.6); transform: scale(1.05) translateY(-3px); }
             }
             .ai-panel {
                 position: fixed;
@@ -1306,15 +1306,20 @@ class TitanAIAssistant {
             .ai-fab {
                 position: fixed;
                 bottom: 24px; right: 24px;
-                width: 56px; height: 56px;
+                width: 64px; height: 64px;
                 border-radius: 50%;
                 z-index: 99999;
                 cursor: pointer;
-                background: #0ea5e9 center/cover no-repeat; /* 兜底纯色背景，防止图片 404 导致控制区空白 */
-                box-shadow: 0 0 20px rgba(14, 165, 233, 0.4), inset 0 0 10px rgba(255,255,255,0.4);
-                border: 2px solid rgba(255, 255, 255, 0.2);
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                background: url('assets/img/titan-ai-mascot.png') center/cover no-repeat;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(14, 165, 233, 0.3);
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 animation: ai-fab-breath 3s ease-in-out infinite;
+            }
+            .ai-fab:hover {
+                transform: scale(1.1) rotate(5deg);
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.5);
+                border-color: rgba(56, 189, 248, 0.4);
             }
             .ai-fab::before {
                 content: '🤖 小创老师已就位';
@@ -2249,7 +2254,10 @@ class TitanAIAssistant {
         const panelHTML = `
             <div class="ai-panel" id="titan-ai-panel">
                 <div class="ai-header" id="titan-ai-drag-handle">
-                    <div class="ai-header-title">小创老师 (Virtual Teacher)</div>
+                    <div class="ai-header-title">
+                        <img src="assets/img/xiao_chuang_head.png" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid rgba(56,189,248,0.3);">
+                        <span>小创老师 (Virtual Teacher)</span>
+                    </div>
                     <div class="ai-header-controls">
                         <button type="button" class="ai-expand-btn" id="titan-ai-history-btn" title="时间线档案馆 / Checkout 历史分支记录 (Git History)">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
