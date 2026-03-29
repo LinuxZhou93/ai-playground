@@ -240,7 +240,7 @@ function HomePage() {
             if (autoStart) {
                 setTimeout(() => {
                    setAutoStartStatus('正在生成互动分镜...');
-                   handleGenerate('true'); // 传入标记表示自动重定向
+                   handleGenerate('true', payload); // 直接传入 payload 绕过闭包陷阱
                 }, 1500);
             }
         }, 500); // 稍微延迟以体现极客装配感
@@ -389,7 +389,7 @@ function HomePage() {
     );
   };
 
-  const handleGenerate = async (autoStartFlag?: string) => {
+  const handleGenerate = async (autoStartFlag?: string, requirementOverride?: string) => {
     // ⚔️ 【Titan Tech】主站全域身份鉴定防火墙
     try {
       const userEmail = localStorage.getItem('current_user_email');
@@ -428,7 +428,9 @@ function HomePage() {
       settings.setModel('google', 'gemini-3-flash-preview');
     }
 
-    if (!form.requirement.trim()) {
+    // 🚀 [Titan OS] 自动发车时使用传入的 requirementOverride 绕过闭包陷阱
+    const finalRequirement = requirementOverride || form.requirement.trim();
+    if (!finalRequirement) {
       setError(t('upload.requirementRequired'));
       return;
     }
@@ -438,7 +440,7 @@ function HomePage() {
     try {
       const userProfile = useUserProfileStore.getState();
       const requirements: UserRequirements = {
-        requirement: form.requirement,
+        requirement: finalRequirement,
         language: form.language,
         userNickname: userProfile.nickname || undefined,
         userBio: userProfile.bio || undefined,
