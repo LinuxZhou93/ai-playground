@@ -66,6 +66,14 @@ function GenerationPreviewContent() {
   // 🚀 [Titan OS] 自动发车模式状态
   const [isAutoStart, setIsAutoStart] = useState(false);
   const [autoStartStatus, setAutoStartStatus] = useState('正在构建沉浸式学习环境...');
+  const [progress, setProgress] = useState(0);
+  const [briefing, setBriefing] = useState<{
+    goals: string[];
+    points: string[];
+  }>({
+    goals: ['跨学科思维构建', '底层逻辑深度解析', 'L4 级智能体协同交互'],
+    points: ['核心原理可视化拆解', '动态剧本实时同步', '沉浸式情境推演']
+  });
 
   // Compute active steps based on session state
   const activeSteps = getActiveSteps(session);
@@ -89,6 +97,21 @@ function GenerationPreviewContent() {
     const autoStart = sessionStorage.getItem('autoStart') === 'true';
     if (autoStart) {
         setIsAutoStart(true);
+        // 根据 URL 中的 topic 模拟一些动态导学内容
+        const params = new URLSearchParams(window.location.search);
+        const topic = params.get('topic') || '未命名课题';
+        setBriefing({
+           goals: [
+              `深入理解 ${topic} 的底层核心逻辑`,
+              `构建关于 ${topic} 的跨学科认知框架`,
+              '掌握 AI 辅助下的关键决策能力'
+           ],
+           points: [
+              `${topic} 的历史演进与未来趋势`,
+              '高精度模型实时推理与情境推演',
+              '交互式组件深度实战体验'
+           ]
+        });
     }
   }, []);
 
@@ -137,6 +160,22 @@ function GenerationPreviewContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
+  // 进度平滑更新
+  useEffect(() => {
+    if (isAutoStart) {
+      const stepProgress = (currentStepIndex / activeSteps.length) * 100;
+      // 模拟一点平滑增长
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev < stepProgress) return prev + 1;
+          if (prev >= 99) return 99;
+          return prev;
+        });
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [currentStepIndex, activeSteps.length, isAutoStart]);
+
   // Main generation flow
   const startGeneration = async () => {
     if (!session) return;
@@ -152,6 +191,11 @@ function GenerationPreviewContent() {
 
     setError(null);
     setCurrentStepIndex(0);
+
+    // 🚀 [Titan OS 极速发车] 
+    const params = new URLSearchParams(window.location.search);
+    const topic = params.get('topic') || extractTopicFromRequirement(session.requirements.requirement);
+    setAutoStartStatus(`正在为《${topic}》部署实战环境...`);
 
     try {
       // Compute active steps for this session (recomputed after session mutations)
@@ -539,8 +583,9 @@ function GenerationPreviewContent() {
 
       const outlineStepIdx = activeSteps.findIndex((s) => s.id === 'outline');
       setCurrentStepIndex(outlineStepIdx >= 0 ? outlineStepIdx : 0);
-      if (sessionStorage.getItem('autoStart') === 'true') {
+      if (isAutoStart) {
           setAutoStartStatus('正在生成全景授课剧本...');
+          setProgress(prev => Math.max(prev, 40));
       }
       if (!outlines || outlines.length === 0) {
         log.debug('=== Generating outlines (SSE) ===');
@@ -578,6 +623,9 @@ function GenerationPreviewContent() {
               const decoder = new TextDecoder();
               let sseBuffer = '';
 
+              // 🚀 [极速发车] 大纲阶段进度模拟
+              if (isAutoStart) setProgress(prev => Math.max(prev, 60));
+
               const pump = (): Promise<void> =>
                 reader.read().then(({ done, value }) => {
                   if (value) {
@@ -592,6 +640,8 @@ function GenerationPreviewContent() {
                         if (evt.type === 'outline') {
                           collected.push(evt.data);
                           setStreamingOutlines([...collected]);
+                          // 🚀 [极速发车] 大纲生成进度
+                          if (isAutoStart) setProgress(prev => Math.min(prev + 2, 85));
                         } else if (evt.type === 'retry') {
                           collected.length = 0;
                           setStreamingOutlines([]);
@@ -653,8 +703,11 @@ function GenerationPreviewContent() {
       // Advance to slide-content step
       const contentStepIdx = activeSteps.findIndex((s) => s.id === 'slide-content');
       if (contentStepIdx >= 0) setCurrentStepIndex(contentStepIdx);
-      if (sessionStorage.getItem('autoStart') === 'true') {
-          setAutoStartStatus('正在排布第一课分镜内容...');
+      if (isAutoStart) {
+          const params = new URLSearchParams(window.location.search);
+          const topic = params.get('topic') || stage.name;
+          setAutoStartStatus(`正在为《${topic}》排布分镜内容...`);
+          setProgress(90);
       }
 
       // Build stageInfo and userProfile for API call
@@ -730,8 +783,9 @@ function GenerationPreviewContent() {
         throw new Error(data.error || t('generation.sceneGenerateFailed'));
       }
 
-      if (sessionStorage.getItem('autoStart') === 'true') {
-          setAutoStartStatus('正在载入高保真教学配音...');
+      if (isAutoStart) {
+          setAutoStartStatus('高保真教学配音载入中，准备发车...');
+          setProgress(98);
       }
 
       // Generate TTS for first scene (part of actions step — blocking)
@@ -880,7 +934,7 @@ function GenerationPreviewContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden"
+            className="fixed inset-0 z-[99999] bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden"
           >
              {/* 极客背景网格 */}
             <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" />
@@ -892,41 +946,92 @@ function GenerationPreviewContent() {
                className="absolute w-[800px] h-[800px] bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent rounded-full blur-[120px]"
             />
 
-            <div className="relative z-10 flex flex-col items-center">
+            {/* ─── 高保真导学简报 (Transition Page) ─── */}
+            <div className="relative z-10 w-full max-w-5xl px-8 flex flex-col items-center">
+               {/* 顶部标识 */}
                <motion.div
-                 animate={{ scale: [1, 1.1, 1] }}
-                 transition={{ duration: 2, repeat: Infinity }}
-                 className="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-600 rounded-3xl flex items-center justify-center text-4xl font-black shadow-2xl shadow-orange-500/40 mb-12"
+                 initial={{ y: -20, opacity: 0 }}
+                 animate={{ y: 0, opacity: 1 }}
+                 className="flex items-center gap-3 mb-12 bg-white/5 border border-white/10 px-4 py-2 rounded-full backdrop-blur-md"
                >
-                 FC
+                  <Sparkles className="size-4 text-orange-400 animate-pulse" />
+                  <span className="text-xs font-mono tracking-[0.2em] text-white/60">TITAN OS · MISSION BRIEFING</span>
                </motion.div>
-               
-               <h2 className="text-3xl font-black tracking-widest mb-4 font-orbitron uppercase">Deploying Classroom</h2>
-               <div className="flex items-center gap-4 mb-20">
-                  <span className="w-48 h-1 bg-white/10 rounded-full overflow-hidden relative">
-                     <motion.div 
-                        animate={{ x: [-200, 200] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute inset-0 w-24 bg-gradient-to-r from-transparent via-orange-500 to-transparent"
-                     />
-                  </span>
+
+               {/* 主卡片模块：导学信息 */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mb-16">
+                  {/* 左侧：学习目标 */}
+                  <motion.div
+                    initial={{ x: -30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
+                  >
+                     <h3 className="text-orange-400 font-bold text-lg mb-6 flex items-center gap-2">
+                        <CheckCircle2 className="size-5" /> 学习目标
+                     </h3>
+                     <ul className="space-y-4">
+                        {briefing.goals.map((goal, i) => (
+                           <li key={i} className="flex items-start gap-3">
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-white/30" />
+                              <span className="text-white/80 text-sm leading-relaxed">{goal}</span>
+                           </li>
+                        ))}
+                     </ul>
+                  </motion.div>
+
+                  {/* 右侧：关键重难点 */}
+                  <motion.div
+                    initial={{ x: 30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
+                  >
+                     <h3 className="text-blue-400 font-bold text-lg mb-6 flex items-center gap-2">
+                        <AlertTriangle className="size-5" /> 核心要点
+                     </h3>
+                     <ul className="space-y-4">
+                        {briefing.points.map((pt, i) => (
+                           <li key={i} className="flex items-start gap-3">
+                              <div className="mt-1 size-1.5 rounded-sm bg-blue-500/50" />
+                              <span className="text-white/80 text-sm leading-relaxed">{pt}</span>
+                           </li>
+                        ))}
+                     </ul>
+                  </motion.div>
                </div>
 
-               <motion.p 
-                 key={autoStartStatus}
-                 initial={{ opacity: 0, y: 10 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 className="text-orange-400 font-mono text-sm tracking-[0.3em] uppercase underline decoration-orange-500/30 underline-offset-8"
-               >
-                 {'>'} {autoStartStatus}
-               </motion.p>
+               {/* 底部进度状态 */}
+               <div className="w-full max-w-2xl text-center space-y-6">
+                  <motion.p 
+                    key={autoStartStatus}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-white font-mono text-sm tracking-[0.2em] uppercase"
+                  >
+                    {'>'} {autoStartStatus}
+                  </motion.p>
+                  
+                  {/* 极速发车进度条 */}
+                  <div className="relative h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                     <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-500 via-amber-400 to-white shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                     />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-mono text-white/30 tracking-widest uppercase">
+                     <span>Deployment Index: 0xFC</span>
+                     <span>Sync: {progress}%</span>
+                  </div>
+               </div>
             </div>
 
-            {/* 底部系统信息 */}
+            {/* 底部背景文字 */}
             <div className="absolute bottom-12 left-12 font-mono text-[10px] text-white/20 space-y-1 text-left">
                <div>SUB_SYSTEM: FUTURE_CLASS_GENERATOR</div>
                <div>LINK_STATUS: GENERATION_ACTIVE</div>
-               <div>MODE: AUTO_PILOT_READY</div>
+               <div>MODE: FAST_TRACK_STAGED</div>
             </div>
           </motion.div>
         )}

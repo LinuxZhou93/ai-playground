@@ -813,7 +813,6 @@ function HomePage() {
 
               {/* Voice input */}
               <SpeechButton
-                size="md"
                 onTranscription={(text) => {
                   setForm((prev) => {
                     const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
@@ -825,7 +824,7 @@ function HomePage() {
 
               {/* #5: Send button with enhanced activation state */}
               <button
-                onClick={handleGenerate}
+                onClick={() => handleGenerate()}
                 disabled={!canGenerate}
                 className={cn(
                   'shrink-0 h-10 rounded-2xl flex items-center justify-center gap-2 transition-all px-5 font-extrabold tracking-wide shadow-xl duration-300 transform',
@@ -1009,10 +1008,8 @@ function HomePage() {
             再点 {5 - adminTapCount} 次进入管理模式
           </span>
         )}
-      </div>
     </div>
-  );
-}
+  </div>
 
 // ─── Greeting Bar — avatar + "Hi, Name", click to edit in-place ────
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
@@ -1308,7 +1305,7 @@ function GreetingBar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden"
+            className="fixed inset-0 z-[99999] bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden"
           >
              {/* 极客背景网格 */}
             <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" />
