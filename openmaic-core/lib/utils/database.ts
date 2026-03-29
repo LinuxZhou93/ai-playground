@@ -48,6 +48,11 @@ export interface StageRecord {
   style?: string;
   currentSceneId?: string;
   agentIds?: string[]; // Agent IDs selected at creation time
+
+  // Cloud fields (V10)
+  authorId?: string;
+  isPublic?: boolean;
+  forkedFrom?: string;
 }
 
 /**
@@ -188,7 +193,7 @@ export function mediaFileKey(stageId: string, elementId: string): string {
 // ==================== Database Definition ====================
 
 const DATABASE_NAME = 'MAIC-Database';
-const _DATABASE_VERSION = 8;
+const _DATABASE_VERSION = 10;
 
 /**
  * MAIC Database Instance
@@ -327,6 +332,21 @@ class MAICDatabase extends Dexie {
     // Version 9: Add learningSnapshots table for Edu-Git (offline fallback) 
     this.version(9).stores({
       stages: 'id, updatedAt',
+      scenes: 'id, stageId, order, [stageId+order]',
+      audioFiles: 'id, createdAt',
+      imageFiles: 'id, createdAt',
+      snapshots: '++id',
+      chatSessions: 'id, stageId, [stageId+createdAt]',
+      playbackState: 'stageId',
+      stageOutlines: 'stageId',
+      mediaFiles: 'id, stageId, [stageId+type]',
+      generatedAgents: 'id, stageId',
+      learningSnapshots: 'id, stageId, [stageId+sceneIndex]',
+    });
+
+    // Version 10: Add authorId and isPublic indices for cloud discovery
+    this.version(10).stores({
+      stages: 'id, updatedAt, authorId, isPublic, [authorId+isPublic]',
       scenes: 'id, stageId, order, [stageId+order]',
       audioFiles: 'id, createdAt',
       imageFiles: 'id, createdAt',

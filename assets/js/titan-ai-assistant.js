@@ -6,6 +6,18 @@ class TitanAIAssistant {
         if (document.getElementById('titan-ai-container')) return; // Already initialized
         
         this.isChatOpen = false;
+        this.courseRegistry = [
+            { id: 'robotics-basic', title: '仿生机器人初级工坊', desc: '从机械结构到基础电路，开启你的创客之旅。', link: 'course-robotics.html', keywords: ['制作', '学习', '机器人', '搭建', '硬件', '零件', '入门', '基础', 'robot', 'make', 'build'], icon: 'fas fa-cog', color: '#10b981' },
+            { id: 'robotics-adv', title: '智能机器人极客挑战', desc: '探索多关节舵机同步与步态控制高级算法。', link: 'course-robotics-advanced.html', keywords: ['进阶', '机器人', '伺服', '舵机', '算法', '高级', 'advanced', 'robot'], icon: 'fas fa-robot', color: '#059669' },
+            { id: 'ai', title: 'AI 大模型提示词工程', desc: '揭秘生成式 AI 背后的逻辑，掌握与未来对话的语言。', link: 'course-ai.html', keywords: ['人工智能', 'AI', '模型', '深度学习', '提示词', '训练', 'intelligence'], icon: 'fas fa-brain', color: '#38bdf8' },
+            { id: 'astronomy', title: '星际航行与深空探测', desc: '从太阳系出发，穿过黑洞，探索宇宙最狂野的想象。', link: 'course-astronomy.html', keywords: ['宇宙', '航天', '星星', '黑洞', '太空', 'astronomy', 'space'], icon: 'fas fa-user-astronaut', color: '#8b5cf6' },
+            { id: 'dino', title: '侏罗纪物种进化实验室', desc: '利用生物工程技术，复活远古巨兽，观察生命演化。', link: 'course-dino.html', keywords: ['恐龙', '生物', '进化', '基因', '研究', '物种', 'dino'], icon: 'fas fa-dragon', color: '#f59e0b' },
+            { id: 'coding', title: '零基础极客编程入门', desc: '不只是写代码，更是用数字逻辑重塑世界的游戏。', link: 'coding.html', keywords: ['编程', '代码', 'Python', 'JS', '开发', '网站', '软件', 'code'], icon: 'fas fa-terminal', color: '#ef4444' },
+            { id: 'rocket', title: '重型运载火箭发射基地', desc: '计算轨道，点火升空，亲手护送载荷进入同步轨道。', link: 'course-rocketry.html', keywords: ['火箭', '发射', '动力', '推进', '火药', '升空', 'rocket'], icon: 'fas fa-rocket', color: '#f97316' },
+            { id: 'smart-farm', title: '太空育种与智慧农业', desc: '在月面基地培育高产作物，解决星际移民的口粮问题。', link: 'course-space-farming.html', keywords: ['植物', '生长', '太空', '农务', '种子', '育种', 'farm'], icon: 'fas fa-leaf', color: '#22c55e' },
+            { id: 'drone', title: '穿越机组装与竞速', desc: '第一人称视角的飞行，挑战空气动力学的极限。', link: 'drone.html', keywords: ['飞机', '无人机', '飞行', '穿越', '航模', '空域', 'drone'], icon: 'fas fa-helicopter', color: '#6366f1' }
+        ];
+
         const fullContent = document.body ? document.body.innerText.replace(/\s+/g, ' ').substring(0, 3000) : '';
         this.context = {
             title: document.title,
@@ -366,13 +378,13 @@ class TitanAIAssistant {
             document.body.appendChild(wrapper);
         }
 
-        // 2. 核心大招：防遮挡万能“返回首屏”悬浮胶囊，初始定位左下方，且支持全屏任意拖拽！
+        // 2. 核心大招：防遮挡万能“返回首屏”悬浮胶囊，初始定位左上方，且支持全屏任意拖拽！
         if (!isIndex) {
             const returnBtnWrapper = document.createElement('div');
             returnBtnWrapper.id = 'titan-return-capsule';
             returnBtnWrapper.style.cssText = `
                 position: fixed;
-                bottom: 30px;
+                top: 30px;
                 left: 30px;
                 z-index: 9999999;
                 pointer-events: auto;
@@ -449,7 +461,7 @@ class TitanAIAssistant {
             // 智能感知自适应布局引擎 (Adaptive Layout Engine)
             setTimeout(() => {
                 // 如果用户已经手动拖拽过，则不执行自动适配
-                if (returnBtnWrapper.style.transform === 'none' && returnBtnWrapper.style.top) return;
+                if (returnBtnWrapper.style.transform === 'none' && returnBtnWrapper.style.top && returnBtnWrapper.style.top !== '30px') return;
 
                 const winH = window.innerHeight;
                 const winW = window.innerWidth;
@@ -488,24 +500,24 @@ class TitanAIAssistant {
                 returnBtnWrapper.style.visibility = 'hidden'; // 短暂隐身以穿透检测下层真正的元素
 
                 const yBottom = winH - TB - h;
-                const yTop = TB + (isElectron ? 40 : 0); // 若在原生桌面端，左上角已有红绿灯，需避让
+                const yTop = TB + (isElectron ? 60 : 0); // 若在原生桌面端，左上角已有红绿灯，需多避让出一些空间（40 -> 60）
 
                 const bottomOccupied = isAreaOccupied(WL, yBottom);
                 const topOccupied = isAreaOccupied(WL, yTop);
 
                 returnBtnWrapper.style.visibility = originalVis; // 恢复显示
 
-                // 核心决策树：哪里空闲去哪里，默认左上方优先(更符合习惯) -> 然后左下 -> 都堵塞也强行左下（反正可以拖拽）
-                if (topOccupied && !bottomOccupied) {
-                    returnBtnWrapper.style.top = 'auto';
-                    returnBtnWrapper.style.bottom = TB + 'px';
-                } else if (!topOccupied && bottomOccupied) {
+                // 核心决策树：哪里空闲去哪里，默认左上方优先(更符合习惯) -> 然后左下 -> 都堵塞也强行左上
+                if (!topOccupied) {
                     returnBtnWrapper.style.top = yTop + 'px';
                     returnBtnWrapper.style.bottom = 'auto';
-                } else {
-                    // 如果都冲突，或者皆空闲，预设左下角（打扰更少）
+                } else if (!bottomOccupied) {
                     returnBtnWrapper.style.top = 'auto';
                     returnBtnWrapper.style.bottom = TB + 'px';
+                } else {
+                    // 如果都冲突，强行左上，反正支持手动拖拽
+                    returnBtnWrapper.style.top = yTop + 'px';
+                    returnBtnWrapper.style.bottom = 'auto';
                 }
             }, 1200); // 留出足够时间给React/Vue挂载真实DOM
         }
@@ -992,13 +1004,26 @@ class TitanAIAssistant {
             const existingRows = this.chatArea.querySelectorAll('.msg-row.ai, .msg-row.user');
             existingRows.forEach(r => r.remove());
 
+            // 状态记忆：用于最后重构推荐树
+            let lastAiMsgText = '';
+
             history.forEach(msg => {
                 // 彻底阻断挂载时的隐藏提示词（System Prompt 或静默上下文）污染前台UI屏幕
                 if (msg.role !== 'system') {
                     this.renderStaticMessage(msg.role, msg.content);
+                    
+                    if (msg.role === 'assistant' || msg.role === 'ai') {
+                        lastAiMsgText = typeof msg.content === 'string' ? msg.content : (Array.isArray(msg.content) ? msg.content.find(c => c.type === 'text')?.text || '' : '');
+                    }
                 }
             });
             setTimeout(() => this.scrollToBottom(), 300);
+            
+            // 【核心修复 Hydration】：恢复退出前的最后生成卡片和推荐芯片
+            if (lastAiMsgText) {
+                if (typeof this.injectCourseRecommendations === 'function') this.injectCourseRecommendations(lastAiMsgText);
+                if (typeof this.updateQuickChips === 'function') this.updateQuickChips(lastAiMsgText);
+            }
         }
     }
 
@@ -1026,6 +1051,10 @@ class TitanAIAssistant {
                 } else if (Array.isArray(content)) {
                     rawText = content.find(c => c.type === 'text')?.text || '[多模态内容]';
                 }
+                
+                // 净化：历史重载时必须隐藏掉内部扩展指令标签，避免穿帮
+                rawText = rawText.replace(/\[\[EXTEND:.*?\]\]/g, '');
+                
                 msgDiv.innerHTML = window.marked.parse(rawText);
                 if (window.hljs) {
                     msgDiv.querySelectorAll('pre code').forEach((block) => {
@@ -1262,6 +1291,186 @@ class TitanAIAssistant {
         }
     }
 
+    injectCourseRecommendations(text) {
+        // 1. 深度拦截协议：提取由 AI 联想出的 [[EXTEND: ...]]
+        let aiRecommendations = [];
+        const extendMatch = text.match(/\[\[(?:EXTEND|extend):\s*([\s\S]*?)\]\]/i);
+        
+        if (extendMatch) {
+            console.log('[Titan Evo] 🚀 成功拦截 AI 演化指令:', extendMatch[1]);
+            const rawTopics = extendMatch[1].split(/[,，]/);
+            aiRecommendations = rawTopics.filter(t => t.trim().length > 0).map(t => ({
+                id: 'ai-gen-' + Math.random().toString(36).substr(2, 5),
+                title: t.trim(),
+                desc: 'AI 实时演化生成的专属深度探索课题。',
+                link: `course-factory.html?theme=${encodeURIComponent(t.trim())}&source=titan_evolution`,
+                isAiGen: true,
+                icon: 'fas fa-dna',
+                color: '#38bdf8' 
+            })).slice(0, 3);
+        } else {
+            console.warn('[Titan Evo] ⚠️ AI 未按协议输出格式化指令，启动本地语义脑补...');
+            // 🚨 备选方案：本地语义预测算法 (Semantic Brainstorming Fallback)
+            // 如果 AI 忘带了标签，我们根据用户对话关键词，强行脑补出 3 个
+            const contextKeywords = ['大脑', '机器人', '人工智能', '航天', '编程', '恐龙', '火箭', '芯片', '材料', '算法'];
+            const brainstormPool = {
+                '大脑': ['认知科学', '脑机接口', '神经伦理'],
+                '机器人': ['伺服驱动', '仿生材料', '群体智能'],
+                '人工智能': ['提示词工程', '神经网络', '自然语言'],
+                '航天': ['引力弹弓', '月面基地', '星际化学']
+            };
+            
+            let foundTopic = contextKeywords.find(kw => text.includes(kw));
+            const topics = foundTopic ? brainstormPool[foundTopic] : ['科技未来', '跨界融合', '前沿节点'];
+            aiRecommendations = topics.slice(0, 3).map(t => ({
+                id: 'fallback-' + Math.random().toString(36).substr(2, 5),
+                title: t,
+                desc: '系统根据当前对话语境，为您动态预测的探索路径。',
+                link: `course-factory.html?theme=${encodeURIComponent(t)}&source=titan_fallback`,
+                isAiGen: true,
+                icon: 'fas fa-brain',
+                color: '#0ea5e9'
+            }));
+        }
+
+        // 2. 静态底座搜索：匹配本地已有的 8 个课程
+        const localMatches = this.courseRegistry.map(course => {
+            let score = 0;
+            const cleanText = text.replace(/\[\[EXTEND:.*?\]\]/g, ''); // 排除协议标签干扰
+            course.keywords.forEach(kw => {
+                const regex = new RegExp(kw, 'gi');
+                const count = (cleanText.match(regex) || []).length;
+                score += count;
+            });
+            return { ...course, score };
+        }).sort((a, b) => b.score - a.score);
+
+        // 如果 AI 没给推荐，我们也强行从本地关联中提取 3 个作为演化路径的“冷启动”种子
+        if (aiRecommendations.length === 0) {
+            console.log('[Titan AI] ⚠️ 模型未输出演化标签，启动语义感知补全...');
+            aiRecommendations = localMatches.slice(2, 5).map(m => ({
+                id: m.id,
+                title: m.title,
+                link: m.link.includes('course.html') ? m.link.replace('course.html', 'course-factory.html') : m.link,
+                icon: m.icon || 'fas fa-brain',
+                isAiGen: true
+            }));
+        }
+
+        // 我们只在底座区展示最相关的 2 个已有页面
+        const coreNodes = localMatches.slice(0, 2);
+
+        // 3. 构建大容器
+        const recContainer = document.createElement('div');
+        recContainer.className = 'ai-course-recommend-wrapper';
+        recContainer.style.cssText = `
+            margin-top: 15px;
+            animation: fadeIn 0.5s ease-out;
+            padding: 0 5px;
+        `;
+
+        // === A轨：核心知识节点 (CORE NODES) ===
+        const coreHeader = document.createElement('div');
+        coreHeader.style.cssText = 'font-size: 10px; color: #94a3b8; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 1px;';
+        coreHeader.innerHTML = `<i class="fas fa-layer-group" style="color:#fbbf24"></i> 核心知识节点 / CORE NODES`;
+        recContainer.appendChild(coreHeader);
+
+        const coreGrid = document.createElement('div');
+        coreGrid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;';
+        coreNodes.forEach(course => {
+            const card = document.createElement('div');
+            card.className = 'ai-course-mini-card core-node-card';
+            card.style.cssText = `
+                background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px; padding: 10px; cursor: pointer; transition: all 0.3s;
+                display: flex; align-items: center; gap: 10px; position: relative;
+            `;
+            card.innerHTML = `
+                <div style="font-size: 16px; color: ${course.color}; opacity: 0.8;"><i class="${course.icon}"></i></div>
+                <div style="font-size: 11px; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${course.title}</div>
+            `;
+            card.onmouseover = () => { card.style.background = 'rgba(30, 41, 59, 0.8)'; card.style.borderColor = course.color + '44'; };
+            card.onmouseout = () => { card.style.background = 'rgba(15, 23, 42, 0.4)'; card.style.borderColor = 'rgba(255, 255, 255, 0.08)'; };
+            card.onclick = () => {
+                if (typeof this.playHapticSound === 'function') this.playHapticSound('click');
+                window.location.href = course.link;
+            };
+            coreGrid.appendChild(card);
+        });
+        recContainer.appendChild(coreGrid);
+
+        // === B轨：实时演化探索 (EVOLUTION PATHS) ===
+        if (aiRecommendations.length > 0) {
+            const evoHeader = document.createElement('div');
+            evoHeader.style.cssText = 'font-size: 10px; color: #94a3b8; margin-top: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; letter-spacing: 1px;';
+            evoHeader.innerHTML = `
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-microchip" style="color:#38bdf8"></i> 实时演化探索 / EVOLUTION PATHS
+                </div>
+                <div style="font-size:8px; background:rgba(56,189,248,0.1); color:#38bdf8; padding:1px 4px; border-radius:3px; border:1px solid rgba(56,189,248,0.2)">UGC_LIVE</div>
+            `;
+            recContainer.appendChild(evoHeader);
+
+            const evoGrid = document.createElement('div');
+            evoGrid.style.cssText = 'display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 4px 0;';
+            aiRecommendations.forEach(course => {
+                const card = document.createElement('div');
+                card.className = 'ai-course-mini-card ai-gen-card';
+                card.style.cssText = `
+                    flex: 0 0 140px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2);
+                    border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.3s;
+                    display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden;
+                `;
+                card.innerHTML = `
+                    <div class="live-tag">GEN</div>
+                    <div style="font-size: 16px; color: #38bdf8;"><i class="${course.icon}"></i></div>
+                    <div style="font-size: 12px; font-weight: 800; color: #fff; line-height: 1.2;">${course.title}</div>
+                    <div style="font-size: 8px; color: #64748b; margin-top: 2px;">量子合成探索 >></div>
+                `;
+                card.onmouseover = () => { card.style.background = 'rgba(56, 189, 248, 0.15)'; card.style.transform = 'translateY(-3px)'; };
+                card.onmouseout = () => { card.style.background = 'rgba(56, 189, 248, 0.05)'; card.style.transform = 'translateY(0)'; };
+                card.onclick = () => {
+                    if (typeof this.playHapticSound === 'function') this.playHapticSound('click');
+                    this.showEvolutionLoading(course.title, () => {
+                        window.location.href = course.link;
+                    });
+                };
+                evoGrid.appendChild(card);
+            });
+            recContainer.appendChild(evoGrid);
+        }
+
+        this.chatArea.appendChild(recContainer);
+        this.scrollToBottom();
+    }
+
+    showEvolutionLoading(topic, callback) {
+        let loader = document.getElementById('evolution-loader');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.id = 'evolution-loader';
+            loader.innerHTML = `
+                <div class="matrix-rain"></div>
+                <svg class="loader-hex" viewBox="0 0 100 100">
+                    <path fill="none" stroke="#38bdf8" stroke-width="2" d="M50 10 L90 30 L90 70 L50 90 L10 70 L10 30 Z" />
+                    <circle cx="50" cy="50" r="10" fill="#38bdf8">
+                        <animate attributeName="r" values="8;12;8" dur="1s" repeatCount="indefinite" />
+                    </circle>
+                </svg>
+                <div class="loader-text">QUANTUM SYNTHESIZING...</div>
+                <div class="loader-sub">正在从硅基神经网络提取【${topic}】的深度知识晶体</div>
+            `;
+            document.body.appendChild(loader);
+        } else {
+            loader.querySelector('.loader-sub').innerText = `正在从硅基神经网络提取【${topic}】的深度知识晶体`;
+        }
+
+        requestAnimationFrame(() => {
+            loader.classList.add('active');
+            setTimeout(callback, 2000); // 预留 2 秒仪式感时刻
+        });
+    }
+
     injectCSS() {
         const style = document.createElement('style');
         style.innerHTML = `
@@ -1321,6 +1530,37 @@ class TitanAIAssistant {
                 box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.5);
                 border-color: rgba(56, 189, 248, 0.4);
             }
+
+            /* === 无限演化引擎 CSS === */
+            .ai-gen-card { position: relative; overflow: hidden; }
+            .ai-gen-card::before {
+                content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+                background: conic-gradient(transparent, rgba(56,189,248,0.25), transparent 30%);
+                animation: quantum-rotate 4s linear infinite; z-index: 0; pointer-events: none;
+            }
+            .ai-gen-card > * { position: relative; z-index: 1; }
+            @keyframes quantum-rotate { 100% { transform: rotate(1turn); } }
+
+            .live-tag {
+                position: absolute; top: 8px; right: 8px; font-size: 7px; font-weight: 900;
+                background: linear-gradient(135deg, #0ea5e9, #6366f1); color: #fff;
+                padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+                letter-spacing: 1.5px; animation: live-flicker 1.5s ease-in-out infinite; z-index: 2;
+            }
+            @keyframes live-flicker { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+            #evolution-loader {
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(5, 10, 20, 0.97); z-index: 9999999;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                backdrop-filter: blur(25px); opacity: 0; pointer-events: none;
+                transition: opacity 0.5s ease; font-family: 'Orbitron', sans-serif;
+            }
+            #evolution-loader.active { opacity: 1; pointer-events: all; }
+            .loader-hex { width: 100px; height: 100px; margin-bottom: 30px; animation: hex-spin 3s linear infinite; }
+            @keyframes hex-spin { 100% { transform: rotate(360deg); } }
+            .loader-text { color: #38bdf8; font-size: 16px; letter-spacing: 3px; text-shadow: 0 0 20px rgba(56,189,248,0.5); }
+            .loader-sub { color: #94a3b8; font-size: 13px; margin-top: 12px; font-family: 'Noto Sans SC', sans-serif; }
             .ai-fab::before {
                 content: '🤖 小创老师已就位';
                 position: absolute;
@@ -3685,7 +3925,11 @@ ${currentFullContent}
    - **SVG 图纸必须简洁**，颜色建议为青色 (#0ea5e9)，必须被 \`\`\`xml 包裹。
    - **AI 绘图指令**：当用户要求“画一个...”时，强制使用 \`![生成: 英文详细描述](https://ai-render.com/img.png)\` 触发渲染阵列。
 6. **禁止 AI 风格废话**：不要说“作为一名AI助教...”、“很高兴为你解答...”。直接进入 Notion 文档构建模式，第一句话必须直击要害或抛出图形。
-7. **学习导航员 (Navigator Mode)**：除了回答问题，每次回复最末尾必须输出一个 JSON 代码块（用json围栏包裹），推荐 3 个相关课程。推荐库：脑机接口->hub-auto-101.html, 机器人->hub-auto-102.html, 自动驾驶->hub-auto-103.html, 编程->hub-auto-104.html, 航天->hub-auto-105.html, 新材料->hub-auto-106.html。JSON 包含 titan_recommendation 数组，每项含 name/link/icon/category/desc 字段。严禁解释此 JSON。`;
+7. **无限课程导航员 (Infinite Navigator Mode)**：你不再推荐预设的静态链接。相反，你必须在【每一次】回答的【最后一行】，强制脑补并联想出 3 个最有潜力的跨学科深度研究子课题。
+   - **格式绝对指令**：必须另起一行，直接输出 \`[[EXTEND: 子课题1, 子课题2, 子课题3]]\`。
+   - **最高优先级**：即使你的回答非常简短，也绝对不准遗忘此标签！这是系统交互的核心！
+   - **案例**：讲完“无人机”，输出 \`[[EXTEND: 空中交通管制系统, 碳纤维轻量化工艺, 视觉避障算法]]\`；讲完“基因工程”，输出 \`[[EXTEND: 伦理审查框架, CRISPR-Cas9 实操, 极地抗寒生物研究]]\`。
+   - **禁止解释此标识符。**`;
 
         // Init context if empty
         if (this.chatHistory.length === 0) {
@@ -4009,10 +4253,12 @@ ${currentFullContent}
                 result = result.replace(/[*_]*\*\[(.*?)\][*_]*\s*\(\s*\?module=auto_match\s*\)/g, '[$1](?module=auto_match)');
                 
                 // 终极排版防漏 (Markdown Syntax Rescue)
-                // 强制剥除：① 加粗语法内部的多余空格；② 反斜杠逃逸。（已移除行首4空格暴力清除，防止摧毁合法 Python / 缩进类图结构）
                 result = result.replace(/\*\*\s+(.*?)\s+\*\*/g, '**$1**'); // 消除 ** 原理 ** 的多余空格
                 result = result.replace(/\*\*(.*?)\*\*\s*:/g, '**$1**:');   // 消除 **原理** : 的多余空格
                 result = result.replace(/\\\*/g, '*');               // 干掉 \* 产生的转义破坏
+                
+                // 🛑 隐藏 UGC 演化指令：防止 [[EXTEND: ...]] 出现在气泡文本中
+                result = result.replace(/\[\[EXTEND:.*?\]\]/g, ''); 
                 
                 return result;
             };
@@ -4088,9 +4334,12 @@ ${currentFullContent}
                     };
                     rowDiv.appendChild(actions);
                     
-                    // 🚀 【核心修复：流式结束即时主动召唤发声逻辑】
-                    // 只有在非静默（如语音录制刚结束后的自动流式响应）或者用户显式互动场景下，触发发声
+                    // 🚀 【核心修复：流式结束即时主动召唤发声逻辑与课程推荐】
                     this.speakReply(aiReply);
+                    
+                    if (aiReply.length > 5) {
+                        setTimeout(() => this.injectCourseRecommendations(aiReply), 800);
+                    }
                     
                     return;
                 }

@@ -111,6 +111,55 @@
             -webkit-text-size-adjust: 100%;
         }
 
+        /* --- Cyber Scanline Overlay --- */
+        .cyber-scanline {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            z-index: 10000;
+            opacity: 0.12;
+            mix-blend-mode: overlay;
+        }
+
+        /* --- Corner HUD HUD elements --- */
+        .corner-hud {
+            position: fixed;
+            width: 100px; height: 100px;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.4;
+            border: 1px solid var(--primary);
+        }
+        .hud-tl { top: 40px; left: 20px; border-right: none; border-bottom: none; }
+        .hud-tr { top: 40px; right: 20px; border-left: none; border-bottom: none; }
+        .hud-bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .hud-br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        /* --- Upgrade Button Glow Sweep --- */
+        .plan-btn.upgrade-pro {
+            position: relative;
+            overflow: hidden;
+        }
+        .plan-btn.upgrade-pro::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transform: skewX(-25deg);
+            transition: 0.5s;
+            animation: glow-sweep 3s infinite;
+        }
+        @keyframes glow-sweep {
+            0% { left: -120%; }
+            30% { left: 120%; }
+            100% { left: 120%; }
+        }
+
         /* --- IMMERSIVE BACKGROUND --- */
         #neuron-canvas {
             position: fixed;
@@ -1868,6 +1917,11 @@
 
     <!-- BACKGROUND -->
     <canvas id="neuron-canvas"></canvas>
+    <div class="cyber-scanline"></div>
+    <div class="corner-hud hud-tl"></div>
+    <div class="corner-hud hud-tr"></div>
+    <div class="corner-hud hud-bl"></div>
+    <div class="corner-hud hud-br"></div>
 
     <!-- NEWS TICKER -->
     <div class="news-ticker-wrap">
@@ -1910,7 +1964,7 @@
 
         <!-- COL 1: PROFILE -->
         <div class="card-col w-profile">
-            <div class="panel-title">用户名片 / PROFILE</div>
+            <div class="panel-title">用户中心 / USER PROFILE</div>
             <div class="glass-panel">
                 <div class="avatar-box">
                     <div class="avatar-orbit"></div>
@@ -1935,22 +1989,22 @@
                     </div>
                 </div>
                 <div class="row-btns" style="display:flex; gap:10px; margin-top:auto;">
-                    <button id="upgrade-pro-btn" class="plan-btn" style="background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; font-weight: 800; border: none; flex: 1.5; display: none;"
+                    <button id="upgrade-pro-btn" class="plan-btn upgrade-pro" style="background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; font-weight: 800; border: none; flex: 1.5; display: none;"
                         onclick="window.location.href='pricing-demo.html'">PRO 升级算力舱</button>
                     <button class="plan-btn" style="background:var(--secondary); color:white; flex:1;"
-                        onclick="handleProfileClick()">ACCOUNT CENTER</button>
+                        onclick="handleProfileClick()">用户中心 / USER CENTER</button>
                 </div>
             </div>
         </div>
 
         <!-- COL 2: GROWTH -->
         <div class="card-col w-wide">
-            <div class="panel-title">学习进度 / GROWTH</div>
+            <div class="panel-title">成长指数 / GROWTH</div>
             <div class="glass-panel"
                 style="height: 540px; display:flex; flex-direction:column; justify-content:space-between;">
                 <div
                     style="font-family:'Orbitron'; color:var(--warm); font-size:12px; margin-bottom:20px; font-weight:900;">
-                    HOLOGRAPHIC INDEX</div>
+                    综合素质维度 / HOLOGRAPHIC INDEX</div>
 
                 <div class="holo-group">
                     <div class="holo-label"><span>Self Mgmt / 自我管理</span> <span>15%</span></div>
@@ -1984,266 +2038,372 @@
 
         <!-- COL 3: SKILL TREE -->
         <div class="card-col w-wide" style="position: relative;">
-            <div class="panel-title">技能树 / SKILLS</div>
-
-
-
+            <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
+                神经图谱 / NEURAL MAP
+                <span style="font-size:10px; color:#00f0ff; opacity:0.8; cursor:pointer;" onclick="openNeuralMap()">
+                    ⛶ 全景拓扑 / FULL VIEW
+                </span>
+            </div>
 
             <!-- SKILL TREE GRID CONTAINER -->
             <div class="glass-panel" style="height: 540px; padding: 15px; display: flex; flex-direction: column;">
-                <div
-                    style="font-family:'Orbitron'; color:var(--warm); font-size:12px; margin-bottom:10px; font-weight:900;">
-                    NODE NETWORK</div>
+                <div style="font-family:'Orbitron'; color:var(--warm); font-size:12px; margin-bottom:10px; font-weight:900; z-index: 10;">
+                    拓扑关联结构 / CYBER-LINK TOPOLOGY</div>
 
-                <div id="skill-tree-grid" class="scrollable-grid">
-                    <!-- Dynamic Content Loaded by JS -->
+                <div id="skill-network-container" style="flex: 1; border-radius: 8px; overflow: hidden; background: radial-gradient(circle at center, rgba(0,240,255,0.05) 0%, transparent 70%);">
+                    <div id="network-canvas" style="width: 100%; height: 100%;"></div>
                 </div>
+                
+                <!-- 预加载图谱引擎 -->
+                <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
             </div>
-
-            <style>
-                .scrollable-grid {
-                    flex: 1;
-                    overflow-y: auto;
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 12px;
-                    padding-right: 5px;
-                    /* Space for scrollbar */
-                }
-
-                /* Custom Scrollbar */
-                .scrollable-grid::-webkit-scrollbar {
-                    width: 4px;
-                }
-
-                .scrollable-grid::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 2px;
-                }
-
-                .scrollable-grid::-webkit-scrollbar-thumb {
-                    background: var(--primary);
-                    border-radius: 2px;
-                }
-
-                .skill-node {
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 12px;
-                    padding: 10px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 5px;
-                    cursor: pointer;
-                    transition: 0.2s;
-                    position: relative;
-                    min-height: 80px;
-                }
-
-                .skill-node:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                    transform: translateY(-2px);
-                    border-color: var(--primary);
-                }
-
-                .skill-node.locked {
-                    opacity: 0.6;
-                    border-color: rgba(255, 255, 255, 0.05);
-                    filter: grayscale(1);
-                }
-
-                .skill-node.locked:hover {
-                    border-color: var(--warm);
-                    /* Red/Orange for locked */
-                    transform: none;
-                    animation: shake 0.4s;
-                }
-
-                .sn-icon {
-                    font-size: 24px;
-                    filter: drop-shadow(0 0 5px rgba(0, 240, 255, 0.3));
-                }
-
-                .sn-label {
-                    font-size: 10px;
-                    color: #cbd5e1;
-                    text-align: center;
-                }
-
-                .sn-lock {
-                    position: absolute;
-                    top: 5px;
-                    right: 5px;
-                    font-size: 10px;
-                    background: rgba(0, 0, 0, 0.5);
-                    border-radius: 50%;
-                    width: 16px;
-                    height: 16px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                @keyframes shake {
-
-                    0%,
-                    100% {
-                        transform: translateX(0);
-                    }
-
-                    25% {
-                        transform: translateX(-3px);
-                    }
-
-                    75% {
-                        transform: translateX(3px);
-                    }
-                }
-            </style>
 
             <script>
                 document.addEventListener('DOMContentLoaded', () => {
-                    const skillGrid = document.getElementById('skill-tree-grid');
-                    if (!skillGrid) return;
+                    const container = document.getElementById('network-canvas');
+                    if (!container) return;
 
-                    // 58 Courses Total (8 Unlocked, 50 Locked)
-                    const skills = [
-                        // --- 8 Unlocked (Foundations) ---
-                        { name: "飞书 Feishu", icon: "🐦", locked: false, link: "course-feishu.html" },
-                        { name: "Scratch", icon: "🐱", locked: false, link: "ide-scratch.html" },
-                        { name: "Python 101", icon: "🐍", locked: false, link: "ide-python.html" },
-                        { name: "Logic", icon: "💡", locked: false },
-                        { name: "Typing", icon: "⌨️", locked: false, link: "typing.html" },
-                        { name: "Net Safety", icon: "🛡️", locked: false },
-                        { name: "AI Intro", icon: "🤖", locked: false, link: "ai.html" },
-                        { name: "Drawing", icon: "🎨", locked: false },
-                        { name: "Science", icon: "🔬", locked: false, link: "science-curriculum.html?stage=p" },
+                    // L1~L4 4-Tier Knowledge Graph Data Registry (Expanded to K12)
+                    window.SKILLS_DATA = [
+                        // L1: 学科大类 (紫)
+                        { id: "S1", name: "TECHNOLOGY\\n科技与工程", icon: "🌌", level: 1, locked: false },
+                        { id: "S2", name: "SCIENCE & MATH\\n理学与数学", icon: "📐", level: 1, locked: false },
+                        { id: "S3", name: "HUMANITIES\\n人文与社科", icon: "🏛️", level: 1, locked: true },
+                        { id: "S4", name: "ARTS\\n艺术与设计", icon: "🎨", level: 1, locked: true },
 
-                        // --- 50 Locked (Advanced) ---
-                        // Web Dev
-                        { name: "HTML/CSS", icon: "🌐", locked: true },
-                        { name: "JavaScript", icon: "📜", locked: true },
-                        { name: "React", icon: "⚛️", locked: true },
-                        { name: "Vue.js", icon: "✌️", locked: true },
-                        { name: "Node.js", icon: "🟢", locked: true },
-                        { name: "TypeScript", icon: "📘", locked: true },
-                        { name: "SQL", icon: "💾", locked: true },
-                        { name: "API Design", icon: "🔌", locked: true },
-                        { name: "Git", icon: "😼", locked: true },
-                        { name: "Docker", icon: "🐳", locked: true },
+                        // L2: 专题领域 (绿)
+                        { id: "D1", name: "Artificial Intelligence\\n人工智能", icon: "🧠", level: 2, locked: false },
+                        { id: "D2", name: "Computer Science\\n计算机科学", icon: "💻", level: 2, locked: false },
+                        { id: "D3", name: "Physics & Hardware\\n物理与硬件", icon: "⚙️", level: 2, locked: true },
+                        { id: "D4", name: "Biology & Chem\\n生化科学", icon: "🧬", level: 2, locked: true },
+                        { id: "D5", name: "History & Geo\\n史地政", icon: "🌍", level: 2, locked: true },
+                        { id: "D6", name: "Language & Lit\\n语文与文学", icon: "📜", level: 2, locked: true },
+                        
+                        // L3: 核心概念 (黄)
+                        { id: "C1", name: "Machine Learning\\n机器学习", icon: "📈", level: 3, locked: false },
+                        { id: "C2", name: "Generative AI\\n生成式AI", icon: "🧞‍♂️", level: 3, locked: false },
+                        { id: "C3", name: "Web Dev\\n大前端", icon: "🌐", level: 3, locked: false },
+                        { id: "C4", name: "Backend\\n服务端系统", icon: "🗄️", level: 3, locked: true },
+                        { id: "C5", name: "Classical Mechanics\\n经典力学", icon: "🍎", level: 3, locked: true },
+                        { id: "C6", name: "Life Science\\n生命科学", icon: "🌿", level: 3, locked: true },
+                        { id: "C7", name: "Chinese Classics\\n中国古诗文", icon: "📘", level: 3, locked: true },
+                        { id: "C8", name: "Digital Art\\n数字艺术", icon: "🖌️", level: 3, locked: true },
 
-                        // Game Dev
-                        { name: "Unity", icon: "🎮", locked: true },
-                        { name: "C#", icon: "#️⃣", locked: true },
-                        { name: "Unreal", icon: "UE", locked: true },
-                        { name: "3D Math", icon: "📐", locked: true },
-                        { name: "Shaders", icon: "✨", locked: true },
+                        // L4: 知识点 (微技能) - AI/Tech
+                        { id: "K1", name: "Python 101", icon: "🐍", level: 4, locked: false, link: "ide-python.html" },
+                        { id: "K2", name: "PyTorch", icon: "🔥", level: 4, locked: true },
+                        { id: "K3", name: "AI Intro", icon: "🤖", level: 4, locked: false, link: "ai.html" },
+                        { id: "K4", name: "RAG", icon: "📚", level: 4, locked: true },
+                        { id: "K5", name: "Agents", icon: "🕵️", level: 4, locked: true },
+                        { id: "K6", name: "HTML/CSS", icon: "🎨", level: 4, locked: false },
+                        { id: "K7", name: "JavaScript", icon: "📜", level: 4, locked: false },
+                        { id: "K8", name: "React", icon: "⚛️", level: 4, locked: true },
+                        { id: "K9", name: "Node.js", icon: "🟢", level: 4, locked: true },
+                        { id: "K10", name: "Arduino", icon: "♾️", level: 4, locked: true },
+                        { id: "K11", name: "Typing", icon: "⌨️", level: 4, locked: false, link: "typing.html" },
 
-                        // Python & AI
-                        { name: "Pandas", icon: "🐼", locked: true },
-                        { name: "NumPy", icon: "🔢", locked: true },
-                        { name: "MatPlotLib", icon: "📊", locked: true },
-                        { name: "Deep Learn", icon: "🧠", locked: true },
-                        { name: "Computer Vision", icon: "👁️", locked: true },
-                        { name: "NLP", icon: "💬", locked: true },
-                        { name: "GenAI", icon: "🧞", locked: true },
-                        { name: "RAG", icon: "📚", locked: true },
-                        { name: "AI Agents", icon: "🕵️", locked: true },
-                        { name: "PyTorch", icon: "🔥", locked: true },
-
-                        // Hardware & IoT
-                        { name: "Arduino", icon: "♾️", locked: true },
-                        { name: "RaspberryPi", icon: "🍓", locked: true },
-                        { name: "ESP32", icon: "📶", locked: true },
-                        { name: "Circuit", icon: "🔋", locked: true },
-                        { name: "Soldering", icon: "🔥", locked: true },
-                        { name: "Sensors", icon: "🌡️", locked: true },
-                        { name: "IoT", icon: "🏠", locked: true },
-
-                        // Robotics
-                        { name: "Drone", icon: "🚁", locked: true },
-                        { name: "Car Bot", icon: "🚗", locked: true },
-                        { name: "Robot Arm", icon: "💪", locked: true },
-                        { name: "ROS", icon: "🐢", locked: true },
-                        { name: "Swarm", icon: "🐝", locked: true },
-
-                        // Design & Media
-                        { name: "Blender", icon: "🟧", locked: true },
-                        { name: "Photoshop", icon: "🖌️", locked: true },
-                        { name: "Figma", icon: "🎨", locked: true },
-                        { name: "Video Edit", icon: "🎬", locked: true },
-
-                        // CS Fundamentals
-                        { name: "Algorithms", icon: "🧮", locked: true },
-                        { name: "Data Struc", icon: "🌲", locked: true },
-                        { name: "Linux", icon: "🐧", locked: true },
-                        { name: "Shell", icon: "🐚", locked: true },
-                        { name: "Network", icon: "🌐", locked: true },
-                        { name: "CyberSec", icon: "🔐", locked: true },
-                        { name: "Cryptography", icon: "🗝️", locked: true },
-
-                        // Science
-                        { name: "Physics", icon: "🍎", locked: true, link: "junior-physics-curriculum.html?stage=j" },
-                        { name: "Chemistry", icon: "🧪", locked: true, link: "junior-chemistry-curriculum.html?stage=j" },
-                        { name: "Biology", icon: "🧬", locked: true, link: "junior-biology-curriculum.html?stage=j" },
-                        { name: "Astronomy", icon: "🔭", locked: true, link: "astronomy.html" },
-                        { name: "Geology", icon: "🌋", locked: true }
+                        // L4: 基础学科课 (K12)
+                        { id: "K12", name: "Geology", icon: "🌋", level: 4, locked: true },
+                        { id: "K13", name: "Astronomy", icon: "🔭", level: 4, locked: true, link: "astronomy.html" },
+                        { id: "K14", name: "Science (P)", icon: "🔬", level: 4, locked: false, link: "science-curriculum.html?stage=p" },
+                        { id: "K15", name: "Junior Physics", icon: "📏", level: 4, locked: true, link: "junior-physics-curriculum.html?stage=j" },
+                        { id: "K16", name: "Junior Bio", icon: "🧬", level: 4, locked: true, link: "junior-biology-curriculum.html?stage=j" },
+                        { id: "K17", name: "Chemistry", icon: "🧪", level: 4, locked: true, link: "junior-chemistry-curriculum.html?stage=j" },
+                        { id: "K18", name: "Poetry", icon: "🖋️", level: 4, locked: true },
+                        { id: "K19", name: "History", icon: "🏺", level: 4, locked: true },
+                        
+                        // Ecosystem tools
+                        { id: "K20", name: "Feishu", icon: "🐦", level: 4, locked: false, link: "course-feishu.html" },
+                        { id: "K21", name: "Scratch", icon: "🐱", level: 4, locked: false, link: "ide-scratch.html" },
+                        { id: "K22", name: "Logic", icon: "💡", level: 4, locked: false }
                     ];
 
-                    // --- GLOBAL TELEMETRY (埋点系统) ---
+                    window.EDGES_DATA = [
+                        // L1 -> L2
+                        {from: "S1", to: "D1"}, {from: "S1", to: "D2"}, 
+                        {from: "S2", to: "D3"}, {from: "S2", to: "D4"},
+                        {from: "S3", to: "D5"}, {from: "S3", to: "D6"},
+                        {from: "S1", to: "S2"}, {from: "S3", to: "S4"}, // 横向关联
+
+                        // L2 -> L3
+                        {from: "D1", to: "C1"}, {from: "D1", to: "C2"},
+                        {from: "D2", to: "C3"}, {from: "D2", to: "C4"},
+                        {from: "D3", to: "C5"}, {from: "D4", to: "C6"},
+                        {from: "D6", to: "C7"}, {from: "S4", to: "C8"},
+
+                        // L3/L2 -> L4 (Leaves)
+                        {from: "C1", to: "K1"}, {from: "C1", to: "K2"}, 
+                        {from: "C2", to: "K3"}, {from: "C2", to: "K4"}, {from: "C2", to: "K5"},
+                        {from: "C3", to: "K6"}, {from: "C3", to: "K7"}, {from: "C3", to: "K8"}, 
+                        {from: "C4", to: "K9"}, {from: "D3", to: "K10"}, {from: "D2", to: "K11"},
+
+                        {from: "D5", to: "K12"}, {from: "D3", to: "K13"}, {from: "D4", to: "K14"},
+                        {from: "C5", to: "K15"}, {from: "C6", to: "K16"}, {from: "D4", to: "K17"},
+                        {from: "C7", to: "K18"}, {from: "D5", to: "K19"},
+                        
+                        {from: "S1", to: "K20"}, {from: "D2", to: "K21"}, {from: "S1", to: "K22"}
+                    ];
+
                     window.trackEvent = async function(moduleName, actionType, actionValue = '-') {
                         try {
                             const manager = window.SubscriptionManager;
                             if (!manager || !manager.client) return;
                             const user = manager.user || { email: localStorage.getItem('current_user_email') || 'Guest' };
                             const userId = user.id || user.email;
-                            
-                            await manager.client.from('student_learning_logs').insert([{
-                                user_id: userId,
-                                module_name: moduleName,
-                                action_type: actionType,
-                                action_value: actionValue
-                            }]);
+                            await manager.client.from('student_learning_logs').insert([{ user_id: userId, module_name: moduleName, action_type: actionType, action_value: actionValue }]);
                         } catch (e) {
                             console.warn("Telemetry Track Error:", e);
                         }
                     };
 
-                    // Render Function
+                    window.getNodeStyleForLevel = function(level, isLocked) {
+                        let size, fontSize, shape, color;
+                        if (level === 1) { 
+                            size = 35; fontSize = 20; shape = 'dot'; 
+                            if (!isLocked) color = { background: 'rgba(189, 0, 255, 0.4)', border: '#bd00ff', highlight: { background: 'rgba(189, 0, 255, 0.6)', border: '#ffffff' } }; 
+                        } else if (level === 2) { 
+                            size = 25; fontSize = 16; shape = 'dot'; 
+                            if (!isLocked) color = { background: 'rgba(0, 255, 128, 0.3)', border: '#00ff80', highlight: { background: 'rgba(0, 255, 128, 0.5)', border: '#ffffff' } }; 
+                        } else if (level === 3) { 
+                            size = 18; fontSize = 12; shape = 'hexagon'; 
+                            if (!isLocked) color = { background: 'rgba(255, 215, 0, 0.3)', border: '#ffd700', highlight: { background: 'rgba(255, 215, 0, 0.5)', border: '#ffffff' } }; 
+                        } else { 
+                            size = 12; fontSize = 10; shape = 'box'; 
+                            if (!isLocked) color = { background: 'rgba(255, 165, 0, 0.2)', border: '#ffa500', highlight: { background: 'rgba(255, 165, 0, 0.4)', border: '#ffffff' } }; 
+                        }
+                        
+                        if (isLocked) {
+                            color = { background: 'rgba(100, 100, 100, 0.2)', border: '#666666', highlight: { background: 'rgba(128, 128, 128, 0.4)', border: '#aaaaaa' } };
+                        }
+                        return { size, fontSize, shape, color };
+                    };
+
+                    window.parseSkillNodes = function(isVIP, isFullscreen = false) {
+                        // Better Data-Drive: Nodes are unlocked if the user has an associated badge
+                        const manager = window.SubscriptionManager;
+                        const userBadges = (manager && manager.profile && manager.profile.badges_earned) ? manager.profile.badges_earned : [];
+                        
+                        return window.SKILLS_DATA.map(s => {
+                            // Logic: A node is unlocked if (isVIP) OR (s.locked is false) OR (user has badge containing s.name or id)
+                            let isUnlockedByData = userBadges.some(b => 
+                                b.toLowerCase().includes(s.name.split('\\n')[0].toLowerCase()) || 
+                                b.toLowerCase().includes(s.id.toLowerCase())
+                            );
+                            const isLocked = (s.locked && !isVIP && !isUnlockedByData);
+                            
+                            const styles = window.getNodeStyleForLevel(s.level, isLocked);
+                            let rawName = s.name.replace(/\\n/g, '\n'); // Fix raw \n display
+                            let labelContent = (styles.shape === 'box' || s.level === 4) ? (s.icon + '\n' + rawName) : rawName;
+                            
+                            if (isFullscreen) {
+                                styles.size = Math.floor(styles.size * 1.5);
+                                styles.fontSize = Math.floor(styles.fontSize * 1.4);
+                                if (s.level <= 2) labelContent = s.icon + '\n' + rawName;
+                            }
+                            
+                            return {
+                                id: s.id, label: labelContent,
+                                title: isLocked ? '🔒 路径规划：该知识节点尚未沉淀，完成前置学习即可点亮。' : '⚡ 已沉淀领域：包含对应能力。',
+                                shape: styles.shape, size: styles.size, isLocked: isLocked, link: s.link, skillName: rawName,
+                                font: { face: 'Inter, Orbitron, sans-serif', size: styles.fontSize, color: isLocked ? '#666666' : '#ffffff', multi: true, bold: true },
+                                color: styles.color, shadow: isLocked ? false : { enabled: true, color: styles.color.border, size: isFullscreen ? 30 : 20, x: 0, y: 0 },
+                                borderWidth: isLocked ? (isFullscreen ? 2 : 1) : (isFullscreen ? 3 : 2), margin: { top: 8, bottom: 8, left: 12, right: 12 }
+                            };
+                        });
+                    };
+
+                    window.parseSkillEdges = function(isVIP, isFullscreen = false) {
+                        return window.EDGES_DATA.map(e => {
+                            const targetData = window.SKILLS_DATA.find(n => n.id === e.to);
+                            const targetLocked = targetData && targetData.locked && !isVIP;
+                            return {
+                                from: e.from, to: e.to,
+                                color: { color: targetLocked ? 'rgba(255,255,255,0.08)' : (isFullscreen ? 'rgba(0,255,128,0.5)' : 'rgba(0,240,255,0.4)'), highlight: targetLocked ? 'rgba(255,255,255,0.15)' : '#00f0ff' },
+                                dashes: targetLocked ? [4, 4] : false, smooth: { type: 'cubicBezier', forceDirection: 'none', roundness: isFullscreen ? 0.5 : 0.4 }
+                            };
+                        });
+                    };
+
+                    let network = null;
+                    let animationFrame = null;
+
                     function renderSkills() {
                         const isVIP = window.SubscriptionManager && window.SubscriptionManager.isSubscribed();
+                        const parsedNodes = window.parseSkillNodes(isVIP);
+                        const parsedEdges = window.parseSkillEdges(isVIP);
+                        const data = { nodes: new vis.DataSet(parsedNodes), edges: new vis.DataSet(parsedEdges) };
+                        const options = {
+                            physics: { forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 80, springConstant: 0.1 }, maxVelocity: 30, solver: 'forceAtlas2Based', timestep: 0.4 },
+                            edges: { width: 1.5, arrows: { to: { enabled: true, scaleFactor: 0.5, type: 'arrow' } } },
+                            interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true }
+                        };
+                        
+                        if (network !== null) { network.destroy(); network = null; }
+                        network = new vis.Network(container, data, options);
+                        
+                        // Path Highlighting on Hover
+                        network.on("hoverNode", function(params) {
+                            const nodeId = params.node;
+                            const connectedNodes = network.getConnectedNodes(nodeId);
+                            const allNodes = data.nodes.get();
+                            
+                            data.nodes.update(allNodes.map(n => {
+                                const isConnected = connectedNodes.includes(n.id) || n.id === nodeId;
+                                return { id: n.id, opacity: isConnected ? 1 : 0.2 };
+                            }));
+                        });
+                        
+                        network.on("blurNode", function() {
+                            const allNodes = data.nodes.get();
+                            data.nodes.update(allNodes.map(n => ({ id: n.id, opacity: 1 })));
+                        });
 
-                        skillGrid.innerHTML = skills.map(s => {
-                            // If user is VIP, premium items are unlocked
-                            const isLocked = s.locked && !isVIP;
-                            let clickLogic = "";
-                            if (isLocked) {
-                                clickLogic = `window.trackEvent('${s.name}', 'LOCKED_CLICK'); alert('🔒 该课程暂未解锁，请完成前置课程或升级会员等级。');`;
-                            } else {
-                                clickLogic = `window.trackEvent('${s.name}', 'ENTER_MODULE'); ` + (s.link ? `window.location.href='${s.link}';` : `alert('🚀 即将进入课程: ${s.name}');`);
+                        // Flowing Dots Animation using afterDrawing
+                        let offset = 0;
+                        network.on("afterDrawing", function(ctx) {
+                            offset += 0.02;
+                            if (offset > 1) offset = 0;
+                            
+                            const edges = data.edges.get();
+                            ctx.fillStyle = "#00f0ff";
+                            ctx.shadowBlur = 5;
+                            ctx.shadowColor = "#00f0ff";
+                            
+                            edges.forEach(edge => {
+                                if (edge.color && edge.color.color && edge.color.color.includes('0.08')) return; // skip locked
+                                const pos = network.getPositions([edge.from, edge.to]);
+                                if (!pos[edge.from] || !pos[edge.to]) return;
+                                
+                                const start = pos[edge.from];
+                                const end = pos[edge.to];
+                                
+                                // Draw a flowing dot at offset positions
+                                [0, 0.33, 0.66].forEach(phase => {
+                                    let p = (offset + phase) % 1;
+                                    let x = start.x + (end.x - start.x) * p;
+                                    let y = start.y + (end.y - start.y) * p;
+                                    ctx.beginPath();
+                                    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                                    ctx.fill();
+                                });
+                            });
+                        });
+                        
+                        // Force redraw loop for animation
+                        function step() {
+                            if (network) network.redraw();
+                            animationFrame = requestAnimationFrame(step);
+                        }
+                        if (animationFrame) cancelAnimationFrame(animationFrame);
+                        step();
+
+                        network.on("click", function (params) {
+                            if (params.nodes.length > 0) {
+                                const node = parsedNodes.find(n => n.id === params.nodes[0]);
+                                if (node.isLocked) { window.trackEvent(node.skillName, 'LOCKED_CLICK'); alert('🔒 领域限制：该知识领域暂未解锁。'); }
+                                else { window.trackEvent(node.skillName, 'ENTER_MODULE'); if (node.link) window.location.href = node.link; else alert('🚀 正在挂载引擎，即将进入。'); }
                             }
-
-                            return `
-                        <div class="skill-node ${isLocked ? 'locked' : ''}" onclick="${clickLogic}">
-                            <div class="sn-icon">${s.icon}</div>
-                            <div class="sn-label">${s.name}</div>
-                            ${isLocked ? '<div class="sn-lock">🔒</div>' : ''}
-                        </div>
-                        `;
-                        }).join('');
+                        });
                     }
 
-                    // Initial Render
-                    renderSkills();
-
-                    // Listen for Subscription Updates
-                    window.addEventListener('subscription_updated', () => {
-                        console.log('SkillTree: Subscription Updated, Re-rendering...');
-                        renderSkills();
-                    });
+                    setTimeout(renderSkills, 500);
+                    window.addEventListener('subscription_updated', renderSkills);
                 });
+            </script>
+
+            <!-- 附加大屏幕弹窗结构 -->
+            <div id="neural-map-drawer" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background: radial-gradient(circle at center, rgba(5,6,12,0.85) 0%, rgba(0,0,0,0.95) 100%); backdrop-filter: blur(15px); -webkit-backdrop-filter:blur(15px); opacity:0; transition: opacity 0.4s ease; flex-direction:column;">
+                <!-- 科技网格背景 -->
+                <div style="position:absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px); background-size: 50px 50px; z-index:-1;"></div>
+                <div style="padding: 20px 40px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,240,255,0.1);">
+                    <div style="font-family:Orbitron; color:#00f0ff; font-size:1.5rem; letter-spacing:2px; font-weight:700;">
+                        ⛶ CYBER-LINK NEURAL MAP // 全景节点拓扑
+                    </div>
+                    <button class="launch-btn" onclick="closeNeuralMap()" style="padding: 8px 24px;">X 关闭 / CLOSE</button>
+                </div>
+                <div id="fullscreen-network-canvas" style="flex:1; width:100%;"></div>
+            </div>
+            
+            <script>
+                let fullscreenNetwork = null;
+                window.openNeuralMap = function() {
+                    const modal = document.getElementById('neural-map-drawer');
+                    if (!modal) return;
+                    modal.style.display = 'flex';
+                    modal.offsetHeight;
+                    modal.style.opacity = '1';
+
+                    if (!fullscreenNetwork) {
+                        const container = document.getElementById('fullscreen-network-canvas');
+                        if (!container || !window.SKILLS_DATA) return;
+                        
+                        const isVIP = window.SubscriptionManager && window.SubscriptionManager.isSubscribed();
+                        const parsedNodes = window.parseSkillNodes(isVIP, true);
+                        const parsedEdges = window.parseSkillEdges(isVIP, true);
+                        
+                        const data = { nodes: new vis.DataSet(parsedNodes), edges: new vis.DataSet(parsedEdges) };
+                        const options = {
+                            physics: { forceAtlas2Based: { gravitationalConstant: -180, centralGravity: 0.005, springLength: 260, springConstant: 0.06 }, maxVelocity: 50, solver: 'forceAtlas2Based', timestep: 0.5, stabilization: { iterations: 150 } },
+                            edges: { width: 3, arrows: { to: { enabled: true, scaleFactor: 0.8, type: 'arrow' } } },
+                            interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true }
+                        };
+                        
+                        fullscreenNetwork = new vis.Network(container, data, options);
+                        
+                        // Sync Flowing Dots for Fullscreen
+                        let fsOffset = 0;
+                        fullscreenNetwork.on("afterDrawing", function(ctx) {
+                            fsOffset += 0.02;
+                            if (fsOffset > 1) fsOffset = 0;
+                            
+                            const edges = data.edges.get();
+                            ctx.fillStyle = "#00f0ff";
+                            ctx.shadowBlur = 8;
+                            ctx.shadowColor = "#00f0ff";
+                            
+                            edges.forEach(edge => {
+                                if (edge.color && edge.color.color && edge.color.color.includes('0.08')) return; // skip locked
+                                const pos = fullscreenNetwork.getPositions([edge.from, edge.to]);
+                                if (!pos[edge.from] || !pos[edge.to]) return;
+                                
+                                const start = pos[edge.from];
+                                const end = pos[edge.to];
+                                
+                                [0, 0.25, 0.5, 0.75].forEach(phase => {
+                                    let p = (fsOffset + phase) % 1;
+                                    let x = start.x + (end.x - start.x) * p;
+                                    let y = start.y + (end.y - start.y) * p;
+                                    ctx.beginPath();
+                                    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                                    ctx.fill();
+                                });
+                            });
+                        });
+
+                        function fsStep() {
+                            if (fullscreenNetwork) {
+                                fullscreenNetwork.redraw();
+                                requestAnimationFrame(fsStep);
+                            }
+                        }
+                        fsStep();
+
+                        fullscreenNetwork.on("click", function (params) {
+                            if (params.nodes.length > 0) {
+                                const node = parsedNodes.find(n => n.id === params.nodes[0]);
+                                if (node.isLocked && window.trackEvent) { window.trackEvent(node.skillName, 'FS_LOCKED_CLICK'); alert('🔒 领域限制：该知识领域尚未沉淀，请完成前置科技树。'); }
+                                else { if(window.trackEvent) window.trackEvent(node.skillName, 'FS_ENTER_MODULE'); if (node.link) window.location.href = node.link; else alert('🚀 即将跃迁进入。'); }
+                            }
+                        });
+                    }
+                };
+
+                window.closeNeuralMap = function() {
+                    const modal = document.getElementById('neural-map-drawer');
+                    if (!modal) return;
+                    modal.style.opacity = '0';
+                    setTimeout(() => modal.style.display = 'none', 400);
+                };
             </script>
         </div>
 
@@ -2254,13 +2414,16 @@
                 <div class="plan-box" id="study-log-box" style="padding:0;">
                     <div
                         style="font-family:'Orbitron'; color:#aaa; font-size:12px; margin-bottom:15px; font-weight:900; display:flex; justify-content:space-between;">
-                        <span>LIVE SYNC</span>
+                        <span>实时同步 / LIVE SYNC</span>
                         <span style="color:var(--success)">● ONLINE</span>
                     </div>
 
+                    <!-- Sparkline Trend Chart -->
+                    <div id="study-trend-chart" style="width: 100%; height: 50px; margin-bottom: 20px; opacity: 0.8; filter: drop-shadow(0 0 5px var(--primary));"></div>
+
                     <!-- Today Stats -->
                     <div class="log-stat-card active-day">
-                        <div class="ls-header">TODAY / 今日</div>
+                        <div class="ls-header">今日完成 / TODAY</div>
                         <div class="ls-body">
                             <div class="ls-value" id="stat-today-time">0<span style="font-size:16px">min</span></div>
                             <div class="ls-desc" id="stat-today-count">0 Missions</div>
@@ -2269,7 +2432,7 @@
 
                     <!-- Yesterday -->
                     <div class="log-stat-card">
-                        <div class="ls-header">YESTERDAY / 昨日</div>
+                        <div class="ls-header">昨日回顾 / YESTERDAY</div>
                         <div class="ls-body">
                             <div class="ls-value small" id="stat-yesterday-time">0<span
                                     style="font-size:14px">min</span></div>
@@ -2278,7 +2441,7 @@
 
                     <!-- Weekly -->
                     <div class="log-stat-card">
-                        <div class="ls-header">THIS WEEK / 本周累计</div>
+                        <div class="ls-header">本周累计 / THIS WEEK</div>
                         <div class="ls-body">
                             <div class="ls-value small" id="stat-week-time">0<span style="font-size:14px">min</span>
                             </div>
@@ -2290,7 +2453,7 @@
                     <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; margin-top:5px;">
                         <div
                             style="font-family:'Orbitron'; color:#aaa; font-size:10px; margin-bottom:5px; position: sticky; top: 0; z-index: 10; background: var(--panel-bg);">
-                            LATEST ACTIVITY</div>
+                            最近动态 / LATEST ACTIVITY</div>
                         <div id="activity-feed-list" class="activity-feed custom-scroll">
                             <!-- Items injected by JS -->
                         </div>
@@ -2471,21 +2634,31 @@
                 const yTime = yCount * minPerMission;
                 const wTime = wCount * minPerMission;
 
-                // Update UI visually
-                const animateValue = (id, val, suffix) => {
-                    const el = document.getElementById(id);
-                    if (el) el.innerHTML = `${val}<span style="font-size:0.6em">${suffix}</span>`;
-                };
-
-                animateValue('stat-today-time', tTime, 'min');
+                // Update UI visually with animation
+                const oldToday = parseInt(document.getElementById('stat-today-time')?.innerText) || 0;
+                animateValue('stat-today-time', oldToday, tTime, 'min');
+                
                 const tCountEl = document.getElementById('stat-today-count');
                 if(tCountEl) tCountEl.innerText = `${tCount} Missions`;
                 
-                animateValue('stat-yesterday-time', yTime, 'min');
-                animateValue('stat-week-time', wTime, 'min');
+                const oldYest = parseInt(document.getElementById('stat-yesterday-time')?.innerText) || 0;
+                animateValue('stat-yesterday-time', oldYest, yTime, 'min');
+                
+                const oldWeek = parseInt(document.getElementById('stat-week-time')?.innerText) || 0;
+                animateValue('stat-week-time', oldWeek, wTime, 'min');
                 
                 const wCountEl = document.getElementById('stat-week-count');
                 if(wCountEl) wCountEl.innerText = `${wCount} Missions Completed`;
+
+                // Calculate 7-day trend for Sparkline
+                const trendData = [];
+                for(let i=6; i>=0; i--) {
+                    const d = new Date(); d.setDate(d.getDate() - i);
+                    const dStr = d.toISOString().split('T')[0];
+                    const dayCount = data.filter(log => log.role === 'user' && log.created_at.startsWith(dStr)).length;
+                    trendData.push(dayCount * minPerMission);
+                }
+                setTimeout(() => renderSparkline('study-trend-chart', trendData), 500);
 
                 // Update LATEST ACTIVITY Feed
                 updateActivityFeed(data);
@@ -2528,6 +2701,55 @@
                          `;
                     }).join('');
                 }
+            }
+
+            // --- DYNAMIC DATA ENHANCEMENTS ---
+            function animateValue(id, start, end, suffix) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                let current = start;
+                const range = end - start;
+                const increment = range / 30; // 30 steps
+                const stepTime = 20; // 20ms per step = 600ms total
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                        current = end;
+                        clearInterval(timer);
+                    }
+                    el.innerHTML = `${Math.floor(current)}<span style="font-size:0.6em">${suffix}</span>`;
+                }, stepTime);
+            }
+
+            function renderSparkline(containerId, dataPoints) {
+                const container = document.getElementById(containerId);
+                if (!container || !dataPoints || dataPoints.length < 2) return;
+                
+                const w = container.offsetWidth;
+                const h = container.offsetHeight;
+                const max = Math.max(...dataPoints, 5); // at least 5 to avoid flat line at bottom
+                const min = Math.min(...dataPoints);
+                const range = max - min || 1;
+                
+                const pts = dataPoints.map((p, i) => ({
+                    x: (i / (dataPoints.length - 1)) * w,
+                    y: h - ((p - min) / range) * (h - 10) - 5
+                }));
+                
+                let pathD = `M ${pts[0].x} ${pts[0].y}`;
+                for (let i = 1; i < pts.length; i++) {
+                    pathD += ` L ${pts[i].x} ${pts[i].y}`;
+                }
+                
+                container.innerHTML = `
+                    <svg width="${w}" height="${h}" style="overflow:visible">
+                        <path d="${pathD}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 3px var(--primary))">
+                            <animate attributeName="stroke-dasharray" from="0,${w*2}" to="${w*2},0" dur="1s" fill="freeze" />
+                        </path>
+                        ${pts.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="var(--primary)" style="opacity:${i === pts.length - 1 ? 1 : 0.4}"></circle>`).join('')}
+                    </svg>
+                `;
             }
 
             // Init with Fast Update
@@ -3267,30 +3489,64 @@
         window.addEventListener('resize', resize);
         resize();
 
+        let animationFrameId;
+        const mouse = { x: null, y: null };
+
         class Particle {
             constructor() {
                 this.x = Math.random() * w;
                 this.y = Math.random() * h;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.baseSize = 1.5 + Math.random() * 1.5;
+                this.size = this.baseSize;
             }
             update() {
+                // Mouse interaction
+                if (mouse.x !== null && mouse.y !== null) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        const force = (150 - dist) / 1500;
+                        this.vx -= dx * force;
+                        this.vy -= dy * force;
+                        this.size = this.baseSize * 1.8;
+                    } else {
+                        this.size = this.baseSize;
+                    }
+                }
+
                 this.x += this.vx; this.y += this.vy;
+                
+                // Friction
+                this.vx *= 0.99; this.vy *= 0.99;
+
+                // Bounce
                 if (this.x < 0 || this.x > w) this.vx *= -1;
                 if (this.y < 0 || this.y > h) this.vy *= -1;
             }
         }
 
-        for (let i = 0; i < 35; i++) particles.push(new Particle());
+        window.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        window.addEventListener('mouseleave', () => {
+            mouse.x = null; mouse.y = null;
+        });
 
-        let animationFrameId;
+        for (let i = 0; i < 45; i++) particles.push(new Particle());
+
+        let neuronAnimFrame;
         function animate() {
             if (document.hidden) {
-                animationFrameId = requestAnimationFrame(animate);
+                neuronAnimFrame = requestAnimationFrame(animate);
                 return; // Pause rendering if tab is inactive
             }
             ctx.clearRect(0, 0, w, h);
             const maxDist = 120;
+            // ... (rest omitted, just changing variable name)
 
             // Draw Connections
             ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
@@ -3318,14 +3574,14 @@
                     }
                 }
             }
-            animationFrameId = requestAnimationFrame(animate);
+            neuronAnimFrame = requestAnimationFrame(animate);
         }
         animate();
 
         // Optional: restart animation immediately if tab comes back
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
+            if (!document.hidden && neuronAnimFrame) {
+                cancelAnimationFrame(neuronAnimFrame);
                 animate();
             }
         });

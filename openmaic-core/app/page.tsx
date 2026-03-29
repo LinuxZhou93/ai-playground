@@ -21,6 +21,9 @@ import {
   Monitor,
   BotOff,
   ChevronUp,
+  Heart,
+  Flame,
+  Share2,
 } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { createLogger } from '@/lib/logger';
@@ -43,7 +46,13 @@ import {
   listStages,
   deleteStageData,
   getFirstSlideByStages,
+  loadStageData,
+  saveStageData,
 } from '@/lib/utils/stage-storage';
+import { toggleLike, getRecommendedFeed, trackView } from '@/lib/utils/social-storage';
+import { db } from '@/lib/utils/database';
+import { supabase, getCurrentUser } from '@/lib/supabase';
+import type { Stage, Scene } from '@/lib/types/stage';
 import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import type { Slide } from '@/lib/types/slides';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
@@ -305,6 +314,7 @@ function HomePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [classrooms, setClassrooms] = useState<StageListItem[]>([]);
+  const [activeTab, setActiveTab] = useState<'mine' | 'discovery'>('mine');
   const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -324,11 +334,25 @@ function HomePage() {
 
   const loadClassrooms = async () => {
     try {
-      const list = await listStages();
+      let list: StageListItem[] = [];
+      if (activeTab === 'mine') {
+        list = await listStages();
+      } else {
+        const recommended = await getRecommendedFeed();
+        list = recommended.map(r => ({
+          ...r,
+          sceneCount: 0, // Simplified for now
+          createdAt: typeof r.updated_at === 'string' ? new Date(r.updated_at).getTime() : r.updated_at,
+          updatedAt: typeof r.updated_at === 'string' ? new Date(r.updated_at).getTime() : r.updated_at,
+          isCloudOnly: true,
+          isPublic: true,
+        })) as any;
+      }
+      
       setClassrooms(list);
-      // Load first slide thumbnails
+      // Load first slide thumbnails (only for local ones for now)
       if (list.length > 0) {
-        const slides = await getFirstSlideByStages(list.map((c) => c.id));
+        const slides = await getFirstSlideByStages(list.filter(c => !c.isCloudOnly).map((c) => c.id));
         setThumbnails(slides);
       }
     } catch (err) {
@@ -345,11 +369,121 @@ function HomePage() {
 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Store hydration on mount
     loadClassrooms();
-  }, []);
+  }, [activeTab]);
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setPendingDeleteId(id);
+  };
+
+  const handlePublish = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const classroom = classrooms.find((c) => c.id === id);
+      if (!classroom) return;
+
+      const newStatus = !classroom.isPublic;
+      // 1. Update local DB
+      await db.stages.update(id, { isPublic: newStatus });
+
+      // 2. Sync to cloud
+      const data = await loadStageData(id);
+      if (data) {
+        data.stage.isPublic = newStatus;
+        await saveStageData(id, data);
+      }
+
+      toast.success(newStatus ? '课程已发布到公共库' : '已取消发布');
+      await loadClassrooms();
+    } catch (err) {
+      log.error('Failed to publish:', err);
+      toast.error('操作失败');
+    }
+  };
+
+  const handleFork = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const user = getCurrentUser();
+      if (!user) {
+        toast.error('请先登录以派生课程');
+        return;
+      }
+
+      // 1. Fetch remote data from Supabase
+      const { data: remoteStage, error: stageError } = await supabase
+        .from('stages')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (stageError || !remoteStage) throw new Error('找不到远程课程数据');
+
+      const { data: remoteScenes, error: sceneError } = await supabase
+        .from('scenes')
+        .select('*')
+        .eq('stage_id', id)
+        .order('order', { ascending: true });
+
+      if (sceneError) throw sceneError;
+
+      // 2. Create local clone with new ID
+      const newId = nanoid();
+      const now = Date.now();
+
+      const newStage: Stage = {
+        id: newId,
+        name: `${remoteStage.name} (Fork)`,
+        description: remoteStage.description,
+        createdAt: now,
+        updatedAt: now,
+        language: remoteStage.language,
+        style: remoteStage.style,
+        agentIds: remoteStage.agent_ids,
+        authorId: user.id,
+        isPublic: false,
+        forkedFrom: id,
+      };
+
+      const newScenes: Scene[] = (remoteScenes || []).map((s) => ({
+        id: nanoid(),
+        stageId: newId,
+        type: s.type as any,
+        title: s.title,
+        order: s.order,
+        content: s.content as any,
+        actions: s.actions as any,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+      // 3. Save to local DB & cloud
+      await saveStageData(newId, {
+        stage: newStage,
+        scenes: newScenes,
+        currentSceneId: newScenes[0]?.id || null,
+        chats: [],
+      });
+
+      toast.success('课件派生成功！已存入您的个人空间');
+      await loadClassrooms();
+    } catch (err) {
+      log.error('Failed to fork:', err);
+      toast.error('派生失败');
+    }
+  };
+
+  const handleLike = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const { liked, count } = await toggleLike(id);
+      // Optimistic/Refresh update
+      await loadClassrooms();
+      toast.success(liked ? '已收藏到喜欢列表' : '已取消点赞');
+    } catch (err) {
+      log.error('Failed to like:', err);
+      toast.error('操作失败');
+    }
   };
 
   const confirmDelete = async (id: string) => {
@@ -862,102 +996,156 @@ function HomePage() {
               >
                 <span className="text-xs font-medium">{t('toolbar.enterClassroom')}</span>
                 <ArrowUp className="size-3.5" />
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ── Error ── */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-3 w-full p-3 bg-destructive/10 border border-destructive/20 rounded-lg"
+              </bu      {/* ═══ Recent classrooms — ALWAYS VISIBLE for discovery ═══ */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="relative z-10 mt-10 w-full max-w-6xl flex flex-col items-center"
+      >
+        {/* Section Header with Tabs */}
+        <div className="w-full flex items-center justify-between mb-8 group/header mt-16">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/50 dark:bg-slate-800/40 border border-border/40 backdrop-blur-md">
+            <button
+              onClick={() => setActiveTab('mine')}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                activeTab === 'mine' 
+                  ? "bg-white dark:bg-slate-700 shadow-sm text-foreground ring-1 ring-black/5" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
-              <p className="text-sm text-destructive">{error}</p>
+              <Clock className="size-3.5" />
+              我的课堂
+            </button>
+            <button
+              onClick={() => setActiveTab('discovery')}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                activeTab === 'discovery' 
+                  ? "bg-white dark:bg-slate-700 shadow-sm text-foreground ring-1 ring-black/5" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Flame className={cn("size-3.5", activeTab === 'discovery' && "text-orange-500")} />
+              发现灵感 (For You)
+            </button>
+          </div>
+
+          <button
+            onClick={() => {
+                const next = !recentOpen;
+                setRecentOpen(next);
+                localStorage.setItem(RECENT_OPEN_STORAGE_KEY, String(next));
+            }}
+            className="group/btn inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+          >
+            <span className="text-[12px] font-bold text-muted-foreground/60 group-hover/btn:text-foreground transition-colors flex items-center gap-2">
+              {activeTab === 'mine' ? '全部记录' : '精选推荐'}
+              <span className="tabular-nums opacity-60 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded-md text-[10px]">
+                  {classrooms.length}
+              </span>
+            </span>
+            <motion.div
+              animate={{ rotate: recentOpen ? 180 : 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="opacity-40 group-hover/btn:opacity-100 transition-opacity"
+            >
+              <ChevronDown className="size-4" />
+            </motion.div>
+          </button>
+        </div>
+
+        {/* Expandable content */}
+        <AnimatePresence>
+          {recentOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              className="w-full overflow-hidden"
+            >
+              {classrooms.length > 0 ? (
+                <div className="pt-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
+                  {classrooms.map((classroom, i) => (
+                    <motion.div
+                      key={classroom.id}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: i * 0.05,
+                        duration: 0.4,
+                        ease: [0.215, 0.61, 0.355, 1],
+                      }}
+                    >
+                      <ClassroomCard
+                        classroom={classroom}
+                        slide={thumbnails[classroom.id]}
+                        formatDate={formatDate}
+                        onDelete={handleDelete}
+                        confirmingDelete={pendingDeleteId === classroom.id}
+                        onConfirmDelete={() => confirmDelete(classroom.id)}
+                        onCancelDelete={() => setPendingDeleteId(null)}
+                        onPublish={handlePublish}
+                        onFork={handleFork}
+                        onLike={handleLike}
+                        onClick={() => router.push(`/classroom/${classroom.id}`)}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-20 flex flex-col items-center justify-center text-muted-foreground/40 gap-4">
+                    <span className="text-4xl text-muted-foreground/20">📭</span>
+                    <p className="text-sm font-medium">
+                        {activeTab === 'mine' ? '暂无本地课程历史' : '正在搜寻云端灵感...'}
+                    </p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
+��
+              </button>
+              <button
+                onClick={() => setActiveTab('discovery')}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                  activeTab === 'discovery' 
+                    ? "bg-white dark:bg-slate-700 shadow-sm text-foreground ring-1 ring-black/5" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Flame className={cn("size-3.5", activeTab === 'discovery' && "text-orange-500")} />
+                发现灵感 (For You)
+              </button>
+            </div>
 
-      {/* ═══ #27(扩展): 学习统计面板 ═══ */}
-      {classrooms.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="relative z-10 mt-8 w-full max-w-3xl"
-        >
-          <div className="grid grid-cols-3 gap-3">
-            {/* 课程数量 */}
-            <div className="rounded-2xl bg-white/50 dark:bg-slate-800/40 backdrop-blur-lg border border-white/60 dark:border-slate-700/40 p-4 flex flex-col items-center gap-1 shadow-sm hover:shadow-md transition-shadow">
-              <span className="text-2xl">📚</span>
-              <span className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-fuchsia-500">
-                {classrooms.length}
+            <button
+              onClick={() => {
+                  const next = !recentOpen;
+                  setRecentOpen(next);
+                  localStorage.setItem(RECENT_OPEN_STORAGE_KEY, String(next));
+              }}
+              className="group/btn inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+            >
+              <span className="text-[12px] font-bold text-muted-foreground/60 group-hover/btn:text-foreground transition-colors flex items-center gap-2">
+                {activeTab === 'mine' ? '全部记录' : '精选推荐'}
+                <span className="tabular-nums opacity-60 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded-md text-[10px]">
+                    {classrooms.length}
+                </span>
               </span>
-              <span className="text-[10px] text-muted-foreground/60 font-medium">已学课程</span>
-            </div>
-            {/* 总页数 */}
-            <div className="rounded-2xl bg-white/50 dark:bg-slate-800/40 backdrop-blur-lg border border-white/60 dark:border-slate-700/40 p-4 flex flex-col items-center gap-1 shadow-sm hover:shadow-md transition-shadow">
-              <span className="text-2xl">📝</span>
-              <span className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-400">
-                {classrooms.reduce((acc, c) => acc + c.sceneCount, 0)}
-              </span>
-              <span className="text-[10px] text-muted-foreground/60 font-medium">学习页面</span>
-            </div>
-            {/* 最近活跃 */}
-            <div className="rounded-2xl bg-white/50 dark:bg-slate-800/40 backdrop-blur-lg border border-white/60 dark:border-slate-700/40 p-4 flex flex-col items-center gap-1 shadow-sm hover:shadow-md transition-shadow">
-              <span className="text-2xl">🔥</span>
-              <span className="text-sm font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-amber-400 truncate max-w-full px-1 text-center leading-7">
-                {(() => {
-                  const sorted = [...classrooms].sort((a, b) => b.updatedAt - a.updatedAt);
-                  const latest = sorted[0]?.name || '—';
-                  return latest.length > 8 ? latest.slice(0, 8) + '…' : latest;
-                })()}
-              </span>
-              <span className="text-[10px] text-muted-foreground/60 font-medium">最近学习</span>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* ═══ Recent classrooms — collapsible ═══ */}
-      {classrooms.length > 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="relative z-10 mt-10 w-full max-w-6xl flex flex-col items-center"
-        >
-          {/* Trigger — divider-line with centered text */}
-          <button
-            onClick={() => {
-              const next = !recentOpen;
-              setRecentOpen(next);
-              try {
-                localStorage.setItem(RECENT_OPEN_STORAGE_KEY, String(next));
-              } catch {
-                /* ignore */
-              }
-            }}
-            className="group w-full flex items-center gap-4 py-2 cursor-pointer"
-          >
-            <div className="flex-1 h-px bg-border/40 group-hover:bg-border/70 transition-colors" />
-            <span className="shrink-0 flex items-center gap-2 text-[13px] text-muted-foreground/60 group-hover:text-foreground/70 transition-colors select-none">
-              <Clock className="size-3.5" />
-              {t('classroom.recentClassrooms')}
-              <span className="text-[11px] tabular-nums opacity-60">{classrooms.length}</span>
               <motion.div
                 animate={{ rotate: recentOpen ? 180 : 0 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="opacity-40 group-hover/btn:opacity-100 transition-opacity"
               >
-                <ChevronDown className="size-3.5" />
+                <ChevronDown className="size-4" />
               </motion.div>
-            </span>
-            <div className="flex-1 h-px bg-border/40 group-hover:bg-border/70 transition-colors" />
-          </button>
+            </button>
+          </div>
 
           {/* Expandable content */}
           <AnimatePresence>
@@ -989,6 +1177,9 @@ function HomePage() {
                         confirmingDelete={pendingDeleteId === classroom.id}
                         onConfirmDelete={() => confirmDelete(classroom.id)}
                         onCancelDelete={() => setPendingDeleteId(null)}
+                        onPublish={handlePublish}
+                        onFork={handleFork}
+                        onLike={handleLike}
                         onClick={() => router.push(`/classroom/${classroom.id}`)}
                       />
                     </motion.div>
@@ -1399,16 +1590,22 @@ function ClassroomCard({
   confirmingDelete,
   onConfirmDelete,
   onCancelDelete,
+  onPublish,
+  onFork,
+  onLike,
   onClick,
 }: {
   classroom: StageListItem;
   slide?: Slide;
   formatDate: (ts: number) => string;
+  onPublish: (id: string, e: React.MouseEvent) => void;
+  onFork: (id: string, e: React.MouseEvent) => void;
+  onLike: (id: string, e: React.MouseEvent) => void;
+  onCancelDelete: () => void;
+  onClick: () => void;
   onDelete: (id: string, e: React.MouseEvent) => void;
   confirmingDelete: boolean;
   onConfirmDelete: () => void;
-  onCancelDelete: () => void;
-  onClick: () => void;
 }) {
   const { t } = useI18n();
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -1441,10 +1638,66 @@ function ClassroomCard({
         ) : !slide ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="size-12 rounded-2xl bg-gradient-to-br from-violet-100 to-blue-100 dark:from-violet-900/30 dark:to-blue-900/30 flex items-center justify-center">
-              <span className="text-xl opacity-50">📄</span>
+              <span className="text-xl opacity-50">{classroom.isCloudOnly ? '☁️' : '📄'}</span>
             </div>
           </div>
         ) : null}
+
+        {/* Popularity/Stats Overlays */}
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
+            <button 
+                onClick={(e) => onLike(classroom.id, e)}
+                className="size-8 rounded-full bg-black/30 backdrop-blur-md flex flex-col items-center justify-center text-white hover:bg-rose-500 transition-colors pointer-events-auto shadow-md"
+            >
+                <Heart className={cn("size-4 transition-transform", classroom.likes_count ? "fill-rose-500 text-rose-500 scale-110" : "text-white")} />
+                <span className="text-[8px] font-bold">{classroom.likes_count || 0}</span>
+            </button>
+        </div>
+
+        {/* Status Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2 pointer-events-none">
+          {classroom.isPublic && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 backdrop-blur-md"
+            >
+              <Check className="size-3" />
+              公开分享
+            </motion.div>
+          )}
+          {classroom.isCloudOnly && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="px-2.5 py-1 rounded-full bg-indigo-500 text-white text-[10px] font-bold shadow-lg shadow-indigo-500/20 flex items-center gap-1.5 backdrop-blur-md"
+            >
+              <Monitor className="size-3" />
+              云端课件
+            </motion.div>
+          )}
+        </div>
+
+        {/* Hover Action Layer */}
+        {!confirmingDelete && (
+          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-9 rounded-full px-5 shadow-xl pointer-events-auto font-bold text-xs ring-4 ring-black/5"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (classroom.isCloudOnly) {
+                  onFork(classroom.id, e);
+                } else {
+                  onClick();
+                }
+              }}
+            >
+              {classroom.isCloudOnly ? '一键派生 (Fork)' : '进入课堂'}
+            </Button>
+          </div>
+        )}
 
         {/* Delete — top-right, only on hover */}
         <AnimatePresence>
@@ -1504,36 +1757,66 @@ function ClassroomCard({
       </div>
 
       {/* Info — outside the thumbnail */}
-      <div className="mt-2.5 px-1 flex items-center gap-2">
-        <span className="shrink-0 inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[11px] font-medium text-violet-600 dark:text-violet-400">
-          {classroom.sceneCount} {t('classroom.slides')} · {formatDate(classroom.updatedAt)}
-        </span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <p className="font-medium text-[15px] truncate text-foreground/90 min-w-0">
-              {classroom.name}
-            </p>
-          </TooltipTrigger>
-          <TooltipContent
-            side="bottom"
-            sideOffset={4}
-            className="!max-w-[min(90vw,32rem)] break-words whitespace-normal"
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="break-all">{classroom.name}</span>
-              <button
-                className="shrink-0 p-0.5 rounded hover:bg-foreground/10 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigator.clipboard.writeText(classroom.name);
-                  toast.success(t('classroom.nameCopied'));
-                }}
-              >
-                <Copy className="size-3 opacity-60" />
-              </button>
+      <div className="mt-2.5 px-1 flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+            <span className="shrink-0 inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[11px] font-medium text-violet-600 dark:text-violet-400">
+            {classroom.isCloudOnly ? '☁️ Cloud' : `${classroom.sceneCount} ${t('classroom.slides')}`} · {formatDate(classroom.updatedAt)}
+            </span>
+            {(classroom.views_count ?? 0) > 0 && (
+                <span className="text-[10px] text-muted-foreground/60 flex items-center gap-0.5">
+                    <Monitor className="size-2.5" />
+                    {classroom.views_count}
+                </span>
+            )}
+        </div>
+        
+        <div className="flex items-center justify-between gap-2">
+            <Tooltip>
+            <TooltipTrigger asChild>
+                <p className="font-bold text-[15px] truncate text-foreground/90 min-w-0">
+                {classroom.name}
+                </p>
+            </TooltipTrigger>
+            <TooltipContent
+                side="bottom"
+                sideOffset={4}
+                className="!max-w-[min(90vw,32rem)] break-words whitespace-normal"
+            >
+                <div className="flex items-center gap-1.5 font-bold">
+                    <span>{classroom.name}</span>
+                </div>
+            </TooltipContent>
+            </Tooltip>
+
+            {/* Bottom Actions */}
+            <div className="flex items-center gap-0.5 shrink-0">
+                {!classroom.isCloudOnly && (
+                    <button
+                        onClick={(e) => onPublish(classroom.id, e)}
+                        className={cn(
+                            'p-1.5 rounded-lg transition-all',
+                            classroom.isPublic
+                            ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                            : 'text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                        )}
+                        title={classroom.isPublic ? "取消分享" : "发布到公共库"}
+                    >
+                        <ArrowUp className={cn("size-3.5", classroom.isPublic && "animate-pulse")} />
+                    </button>
+                )}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(`FutureClass://${classroom.id}`);
+                        toast.success('分享链接已复制到剪贴板');
+                    }}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                    title="复制课程链接"
+                >
+                    <Share2 className="size-3.5" />
+                </button>
             </div>
-          </TooltipContent>
-        </Tooltip>
+        </div>
       </div>
     </div>
   );

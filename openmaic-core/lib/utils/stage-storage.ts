@@ -11,6 +11,7 @@ import { db } from './database';
 import { saveChatSessions, loadChatSessions, deleteChatSessions } from './chat-storage';
 import { clearPlaybackState } from './playback-storage';
 import { createLogger } from '@/lib/logger';
+import { supabase, getCurrentUser } from '../supabase';
 
 const log = createLogger('StageStorage');
 
@@ -28,6 +29,11 @@ export interface StageListItem {
   sceneCount: number;
   createdAt: number;
   updatedAt: number;
+  isPublic?: boolean;
+  isCloudOnly?: boolean;
+  likes_count?: number;
+  views_count?: number;
+  forks_count?: number;
 }
 
 /**
@@ -71,7 +77,50 @@ export async function saveStageData(stageId: string, data: StageStoreData): Prom
       await saveChatSessions(stageId, data.chats);
     }
 
-    log.info(`Saved stage: ${stageId}`);
+    log.info(`Saved stage locally: ${stageId}`);
+
+    // --- Cloud Sync (Supabase) ---
+    const user = getCurrentUser();
+    if (user) {
+      try {
+        const { error: stageError } = await supabase.from('stages').upsert({
+          id: stageId,
+          name: data.stage.name || 'Untitled Stage',
+          description: data.stage.description,
+          created_at: data.stage.createdAt || now,
+          updated_at: now,
+          author_id: user.id,
+          is_public: data.stage.isPublic || false,
+          language: data.stage.language,
+          style: data.stage.style,
+          agent_ids: data.stage.agentIds,
+        });
+
+        if (stageError) throw stageError;
+
+        // Sync scenes
+        if (data.scenes && data.scenes.length > 0) {
+          const { error: sceneError } = await supabase.from('scenes').upsert(
+            data.scenes.map((scene, index) => ({
+              id: scene.id,
+              stage_id: stageId,
+              type: scene.type,
+              title: scene.title,
+              order: scene.order ?? index,
+              content: scene.content, // JSONB
+              actions: scene.actions, // JSONB
+              created_at: scene.createdAt || now,
+              updated_at: now,
+            })),
+          );
+          if (sceneError) throw sceneError;
+        }
+
+        log.info(`Synced stage to cloud: ${stageId}`);
+      } catch (cloudError) {
+        log.warn('Failed to sync to cloud (offline?):', cloudError);
+      }
+    }
   } catch (error) {
     log.error('Failed to save stage:', error);
     throw error;
@@ -132,29 +181,68 @@ export async function deleteStageData(stageId: string): Promise<void> {
   }
 }
 
-/**
- * List all stages
- */
 export async function listStages(): Promise<StageListItem[]> {
   try {
-    const stages = await db.stages.orderBy('updatedAt').reverse().toArray();
+    const localStages = await db.stages.orderBy('updatedAt').reverse().toArray();
 
-    const stageList: StageListItem[] = await Promise.all(
-      stages.map(async (stage) => {
+    // --- Cloud Pull (Supabase) ---
+    const user = getCurrentUser();
+    let cloudStages: any[] = [];
+    if (user) {
+        try {
+            const { data, error } = await supabase
+                .from('stages')
+                .select('id, name, description, created_at, updated_at, is_public, likes_count, views_count, forks_count')
+                .or(`author_id.eq.${user.id},is_public.eq.true`)
+                .order('updated_at', { ascending: false });
+            
+            if (!error && data) {
+                cloudStages = data;
+            }
+        } catch (err) {
+            log.warn('Failed to pull stages from cloud:', err);
+        }
+    }
+
+    // Merge logic (Local primary, but cloud provides new ones)
+    const stageList: StageListItem[] = [];
+    const localMap = new Map(localStages.map(s => [s.id, s]));
+    
+    // Add all local stages
+    for (const stage of localStages) {
         const sceneCount = await db.scenes.where('stageId').equals(stage.id).count();
+        stageList.push({
+            id: stage.id,
+            name: stage.name,
+            description: stage.description,
+            sceneCount,
+            createdAt: stage.createdAt,
+            updatedAt: stage.updatedAt,
+            isPublic: stage.isPublic,
+        });
+    }
 
-        return {
-          id: stage.id,
-          name: stage.name,
-          description: stage.description,
-          sceneCount,
-          createdAt: stage.createdAt,
-          updatedAt: stage.updatedAt,
-        };
-      }),
-    );
+    // Add cloud stages NOT present locally (Forking/Sharing scenario)
+    for (const remote of cloudStages) {
+        if (!localMap.has(remote.id)) {
+            stageList.push({
+                id: remote.id,
+                name: remote.name,
+                description: remote.description,
+                sceneCount: 0, // Not loaded yet
+                createdAt: typeof remote.created_at === 'string' ? new Date(remote.created_at).getTime() : remote.created_at,
+                updatedAt: typeof remote.updated_at === 'string' ? new Date(remote.updated_at).getTime() : remote.updated_at,
+                isPublic: remote.is_public,
+                isCloudOnly: true, // Special marker for UI
+                likes_count: remote.likes_count,
+                views_count: remote.views_count,
+                forks_count: remote.forks_count,
+            });
+        }
+    }
 
-    return stageList;
+    // Sort by updatedAt
+    return stageList.sort((a, b) => b.updatedAt - a.updatedAt);
   } catch (error) {
     log.error('Failed to list stages:', error);
     return [];

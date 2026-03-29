@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 无限课程工厂 | 小创客 FUTURECLASS</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #020617;
+            color: #e2e8f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .factory-grid {
+            background-image: linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .mission-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 3px solid transparent;
+            margin-bottom: 4px;
+        }
+
+        .mission-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateX(4px);
+        }
+
+        .mission-item.active {
+            background: linear-gradient(90deg, rgba(249, 115, 22, 0.1), transparent);
+            border-left-color: #f97316;
+            box-shadow: -5px 0 15px rgba(249, 115, 22, 0.1);
+        }
+
+        .quantum-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 900;
+        }
+
+        /* Markdown Overrides to match Rocket Style */
+        .content-body h1, .content-body h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 900;
+            color: #fff;
+            margin-top: 2.5rem;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+        .content-body h2 {
+            font-size: 1.8rem;
+            border-left: 4px solid #f97316;
+            padding-left: 1rem;
+        }
+        .content-body p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Entrance Animation */
+        @keyframes page-enter {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-enter { animation: page-enter 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="factory-grid">
+    <div id="app" class="h-screen flex flex-col" v-cloak>
+        <!-- Top Navigation (Rocket Grade) -->
+        <nav class="h-16 glass border-b border-white/5 flex-shrink-0 z-50">
+            <div class="max-w-[1700px] mx-auto h-full px-6 flex items-center justify-between">
+                <div class="flex items-center gap-5 w-1/4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-600 rounded-xl flex items-center justify-center text-white shadow-xl shadow-orange-500/20">
+                        <i class="fas fa-atom text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-xl tracking-tighter text-white">FUTURECLASS <span class="text-xs font-normal text-slate-500 ml-2">知识演化工厂 v1.0</span></h1>
+                        <p class="text-[9px] text-slate-500 uppercase tracking-[0.3em] font-bold">小创客无限课程底座 / 全速运行中</p>
+                    </div>
+                </div>
+
+                <!-- 【新增：Odyssey 全局溯源链条】 -->
+                <div class="flex-1 flex items-center justify-center px-4 overflow-hidden h-full relative group">
+                    <div v-if="odysseyPath.length > 0" class="flex flex-row items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-hide text-sm py-1 max-w-full">
+                        <span class="text-orange-400 font-bold tracking-widest text-[9px] mr-2 opacity-50"><i class="fas fa-sitemap mt-0.5"></i> 纪元路径</span>
+                        <template v-for="(node, index) in odysseyPath" :key="index">
+                            <a :href="node.url" 
+                               class="px-3 py-1 rounded-[10px] text-[11px] font-semibold border transition-all duration-300 transform outline-none"
+                               :class="index === odysseyPath.length - 1 ? 
+                               'bg-orange-500/20 text-orange-300 border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)] scale-100 opacity-100 cursor-default' : 
+                               'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white hover:scale-105 opacity-60 hover:opacity-100'">
+                                {{ node.title }}
+                            </a>
+                            <i v-if="index < odysseyPath.length - 1" class="fas fa-chevron-right text-orange-500/30 text-[8px] mx-1"></i>
+                        </template>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end gap-8 w-1/4">
+                    <div class="hidden xl:flex items-center gap-5 text-[10px] font-bold tracking-widest text-slate-500">
+                        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> 知识生成引擎已点火</span>
+                        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span> FLEDGE_CLASS L4 已联通</span>
+                    </div>
+                    <a href="index.html" class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex-shrink-0">
+                        <i class="fas fa-arrow-left mr-2"></i> 返回首页
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Workplace -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar (Evolution mission log) -->
+            <aside class="w-80 glass border-r border-white/5 flex flex-col overflow-hidden">
+                <div class="p-6 border-b border-white/5">
+                    <div class="flex justify-between items-end mb-4">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">演化探索深度</span>
+                        <span class="text-2xl font-black text-orange-500">{{ progress }}%</span>
+                    </div>
+                    <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-orange-500 to-blue-500 transition-all duration-1000" :style="{ width: progress + '%' }"></div>
+                    </div>
+                </div>
+
+                <!-- Topic Tree (Dynamic) -->
+                <div class="flex-1 overflow-y-auto p-4 custom-scroll">
+                    <div class="mb-6 px-2">
+                        <p class="text-[9px] font-black text-slate-600 uppercase tracking-[0.25em] mb-4">当前探索节点</p>
+                        <div class="space-y-1">
+                            <div v-for="(node, index) in nodes" :key="index" 
+                                 class="mission-item p-3 rounded-lg cursor-pointer flex items-center gap-3 transition-all"
+                                 :class="{ 'active': currentNodeIndex === index }"
+                                 @click="switchNode(index)">
+                                <div class="w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono"
+                                     :class="currentNodeIndex === index ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-500'">
+                                    {{ (index + 1).toString().padStart(2, '0') }}
+                                </div>
+                                <span class="text-xs font-bold truncate transition-colors" :class="currentNodeIndex === index ? 'text-white' : 'text-slate-400'">
+                                    {{ node.title }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Evolutionary Seed (Button to grow more nodes) -->
+                    <div class="mt-8 px-2">
+                        <button @click="growNodes" class="w-full py-3 rounded-xl border border-dashed border-slate-700 text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:border-orange-500 hover:text-orange-400 transition-all group">
+                            <i class="fas fa-dna mr-2 group-hover:rotate-45 transition-transform"></i> 开启深层演化
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Bottom Status -->
+                <div class="p-4 bg-black/20 border-t border-white/5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs">🤖</div>
+                        <div class="flex-1">
+                            <p class="text-[9px] text-slate-500 font-bold uppercase tracking-tight">AI Generated</p>
+                            <p class="text-[10px] text-slate-300 truncate">实时知识切片已同步</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Module (Infinite View) -->
+            <main class="flex-1 overflow-y-auto relative bg-[#020617]">
+                <div class="max-w-[1000px] mx-auto p-16 animate-enter" v-if="currentNode">
+                    <!-- Phase Branding -->
+                    <div class="flex items-center gap-4 mb-8">
+                        <span class="quantum-badge">{{ currentNode.category || 'EXPLORATION' }}</span>
+                        <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                    </div>
+
+                    <!-- Title Block -->
+                    <h2 class="text-6xl font-black mb-10 tracking-tighter leading-tight text-white">
+                        {{ currentNode.title }}
+                    </h2>
+
+                    <!-- Integration Stats -->
+                    <div class="flex gap-6 mb-16">
+                        <div class="glass p-4 rounded-2xl flex items-center gap-4 border border-white/10 min-w-[180px]">
+                            <div class="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-500"><i class="fas fa-clock"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-500 font-bold uppercase">探索用时</p>
+                                <p class="text-sm font-black text-white">≈ 45 MINS</p>
+                            </div>
+                        </div>
+                        <div class="glass p-4 rounded-2xl flex items-center gap-4 border border-white/10 min-w-[180px]">
+                            <div class="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500"><i class="fas fa-bolt"></i></div>
+                            <div>
+                                <p class="text-[9px] text-slate-500 font-bold uppercase">知识浓度</p>
+                                <p class="text-sm font-black text-white">TITAN_V3.0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Dynamic Content -->
+                    <div class="content-body space-y-10">
+                        <!-- Hero Image / Visual -->
+                        <div class="aspect-[21/9] rounded-[2.5rem] bg-slate-900 border border-white/5 shadow-3xl overflow-hidden relative group">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-10">
+                                <p class="text-xs text-slate-300 font-mono">VISIONARY_ASSET_L4 // DEPLOYED</p>
+                            </div>
+                            <img :src="currentNode.image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1000'" 
+                                 class="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-1000">
+                            
+                            <!-- Master Action Button (FledgeClass / AI Tutor) -->
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <button @click="startFledgeClass" class="px-10 py-4 bg-white text-black rounded-full font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center gap-3">
+                                    <i class="fas fa-play text-xs"></i> 启动 FledgeClass L4 自动授课
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Markdown Content Area -->
+                        <div class="pt-10 border-t border-white/5">
+                            <div v-html="renderedContent"></div>
+                        </div>
+
+                        <!-- Footer Navigation -->
+                        <div class="flex items-center justify-between pt-16 border-t border-white/5">
+                            <button @click="completeSession" class="px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all bg-orange-600 text-white shadow-2xl shadow-orange-600/30 hover:-translate-y-1">
+                                <i class="fas fa-check-circle mr-2"></i> 完成当前章节
+                            </button>
+                            <div class="flex gap-4">
+                                <button class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-slate-400 hover:text-white hover:border-white/20 transition-all">
+                                    <i class="fas fa-share-alt"></i>
+                                </button>
+                                <button class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-slate-400 hover:text-white hover:border-white/20 transition-all">
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const nodes = ref([]);
+                const currentNodeIndex = ref(0);
+                const progress = ref(0);
+                const isGenerating = ref(false);
+
+                const currentNode = computed(() => nodes.value[currentNodeIndex.value]);
+
+                const renderedContent = computed(() => {
+                    if (!currentNode.value || !currentNode.value.content) return '';
+                    return marked.parse(currentNode.value.content);
+                });
+
+                // Odyssey Track Breadcrumbs
+                const odysseyPath = ref([]);
+                
+                const pushToOdysseyPath = (courseTitle) => {
+                    let path = [];
+                    try {
+                        path = JSON.parse(sessionStorage.getItem('titan_odyssey_path') || '[]');
+                    } catch(e) {}
+                    
+                    if (path.length === 0 || path[path.length - 1].title !== courseTitle) {
+                        path.push({ title: courseTitle, url: window.location.href });
+                        if(path.length > 5) path = path.slice(path.length - 5);
+                        sessionStorage.setItem('titan_odyssey_path', JSON.stringify(path));
+                    }
+                    odysseyPath.value = path;
+                };
+
+                // Load initial theme from URL
+                onMounted(() => {
+                    const params = new URLSearchParams(window.location.search);
+                    const theme = params.get('theme') || '未命名演化课题';
+                    
+                    // 基于主题预排产 4 个核心切片
+                    nodes.value = [
+                        {
+                            title: `${theme}：原理溯源与底层逻辑`,
+                            category: 'PHASE 01',
+                            content: `# 深度解析：${theme}\n\n正在通过神经网络解析该主题的底层逻辑... \n\n## 行业洞察\n这是一个跨学科的演化节点。我们将通过第一性原理分析，解构其核心要素。\n\n## 互动任务\n- [ ] 收集相关的基础物理/逻辑参数\n- [ ] 记录初始实验反馈数据`,
+                            image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1000'
+                        },
+                        {
+                            title: `${theme}：关键算法与硬件实装`,
+                            category: 'PHASE 02',
+                            content: `## 核心工程实现\n\n我们将重点探讨如何将 ${theme} 的理论转化为可落地的技术架构。\n\n### 技术栈建议\n1. **嵌入式控制系统**：基于高效算力的实时处理。\n2. **感知融合算法**：多传感器数据的高速解算。`,
+                            image: 'https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&q=80&w=1000'
+                        },
+                        {
+                            title: `${theme}：场景集成与系统调优`,
+                            category: 'PHASE 03',
+                            content: `## 系统化闭环\n\n在完成基础组件构建后，我们进入整系统联调阶段。\n\n### 调优清单\n- **稳定性测试**：在极限载荷下的性能反馈。\n- **功耗优化**：提升移动端的续航能力。`,
+                            image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1000'
+                        },
+                        {
+                            title: `${theme}：伦理审查与未来演化`,
+                            category: 'SUMMARY',
+                            content: `## 最终展演与反思\n\n每一个技术节点都不仅是冰冷的参数，它还在重塑我们的社会。未来该技术将向着更具人性化、更高效的方向突变。\n\n> 科技不仅是工具，更是进化的阶梯。`,
+                            image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=1000'
+                        }
+                    ];
+
+                    setTimeout(() => {
+                        progress.value = 25;
+                    }, 500);
+
+                    // 注册溯源链路
+                    if (theme) {
+                        pushToOdysseyPath(theme);
+                    }
+                });
+
+                const switchNode = (index) => {
+                    currentNodeIndex.value = index;
+                };
+
+                const growNodes = () => {
+                    // Simulated evolutionary growth
+                    const extraTopics = ['关键技术底座', '伦理与社会性探讨', '跨学科深度融合'];
+                    const newTopic = extraTopics[nodes.value.length % extraTopics.length];
+                    
+                    nodes.value.push({
+                        title: `${currentNode.value.title} · ${newTopic}`,
+                        category: 'EVOLUTION',
+                        content: `## 演化深度：${newTopic}\n\n本章节是基于前序知识的实战演化。我们将重点探讨如何将该主题应用到复杂的系统仿真中。\n\n### 深度研究\n1. 算法架构及其鲁棒性分析。\n2. 硬件实装成本与量产可能性。\n3. 当前领域的顶级研究实验室现状。`,
+                        completed: false
+                    });
+                    
+                    currentNodeIndex.value = nodes.value.length - 1;
+                    progress.value = Math.min(100, progress.value + 15);
+                };
+
+                const startFledgeClass = () => {
+                    const topic = encodeURIComponent(currentNode.value.title);
+                    window.location.href = `https://ai.zhouxiaomai.com/?courseTopic=${topic}`;
+                };
+
+                const completeSession = () => {
+                   if (progress.value < 100) progress.value += 10;
+                   alert('章节已完成，知识奖励已同步至 Titan Profile');
+                };
+
+                return {
+                    nodes, currentNodeIndex, currentNode, progress, odysseyPath,
+                    renderedContent, switchNode, growNodes, startFledgeClass, completeSession
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

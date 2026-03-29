@@ -95,13 +95,29 @@
         <!-- Navigation -->
         <nav class="h-16 glass border-b border-indigo-500/20 flex-shrink-0">
             <div class="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold">
-                        T</div>
-                    <span class="font-bold text-xl">Tech <span class="text-indigo-400">Odyssey</span></span>
+                <div class="flex items-center gap-3 w-1/4">
+                    <div class="w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold">T</div>
+                    <span class="font-bold text-xl hidden sm:inline">Tech <span class="text-indigo-400">Odyssey</span></span>
                 </div>
-                <div class="flex items-center gap-4">
+                
+                <!-- 【新增：Odyssey 全局溯源链条】 -->
+                <div class="flex-1 flex items-center justify-center px-4 overflow-hidden h-full relative group">
+                    <div v-if="odysseyPath.length > 0" class="flex flex-row items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-hide text-sm py-1 max-w-full">
+                        <span class="text-indigo-400 font-bold tracking-widest text-[9px] mr-2 opacity-50"><i class="fas fa-sitemap mt-0.5"></i> 纪元路径</span>
+                        <template v-for="(node, index) in odysseyPath" :key="index">
+                            <a :href="node.url" 
+                               class="px-3 py-1 rounded-[10px] text-[11px] font-semibold border transition-all duration-300 transform outline-none"
+                               :class="index === odysseyPath.length - 1 ? 
+                               'bg-indigo-500/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.2)] scale-100 opacity-100 cursor-default' : 
+                               'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white hover:scale-105 opacity-60 hover:opacity-100'">
+                                {{ node.title }}
+                            </a>
+                            <i v-if="index < odysseyPath.length - 1" class="fas fa-chevron-right text-indigo-500/30 text-[8px] mx-1"></i>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-4 w-1/4">
                     <a href="wiki.html"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/40 hover:text-white transition-all text-xs font-bold group">
                         <span class="group-hover:animate-spin">🌌</span>
@@ -453,6 +469,23 @@
                 const showNotes = ref(false);
                 const sidebarOpen = showAI; // Compatibility alias
 
+                // Odyssey Track Breadcrumbs
+                const odysseyPath = ref([]);
+                
+                const pushToOdysseyPath = (courseTitle) => {
+                    let path = [];
+                    try {
+                        path = JSON.parse(sessionStorage.getItem('titan_odyssey_path') || '[]');
+                    } catch(e) {}
+                    
+                    if (path.length === 0 || path[path.length - 1].title !== courseTitle) {
+                        path.push({ title: courseTitle, url: window.location.href });
+                        if(path.length > 5) path = path.slice(path.length - 5);
+                        sessionStorage.setItem('titan_odyssey_path', JSON.stringify(path));
+                    }
+                    odysseyPath.value = path;
+                };
+
                 // Notes State
                 const currentNote = ref('');
                 const notesStatus = ref('');
@@ -695,9 +728,12 @@
                             console.warn('Network error fetching course JSON:', e);
                         }
 
+                        // 如果 URL 参数存在 theme，则立刻变身为 AI 定制主题库！
+                        const uiTheme = urlParams.get('theme');
+                        
                         course.value = {
-                            title: data.title || 'Course Title',
-                            description: data.description || 'Course Description'
+                            title: uiTheme || data.title || '探索未知节点',
+                            description: uiTheme ? `这是一份由 AI 助手实时推演出的《${uiTheme}》专属概念图谱课程。` : (data.description || 'Course Description')
                         };
 
                         // Mock specific course data override
@@ -834,6 +870,11 @@
                         course.value = { title: '加载失败', description: '无法加载课程数据' };
                     } finally {
                         loading.value = false;
+                        
+                        // 【新增】保存知识溯源节点，构建全局长流程序列
+                        if (course.value.title && course.value.title !== '加载中...' && course.value.title !== '加载失败') {
+                            pushToOdysseyPath(course.value.title);
+                        }
                     }
                 };
 
@@ -1045,6 +1086,7 @@
                     // UI
                     showAI,
                     showNotes,
+                    odysseyPath,
 
                     // Notes
                     currentNote,

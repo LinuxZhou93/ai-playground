@@ -25,6 +25,16 @@ export interface Stage {
   whiteboard?: Whiteboard[];
   // Agent IDs selected when this classroom was created
   agentIds?: string[];
+
+  // Cloud & Collaboration fields
+  authorId?: string;
+  isPublic?: boolean;
+  forkedFrom?: string; // Original stageId if this is a fork
+  
+  // Social metrics
+  likesCount?: number;
+  viewsCount?: number;
+  forksCount?: number;
 }
 
 /**
