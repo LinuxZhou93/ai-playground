@@ -1,14 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { createLogger } from '@/lib/logger';
+import { useSettingsStore } from '@/lib/store/settings';
 
 const log = createLogger('AudioRecorder');
-
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
 
 export interface UseAudioRecorderOptions {
   onTranscription?: (text: string) => void;
@@ -22,97 +16,113 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
 
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const speechRecognitionRef = useRef<any>(null);
-  const busyRef = useRef(false);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  // Request transcription from backend
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsProcessing(true);
+    try {
+      const { asrProviderId, asrLanguage, asrProvidersConfig } = useSettingsStore.getState();
+      const config = asrProvidersConfig[asrProviderId];
+
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('providerId', asrProviderId);
+      formData.append('language', asrLanguage || 'auto');
+      
+      if (config?.apiKey) formData.append('apiKey', config.apiKey);
+      if (config?.baseUrl) formData.append('baseUrl', config.baseUrl);
+
+      const response = await fetch('/api/transcription', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Transcription API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.data?.text) {
+        onTranscription?.(data.data.text);
+      } else if (data.success && !data.data?.text) {
+        log.warn('Empty transcription result');
+      } else {
+        throw new Error(data.error || 'Transcription failed');
+      }
+    } catch (error) {
+      log.error('Failed to transcribe audio:', error);
+      onError?.('语音转换文字失败，请检查网络或稍后重试');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Start recording
   const startRecording = useCallback(async () => {
-    if (busyRef.current) return;
-    busyRef.current = true;
     try {
-      if (typeof window === 'undefined') return;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-      if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-        onError?.('您的浏览器不支持语音识别功能，请使用 Chrome 或 Edge 浏览器。');
-        busyRef.current = false;
-        return;
-      }
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+      });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-
-      recognition.lang = 'zh-CN';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onstart = () => {
-        setIsRecording(true);
-        setRecordingTime(0);
-        timerRef.current = setInterval(() => {
-          setRecordingTime((prev) => prev + 1);
-        }, 1000);
-      };
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        onTranscription?.(transcript);
-      };
-
-      recognition.onerror = (event: any) => {
-        log.error('Speech recognition error:', event.error);
-        let errorMessage = '语音识别失败';
-        switch (event.error) {
-          case 'aborted':
-            break;
-          case 'no-speech':
-            errorMessage = '未检测到语音输入';
-            break;
-          case 'audio-capture':
-            errorMessage = '无法访问麦克风';
-            break;
-          case 'not-allowed':
-            errorMessage = '麦克风权限被拒绝';
-            break;
-          default:
-            errorMessage = `语音识别错误: ${event.error}`;
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-        if (event.error !== 'aborted') onError?.(errorMessage);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (audioBlob.size > 0) {
+          await transcribeAudio(audioBlob);
+        }
         
-        setIsRecording(false);
-        busyRef.current = false;
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       };
 
-      recognition.onend = () => {
-        setIsRecording(false);
-        busyRef.current = false;
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-      };
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
 
-      recognition.start();
-      speechRecognitionRef.current = recognition;
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
     } catch (error) {
-      busyRef.current = false;
       log.error('Failed to start recording:', error);
-      onError?.('无法启动语音识别');
+      if (error instanceof Error && (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError')) {
+        onError?.('麦克风权限被拒绝，请在浏览器设置中开启权限。');
+      } else {
+        onError?.('无法开启录音功能，请检查设备。');
+      }
     }
   }, [onTranscription, onError]);
 
   // Stop recording
   const stopRecording = useCallback(() => {
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.stop();
-      speechRecognitionRef.current = null;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
-    busyRef.current = false;
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -121,14 +131,19 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
   // Cancel recording
   const cancelRecording = useCallback(() => {
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.onresult = null;
-      speechRecognitionRef.current.onerror = null;
-      speechRecognitionRef.current.stop();
-      speechRecognitionRef.current = null;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      // Clear onstop so we don't transcribe
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
     }
+    
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
     setIsRecording(false);
-    busyRef.current = false;
+    setIsProcessing(false);
     setRecordingTime(0);
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -145,3 +160,4 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     cancelRecording,
   };
 }
+

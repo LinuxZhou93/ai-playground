@@ -1,167 +1,174 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
-import { Mic, Loader2 } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Mic, Loader2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
 
-interface SpeechButtonProps {
+export interface SpeechButtonProps {
   onTranscription: (text: string) => void;
   className?: string;
-  disabled?: boolean;
-  size?: 'sm' | 'md';
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
-export function SpeechButton({
-  onTranscription,
+export function SpeechButton({ 
+  onTranscription, 
   className,
-  disabled,
-  size = 'sm',
+  textareaRef 
 }: SpeechButtonProps) {
   const { t } = useI18n();
-
-  // Ref to always call the latest onTranscription, avoiding stale closures
-  const onTranscriptionRef = useRef(onTranscription);
-  useEffect(() => {
-    onTranscriptionRef.current = onTranscription;
-  }, [onTranscription]);
-
-  const stableOnTranscription = useCallback((text: string) => {
-    onTranscriptionRef.current(text);
-  }, []);
-
-  const handleError = useCallback((error: string) => {
-    toast.error(error);
-  }, []);
-
-  const { isRecording, isProcessing, startRecording, stopRecording } = useAudioRecorder({
-    onTranscription: stableOnTranscription,
-    onError: handleError,
+  const [showPanel, setShowPanel] = useState(false);
+  
+  const { 
+    isRecording, 
+    isProcessing, 
+    recordingTime, 
+    startRecording, 
+    stopRecording, 
+    cancelRecording 
+  } = useAudioRecorder({
+    onTranscription: (text) => {
+      onTranscription(text);
+      setShowPanel(false);
+    },
+    onError: (error) => {
+      // Error is handled by useAudioRecorder (logs and potentially toasts)
+      setShowPanel(false);
+    }
   });
 
-  const active = isRecording || isProcessing;
-
-  const handleClick = () => {
-    if (isRecording) {
-      stopRecording();
-    } else if (!isProcessing) {
+  const handleToggle = useCallback(() => {
+    if (showPanel) {
+      if (isRecording) stopRecording();
+      setShowPanel(false);
+    } else {
+      setShowPanel(true);
       startRecording();
     }
-  };
+  }, [showPanel, isRecording, startRecording, stopRecording]);
 
-  const isMd = size === 'md';
-  const sizeClasses = isMd ? 'h-8 w-8' : 'h-6 w-6';
-  const iconSize = isMd ? 'w-4 h-4' : 'w-3.5 h-3.5';
-  const barH = isMd ? 16 : 12;
+  const handleCancel = useCallback(() => {
+    cancelRecording();
+    setShowPanel(false);
+  }, [cancelRecording]);
 
   return (
-    <div className="relative flex items-center gap-1.5">
-      {/* #11: 录音中文字提示 */}
-      {isRecording && (
-        <span className="text-[10px] font-medium text-violet-500 animate-pulse whitespace-nowrap select-none">
-          录音中...
-        </span>
-      )}
-      {isProcessing && (
-        <span className="text-[10px] font-medium text-muted-foreground/50 whitespace-nowrap select-none">
-          识别中...
-        </span>
-      )}
-
+    <div className="relative">
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
-            disabled={disabled || isProcessing}
-            onClick={handleClick}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleToggle}
             className={cn(
-              'relative flex items-center justify-center rounded-lg transition-all duration-200 shrink-0 cursor-pointer',
-              sizeClasses,
-              active
-                ? 'bg-violet-500/90 dark:bg-violet-600/80 text-white shadow-[0_0_12px_rgba(139,92,246,0.45)] dark:shadow-[0_0_12px_rgba(139,92,246,0.3)]'
-                : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/80',
-              disabled && 'opacity-40 pointer-events-none',
-              className,
+              "rounded-full transition-all duration-300",
+              showPanel ? "bg-accent text-accent-foreground shadow-inner" : "text-muted-foreground hover:text-foreground",
+              className
             )}
           >
-            {/* #11: 双层呼吸脉冲环 */}
-            {isRecording && (
-              <>
-                <span
-                  className="absolute inset-[-4px] rounded-[10px] border border-violet-400/40 dark:border-violet-400/25"
-                  style={{
-                    animation: 'speech-ring 2s ease-in-out infinite',
-                  }}
-                />
-                <span
-                  className="absolute inset-[-8px] rounded-[14px] border border-violet-300/20 dark:border-violet-400/10"
-                  style={{
-                    animation: 'speech-ring 2s ease-in-out 0.5s infinite',
-                  }}
-                />
-              </>
-            )}
-
             {isProcessing ? (
-              <Loader2 className={cn(iconSize, 'animate-spin')} />
-            ) : isRecording ? (
-              /* #11: 增强版 5 条均衡器波形 */
-              <span className="flex items-center gap-[2px] relative z-10">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <span
-                    key={i}
-                    className="rounded-full bg-white"
-                    style={{
-                      width: isMd ? 2.5 : 2,
-                      animation: `speech-bar ${0.3 + i * 0.1}s ease-in-out ${i * 0.08}s infinite alternate`,
-                      height: 3,
-                    }}
-                  />
-                ))}
-              </span>
+              <Loader2 className="size-4 animate-spin text-purple-500" />
             ) : (
-              <Mic className={cn(iconSize, 'relative z-10')} />
+              <Mic className={cn("size-4", showPanel && "text-purple-500")} />
             )}
-
-            {/* Injected keyframes */}
-            <style jsx>{`
-              @keyframes speech-bar {
-                0% {
-                  height: 3px;
-                }
-                50% {
-                  height: ${barH * 0.6}px;
-                }
-                100% {
-                  height: ${barH}px;
-                }
-              }
-              @keyframes speech-ring {
-                0%,
-                100% {
-                  opacity: 0.3;
-                  transform: scale(1);
-                }
-                50% {
-                  opacity: 0.7;
-                  transform: scale(1.08);
-                }
-              }
-            `}</style>
-          </button>
+          </Button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">
-          {isProcessing
-            ? t('roundtable.processing')
-            : isRecording
-              ? t('voice.stopListening')
-              : t('voice.startListening')}
+        <TooltipContent side="top">
+          {t('roundtable.voiceInput')}
         </TooltipContent>
       </Tooltip>
+
+      <AnimatePresence>
+        {showPanel && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 w-64 p-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-purple-200 dark:border-purple-800 rounded-2xl shadow-2xl ring-1 ring-purple-500/10"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex justify-between w-full items-center mb-1">
+                <span className="text-[10px] font-bold tracking-widest text-purple-600 dark:text-purple-400 uppercase">
+                  {isProcessing ? t('roundtable.processing') : t('roundtable.listening')}
+                </span>
+                <span className="text-xs font-mono text-muted-foreground w-10 text-right">
+                  {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
+              
+              <div className="relative flex items-center justify-center w-20 h-20">
+                {/* Background ripples */}
+                {isRecording && (
+                  <>
+                    <motion.div
+                      animate={{ scale: [1, 1.8], opacity: [0.3, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
+                      className="absolute inset-0 rounded-full border border-purple-400 dark:border-purple-600"
+                    />
+                    <motion.div
+                      animate={{ scale: [1, 2.2], opacity: [0.2, 0] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeOut" }}
+                      className="absolute inset-0 rounded-full border border-purple-300 dark:border-purple-500"
+                    />
+                  </>
+                )}
+                
+                {/* Main button */}
+                <button
+                  onClick={handleToggle}
+                  className={cn(
+                    "relative z-10 size-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg",
+                    isProcessing 
+                      ? "bg-gray-100 dark:bg-gray-700 cursor-wait" 
+                      : "bg-gradient-to-br from-purple-500 to-indigo-600 hover:scale-105 active:scale-95 text-white"
+                  )}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="size-6 animate-spin text-purple-500" />
+                  ) : (
+                    <Mic className="size-6" />
+                  )}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-6 mt-1 w-full justify-center">
+                <button
+                  onClick={handleCancel}
+                  className="flex flex-col items-center gap-1.5 group"
+                >
+                  <div className="size-8 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center bg-white dark:bg-gray-900 group-hover:bg-red-50 dark:group-hover:bg-red-950/20 group-hover:border-red-200 dark:group-hover:border-red-800 transition-colors">
+                    <X className="size-3.5 text-muted-foreground group-hover:text-red-500 transition-colors" />
+                  </div>
+                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-red-500 transition-colors">
+                    {t('common.cancel')}
+                  </span>
+                </button>
+                
+                {!isProcessing && (
+                  <button
+                    onClick={stopRecording}
+                    className="flex flex-col items-center gap-1.5 group"
+                  >
+                    <div className="size-8 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center bg-white dark:bg-gray-900 group-hover:bg-purple-50 dark:group-hover:bg-purple-950/20 group-hover:border-purple-200 dark:group-hover:border-purple-800 transition-colors">
+                      <div className="size-2 rounded-[1px] bg-purple-600" />
+                    </div>
+                    <span className="text-[10px] font-medium text-muted-foreground group-hover:text-purple-600 transition-colors">
+                      {t('roundtable.stopRecording')}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Arrow */}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-8 border-transparent border-t-white/95 dark:border-t-gray-800/95" />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-

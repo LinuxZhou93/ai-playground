@@ -107,9 +107,9 @@ window.Launchpad = (() => {
         { name: '量子信息科学', icon: '⚛️', link: 'hub-auto-105.html', color: '#fbbf24', category: 'academic' },
         { name: '集成电路设计与集成系统', icon: '💾', link: 'hub-auto-104.html', color: '#2dd4bf', category: 'academic' },
         { name: '微电子科学与工程', icon: '🔬', link: 'hub-auto-103.html', color: '#fbbf24', category: 'academic' },
-        { name: '人形机器人技术', icon: '🤖', link: 'hub-auto-102.html', color: '#06b6d4', category: 'academic' },
-        { name: '脑机接口工程', icon: '🧠', link: 'hub-auto-101.html', color: '#8b5cf6', category: 'academic' },
-        { name: '智慧交通', icon: '🚗', link: 'hub-auto-100.html', color: '#fb7185', category: 'academic' },
+        { name: '人形机器人技术', icon: '🤖', link: 'assets/js/hubs/hub-template.html?id=hub-auto-102.html', color: '#06b6d4', category: 'academic' },
+        { name: '脑机接口工程', icon: '🧠', link: 'assets/js/hubs/hub-template.html?id=hub-auto-101.html', color: '#8b5cf6', category: 'academic' },
+        { name: '智慧交通', icon: '🚗', link: 'assets/js/hubs/hub-template.html?id=hub-auto-100.html', color: '#fb7185', category: 'academic' },
         { name: '纳米材料与技术', icon: '🔬', link: 'hub-auto-99.html', color: '#f472b6', category: 'academic' },
         { name: '新能源科学与工程', icon: '☀️', link: 'hub-auto-98.html', color: '#34d399', category: 'academic' },
         { name: '光电信息科学与工程', icon: '💡', link: 'hub-auto-97.html', color: '#818cf8', category: 'academic' },
@@ -500,7 +500,14 @@ window.Launchpad = (() => {
                 groupApps.forEach((app, i) => {
                     const item = document.createElement('a');
                     item.className = 'lp-app-item';
-                    item.href = app.link || '#';
+                    
+                    // Virtual Hub Link Handling
+                    let finalLink = app.link || '#';
+                    if (finalLink.includes('hub-auto-') && !finalLink.includes('hub-template.html')) {
+                        finalLink = `assets/js/hubs/hub-template.html?id=${finalLink}`;
+                    }
+                    item.href = finalLink;
+                    
                     // Stagger animation - REMOVED 'backwards' to ensure visibility
                     item.style.animation = `lp-slide-up 0.4s ease-out ${i * 30}ms both`;
 
@@ -687,9 +694,13 @@ window.Launchpad = (() => {
             }
 
             // Click Handler & Data Attributes for permissions
-            item.dataset.link = app.link;
+            let finalLink = app.link;
+            if (finalLink && finalLink.includes('hub-auto-') && !finalLink.includes('hub-template.html')) {
+                finalLink = `assets/js/hubs/hub-template.html?id=${finalLink}`;
+            }
+            item.dataset.link = finalLink;
             item.onclick = function () {
-                window.location.href = app.link;
+                window.location.href = finalLink;
             };
 
             // Icon Background
@@ -728,7 +739,7 @@ window.Launchpad = (() => {
         setTimeout(updateDock, 100);
     }
 
-    return { init, open, close, updateDock, initDock };
+    return { init, open, close, updateDock, initDock, getApps: () => apps };
 })();
 
 // Auto-init for reliability

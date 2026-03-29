@@ -45,6 +45,7 @@ import {
   SquareIcon,
   XIcon,
 } from 'lucide-react';
+import { SpeechButton } from '@/components/audio/speech-button';
 import { nanoid } from 'nanoid';
 import {
   type ChangeEvent,
@@ -1018,14 +1019,6 @@ interface SpeechRecognitionErrorEvent extends Event {
   error: string;
 }
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    SpeechRecognition: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    webkitSpeechRecognition: any;
-  }
-}
 
 export type PromptInputSpeechButtonProps = ComponentProps<typeof PromptInputButton> & {
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
@@ -1033,98 +1026,29 @@ export type PromptInputSpeechButtonProps = ComponentProps<typeof PromptInputButt
 };
 
 export const PromptInputSpeechButton = ({
-  className,
   textareaRef,
   onScriptionChange,
+  className,
   ...props
 }: PromptInputSpeechButtonProps) => {
-  const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const handleTranscription = useCallback((text: string) => {
+    if (text && textareaRef?.current) {
+      const textarea = textareaRef.current;
+      const currentValue = textarea.value;
+      const newValue = currentValue + (currentValue ? ' ' : '') + text;
 
-  useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
-    ) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const speechRecognition = new SpeechRecognition();
-
-      speechRecognition.continuous = true;
-      speechRecognition.interimResults = true;
-      speechRecognition.lang = 'en-US';
-
-      speechRecognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      speechRecognition.onend = () => {
-        setIsListening(false);
-      };
-
-      speechRecognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalScript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            finalScript += result[0]?.script ?? '';
-          }
-        }
-
-        if (finalScript && textareaRef?.current) {
-          const textarea = textareaRef.current;
-          const currentValue = textarea.value;
-          const newValue = currentValue + (currentValue ? ' ' : '') + finalScript;
-
-          textarea.value = newValue;
-          textarea.dispatchEvent(new Event('input', { bubbles: true }));
-          onScriptionChange?.(newValue);
-        }
-      };
-
-      speechRecognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        log.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognitionRef.current = speechRecognition;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial sync from external API
-      setRecognition(speechRecognition);
+      textarea.value = newValue;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      onScriptionChange?.(newValue);
     }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
   }, [textareaRef, onScriptionChange]);
 
-  const toggleListening = useCallback(() => {
-    if (!recognition) {
-      return;
-    }
-
-    if (isListening) {
-      recognition.stop();
-    } else {
-      recognition.start();
-    }
-  }, [recognition, isListening]);
-
   return (
-    <PromptInputButton
-      className={cn(
-        'relative transition-all duration-200',
-        isListening && 'animate-pulse bg-accent text-accent-foreground',
-        className,
-      )}
-      disabled={!recognition}
-      onClick={toggleListening}
-      {...props}
-    >
-      <MicIcon className="size-4" />
-    </PromptInputButton>
+    <SpeechButton
+      className={className}
+      onTranscription={handleTranscription}
+      textareaRef={textareaRef}
+    />
   );
 };
 

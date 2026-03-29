@@ -76,6 +76,8 @@ class TitanAIAssistant {
         this.vadAnalyser = null;
         this.vadStream = null;
         this.vadReqId = null;
+        this.silenceTimer = null; // 用于检测静音自动停止
+        this.lastVoiceTime = Date.now();
         
         this.init();
     }
@@ -3187,10 +3189,6 @@ class TitanAIAssistant {
             const waveformCanvas = document.getElementById('titan-ai-waveform');
             if (waveformCanvas) waveformCanvas.style.display = 'none';
         } else {
-            // Check browser support
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            
-            // Start Audio capture, use cached stream if already granted
             try {
                 if (!this.audioStream) {
                     this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -3198,6 +3196,7 @@ class TitanAIAssistant {
                 
                 if (!this.hapticCtx) this.hapticCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (this.hapticCtx.state === 'suspended') this.hapticCtx.resume();
+                
                 if (!this.analyser) {
                     this.analyser = this.hapticCtx.createAnalyser();
                     this.analyser.fftSize = 64; 
@@ -3220,6 +3219,7 @@ class TitanAIAssistant {
                 
                 this.mediaRecorder.start();
                 this.recordingStartTime = Date.now();
+                this.lastVoiceTime = Date.now();
                 this.isRecording = true;
                 this.voiceBtn.classList.add('recording');
                 
@@ -3248,6 +3248,19 @@ class TitanAIAssistant {
                         const dataArray = new Uint8Array(bufferLength);
                         this.analyser.getByteFrequencyData(dataArray);
                         
+                        // 智能静音检测 (VAD)
+                        let sum = 0;
+                        for(let i=0; i<bufferLength; i++) sum += dataArray[i];
+                        const average = sum / bufferLength;
+                        
+                        if (average > 10) { // 有声音
+                            this.lastVoiceTime = Date.now();
+                        } else if (Date.now() - this.lastVoiceTime > 3000) { // 超过3秒静音
+                            console.log('[Titan AI] 🔇 检测到长时间静音，自动结束录音...');
+                            this.toggleVoiceRecording();
+                            return;
+                        }
+
                         ctx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
                         const barWidth = (waveformCanvas.width / bufferLength) * 2;
                         let x = 0;
@@ -3278,7 +3291,7 @@ class TitanAIAssistant {
             } catch (err) {
                 console.error('Microphone access denied:', err);
                 this.appendMessage('system', '无法访问麦克风，请检查浏览器权限设置或使用本地服务器 (localhost) 访问。');
-                this.audioStream = null; // 重置流，可能用户第一次拒绝了
+                this.audioStream = null; 
             }
         }
     }
@@ -4324,7 +4337,17 @@ ${currentFullContent}
         }
         
         this.showTyping();
-        await this.sendToAPI(mergedMessage);
+        try {
+            await this.sendToAPI(mergedMessage);
+        } catch (e) {
+            console.error('[Titan AI] Queue processing error:', e);
+        } finally {
+            this.isProcessingQueue = false;
+            // 如果在处理过程中又有新消息加入，递归触发（下一轮循环）
+            if (this.messageQueue.length > 0) {
+                this.processQueue();
+            }
+        }
     }
 
     awardPoints(pts, reason) {
@@ -4532,3 +4555,116 @@ window._showTitanFullImg = function(url, alt) {
     overlay.style.opacity = '1';
     imgEl.style.transform = 'scale(1)';
 };
+
+// ==========================================
+// TITAN ADAPTIVE UI ENGINE - DOCK & PREFERENCE
+// ==========================================
+class TitanAdaptiveUI {
+    constructor() {
+        this.preferences = JSON.parse(localStorage.getItem('titan_user_preferences') || '{"coding":5,"ai":5,"robotics":5,"space":5,"materials":5}');
+        this.init();
+    }
+
+    init() {
+        console.log("[Titan Adaptive] 🧬 自适应 UI 引擎已启动，正在分析学生偏好...");
+        this.renderSmartDock();
+        this.bindTracking();
+    }
+
+    // 记录学生对特定主题的兴趣增加
+    trackInterest(tags) {
+        if (!tags) return;
+        const tagList = Array.isArray(tags) ? tags : [tags];
+        tagList.forEach(tag => {
+            this.preferences[tag] = (this.preferences[tag] || 0) + 1;
+        });
+        localStorage.setItem('titan_user_preferences', JSON.stringify(this.preferences));
+        
+        // 实时刷新 Dock，模仿学生的瞬时兴趣转变
+        this.renderSmartDock();
+    }
+
+    bindTracking() {
+        // 监听 Launchpad 点击
+        document.addEventListener('click', (e) => {
+            const appItem = e.target.closest('.lp-app-item') || e.target.closest('.dock-icon-box');
+            if (appItem) {
+                const label = appItem.querySelector('.lp-app-text, .dock-label')?.innerText;
+                // 简单的映射逻辑：根据点击的名称推测标签
+                if (label?.includes('编程') || label?.includes('API')) this.trackInterest('coding');
+                if (label?.includes('AI') || label?.includes('脑')) this.trackInterest('ai');
+                if (label?.includes('航空') || label?.includes('宇宙')) this.trackInterest('space');
+                if (label?.includes('机器人') || label?.includes('机械')) this.trackInterest('robotics');
+            }
+        });
+    }
+
+    renderSmartDock() {
+        const dock = document.querySelector('.dock-container');
+        if (!dock) return;
+
+        // 1. 获取所有可用 App 数据 (假设 Launchpad.js 已经加载)
+        if (!window.Launchpad || !window.Launchpad.getApps) {
+            console.warn("[Titan Adaptive] Launchpad 核心未加载，降级使用静态缓存。");
+            return;
+        }
+        
+        const allApps = window.Launchpad.getApps();
+        
+        // 2. 排序算法：权重 = 基础权重 + 偏好分数 (+ 随机微扰，增加探索性)
+        const scoredApps = allApps.map(app => {
+            let score = 0;
+            if (app.tags) {
+                app.tags.forEach(tag => score += (this.preferences[tag] || 0));
+            }
+            // 默认排序：如果没有 tags 的，给一个适中的分值，或者根据关键词匹配
+            if (score === 0) {
+                if (app.name.includes('AI') || app.name.includes('智能')) score += this.preferences['ai'] || 0;
+            }
+            return { ...app, score: score + Math.random() * 2 };
+        });
+
+        // 挑选前 10 个展示在 Dock 栏
+        const recommended = scoredApps.sort((a, b) => b.score - a.score).slice(0, 10);
+
+        // 3. 构建 HTML (保留核心固定入口，如科技宝箱和个人中心)
+        let dockHTML = `
+            <!-- 核心交互：科技宝箱 -->
+            <div id="newLaunchpadEntry" class="dock-icon-box" style="border-color:var(--primary); box-shadow:0 0 20px rgba(0,240,255,0.4); transform: scale(1.05);">
+                <div class="dock-icon-bg" style="font-size: 32px;">🚀</div>
+                <div class="dock-label" style="color:var(--primary); font-weight:bold;">科技宝箱</div>
+            </div>
+            <!-- 分割线 -->
+            <div style="width:2px; height:40px; background:rgba(255,255,255,0.1); margin:0 10px; flex-shrink:0;"></div>
+        `;
+
+        recommended.forEach(app => {
+            dockHTML += `
+                <div class="dock-icon-box" onclick="location.href='${app.link}'" title="${app.name}">
+                    <div class="dock-icon-bg" style="color: ${app.color || 'white'}">${app.icon}</div>
+                    <div class="dock-label">${app.name}</div>
+                </div>
+            `;
+        });
+
+        // 注入 Dock
+        dock.innerHTML = dockHTML;
+    }
+}
+
+// 自动初始化
+window.addEventListener('scroll', () => {
+    if (!window.titanAssistantInstance) {
+        window.titanAssistantInstance = new TitanAIAssistant();
+        window.titanUI = new TitanAdaptiveUI();
+    }
+}, { once: true });
+
+// 备用初始化 (防止用户不滚动)
+setTimeout(() => {
+    if (!window.titanAssistantInstance) {
+        window.titanAssistantInstance = new TitanAIAssistant();
+        window.titanUI = new TitanAdaptiveUI();
+    }
+}, 2000);
+
