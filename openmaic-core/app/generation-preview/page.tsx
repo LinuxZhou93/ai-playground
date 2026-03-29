@@ -63,6 +63,10 @@ function GenerationPreviewContent() {
   >([]);
   const agentRevealResolveRef = useRef<(() => void) | null>(null);
 
+  // 🚀 [Titan OS] 自动发车模式状态
+  const [isAutoStart, setIsAutoStart] = useState(false);
+  const [autoStartStatus, setAutoStartStatus] = useState('正在构建沉浸式学习环境...');
+
   // Compute active steps based on session state
   const activeSteps = getActiveSteps(session);
 
@@ -80,6 +84,12 @@ function GenerationPreviewContent() {
       }
     }
     setSessionLoaded(true);
+
+    // 检查自动发车标记
+    const autoStart = sessionStorage.getItem('autoStart') === 'true';
+    if (autoStart) {
+        setIsAutoStart(true);
+    }
   }, []);
 
   // Abort all in-flight requests on unmount
@@ -466,11 +476,16 @@ function GenerationPreviewContent() {
           stage.agentIds = savedIds;
 
           // Show card-reveal modal, continue generation once all cards are revealed
-          setGeneratedAgents(agentData.agents);
-          setShowAgentReveal(true);
-          await new Promise<void>((resolve) => {
-            agentRevealResolveRef.current = resolve;
-          });
+          // [Titan OS] 自动发车模式下跳过卡片翻牌动作
+          if (sessionStorage.getItem('autoStart') === 'true') {
+             setAutoStartStatus('正在同步 AI 助教数字孪生...');
+          } else {
+             setGeneratedAgents(agentData.agents);
+             setShowAgentReveal(true);
+             await new Promise<void>((resolve) => {
+               agentRevealResolveRef.current = resolve;
+             });
+          }
 
           agents = savedIds
             .map((id) => useAgentRegistry.getState().getAgent(id))
@@ -524,6 +539,9 @@ function GenerationPreviewContent() {
 
       const outlineStepIdx = activeSteps.findIndex((s) => s.id === 'outline');
       setCurrentStepIndex(outlineStepIdx >= 0 ? outlineStepIdx : 0);
+      if (sessionStorage.getItem('autoStart') === 'true') {
+          setAutoStartStatus('正在生成全景授课剧本...');
+      }
       if (!outlines || outlines.length === 0) {
         log.debug('=== Generating outlines (SSE) ===');
         setStreamingOutlines([]);
@@ -635,6 +653,9 @@ function GenerationPreviewContent() {
       // Advance to slide-content step
       const contentStepIdx = activeSteps.findIndex((s) => s.id === 'slide-content');
       if (contentStepIdx >= 0) setCurrentStepIndex(contentStepIdx);
+      if (sessionStorage.getItem('autoStart') === 'true') {
+          setAutoStartStatus('正在排布第一课分镜内容...');
+      }
 
       // Build stageInfo and userProfile for API call
       const stageInfo = {
@@ -709,6 +730,10 @@ function GenerationPreviewContent() {
         throw new Error(data.error || t('generation.sceneGenerateFailed'));
       }
 
+      if (sessionStorage.getItem('autoStart') === 'true') {
+          setAutoStartStatus('正在载入高保真教学配音...');
+      }
+
       // Generate TTS for first scene (part of actions step — blocking)
       if (settings.ttsEnabled && settings.ttsProviderId !== 'browser-native-tts') {
         const ttsProviderConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
@@ -747,10 +772,10 @@ function GenerationPreviewContent() {
             const binary = atob(ttsData.base64);
             const bytes = new Uint8Array(binary.length);
             for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            const blob = new Blob([bytes], { type: `audio/${ttsData.format}` });
+            const audioBlob = new Blob([bytes], { type: `audio/${ttsData.format}` });
             await db.audioFiles.put({
               id: audioId,
-              blob,
+              blob: audioBlob,
               format: ttsData.format,
               createdAt: Date.now(),
             });
@@ -784,6 +809,7 @@ function GenerationPreviewContent() {
       );
 
       sessionStorage.removeItem('generationSession');
+      sessionStorage.removeItem('autoStart'); // 清理标记
       await store.saveToStorage();
       router.push(`/classroom/${stage.id}`);
     } catch (err) {
@@ -848,6 +874,63 @@ function GenerationPreviewContent() {
 
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center justify-center p-4 relative overflow-hidden text-center">
+      <AnimatePresence>
+        {isAutoStart && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden"
+          >
+             {/* 极客背景网格 */}
+            <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" />
+            
+            {/* 动态光束 */}
+            <motion.div 
+               animate={{ rotate: 360 }}
+               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+               className="absolute w-[800px] h-[800px] bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent rounded-full blur-[120px]"
+            />
+
+            <div className="relative z-10 flex flex-col items-center">
+               <motion.div
+                 animate={{ scale: [1, 1.1, 1] }}
+                 transition={{ duration: 2, repeat: Infinity }}
+                 className="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-600 rounded-3xl flex items-center justify-center text-4xl font-black shadow-2xl shadow-orange-500/40 mb-12"
+               >
+                 FC
+               </motion.div>
+               
+               <h2 className="text-3xl font-black tracking-widest mb-4 font-orbitron uppercase">Deploying Classroom</h2>
+               <div className="flex items-center gap-4 mb-20">
+                  <span className="w-48 h-1 bg-white/10 rounded-full overflow-hidden relative">
+                     <motion.div 
+                        animate={{ x: [-200, 200] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute inset-0 w-24 bg-gradient-to-r from-transparent via-orange-500 to-transparent"
+                     />
+                  </span>
+               </div>
+
+               <motion.p 
+                 key={autoStartStatus}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 className="text-orange-400 font-mono text-sm tracking-[0.3em] uppercase underline decoration-orange-500/30 underline-offset-8"
+               >
+                 {'>'} {autoStartStatus}
+               </motion.p>
+            </div>
+
+            {/* 底部系统信息 */}
+            <div className="absolute bottom-12 left-12 font-mono text-[10px] text-white/20 space-y-1 text-left">
+               <div>SUB_SYSTEM: FUTURE_CLASS_GENERATOR</div>
+               <div>LINK_STATUS: GENERATION_ACTIVE</div>
+               <div>MODE: AUTO_PILOT_READY</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Background Decor */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div

@@ -111,6 +111,10 @@ function HomePage() {
   const [adminTapCount, setAdminTapCount] = useState(0);
   const adminTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 🚀 [Titan OS] 自动发车模式状态
+  const [isAutoStarting, setIsAutoStarting] = useState(false);
+  const [autoStartStatus, setAutoStartStatus] = useState('正在初始化系统...');
+
   // 🔐 [Titan Admin] 管理员快捷键 Ctrl+Shift+S 打开设置面板
   useEffect(() => {
     const handleAdminShortcut = (e: KeyboardEvent) => {
@@ -172,16 +176,28 @@ function HomePage() {
       // [Titan AI / FutureClass 特长生生态联动钩子]
       // 拦截来自课程页面的传参，生成动态的授课剧本预设
       const params = new URLSearchParams(window.location.search);
-      const courseTopic = params.get('courseTopic');
+      const courseTopic = params.get('courseTopic') || params.get('topic');
       const outline = params.get('outline');
+      const autoStart = params.get('autoStart') === 'true';
+
       if (courseTopic) {
         const payload = `【FutureClass 自动排课系统：${courseTopic}】\n\n请为我规划生成这节硬核科技课的互动分镜。\n课程核心切片内容如下 (供参考):\n${outline || '无详细大纲，请你自由发挥讲解'}\n\n要求：\n1. 由小创老师主讲，辅以学生互动。\n2. 直接切入硬核技术点，生成板书结构。\n3. 在开场和关键节点安排 spotlight 或者 3D 动画指示 (如可能)。`;
+        
+        // 如果开启了自动发车，进入静默加载态
+        if (autoStart) {
+            console.log("🚀 [Titan OS] 自动发车模式 (Auto-Pilot) 已激活！正在极速部署舱室...");
+            setIsAutoStarting(true);
+            setAutoStartStatus('正在挂载 Titan 教学引擎...');
+        }
+
         setTimeout(() => {
             updateForm('requirement', payload);
             
             // [Titan Tech 特长生专属] 炫酷入场语音播报
             const currentNickname = useUserProfileStore.getState().nickname || '科技少将';
-            const welcomeText = `小创客${currentNickname}，你好！系统已成功挂载 Future Class 引擎。我们准备好一起展开关于《${courseTopic}》的硬核推演了吗？`;
+            const welcomeText = autoStart ? 
+                `检测到来自 TITAN 枢纽的直连请求。小创客${currentNickname}，系统正在为您极速部署《${courseTopic}》实战舱，请稍候。` :
+                `小创客${currentNickname}，你好！系统已成功挂载 Future Class 引擎。我们准备好一起展开关于《${courseTopic}》的硬核推演了吗？`;
 
             // 🚀 【火山引擎大模型 TTS 直连】 强制统一使用指定的“呆萌川妹”高质量讲课音色
             const appId = "4780476544";
@@ -219,6 +235,14 @@ function HomePage() {
                 await audio.play();
               }
             }).catch(e => console.log('Auto TTS Play failed:', e));
+
+            // 如果是自动发车，且表单已填充，自动点击生成
+            if (autoStart) {
+                setTimeout(() => {
+                   setAutoStartStatus('正在生成互动分镜...');
+                   handleGenerate('true'); // 传入标记表示自动重定向
+                }, 1500);
+            }
         }, 500); // 稍微延迟以体现极客装配感
       }
 
@@ -365,7 +389,7 @@ function HomePage() {
     );
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (autoStartFlag?: string) => {
     // ⚔️ 【Titan Tech】主站全域身份鉴定防火墙
     try {
       const userEmail = localStorage.getItem('current_user_email');
@@ -455,6 +479,9 @@ function HomePage() {
         currentStep: 'generating' as const,
       };
       sessionStorage.setItem('generationSession', JSON.stringify(sessionState));
+      if (autoStartFlag === 'true') {
+          sessionStorage.setItem('autoStart', 'true');
+      }
 
       router.push('/generation-preview');
     } catch (err) {
@@ -1269,6 +1296,65 @@ function GreetingBar() {
                   className="resize-none border-border/40 bg-transparent min-h-[72px] !text-[13px] !leading-relaxed placeholder:!text-[11px] placeholder:!leading-relaxed focus-visible:ring-1 focus-visible:ring-border/60"
                 />
               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 🚀 [Titan OS] 自动发车全屏 Loading 遮罩 */}
+      <AnimatePresence>
+        {isAutoStarting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center text-white overflow-hidden"
+          >
+             {/* 极客背景网格 */}
+            <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" />
+            
+            {/* 动态光束 */}
+            <motion.div 
+               animate={{ rotate: 360 }}
+               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+               className="absolute w-[800px] h-[800px] bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent rounded-full blur-[120px]"
+            />
+
+            <div className="relative z-10 flex flex-col items-center">
+               <motion.div
+                 animate={{ scale: [1, 1.1, 1] }}
+                 transition={{ duration: 2, repeat: Infinity }}
+                 className="w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-600 rounded-3xl flex items-center justify-center text-4xl font-black shadow-2xl shadow-orange-500/40 mb-12"
+               >
+                 FC
+               </motion.div>
+               
+               <h2 className="text-3xl font-black tracking-widest mb-4 font-orbitron">TITAN CORE DEPLOYING</h2>
+               <div className="flex items-center gap-4 mb-20">
+                  <span className="w-48 h-1 bg-white/10 rounded-full overflow-hidden relative">
+                     <motion.div 
+                        animate={{ x: [-200, 200] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute inset-0 w-24 bg-gradient-to-r from-transparent via-orange-500 to-transparent"
+                     />
+                  </span>
+               </div>
+
+               <motion.p 
+                 key={autoStartStatus}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 className="text-orange-400 font-mono text-sm tracking-[0.3em] uppercase"
+               >
+                 {'>'} {autoStartStatus}
+               </motion.p>
+            </div>
+
+            {/* 底部系统信息 */}
+            <div className="absolute bottom-12 left-12 font-mono text-[10px] text-white/20 space-y-1">
+               <div>SUB_SYSTEM: FUTURE_CLASS_V2</div>
+               <div>LINK_STATUS: TITAN_SYNC_ACTIVE</div>
+               <div>AUTH: PILOT_AUTHORIZED</div>
             </div>
           </motion.div>
         )}

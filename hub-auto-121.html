@@ -202,12 +202,23 @@
 
         window.launchCourse = (level) => {
             const { title, url } = currentTargetCourse;
-            // 跳转到预习页 (由于 121 在根目录，直接调用即可)
-            const previewUrl = `knowledge_overview.html?topic=${encodeURIComponent(title)}&level=${level}&target=${encodeURIComponent(url)}`;
             
-            // 退出动画
+            // --- 极致直达核心方案：环境自适应跳转 ---
+            let baseUrl = 'https://ai.zhouxiaomai.com/';
+            if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                baseUrl = 'http://localhost:3000/';
+                console.log("🚀 [Titan OS] 本地调试模式下重定位至：", baseUrl);
+            }
+            
+            const params = new URLSearchParams();
+            params.set('topic', title);
+            params.set('level', level);
+            params.set('autoStart', 'true'); // 🚀 开启自动发车模式
+            const destination = baseUrl + "?" + params.toString();
+            
+            // 退出动画并直接跳转
             gsap.to(".selector-content", { y: -50, opacity: 0, duration: 0.5, ease: "power2.in", onComplete: () => {
-                window.location.href = previewUrl;
+                window.location.href = destination;
             }});
         };
 

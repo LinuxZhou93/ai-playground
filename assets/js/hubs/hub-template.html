@@ -212,7 +212,9 @@
         let currentTargetCourse = { title: '', url: '' };
         window.showCognitiveSelector = (title, url) => {
             currentTargetCourse = { title, url };
-            document.getElementById('sel-course-name').innerText = title;
+            // 修复：HTML 中没有 sel-course-name，改用 assistant-speech 提示
+            const assistantSpeech = document.querySelector('.assistant-speech');
+            if (assistantSpeech) assistantSpeech.innerText = `嘿！关于“${title}”，你想从哪个维度开始探索？`;
             const selector = document.getElementById('cognitive-selector');
             selector.style.display = 'flex';
             gsap.to(selector, { opacity: 1, duration: 0.5, ease: "power2.out" });
@@ -228,15 +230,25 @@
         // 发起课程 (选择维度后触发)
         window.launchCourse = (level) => {
             const { title, url } = currentTargetCourse;
-            // 默认直接跳转到云端全屏实战课堂 (跳过本地 openmaic-classroom.html 包装)
-            const destination = 'https://ai.zhouxiaomai.com/';
             
-            // 跳转到预习页 (由于模版在 assets/js/hubs/，需向上跳三级回到根目录)
-            const previewUrl = `../../../knowledge_overview.html?topic=${encodeURIComponent(title)}&level=${level}&target=${encodeURIComponent(destination)}`;
+            // --- 极致直达核心方案：环境自适应跳转 ---
+            // 如果在本地预览 Hub（file:// 或 localhost），则优先跳转至本地开发服务器（http://localhost:3000）
+            // 否则跳转至公网生产服务器（https://ai.zhouxiaomai.com/）
+            let baseUrl = 'https://ai.zhouxiaomai.com/';
+            if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                baseUrl = 'http://localhost:3000/';
+                console.log("🚀 [Titan OS] 检测到本地调试环境，重定位跳转至：", baseUrl);
+            }
             
-            // 退出动画
+            const params = new URLSearchParams();
+            params.set('topic', title);
+            params.set('level', level);
+            params.set('autoStart', 'true'); // 🚀 开启自动发车模式
+            const destination = baseUrl + "?" + params.toString();
+            
+            // 退出动画并直接跳转
             gsap.to(".selector-content", { y: -50, opacity: 0, duration: 0.5, ease: "power2.in", onComplete: () => {
-                window.location.href = previewUrl;
+                window.location.href = destination;
             }});
         };
 
