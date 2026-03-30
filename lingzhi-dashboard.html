@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>正中大健康 · 灵芝全产业链数字化管理平台</title>
+    <title>四川正中大健康产业集团彭州灵芝全产业链数字化管理平台</title>
     <link rel="stylesheet" href="assets/tcm/all.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary-color: #00d2ff;
@@ -206,13 +207,150 @@
             z-index: 3;
         }
 
-        /* Hide inside content text when not hovered if we want it to look exactly like spheres, but let's show it for clarity */
+        /* --- Modal Simulation Overlay --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 5, 15, 0.85);
+            backdrop-filter: blur(20px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content-box {
+            width: 80%;
+            height: 80%;
+            background: linear-gradient(135deg, rgba(10, 25, 50, 0.9), rgba(5, 10, 20, 0.95));
+            border: 1px solid var(--primary-color);
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0, 210, 255, 0.2), inset 0 0 30px rgba(0, 210, 255, 0.1);
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-overlay.active .modal-content-box {
+            transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px; right: 30px;
+            font-size: 30px;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .modal-close:hover {
+            color: #fff;
+            transform: rotate(90deg);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid rgba(0, 210, 255, 0.3);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 32px;
+            color: var(--primary-color);
+            letter-spacing: 4px;
+        }
+
+        /* Loading Simulation */
+        .loading-screen {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-dark);
+            border-radius: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s;
+        }
+
+        .loading-spinner {
+            width: 80px; height: 80px;
+            border: 4px solid rgba(0, 210, 255, 0.2);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 30px;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-size: 20px;
+            letter-spacing: 5px;
+            color: var(--primary-color);
+            animation: pulseText 1.5s infinite alternate;
+        }
+
+        @keyframes pulseText {
+            0% { opacity: 0.5; text-shadow: none; }
+            100% { opacity: 1; text-shadow: 0 0 15px var(--primary-color); }
+        }
+
+        .fake-chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            flex: 1;
+        }
+
+        .fake-box {
+            background: rgba(0, 210, 255, 0.05);
+            border: 1px dashed rgba(0, 210, 255, 0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .fake-box::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 210, 255, 0.05), transparent);
+            transform: rotate(45deg);
+            animation: sweep 4s infinite linear;
+        }
+        @keyframes sweep { 100% { transform: rotate(45deg) translate(50%, 50%); } }
+
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>黄村坝灵芝全产业链数字化管理平台</h1>
+        <h1>四川正中大健康产业集团彭州灵芝全产业链数字化管理平台</h1>
     </div>
 
     <div class="dashboard-container">
@@ -346,7 +484,193 @@
             <div class="decor-line"></div>
             <div class="bottom-title">品牌战略规划</div>
         </div>
+        </div>
     </div>
 
+    <!-- Modal Simulation -->
+    <div class="modal-overlay" id="systemModal">
+        <div class="modal-content-box">
+            <i class="fas fa-times modal-close" onclick="closeModal()"></i>
+            
+            <div class="loading-screen" id="loadingScreen">
+                <div class="loading-spinner"></div>
+                <div class="loading-text" id="loadingText">ESTABLISHING SECURE CONNECTION...</div>
+            </div>
+
+            <div class="modal-header">
+                <i id="modalIcon" class="fas fa-cogs" style="font-size: 40px; color: var(--primary-color);"></i>
+                <h2 id="modalTitle">模块终端界面</h2>
+            </div>
+            
+            <div style="margin-bottom: 20px; color: #8892b0;">
+                <span style="border: 1px solid var(--primary-color); padding: 5px 15px; border-radius: 4px; font-size: 13px; color: var(--primary-color);">STATUS: ONLINE</span>
+                <span style="margin-left: 20px;"><i class="fas fa-satellite-dish" style="margin-right: 5px;"></i> SECURE DATA LINK ESTABLISHED</span>
+            </div>
+
+            <div class="fake-chart-grid" style="position: relative;">
+                <div class="fake-box" style="padding: 20px;">
+                    <canvas id="chart1"></canvas>
+                </div>
+                <div class="fake-box" style="padding: 20px;">
+                    <canvas id="chart2"></canvas>
+                </div>
+                <div class="fake-box" style="grid-column: 1 / -1; height: 250px; padding: 20px;">
+                    <canvas id="chart3"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const spheres = document.querySelectorAll('.module-sphere');
+        const modal = document.getElementById('systemModal');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loadingText = document.getElementById('loadingText');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalIcon = document.getElementById('modalIcon');
+
+        spheres.forEach(sphere => {
+            sphere.addEventListener('click', () => {
+                const title = sphere.querySelector('.bottom-title').innerText;
+                const iconClass = sphere.querySelector('.module-icon').className;
+                
+                modalTitle.innerText = title;
+                modalIcon.className = iconClass;
+                
+                // Show modal
+                modal.classList.add('active');
+                
+                // Reset and show loader
+                loadingScreen.style.opacity = '1';
+                loadingScreen.style.pointerEvents = 'all';
+                loadingText.innerText = 'ESTABLISHING SECURE CONNECTION...';
+
+                // Simulate loading process
+                setTimeout(() => {
+                    loadingText.innerText = 'SYNCING DATA NODES...';
+                }, 800);
+
+                setTimeout(() => {
+                    loadingText.innerText = 'ACCESS GRANTED.';
+                }, 1600);
+
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '0';
+                    loadingScreen.style.pointerEvents = 'none';
+                    renderSimulatedCharts(title);
+                }, 2000);
+            });
+        });
+
+        // Store chart instances to destroy them before rerendering
+        let chartInstances = [];
+
+        function renderSimulatedCharts(moduleTitle) {
+            // Destroy existing charts
+            chartInstances.forEach(c => c.destroy());
+            chartInstances = [];
+
+            // Common Theme settings for Cyberpunk Look
+            Chart.defaults.color = '#8892b0';
+            Chart.defaults.borderColor = 'rgba(0, 210, 255, 0.1)';
+
+            // Helper to generate random data
+            const randomData = (count, min, max) => Array.from({length: count}, () => Math.floor(Math.random() * (max - min + 1) + min));
+
+            // Chart 1: Line Chart (Trends)
+            const ctx1 = document.getElementById('chart1').getContext('2d');
+            const gradient1 = ctx1.createLinearGradient(0, 0, 0, 400);
+            gradient1.addColorStop(0, 'rgba(0, 210, 255, 0.5)');
+            gradient1.addColorStop(1, 'rgba(0, 210, 255, 0.0)');
+
+            chartInstances.push(new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: '活跃数据节点',
+                        data: randomData(7, 40, 100),
+                        borderColor: '#00d2ff',
+                        backgroundColor: gradient1,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#00d2ff',
+                        pointHoverBackgroundColor: '#00d2ff',
+                        pointHoverBorderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            }));
+
+            // Chart 2: Radar Chart (Performance/Score)
+            const ctx2 = document.getElementById('chart2').getContext('2d');
+            chartInstances.push(new Chart(ctx2, {
+                type: 'radar',
+                data: {
+                    labels: ['稳定性', '覆盖率', '准确度', '响应速', '能耗比', '安全性'],
+                    datasets: [{
+                        label: moduleTitle + ' 综合评分',
+                        data: [
+                            generateScore(), generateScore(), generateScore(), 
+                            generateScore(), generateScore(), generateScore()
+                        ],
+                        backgroundColor: 'rgba(58, 123, 213, 0.4)',
+                        borderColor: '#3a7bd5',
+                        pointBackgroundColor: '#00d2ff',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            pointLabels: { color: '#d0e5ff' },
+                            ticks: { display: false }
+                        }
+                    }
+                }
+            }));
+
+            function generateScore() { return Math.floor(Math.random() * 40) + 60; }
+
+            // Chart 3: Bar Chart (Throughput/Metrics)
+            const ctx3 = document.getElementById('chart3').getContext('2d');
+            chartInstances.push(new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['设备A', '网关B', '节点C', '无人机D', '总控E', '分发F', '边缘G', '云端H', '终端I', '备份J'],
+                    datasets: [{
+                        label: '实时吞吐量 (MB/s)',
+                        data: randomData(10, 100, 1000),
+                        backgroundColor: 'rgba(0, 210, 255, 0.6)',
+                        borderColor: '#00d2ff',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            }));
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+    </script>
 </body>
 </html>
