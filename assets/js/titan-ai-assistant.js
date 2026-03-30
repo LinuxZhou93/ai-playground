@@ -1348,13 +1348,24 @@ class TitanAIAssistant {
         // 如果 AI 没给推荐，我们也强行从本地关联中提取 3 个作为演化路径的“冷启动”种子
         if (aiRecommendations.length === 0) {
             console.log('[Titan AI] ⚠️ 模型未输出演化标签，启动语义感知补全...');
-            aiRecommendations = localMatches.slice(2, 5).map(m => ({
-                id: m.id,
-                title: m.title,
-                link: m.link.includes('course.html') ? m.link.replace('course.html', 'course-factory.html') : m.link,
-                icon: m.icon || 'fas fa-brain',
-                isAiGen: true
-            }));
+            aiRecommendations = localMatches.slice(2, 5).map(m => {
+                let generatedLink = m.link;
+                if (m.link.includes('course.html')) {
+                    generatedLink = m.link.replace('course.html', 'course-factory.html');
+                    // 如果链接里没有 theme，加上 theme 参数
+                    if (!generatedLink.includes('theme=')) {
+                        generatedLink += (generatedLink.includes('?') ? '&' : '?') + `theme=${encodeURIComponent(m.title)}`;
+                    }
+                }
+                
+                return {
+                    id: m.id,
+                    title: m.title,
+                    link: generatedLink,
+                    icon: m.icon || 'fas fa-brain',
+                    isAiGen: true
+                };
+            });
         }
 
         // 我们只在底座区展示最相关的 2 个已有页面

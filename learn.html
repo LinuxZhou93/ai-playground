@@ -980,6 +980,20 @@
                                 thumbnail_url: null
                             }
                         ];
+
+                        // ===== Inject UGC Courses from LocalStorage =====
+                        try {
+                            const ugcStr = localStorage.getItem('titan_ugc_courses');
+                            if(ugcStr) {
+                                const ugcCourses = JSON.parse(ugcStr);
+                                if(Array.isArray(ugcCourses) && ugcCourses.length > 0) {
+                                    const filteredBase = courses.value.filter(c => c && c.id && !c.id.toString().startsWith('ugc-'));
+                                    courses.value = [...ugcCourses, ...filteredBase];
+                                }
+                            }
+                        } catch(ugcErr) { console.error('Error loading UGC', ugcErr); }
+                        // ==============================================
+
                         coursesLoading.value = false;
                         return;
                     }
@@ -1096,6 +1110,19 @@
                     } catch (e) {
                         console.error(e);
                     } finally {
+                        // ===== Inject UGC Courses from LocalStorage =====
+                        try {
+                            const ugcStr = localStorage.getItem('titan_ugc_courses');
+                            if(ugcStr) {
+                                const ugcCourses = JSON.parse(ugcStr);
+                                if(Array.isArray(ugcCourses) && ugcCourses.length > 0) {
+                                    // Remove any existing UGC first if doing pagination (basic dup check)
+                                    const filteredBase = courses.value.filter(c => c && c.id && !c.id.toString().startsWith('ugc-'));
+                                    courses.value = [...ugcCourses, ...filteredBase];
+                                }
+                            }
+                        } catch(ugcErr) { console.error('Error loading UGC', ugcErr); }
+                        // ==============================================
                         coursesLoading.value = false;
                     }
                 };
@@ -1107,6 +1134,15 @@
                 };
 
                 const goToCourse = (courseId) => {
+                    // Check if it is a UGC evolving course
+                    if (courseId && courseId.toString().startsWith('ugc-')) {
+                        const targetUGC = courses.value.find(c => c.id === courseId);
+                        if (targetUGC) {
+                            window.location.href = `course-factory.html?theme=${encodeURIComponent(targetUGC.title)}`;
+                            return;
+                        }
+                    }
+
                     // Specific Course Redirects
                     const redirects = {
                         101: 'course-dino.html',

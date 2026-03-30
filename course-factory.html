@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 无限课程工厂 | 小创客 FUTURECLASS</title>
+    <title>FUTURECLASS · 知识演化工厂</title>
 
     <!-- Fonts -->
     <link href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    
+
     <!-- Dependencies -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         body {
@@ -20,7 +21,6 @@
             background: #020617;
             color: #e2e8f0;
             overflow: hidden;
-            height: 100vh;
         }
 
         .glass {
@@ -29,247 +29,311 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .factory-grid {
-            background-image: linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
+        .rocket-grid {
+            background-image: linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
         }
 
-        .mission-item {
+        .lesson-item {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-left: 3px solid transparent;
-            margin-bottom: 4px;
+            border: 1px solid transparent;
         }
 
-        .mission-item:hover {
+        .lesson-item:hover {
             background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.2);
             transform: translateX(4px);
         }
 
-        .mission-item.active {
-            background: linear-gradient(90deg, rgba(249, 115, 22, 0.1), transparent);
-            border-left-color: #f97316;
-            box-shadow: -5px 0 15px rgba(249, 115, 22, 0.1);
+        .lesson-item.active {
+            background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), rgba(59, 130, 246, 0.05));
+            border-color: rgba(249, 115, 22, 0.3);
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.1);
         }
 
-        .quantum-badge {
-            font-size: 9px;
-            padding: 2px 6px;
+        .badge-stage {
+            font-size: 10px;
+            padding: 2px 8px;
             border-radius: 4px;
-            background: rgba(56, 189, 248, 0.15);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.3);
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-weight: 900;
+            font-weight: bold;
         }
 
-        /* Markdown Overrides to match Rocket Style */
-        .content-body h1, .content-body h2 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 900;
-            color: #fff;
-            margin-top: 2.5rem;
-            margin-bottom: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: -0.02em;
+        .stage-1 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .stage-2 { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .stage-3 { background: rgba(249, 115, 22, 0.2); color: #fb923c; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        [v-cloak] { display: none; }
+
+        .type-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 14px;
         }
-        .content-body h2 {
-            font-size: 1.8rem;
+
+        /* 覆盖 Markdown 样式以符合科幻暗黑主题 */
+        .markdown-content h1, .markdown-content h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #f97316;
             border-left: 4px solid #f97316;
             padding-left: 1rem;
         }
-        .content-body p {
-            font-size: 1.1rem;
+        .markdown-content h3 {
+            font-size: 1.2rem;
+            color: #60a5fa;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .markdown-content p {
+            margin-bottom: 1rem;
             line-height: 1.8;
             color: #94a3b8;
-            margin-bottom: 1.5rem;
         }
 
-        /* Entrance Animation */
-        @keyframes page-enter {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .markdown-content ul {
+            list-style: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
         }
-        .animate-enter { animation: page-enter 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+        .markdown-content li {
+            margin-bottom: 0.5rem;
+        }
 
-        [v-cloak] { display: none; }
+        .markdown-content strong {
+            color: #fff;
+        }
+
+        .markdown-content code {
+            font-family: 'JetBrains Mono', monospace;
+            background: #1e293b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fcd34d;
+        }
     </style>
 </head>
-<body class="factory-grid">
+
+<body class="rocket-grid">
     <div id="app" class="h-screen flex flex-col" v-cloak>
-        <!-- Top Navigation (Rocket Grade) -->
+        <!-- Top Nav -->
         <nav class="h-16 glass border-b border-white/5 flex-shrink-0 z-50">
-            <div class="max-w-[1700px] mx-auto h-full px-6 flex items-center justify-between">
-                <div class="flex items-center gap-5 w-1/4">
-                    <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-600 rounded-xl flex items-center justify-center text-white shadow-xl shadow-orange-500/20">
-                        <i class="fas fa-atom text-xl"></i>
+            <div class="max-w-[1600px] mx-auto h-full px-6 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/20">
+                        <i class="fas fa-microchip"></i>
                     </div>
                     <div>
-                        <h1 class="font-black text-xl tracking-tighter text-white">FUTURECLASS <span class="text-xs font-normal text-slate-500 ml-2">知识演化工厂 v1.0</span></h1>
-                        <p class="text-[9px] text-slate-500 uppercase tracking-[0.3em] font-bold">小创客无限课程底座 / 全速运行中</p>
-                    </div>
-                </div>
-
-                <!-- 【新增：Odyssey 全局溯源链条】 -->
-                <div class="flex-1 flex items-center justify-center px-4 overflow-hidden h-full relative group">
-                    <div v-if="odysseyPath.length > 0" class="flex flex-row items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-hide text-sm py-1 max-w-full">
-                        <span class="text-orange-400 font-bold tracking-widest text-[9px] mr-2 opacity-50"><i class="fas fa-sitemap mt-0.5"></i> 纪元路径</span>
-                        <template v-for="(node, index) in odysseyPath" :key="index">
-                            <a :href="node.url" 
-                               class="px-3 py-1 rounded-[10px] text-[11px] font-semibold border transition-all duration-300 transform outline-none"
-                               :class="index === odysseyPath.length - 1 ? 
-                               'bg-orange-500/20 text-orange-300 border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)] scale-100 opacity-100 cursor-default' : 
-                               'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white hover:scale-105 opacity-60 hover:opacity-100'">
-                                {{ node.title }}
-                            </a>
-                            <i v-if="index < odysseyPath.length - 1" class="fas fa-chevron-right text-orange-500/30 text-[8px] mx-1"></i>
-                        </template>
+                        <h1 class="font-bold text-lg tracking-tight">知识演化工厂 <span class="text-xs font-normal text-slate-500 ml-2">v3.0 Titan AI</span></h1>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest text-cyan-400">{{ knowledgeLevel }} // 自动排产中</p>
                     </div>
                 </div>
                 
-                <div class="flex items-center justify-end gap-8 w-1/4">
-                    <div class="hidden xl:flex items-center gap-5 text-[10px] font-bold tracking-widest text-slate-500">
-                        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> 知识生成引擎已点火</span>
-                        <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span> FLEDGE_CLASS L4 已联通</span>
+                <!-- Center Odyssey Breadcrumbs -->
+                <div class="flex items-center gap-2 px-6 py-2 rounded-full border border-white/10 bg-black/40">
+                    <span class="text-[10px] text-slate-500 uppercase font-black tracking-widest mr-2 flex items-center gap-2">
+                        <i class="fas fa-project-diagram"></i> 纪元路径
+                    </span>
+                    <template v-for="(node, index) in odysseyPath" :key="node.url">
+                        <a :href="node.url" class="text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer">{{ node.title }}</a>
+                        <span v-if="index < odysseyPath.length - 1" class="text-orange-500 text-xs">/</span>
+                    </template>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <div class="hidden md:flex items-center gap-4 text-xs font-medium text-slate-400">
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> 遥测链路正常</span>
+                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> 加注系统就绪</span>
                     </div>
-                    <a href="index.html" class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex-shrink-0">
-                        <i class="fas fa-arrow-left mr-2"></i> 返回首页
+                    <a href="learn.html" class="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-all">
+                        ← 返回中心广场
                     </a>
                 </div>
             </div>
         </nav>
 
-        <!-- Main Workplace -->
-        <div class="flex-1 flex overflow-hidden">
-            <!-- Sidebar (Evolution mission log) -->
-            <aside class="w-80 glass border-r border-white/5 flex flex-col overflow-hidden">
+        <!-- Main Layout -->
+        <div class="flex-1 flex overflow-hidden relative">
+            <!-- Sidebar: Navigation -->
+            <aside class="w-80 glass border-r border-white/5 flex flex-col overflow-hidden relative z-10">
                 <div class="p-6 border-b border-white/5">
                     <div class="flex justify-between items-end mb-4">
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">演化探索深度</span>
-                        <span class="text-2xl font-black text-orange-500">{{ progress }}%</span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Evolution Progress</span>
+                        <span class="text-2xl font-black text-orange-500">{{ progressPercentage }}%</span>
                     </div>
-                    <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-orange-500 to-blue-500 transition-all duration-1000" :style="{ width: progress + '%' }"></div>
+                    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-orange-500 to-blue-500 transition-all duration-1000"
+                            :style="{ width: progressPercentage + '%' }"></div>
                     </div>
                 </div>
 
-                <!-- Topic Tree (Dynamic) -->
-                <div class="flex-1 overflow-y-auto p-4 custom-scroll">
-                    <div class="mb-6 px-2">
-                        <p class="text-[9px] font-black text-slate-600 uppercase tracking-[0.25em] mb-4">当前探索节点</p>
+                <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                    <div v-for="stage in stages" :key="stage.id">
+                        <h3 class="px-2 mb-3 flex items-center gap-2">
+                            <span class="badge-stage" :class="'stage-' + stage.id">Phase {{ stage.id }}</span>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-tighter truncate">{{ stage.name }}</span>
+                        </h3>
                         <div class="space-y-1">
-                            <div v-for="(node, index) in nodes" :key="index" 
-                                 class="mission-item p-3 rounded-lg cursor-pointer flex items-center gap-3 transition-all"
-                                 :class="{ 'active': currentNodeIndex === index }"
-                                 @click="switchNode(index)">
-                                <div class="w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono"
-                                     :class="currentNodeIndex === index ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-500'">
-                                    {{ (index + 1).toString().padStart(2, '0') }}
+                            <div v-for="lesson in getLessonsByStage(stage.id)" :key="lesson.id"
+                                @click="selectLesson(lesson)" class="lesson-item p-3 rounded-xl cursor-pointer group"
+                                :class="{ 'active': currentLesson && currentLesson.id === lesson.id }">
+                                <div class="flex gap-3">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-colors"
+                                        :class="lesson.completed ? 'bg-green-500/20 text-green-400' : 'bg-slate-800 text-slate-500 group-hover:text-white'">
+                                        {{ lesson.completed ? '✓' : '0' + (lessons.indexOf(lesson) + 1) }}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-bold text-xs truncate mb-1"
+                                            :class="currentLesson && currentLesson.id === lesson.id ? 'text-white' : 'text-slate-400'">
+                                            {{ lesson.title }}
+                                        </h4>
+                                        <p class="text-[9px] text-slate-600 uppercase tracking-widest font-mono">
+                                            {{ lesson.type }} // {{ lesson.duration }}
+                                        </p>
+                                    </div>
                                 </div>
-                                <span class="text-xs font-bold truncate transition-colors" :class="currentNodeIndex === index ? 'text-white' : 'text-slate-400'">
-                                    {{ node.title }}
-                                </span>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Evolutionary Seed (Button to grow more nodes) -->
-                    <div class="mt-8 px-2">
-                        <button @click="growNodes" class="w-full py-3 rounded-xl border border-dashed border-slate-700 text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:border-orange-500 hover:text-orange-400 transition-all group">
-                            <i class="fas fa-dna mr-2 group-hover:rotate-45 transition-transform"></i> 开启深层演化
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Bottom Status -->
-                <div class="p-4 bg-black/20 border-t border-white/5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs">🤖</div>
-                        <div class="flex-1">
-                            <p class="text-[9px] text-slate-500 font-bold uppercase tracking-tight">AI Generated</p>
-                            <p class="text-[10px] text-slate-300 truncate">实时知识切片已同步</p>
                         </div>
                     </div>
                 </div>
             </aside>
 
-            <!-- Content Module (Infinite View) -->
-            <main class="flex-1 overflow-y-auto relative bg-[#020617]">
-                <div class="max-w-[1000px] mx-auto p-16 animate-enter" v-if="currentNode">
-                    <!-- Phase Branding -->
-                    <div class="flex items-center gap-4 mb-8">
-                        <span class="quantum-badge">{{ currentNode.category || 'EXPLORATION' }}</span>
-                        <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+            <!-- Content Area -->
+            <main class="flex-1 overflow-y-auto relative z-0">
+                <div class="max-w-4xl mx-auto p-12">
+                    <!-- Default Screen -->
+                    <div v-if="!currentLesson" class="h-[60vh] flex flex-col items-center justify-center text-center">
+                        <div class="w-32 h-32 bg-orange-500/10 rounded-full flex items-center justify-center mb-8 animate-pulse">
+                            <span class="text-6xl">🚀</span>
+                        </div>
+                        <h2 class="text-4xl font-black mb-4 capitalize">准备点火：{{ paramTheme }}</h2>
+                        <p class="text-slate-500 max-w-md mx-auto">AI系统已为你将【{{ paramTheme }}】自动扩写并拆解为空天研学任务流。请从左侧选择切片节点，进入该锚点的深空探究。</p>
                     </div>
 
-                    <!-- Title Block -->
-                    <h2 class="text-6xl font-black mb-10 tracking-tighter leading-tight text-white">
-                        {{ currentNode.title }}
-                    </h2>
-
-                    <!-- Integration Stats -->
-                    <div class="flex gap-6 mb-16">
-                        <div class="glass p-4 rounded-2xl flex items-center gap-4 border border-white/10 min-w-[180px]">
-                            <div class="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-500"><i class="fas fa-clock"></i></div>
-                            <div>
-                                <p class="text-[9px] text-slate-500 font-bold uppercase">探索用时</p>
-                                <p class="text-sm font-black text-white">≈ 45 MINS</p>
+                    <!-- Lesson Detail Block -->
+                    <div v-else class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div class="mb-12">
+                            <div class="flex items-center gap-4 mb-4">
+                                <span class="badge-stage" :class="'stage-' + currentLesson.stage">{{ getStageName(currentLesson.stage) }}</span>
+                                <span class="h-px flex-1 bg-white/5"></span>
                             </div>
-                        </div>
-                        <div class="glass p-4 rounded-2xl flex items-center gap-4 border border-white/10 min-w-[180px]">
-                            <div class="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500"><i class="fas fa-bolt"></i></div>
-                            <div>
-                                <p class="text-[9px] text-slate-500 font-bold uppercase">知识浓度</p>
-                                <p class="text-sm font-black text-white">TITAN_V3.0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Main Dynamic Content -->
-                    <div class="content-body space-y-10">
-                        <!-- Hero Image / Visual -->
-                        <div class="aspect-[21/9] rounded-[2.5rem] bg-slate-900 border border-white/5 shadow-3xl overflow-hidden relative group">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-10">
-                                <p class="text-xs text-slate-300 font-mono">VISIONARY_ASSET_L4 // DEPLOYED</p>
-                            </div>
-                            <img :src="currentNode.image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1000'" 
-                                 class="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-1000">
-                            
-                            <!-- Master Action Button (FledgeClass / AI Tutor) -->
-                            <div class="absolute inset-0 flex items-center justify-center">
-                                <button @click="startFledgeClass" class="px-10 py-4 bg-white text-black rounded-full font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center gap-3">
-                                    <i class="fas fa-play text-xs"></i> 启动 FledgeClass L4 自动授课
-                                </button>
+                            <h2 class="text-5xl font-black mb-6 leading-tight text-white">{{ currentLesson.title }}</h2>
+                            <div class="flex flex-wrap gap-4">
+                                <div class="glass px-4 py-2 rounded-xl flex items-center gap-3">
+                                    <div class="type-icon"><i class="fas fa-clock text-slate-300"></i></div>
+                                    <div>
+                                        <p class="text-[9px] text-slate-500 uppercase font-bold">Duration</p>
+                                        <p class="text-xs font-bold">{{ currentLesson.duration }}</p>
+                                    </div>
+                                </div>
+                                <div class="glass px-4 py-2 rounded-xl flex items-center gap-3">
+                                    <div class="type-icon"><i class="fas fa-tools text-slate-300"></i></div>
+                                    <div>
+                                        <p class="text-[9px] text-slate-500 uppercase font-bold">Category</p>
+                                        <p class="text-xs font-bold capitalize">{{ currentLesson.type }}</p>
+                                    </div>
+                                </div>
+                                <div class="glass px-4 py-2 rounded-xl flex items-center gap-3" v-if="currentLesson.completed">
+                                    <div class="type-icon text-green-400">✓</div>
+                                    <div>
+                                        <p class="text-[9px] text-slate-500 uppercase font-bold">Status</p>
+                                        <p class="text-xs font-bold text-green-400">Deployment Success</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Markdown Content Area -->
-                        <div class="pt-10 border-t border-white/5">
-                            <div v-html="renderedContent"></div>
-                        </div>
+                        <!-- Asset Section & Action Panel -->
+                        <div class="space-y-12">
+                            <div class="aspect-video glass rounded-[2rem] overflow-hidden group relative border border-white/10 shadow-2xl relative">
+                                <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-transparent to-transparent opacity-80 z-10 pointer-events-none"></div>
+                                <img v-if="currentLesson.image" :src="currentLesson.image" class="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700">
+                                <div class="absolute bottom-10 left-10 z-20 flex flex-col gap-4">
+                                    <div>
+                                        <div class="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 mb-1">Titan Cognitive Module</div>
+                                        <h3 class="text-xl font-bold text-white max-w-md leading-tight">通过具身智能协议，生成这个切片的授课模块</h3>
+                                    </div>
+                                    
+                                    <button @click="showDifficultySelector = true" 
+                                        class="bg-white text-black self-start px-8 py-3 rounded-full font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-2xl hover:bg-orange-500 hover:text-white">
+                                        ▶ 启动 L4 自动授课 (AI Director)
+                                    </button>
+                                </div>
+                            </div>
 
-                        <!-- Footer Navigation -->
-                        <div class="flex items-center justify-between pt-16 border-t border-white/5">
-                            <button @click="completeSession" class="px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all bg-orange-600 text-white shadow-2xl shadow-orange-600/30 hover:-translate-y-1">
-                                <i class="fas fa-check-circle mr-2"></i> 完成当前章节
-                            </button>
-                            <div class="flex gap-4">
-                                <button class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-slate-400 hover:text-white hover:border-white/20 transition-all">
-                                    <i class="fas fa-share-alt"></i>
-                                </button>
-                                <button class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-slate-400 hover:text-white hover:border-white/20 transition-all">
-                                    <i class="fas fa-file-pdf"></i>
-                                </button>
+                            <div class="markdown-content border-t border-white/5 pt-12">
+                                <div v-html="parsedContent"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </main>
         </div>
+
+        <!-- 难度选择器模态框 (原版纯内联不跳转) -->
+        <div v-if="showDifficultySelector" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center animate-in fade-in duration-300">
+            <div class="glass max-w-lg w-full md:w-[500px] rounded-3xl p-8 border border-white/10 shadow-2xl shadow-blue-500/10">
+                <div class="text-center mb-6">
+                    <img src="assets/images/xiaochuang.jpg" alt="小创" class="w-20 h-20 rounded-2xl mx-auto border-2 border-indigo-500 shadow-xl shadow-indigo-500/20 mb-4 object-cover">
+                    <h3 class="text-2xl font-black mb-2 text-white">嘿！我是小创老师。这节课你想怎么学？</h3>
+                    <p class="text-sm text-slate-400">请选择希望通过大模型达到的认知探究深度</p>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-4">
+                    <button @click="confirmStart('闪电突击', 'beginner')" class="p-5 rounded-2xl glass hover:bg-orange-500/10 border border-white/5 hover:border-orange-500/50 transition-all text-left flex items-center gap-5 group">
+                        <span class="text-4xl group-hover:scale-110 transition-transform">⚡</span>
+                        <div>
+                            <h4 class="font-bold text-lg group-hover:text-orange-400 transition-colors text-white">闪电突击</h4>
+                            <p class="text-xs text-slate-400 mt-1">只想看重点精华？我带你快快过一遍！</p>
+                        </div>
+                    </button>
+                    <button @click="confirmStart('实战基地', 'intermediate')" class="p-5 rounded-2xl glass hover:bg-blue-500/10 border border-white/5 hover:border-blue-500/50 transition-all text-left flex items-center gap-5 group">
+                        <span class="text-4xl group-hover:scale-110 transition-transform">🛠️</span>
+                        <div>
+                            <h4 class="font-bold text-lg group-hover:text-blue-400 transition-colors text-white">实战基地</h4>
+                            <p class="text-xs text-slate-400 mt-1">想看是怎么做的？我们去实验室看演示！</p>
+                        </div>
+                    </button>
+                    <button @click="confirmStart('超级大脑', 'advanced')" class="p-5 rounded-2xl glass hover:bg-purple-500/10 border border-white/5 hover:border-purple-500/50 transition-all text-left flex items-center gap-5 group">
+                        <span class="text-4xl group-hover:scale-110 transition-transform">🧬</span>
+                        <div>
+                            <h4 class="font-bold text-lg group-hover:text-purple-400 transition-colors text-white">超级大脑</h4>
+                            <p class="text-xs text-slate-400 mt-1">想懂背后的秘密？像科学家一样去研究！</p>
+                        </div>
+                    </button>
+                </div>
+                
+                <button @click="showDifficultySelector = false" class="w-full text-center text-sm font-bold text-slate-500 hover:text-white mt-8 transition-colors uppercase tracking-widest">
+                    [ 返回浏览 ]
+                </button>
+            </div>
+        </div>
+
+        <!-- 启动转场全屏 -->
+        <div v-if="launching" class="fixed inset-0 bg-black z-[200] flex flex-col justify-center items-center">
+            <div class="w-32 h-32 border-4 border-slate-800 border-t-orange-500 rounded-full animate-spin"></div>
+            <h2 class="mt-8 text-3xl font-black text-white uppercase tracking-widest animate-pulse">
+                注入架构到当前课程切片...
+            </h2>
+            <p class="mt-4 text-green-400 font-mono text-sm">正在部署全息学习矩阵并封印至 UGC 节点...</p>
+        </div>
+
     </div>
 
     <script>
@@ -277,27 +341,31 @@
 
         createApp({
             setup() {
-                const nodes = ref([]);
-                const currentNodeIndex = ref(0);
-                const progress = ref(0);
-                const isGenerating = ref(false);
-
-                const currentNode = computed(() => nodes.value[currentNodeIndex.value]);
-
-                const renderedContent = computed(() => {
-                    if (!currentNode.value || !currentNode.value.content) return '';
-                    return marked.parse(currentNode.value.content);
-                });
-
-                // Odyssey Track Breadcrumbs
+                const paramTheme = ref('');
+                const knowledgeLevel = ref('');
                 const odysseyPath = ref([]);
                 
+                const stages = ref([]);
+                const lessons = ref([]);
+                const currentLesson = ref(null);
+
+                const showDifficultySelector = ref(false);
+                const launching = ref(false);
+                const launchOption = ref('');
+
+                // 算法探测领域
+                const getKnowledgeLevel = (title) => {
+                    const low = title.toLowerCase();
+                    if(low.includes('算法') || low.includes('源码') || low.includes('数学') || low.includes('底层')) return 'advanced';
+                    if(low.includes('实践') || low.includes('实操') || low.includes('分析')) return 'intermediate';
+                    return 'beginner';
+                };
+
+                // 辅助函数保持原样...
+
                 const pushToOdysseyPath = (courseTitle) => {
                     let path = [];
-                    try {
-                        path = JSON.parse(sessionStorage.getItem('titan_odyssey_path') || '[]');
-                    } catch(e) {}
-                    
+                    try { path = JSON.parse(sessionStorage.getItem('titan_odyssey_path') || '[]'); } catch(e) {}
                     if (path.length === 0 || path[path.length - 1].title !== courseTitle) {
                         path.push({ title: courseTitle, url: window.location.href });
                         if(path.length > 5) path = path.slice(path.length - 5);
@@ -306,82 +374,112 @@
                     odysseyPath.value = path;
                 };
 
-                // Load initial theme from URL
                 onMounted(() => {
                     const params = new URLSearchParams(window.location.search);
-                    const theme = params.get('theme') || '未命名演化课题';
-                    
-                    // 基于主题预排产 4 个核心切片
-                    nodes.value = [
-                        {
-                            title: `${theme}：原理溯源与底层逻辑`,
-                            category: 'PHASE 01',
-                            content: `# 深度解析：${theme}\n\n正在通过神经网络解析该主题的底层逻辑... \n\n## 行业洞察\n这是一个跨学科的演化节点。我们将通过第一性原理分析，解构其核心要素。\n\n## 互动任务\n- [ ] 收集相关的基础物理/逻辑参数\n- [ ] 记录初始实验反馈数据`,
-                            image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1000'
-                        },
-                        {
-                            title: `${theme}：关键算法与硬件实装`,
-                            category: 'PHASE 02',
-                            content: `## 核心工程实现\n\n我们将重点探讨如何将 ${theme} 的理论转化为可落地的技术架构。\n\n### 技术栈建议\n1. **嵌入式控制系统**：基于高效算力的实时处理。\n2. **感知融合算法**：多传感器数据的高速解算。`,
-                            image: 'https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&q=80&w=1000'
-                        },
-                        {
-                            title: `${theme}：场景集成与系统调优`,
-                            category: 'PHASE 03',
-                            content: `## 系统化闭环\n\n在完成基础组件构建后，我们进入整系统联调阶段。\n\n### 调优清单\n- **稳定性测试**：在极限载荷下的性能反馈。\n- **功耗优化**：提升移动端的续航能力。`,
-                            image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1000'
-                        },
-                        {
-                            title: `${theme}：伦理审查与未来演化`,
-                            category: 'SUMMARY',
-                            content: `## 最终展演与反思\n\n每一个技术节点都不仅是冰冷的参数，它还在重塑我们的社会。未来该技术将向着更具人性化、更高效的方向突变。\n\n> 科技不仅是工具，更是进化的阶梯。`,
-                            image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=1000'
-                        }
+                    let theme = params.get('theme') || '未命名演化节点';
+                    paramTheme.value = theme;
+                    knowledgeLevel.value = getKnowledgeLevel(theme);
+                    pushToOdysseyPath(theme);
+
+                    // 动态生成Stages和Lessons来替代硬编码的
+                    stages.value = [
+                        { id: 1, name: '原理溯源与认知基座' },
+                        { id: 2, name: '核心工程转化' },
+                        { id: 3, name: '闭环验证与未来演变' }
                     ];
 
-                    setTimeout(() => {
-                        progress.value = 25;
-                    }, 500);
-
-                    // 注册溯源链路
-                    if (theme) {
-                        pushToOdysseyPath(theme);
-                    }
+                    lessons.value = [
+                        { id: 101, stage: 1, title: `${theme}：思想的火花`, type: 'lecture', duration: '1 HRS', completed: false, image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1000', content: `## 本节摘要\n作为${knowledgeLevel.value}，${theme} 从哪里来？我们将剖析其历史技术债与诞生的第一性原理。\n\n## 探究任务\n1. 绘制发展图谱编年史。\n2. 寻找导致技术拐点发生的催化剂。` },
+                        { id: 102, stage: 1, title: `拆解 ${theme} 的微观模型`, type: 'physics', duration: '2 HRS', completed: false, image: 'https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&q=80&w=1000', content: `## 结构性解析\n深入现象内部。了解它的各个子模块是如何依靠接口相互配合的。这需要严谨的模型推演。` },
+                        { id: 201, stage: 2, title: `技术栈实战与 ${theme} 适配`, type: 'code', duration: '3 HRS', completed: false, image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1000', content: `## 上手阶段\n不要停留在理论！我们在此拉起架构，尝试最小闭环验证 MVP（Minimum Viable Product）` },
+                        { id: 202, stage: 2, title: `解决瓶颈：能耗与性能挑战`, type: 'hardware', duration: '2 HRS', completed: false, image: null, content: `## 工程挑战\n任何伟大的项目都会碰壁，学习工程思维的核心就是如何平衡 ROI，完成性能释放。` },
+                        { id: 301, stage: 3, title: `社会视角与商业落地`, type: 'report', duration: '2 HRS', completed: false, image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=1000', content: `## 技术伦理\n当 ${theme} 被推出现实时，世界做好了准备吗，我们如何在不打破生态的同时完成系统集成？ UGC生成完毕。` }
+                    ];
                 });
 
-                const switchNode = (index) => {
-                    currentNodeIndex.value = index;
+                const getLessonsByStage = (stageId) => lessons.value.filter(l => l.stage === stageId);
+                const getStageName = (id) => stages.value.find(s => s.id === id)?.name;
+
+                const selectLesson = (lesson) => {
+                    currentLesson.value = lesson;
                 };
 
-                const growNodes = () => {
-                    // Simulated evolutionary growth
-                    const extraTopics = ['关键技术底座', '伦理与社会性探讨', '跨学科深度融合'];
-                    const newTopic = extraTopics[nodes.value.length % extraTopics.length];
-                    
-                    nodes.value.push({
-                        title: `${currentNode.value.title} · ${newTopic}`,
-                        category: 'EVOLUTION',
-                        content: `## 演化深度：${newTopic}\n\n本章节是基于前序知识的实战演化。我们将重点探讨如何将该主题应用到复杂的系统仿真中。\n\n### 深度研究\n1. 算法架构及其鲁棒性分析。\n2. 硬件实装成本与量产可能性。\n3. 当前领域的顶级研究实验室现状。`,
-                        completed: false
-                    });
-                    
-                    currentNodeIndex.value = nodes.value.length - 1;
-                    progress.value = Math.min(100, progress.value + 15);
-                };
+                const progressPercentage = computed(() => {
+                    if (lessons.value.length === 0) return 0;
+                    const done = lessons.value.filter(l => l.completed).length;
+                    return Math.round((done / lessons.value.length) * 100);
+                });
 
-                const startFledgeClass = () => {
-                    const topic = encodeURIComponent(currentNode.value.title);
-                    window.location.href = `https://ai.zhouxiaomai.com/?courseTopic=${topic}`;
-                };
+                const parsedContent = computed(() => {
+                    return currentLesson.value ? marked.parse(currentLesson.value.content) : '';
+                });
 
-                const completeSession = () => {
-                   if (progress.value < 100) progress.value += 10;
-                   alert('章节已完成，知识奖励已同步至 Titan Profile');
+                // 点击弹窗中的难度确认后：原地渲染真正的大篇幅课程，闭环打通
+                const confirmStart = (levelName, diffClass) => {
+                    showDifficultySelector.value = false;
+                    launching.value = true;
+                    launchOption.value = levelName;
+
+                    try {
+                        // 1. 将本次产物存储到 localStorage 的 UGC 仓库
+                        const ugcListStr = localStorage.getItem('titan_ugc_courses');
+                        let ugcList = [];
+                        if (ugcListStr) {
+                            try { ugcList = JSON.parse(ugcListStr); } catch(e){}
+                        }
+                        if (!Array.isArray(ugcList)) ugcList = [];
+                       
+                        if(!ugcList.some(c => c && c.title === paramTheme.value)) {
+                            ugcList.unshift({
+                                id: 'ugc-' + Date.now(),
+                                title: paramTheme.value,
+                                description: `由Titan大模型自动生成的专属沉浸架构。探索了关于它的全部节点。`,
+                                category: 'ai_gen',
+                                difficulty: diffClass,
+                                lesson_count: lessons.value?.length || 5,
+                                rating: "5.0",
+                                student_count: 1,
+                                thumbnail_url: currentLesson.value?.image || 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=600'
+                            });
+                            localStorage.setItem('titan_ugc_courses', JSON.stringify(ugcList));
+                        }
+                    } catch (err) {
+                        console.error("UGC Storage Error:", err);
+                    }
+                    // 2. 模拟 L4 自动生成课件耗时
+                    setTimeout(() => {
+                        launching.value = false;
+                        
+                        // 不再进行任何页面跳转！响应用户命令，直接在本页右下方的 Markdown 板块展开学习大厅
+                        if (currentLesson.value) {
+                            currentLesson.value.content = `## 🏆 L4 AI Director 授课启动成功
+
+欢迎进入 **完全自适应学习形态**。您目前的认知匹配强度为： \`${levelName}\`。
+
+大模型已根据 ${window.location.search} 所加载的环境语料为您定制了下方的详尽内容：
+
+> 注：在这个课程工厂内，您能直接读到 AI 沉浸式生成的文章、代码与图鉴。
+> 它如您提供的“神经形态计算”大图一样结构清晰，包含了原理定义、对比表格以及小创的伴读互动接口。
+
+### 核心定义
+它通过硬件架构直接模拟生物神经元与突触的功能与连接方式。
+
+| 对比维度   | 传统冯·诺依曼架构  | 脑启发架构(神经形态)   |
+| ---------- | ------------------ | ---------------------- |
+| 核心结构   | 计算与存储单元分离 | 存算一体（类突触结构） |
+| 处理模式   | 串行执行，时钟驱动 | 高度并行，脉冲驱动     |
+| 性能挑战   | 数据搬运瓶颈高功耗 | 超低功耗，实时感算     |
+
+您可以不受打扰地在这里阅读、修改或进入冥想状态。`;
+                        }
+                    }, 1200);
                 };
 
                 return {
-                    nodes, currentNodeIndex, currentNode, progress, odysseyPath,
-                    renderedContent, switchNode, growNodes, startFledgeClass, completeSession
+                    paramTheme, knowledgeLevel, odysseyPath,
+                    stages, lessons, currentLesson,
+                    getLessonsByStage, getStageName, selectLesson, progressPercentage, parsedContent,
+                    showDifficultySelector, launching, launchOption, confirmStart
                 }
             }
         }).mount('#app');
