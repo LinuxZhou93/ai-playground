@@ -129,15 +129,16 @@
             overflow: hidden;
         }
 
-        .hero-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 120%; /* For parallax */
-            background: url('file:///Users/linuxzhou/.gemini/antigravity/brain/5f8ab2d7-81b9-44b0-9573-edc7e1834aa0/mozi_hero_graphene_lab_1774833390846.png') center/cover no-repeat;
-            z-index: 0;
-            filter: brightness(0.6);
+        .hero-section {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('assets/img/mozi_hero.png');
+            background-size: cover;
+            background-position: center;
+            position: relative;
         }
 
         .hero-mask {
@@ -166,8 +167,80 @@
         }
 
         .hero-desc {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.5);
+         .gallery-overlay h3 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #fff; }
+        .gallery-overlay p { font-size: 0.9rem; color: rgba(255,255,255,0.6); }
+
+        /* Mozi Search Overlay */
+        #search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 10, 20, 0.95);
+            backdrop-filter: blur(40px);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 15vh;
+        }
+
+        .search-inner {
+            width: 90%;
+            max-width: 800px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            border-radius: 20px;
+            padding: 2rem 3rem;
+            font-size: 1.8rem;
+            color: #fff;
+            outline: none;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 10px 40px rgba(0, 242, 255, 0.1);
+        }
+
+        .search-results {
+            margin-top: 2rem;
+            max-height: 50vh;
+            overflow-y: auto;
+            border-radius: 20px;
+        }
+
+        .search-result-item {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-result-item:hover {
+            background: rgba(255,255,255,0.03);
+            color: var(--primary);
+        }
+
+        .search-result-path {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.3);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .search-hint {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+        }
             max-width: 600px;
             margin: 0 auto 3rem;
             line-height: 1.8;
@@ -332,9 +405,8 @@
     <div class="cursor"></div>
     <div class="cursor-follower"></div>
 
-    <nav>
-        <div class="logo-container" onclick="resetView()">
-            <div class="logo-hexagon"></div>
+    <nav class="glass-nav">
+        <div class="logo-area" onclick="resetView()" style="cursor:pointer">
             <div class="brand-name">MOZI LAB</div>
         </div>
         <div class="nav-links">
@@ -342,8 +414,18 @@
             <a href="javascript:void(0)" class="nav-item" onclick="navigate('overview')">全量课程概述</a>
             <a href="javascript:void(0)" class="nav-item" onclick="navigate('competition')">学员成果与晋升</a>
             <a href="javascript:void(0)" class="nav-item" onclick="navigate('research')">BGI 科研基地</a>
+            <a href="javascript:void(0)" class="nav-item" style="color:var(--primary)" onclick="toggleSearch()">🔍 检索</a>
         </div>
     </nav>
+
+    <script src="mozi_index.js"></script>
+    <div id="search-overlay">
+        <div class="search-inner">
+            <input type="text" class="search-input" id="search-input" placeholder="输入关键词检索 700+ 科教资源..." autocomplete="off">
+            <div class="search-results" id="search-results"></div>
+        </div>
+        <div class="search-hint">按下 [ ESC ] 退出 · 按下 [ ENTER ] 选择</div>
+    </div>
 
     <div id="main-scroller">
         <!-- Hero Section -->
@@ -451,33 +533,74 @@
             }
         });
 
-        // Navigation Logic
-        function navigate(page) {
-            const scroller = document.getElementById('main-scroller');
-            const container = document.getElementById('content-frame-container');
-            const frame = document.getElementById('content-frame');
-            const backBtn = document.querySelector('.back-to-home');
+        // Mozi Search & Full Fusion Logic
+        const searchIndex = window.moziIndex || [];
 
-            let url = '';
-            switch(page) {
-                case 'home': resetView(); return;
-                case 'overview': url = 'mozi_curriculum_overview.html'; break;
-                case 'competition': url = 'competition-atlas.html'; break;
-                case 'research': url = 'labs.html'; break;
+        function toggleSearch() {
+            const overlay = document.getElementById('search-overlay');
+            const isVisible = overlay.style.display === 'flex';
+            overlay.style.display = isVisible ? 'none' : 'flex';
+            if (!isVisible) document.getElementById('search-input').focus();
+        }
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const results = searchIndex.filter(item => 
+                item.title.toLowerCase().includes(query) || 
+                item.path.toLowerCase().includes(query)
+            ).slice(0, 15);
+
+            const container = document.getElementById('search-results');
+            container.innerHTML = results.map(item => `
+                <div class="search-result-item" onclick="navigateDirect('${item.path}')">
+                    <span>${item.title}</span>
+                    <span class="search-result-path">${item.path}</span>
+                </div>
+            `).join('');
+        });
+
+        // Theme Injection for Iframe
+        function navigateDirect(url) {
+            toggleSearch();
+            navigate('custom', url);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'k' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); toggleSearch(); }
+            if (e.key === 'Escape') { document.getElementById('search-overlay').style.display = 'none'; }
+        });
+
+        function navigate(page, customUrl = '') {
+            const scroller = document.getElementById('main-scroller');
+            const frameContainer = document.getElementById('content-frame-container');
+            const contentFrame = document.getElementById('content-frame');
+            
+            let url = customUrl;
+            if (!url) {
+                switch(page) {
+                    case 'home': resetView(); return;
+                    case 'overview': url = 'mozi_curriculum_overview.html'; break;
+                    case 'competition': url = 'competition-atlas.html'; break;
+                    case 'research': url = 'labs.html'; break;
+                }
             }
 
             scroller.style.display = 'none';
-            container.style.display = 'block';
-            frame.src = url;
-            backBtn.style.display = 'block';
-            window.scrollTo(0, 0);
+            frameContainer.style.display = 'block';
+            contentFrame.src = url;
 
-            // Update Nav Highlighting
+            // Inject Mozi Legacy Skin after load
+            contentFrame.onload = () => {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'assets/css/mozi_legacy_skin.css';
+                contentFrame.contentDocument.head.appendChild(link);
+            };
+
+            // Update Nav item state
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('active');
-                if(item.innerText.includes(page === 'curriculum' ? '1+4+N' : page === 'competition' ? '特长生' : 'BGI')) {
-                    item.classList.add('active');
-                }
+                if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(page)) item.classList.add('active');
             });
         }
 
