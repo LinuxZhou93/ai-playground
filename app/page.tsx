@@ -1825,4 +1825,3 @@ function ClassroomCard({
 export default function Page() {
   return <HomePage />;
 }
-// Turbopack cache buster
