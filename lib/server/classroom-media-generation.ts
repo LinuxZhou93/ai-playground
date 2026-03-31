@@ -2,13 +2,10 @@
  * Server-side media and TTS generation for classrooms.
  *
  * Generates image/video files and TTS audio for a classroom,
- * writes them to disk, and returns serving URL mappings.
+ * uploads them directly to Supabase Storage, and returns serving URL mappings.
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
 import { createLogger } from '@/lib/logger';
-import { CLASSROOMS_DIR } from '@/lib/server/classroom-storage';
 import { generateImage } from '@/lib/media/image-providers';
 import { generateVideo, normalizeVideoOptions } from '@/lib/media/video-providers';
 import { generateTTS } from '@/lib/audio/tts-providers';
@@ -34,16 +31,13 @@ import type { ImageProviderId } from '@/lib/media/types';
 import type { VideoProviderId } from '@/lib/media/types';
 import type { TTSProviderId } from '@/lib/audio/types';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
+import { supabase } from '@/lib/supabase';
 
 const log = createLogger('ClassroomMedia');
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-async function ensureDir(dir: string) {
-  await fs.mkdir(dir, { recursive: true });
-}
 
 const DOWNLOAD_TIMEOUT_MS = 120_000; // 2 minutes
 const DOWNLOAD_MAX_SIZE = 100 * 1024 * 1024; // 100 MB
@@ -58,8 +52,27 @@ async function downloadToBuffer(url: string): Promise<Buffer> {
   return Buffer.from(await resp.arrayBuffer());
 }
 
-function mediaServingUrl(baseUrl: string, classroomId: string, subPath: string): string {
-  return `${baseUrl}/api/classroom-media/${classroomId}/${subPath}`;
+async function uploadToSupabaseStorage(
+  storagePath: string,
+  buffer: Buffer | Uint8Array,
+  contentType: string,
+): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('classroom-media')
+    .upload(storagePath, buffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(`Supabase upload failed: ${error.message}`);
+  }
+
+  const { data: publicData } = supabase.storage
+    .from('classroom-media')
+    .getPublicUrl(storagePath);
+    
+  return publicData.publicUrl;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,9 +84,6 @@ export async function generateMediaForClassroom(
   classroomId: string,
   baseUrl: string,
 ): Promise<Record<string, string>> {
-  const mediaDir = path.join(CLASSROOMS_DIR, classroomId, 'media');
-  await ensureDir(mediaDir);
-
   // Collect all media generation requests from outlines
   const requests = outlines.flatMap((o) => o.mediaGenerations ?? []);
   if (requests.length === 0) return {};
@@ -84,8 +94,6 @@ export async function generateMediaForClassroom(
 
   const mediaMap: Record<string, string> = {};
 
-  // Separate image and video requests, generate each type sequentially
-  // but run the two types in parallel (providers often have limited concurrency).
   const imageRequests = requests.filter((r) => r.type === 'image' && imageProviderIds.length > 0);
   const videoRequests = requests.filter((r) => r.type === 'video' && videoProviderIds.length > 0);
 
@@ -94,10 +102,7 @@ export async function generateMediaForClassroom(
       try {
         const providerId = imageProviderIds[0] as ImageProviderId;
         const apiKey = resolveImageApiKey(providerId);
-        if (!apiKey) {
-          log.warn(`No API key for image provider "${providerId}", skipping ${req.elementId}`);
-          continue;
-        }
+        if (!apiKey) continue;
         const providerConfig = IMAGE_PROVIDERS[providerId];
         const model = providerConfig?.models?.[0]?.id;
 
@@ -108,22 +113,26 @@ export async function generateMediaForClassroom(
 
         let buf: Buffer;
         let ext: string;
+        let mime: string;
         if (result.base64) {
           buf = Buffer.from(result.base64, 'base64');
           ext = 'png';
+          mime = 'image/png';
         } else if (result.url) {
           buf = await downloadToBuffer(result.url);
-          const urlExt = path.extname(new URL(result.url).pathname).replace('.', '');
-          ext = ['png', 'jpg', 'jpeg', 'webp'].includes(urlExt) ? urlExt : 'png';
+          ext = 'png';
+          mime = 'image/png';
+          // Trivial fallback extraction could be here, but generally image generation URL results are PNG or JPG
         } else {
-          log.warn(`Image generation returned no data for ${req.elementId}`);
           continue;
         }
 
         const filename = `${req.elementId}.${ext}`;
-        await fs.writeFile(path.join(mediaDir, filename), buf);
-        mediaMap[req.elementId] = mediaServingUrl(baseUrl, classroomId, `media/${filename}`);
-        log.info(`Generated image: ${filename}`);
+        const storagePath = `${classroomId}/media/${filename}`;
+        
+        const publicUrl = await uploadToSupabaseStorage(storagePath, buf, mime);
+        mediaMap[req.elementId] = publicUrl;
+        log.info(`Uploaded generated image to Supabase: ${publicUrl}`);
       } catch (err) {
         log.warn(`Image generation failed for ${req.elementId}:`, err);
       }
@@ -135,10 +144,7 @@ export async function generateMediaForClassroom(
       try {
         const providerId = videoProviderIds[0] as VideoProviderId;
         const apiKey = resolveVideoApiKey(providerId);
-        if (!apiKey) {
-          log.warn(`No API key for video provider "${providerId}", skipping ${req.elementId}`);
-          continue;
-        }
+        if (!apiKey) continue;
         const providerConfig = VIDEO_PROVIDERS[providerId];
         const model = providerConfig?.models?.[0]?.id;
 
@@ -154,9 +160,11 @@ export async function generateMediaForClassroom(
 
         const buf = await downloadToBuffer(result.url);
         const filename = `${req.elementId}.mp4`;
-        await fs.writeFile(path.join(mediaDir, filename), buf);
-        mediaMap[req.elementId] = mediaServingUrl(baseUrl, classroomId, `media/${filename}`);
-        log.info(`Generated video: ${filename}`);
+        const storagePath = `${classroomId}/media/${filename}`;
+
+        const publicUrl = await uploadToSupabaseStorage(storagePath, buf, 'video/mp4');
+        mediaMap[req.elementId] = publicUrl;
+        log.info(`Uploaded generated video to Supabase: ${publicUrl}`);
       } catch (err) {
         log.warn(`Video generation failed for ${req.elementId}:`, err);
       }
@@ -176,13 +184,8 @@ export function replaceMediaPlaceholders(scenes: Scene[], mediaMap: Record<strin
   if (Object.keys(mediaMap).length === 0) return;
 
   for (const scene of scenes) {
-    // 1. Handle Slide scenes (Canvas elements)
     if (scene.type === 'slide') {
-      const canvas = (
-        scene.content as {
-          canvas?: { elements?: Array<{ id: string; src?: string; type?: string }> };
-        }
-      )?.canvas;
+      const canvas = (scene.content as any)?.canvas;
       if (canvas?.elements) {
         for (const el of canvas.elements) {
           if (
@@ -196,14 +199,11 @@ export function replaceMediaPlaceholders(scenes: Scene[], mediaMap: Record<strin
         }
       }
     }
-
-    // 2. Handle Interactive scenes (HTML content)
     if (scene.type === 'interactive') {
       const content = scene.content as { html?: string };
       if (content.html) {
         let updatedHtml = content.html;
         for (const [placeholder, url] of Object.entries(mediaMap)) {
-          // Replace both plain placeholders and ai-render:// protocol
           updatedHtml = updatedHtml.replaceAll(placeholder, url);
           updatedHtml = updatedHtml.replaceAll(`ai-render://${placeholder}`, url);
         }
@@ -212,7 +212,6 @@ export function replaceMediaPlaceholders(scenes: Scene[], mediaMap: Record<strin
     }
   }
 }
-
 
 // ---------------------------------------------------------------------------
 // TTS generation
@@ -223,39 +222,25 @@ export async function generateTTSForClassroom(
   classroomId: string,
   baseUrl: string,
 ): Promise<void> {
-  const audioDir = path.join(CLASSROOMS_DIR, classroomId, 'audio');
-  await ensureDir(audioDir);
-
-  // Resolve TTS provider (exclude browser-native-tts)
   const ttsProviderIds = Object.keys(getServerTTSProviders()).filter(
     (id) => id !== 'browser-native-tts',
   );
-  if (ttsProviderIds.length === 0) {
-    log.warn('No server TTS provider configured, skipping TTS generation');
-    return;
-  }
+  if (ttsProviderIds.length === 0) return;
 
   const providerId = ttsProviderIds[0] as TTSProviderId;
   const apiKey = resolveTTSApiKey(providerId);
-  if (!apiKey) {
-    log.warn(`No API key for TTS provider "${providerId}", skipping TTS generation`);
-    return;
-  }
-  const ttsBaseUrl = resolveTTSBaseUrl(providerId) || TTS_PROVIDERS[providerId]?.defaultBaseUrl;
+  if (!apiKey) return;
   
-  // 🚀 [Titan Tech] 强制音色对齐：确保课件生成使用与 Titan Assistant 一致的“少年梓辛”
+  const ttsBaseUrl = resolveTTSBaseUrl(providerId) || TTS_PROVIDERS[providerId]?.defaultBaseUrl;
   let voice = DEFAULT_TTS_VOICES[providerId] || 'default';
   if (providerId === 'volcengine-tts') {
     voice = 'zh_male_shaonianzixin_uranus_bigtts';
   }
-  
   const format = TTS_PROVIDERS[providerId]?.supportedFormats?.[0] || 'mp3';
+  const mime = format === 'mp3' ? 'audio/mpeg' : 'audio/wav';
 
   for (const scene of scenes) {
     if (!scene.actions) continue;
-
-    // Split long speech actions into multiple shorter ones before TTS generation,
-    // mirroring the client-side approach. Each sub-action gets its own audio file.
     scene.actions = splitLongSpeechActions(scene.actions, providerId);
 
     for (const action of scene.actions) {
@@ -264,18 +249,19 @@ export async function generateTTSForClassroom(
       const audioId = `tts_${action.id}`;
 
       try {
-        log.info(`Generating TTS for ${action.id}: "${speechAction.text.slice(0, 30)}..."`);
         const result = await generateTTS(
           { providerId, apiKey, baseUrl: ttsBaseUrl, voice, speed: speechAction.speed },
           speechAction.text,
         );
 
         const filename = `${audioId}.${format}`;
-        await fs.writeFile(path.join(audioDir, filename), result.audio);
+        const storagePath = `${classroomId}/audio/${filename}`;
+        
+        const publicUrl = await uploadToSupabaseStorage(storagePath, result.audio, mime);
 
         speechAction.audioId = audioId;
-        speechAction.audioUrl = mediaServingUrl(baseUrl, classroomId, `audio/${filename}`);
-        log.info(`Generated TTS SUCCESS: ${filename} (${result.audio.length} bytes)`);
+        speechAction.audioUrl = publicUrl;
+        log.info(`Uploaded generated TTS to Supabase: ${publicUrl}`);
       } catch (err) {
         log.error(`TTS generation FAILED for action ${action.id}:`, err);
       }

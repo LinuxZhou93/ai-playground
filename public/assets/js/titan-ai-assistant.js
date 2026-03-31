@@ -1033,9 +1033,9 @@ class TitanAIAssistant {
         
         let avatarHTML = '';
         if (role === 'ai' || role === 'assistant') {
-            avatarHTML = `<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
+            avatarHTML = `<div class="avatar avatar-ai"><img src="/assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
         } else if (role === 'user') {
-            avatarHTML = `<div class="avatar avatar-user"><img src="assets/img/user_boy.png" onerror="this.outerHTML='<i class=\\'fas fa-user-circle\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
+            avatarHTML = `<div class="avatar avatar-user"><img src="/assets/img/user_boy.png" onerror="this.outerHTML='<i class=\\'fas fa-user-circle\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
         }
 
         const msgClass = (role === 'ai' || role === 'assistant') ? 'msg msg-ai markdown-body' : 'msg msg-user';
@@ -1530,7 +1530,7 @@ class TitanAIAssistant {
                 border-radius: 50%;
                 z-index: 99999;
                 cursor: pointer;
-                background: url('assets/img/titan-ai-mascot.png') center/cover no-repeat;
+                background: url('/assets/img/titan-ai-mascot.png') center/cover no-repeat;
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(14, 165, 233, 0.3);
                 border: 2px solid rgba(255, 255, 255, 0.1);
                 transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -2506,7 +2506,7 @@ class TitanAIAssistant {
             <div class="ai-panel" id="titan-ai-panel">
                 <div class="ai-header" id="titan-ai-drag-handle">
                     <div class="ai-header-title">
-                        <img src="assets/img/xiao_chuang_head.png" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid rgba(56,189,248,0.3);">
+                        <img src="/assets/img/xiao_chuang_head.png" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid rgba(56,189,248,0.3);">
                         <span>小创老师 (Virtual Teacher)</span>
                     </div>
                     <div class="ai-header-controls">
@@ -4057,7 +4057,7 @@ ${currentFullContent}
             rowDiv.className = 'msg-row ai';
             rowDiv.style.animation = 'msg-spring-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
 
-            const avatarHTML = `<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
+            const avatarHTML = `<div class="avatar avatar-ai"><img src="/assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg msg-ai markdown-body';
             msgDiv.setAttribute('draggable', 'false'); // 核心修复：严禁拖拽，释放选区感应
@@ -4428,8 +4428,8 @@ ${currentFullContent}
         rowDiv.className = `msg-row ${role}`;
         
         let avatarHTML = '';
-        if (role === 'ai') avatarHTML = `<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
-        if (role === 'user') avatarHTML = `<div class="avatar avatar-user"><img src="assets/img/user_boy.png" onerror="this.outerHTML='<i class=\\'fas fa-user-circle\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
+        if (role === 'ai') avatarHTML = `<div class="avatar avatar-ai"><img src="/assets/img/xiao_chuang_head.png" onerror="this.outerHTML='<i class=\\'fas fa-robot\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
+        if (role === 'user') avatarHTML = `<div class="avatar avatar-user"><img src="/assets/img/user_boy.png" onerror="this.outerHTML='<i class=\\'fas fa-user-circle\\'></i>'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>`;
         
         const msgDiv = document.createElement('div');
         msgDiv.className = `msg msg-${role}`;
@@ -4526,7 +4526,7 @@ ${currentFullContent}
         rowDiv.id = 'ai-typing-indicator';
         rowDiv.className = 'msg-row ai';
         
-        const avatarHTML = '<div class="avatar avatar-ai"><img src="assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
+        const avatarHTML = '<div class="avatar avatar-ai"><img src="/assets/img/xiao_chuang_head.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>';
         const msgDiv = document.createElement('div');
         msgDiv.className = 'msg msg-ai typing-indicator';
         

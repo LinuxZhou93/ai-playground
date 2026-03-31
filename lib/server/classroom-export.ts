@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { CLASSROOMS_DIR, readClassroom, type PersistedClassroomData } from './classroom-storage';
+import { readClassroom, type PersistedClassroomData } from './classroom-storage';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('Export');
