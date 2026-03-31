@@ -1107,7 +1107,7 @@ function HomePage() {
           )}
         </AnimatePresence>
       </motion.div>
- ‚
+
               </button>
               <button
                 onClick={() => setActiveTab('discovery')}
