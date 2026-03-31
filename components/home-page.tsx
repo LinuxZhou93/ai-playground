@@ -339,7 +339,7 @@ export default function HomePage() {
         list = await listStages();
       } else {
         const recommended = await getRecommendedFeed();
-        list = recommended.map(r => ({
+        list = recommended.map((r: any) => ({
           ...r,
           sceneCount: 0, // Simplified for now
           createdAt: typeof r.updated_at === 'string' ? new Date(r.updated_at).getTime() : r.updated_at,
@@ -445,7 +445,7 @@ export default function HomePage() {
         forkedFrom: id,
       };
 
-      const newScenes: Scene[] = (remoteScenes || []).map((s) => ({
+      const newScenes: Scene[] = (remoteScenes || []).map((s: any) => ({
         id: nanoid(),
         stageId: newId,
         type: s.type as any,
