@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./lib/generation/prompts/**/*'],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
