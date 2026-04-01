@@ -81,45 +81,46 @@ export async function saveStageData(stageId: string, data: StageStoreData): Prom
 
     // --- Cloud Sync (Supabase) ---
     const user = getCurrentUser();
-    if (user) {
-      try {
-        const { error: stageError } = await supabase.from('stages').upsert({
-          id: stageId,
-          name: data.stage.name || 'Untitled Stage',
-          description: data.stage.description,
-          created_at: data.stage.createdAt || now,
-          updated_at: now,
-          author_id: user.id,
-          is_public: data.stage.isPublic || false,
-          language: data.stage.language,
-          style: data.stage.style,
-          agent_ids: data.stage.agentIds,
-        });
+    try {
+      const { error: stageError } = await supabase.from('stages').upsert({
+        id: stageId,
+        name: data.stage.name || 'Untitled Stage',
+        description: data.stage.description,
+        created_at: data.stage.createdAt || now,
+        updated_at: now,
+        author_id: user ? user.id : 'anonymous', // 允许匿名同步
+        is_public: data.stage.isPublic !== undefined ? data.stage.isPublic : true, // 默认公开，方便跨端直接访问
+        language: data.stage.language,
+        style: data.stage.style,
+        whiteboard: data.stage.whiteboard || [],
+        agent_ids: data.stage.agentIds,
+      });
 
-        if (stageError) throw stageError;
+      if (stageError) throw stageError;
 
-        // Sync scenes
-        if (data.scenes && data.scenes.length > 0) {
-          const { error: sceneError } = await supabase.from('scenes').upsert(
-            data.scenes.map((scene, index) => ({
-              id: scene.id,
-              stage_id: stageId,
-              type: scene.type,
-              title: scene.title,
-              order: scene.order ?? index,
-              content: scene.content, // JSONB
-              actions: scene.actions, // JSONB
-              created_at: scene.createdAt || now,
-              updated_at: now,
-            })),
-          );
-          if (sceneError) throw sceneError;
-        }
-
-        log.info(`Synced stage to cloud: ${stageId}`);
-      } catch (cloudError) {
-        log.warn('Failed to sync to cloud (offline?):', cloudError);
+      // Sync scenes
+      if (data.scenes && data.scenes.length > 0) {
+        const { error: sceneError } = await supabase.from('scenes').upsert(
+          data.scenes.map((scene, index) => ({
+            id: scene.id,
+            stage_id: stageId,
+            type: scene.type,
+            title: scene.title,
+            display_order: scene.order ?? index,
+            content: scene.content, // JSONB
+            actions: scene.actions || [], // JSONB
+            whiteboards: scene.whiteboards || [],
+            multi_agent: scene.multiAgent || {},
+            created_at: scene.createdAt || now,
+            updated_at: now,
+          })),
+        );
+        if (sceneError) throw sceneError;
       }
+
+      log.info(`Synced stage to cloud: ${stageId}`);
+    } catch (cloudError) {
+      log.warn('Failed to sync to cloud (offline?):', cloudError);
     }
   } catch (error) {
     log.error('Failed to save stage:', error);
