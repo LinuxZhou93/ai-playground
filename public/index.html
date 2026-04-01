@@ -1,0 +1,3634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FUTURE AI | 科技特长生系统 V2.0</title>
+    <link
+        href="https://fonts.loli.net/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/index.css">
+
+    <!-- CORE SYSTEM SCRIPTS (Critical) -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-config.js?v=2025"></script>
+    <script src="assets/js/subscription.js?v=2026.03.27_01"></script>
+    <script src="assets/js/edge-tts.js"></script>
+    <script src="assets/js/news-data.js"></script>
+    <script src="assets/js/neural_shell.js"></script>
+
+    <!-- INLINE EMERGENCY HANDLER -->
+    <!-- INLINE EMERGENCY HANDLER (DEVELOPER MODE) -->
+    <script>
+        window.handleProfileClick = function () {
+            console.log('Profile Clicked (DEV MODE)');
+            if(window.trackEvent) window.trackEvent('Account Center', 'OPEN_PROFILE').catch(e => console.error(e));
+            // DIRECT BYPASS
+            location.href = 'profile.html';
+        }
+    </script>
+    <style>
+        /* --- DOCK BAR --- */
+        .dock-wrapper {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 9999;
+            pointer-events: none;
+            /* Allow click through wrapper, but catch on bar */
+        }
+
+        .dock-bar {
+            background: rgba(10, 15, 30, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateZ(0);
+            will-change: transform, backdrop-filter;
+            border-radius: 24px;
+            padding: 10px 20px;
+            display: flex;
+            gap: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+            /* Re-enable clicks */
+            transition: transform 0.3s;
+            max-width: 90vw;
+            overflow-x: auto;
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .dock-bar:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: rgba(0, 240, 255, 0.3);
+            background: rgba(10, 15, 30, 0.8);
+        }
+
+        .dock-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dock-icon-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 60px;
+            position: relative;
+        }
+
+        :root {
+            --primary: #00f0ff;
+            --secondary: #7000ff;
+            --accent: #ff003c;
+            --success: #00ff9d;
+            --dark: #050510;
+            --panel-bg: rgba(15, 20, 35, 0.7);
+            --warm: #ffd600;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            background: #000;
+            color: white;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            /* 强制禁用浏览器的原生缩放和双击回弹 */
+            touch-action: pan-x pan-y;
+            overscroll-behavior: none;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* --- Cyber Scanline Overlay --- */
+        .cyber-scanline {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            z-index: 10000;
+            opacity: 0.12;
+            mix-blend-mode: overlay;
+        }
+
+        /* --- Corner HUD HUD elements --- */
+        .corner-hud {
+            position: fixed;
+            width: 100px; height: 100px;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.4;
+            border: 1px solid var(--primary);
+        }
+        .hud-tl { top: 40px; left: 20px; border-right: none; border-bottom: none; }
+        .hud-tr { top: 40px; right: 20px; border-left: none; border-bottom: none; }
+        .hud-bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .hud-br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        /* --- Upgrade Button Glow Sweep --- */
+        .plan-btn.upgrade-pro {
+            position: relative;
+            overflow: hidden;
+        }
+        .plan-btn.upgrade-pro::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transform: skewX(-25deg);
+            transition: 0.5s;
+            animation: glow-sweep 3s infinite;
+        }
+        @keyframes glow-sweep {
+            0% { left: -120%; }
+            30% { left: 120%; }
+            100% { left: 120%; }
+        }
+
+        /* --- IMMERSIVE BACKGROUND --- */
+        #neuron-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #090e1e 0%, #000 100%);
+        }
+
+        /* --- NEWS TICKER (TOP) --- */
+        .news-ticker-wrap {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 36px;
+            background: rgba(0, 10, 20, 0.8);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            -webkit-app-region: drag; /* 允许在这个条带上拖拽窗口 */
+        }
+
+        .news-label {
+            background: var(--primary);
+            color: #000;
+            height: 100%;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            font-family: 'Orbitron';
+            font-weight: 900;
+            font-size: 12px;
+            box-shadow: 5px 0 15px rgba(0, 240, 255, 0.3);
+            z-index: 2;
+        }
+
+        .ticker-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            height: 100%;
+        }
+
+        @media screen and (max-width: 1024px) {
+            .main-stage {
+                padding: 100px 30px 140px 30px;
+                flex-wrap: wrap;
+                height: auto;
+                justify-content: center;
+                gap: 20px;
+            }
+
+            .card-col {
+                flex: 1 1 45%;
+                min-width: 300px;
+            }
+
+            body {
+                overflow-y: auto;
+                height: auto;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+
+            /* Mobile Layout Reset */
+            body {
+                overflow-x: hidden;
+                overflow-y: auto;
+                height: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .header {
+                padding: 45px 15px 10px 15px;
+                /* Reduced top padding to not push everything down too much */
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .header-status {
+                width: 100%;
+                justify-content: space-between;
+                font-size: 11px;
+                /* shrink status font slightly */
+            }
+
+            .status-pill {
+                padding: 5px 12px;
+                font-size: 11px;
+            }
+
+            .logo-main {
+                font-size: 24px;
+            }
+
+            .logo-symbol {
+                width: 30px;
+                height: 30px;
+            }
+
+            .s-line {
+                width: 22px;
+            }
+
+            .s-circle {
+                width: 16px;
+                height: 16px;
+            }
+
+            .main-stage {
+                flex-direction: column;
+                padding: 10px 10px 100px 10px;
+                /* Reduced side padding from 15px to 10px */
+                height: auto;
+                perspective: none;
+                /* Disable 3D for performance */
+                display: flex;
+                gap: 20px;
+            }
+
+            .card-col {
+                width: 100%;
+                max-width: 100%;
+                flex: none;
+                margin-bottom: 0px;
+                /* Use gap from main-stage instead */
+            }
+
+            .glass-panel {
+                height: auto !important;
+                /* Let content determine height instead of forcing 400px */
+                min-height: auto;
+                padding: 20px 15px;
+                /* Tighter inner padding for cards */
+                /* Disable hover lift on touch */
+                transform: none !important;
+            }
+
+            .glass-panel:hover {
+                transform: none !important;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+            }
+
+            /* Fix gigantic avatar */
+            .avatar-box {
+                width: 130px;
+                height: 130px;
+                margin: 5px auto 15px auto;
+            }
+
+            .u-name {
+                font-size: 24px;
+            }
+
+            .u-rank {
+                margin: 6px 0;
+            }
+
+            .holo-group {
+                margin-bottom: 20px;
+            }
+
+            .skill-grid,
+            .lp-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+                /* Reduced gap from 15px */
+                padding-right: 2px;
+                max-height: none;
+                /* Let it stretch if it needs to */
+            }
+
+            .skill-node {
+                padding: 8px 4px;
+                border-radius: 8px;
+                /* Slightly softer border */
+            }
+
+            .s-icon {
+                font-size: 20px;
+            }
+
+            /* Shrink icon */
+            .s-name {
+                font-size: 9px;
+            }
+
+            /* Shrink label */
+
+            /* Dock Bar Optimization */
+            .dock-wrapper {
+                bottom: 12px;
+                padding: 0 5px;
+            }
+
+            .dock-bar {
+                padding: 8px 12px;
+                gap: 8px;
+                max-width: 95%;
+                overflow-x: auto;
+                justify-content: flex-start;
+                /* scrollable */
+                -webkit-overflow-scrolling: touch;
+                border-radius: 20px;
+            }
+
+            .dock-bar::-webkit-scrollbar {
+                display: none;
+            }
+
+            .dock-icon-box {
+                min-width: 50px;
+                width: 50px;
+            }
+
+            .dock-label {
+                font-size: 9px;
+            }
+
+            .dock-icon-box img {
+                width: 36px !important;
+                height: 36px !important;
+            }
+
+            /* Adjust Mascot position */
+            .robot-mascot {
+                left: -10px;
+                top: -50px;
+                transform: scale(0.6);
+            }
+
+            .plan-input {
+                font-size: 14px;
+                padding: 12px;
+                min-height: 100px;
+                /* Ensure input isn't overly tall */
+            }
+
+            .plan-btn {
+                padding: 10px;
+                font-size: 13px;
+                margin-top: 10px;
+            }
+        }
+
+        .ticker-move {
+            display: flex;
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            align-items: center;
+            white-space: nowrap;
+            animation: marquee 180s linear infinite;
+        }
+
+        .news-item {
+            margin-right: 60px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .news-item::before {
+            content: '◈';
+            color: var(--success);
+            font-size: 10px;
+        }
+
+        @keyframes marquee {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* --- HEADER --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 50px 60px 20px 60px;
+            z-index: 10;
+            position: relative;
+            -webkit-app-region: drag; /* 允许在顶部空白区域拖拽窗口 */
+        }
+
+        .logo-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .logo-main {
+            font-family: 'Orbitron';
+            font-size: 42px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: white;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-symbol {
+            width: 40px;
+            height: 40px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .s-circle {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .s-line {
+            width: 32px;
+            height: 3px;
+            background: white;
+            transform: rotate(-45deg);
+            box-shadow: 0 0 8px white;
+        }
+
+        .logo-sub {
+            font-size: 14px;
+            color: var(--primary);
+            letter-spacing: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding-left: 5px;
+            background: linear-gradient(90deg, var(--primary), white);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #00f0ff, #00afff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .fc-nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 8px;
+            color: #00f0ff;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        .fc-nav-btn:hover {
+            background: rgba(0, 240, 255, 0.2);
+            border-color: #00f0ff;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            transform: scale(1.05);
+            color: white;
+        }
+
+        .fc-nav-btn .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #00f0ff;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px #00f0ff;
+            animation: pulse-ring 1.5s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.8; }
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-family: 'Orbitron';
+            -webkit-app-region: no-drag; /* 交互按钮区禁止拖拽以防误触 */
+        }
+
+        .status-pill {
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* --- MAIN STAGE (3D CARDS) --- */
+        .main-stage {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px 40px 140px 40px;
+            height: calc(100vh - 150px);
+            max-width: 1920px;
+            margin: 0 auto;
+            perspective: 1200px;
+            align-items: center;
+        }
+
+        .card-col {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            transition: transform 0.3s;
+        }
+
+        /* 恢复一行四列，优化各个面板的压缩比例，防止错位 */
+        .w-profile {
+            flex: 0 0 22%;
+            min-width: 250px;
+        }
+
+        .w-wide {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .w-plan {
+            flex: 0 0 22%;
+            min-width: 250px;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 5px;
+        }
+
+        .panel-title::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--primary);
+        }
+
+        /* Glass Panel 3D */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            height: 540px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            transform: translateZ(0); /* Force GPU Layer */
+            will-change: transform, backdrop-filter;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.27), box-shadow 0.4s;
+        }
+
+        .glass-panel:hover {
+            transform: translateY(-10px) rotateX(2deg);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 240, 255, 0.1);
+            border-color: rgba(0, 240, 255, 0.3);
+            z-index: 5;
+        }
+
+        .glass-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 40px;
+            border-top: 2px solid var(--primary);
+            border-right: 2px solid var(--primary);
+            border-top-right-radius: 16px;
+            opacity: 0.5;
+        }
+
+        /* --- CONTENT STYLES --- */
+
+        .avatar-box {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            margin: 20px auto;
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
+            z-index: 2;
+            position: relative;
+        }
+
+        .avatar-orbit {
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            right: -15px;
+            bottom: -15px;
+            border: 1px dashed var(--primary);
+            border-radius: 50%;
+            animation: spin 20s linear infinite;
+            opacity: 0.6;
+        }
+
+        .user-meta {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .u-name {
+            font-size: 28px;
+            font-weight: 900;
+            margin: 0;
+        }
+
+        .u-rank {
+            font-family: 'Orbitron';
+            font-size: 14px;
+            color: var(--warm);
+            border: 1px solid var(--warm);
+            padding: 4px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 10px 0;
+            background: rgba(255, 214, 0, 0.1);
+        }
+
+        .u-uid {
+            font-size: 11px;
+            color: #666;
+            font-family: 'Orbitron';
+            letter-spacing: 1px;
+        }
+
+        /* ADVANCED HOLOGRAPHIC PROGRESS */
+        .holo-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .holo-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .holo-track {
+            height: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Grid Texture overlay for track */
+        .holo-track::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(90deg, transparent 0, transparent 4px, rgba(0, 0, 0, 0.8) 5px);
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .holo-bar {
+            height: 100%;
+            width: 0;
+            position: relative;
+            z-index: 2;
+            /* Longer Shimmer: Wider white area */
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary) 30%, #fff 50%, var(--primary) 70%, var(--primary) 100%);
+            background-size: 200% 100%;
+            border-radius: 6px;
+            box-shadow: 0 0 15px var(--primary);
+            animation: shimmer 2.5s infinite linear, breathe 2s infinite ease-in-out alternate;
+        }
+
+        /* Particles at the end of the bar */
+        .holo-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 6px;
+            background: #fff;
+            box-shadow: 0 0 15px #fff, 0 0 30px #fff;
+            mix-blend-mode: overlay;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        /* Variant Colors override */
+        .holo-bar.secondary {
+            --primary: var(--secondary);
+        }
+
+        .holo-bar.success {
+            --primary: var(--success);
+        }
+
+        .holo-bar.accent {
+            --primary: var(--accent);
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 150% 0;
+            }
+
+            100% {
+                background-position: -50% 0;
+            }
+        }
+
+        /* Stronger Breathing: Larger shadow, brightness boost */
+        @keyframes breathe {
+            0% {
+                box-shadow: 0 0 10px var(--primary);
+                opacity: 0.8;
+                filter: brightness(1);
+            }
+
+            100% {
+                box-shadow: 0 0 40px var(--primary), 0 0 10px #fff;
+                opacity: 1;
+                filter: brightness(1.5);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+                transform: scaleY(0.8);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scaleY(1.2);
+            }
+        }
+
+        .skill-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+            overflow-y: auto;
+            max-height: 380px;
+            padding-right: 5px;
+        }
+
+        /* Custom Scrollbar */
+        .skill-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .skill-grid::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .skill-node {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+            position: relative;
+            /* For Lock Badge */
+        }
+
+        .skill-node:hover {
+            border-color: var(--primary);
+            background: rgba(0, 240, 255, 0.1);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+
+        /* Z-INDEX FIXES */
+        .dock-bar {
+            z-index: 9999 !important;
+            position: relative;
+        }
+
+        .dock-icon-box {
+            cursor: pointer;
+            z-index: 10000;
+            position: relative;
+        }
+
+        .plan-btn {
+            position: relative;
+            z-index: 50;
+            cursor: pointer;
+        }
+
+        .lock-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 12px;
+            filter: grayscale(0);
+            /* Lock itself has color? No, emoji lock is fine */
+            text-shadow: 0 0 5px black;
+        }
+
+        .s-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .s-name {
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .plan-box {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .plan-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #ccc;
+            padding: 15px;
+            font-family: 'Noto Sans SC';
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+
+        .plan-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+
+        .plan-btn {
+            margin-top: 15px;
+            padding: 12px;
+            background: var(--primary);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: 800;
+            font-family: 'Orbitron';
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .plan-btn:hover {
+            background: #fff;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        /* --- RESTORED V1 DOCK STYLES --- */
+        .dock-wrapper {
+            position: fixed;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dock-bar {
+            display: flex;
+            gap: 8px;
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            border-radius: 20px;
+        }
+
+        .dock-icon-box {
+            min-width: 72px;
+            width: 72px;
+            height: 80px;
+            /* V1 Scaled Down */
+            background: linear-gradient(180deg, rgba(30, 30, 40, 0.9) 0%, rgba(10, 10, 20, 0.95) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dock-icon-box:hover {
+            transform: translateY(-5px);
+            background: linear-gradient(180deg, rgba(40, 40, 60, 0.95) 0%, rgba(20, 20, 30, 1) 100%);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .dock-icon-bg {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 27px;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+        }
+
+        .dock-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #aaa;
+        }
+
+        .dock-icon-box:hover .dock-label {
+            color: white;
+        }
+
+        /* Launchpad Overlay (V2 Functionality) */
+        .launchpad {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 10, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 80px;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+
+        .launchpad.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .lp-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 40px;
+            max-width: 1200px;
+            padding: 40px;
+        }
+
+        .lp-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #ccc;
+        }
+
+        .lp-item:hover {
+            transform: scale(1.1);
+            color: white;
+        }
+
+        .lp-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            font-size: 36px;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .lp-item:hover .lp-icon {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- DOCK BAR CSS --- */
+        .dock-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            /* Update for Horizontal Scroll */
+            justify-content: flex-start;
+            /* Alignment start ensures first item visible on small screen scroll */
+            gap: 1.5rem;
+            /* Increased gap */
+            background: rgba(10, 10, 20, 0.4);
+            backdrop-filter: blur(20px);
+            padding: 15px 30px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            max-width: 95vw;
+            /* Restore scroll capability */
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        /* Hide scrollbar while keeping functionality */
+        .dock-container::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .dock-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .dock-bar:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: rgba(0, 240, 255, 0.3);
+            background: rgba(10, 15, 30, 0.8);
+        }
+
+        .dock-icon-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+            min-width: 60px;
+            flex-shrink: 0;
+            /* Prevent icons from being squeezed */
+            position: relative;
+        }
+    </style>
+    <!-- CORE MODULES -->
+    <link rel="stylesheet" href="assets/css/launchpad.css">
+    <link rel="stylesheet" href="assets/css/launchpad-nav.css">
+    <link rel="stylesheet" href="assets/css/titan-core.css">
+
+    <!-- PWA Config -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Future AI">
+    <link rel="apple-touch-icon" href="build/icon.png">
+</head>
+
+<body>
+
+    <!-- ⚡️ APPLE-STYLE INTERACTIVE LANDING PAGE ⚡️ -->
+    <link href="https://fonts.loli.net/css2?family=Inter:wght@400;600;800;900&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- LANDING WRAPPER --- */
+        #apple-landing-wrapper {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 999999;
+            background: #f8fafc; /* Clean Apple white/grey */
+            overflow: hidden;
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            color: #0f172a;
+        }
+
+        /* --- INFINITE RESOLUTION C4D-STYLE ELEMENTS --- */
+        .landing-bg-elements {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            transition: all 0.5s ease;
+        }
+
+        /* Top-Tier: Film Grain / Noise Overlay */
+        .noise-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 9999990; /* Right below custom cursor */
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+        }
+
+        /* Glowing Orbs for ambiance */
+        .ambient-orb {
+            position: absolute;
+            width: 1200px;
+            height: 1200px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.7;
+            z-index: 0;
+            pointer-events: none;
+            will-change: filter, transform;
+        }
+        .orb-1 { top: -300px; left: -200px; background: rgba(56, 189, 248, 0.35); }
+        .orb-2 { bottom: -300px; right: -200px; background: rgba(139, 92, 246, 0.35); }
+
+        /* C4D Glassy Sphere */
+        .glass-sphere {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1) 60%, transparent 80%);
+            box-shadow: 
+                inset -10px -10px 20px rgba(0, 165, 255, 0.2), 
+                inset 10px 10px 20px rgba(255,255,255,0.8),
+                0 20px 40px rgba(0,0,0,0.05);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: breathe-float 6s infinite alternate ease-in-out;
+            top: 20%; left: 15%;
+        }
+
+        /* C4D Frosted Torus (Ring) */
+        .glass-ring {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 24px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 
+                inset 0 0 10px rgba(255,255,255,0.8),
+                0 15px 35px rgba(0, 165, 255, 0.15);
+            backdrop-filter: blur(12px);
+            transform: rotateX(60deg) rotateY(20deg);
+            transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: breathe-float 8s infinite alternate ease-in-out;
+            bottom: 25%; right: 15%;
+        }
+
+        /* Floating SVGs vector objects to act as high-res objects */
+        .floating-obj {
+            position: absolute;
+            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.1));
+            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 2;
+            pointer-events: none;
+        }
+        .obj-atom { top: 15%; left: 8%; animation: breathe-float 8s infinite alternate-reverse; }
+        .obj-pyramid { bottom: 20%; right: 10%; animation: breathe-float 9s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+        .obj-chip { top: 25%; right: 15%; animation: breathe-float 7s infinite alternate ease-in-out; opacity: 0.8; }
+        .obj-network { bottom: 10%; left: 15%; animation: breathe-float 10s infinite alternate; }
+        .obj-orbit { top: 5%; left: 50%; opacity: 0.6; animation: breathe-float 12s infinite alternate ease-in-out; }
+        .obj-hexagon { top: 60%; right: 35%; animation: breathe-float 11s infinite alternate-reverse; opacity: 0.7; }
+
+        /* Pure CSS Glass Cube */
+        .glass-cube {
+            position: absolute;
+            top: 55%; right: 5%;
+            width: 90px; height: 90px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 20px;
+            transform: rotate(-15deg);
+            box-shadow: 0 20px 40px rgba(0, 165, 255, 0.15), inset 0 2px 20px rgba(255,255,255,0.9);
+            transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: cube-spin 20s infinite linear;
+        }
+
+        /* --- SCROLL SNAP CONTAINER --- */
+        .landing-scroll-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100vh;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+        
+        .landing-scroll-container::-webkit-scrollbar { display: none; }
+        .landing-scroll-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .landing-slide {
+            width: 100%;
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0 5%;
+            position: relative;
+            /* Added for the linear glow effect constraints */
+            perspective: 1000px;
+        }
+
+        .slide-content {
+            text-align: center;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
+        /* --- TOP-TIER WEBSITE UPGRADES --- */
+        /* 1. Scroll-triggered Smooth Reveal */
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(60px) scale(0.98);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-up.in-view {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        
+        /* 2. Vertical Pagination Dots (Apple Style) */
+        .landing-dots-nav {
+            position: fixed;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 100;
+        }
+        .nav-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, 0.2);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .nav-dot.active {
+            background: #0ea5e9;
+            transform: scale(2.5);
+            box-shadow: 0 0 12px rgba(14, 165, 233, 0.8);
+        }
+
+        /* Custom Trailing Cursor Removed for Native Tracking Performance */
+
+        /* Slide typography */
+        .landing-badge {
+            display: inline-flex;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: #0ea5e9;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            padding: 10px 28px;
+            background: rgba(14, 165, 233, 0.1);
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+        }
+
+        .landing-title {
+            font-size: 96px; /* Increased by ~1.5x */
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin: 0 0 16px 0;
+            color: #0f172a;
+            line-height: 1.15;
+            text-shadow: 0 15px 40px rgba(255,255,255,0.9);
+        }
+        @keyframes title-breathe {
+            0% { filter: drop-shadow(0 0 10px rgba(56,189,248,0.2)) hue-rotate(-15deg); }
+            100% { filter: drop-shadow(0 0 35px rgba(99,102,241,0.7)) hue-rotate(15deg); }
+        }
+        
+        .landing-title-grad {
+            background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            animation: title-breathe 4s infinite alternate ease-in-out;
+            will-change: filter;
+        }
+
+        .landing-subtitle {
+            font-size: 36px;
+            font-weight: 700;
+            color: #334155;
+            margin: 5px 0 20px 0;
+            letter-spacing: 2px;
+        }
+
+        .landing-desc {
+            font-size: 24px;
+            color: #475569;
+            margin-top: 10px;
+            line-height: 1.6;
+            max-width: 800px;
+            font-weight: 600;
+        }
+
+        /* Focus Cards for Sections */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 40px;
+            padding: 80px 60px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.08), inset 0 2px 10px rgba(255,255,255,1);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        /* 3. Linear-style Mouse Tracking Glow - FIX */
+        .glass-card-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(14, 165, 233, 0.35), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 0; /* Important: Place glow behind text but inside card relative */
+            mix-blend-mode: color-burn;
+        }
+        .glass-card:hover .glass-card-glow {
+            opacity: 1;
+        }
+        .glass-card:hover {
+            box-shadow: 0 40px 100px rgba(0,0,0,0.12), inset 0 2px 10px rgba(255,255,255,1);
+        }
+
+        /* Entrance Button (Present on EVERY slide) */
+        .apple-btn-persistent {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: #0ea5e9;
+            color: #fff;
+            padding: 16px 40px;
+            border-radius: 100px;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: 50px;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 50;
+        }
+        .apple-btn-persistent span {
+            display: inline-block;
+            transition: transform 0.2s ease-out;
+            pointer-events: none;
+        }
+        .apple-btn-persistent svg {
+            transition: transform 0.2s ease-out;
+            pointer-events: none;
+        }
+        .apple-btn-persistent::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .apple-btn-persistent:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(14, 165, 233, 0.5);
+        }
+        .apple-btn-persistent:hover::before { opacity: 1; }
+        .apple-btn-persistent svg { width: 18px; height: 18px; transition: transform 0.3s; }
+        .apple-btn-persistent:hover svg { transform: translateX(6px); }
+
+        /* Scroll down arrow */
+        .scroll-down-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            animation: bounce 2s infinite;
+            z-index: 50;
+            pointer-events: none;
+        }
+        .scroll-down-hint svg { width: 24px; height: 24px; color: #cbd5e1; margin-top: 4px; }
+
+        /* Animations */
+        @keyframes breathe-float {
+            0% { transform: translateY(0px) scale(1); }
+            100% { transform: translateY(-20px) scale(1.05); }
+        }
+        @keyframes cube-spin {
+            0% { transform: rotate(-15deg) translateY(0); }
+            50% { transform: rotate(165deg) translateY(-30px); }
+            100% { transform: rotate(345deg) translateY(0); }
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+            40% { transform: translateY(-12px) translateX(-50%); }
+            60% { transform: translateY(-6px) translateX(-50%); }
+        }
+
+        @media (max-width: 768px) {
+            .landing-title { font-size: 36px; }
+            .landing-subtitle { font-size: 18px; }
+            .glass-card { padding: 40px 20px; border-radius: 24px; }
+            .apple-btn-persistent { padding: 14px 28px; font-size: 14px; margin-top: 30px;}
+            .obj-rocket { font-size: 60px; right: 2%; top: 10%;}
+            .obj-drone { font-size: 50px; left: 2%; bottom: 15%;}
+            .glass-sphere { width: 80px; height: 80px; }
+            .glass-ring { width: 90px; height: 90px; border-width: 16px; }
+        }
+    </style>
+
+    <div id="apple-landing-wrapper">
+        <!-- Film Grain / Top-Tier Noise Overlay -->
+        <div class="noise-overlay"></div>
+
+        <!-- Custom Cursor Elements Removed -->
+
+        <!-- Dot Navigation (Vercel/Apple Style) -->
+        <div class="landing-dots-nav">
+            <div class="nav-dot active" id="dot-0"></div>
+            <div class="nav-dot" id="dot-1"></div>
+            <div class="nav-dot" id="dot-2"></div>
+            <div class="nav-dot" id="dot-3"></div>
+            <div class="nav-dot" id="dot-4"></div>
+        </div>
+
+        <!-- Background Elements (Controlled by JS Parallax) -->
+        <div class="landing-bg-elements" id="landing-bg">
+            <div class="ambient-orb orb-1" id="orb-1"></div>
+            <div class="ambient-orb orb-2" id="orb-2"></div>
+            
+            <div class="glass-sphere" id="g-sphere"></div>
+            <div class="glass-ring" id="g-ring"></div>
+            <div class="glass-cube" id="g-cube">
+                <!-- Inner tech icon mapping styling -->
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(14, 165, 233, 0.8)" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            </div>
+
+            <!-- Premium Geometry Elements -->
+            <div class="floating-obj obj-atom" id="obj-atom">
+                <svg width="120" height="120" viewBox="0 0 100 100" fill="none">
+                   <ellipse cx="50" cy="50" rx="40" ry="12" transform="rotate(30 50 50)" stroke="rgba(14, 165, 233, 0.5)" stroke-width="2"/>
+                   <ellipse cx="50" cy="50" rx="40" ry="12" transform="rotate(90 50 50)" stroke="rgba(139, 92, 246, 0.5)" stroke-width="2"/>
+                   <ellipse cx="50" cy="50" rx="40" ry="12" transform="rotate(150 50 50)" stroke="rgba(14, 165, 233, 0.5)" stroke-width="2"/>
+                   <circle cx="50" cy="50" r="4" fill="rgba(139, 92, 246, 0.8)"/>
+                </svg>
+            </div>
+            <div class="floating-obj obj-pyramid" id="obj-pyramid">
+                <svg width="120" height="120" viewBox="0 0 120 120" stroke="rgba(139, 92, 246, 0.4)" stroke-width="1.5" fill="none">
+                    <polygon points="60,10 110,90 10,90"/>
+                    <line x1="60" y1="10" x2="60" y2="60"/>
+                    <line x1="10" y1="90" x2="60" y2="60"/>
+                    <line x1="110" y1="90" x2="60" y2="60"/>
+                </svg>
+            </div>
+            <div class="floating-obj obj-chip" id="obj-chip">
+                <svg width="100" height="100" viewBox="0 0 24 24" stroke="rgba(2, 132, 199, 0.5)" stroke-width="1.5" fill="none">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
+                    <rect x="9" y="9" width="6" height="6" />
+                    <line x1="9" y1="1" x2="9" y2="4" /><line x1="15" y1="1" x2="15" y2="4" />
+                    <line x1="9" y1="20" x2="9" y2="23" /><line x1="15" y1="20" x2="15" y2="23" />
+                    <line x1="20" y1="9" x2="23" y2="9" /><line x1="20" y1="14" x2="23" y2="14" />
+                    <line x1="1" y1="9" x2="4" y2="9" /><line x1="1" y1="14" x2="4" y2="14" />
+                </svg>
+            </div>
+            <div class="floating-obj obj-network" id="obj-network">
+                <svg width="120" height="120" viewBox="0 0 120 120" stroke="rgba(99, 102, 241, 0.5)" stroke-width="2" fill="none">
+                    <circle cx="20" cy="50" r="5" fill="rgba(99, 102, 241, 0.8)" />
+                    <circle cx="60" cy="20" r="5" fill="rgba(99, 102, 241, 0.8)" />
+                    <circle cx="60" cy="80" r="5" fill="rgba(99, 102, 241, 0.8)" />
+                    <circle cx="100" cy="50" r="5" fill="rgba(99, 102, 241, 0.8)" />
+                    <line x1="25" y1="50" x2="55" y2="25" /><line x1="25" y1="50" x2="55" y2="75" />
+                    <line x1="65" y1="20" x2="95" y2="45" /><line x1="65" y1="80" x2="95" y2="55" />
+                    <line x1="60" y1="25" x2="60" y2="75" stroke-dasharray="4" />
+                </svg>
+            </div>
+            <div class="floating-obj obj-orbit" id="obj-orbit">
+                <svg width="150" height="150" viewBox="0 0 150 150" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" fill="none">
+                    <circle cx="75" cy="75" r="30" stroke-dasharray="8" />
+                    <circle cx="75" cy="75" r="50" stroke-dasharray="4" />
+                    <circle cx="75" cy="75" r="70" stroke-dasharray="2" />
+                    <circle cx="75" cy="45" r="4" fill="currentColor" stroke="none" />
+                    <circle cx="125" cy="75" r="5" fill="currentColor" stroke="none" />
+                </svg>
+            </div>
+            <div class="floating-obj obj-hexagon" id="obj-hexagon">
+                <svg width="100" height="100" viewBox="0 0 100 100" stroke="rgba(236, 72, 153, 0.4)" stroke-width="2" fill="none">
+                    <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" />
+                    <polygon points="50,25 70,35 70,65 50,75 30,65 30,35" stroke-width="1" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="landing-scroll-container" id="landing-scroll" style="cursor: auto;">
+            
+            <!-- SLIDE 1: Hero -->
+            <section class="landing-slide" data-index="0">
+                <div class="slide-content reveal-up in-view" style="z-index: 10;">
+                    <div class="landing-badge">墨子实验室 TITAN AI</div>
+                    <h1 class="landing-title">FutureAI<br><span class="landing-title-grad">科技特长生系统</span></h1>
+                    <p class="landing-subtitle">培育下一个时代的科技领航者</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: auto;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+                <div class="scroll-down-hint">
+                    <span>向下滑动浏览四大核心目标</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+            </section>
+
+            <!-- SLIDE 2: Target 1 -->
+            <section class="landing-slide" data-index="1">
+                <div class="slide-content glass-card reveal-up" style="z-index: 10;">
+                    <div class="glass-card-glow"></div>
+                    <div class="landing-badge">Goal 01 / 自我管理</div>
+                    <h2 class="landing-title">启迪<span class="landing-title-grad">自我管理</span></h2>
+                    <p class="landing-desc">唤醒未知的内在潜能，构建专属于 AI 时代的内驱力与时间管理系统。让科技成为自我成长的核心双翼，主导自己的学习节奏。</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: auto;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+                <div class="scroll-down-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+            </section>
+
+            <!-- SLIDE 3: Target 2 -->
+            <section class="landing-slide" data-index="2">
+                <div class="slide-content glass-card reveal-up" style="z-index: 10;">
+                    <div class="glass-card-glow"></div>
+                    <div class="landing-badge">Goal 02 / 基础思维</div>
+                    <h2 class="landing-title">重塑<span class="landing-title-grad">基础思维</span></h2>
+                    <p class="landing-desc">彻底告别传统的死记硬背。从底层计算逻辑出发，用代码与算法语言理解世界运行的规律，训练出强大的系统性思考能力与解题直觉。</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: auto;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+                <div class="scroll-down-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+            </section>
+
+            <!-- SLIDE 4: Target 3 -->
+            <section class="landing-slide" data-index="3">
+                <div class="slide-content glass-card reveal-up" style="z-index: 10;">
+                    <div class="glass-card-glow"></div>
+                    <div class="landing-badge">Goal 03 / 学科知识</div>
+                    <h2 class="landing-title">跨越<span class="landing-title-grad">学科界限</span></h2>
+                    <p class="landing-desc">打破单向的学科孤岛。通过全息的真实工程项目制学习方式 (PBL)，在应用中实现跨学科硬核理论的融会贯通与实战验证。</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: auto;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+                <div class="scroll-down-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+            </section>
+
+            <!-- SLIDE 5: Target 4 -->
+            <section class="landing-slide" data-index="4">
+                <div class="slide-content glass-card reveal-up" style="z-index: 10;">
+                    <div class="glass-card-glow"></div>
+                    <div class="landing-badge">Goal 04 / 全栈能力</div>
+                    <h2 class="landing-title">熔铸<span class="landing-title-grad">全栈实力</span></h2>
+                    <p class="landing-desc">从硬件物联网底层逻辑、到云端 AI 架构部署，锻造出面向科技前沿的综合体系构建能力。真正的创客，无所不能。</p>
+                    
+                    <button class="apple-btn-persistent btn-hoverable" style="cursor: auto;" onclick="enterTitanEngine()">
+                        <span>开启AI时代个性化学习之旅</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // Check session storage BEFORE anything renders to prevent flickering
+        document.addEventListener("DOMContentLoaded", () => {
+            const isEntered = sessionStorage.getItem('titan_entered') === 'true';
+            if (isEntered) {
+                const navType = performance.getEntriesByType("navigation")[0]?.type;
+                if (navType === 'reload') {
+                    // User manually refreshed 'F5' / 'Cmd+R', so we show the landing page again
+                    sessionStorage.removeItem('titan_entered');
+                } else {
+                    // User navigated back via link or back button, strip the landing immediately
+                    const el = document.getElementById('apple-landing-wrapper');
+                    if (el) {
+                        el.style.display = 'none';
+                        el.remove();
+                    }
+                }
+            }
+        });
+
+        // Enter System Function
+        function enterTitanEngine() {
+            sessionStorage.setItem('titan_entered', 'true');
+            const el = document.getElementById('apple-landing-wrapper');
+            if(el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-100px) scale(0.95)';
+                setTimeout(() => el.remove(), 800);
+            }
+        }
+
+        // Adaptive Scroll Parallax Logic for the C4D visual elements
+        document.addEventListener("DOMContentLoaded", () => {
+            const scrollBox = document.getElementById('landing-scroll');
+            
+            // Background Elements
+            const sphere = document.getElementById('g-sphere');
+            const ring = document.getElementById('g-ring');
+            const cube = document.getElementById('g-cube');
+            
+            const atom = document.getElementById('obj-atom');
+            const pyramid = document.getElementById('obj-pyramid');
+            const chip = document.getElementById('obj-chip');
+            const network = document.getElementById('obj-network');
+            const orbit = document.getElementById('obj-orbit');
+            const hexagon = document.getElementById('obj-hexagon');
+            
+            const orb1 = document.getElementById('orb-1');
+            const orb2 = document.getElementById('orb-2');
+
+            if(scrollBox) {
+                let targetScrollPct = 0;
+                let currentScrollPct = 0;
+
+                scrollBox.addEventListener('scroll', () => {
+                    const h = scrollBox.clientHeight;
+                    targetScrollPct = scrollBox.scrollTop / h;
+                });
+
+                // Top-Tier Engine: 
+                // use requestAnimationFrame + Lerp for perfectly buttery 120fps physics interpolation!
+                const renderParallax = () => {
+                    // Smooth lerp (0.05 speed gives heavy drift, highly premium feel)
+                    currentScrollPct += (targetScrollPct - currentScrollPct) * 0.05;
+                    // Don't calculate unnecessarily
+                    if(Math.abs(targetScrollPct - currentScrollPct) > 0.001) {
+                        const scrollPct = currentScrollPct;
+                        
+                        // Adapt the positions dynamically based on smoothed scroll percentage
+                        if(sphere) sphere.style.transform = `translateY(${scrollPct * 100}px) translateX(${scrollPct * 50}px) scale(${1 + scrollPct * 0.1})`;
+                        if(ring) ring.style.transform = `rotateX(${60 + scrollPct * 20}deg) rotateY(${20 - scrollPct * 30}deg) translateY(${-scrollPct * 80}px)`;
+                        if(cube) cube.style.transform = `rotate(${scrollPct * 90 - 15}deg) translateY(${scrollPct * 120}px) scale(${1 - scrollPct * 0.05})`;
+                        
+                        // Specific parallax for vector items (scatter heavily on horizontal / vertical mix)
+                        if(atom) atom.style.transform = `translateY(${-scrollPct * 200}px) translateX(${scrollPct * 300}px) rotate(${scrollPct * 180}deg)`;
+                        if(pyramid) pyramid.style.transform = `translateY(${scrollPct * 300}px) translateX(${-scrollPct * 200}px) rotate(${scrollPct * 90}deg)`;
+                        if(chip) chip.style.transform = `translateY(${-scrollPct * 180}px) translateX(${scrollPct * 250}px) rotate(${-scrollPct * 60}deg)`;
+                        if(network) network.style.transform = `translateX(${-scrollPct * 250}px) translateY(${-scrollPct * 150}px) scale(${1 + scrollPct * 0.3}) rotate(${scrollPct * -30}deg)`;
+                        if(orbit) orbit.style.transform = `translateY(${scrollPct * 350}px) translateX(${scrollPct * 150}px) scale(${1 - scrollPct * 0.1}) rotate(${scrollPct * -45}deg)`;
+                        if(hexagon) hexagon.style.transform = `translateY(${-scrollPct * 220}px) translateX(${-scrollPct * 300}px) rotate(${scrollPct * 150}deg)`;
+                        
+                        // Shift background aura colors smoothly using hue-rotate
+                        const hue = scrollPct * 60; // Up to 240deg color shift over 4 slides
+                        if(orb1) orb1.style.filter = `blur(150px) hue-rotate(${hue}deg)`;
+                        if(orb2) orb2.style.filter = `blur(150px) hue-rotate(${hue}deg)`;
+
+                        // Update Navigation Dots based on rounded smooth value
+                        const currentIndex = Math.round(scrollPct);
+                        document.querySelectorAll('.nav-dot').forEach((dot, index) => {
+                            if (index === currentIndex) dot.classList.add('active');
+                            else dot.classList.remove('active');
+                        });
+                    }
+                    requestAnimationFrame(renderParallax);
+                };
+                requestAnimationFrame(renderParallax);
+            }
+
+            // Top-Tier Upgrade: IntersectionObserver for Slide text reveal fades
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.querySelector('.reveal-up')?.classList.add('in-view');
+                    } else {
+                        // Optional: remove subclass to re-animate on re-enter
+                        entry.target.querySelector('.reveal-up')?.classList.remove('in-view');
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            document.querySelectorAll('.landing-slide').forEach(slide => {
+                observer.observe(slide);
+            });
+
+            // Custom Cursor Physics Removed - Reverted to Native Mouse
+
+            // -----------------------------------------------------
+            // Top-Tier Upgrade: Linear-style mouse-tracking glow + 3D Card Tilt
+            // -----------------------------------------------------
+            document.querySelectorAll('.glass-card').forEach(card => {
+                card.addEventListener('mousemove', e => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Update Glow Highlight variable
+                    card.style.setProperty('--mouse-x', `${x}px`);
+                    card.style.setProperty('--mouse-y', `${y}px`);
+                    
+                    // Calculate 3D Tilt bounds
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -8; // Pitch max 8deg
+                    const rotateY = ((x - centerX) / centerX) * 8;  // Yaw max 8deg
+                    
+                    card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px)`;
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = `perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+                });
+            });
+
+            // -----------------------------------------------------
+            // Telemetry Injection: Auto-Tracker for all App Docks
+            // -----------------------------------------------------
+            setTimeout(() => {
+                document.querySelectorAll('.dock-icon-box').forEach(box => {
+                    const inlineClick = box.getAttribute('onclick');
+                    if(inlineClick && inlineClick.includes('location.href')) {
+                        const urlMatch = inlineClick.match(/'([^']+)'/);
+                        if(urlMatch) {
+                            const targetUrl = urlMatch[1];
+                            const labelEl = box.querySelector('.dock-label');
+                            const modName = labelEl ? labelEl.innerText.trim() : 'Unknown Dock App';
+                            
+                            // Replace synchronous click with async tracker
+                            box.removeAttribute('onclick');
+                            box.addEventListener('click', async (e) => {
+                                e.preventDefault();
+                                box.style.transform = 'scale(0.95)';
+                                
+                                if(window.trackEvent) {
+                                    // Log purely to student_learning_logs for the cockpit
+                                    await window.trackEvent(modName, 'OPEN_DOCK_APP', targetUrl);
+                                }
+                                
+                                window.location.href = targetUrl;
+                            });
+                        }
+                    }
+                });
+            }, 800);
+        });
+    </script>
+
+    <!-- BACKGROUND -->
+    <canvas id="neuron-canvas"></canvas>
+    <div class="cyber-scanline"></div>
+    <div class="corner-hud hud-tl"></div>
+    <div class="corner-hud hud-tr"></div>
+    <div class="corner-hud hud-bl"></div>
+    <div class="corner-hud hud-br"></div>
+
+    <!-- NEWS TICKER -->
+    <div class="news-ticker-wrap">
+        <div class="news-label">TEEN TECH DAILY</div> <!-- Updated Label -->
+        <div class="ticker-container">
+            <div class="ticker-move" id="news-ticker-content">
+                <!-- Dynamic Content Loading... -->
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="logo-group">
+            <div class="logo-main">
+                <div class="logo-symbol">
+                    <div class="s-circle"></div>
+                    <div class="s-line"></div>
+                </div>
+                <div class="logo-text">
+                    <span style="color:white;">FUTURE</span><span style="color:var(--primary);">AI</span>
+                </div>
+            </div>
+            <div class="logo-sub">科技特长生贯通全栈培养系统 V2.0</div>
+        </div>
+        <div class="header-status" style="gap: 20px;">
+            <a href="https://ai.zhouxiaomai.com" target="_blank" class="fc-nav-btn">
+                <span class="pulse-dot"></span>
+                🚀 算力引擎 FutureClass
+            </a>
+            <div class="status-pill">● SYSTEM ONLINE</div>
+            <div class="system-time" id="clock" style="font-size: 20px;">00:00:00</div>
+        </div>
+    </div>
+
+    <!-- MAC STATUS DASHBOARD REMOVED (Moved to dingdang-status.html) -->
+
+    <!-- MAIN STAGE -->
+    <div class="main-stage">
+
+        <!-- COL 1: PROFILE -->
+        <div class="card-col w-profile">
+            <div class="panel-title">用户中心 / USER PROFILE</div>
+            <div class="glass-panel">
+                <div class="avatar-box">
+                    <div class="avatar-orbit"></div>
+                    <img src="assets/images/boy_avatar_yellow.png" class="avatar-img" id="uAvatarImg"
+                        onerror="this.src='assets/images/boy_avatar_yellow.png'">
+                    <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;"
+                        onchange="handleAvatarUpload(event)">
+                    <!-- VIP Badge (Hidden by default) -->
+                    <div id="vip-badge-icon" class="vip-badge-marker">
+                        <span style="font-size:14px">👑</span> <span
+                            style="font-family:'Orbitron'; font-weight:900; font-size:10px;">VIP</span>
+                    </div>
+                </div>
+                <div class="user-meta">
+                    <h1 class="u-name" id="uName">小创客01</h1>
+                    <span class="u-rank" id="uLevel">LV.1 新手探索者</span>
+                    <div class="u-uid" id="uUID">UID: 8848-ALPHA</div>
+
+                    <!-- Mini Badge Wall -->
+                    <div id="home-badge-wall" class="mini-badge-row" style="margin-top:20px; min-height:30px;">
+                        <!-- Badges injected via JS -->
+                    </div>
+                </div>
+                <div class="row-btns" style="display:flex; gap:10px; margin-top:auto;">
+                    <button id="upgrade-pro-btn" class="plan-btn upgrade-pro" style="background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; font-weight: 800; border: none; flex: 1.5; display: none;"
+                        onclick="window.location.href='pricing-demo.html'">PRO 升级算力舱</button>
+                    <button class="plan-btn" style="background:var(--secondary); color:white; flex:1;"
+                        onclick="handleProfileClick()">用户中心 / USER CENTER</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COL 2: GROWTH -->
+        <div class="card-col w-wide">
+            <div class="panel-title">成长指数 / GROWTH</div>
+            <div class="glass-panel"
+                style="height: 540px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div
+                    style="font-family:'Orbitron'; color:var(--warm); font-size:12px; margin-bottom:20px; font-weight:900;">
+                    综合素质维度 / HOLOGRAPHIC INDEX</div>
+
+                <div class="holo-group">
+                    <div class="holo-label"><span>Self Mgmt / 自我管理</span> <span>15%</span></div>
+                    <div class="holo-track">
+                        <div class="holo-bar" style="width:15%"></div>
+                    </div>
+                </div>
+
+                <div class="holo-group">
+                    <div class="holo-label"><span>Cognition / 基础思维</span> <span>8%</span></div>
+                    <div class="holo-track">
+                        <div class="holo-bar" style="width:8%; background:var(--secondary)"></div>
+                    </div>
+                </div>
+
+                <div class="holo-group">
+                    <div class="holo-label"><span>Academic / 学科知识</span> <span>24%</span></div>
+                    <div class="holo-track">
+                        <div class="holo-bar" style="width:24%; background:var(--success)"></div>
+                    </div>
+                </div>
+
+                <div class="holo-group">
+                    <div class="holo-label"><span>Tech Stack / 技术栈</span> <span>42%</span></div>
+                    <div class="holo-track">
+                        <div class="holo-bar" style="width:42%; background:var(--accent)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COL 3: SKILL TREE -->
+        <div class="card-col w-wide" style="position: relative;">
+            <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
+                神经图谱 / NEURAL MAP
+                <span style="font-size:10px; color:#00f0ff; opacity:0.8; cursor:pointer;" onclick="openNeuralMap()">
+                    ⛶ 全景拓扑 / FULL VIEW
+                </span>
+            </div>
+
+            <!-- SKILL TREE GRID CONTAINER -->
+            <div class="glass-panel" style="height: 540px; padding: 15px; display: flex; flex-direction: column;">
+                <div style="font-family:'Orbitron'; color:var(--warm); font-size:12px; margin-bottom:10px; font-weight:900; z-index: 10;">
+                    拓扑关联结构 / CYBER-LINK TOPOLOGY</div>
+
+                <div id="skill-network-container" style="flex: 1; border-radius: 8px; overflow: hidden; background: radial-gradient(circle at center, rgba(0,240,255,0.05) 0%, transparent 70%);">
+                    <div id="network-canvas" style="width: 100%; height: 100%;"></div>
+                </div>
+                
+                <!-- 预加载图谱引擎 -->
+                <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const container = document.getElementById('network-canvas');
+                    if (!container) return;
+
+                    // L1~L4 4-Tier Knowledge Graph Data Registry (Expanded to K12)
+                    window.SKILLS_DATA = [
+                        // L1: 学科大类 (紫)
+                        { id: "S1", name: "TECHNOLOGY\\n科技与工程", icon: "🌌", level: 1, locked: false },
+                        { id: "S2", name: "SCIENCE & MATH\\n理学与数学", icon: "📐", level: 1, locked: false },
+                        { id: "S3", name: "HUMANITIES\\n人文与社科", icon: "🏛️", level: 1, locked: true },
+                        { id: "S4", name: "ARTS\\n艺术与设计", icon: "🎨", level: 1, locked: true },
+
+                        // L2: 专题领域 (绿)
+                        { id: "D1", name: "Artificial Intelligence\\n人工智能", icon: "🧠", level: 2, locked: false },
+                        { id: "D2", name: "Computer Science\\n计算机科学", icon: "💻", level: 2, locked: false },
+                        { id: "D3", name: "Physics & Hardware\\n物理与硬件", icon: "⚙️", level: 2, locked: true },
+                        { id: "D4", name: "Biology & Chem\\n生化科学", icon: "🧬", level: 2, locked: true },
+                        { id: "D5", name: "History & Geo\\n史地政", icon: "🌍", level: 2, locked: true },
+                        { id: "D6", name: "Language & Lit\\n语文与文学", icon: "📜", level: 2, locked: true },
+                        
+                        // L3: 核心概念 (黄)
+                        { id: "C1", name: "Machine Learning\\n机器学习", icon: "📈", level: 3, locked: false },
+                        { id: "C2", name: "Generative AI\\n生成式AI", icon: "🧞‍♂️", level: 3, locked: false },
+                        { id: "C3", name: "Web Dev\\n大前端", icon: "🌐", level: 3, locked: false },
+                        { id: "C4", name: "Backend\\n服务端系统", icon: "🗄️", level: 3, locked: true },
+                        { id: "C5", name: "Classical Mechanics\\n经典力学", icon: "🍎", level: 3, locked: true },
+                        { id: "C6", name: "Life Science\\n生命科学", icon: "🌿", level: 3, locked: true },
+                        { id: "C7", name: "Chinese Classics\\n中国古诗文", icon: "📘", level: 3, locked: true },
+                        { id: "C8", name: "Digital Art\\n数字艺术", icon: "🖌️", level: 3, locked: true },
+
+                        // L4: 知识点 (微技能) - AI/Tech
+                        { id: "K1", name: "Python 101", icon: "🐍", level: 4, locked: false, link: "ide-python.html" },
+                        { id: "K2", name: "PyTorch", icon: "🔥", level: 4, locked: true },
+                        { id: "K3", name: "AI Intro", icon: "🤖", level: 4, locked: false, link: "ai.html" },
+                        { id: "K4", name: "RAG", icon: "📚", level: 4, locked: true },
+                        { id: "K5", name: "Agents", icon: "🕵️", level: 4, locked: true },
+                        { id: "K6", name: "HTML/CSS", icon: "🎨", level: 4, locked: false },
+                        { id: "K7", name: "JavaScript", icon: "📜", level: 4, locked: false },
+                        { id: "K8", name: "React", icon: "⚛️", level: 4, locked: true },
+                        { id: "K9", name: "Node.js", icon: "🟢", level: 4, locked: true },
+                        { id: "K10", name: "Arduino", icon: "♾️", level: 4, locked: true },
+                        { id: "K11", name: "Typing", icon: "⌨️", level: 4, locked: false, link: "typing.html" },
+
+                        // L4: 基础学科课 (K12)
+                        { id: "K12", name: "Geology", icon: "🌋", level: 4, locked: true },
+                        { id: "K13", name: "Astronomy", icon: "🔭", level: 4, locked: true, link: "astronomy.html" },
+                        { id: "K14", name: "Science (P)", icon: "🔬", level: 4, locked: false, link: "science-curriculum.html?stage=p" },
+                        { id: "K15", name: "Junior Physics", icon: "📏", level: 4, locked: true, link: "junior-physics-curriculum.html?stage=j" },
+                        { id: "K16", name: "Junior Bio", icon: "🧬", level: 4, locked: true, link: "junior-biology-curriculum.html?stage=j" },
+                        { id: "K17", name: "Chemistry", icon: "🧪", level: 4, locked: true, link: "junior-chemistry-curriculum.html?stage=j" },
+                        { id: "K18", name: "Poetry", icon: "🖋️", level: 4, locked: true },
+                        { id: "K19", name: "History", icon: "🏺", level: 4, locked: true },
+                        
+                        // Ecosystem tools
+                        { id: "K20", name: "Feishu", icon: "🐦", level: 4, locked: false, link: "course-feishu.html" },
+                        { id: "K21", name: "Scratch", icon: "🐱", level: 4, locked: false, link: "ide-scratch.html" },
+                        { id: "K22", name: "Logic", icon: "💡", level: 4, locked: false }
+                    ];
+
+                    window.EDGES_DATA = [
+                        // L1 -> L2
+                        {from: "S1", to: "D1"}, {from: "S1", to: "D2"}, 
+                        {from: "S2", to: "D3"}, {from: "S2", to: "D4"},
+                        {from: "S3", to: "D5"}, {from: "S3", to: "D6"},
+                        {from: "S1", to: "S2"}, {from: "S3", to: "S4"}, // 横向关联
+
+                        // L2 -> L3
+                        {from: "D1", to: "C1"}, {from: "D1", to: "C2"},
+                        {from: "D2", to: "C3"}, {from: "D2", to: "C4"},
+                        {from: "D3", to: "C5"}, {from: "D4", to: "C6"},
+                        {from: "D6", to: "C7"}, {from: "S4", to: "C8"},
+
+                        // L3/L2 -> L4 (Leaves)
+                        {from: "C1", to: "K1"}, {from: "C1", to: "K2"}, 
+                        {from: "C2", to: "K3"}, {from: "C2", to: "K4"}, {from: "C2", to: "K5"},
+                        {from: "C3", to: "K6"}, {from: "C3", to: "K7"}, {from: "C3", to: "K8"}, 
+                        {from: "C4", to: "K9"}, {from: "D3", to: "K10"}, {from: "D2", to: "K11"},
+
+                        {from: "D5", to: "K12"}, {from: "D3", to: "K13"}, {from: "D4", to: "K14"},
+                        {from: "C5", to: "K15"}, {from: "C6", to: "K16"}, {from: "D4", to: "K17"},
+                        {from: "C7", to: "K18"}, {from: "D5", to: "K19"},
+                        
+                        {from: "S1", to: "K20"}, {from: "D2", to: "K21"}, {from: "S1", to: "K22"}
+                    ];
+
+                    window.trackEvent = async function(moduleName, actionType, actionValue = '-') {
+                        try {
+                            const manager = window.SubscriptionManager;
+                            if (!manager || !manager.client) return;
+                            const user = manager.user || { email: localStorage.getItem('current_user_email') || 'Guest' };
+                            const userId = user.id || user.email;
+                            await manager.client.from('student_learning_logs').insert([{ user_id: userId, module_name: moduleName, action_type: actionType, action_value: actionValue }]);
+                        } catch (e) {
+                            console.warn("Telemetry Track Error:", e);
+                        }
+                    };
+
+                    window.getNodeStyleForLevel = function(level, isLocked) {
+                        let size, fontSize, shape, color;
+                        if (level === 1) { 
+                            size = 35; fontSize = 20; shape = 'dot'; 
+                            if (!isLocked) color = { background: 'rgba(189, 0, 255, 0.4)', border: '#bd00ff', highlight: { background: 'rgba(189, 0, 255, 0.6)', border: '#ffffff' } }; 
+                        } else if (level === 2) { 
+                            size = 25; fontSize = 16; shape = 'dot'; 
+                            if (!isLocked) color = { background: 'rgba(0, 255, 128, 0.3)', border: '#00ff80', highlight: { background: 'rgba(0, 255, 128, 0.5)', border: '#ffffff' } }; 
+                        } else if (level === 3) { 
+                            size = 18; fontSize = 12; shape = 'hexagon'; 
+                            if (!isLocked) color = { background: 'rgba(255, 215, 0, 0.3)', border: '#ffd700', highlight: { background: 'rgba(255, 215, 0, 0.5)', border: '#ffffff' } }; 
+                        } else { 
+                            size = 12; fontSize = 10; shape = 'box'; 
+                            if (!isLocked) color = { background: 'rgba(255, 165, 0, 0.2)', border: '#ffa500', highlight: { background: 'rgba(255, 165, 0, 0.4)', border: '#ffffff' } }; 
+                        }
+                        
+                        if (isLocked) {
+                            color = { background: 'rgba(100, 100, 100, 0.2)', border: '#666666', highlight: { background: 'rgba(128, 128, 128, 0.4)', border: '#aaaaaa' } };
+                        }
+                        return { size, fontSize, shape, color };
+                    };
+
+                    window.parseSkillNodes = function(isVIP, isFullscreen = false) {
+                        // Better Data-Drive: Nodes are unlocked if the user has an associated badge
+                        const manager = window.SubscriptionManager;
+                        const userBadges = (manager && manager.profile && manager.profile.badges_earned) ? manager.profile.badges_earned : [];
+                        
+                        return window.SKILLS_DATA.map(s => {
+                            // Logic: A node is unlocked if (isVIP) OR (s.locked is false) OR (user has badge containing s.name or id)
+                            let isUnlockedByData = userBadges.some(b => 
+                                b.toLowerCase().includes(s.name.split('\\n')[0].toLowerCase()) || 
+                                b.toLowerCase().includes(s.id.toLowerCase())
+                            );
+                            const isLocked = (s.locked && !isVIP && !isUnlockedByData);
+                            
+                            const styles = window.getNodeStyleForLevel(s.level, isLocked);
+                            let rawName = s.name.replace(/\\n/g, '\n'); // Fix raw \n display
+                            let labelContent = (styles.shape === 'box' || s.level === 4) ? (s.icon + '\n' + rawName) : rawName;
+                            
+                            if (isFullscreen) {
+                                styles.size = Math.floor(styles.size * 1.5);
+                                styles.fontSize = Math.floor(styles.fontSize * 1.4);
+                                if (s.level <= 2) labelContent = s.icon + '\n' + rawName;
+                            }
+                            
+                            return {
+                                id: s.id, label: labelContent,
+                                title: isLocked ? '🔒 路径规划：该知识节点尚未沉淀，完成前置学习即可点亮。' : '⚡ 已沉淀领域：包含对应能力。',
+                                shape: styles.shape, size: styles.size, isLocked: isLocked, link: s.link, skillName: rawName,
+                                font: { face: 'Inter, Orbitron, sans-serif', size: styles.fontSize, color: isLocked ? '#666666' : '#ffffff', multi: true, bold: true },
+                                color: styles.color, shadow: isLocked ? false : { enabled: true, color: styles.color.border, size: isFullscreen ? 30 : 20, x: 0, y: 0 },
+                                borderWidth: isLocked ? (isFullscreen ? 2 : 1) : (isFullscreen ? 3 : 2), margin: { top: 8, bottom: 8, left: 12, right: 12 }
+                            };
+                        });
+                    };
+
+                    window.parseSkillEdges = function(isVIP, isFullscreen = false) {
+                        return window.EDGES_DATA.map(e => {
+                            const targetData = window.SKILLS_DATA.find(n => n.id === e.to);
+                            const targetLocked = targetData && targetData.locked && !isVIP;
+                            return {
+                                from: e.from, to: e.to,
+                                color: { color: targetLocked ? 'rgba(255,255,255,0.08)' : (isFullscreen ? 'rgba(0,255,128,0.5)' : 'rgba(0,240,255,0.4)'), highlight: targetLocked ? 'rgba(255,255,255,0.15)' : '#00f0ff' },
+                                dashes: targetLocked ? [4, 4] : false, smooth: { type: 'cubicBezier', forceDirection: 'none', roundness: isFullscreen ? 0.5 : 0.4 }
+                            };
+                        });
+                    };
+
+                    let network = null;
+                    let animationFrame = null;
+
+                    function renderSkills() {
+                        const isVIP = window.SubscriptionManager && window.SubscriptionManager.isSubscribed();
+                        const parsedNodes = window.parseSkillNodes(isVIP);
+                        const parsedEdges = window.parseSkillEdges(isVIP);
+                        const data = { nodes: new vis.DataSet(parsedNodes), edges: new vis.DataSet(parsedEdges) };
+                        const options = {
+                            physics: { forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 80, springConstant: 0.1 }, maxVelocity: 30, solver: 'forceAtlas2Based', timestep: 0.4 },
+                            edges: { width: 1.5, arrows: { to: { enabled: true, scaleFactor: 0.5, type: 'arrow' } } },
+                            interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true }
+                        };
+                        
+                        if (network !== null) { network.destroy(); network = null; }
+                        network = new vis.Network(container, data, options);
+                        
+                        // Path Highlighting on Hover
+                        network.on("hoverNode", function(params) {
+                            const nodeId = params.node;
+                            const connectedNodes = network.getConnectedNodes(nodeId);
+                            const allNodes = data.nodes.get();
+                            
+                            data.nodes.update(allNodes.map(n => {
+                                const isConnected = connectedNodes.includes(n.id) || n.id === nodeId;
+                                return { id: n.id, opacity: isConnected ? 1 : 0.2 };
+                            }));
+                        });
+                        
+                        network.on("blurNode", function() {
+                            const allNodes = data.nodes.get();
+                            data.nodes.update(allNodes.map(n => ({ id: n.id, opacity: 1 })));
+                        });
+
+                        // Flowing Dots Animation using afterDrawing
+                        let offset = 0;
+                        network.on("afterDrawing", function(ctx) {
+                            offset += 0.02;
+                            if (offset > 1) offset = 0;
+                            
+                            const edges = data.edges.get();
+                            ctx.fillStyle = "#00f0ff";
+                            ctx.shadowBlur = 5;
+                            ctx.shadowColor = "#00f0ff";
+                            
+                            edges.forEach(edge => {
+                                if (edge.color && edge.color.color && edge.color.color.includes('0.08')) return; // skip locked
+                                const pos = network.getPositions([edge.from, edge.to]);
+                                if (!pos[edge.from] || !pos[edge.to]) return;
+                                
+                                const start = pos[edge.from];
+                                const end = pos[edge.to];
+                                
+                                // Draw a flowing dot at offset positions
+                                [0, 0.33, 0.66].forEach(phase => {
+                                    let p = (offset + phase) % 1;
+                                    let x = start.x + (end.x - start.x) * p;
+                                    let y = start.y + (end.y - start.y) * p;
+                                    ctx.beginPath();
+                                    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                                    ctx.fill();
+                                });
+                            });
+                        });
+                        
+                        // Force redraw loop for animation
+                        function step() {
+                            if (network) network.redraw();
+                            animationFrame = requestAnimationFrame(step);
+                        }
+                        if (animationFrame) cancelAnimationFrame(animationFrame);
+                        step();
+
+                        network.on("click", function (params) {
+                            if (params.nodes.length > 0) {
+                                const node = parsedNodes.find(n => n.id === params.nodes[0]);
+                                if (node.isLocked) { window.trackEvent(node.skillName, 'LOCKED_CLICK'); alert('🔒 领域限制：该知识领域暂未解锁。'); }
+                                else { window.trackEvent(node.skillName, 'ENTER_MODULE'); if (node.link) window.location.href = node.link; else alert('🚀 正在挂载引擎，即将进入。'); }
+                            }
+                        });
+                    }
+
+                    setTimeout(renderSkills, 500);
+                    window.addEventListener('subscription_updated', renderSkills);
+                });
+            </script>
+
+            <!-- 附加大屏幕弹窗结构 -->
+            <div id="neural-map-drawer" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999; background: radial-gradient(circle at center, rgba(5,6,12,0.85) 0%, rgba(0,0,0,0.95) 100%); backdrop-filter: blur(15px); -webkit-backdrop-filter:blur(15px); opacity:0; transition: opacity 0.4s ease; flex-direction:column;">
+                <!-- 科技网格背景 -->
+                <div style="position:absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px); background-size: 50px 50px; z-index:-1;"></div>
+                <div style="padding: 20px 40px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,240,255,0.1);">
+                    <div style="font-family:Orbitron; color:#00f0ff; font-size:1.5rem; letter-spacing:2px; font-weight:700;">
+                        ⛶ CYBER-LINK NEURAL MAP // 全景节点拓扑
+                    </div>
+                    <button class="launch-btn" onclick="closeNeuralMap()" style="padding: 8px 24px;">X 关闭 / CLOSE</button>
+                </div>
+                <div id="fullscreen-network-canvas" style="flex:1; width:100%;"></div>
+            </div>
+            
+            <script>
+                let fullscreenNetwork = null;
+                window.openNeuralMap = function() {
+                    const modal = document.getElementById('neural-map-drawer');
+                    if (!modal) return;
+                    modal.style.display = 'flex';
+                    modal.offsetHeight;
+                    modal.style.opacity = '1';
+
+                    if (!fullscreenNetwork) {
+                        const container = document.getElementById('fullscreen-network-canvas');
+                        if (!container || !window.SKILLS_DATA) return;
+                        
+                        const isVIP = window.SubscriptionManager && window.SubscriptionManager.isSubscribed();
+                        const parsedNodes = window.parseSkillNodes(isVIP, true);
+                        const parsedEdges = window.parseSkillEdges(isVIP, true);
+                        
+                        const data = { nodes: new vis.DataSet(parsedNodes), edges: new vis.DataSet(parsedEdges) };
+                        const options = {
+                            physics: { forceAtlas2Based: { gravitationalConstant: -180, centralGravity: 0.005, springLength: 260, springConstant: 0.06 }, maxVelocity: 50, solver: 'forceAtlas2Based', timestep: 0.5, stabilization: { iterations: 150 } },
+                            edges: { width: 3, arrows: { to: { enabled: true, scaleFactor: 0.8, type: 'arrow' } } },
+                            interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true }
+                        };
+                        
+                        fullscreenNetwork = new vis.Network(container, data, options);
+                        
+                        // Sync Flowing Dots for Fullscreen
+                        let fsOffset = 0;
+                        fullscreenNetwork.on("afterDrawing", function(ctx) {
+                            fsOffset += 0.02;
+                            if (fsOffset > 1) fsOffset = 0;
+                            
+                            const edges = data.edges.get();
+                            ctx.fillStyle = "#00f0ff";
+                            ctx.shadowBlur = 8;
+                            ctx.shadowColor = "#00f0ff";
+                            
+                            edges.forEach(edge => {
+                                if (edge.color && edge.color.color && edge.color.color.includes('0.08')) return; // skip locked
+                                const pos = fullscreenNetwork.getPositions([edge.from, edge.to]);
+                                if (!pos[edge.from] || !pos[edge.to]) return;
+                                
+                                const start = pos[edge.from];
+                                const end = pos[edge.to];
+                                
+                                [0, 0.25, 0.5, 0.75].forEach(phase => {
+                                    let p = (fsOffset + phase) % 1;
+                                    let x = start.x + (end.x - start.x) * p;
+                                    let y = start.y + (end.y - start.y) * p;
+                                    ctx.beginPath();
+                                    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                                    ctx.fill();
+                                });
+                            });
+                        });
+
+                        function fsStep() {
+                            if (fullscreenNetwork) {
+                                fullscreenNetwork.redraw();
+                                requestAnimationFrame(fsStep);
+                            }
+                        }
+                        fsStep();
+
+                        fullscreenNetwork.on("click", function (params) {
+                            if (params.nodes.length > 0) {
+                                const node = parsedNodes.find(n => n.id === params.nodes[0]);
+                                if (node.isLocked && window.trackEvent) { window.trackEvent(node.skillName, 'FS_LOCKED_CLICK'); alert('🔒 领域限制：该知识领域尚未沉淀，请完成前置科技树。'); }
+                                else { if(window.trackEvent) window.trackEvent(node.skillName, 'FS_ENTER_MODULE'); if (node.link) window.location.href = node.link; else alert('🚀 即将跃迁进入。'); }
+                            }
+                        });
+                    }
+                };
+
+                window.closeNeuralMap = function() {
+                    const modal = document.getElementById('neural-map-drawer');
+                    if (!modal) return;
+                    modal.style.opacity = '0';
+                    setTimeout(() => modal.style.display = 'none', 400);
+                };
+            </script>
+        </div>
+
+        <!-- COL 4: STUDY LOG (SYNCED) -->
+        <div class="card-col w-plan">
+            <div class="panel-title">学习记录 / STUDY LOG</div>
+            <div class="glass-panel" style="height: 540px;">
+                <div class="plan-box" id="study-log-box" style="padding:0;">
+                    <div
+                        style="font-family:'Orbitron'; color:#aaa; font-size:12px; margin-bottom:15px; font-weight:900; display:flex; justify-content:space-between;">
+                        <span>实时同步 / LIVE SYNC</span>
+                        <span style="color:var(--success)">● ONLINE</span>
+                    </div>
+
+                    <!-- Sparkline Trend Chart -->
+                    <div id="study-trend-chart" style="width: 100%; height: 50px; margin-bottom: 20px; opacity: 0.8; filter: drop-shadow(0 0 5px var(--primary));"></div>
+
+                    <!-- Today Stats -->
+                    <div class="log-stat-card active-day">
+                        <div class="ls-header">今日完成 / TODAY</div>
+                        <div class="ls-body">
+                            <div class="ls-value" id="stat-today-time">0<span style="font-size:16px">min</span></div>
+                            <div class="ls-desc" id="stat-today-count">0 Missions</div>
+                        </div>
+                    </div>
+
+                    <!-- Yesterday -->
+                    <div class="log-stat-card">
+                        <div class="ls-header">昨日回顾 / YESTERDAY</div>
+                        <div class="ls-body">
+                            <div class="ls-value small" id="stat-yesterday-time">0<span
+                                    style="font-size:14px">min</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly -->
+                    <div class="log-stat-card">
+                        <div class="ls-header">本周累计 / THIS WEEK</div>
+                        <div class="ls-body">
+                            <div class="ls-value small" id="stat-week-time">0<span style="font-size:14px">min</span>
+                            </div>
+                            <div class="ls-desc" id="stat-week-count">0 Missions</div>
+                        </div>
+                    </div>
+
+                    <!-- RECENT FEED -->
+                    <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; margin-top:5px;">
+                        <div
+                            style="font-family:'Orbitron'; color:#aaa; font-size:10px; margin-bottom:5px; position: sticky; top: 0; z-index: 10; background: var(--panel-bg);">
+                            最近动态 / LATEST ACTIVITY</div>
+                        <div id="activity-feed-list" class="activity-feed custom-scroll">
+                            <!-- Items injected by JS -->
+                        </div>
+                    </div>
+
+                    <div
+                        style="margin-top:auto; font-size:10px; color:#444; text-align:center; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);">
+                        数据同步自个人中心 / Synced from Profile
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // --- HOMEPAGE DATA SYNC ENGINE ---
+            async function syncHomepageData() {
+                try {
+                    const manager = window.SubscriptionManager;
+                    const user = manager?.user || (localStorage.getItem('current_user_email') ? { email: localStorage.getItem('current_user_email') } : null);
+
+                    if (!user) {
+                        document.getElementById('uName').innerText = "Guest";
+                        const vBadge = document.getElementById('vip-badge-icon');
+                        if (vBadge) vBadge.style.display = 'none';
+                        return;
+                    }
+
+                    // 1. VIP Check (Strict)
+                    const isVIP = manager.isSubscribed && manager.isSubscribed();
+                    const vBadge = document.getElementById('vip-badge-icon');
+                    
+                    if (isVIP) {
+                        if (vBadge) {
+                            vBadge.style.display = 'flex';
+                            vBadge.onclick = function() {
+                                const status = manager.getSubscriptionStatus();
+                                if (status && status.expiryDate) {
+                                    alert('💎 【尊享会员】\n您的会员特权处于激活状态！\n有效期至：' + new Date(status.expiryDate).toLocaleDateString());
+                                }
+                            };
+                        }
+                        const upgradeBtn = document.getElementById('upgrade-pro-btn');
+                        if (upgradeBtn) upgradeBtn.style.display = 'none';
+                        document.getElementById('uAvatarImg').style.border = '3px solid #ffd600';
+                    } else {
+                        if (vBadge) vBadge.style.display = 'none';
+                        const upgradeBtn = document.getElementById('upgrade-pro-btn');
+                        if (upgradeBtn) upgradeBtn.style.display = 'block';
+                        document.getElementById('uAvatarImg').style.border = '3px solid rgba(255,255,255,0.8)';
+                    }
+
+                    const client = manager.client;
+                    if (client) {
+                        // Fetch Dashboard Data (Level & Badges & Avatar)
+                        const { data: list } = await client
+                            .from('user_dashboard_data')
+                            .select('current_level, badges_earned, username, avatar_url')
+                            .eq('username', user.email)
+                            .limit(1);
+                        
+                        const dashData = (list && list.length > 0) ? list[0] : null;
+
+                        if (dashData) {
+                            // Update Name & Level
+                            // Priority: DB Username -> Email Prefix
+                            const realName = dashData.username || user.email.split('@')[0];
+                            document.getElementById('uName').innerText = realName;
+
+                            // Level
+                            document.getElementById('uLevel').innerText = dashData.current_level || 'LV.1 新手';
+                            document.getElementById('uUID').innerText = `UID: ${user.id ? user.id.slice(0, 6).toUpperCase() : '171814'}`;
+
+                            // Avatar
+                            if (dashData.avatar_url) {
+                                document.getElementById('uAvatarImg').src = dashData.avatar_url;
+                            }
+                        }
+
+                        // --- BADGE RENDERING (Robust Fallback) ---
+                        // Even if dashData is null, we show locked slots
+                        const badges = (dashData && dashData.badges_earned) ? dashData.badges_earned : [];
+                        const badgeContainer = document.getElementById('home-badge-wall');
+
+                        if (badgeContainer) {
+                            let html = '';
+                            const maxSlots = 5;
+
+                            for (let i = 0; i < maxSlots; i++) {
+                                if (badges[i]) {
+                                    // Earned
+                                    let b = badges[i];
+                                    let title = b;
+                                    let imgPath = 'assets/images/badge_novice.png'; // Default
+
+                                    // Map
+                                    if (b.includes('novice') || b === '你好世界') imgPath = 'assets/images/badge_novice.png';
+                                    else if (b.includes('code') || b.includes('tech') || b === '代码猎手') imgPath = 'assets/images/badge_coder.png';
+                                    else if (b.includes('explorer') || b === '变量之初') imgPath = 'assets/images/badge_explorer.png';
+                                    else if (b === 'logic' || b === '逻辑之门') imgPath = 'assets/images/badge_map_bg.png';
+                                    else if (b === 'conditionals' || b === '循环往复') imgPath = 'assets/images/coding_net.png';
+                                    else imgPath = 'assets/images/badge_novice.png'; // Fallback
+
+                                    html += `<div class="mini-badge" title="${title}" style="background:none; border:none;">
+                                                <img src="${imgPath}" style="width:100%; height:100%; object-fit:contain; filter: drop-shadow(0 0 5px cyan);">
+                                             </div>`;
+                                } else {
+                                    // Locked
+                                    html += `<div class="mini-badge" title="待解锁" style="background:none; border:none; opacity:0.6; filter:grayscale(1);">
+                                                <img src="assets/images/badge_locked.png" style="width:100%; height:100%; object-fit:contain;">
+                                             </div>`;
+                                }
+                            }
+                            // Extra count
+                            if (badges.length > maxSlots) {
+                                html += `<div class="mini-badge-count">+${badges.length - maxSlots}</div>`;
+                            }
+                            badgeContainer.innerHTML = html;
+                        }
+
+                        // Fetch Study Stats (Existing Logic)
+                        await fetchHomeStudyStats(client, user);
+                    }
+
+                } catch (e) {
+                    console.error("Sync Error:", e);
+                }
+            }
+
+            // Refactored Study Stats to sync strictly with AI Chat Logs & true interaction
+            async function fetchHomeStudyStats(client, user) {
+                // Dates needed for filtering
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                const yest = new Date(now); yest.setDate(yest.getDate() - 1);
+                const yestStr = yest.toISOString().split('T')[0];
+                
+                const day = now.getDay() || 7;
+                if (day !== 1) now.setHours(-24 * (day - 1));
+                else now.setHours(0, 0, 0, 0);
+                const weekStartStr = now.toISOString().split('T')[0];
+
+                if (!user || (!user.id && !user.email)) return;
+                
+                // Fallback ID simulation if needed
+                const targetUid = user.id || (user.email ? user.email.substring(0,25) : null);
+                if(!targetUid) return;
+
+                // Query ai_chat_logs to get ALL interactions this week
+                const { data, error } = await client
+                    .from('ai_chat_logs')
+                    .select('created_at, role, content, metadata')
+                    .eq('user_id', targetUid)
+                    .gte('created_at', weekStartStr)
+                    .order('created_at', { ascending: false });
+
+                if (error || !data) {
+                    console.warn("Study Logs Sync Ignored:", error?.message);
+                    return; 
+                }
+
+                let tCount = 0; // Today interaction counts
+                let yCount = 0; // Yest bounds
+                let wCount = 0;
+
+                data.forEach(log => {
+                    // Only count user active inputs as "Missions / Operations"
+                    if (log.role === 'user') {
+                        wCount++;
+                        const logDate = log.created_at.split('T')[0];
+                        if (logDate === todayStr) tCount++;
+                        if (logDate === yestStr) yCount++;
+                    }
+                });
+
+                // Rule of Thumb: Each active AI interaction (Mission) equates to roughly 3 minutes of focused study time (reading, pondering, prompt-engineering)
+                const minPerMission = 3; 
+                const tTime = tCount * minPerMission;
+                const yTime = yCount * minPerMission;
+                const wTime = wCount * minPerMission;
+
+                // Update UI visually with animation
+                const oldToday = parseInt(document.getElementById('stat-today-time')?.innerText) || 0;
+                animateValue('stat-today-time', oldToday, tTime, 'min');
+                
+                const tCountEl = document.getElementById('stat-today-count');
+                if(tCountEl) tCountEl.innerText = `${tCount} Missions`;
+                
+                const oldYest = parseInt(document.getElementById('stat-yesterday-time')?.innerText) || 0;
+                animateValue('stat-yesterday-time', oldYest, yTime, 'min');
+                
+                const oldWeek = parseInt(document.getElementById('stat-week-time')?.innerText) || 0;
+                animateValue('stat-week-time', oldWeek, wTime, 'min');
+                
+                const wCountEl = document.getElementById('stat-week-count');
+                if(wCountEl) wCountEl.innerText = `${wCount} Missions Completed`;
+
+                // Calculate 7-day trend for Sparkline
+                const trendData = [];
+                for(let i=6; i>=0; i--) {
+                    const d = new Date(); d.setDate(d.getDate() - i);
+                    const dStr = d.toISOString().split('T')[0];
+                    const dayCount = data.filter(log => log.role === 'user' && log.created_at.startsWith(dStr)).length;
+                    trendData.push(dayCount * minPerMission);
+                }
+                setTimeout(() => renderSparkline('study-trend-chart', trendData), 500);
+
+                // Update LATEST ACTIVITY Feed
+                updateActivityFeed(data);
+            }
+
+            function updateActivityFeed(data) {
+                const feedContainer = document.getElementById('activity-feed-list');
+                if (!feedContainer) return;
+
+                // Filter down to only user inputs to show what they asked/explored
+                const userLogs = data.filter(d => d.role === 'user').slice(0, 15);
+
+                if (userLogs.length === 0) {
+                    feedContainer.innerHTML = `<div style="text-align:center; color:#666; font-size:12px; padding:20px;">暂无交互记录，去向 Titan 提问吧！</div>`;
+                } else {
+                    feedContainer.innerHTML = userLogs.map(log => {
+                        // Dynamic icon based on media logic or simple NLP
+                        let icon = '🤖';
+                        if (log.metadata && log.metadata.has_media) icon = '🖼️';
+                        else if (log.content.includes('火箭') || log.content.includes('太空') || log.content.includes('物理')) icon = '🚀';
+                        else if (log.content.includes('代码') || log.content.includes('编程') || log.content.includes('Python')) icon = '💻';
+                        else if (log.content.includes('画') || log.content.includes('生成')) icon = '🎨';
+
+                        const d = new Date(log.created_at);
+                        const dateStr = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+                        
+                        let safeText = log.content || 'Voice/Media Input';
+                        safeText = safeText.replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 30);
+                        if(log.content.length > 30) safeText += '...'; // Truncate
+
+                        let fullText = (log.content || '声音/多模态输入').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        let cleanFullText = fullText.replace(/['"\\\n\r]/g, " ");
+
+                        return `
+                         <div class="feed-item" style="display:flex; align-items:flex-start; margin-bottom: 8px; cursor: pointer; transition: 0.2s;" onmouseover="this.style.color='#00f0ff'" onmouseout="this.style.color='inherit'" title="点击查看详情" onclick="alert('📅 时间：${dateStr}\\n\\n🎯 你的探索轨迹：\\n${cleanFullText}\\n\\n(💡 进度：已深度存储并转化为了右侧计算的时间指标)')">
+                             <div class="feed-date" style="width: 55px; font-size: 9px; line-height: 1.2;">${dateStr}</div>
+                             <div class="feed-icon" style="margin-right: 6px;">${icon}</div>
+                             <div class="feed-text" style="flex:1; white-space: normal; line-height:1.2; word-break: break-all; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 4px;">${safeText}</div>
+                         </div>
+                         `;
+                    }).join('');
+                }
+            }
+
+            // --- DYNAMIC DATA ENHANCEMENTS ---
+            function animateValue(id, start, end, suffix) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                let current = start;
+                const range = end - start;
+                const increment = range / 30; // 30 steps
+                const stepTime = 20; // 20ms per step = 600ms total
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                        current = end;
+                        clearInterval(timer);
+                    }
+                    el.innerHTML = `${Math.floor(current)}<span style="font-size:0.6em">${suffix}</span>`;
+                }, stepTime);
+            }
+
+            function renderSparkline(containerId, dataPoints) {
+                const container = document.getElementById(containerId);
+                if (!container || !dataPoints || dataPoints.length < 2) return;
+                
+                const w = container.offsetWidth;
+                const h = container.offsetHeight;
+                const max = Math.max(...dataPoints, 5); // at least 5 to avoid flat line at bottom
+                const min = Math.min(...dataPoints);
+                const range = max - min || 1;
+                
+                const pts = dataPoints.map((p, i) => ({
+                    x: (i / (dataPoints.length - 1)) * w,
+                    y: h - ((p - min) / range) * (h - 10) - 5
+                }));
+                
+                let pathD = `M ${pts[0].x} ${pts[0].y}`;
+                for (let i = 1; i < pts.length; i++) {
+                    pathD += ` L ${pts[i].x} ${pts[i].y}`;
+                }
+                
+                container.innerHTML = `
+                    <svg width="${w}" height="${h}" style="overflow:visible">
+                        <path d="${pathD}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 3px var(--primary))">
+                            <animate attributeName="stroke-dasharray" from="0,${w*2}" to="${w*2},0" dur="1s" fill="freeze" />
+                        </path>
+                        ${pts.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="var(--primary)" style="opacity:${i === pts.length - 1 ? 1 : 0.4}"></circle>`).join('')}
+                    </svg>
+                `;
+            }
+
+            // Init with Fast Update
+            document.addEventListener('DOMContentLoaded', () => {
+                // 1. Immediate Local Check (No delay)
+                const localUser = localStorage.getItem('current_user_email');
+                if (localUser) {
+                    const cleanName = localUser.split('@')[0];
+                    const uNameEl = document.getElementById('uName');
+                    if (uNameEl) uNameEl.innerText = cleanName;
+
+                    const uUidEl = document.getElementById('uUID');
+                    if (uUidEl) uUidEl.innerText = 'UID: SYNCING...';
+                }
+
+                // 2. Full Sync after resources load
+                setTimeout(syncHomepageData, 800);
+            });
+            // Also listen for potential custom events if any
+        </script>
+
+        <style>
+            /* LOG STATS CSS */
+            .log-stat-card {
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 12px;
+                display: flex;
+                flex-direction: column;
+                transition: 0.3s;
+            }
+
+            .log-stat-card:hover {
+                background: rgba(255, 255, 255, 0.06);
+                transform: translateX(5px);
+                border-left: 2px solid var(--primary);
+            }
+
+            .log-stat-card.active-day {
+                background: rgba(0, 240, 255, 0.05);
+                border: 1px solid rgba(0, 240, 255, 0.2);
+                box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+            }
+
+            .ls-header {
+                font-family: 'Orbitron';
+                font-size: 10px;
+                color: rgba(255, 255, 255, 0.5);
+                margin-bottom: 5px;
+                letter-spacing: 1px;
+            }
+
+            .ls-body {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .ls-value {
+                font-family: 'Orbitron';
+                font-size: 28px;
+                font-weight: 900;
+                color: #fff;
+            }
+
+            .ls-value.small {
+                font-size: 20px;
+                color: #ccc;
+            }
+
+            .ls-desc {
+                font-size: 12px;
+                color: var(--primary);
+                font-weight: bold;
+            }
+
+            /* Activity Feed Styles */
+            .activity-feed {
+                overflow-y: auto;
+                padding-right: 5px;
+                flex: 1;
+            }
+
+            .feed-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                font-size: 12px;
+                color: #ccc;
+            }
+
+            .feed-item:last-child {
+                border-bottom: none;
+            }
+
+            .feed-date {
+                font-family: 'Orbitron';
+                font-size: 10px;
+                color: #666;
+                width: 35px;
+            }
+
+            .feed-text {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* CUSTOM SCROLL */
+            .custom-scroll::-webkit-scrollbar {
+                width: 3px;
+            }
+
+            .custom-scroll::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 2px;
+            }
+
+            /* VIP BADGE */
+            .vip-badge-marker {
+                display: none;
+                /* Hidden by default */
+                position: absolute;
+                bottom: 5px;
+                right: 5px;
+                background: linear-gradient(135deg, #ffd600, #ffaa00);
+                color: #000;
+                padding: 4px 8px;
+                border-radius: 12px;
+                box-shadow: 0 0 15px rgba(255, 214, 0, 0.6);
+                z-index: 10;
+                align-items: center;
+                gap: 4px;
+                animation: pulse-gold 2s infinite;
+            }
+
+            @keyframes pulse-gold {
+                0% {
+                    box-shadow: 0 0 10px rgba(255, 214, 0, 0.4);
+                    transform: scale(1);
+                }
+
+                50% {
+                    box-shadow: 0 0 20px rgba(255, 214, 0, 0.8);
+                    transform: scale(1.05);
+                }
+
+                100% {
+                    box-shadow: 0 0 10px rgba(255, 214, 0, 0.4);
+                    transform: scale(1);
+                }
+            }
+
+            /* MINI BADGE WALL */
+            .mini-badge-row {
+                display: flex;
+                justify-content: center;
+                gap: 5px;
+                margin-top: 10px;
+                flex-wrap: wrap;
+            }
+
+            .mini-badge {
+                width: 34px;
+                /* Increased from 24px */
+                height: 34px;
+                /* Increased from 24px */
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                cursor: help;
+                transition: 0.2s;
+            }
+
+            .mini-badge:hover {
+                transform: scale(1.2);
+                background: var(--primary);
+                color: #000;
+            }
+
+            .mini-badge.locked {
+                background: rgba(255, 255, 255, 0.05);
+                color: rgba(255, 255, 255, 0.2);
+                border: 1px dashed rgba(255, 255, 255, 0.1);
+            }
+
+            .mini-badge-count {
+                font-size: 10px;
+                color: #666;
+                display: flex;
+                align-items: center;
+            }
+        </style>
+    </div>
+
+    <!-- DOCK (ALL APPS SCROLLABLE) -->
+    <!-- DOCK (ALL APPS SCROLLABLE) -->
+    <div class="dock-container">
+        <!-- 1. 科技宝箱 -->
+        <div id="newLaunchpadEntry" class="dock-icon-box" onclick="window.Launchpad.open()"
+            style="border-color:var(--primary); box-shadow:0 0 20px rgba(0,240,255,0.4); transform: scale(1.05);">
+            <div class="dock-icon-bg" style="font-size: 32px;">🚀</div>
+            <div class="dock-label" style="color:var(--primary); font-weight:bold;">科技宝箱</div>
+        </div>
+
+        <!-- 1.5 系统说明 (New Position) -->
+        <div class="dock-icon-box" onclick="if(window.startCyberTour) window.startCyberTour();" title="唤出极客操作向导"
+            style="border-color:var(--secondary); background: rgba(112, 0, 255, 0.1);">
+            <div class="dock-icon-bg" style="font-size: 28px; filter: drop-shadow(0 0 10px #7000ff);">ℹ️</div>
+            <div class="dock-label" style="color:var(--secondary); font-weight:bold;">系统向导</div>
+        </div>
+
+        <!-- 1.6 系统手册 (Cyber Manual) -->
+        <div class="dock-icon-box" onclick="if(window.startCyberManual) window.startCyberManual();" title="查阅全引擎使用说明与文档"
+            style="border-color:var(--accent); background: rgba(0, 240, 255, 0.05);">
+            <div class="dock-icon-bg" style="font-size: 28px; filter: drop-shadow(0 0 10px var(--accent));">📖</div>
+            <div class="dock-label" style="color:var(--accent); font-weight:bold;">极客手册</div>
+        </div>
+
+        <!-- 2. 个人中心 -->
+        <div class="dock-icon-box" onclick="location.href='profile.html'">
+            <div class="dock-icon-bg">👤</div>
+            <div class="dock-label">个人中心</div>
+        </div>
+
+        <!-- 3. 培养图谱 -->
+        <div class="dock-icon-box" onclick="location.href='post-4.html'">
+            <div class="dock-icon-bg">🗺️</div>
+            <div class="dock-label">培养图谱</div>
+        </div>
+
+        <!-- 4. 课程地图 -->
+        <div class="dock-icon-box" onclick="location.href='post-6.html'">
+            <div class="dock-icon-bg">📚</div>
+            <div class="dock-label">课程地图</div>
+        </div>
+
+        <!-- 5. 竞赛地图 -->
+        <div class="dock-icon-box" onclick="location.href='competition-atlas.html'">
+            <div class="dock-icon-bg">🏆</div>
+            <div class="dock-label">竞赛地图</div>
+        </div>
+
+        <!-- 6. 认知系统 -->
+        <div class="dock-icon-box" onclick="location.href='post-5.html'">
+            <div class="dock-label">认知系统</div>
+            <div class="dock-icon-bg">🧠</div>
+        </div>
+
+        <!-- 7. 学习方法 -->
+        <div class="dock-icon-box" onclick="location.href='study-methods.html'">
+            <div class="dock-icon-bg">🧠</div>
+            <div class="dock-label">学习方法</div>
+        </div>
+
+        <!-- 8. 学习中心 -->
+        <div class="dock-icon-box" onclick="location.href='learn.html'">
+            <div class="dock-icon-bg">🏫</div>
+            <div class="dock-label">学习中心</div>
+        </div>
+
+        <!-- 分割线 -->
+        <div style="width:2px; height:40px; background:rgba(255,255,255,0.1); margin:0 10px; flex-shrink:0;"></div>
+
+        <!-- 一级目录模块 -->
+        <!-- 8. 编程中心 -->
+        <div class="dock-icon-box" onclick="location.href='coding.html'">
+            <div class="dock-icon-bg">💻</div>
+            <div class="dock-label">编程中心</div>
+        </div>
+
+        <!-- API 模块 -->
+        <div class="dock-icon-box" onclick="location.href='api.html'"
+            style="border-color:#06B6D4; background: rgba(6, 182, 212, 0.1);">
+            <div class="dock-icon-bg" style="font-size: 28px;">🔗</div>
+            <div class="dock-label" style="color:#06B6D4; font-weight:bold;">API科普</div>
+        </div>
+
+        <!-- 9. AI 艺术 -->
+        <div class="dock-icon-box" onclick="location.href='ai-art.html'">
+            <div class="dock-icon-bg">🎨</div>
+            <div class="dock-label">AI 艺术</div>
+        </div>
+
+        <!-- 10. 电子电路 -->
+        <div class="dock-icon-box" onclick="location.href='circuits.html'">
+            <div class="dock-icon-bg">🔋</div>
+            <div class="dock-label">电子电路</div>
+        </div>
+
+        <!-- 11. 3D 打印 -->
+        <div class="dock-icon-box" onclick="location.href='3d-print.html'">
+            <div class="dock-icon-bg">🖨️</div>
+            <div class="dock-label">3D 打印</div>
+        </div>
+
+        <!-- 12. 航天航空 -->
+        <div class="dock-icon-box" onclick="location.href='aerospace.html'">
+            <div class="dock-icon-bg">🛸</div>
+            <div class="dock-label">航天航空</div>
+        </div>
+
+        <!-- 13. 虚拟实验 -->
+        <div class="dock-icon-box" onclick="location.href='labs.html'">
+            <div class="dock-icon-bg">🧪</div>
+            <div class="dock-label">虚拟实验</div>
+        </div>
+
+        <!-- 14. 天文宇宙 -->
+        <div class="dock-icon-box" onclick="location.href='astronomy.html'">
+            <div class="dock-icon-bg">🌌</div>
+            <div class="dock-label">天文宇宙</div>
+        </div>
+
+        <!-- 15. 生命科学 -->
+        <div class="dock-icon-box" onclick="location.href='course-life.html'">
+            <div class="dock-icon-bg">🧬</div>
+            <div class="dock-label">生命科学</div>
+        </div>
+
+        <!-- 16. 恐龙世界 -->
+        <div class="dock-icon-box" onclick="location.href='dino.html'">
+            <div class="dock-icon-bg">🦖</div>
+            <div class="dock-label">恐龙世界</div>
+        </div>
+
+        <!-- 17. 深海探索 -->
+        <div class="dock-icon-box" onclick="location.href='ocean.html'">
+            <div class="dock-icon-bg">🌊</div>
+            <div class="dock-label">深海探索</div>
+        </div>
+
+        <!-- 18. 地球科学 -->
+        <div class="dock-icon-box" onclick="location.href='earth.html'">
+            <div class="dock-icon-bg">🌍</div>
+            <div class="dock-label">地球科学</div>
+        </div>
+
+        <!-- 19. 读书观影 -->
+        <div class="dock-icon-box" onclick="location.href='library.html'">
+            <div class="dock-icon-bg">📖</div>
+            <div class="dock-label">读书观影</div>
+        </div>
+
+        <!-- 20. 知识库 -->
+        <div class="dock-icon-box" onclick="location.href='wiki.html'">
+            <div class="dock-icon-bg">📂</div>
+            <div class="dock-label">知识库</div>
+        </div>
+
+        <!-- 21. 历史探秘 -->
+        <div class="dock-icon-box" onclick="location.href='history.html'">
+            <div class="dock-icon-bg">🏛️</div>
+            <div class="dock-label">历史探秘</div>
+        </div>
+
+        <!-- 21. 打字训练 -->
+        <div class="dock-icon-box" onclick="location.href='typing.html'">
+            <div class="dock-icon-bg">⌨️</div>
+            <div class="dock-label">打字训练</div>
+        </div>
+
+        <!-- 22. 无人机 -->
+        <div class="dock-icon-box" onclick="location.href='drone.html'">
+            <div class="dock-icon-bg">🚁</div>
+            <div class="dock-label">无人机</div>
+        </div>
+
+        <!-- 23. 人工智能 -->
+        <div class="dock-icon-box" onclick="location.href='ai.html'">
+            <div class="dock-icon-bg">🤖</div>
+            <div class="dock-label">人工智能</div>
+        </div>
+
+        <!-- 23.5 升学指南 -->
+        <div class="dock-icon-box" onclick="location.href='admission-guide.html'"
+            style="border-color: #10b981; background: rgba(16, 185, 129, 0.1);">
+            <div class="dock-icon-bg" style="font-size: 28px;">🎓</div>
+            <div class="dock-label" style="color: #10b981; font-weight: bold;">升学指南</div>
+        </div>
+
+        <!-- 24. 科技英语 -->
+        <div class="dock-icon-box" onclick="location.href='english.html'">
+            <div class="dock-icon-bg">🔤</div>
+            <div class="dock-label">科技英语</div>
+        </div>
+
+        <!-- 25. 金融科技 -->
+        <div class="dock-icon-box" onclick="location.href='fintech.html'">
+            <div class="dock-icon-bg">💰</div>
+            <div class="dock-label">金融科技</div>
+        </div>
+
+        <!-- 26. 雅典娜计划 (New) -->
+        <div class="dock-icon-box" onclick="location.href='nn-xhs.html'"
+            style="border-color:#ff2442; background:rgba(255, 36, 66, 0.1);">
+            <div class="dock-icon-bg" style="font-size: 24px;">💃</div>
+            <div class="dock-label" style="color:#ff2442; font-weight:bold;">娜娜羊</div>
+        </div>
+
+        <!-- 27. 工程演示 -->
+        <div class="dock-icon-box" onclick="location.href='gongchengyanshi.html'"
+            style="border-color:#f59e0b; background:rgba(245, 158, 11, 0.1);">
+            <div class="dock-icon-bg" style="font-size: 24px;">🛡️</div>
+            <div class="dock-label" style="color:#f59e0b; font-weight:bold;">工程演示</div>
+        </div>
+
+        <script>
+            // Dedicated listener for the new Launchpad button
+            const launchBtn = document.getElementById('newLaunchpadEntry');
+            if (launchBtn) {
+                launchBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (window.Launchpad) {
+                        window.Launchpad.open();
+                    } else {
+                        console.error('Launchpad module not loaded yet.');
+                        alert('系统资源加载中，请稍后再试...');
+                        if (typeof window.Launchpad !== 'undefined') window.Launchpad.init();
+                    }
+                });
+            }
+        </script>
+    </div>
+
+
+
+
+
+    <!-- LEGACY LAUNCHPAD REMOVED - Using dynamic JS version -->
+
+
+
+    <script>
+        // --- SKILL TREE DATA ---
+        const techSubjects = [
+            // Unlocked (Basic)
+            { name: "Python", icon: "🐍", locked: false },
+            { name: "Scratch", icon: "🐱", locked: false },
+            { name: "C++", icon: "🇨", locked: false },
+            { name: "Web Dev", icon: "🌐", locked: false },
+            { name: "Logic", icon: "🧠", locked: false },
+
+            // Locked (Advanced)
+            { name: "Arduino", icon: "♾️", locked: true },
+            { name: "Java", icon: "☕", locked: true },
+            { name: "Raspberry", icon: "🍓", locked: true },
+            { name: "Linux", icon: "🐧", locked: true },
+            { name: "AI Intro", icon: "🤖", locked: true },
+            { name: "Drone", icon: "🚁", locked: true },
+            { name: "3D Print", icon: "🖨️", locked: true },
+            { name: "CAD", icon: "📐", locked: true },
+            { name: "Circuits", icon: "🔌", locked: true },
+            { name: "Sensors", icon: "📡", locked: true },
+            { name: "Robotics", icon: "🦾", locked: true },
+            { name: "Vision", icon: "👁️", locked: true },
+            { name: "NLP", icon: "💬", locked: true },
+            { name: "SQL", icon: "💾", locked: true },
+            { name: "Unity", icon: "🎮", locked: true },
+            { name: "Blender", icon: "🎨", locked: true },
+            { name: "Aerospace", icon: "🚀", locked: true },
+            { name: "Astronomy", icon: "🔭", locked: true },
+            { name: "Physics", icon: "⚛️", locked: true },
+            { name: "Biology", icon: "🧬", locked: true },
+            { name: "Chem", icon: "🧪", locked: true },
+            { name: "Network", icon: "📶", locked: true },
+            { name: "Security", icon: "🛡️", locked: true },
+            { name: "Cloud", icon: "☁️", locked: true },
+            { name: "Quantum", icon: "🌌", locked: true },
+            { name: "App Dev", icon: "📱", locked: true },
+            { name: "IoT", icon: "🏠", locked: true },
+            { name: "Military", icon: "🛡️", locked: false },
+            { name: "Typing", icon: "⌨️", locked: false },
+            { name: "Textbook", icon: "📚", locked: false }
+        ];
+
+        function renderSkillTree() {
+            const container = document.querySelector('.skill-grid');
+            if (!container) return;
+
+            container.innerHTML = techSubjects.map(sub => `
+                        <div class="skill-node ${sub.locked ? 'locked' : ''}">
+                            ${sub.locked ? '<div class="lock-badge">🔒</div>' : ''}
+                            <div class="s-icon">${sub.icon}</div>
+                            <div class="s-name">${sub.name}</div>
+                        </div>
+            `).join('');
+        }
+
+        // --- GLOBAL INTERACTION HANDLERS ---
+        // handleProfileClick is now defined in <head> for reliability.
+
+        // --- LOGIC V2.0 ---
+        function updateTime() {
+            const now = new Date();
+            const clock = document.getElementById('clock');
+            if (clock) clock.innerText = now.toLocaleTimeString();
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Plan Logic
+        function savePlan() {
+            const val = document.getElementById('plan-input').value;
+            localStorage.setItem('user_plan', val);
+            const msg = document.getElementById('save-msg');
+            msg.innerText = "DATA UPLOADED TO CLOUD";
+            setTimeout(() => msg.innerText = "", 2000);
+        }
+
+        // Load Plan
+        const savedPlan = localStorage.getItem('user_plan');
+        if (savedPlan) document.getElementById('plan-input').value = savedPlan;
+
+        // Initial Render
+        // DISABLED FOR DEV MODE TO FIX DISPLAY
+        // renderSkillTree();
+
+
+
+        // --- DYNAMIC NEWS TICKER (TITAN NEWS) ---
+        function initNewsTicker() {
+            const container = document.getElementById('news-ticker-content');
+            if (!container) return;
+
+            // Update Label
+            const labelEl = document.querySelector('.news-label');
+            if (labelEl) labelEl.innerText = 'TEEN TECH NEWS';
+
+            // Add click listener to whole ticker area
+            const tickerWrap = document.querySelector('.news-ticker-wrap');
+            if (tickerWrap) {
+                tickerWrap.style.cursor = 'pointer';
+                tickerWrap.title = 'Click to view full news';
+                tickerWrap.onclick = () => { window.location.href = 'news.html'; };
+            }
+
+            // Use data from news-data.js (TITAN_NEWS)
+            const newsItems = (typeof TITAN_NEWS !== 'undefined') ? TITAN_NEWS : [
+                { title: "月背科研新发现：嫦娥六号采集样本揭示月球地质演化奥秘", category: "科学发现" },
+                { title: "DeepSeek-V3 发布：打破大模型性能边界", category: "人工智能" }
+            ];
+
+            function renderNews(items) {
+                let html = '';
+                const getPrefix = (cat) => {
+                    const map = {
+                        '科学发现': '前沿',
+                        '人工智能': 'AI系统',
+                        '大国重器': '智能硬件',
+                        '科技进步': '软件开发',
+                        '科技人物': '业界动态',
+                        '航天航空': '空天科技',
+                        '基础科学': '理论物理',
+                        '探索宇宙': '深空探索',
+                        'AI & 编程': '算力进化',
+                        '智能硬件': '具身智能',
+                        '前沿科学': '基础突破',
+                        '数字艺术': '数字创意',
+                        '少年赛事': '竞赛动态'
+                    };
+                    return map[cat] || cat || '前方';
+                };
+
+                items.forEach(item => {
+                    const tag = getPrefix(item.category);
+                    let color = 'var(--primary)';
+                    if (tag === 'AI') color = '#8b5cf6';
+                    if (tag === '工程') color = '#f59e0b';
+                    if (tag === '人物') color = '#ef4444';
+
+                    html += `<div class="news-item"><span style="color:${color}; margin-right:8px; font-weight:bold;">[${tag}]</span> ${item.title}</div>`;
+                });
+
+                // Duplicate for infinite scroll
+                container.innerHTML = html + html + html;
+            }
+
+            renderNews(newsItems);
+        }
+
+        // Init News on Load
+        document.addEventListener('DOMContentLoaded', initNewsTicker);
+
+        // --- BACKGROUND NEURAL NETWORK ---
+        const canvas = document.getElementById('neuron-canvas');
+
+        // --- DATA SYNC LOGIC (CONNECT TO ADMIN/PROFILE) ---
+        async function updateDashboardFromStorage() {
+            // 1. User Info Sync
+            let userName = '小创客01';
+            let uid = '8848-ALPHA';
+            let currentUserEmail = null;
+
+            if (window.SubscriptionManager?.user) {
+                const u = window.SubscriptionManager.user;
+                userName = u.email.split('@')[0];
+                currentUserEmail = u.email;
+                uid = u.id.substring(0, 6).toUpperCase();
+            } else {
+                const localEmail = localStorage.getItem('current_user_email');
+                if (localEmail) {
+                    userName = localEmail.split('@')[0];
+                    currentUserEmail = localEmail;
+                    uid = 'LOCAL-USER';
+                }
+            }
+
+            const nameEl = document.querySelector('.u-name');
+            const uidEl = document.querySelector('.u-uid');
+            if (nameEl && nameEl.innerText !== userName) nameEl.innerText = userName;
+            if (uidEl && !uidEl.innerText.includes(uid)) uidEl.innerText = 'UID: ' + uid;
+
+            // 2. Growth Data Sync (Cloud Priority)
+            let d = null;
+            if (currentUserEmail && window.SubscriptionManager?.client) {
+                try {
+                    const { data: list } = await window.SubscriptionManager.client
+                        .from('user_dashboard_data')
+                        .select('*')
+                        .eq('username', currentUserEmail)
+                        .limit(1);
+                    const data = (list && list.length > 0) ? list[0] : null;
+                    if (data) {
+                        d = data;
+                        localStorage.setItem('local_dashboard_data', JSON.stringify(data));
+                    }
+                } catch (e) { }
+            }
+
+            if (!d) {
+                const localData = localStorage.getItem('local_dashboard_data');
+                if (localData) {
+                    try { d = JSON.parse(localData); } catch (e) { }
+                }
+            }
+
+            if (d) {
+                const keys = ['prog_self', 'prog_basic', 'prog_subject', 'prog_tech'];
+                const groups = document.querySelectorAll('.holo-group');
+
+                keys.forEach((k, i) => {
+                    if (groups[i]) {
+                        const val = (d[k] !== undefined && d[k] !== null) ? d[k] : 0;
+                        const labelSpan = groups[i].querySelector('.holo-label span:last-child');
+                        if (labelSpan) labelSpan.innerText = val + '%';
+                        const bar = groups[i].querySelector('.holo-bar');
+                        if (bar) bar.style.width = val + '%';
+                    }
+                });
+            }
+        }
+
+        // --- GLOBAL AVATAR FUNCTIONS ---
+        function changeAvatar() {
+            const input = document.getElementById('avatar-upload-input');
+            if (input) input.click();
+        }
+
+        async function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) return alert("请选择有效的图片文件");
+            if (file.size > 2 * 1024 * 1024) return alert("图片太大了，请选择小于 2MB 的图片");
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = async function () {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX_SIZE = 150;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                    } else {
+                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+                    try {
+                        const manager = window.SubscriptionManager;
+                        if (manager && manager.client && manager.user) {
+                            const { error } = await manager.client
+                                .from('user_dashboard_data')
+                                .update({ avatar_url: dataUrl })
+                                .eq('username', manager.user.email);
+
+                            if (error) throw error;
+                            document.getElementById('uAvatarImg').src = dataUrl;
+                            alert("头像更新成功！Avatar Updated.");
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert("Upload Failed: " + err.message);
+                    }
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // Run Sync (Once on load + Event based)
+        setTimeout(() => {
+            updateDashboardFromStorage();
+            if (typeof syncHomepageData === 'function') syncHomepageData();
+        }, 100); // Immediate
+        
+        window.addEventListener('subscription_updated', () => {
+            updateDashboardFromStorage();
+            if (typeof syncHomepageData === 'function') syncHomepageData();
+        });
+
+        const ctx = canvas.getContext('2d');
+        let w, h, particles = [];
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let animationFrameId;
+        const mouse = { x: null, y: null };
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * w;
+                this.y = Math.random() * h;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.baseSize = 1.5 + Math.random() * 1.5;
+                this.size = this.baseSize;
+            }
+            update() {
+                // Mouse interaction
+                if (mouse.x !== null && mouse.y !== null) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        const force = (150 - dist) / 1500;
+                        this.vx -= dx * force;
+                        this.vy -= dy * force;
+                        this.size = this.baseSize * 1.8;
+                    } else {
+                        this.size = this.baseSize;
+                    }
+                }
+
+                this.x += this.vx; this.y += this.vy;
+                
+                // Friction
+                this.vx *= 0.99; this.vy *= 0.99;
+
+                // Bounce
+                if (this.x < 0 || this.x > w) this.vx *= -1;
+                if (this.y < 0 || this.y > h) this.vy *= -1;
+            }
+        }
+
+        window.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        window.addEventListener('mouseleave', () => {
+            mouse.x = null; mouse.y = null;
+        });
+
+        for (let i = 0; i < 45; i++) particles.push(new Particle());
+
+        let neuronAnimFrame;
+        function animate() {
+            if (document.hidden) {
+                neuronAnimFrame = requestAnimationFrame(animate);
+                return; // Pause rendering if tab is inactive
+            }
+            ctx.clearRect(0, 0, w, h);
+            const maxDist = 120;
+            // ... (rest omitted, just changing variable name)
+
+            // Draw Connections
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < particles.length; i++) {
+                let p1 = particles[i];
+                p1.update();
+
+                // Draw nodes
+                ctx.fillStyle = 'rgba(0,240,255,0.5)';
+                ctx.beginPath(); ctx.arc(p1.x, p1.y, 2, 0, Math.PI * 2); ctx.fill();
+
+                for (let j = i + 1; j < particles.length; j++) {
+                    let p2 = particles[j];
+                    let dx = p1.x - p2.x;
+                    let dy = p1.y - p2.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxDist) {
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            neuronAnimFrame = requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Optional: restart animation immediately if tab comes back
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && neuronAnimFrame) {
+                cancelAnimationFrame(neuronAnimFrame);
+                animate();
+            }
+        });
+    </script>
+
+    <!-- TITAN OS 2.0 EVOLUTION ENGINE -->
+    <script src="assets/js/titan-evolution-engine.js"></script>
+    <script src="assets/js/onboarding-protocol.js"></script>
+
+    <!-- Module Scripts -->
+    <script src="assets/js/launchpad.js?v=2026.03.22"></script>
+    <script>
+        // Force init Launchpad if overlay doesn't exist yet
+        if (window.Launchpad) {
+            // Force init Launchpad if overlay doesn't exist yet
+            if (!document.getElementById('launchpadOverlay')) {
+                window.Launchpad.init();
+            }
+            // Populate Dock with all apps
+            window.Launchpad.initDock('.dock-container');
+        }
+    </script>
+
+
+
+
+<!-- MAC STATUS DATA SYNC -->
+
+
+<!-- TITAN AI ASSISTANT -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+</script>
+<script src="assets/js/titan-ai-assistant.js?v=2026.03.27_01"></script>
+<script src="assets/js/vfx-engine.js"></script>
+<script src="assets/js/dna-visualizer.js"></script>
+<script src="assets/js/live-vision.js"></script>
+<script src="assets/js/cyber-tour.js?v=2026.03.25"></script>
+<script src="assets/js/cyber-manual.js?v=2026.03.25"></script>
+<script src="assets/js/pwa-install.js?v=2026.03.25"></script>
+
+<!-- COMPLIANCE FOOTER -->
+<footer style="position: fixed; bottom: 0; left: 0; width: 100%; height: 26px; background: rgba(5,5,15,0.9); backdrop-filter: blur(5px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: center; align-items: center; font-size: 10px; color: #444; z-index: 10000; letter-spacing: 1px;">
+    &copy; 2026 FUTURE CLASS | TITAN TECH. ALL RIGHTS RESERVED. 
+    <a href="disclaimer.html" style="color: #666; text-decoration: none; margin-left: 20px; transition: color 0.3s;" onmouseover="this.style.color='#00f0ff'" onmouseout="this.style.color='#666'">合规信息与免责声明 (REPL Compliance)</a>
+</footer>
+</body>
+
+</html>
