@@ -1,16 +1,15 @@
 /**
- * Prompt Loader - Loads prompts from markdown files
+ * Prompt Loader - Loads prompts from precompiled TS data
  *
  * Supports:
- * - Loading prompts from templates/{promptId}/ directory
+ * - Loading prompts from templatesData.ts
  * - Snippet inclusion via {{snippet:name}} syntax
  * - Variable interpolation via {{variable}} syntax
  * - Caching for performance
  */
 
-import fs from 'fs';
-import path from 'path';
 import type { PromptId, LoadedPrompt, SnippetId } from './types';
+import { PROMPT_DATA } from './templatesData';
 import { createLogger } from '@/lib/logger';
 const log = createLogger('PromptLoader');
 
@@ -19,30 +18,20 @@ const promptCache = new Map<string, LoadedPrompt>();
 const snippetCache = new Map<string, string>();
 
 /**
- * Get the prompts directory path
- */
-function getPromptsDir(): string {
-  // In Next.js, use process.cwd() for the project root
-  return path.join(process.cwd(), 'lib', 'generation', 'prompts');
-}
-
-/**
  * Load a snippet by ID
  */
 export function loadSnippet(snippetId: SnippetId): string {
   const cached = snippetCache.get(snippetId);
   if (cached) return cached;
 
-  const snippetPath = path.join(getPromptsDir(), 'snippets', `${snippetId}.md`);
-
-  try {
-    const content = fs.readFileSync(snippetPath, 'utf-8').trim();
-    snippetCache.set(snippetId, content);
-    return content;
-  } catch {
+  const content = PROMPT_DATA.snippets[snippetId as keyof typeof PROMPT_DATA.snippets];
+  if (content === undefined) {
     log.warn(`Snippet not found: ${snippetId}`);
     return `{{snippet:${snippetId}}}`;
   }
+
+  snippetCache.set(snippetId, content as string);
+  return content as string;
 }
 
 /**
@@ -62,22 +51,20 @@ export function loadPrompt(promptId: PromptId): LoadedPrompt | null {
   const cached = promptCache.get(promptId);
   if (cached) return cached;
 
-  const promptDir = path.join(getPromptsDir(), 'templates', promptId);
+  const templateData = PROMPT_DATA.templates[promptId as keyof typeof PROMPT_DATA.templates];
+
+  if (!templateData || !templateData.system) {
+    log.error(`Failed to load prompt ${promptId}: not found in templatesData`);
+    return null;
+  }
 
   try {
-    // Load system.md
-    const systemPath = path.join(promptDir, 'system.md');
-    let systemPrompt = fs.readFileSync(systemPath, 'utf-8').trim();
+    let systemPrompt = templateData.system;
     systemPrompt = processSnippets(systemPrompt);
 
-    // Load user.md (optional, may not exist)
-    const userPath = path.join(promptDir, 'user.md');
-    let userPromptTemplate = '';
-    try {
-      userPromptTemplate = fs.readFileSync(userPath, 'utf-8').trim();
+    let userPromptTemplate = templateData.user || '';
+    if (userPromptTemplate) {
       userPromptTemplate = processSnippets(userPromptTemplate);
-    } catch {
-      // user.md is optional
     }
 
     const loaded: LoadedPrompt = {
