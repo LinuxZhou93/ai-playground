@@ -348,6 +348,13 @@ ${requirement}
   const store = createInMemoryStore(stage);
   const api = createStageAPI(store);
 
+  // 🚀 [Titan Tech] Progressive Sync: Immediately persist the empty stage so cross-device sync works early
+  try {
+    await persistClassroom({ id: stageId, stage, scenes: [] }, options.baseUrl);
+  } catch (err) {
+    log.error('Failed to sync initial stage', err);
+  }
+
   log.info('Stage 2: Generating scene content and actions...');
   let generatedScenes = 0;
 
@@ -389,6 +396,14 @@ ${requirement}
 
     generatedScenes += 1;
     const progressEnd = 30 + Math.floor(((index + 1) / Math.max(outlines.length, 1)) * 60);
+
+    // 🚀 [Titan Tech] Progressive Sync: sync after every scene finishes
+    try {
+      await persistClassroom({ id: stageId, stage, scenes: store.getState().scenes }, options.baseUrl);
+    } catch (err) {
+      log.warn(`Failed to sync stage progressing at scene ${generatedScenes}`, err);
+    }
+
     await options.onProgress?.({
       step: 'generating_scenes',
       progress: Math.min(progressEnd, 90),
@@ -419,6 +434,9 @@ ${requirement}
       const mediaMap = await generateMediaForClassroom(outlines, stageId, options.baseUrl);
       replaceMediaPlaceholders(scenes, mediaMap);
       log.info(`Media generation complete: ${Object.keys(mediaMap).length} files`);
+      
+      // 🚀 [Titan Tech] Progressive Sync: flush media URLs so devices load images
+      await persistClassroom({ id: stageId, stage, scenes }, options.baseUrl);
     } catch (err) {
       log.warn('Media generation phase failed, continuing:', err);
     }
@@ -437,6 +455,9 @@ ${requirement}
     try {
       await generateTTSForClassroom(scenes, stageId, options.baseUrl);
       log.info('TTS generation complete');
+      
+      // 🚀 [Titan Tech] Progressive Sync: flush TTS Audio URLs
+      await persistClassroom({ id: stageId, stage, scenes }, options.baseUrl);
     } catch (err) {
       log.warn('TTS generation phase failed, continuing:', err);
     }
