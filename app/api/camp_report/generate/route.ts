@@ -5,6 +5,8 @@ import { httpsRequest } from '@/lib/server/https-request';
 const supabaseUrl = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
 
+export const runtime = 'edge';
+
 export async function POST(req: Request) {
   try {
     const data = await req.json();
@@ -68,11 +70,8 @@ ${potential_improvements}
 请立即按照JSON格式进行深度分析与生成。
     `;
 
-    const geminiKey = resolveApiKey('google');
-    let backgraceKey = geminiKey;
-    if (!backgraceKey) {
-        backgraceKey = process.env.OPENAI_API_KEY || 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
-    }
+    // Static fallback to Backgrace proxy key
+    let backgraceKey = process.env.OPENAI_API_KEY || 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
 
     const openaiPayload = {
         model: 'gemini-3-flash-preview',
@@ -84,32 +83,35 @@ ${potential_improvements}
         response_format: { type: 'json_object' }
     };
 
-    const completionResponse = await httpsRequest('https://backgrace.com/v1/chat/completions', {
+    const completionResponse = await fetch('https://backgrace.com/v1/chat/completions', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${backgraceKey}`
-        }
-    }, openaiPayload);
+        },
+        body: JSON.stringify(openaiPayload)
+    });
 
-    if (completionResponse.error) {
-        throw new Error(completionResponse.error.message || JSON.stringify(completionResponse.error));
+    if (!completionResponse.ok) {
+        throw new Error(`OpenAI API failed: ${completionResponse.statusText}`);
     }
 
-    let contentStr = completionResponse.choices?.[0]?.message?.content || '{}';
+    const openaiData = await completionResponse.json();
+
+    let contentStr = openaiData.choices?.[0]?.message?.content || '{}';
     contentStr = contentStr.replace(/```json/g, '').replace(/```/g, '').trim();
 
     const parsedOutput = JSON.parse(contentStr);
 
-    const supResData = await httpsRequest(`${supabaseUrl}/rest/v1/camp_evaluations`, {
+    const supResData = await fetch(`${supabaseUrl}/rest/v1/camp_evaluations`, {
       method: 'POST',
       headers: {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
-      }
-    }, {
+      },
+      body: JSON.stringify({
           student_id, student_name, camp_name,
           focus_score, dexterity_score, logic_score,
           resilience_score, self_management_score, social_score,
@@ -118,9 +120,15 @@ ${potential_improvements}
           photo_data,
           ai_overall_report: parsedOutput.ai_overall_report,
           ai_recommendations: parsedOutput.ai_recommendations,
+      })
     });
+    
+    if (!supResData.ok) {
+        throw new Error(`Supabase API failed: ${supResData.statusText}`);
+    }
 
-    const insertedData = Array.isArray(supResData) ? supResData[0] : supResData;
+    const insertedJson = await supResData.json();
+    const insertedData = Array.isArray(insertedJson) ? insertedJson[0] : insertedJson;
 
     return NextResponse.json({
       success: true,
