@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  turbopack: {},
   outputFileTracingIncludes: {
     '/api/**/*': ['./lib/generation/prompts/**/*'],
   },
