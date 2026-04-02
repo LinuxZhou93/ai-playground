@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { resolveApiKey } from '@/lib/server/provider-config';
+import { httpsRequest } from '@/lib/server/https-request';
 
 const supabaseUrl = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
-
-export const maxDuration = 60; // Prevent Vercel timeout
 
 export async function POST(req: Request) {
   try {
@@ -74,8 +73,6 @@ ${potential_improvements}
     if (!backgraceKey) {
         backgraceKey = process.env.OPENAI_API_KEY || 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
     }
-
-    const { httpsRequest } = await import('@/lib/server/https-request');
 
     const openaiPayload = {
         model: 'gemini-3-flash-preview',
