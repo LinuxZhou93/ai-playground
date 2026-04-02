@@ -4,6 +4,8 @@ import { resolveApiKey } from '@/lib/server/provider-config';
 const supabaseUrl = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
 
+export const maxDuration = 60; // Prevent Vercel timeout
+
 export async function POST(req: Request) {
   try {
     const data = await req.json();
@@ -73,28 +75,34 @@ ${potential_improvements}
         backgraceKey = process.env.OPENAI_API_KEY || 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
     }
 
-    const { OpenAI } = await import('openai');
-    const openai = new OpenAI({
-      baseURL: 'https://backgrace.com/v1',
-      apiKey: backgraceKey,
-    });
+    const { httpsRequest } = await import('@/lib/server/https-request');
 
-    const completion = await openai.chat.completions.create({
-      model: 'gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' }
-    });
+    const openaiPayload = {
+        model: 'gemini-3-flash-preview',
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+    };
 
-    let contentStr = completion.choices[0]?.message?.content || '{}';
+    const completionResponse = await httpsRequest('https://backgrace.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${backgraceKey}`
+        }
+    }, openaiPayload);
+
+    if (completionResponse.error) {
+        throw new Error(completionResponse.error.message || JSON.stringify(completionResponse.error));
+    }
+
+    let contentStr = completionResponse.choices?.[0]?.message?.content || '{}';
     contentStr = contentStr.replace(/```json/g, '').replace(/```/g, '').trim();
 
     const parsedOutput = JSON.parse(contentStr);
-
-    const { httpsRequest } = await import('@/lib/server/https-request');
 
     const supResData = await httpsRequest(`${supabaseUrl}/rest/v1/camp_evaluations`, {
       method: 'POST',
