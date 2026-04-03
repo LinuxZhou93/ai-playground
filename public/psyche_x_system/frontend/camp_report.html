@@ -8,8 +8,9 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Chart.js for radar chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- html2pdf for PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- html2canvas + jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -33,9 +34,9 @@
         
         .page-2 {
             width: 800px;
-            min-height: 1131px;
+            height: 1131px;
+            overflow: hidden;
             position: relative;
-            padding-bottom: 2rem;
         }
 
         [contenteditable="true"]:hover {
@@ -75,7 +76,7 @@
     </div>
 
     <!-- Wrapper for PDF snapshot -->
-    <div id="pdf-wrapper" class="hidden py-24">
+    <div id="pdf-wrapper" class="hidden">
         <div id="pdf-content" class="max-w-[800px] mx-auto w-full bg-white shadow-2xl">
             
             <!-- ===================== PAGE 1 ===================== -->
@@ -420,7 +421,7 @@
         });
 
         // PDF Generation Trigger
-        document.getElementById('downloadPdfBtn').addEventListener('click', (e) => {
+        document.getElementById('downloadPdfBtn').addEventListener('click', async (e) => {
             e.preventDefault();
             const element = document.getElementById('pdf-content');
             let studentName = document.getElementById('display-name').innerText;
@@ -435,51 +436,45 @@
             const cleanName = studentName.replace(/[^\w\u4e00-\u9fa5]/gi, "");
             const finalFilename = "Titan_Camp_Report.pdf";
 
-            const opt = {
-                margin:       [0, 0],
-                filename:     finalFilename,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true, 
-                    logging: false,
-                    scrollY: 0,
-                    windowWidth: 800
-                },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
             const btn = document.getElementById('downloadPdfBtn');
             const orgHtml = btn.innerHTML;
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 正在排版和导出...`;
             lucide.createIcons();
             btn.disabled = true;
 
-            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function(pdf) {
-                // Get raw PDF blob from jsPDF directly
-                const rawBlob = pdf.output('blob');
-                // Force correct MIME type
-                const pdfBlob = new Blob([rawBlob], { type: 'application/pdf' });
-                const url = URL.createObjectURL(pdfBlob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = finalFilename;
-                a.type = 'application/pdf';
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(function() {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 200);
+            try {
+                const page1El = document.querySelector('.page-1');
+                const page2El = document.querySelector('.page-2');
+                const canvasOpts = { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: 800, backgroundColor: '#ffffff' };
+
+                const [canvas1, canvas2] = await Promise.all([
+                    html2canvas(page1El, canvasOpts),
+                    html2canvas(page2El, canvasOpts)
+                ]);
+
+                const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+                const pdfW = 210;
+                const pdfH = 297;
+
+                // Page 1
+                const img1 = canvas1.toDataURL('image/jpeg', 0.95);
+                pdf.addImage(img1, 'JPEG', 0, 0, pdfW, pdfH);
+
+                // Page 2
+                pdf.addPage();
+                const img2 = canvas2.toDataURL('image/jpeg', 0.95);
+                pdf.addImage(img2, 'JPEG', 0, 0, pdfW, pdfH);
+
+                pdf.save(finalFilename);
+
                 btn.innerHTML = orgHtml;
                 btn.disabled = false;
                 lucide.createIcons();
-            }).catch(function(err) {
+            } catch(err) {
                 alert("导出失败: " + err);
                 btn.innerHTML = orgHtml;
                 btn.disabled = false;
-            });
+            }
         });
 
         // Init
