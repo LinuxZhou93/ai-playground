@@ -465,7 +465,16 @@
                 const img2 = canvas2.toDataURL('image/jpeg', 0.95);
                 pdf.addImage(img2, 'JPEG', 0, 0, pdfW, pdfH);
 
-                pdf.save(finalFilename);
+                // Manual download to force correct filename on HTTPS
+                const pdfBlob = pdf.output('blob');
+                const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = finalFilename;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 300);
 
                 btn.innerHTML = orgHtml;
                 btn.disabled = false;
