@@ -445,15 +445,20 @@
 
                 // 5. Force Download with Correct Filename
                 const blob = pdf.output('blob');
+                const blobUrl = URL.createObjectURL(blob);
                 const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
+                link.href = blobUrl;
                 link.download = fileName;
+                document.body.appendChild(link); // CRITICAL: Chrome requires link in DOM for named downloads
                 link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
                 // 6. Restore UI
                 btn.disabled = false;
                 btn.innerHTML = originalContent;
                 lucide.createIcons();
+                window.TitanPDF_Version = "1.0.2"; // For user verification
             } catch (error) {
                 console.error('PDF Export Error:', error);
                 alert('导出失败，请检查控制台。');
