@@ -13,6 +13,17 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // 🔗 URL 兼容层：让 /*.html 自动转发到 /resources/*.html
+  // 用户可以直接访问 /profile.html，实际由 /resources/profile.html 提供
+  async rewrites() {
+    return [
+      {
+        source: '/:path*.html',
+        destination: '/resources/:path*.html',
+      },
+    ];
+  },
+  turbopack: {},
   webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       // Completely exclude undici from client bundle
