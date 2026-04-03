@@ -45,12 +45,31 @@
             color: #0f766e;
         }
 
-        /* 隐藏打印干扰元素 */
+        /* === 极客 A4 打印完美对齐优化 (使用浏览器原生另存为 PDF) === */
         @media print {
-            body { background: white !important; }
+            @page { size: A4 portrait; margin: 0; }
+            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             #loading, .fixed, .pointer-events-none, #reportPhotoInput { display: none !important; }
-            #pdf-content { box-shadow: none !important; margin: 0 !important; }
-            .pdf-page { box-shadow: none !important; page-break-after: always; }
+            
+            #pdf-wrapper { display: block !important; padding: 0 !important; margin: 0 !important; opacity: 1 !important; visibility: visible !important; position: static !important; }
+            #pdf-content { box-shadow: none !important; margin: 0 auto !important; width: 210mm !important; border: none !important; }
+            
+            .pdf-page { 
+                width: 210mm !important; 
+                height: 296.5mm !important; /* 留出极小冗余防止跨页漂移 */
+                margin: 0 !important; 
+                padding: 15mm !important; 
+                box-shadow: none !important;
+                page-break-after: always !important; 
+                page-break-inside: avoid !important;
+                overflow: hidden !important;
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important;
+            }
+            .pdf-page:last-child { page-break-after: auto !important; }
+
+            /* 雷达图打印适配 */
+            #radarChart { max-width: 100% !important; max-height: 480px !important; }
         }
     </style>
 </head>
@@ -308,7 +327,6 @@
             // Hide loading, show wrapper
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('pdf-wrapper').classList.remove('hidden');
-            document.getElementById('pdf-wrapper').classList.remove('hidden');
 
             // Set basic info
             document.getElementById('display-name').innerText = data.student_name;
@@ -441,60 +459,26 @@
             reader.readAsDataURL(file);
         });
 
-        // PDF Export Professional: 使用 html2pdf.js 高清模式
-        document.getElementById('downloadPdfBtn').addEventListener('click', async (e) => {
+        // PDF Export Professional: 此次回归浏览器原生打印功能，配合 A4 媒体查询
+        document.getElementById('downloadPdfBtn').addEventListener('click', (e) => {
             e.preventDefault();
-            const btn = document.getElementById('downloadPdfBtn');
-            const studentName = document.getElementById('display-name')?.innerText || 'Student';
             
-            // UI Feedback
-            const originalBtnContent = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 正在高清排版...`;
-            btn.classList.add('opacity-70', 'cursor-not-allowed');
-
-            // 清除编辑态样式 (为了捕捉最纯净的画面)
+            // 清除编辑态样式
             document.querySelectorAll('[contenteditable="true"]').forEach(el => {
                 el.style.outline = 'none';
                 el.style.backgroundColor = 'transparent';
             });
 
-            // 预留一帧渲染时间，确保内容在内存中已完全 Paint (针对 html2pdf 的特殊性)
-            // 先锁定 A4 到屏幕顶部，捕获完再恢复，这能最稳定地解决“白屏”问题
-            const wrapper = document.getElementById('pdf-wrapper');
-            const originalScroll = window.scrollY;
-            window.scrollTo(0, 0);
-            
-            await new Promise(r => setTimeout(r, 600));
-            const element = document.getElementById('pdf-content');
+            // 设置页面标题为文件名（Chrome 打印/另存为时的主文件名）
+            const studentName = document.getElementById('display-name')?.innerText || 'Student';
+            const originalTitle = document.title;
+            document.title = `Titan_Report_${studentName.trim()}`;
 
-            // 针对 html2pdf 的精密选项 (A4 锁定 + 强制分页模式)
-            const opt = {
-                margin:       0,
-                filename:     `Titan_Camp_Report_${studentName.trim()}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true, 
-                    logging: false,
-                    letterRendering: true,
-                    windowWidth: 794 
-                },
-                jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' },
-                pagebreak:    { mode: 'css' } // 严格按照 CSS 的 pdf-page-break 分页
-            };
+            // 调用原生打印功能
+            window.print();
 
-            // 执行转换
-            try {
-                await html2pdf().set(opt).from(element).save();
-                console.log("PDF Export Success");
-            } catch (err) {
-                console.error("PDF Export Error:", err);
-                alert("导出失败，请检查网络或刷新重试: " + err.message);
-            } finally {
-                btn.innerHTML = originalBtnContent;
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
-                lucide.createIcons();
-            }
+            // 打印后恢复标题
+            document.title = originalTitle;
         });
 
         // Init
