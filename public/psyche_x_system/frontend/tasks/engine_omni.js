@@ -531,7 +531,38 @@ document.getElementById('btn-download-pdf').addEventListener('click', async () =
     btn.innerText = "正在编译数据 (50%)...";
     btn.disabled = true;
 
-    const builder = document.getElementById('pdf-master-container');
+    // Calculated TCQ
+    const scores = Object.values(window.currentSummary).map(s => s.score);
+    const avgScore = scores.reduce((a,b)=>a+b, 0) / scores.length;
+    const tcq = Math.round((avgScore * 0.8) + 60); // Professional logic baseline
+
+    // Image Pre-processing for CORS Safety
+    let finalPhotoHtml = '';
+    if (reportData.photoUrl && reportData.photoUrl !== "skipped") {
+        try {
+            // Attempt to fetch and convert to base64 if it's a URL
+            if (reportData.photoUrl.startsWith('http')) {
+                const imgRes = await fetch(reportData.photoUrl, { mode: 'cors' });
+                const blob = await imgRes.blob();
+                const b64 = await new Promise(r => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => r(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+                finalPhotoHtml = `<img src="${b64}" class="w-full h-full object-cover">`;
+            } else {
+                finalPhotoHtml = `<img src="${reportData.photoUrl}" class="w-full h-full object-cover">`;
+            }
+        } catch (e) {
+            console.error("CORS proxy fail, fallback to direct img with crossOrigin attr", e);
+            finalPhotoHtml = `<img src="${reportData.photoUrl}" crossOrigin="anonymous" class="w-full h-full object-cover">`;
+        }
+    } else {
+        finalPhotoHtml = `<div class="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-indigo-400">
+            <i data-lucide="user-square-2" class="w-16 h-16 opacity-30"></i>
+        </div>`;
+    }
+
     builder.innerHTML = `
         <style>
             .pdf-page { width: 794px; height: 1123px; background-color: #020617; color: white; padding: 60px; position: relative; display: flex; flex-direction: column; box-sizing: border-box; }
@@ -540,11 +571,6 @@ document.getElementById('btn-download-pdf').addEventListener('click', async () =
             .label-mono { font-family: monospace; font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; }
         </style>
     `;
-    
-    // Calculated TCQ
-    const scores = Object.values(window.currentSummary).map(s => s.score);
-    const avgScore = scores.reduce((a,b)=>a+b, 0) / scores.length;
-    const tcq = Math.round((avgScore * 0.8) + 60); // Professional logic baseline
 
     // Page 1: Cover
     const cover = document.createElement('div');
@@ -555,8 +581,8 @@ document.getElementById('btn-download-pdf').addEventListener('click', async () =
             <div class="font-mono text-xs opacity-50">REF: ${Date.now()}</div>
         </div>
         <div class="text-center">
-            <div class="w-32 h-32 mx-auto mb-10 border-4 border-double border-indigo-500/40 rounded-full flex items-center justify-center">
-                <div class="w-20 h-20 bg-indigo-600/20 rounded-full animate-pulse"></div>
+            <div class="w-32 h-32 mx-auto mb-10 border-4 border-double border-indigo-500/40 rounded-full flex items-center justify-center overflow-hidden">
+                ${finalPhotoHtml}
             </div>
             <h1 class="text-7xl font-black italic tracking-tighter mb-4">NEURAL REPORT</h1>
             <div class="h-1 w-24 bg-indigo-500 mx-auto mb-10"></div>
@@ -762,6 +788,11 @@ document.getElementById('btn-download-pdf').addEventListener('click', async () =
     html2pdf().set(opt).from(builder).save().then(() => {
         builder.style.position = 'absolute';
         builder.style.left = '-9999px';
+        btn.innerText = "提取深维 8页 PDF 档案";
+        btn.disabled = false;
+    }).catch(err => {
+        console.error("PDF Export failed:", err);
+        alert("导出失败: " + err.message);
         btn.innerText = "提取深维 8页 PDF 档案";
         btn.disabled = false;
     });
