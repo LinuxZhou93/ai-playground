@@ -13,10 +13,15 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // 🔗 URL 兼容层：让 /*.html 自动转发到 /resources/*.html
-  // 用户可以直接访问 /profile.html，实际由 /resources/profile.html 提供
+  // 🔗 URL 兼容层：自动转发，让所有页面都能通过短路径访问
   async rewrites() {
     return [
+      // /frontend/*.html -> /psyche_x_system/frontend/*.html（脑力测评系统）
+      {
+        source: '/frontend/:path*',
+        destination: '/psyche_x_system/frontend/:path*',
+      },
+      // /*.html -> /resources/*.html（主站700+页面）
       {
         source: '/:path*.html',
         destination: '/resources/:path*.html',
