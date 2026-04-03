@@ -78,8 +78,8 @@
         <h2 class="mt-6 text-xl font-bold tracking-widest text-cyan-400">正在调取多维观察数据...</h2>
     </div>
 
-    <!-- Wrapper for PDF snapshot - No padding to avoid offsets -->
-    <div id="pdf-wrapper" class="hidden py-12">
+    <!-- Wrapper for PDF snapshot - Use opacity/position instead of 'hidden' to ensure html2canvas can 'see' it for capture -->
+    <div id="pdf-wrapper" class="opacity-0 pointer-events-none fixed -z-50" style="top: 10000px;">
         <div id="pdf-content" class="w-[794px] mx-auto bg-white">
             
             <!-- ===================== PAGE 1 (794x1123) ===================== -->
@@ -457,11 +457,11 @@
                 el.style.backgroundColor = 'transparent';
             });
 
-            // 确保内容可见用于捕捉
-            document.getElementById('pdf-wrapper').classList.remove('hidden');
+            // 预留一帧渲染时间，确保内容在内存中已完全 Paint
+            await new Promise(r => setTimeout(r, 500));
             const element = document.getElementById('pdf-content');
 
-            // 针对 html2pdf 的精密选项 (A4 锁定)
+            // 针对 html2pdf 的精密选项 (A4 锁定 + 强制分页模式)
             const opt = {
                 margin:       0,
                 filename:     `Titan_Camp_Report_${studentName.trim()}.pdf`,
@@ -473,7 +473,8 @@
                     letterRendering: true,
                     windowWidth: 794 
                 },
-                jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+                jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' },
+                pagebreak:    { mode: 'css' } // 严格按照 CSS 的 pdf-page-break 分页
             };
 
             // 执行转换
