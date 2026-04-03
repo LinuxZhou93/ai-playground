@@ -230,7 +230,7 @@
 
                 <!-- Teacher Observation Cards -->
                 <div class="grid grid-cols-1 gap-6 mb-10">
-                    <!-- Highglights -->
+                    <!-- Highlights (闪光时刻) -->
                     <div class="bg-emerald-50 rounded-3xl p-6 border border-emerald-100 relative overflow-hidden flex flex-col justify-center">
                         <h4 class="text-emerald-800 font-black text-xl mb-1 flex items-center gap-2">
                             <i data-lucide="zap" class="text-emerald-500 w-6 h-6"></i> 本次营地闪光时刻
@@ -238,23 +238,23 @@
                         <p class="text-xs text-emerald-600/80 mb-4 font-normal tracking-wide">由专业导师全程驻场捕捉，记录孩子在硬核实操或逻辑攻坚时最令人惊喜的超常天赋与高光表现。</p>
                         <div class="text-emerald-700 leading-relaxed font-medium" id="display-highlights" contenteditable="true">暂无记录</div>
                     </div>
-                    
-                    <!-- Improvements -->
-                    <div class="bg-amber-50 rounded-3xl p-6 border border-amber-100 relative overflow-hidden flex flex-col justify-center">
-                        <h4 class="text-amber-800 font-black text-xl mb-1 flex items-center gap-2">
-                            <i data-lucide="compass" class="text-amber-500 w-6 h-6"></i> 进阶成长空间
-                        </h4>
-                        <p class="text-xs text-amber-600/80 mb-4 font-normal tracking-wide">基于工程实践中的木桶效应评估，客观揭示孩子当前技能池或底层习惯中易受限的短板，定位未来系统性成长的突破锚点。</p>
-                        <div class="text-amber-700 leading-relaxed font-medium" id="display-hooks" contenteditable="true">暂无记录</div>
-                    </div>
                 </div>
             </div>
 
             <!-- ===================== PAGE 4 (794x1123) ===================== -->
-            <div class="pdf-page pt-12 pb-16 px-12 relative">
+            <div class="pdf-page pt-12 pb-16 px-12 relative flex flex-col">
                 
+                <!-- Potential Improvements (进阶成长空间) - Moved to P4 for scientific flow -->
+                <div class="bg-amber-50 rounded-3xl p-6 border border-amber-100 relative overflow-hidden flex flex-col justify-center mb-8">
+                    <h4 class="text-amber-800 font-black text-xl mb-1 flex items-center gap-2">
+                        <i data-lucide="compass" class="text-amber-500 w-6 h-6"></i> 进阶成长空间 (核心突破点)
+                    </h4>
+                    <p class="text-xs text-amber-600/80 mb-4 font-normal tracking-wide">基于工程实践中的木桶效应评估，客观揭示孩子当前技能池中易受限的短板，定位未来成长的突破锚点。</p>
+                    <div class="text-amber-700 leading-relaxed font-medium" id="display-hooks" contenteditable="true">暂无记录</div>
+                </div>
+
                 <!-- Expert Long Term Recommendations -->
-                <div class="bg-slate-900 rounded-[2rem] p-8 text-white relative shadow-2xl">
+                <div class="bg-slate-900 rounded-[2rem] p-8 text-white relative shadow-2xl flex-grow mb-12">
                     <div class="absolute inset-0 bg-gradient-to-r from-indigo-900 to-slate-900 opacity-50 rounded-[2rem]"></div>
                     <div class="relative z-10">
                         <h3 class="text-2xl font-black text-white mb-6 flex items-center gap-3">
@@ -267,6 +267,14 @@
                     </div>
                 </div>
 
+                <!-- Professional Footer Page 4 -->
+                <div class="mt-auto border-t border-slate-100 pt-6 flex justify-between items-center text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 bg-indigo-600 rounded flex items-center justify-center text-white text-[10px] font-bold italic">T</div>
+                        <span class="text-[10px] font-bold tracking-widest uppercase">TITAN Psyche-X Engine v2.0 Professional</span>
+                    </div>
+                    <div class="text-[10px] font-mono">PAGE 04 / 04</div>
+                </div>
             </div>
         </div>
     </div>
@@ -432,30 +440,54 @@
             reader.readAsDataURL(file);
         });
 
-        // PDF Export: 使用浏览器原生打印功能 (Cmd+P → 另存为PDF)
-        document.getElementById('downloadPdfBtn').addEventListener('click', (e) => {
+        // PDF Export Professional: 使用 html2pdf.js 高清模式
+        document.getElementById('downloadPdfBtn').addEventListener('click', async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('downloadPdfBtn');
+            const studentName = document.getElementById('display-name')?.innerText || 'Student';
             
-            // 清除编辑态样式
+            // UI Feedback
+            const originalBtnContent = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 正在高清排版...`;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+
+            // 清除编辑态样式 (为了捕捉最纯净的画面)
             document.querySelectorAll('[contenteditable="true"]').forEach(el => {
                 el.style.outline = 'none';
                 el.style.backgroundColor = 'transparent';
             });
 
-            // 设置页面标题为文件名（Chrome 打印保存 PDF 时会用标题作为默认文件名）
-            const studentName = document.getElementById('display-name')?.innerText || 'Student';
-            const originalTitle = document.title;
-            document.title = `Titan_Report_${studentName.trim()}`;
-
-            // 确保 PDF 内容可见
+            // 确保内容可见用于捕捉
             document.getElementById('pdf-wrapper').classList.remove('hidden');
-            
-            // 延迟一帧让布局刷新后再打印
-            requestAnimationFrame(() => {
-                window.print();
-                // 打印完成后恢复
-                document.title = originalTitle;
-            });
+            const element = document.getElementById('pdf-content');
+
+            // 针对 html2pdf 的精密选项 (A4 锁定)
+            const opt = {
+                margin:       0,
+                filename:     `Titan_Camp_Report_${studentName.trim()}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true, 
+                    logging: false,
+                    letterRendering: true,
+                    windowWidth: 794 
+                },
+                jsPDF:        { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+            };
+
+            // 执行转换
+            try {
+                await html2pdf().set(opt).from(element).save();
+                console.log("PDF Export Success");
+            } catch (err) {
+                console.error("PDF Export Error:", err);
+                alert("导出失败，请检查网络或刷新重试: " + err.message);
+            } finally {
+                btn.innerHTML = originalBtnContent;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                lucide.createIcons();
+            }
         });
 
         // Init
