@@ -8,10 +8,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Chart.js for radar chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- PDF Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- html2pdf for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -20,21 +18,13 @@
             background-color: #0f172a;
             background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231e293b' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
-        #pdf-content { 
-            background: white; 
-            width: 800px;
-            margin: 0 auto;
-        }
-        .page-1, .page-2 {
-            width: 800px;
-            height: 1131px;
-            overflow: hidden;
-            position: relative;
-            background: white;
-        }
+        #pdf-content { background: white; }
         [contenteditable="true"]:hover {
             outline: 2px dashed #93c5fd; background-color: rgba(239, 246, 255, 0.5); border-radius: 4px; cursor: text;
         }
+        /* Page break class for html2pdf */
+        .page-break { page-break-before: always; }
+        
         .skill-tag {
             background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
             border: 1px solid #99f6e4;
@@ -67,7 +57,7 @@
     </div>
 
     <!-- Wrapper for PDF snapshot -->
-    <div id="pdf-wrapper" class="hidden">
+    <div id="pdf-wrapper" class="hidden py-24">
         <div id="pdf-content" class="max-w-[800px] mx-auto w-full bg-white shadow-2xl">
             
             <!-- ===================== PAGE 1 ===================== -->
@@ -182,7 +172,7 @@
             </div>
 
             <!-- Page Break For PDF -->
-            <div class="html2pdf__page-break"></div>
+            <div class="page-break"></div>
 
             <!-- ===================== PAGE 2 ===================== -->
             <div class="page-2 bg-white pb-16 px-12 pt-12 relative min-h-[1100px]">
@@ -412,58 +402,44 @@
         });
 
         // PDF Generation Trigger
-        // ==========================================
-        // NEW REDESIGNED PDF EXPORT (FROM SCRATCH)
-        // ==========================================
-        document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+        document.getElementById('downloadPdfBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            const element = document.getElementById('pdf-content');
+            let studentName = document.getElementById('display-name').innerText;
+            if (!studentName || studentName === '--') studentName = 'student';
+            
+            // Clean editable UI before print
+            document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+                el.style.outline = 'none';
+                el.style.backgroundColor = 'transparent';
+            });
+
+            const cleanName = studentName.replace(/[^\w\u4e00-\u9fa5]/gi, "");
+            const finalFilename = "Titan_Camp_Report.pdf";
+
+            const opt = {
+                margin:       [0, 0], // Margin in mm (A4)
+                filename:     finalFilename,
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
             const btn = document.getElementById('downloadPdfBtn');
-            const originalContent = btn.innerHTML;
-            const studentName = document.getElementById('display-name')?.innerText || 'Student';
-            const fileName = `Titan_Report_${studentName.trim()}.pdf`;
+            const orgHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 正在排版和导出...`;
+            lucide.createIcons();
+            btn.disabled = true;
 
-            try {
-                // 1. Loading State
-                btn.disabled = true;
-                btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 排版中...`;
-                lucide.createIcons();
-
-                // 2. Setup PDF (A4 Portrait)
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-
-                // 3. Render Page 1
-                const page1 = document.querySelector('.page-1');
-                const canvas1 = await html2canvas(page1, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-                pdf.addImage(canvas1.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pdfWidth, pdfHeight);
-
-                // 4. Render Page 2
-                pdf.addPage();
-                const page2 = document.querySelector('.page-2');
-                const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-                pdf.addImage(canvas2.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pdfWidth, pdfHeight);
-
-                // 5. Download via Data URI (bypasses Chrome blob UUID issue)
-                const pdfDataUri = pdf.output('datauristring');
-                const link = document.createElement('a');
-                link.href = pdfDataUri;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                // 6. Restore UI
+            html2pdf().set(opt).from(element).save(finalFilename).then(() => {
+                btn.innerHTML = orgHtml;
                 btn.disabled = false;
-                btn.innerHTML = originalContent;
                 lucide.createIcons();
-            } catch (error) {
-                console.error('PDF Export Error:', error);
-                alert('导出失败，请检查控制台。');
+            }).catch(err => {
+                alert("导出失败: " + err);
+                btn.innerHTML = orgHtml;
                 btn.disabled = false;
-                btn.innerHTML = originalContent;
-                lucide.createIcons();
-            }
+            });
         });
 
         // Init
