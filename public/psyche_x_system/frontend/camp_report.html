@@ -444,9 +444,14 @@
                 const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
                 pdf.addImage(canvas2.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
-                // 5. Download using FileSaver.js (most reliable cross-browser method)
-                const blob = pdf.output('blob');
-                saveAs(blob, fileName);
+                // 5. Download via Data URI (bypasses Chrome blob UUID issue)
+                const pdfDataUri = pdf.output('datauristring');
+                const link = document.createElement('a');
+                link.href = pdfDataUri;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
 
                 // 6. Restore UI
                 btn.disabled = false;
