@@ -455,11 +455,27 @@
             lucide.createIcons();
             btn.disabled = true;
 
-            html2pdf().set(opt).from(element).save(finalFilename).then(() => {
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function(pdf) {
+                // Get raw PDF blob from jsPDF directly
+                const rawBlob = pdf.output('blob');
+                // Force correct MIME type
+                const pdfBlob = new Blob([rawBlob], { type: 'application/pdf' });
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = finalFilename;
+                a.type = 'application/pdf';
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function() {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 200);
                 btn.innerHTML = orgHtml;
                 btn.disabled = false;
                 lucide.createIcons();
-            }).catch(err => {
+            }).catch(function(err) {
                 alert("导出失败: " + err);
                 btn.innerHTML = orgHtml;
                 btn.disabled = false;
