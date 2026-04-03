@@ -78,9 +78,9 @@
         <h2 class="mt-6 text-xl font-bold tracking-widest text-cyan-400">正在调取多维观察数据...</h2>
     </div>
 
-    <!-- Wrapper for PDF snapshot - Use opacity/position instead of 'hidden' to ensure html2canvas can 'see' it for capture -->
-    <div id="pdf-wrapper" class="opacity-0 pointer-events-none fixed -z-50" style="top: 10000px;">
-        <div id="pdf-content" class="w-[794px] mx-auto bg-white">
+    <!-- Wrapper for PDF snapshot and User Preview -->
+    <div id="pdf-wrapper" class="hidden py-12">
+        <div id="pdf-content" class="w-[794px] mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden">
             
             <!-- ===================== PAGE 1 (794x1123) ===================== -->
             <div class="pdf-page pdf-page-break">
@@ -308,6 +308,7 @@
             // Hide loading, show wrapper
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('pdf-wrapper').classList.remove('hidden');
+            document.getElementById('pdf-wrapper').classList.remove('hidden');
 
             // Set basic info
             document.getElementById('display-name').innerText = data.student_name;
@@ -457,8 +458,13 @@
                 el.style.backgroundColor = 'transparent';
             });
 
-            // 预留一帧渲染时间，确保内容在内存中已完全 Paint
-            await new Promise(r => setTimeout(r, 500));
+            // 预留一帧渲染时间，确保内容在内存中已完全 Paint (针对 html2pdf 的特殊性)
+            // 先锁定 A4 到屏幕顶部，捕获完再恢复，这能最稳定地解决“白屏”问题
+            const wrapper = document.getElementById('pdf-wrapper');
+            const originalScroll = window.scrollY;
+            window.scrollTo(0, 0);
+            
+            await new Promise(r => setTimeout(r, 600));
             const element = document.getElementById('pdf-content');
 
             // 针对 html2pdf 的精密选项 (A4 锁定 + 强制分页模式)
