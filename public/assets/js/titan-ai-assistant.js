@@ -1303,7 +1303,7 @@ class TitanAIAssistant {
                 id: 'ai-gen-' + Math.random().toString(36).substr(2, 5),
                 title: t.trim(),
                 desc: 'AI 实时演化生成的专属深度探索课题。',
-                link: `course-factory.html?theme=${encodeURIComponent(t.trim())}&source=titan_evolution`,
+                link: `/resources/course-factory.html?theme=${encodeURIComponent(t.trim())}&source=titan_evolution`,
                 isAiGen: true,
                 icon: 'fas fa-dna',
                 color: '#38bdf8' 
@@ -1326,7 +1326,7 @@ class TitanAIAssistant {
                 id: 'fallback-' + Math.random().toString(36).substr(2, 5),
                 title: t,
                 desc: '系统根据当前对话语境，为您动态预测的探索路径。',
-                link: `course-factory.html?theme=${encodeURIComponent(t)}&source=titan_fallback`,
+                link: `/resources/course-factory.html?theme=${encodeURIComponent(t)}&source=titan_fallback`,
                 isAiGen: true,
                 icon: 'fas fa-brain',
                 color: '#0ea5e9'
@@ -1351,7 +1351,7 @@ class TitanAIAssistant {
             aiRecommendations = localMatches.slice(2, 5).map(m => {
                 let generatedLink = m.link;
                 if (m.link.includes('course.html')) {
-                    generatedLink = m.link.replace('course.html', 'course-factory.html');
+                    generatedLink = m.link.replace('course.html', '/resources/course-factory.html');
                     // 如果链接里没有 theme，加上 theme 参数
                     if (!generatedLink.includes('theme=')) {
                         generatedLink += (generatedLink.includes('?') ? '&' : '?') + `theme=${encodeURIComponent(m.title)}`;
