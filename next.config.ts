@@ -7,26 +7,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/**/*': ['./lib/generation/prompts/**/*'],
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
-  },
-  // 🔗 URL 兼容层：自动转发，让所有页面都能通过短路径访问
-  async rewrites() {
-    return [
-      // /frontend/*.html -> /psyche_x_system/frontend/*.html（脑力测评系统）
-      {
-        source: '/frontend/:path*',
-        destination: '/psyche_x_system/frontend/:path*',
-      },
-      // /*.html -> /resources/*.html（主站700+页面）
-      {
-        source: '/:path*.html',
-        destination: '/resources/:path*.html',
-      },
-    ];
   },
   turbopack: {},
   webpack: (config, { isServer, webpack }) => {
