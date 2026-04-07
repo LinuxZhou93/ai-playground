@@ -2,8 +2,8 @@
 Page({
   data: {
     // 【核心配置】在此处填入您已经部署好的 Vercel 网页地址
-    // 如果您有不同的学员 ID，可以在后面拼接参数，例如 ?student_id=S001
-    reportUrl: 'https://ai-playground-1q8cz1m8a-linuxzhous-projects.vercel.app/psyche_x_system/frontend/camp_report.html'
+    // 默认进入总览仪表盘，方便管理所有学员
+    reportUrl: 'https://ai-playground-1q8cz1m8a-linuxzhous-projects.vercel.app/psyche_x_system/frontend/camp_dashboard.html'
   },
 
   onLoad(options) {
