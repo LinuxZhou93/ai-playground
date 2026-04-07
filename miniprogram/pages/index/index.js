@@ -1,9 +1,9 @@
 // pages/index/index.js
 Page({
   data: {
-    // 【核心配置】在此处填入您已经部署好的 Vercel 网页地址
-    // 默认进入总览仪表盘，方便管理所有学员
-    reportUrl: 'https://ai-playground-1q8cz1m8a-linuxzhous-projects.vercel.app/psyche_x_system/frontend/camp_dashboard.html'
+    // 【核心配置】在此处填入您已经部署好的生产环境地址
+    // 使用您的主域名 ai.zhouxiaomai.com 以确保最稳定的访问体验
+    reportUrl: 'https://ai.zhouxiaomai.com/psyche_x_system/frontend/camp_dashboard.html'
   },
 
   onLoad(options) {
