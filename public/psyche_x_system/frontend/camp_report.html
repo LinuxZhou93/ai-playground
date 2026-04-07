@@ -68,8 +68,17 @@
             }
             .pdf-page:last-child { page-break-after: auto !important; }
 
-            /* 这里的雷达图在打印模式下需要强制锁宽，防止 Canvas 异常拉伸 */
-            #radarChart { max-width: 100% !important; max-height: 480px !important; }
+            /* 进度条打印补丁 - 为不同色彩分配强制显色阴影 */
+            .bar-bg { background-color: #f1f5f9 !important; box-shadow: inset 0 0 0 1000px #f1f5f9 !important; }
+            .bar-fill[id="bar-focus"] { box-shadow: inset 0 0 0 1000px #6366f1 !important; }
+            .bar-fill[id="bar-dexterity"] { box-shadow: inset 0 0 0 1000px #10b981 !important; }
+            .bar-fill[id="bar-logic"] { box-shadow: inset 0 0 0 1000px #3b82f6 !important; }
+            .bar-fill[id="bar-resilience"] { box-shadow: inset 0 0 0 1000px #f43f5e !important; }
+            .bar-fill[id="bar-emotion"] { box-shadow: inset 0 0 0 1000px #8b5cf6 !important; }
+            .bar-fill[id="bar-social"] { box-shadow: inset 0 0 0 1000px #06b6d4 !important; }
+            .bar-fill[id="bar-creativity"] { box-shadow: inset 0 0 0 1000px #d946ef !important; }
+            .bar-fill[id="bar-collaboration"] { box-shadow: inset 0 0 0 1000px #f59e0b !important; }
+            .bar-fill { height: 100% !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
             /* 针对 P4 深色区域的强制显色硬补丁 */
             .bg-slate-900 { 
@@ -268,19 +277,138 @@
                     </div>
                 </div>
 
-                <!-- Giant Radar Chart -->
+                <!-- 8-Dimension Bar Chart -->
                 <div class="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 flex flex-col items-center shadow-lg relative mb-10 overflow-hidden">
                     <div class="absolute top-0 right-0 opacity-5 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
-                        <i data-lucide="hexagon" class="w-64 h-64"></i>
+                        <i data-lucide="bar-chart-big" class="w-64 h-64"></i>
                     </div>
                     
                     <h3 class="text-2xl font-black text-slate-800 mb-8 border-b-2 border-indigo-100 pb-4 w-full text-center flex justify-center items-center gap-3">
                         <i data-lucide="scan-line" class="w-8 h-8 text-indigo-500"></i>
-                        科技特长生多维能力雷达图
+                        科技特长生多维能力分布图
                     </h3>
                     
-                    <div class="w-full relative h-[450px]">
-                        <canvas id="radarChart"></canvas>
+                    <div class="w-full space-y-5" id="dimension-bars-container">
+                        <!-- Each bar will be: [Icon] [Name] [Progress Bar] [Score] -->
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="target" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">专注度 (Focus)</span>
+                                    <span class="text-indigo-600 font-black" id="score-focus">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-focus" class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="mouse-pointer-2" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">手部精细 (Dexterity)</span>
+                                    <span class="text-emerald-600 font-black" id="score-dexterity">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-dexterity" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="binary" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">科学逻辑 (Logic)</span>
+                                    <span class="text-blue-600 font-black" id="score-logic">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-logic" class="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="shield-check" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">逆商抗挫 (Resilience)</span>
+                                    <span class="text-rose-600 font-black" id="score-resilience">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-resilience" class="h-full bg-gradient-to-r from-rose-500 to-orange-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-violet-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="heart-pulse" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">情绪管理 (Emotion)</span>
+                                    <span class="text-violet-600 font-black" id="score-emotion">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-emotion" class="h-full bg-gradient-to-r from-violet-500 to-purple-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="message-square" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">社交融入 (Social)</span>
+                                    <span class="text-cyan-600 font-black" id="score-social">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-social" class="h-full bg-gradient-to-r from-cyan-500 to-sky-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-fuchsia-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">创新想象 (Creativity)</span>
+                                    <span class="text-fuchsia-600 font-black" id="score-creativity">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-creativity" class="h-full bg-gradient-to-r from-fuchsia-500 to-pink-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="users-2" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">团队协作 (Collaboration)</span>
+                                    <span class="text-amber-600 font-black" id="score-collaboration">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-collaboration" class="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -463,61 +591,22 @@
                 data.collaboration_score
             ];
 
-            const ctx = document.getElementById('radarChart').getContext('2d');
-            Chart.defaults.font.family = "'Noto Sans SC', sans-serif";
+            // Update Horizontal Bars
+            const dims = [
+                'focus', 'dexterity', 'logic', 'resilience', 
+                'emotion', 'social', 'creativity', 'collaboration'
+            ];
             
-            new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: [
-                        ['专', '注', '度'], 
-                        ['手', '部', '精', '细'], 
-                        ['科', '学', '逻', '辑'], 
-                        ['逆', '商', '抗', '挫'], 
-                        ['情', '绪', '管', '理'], 
-                        ['社', '交', '融', '入'], 
-                        ['创', '新', '想', '象'], 
-                        ['团', '队', '协', '作']
-                    ],
-                    datasets: [{
-                        label: '能力指数',
-                        data: scores,
-                        fill: true,
-                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                        borderColor: 'rgb(99, 102, 241)',
-                        pointBackgroundColor: 'rgb(99, 102, 241)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(99, 102, 241)',
-                        borderWidth: 3,
-                        pointRadius: 4,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(0, 0, 0, 0.1)', lineWidth: 1 },
-                            grid: { color: 'rgba(0, 0, 0, 0.1)', circular: true },
-                            pointLabels: {
-                                font: { size: 14, weight: 'bold' },
-                                color: '#1e293b',
-                                padding: 25
-                            },
-                            ticks: { 
-                                min: 0, 
-                                max: 100, 
-                                stepSize: 20, 
-                                display: false 
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
+            dims.forEach((dim, i) => {
+                const score = scores[i] || 0;
+                const bar = document.getElementById(`bar-${dim}`);
+                const scoreTxt = document.getElementById(`score-${dim}`);
+                if(bar) bar.style.width = `${score}%`;
+                if(scoreTxt) scoreTxt.innerText = score;
             });
+            
+            // Re-trigger icon updates for new bars
+            lucide.createIcons();
         }
 
         // Setup Photo Injection on Report Page
