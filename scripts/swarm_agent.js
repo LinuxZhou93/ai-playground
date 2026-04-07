@@ -34,8 +34,8 @@ async function sendPulse() {
             }, { onConflict: 'node_id' });
 
         if (error) console.error(`❌ [${NODE_ID}] Pulse Failed:`, error.message);
-    } catch (e) {
-        console.error(`💥 [${NODE_ID}] Runtime Error:`, e.message);
+    } catch (e: any) {
+        console.error(`💥 [${NODE_ID}] Runtime Error:`, e.message || e);
     }
 }
 
