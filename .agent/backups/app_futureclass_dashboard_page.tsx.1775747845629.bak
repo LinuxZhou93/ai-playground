@@ -1,0 +1,563 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  TrendingUp, 
+  Users, 
+  CreditCard, 
+  Zap,
+  ArrowRight,
+  BookOpen,
+  GraduationCap,
+  CalendarCheck,
+  Sparkles,
+  ChevronRight,
+  Activity,
+  ArrowUpRight,
+  Target
+} from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CardDescription
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { loadDashboardData } from "../actions";
+import { getOperationalDiagnosis, generateOperationalDirective } from "../diagnosis_actions";
+import { PageTransition, StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
+import { SkeletonKPI, SkeletonChart } from "@/components/erp/skeleton-card";
+import { AnimatedNumber } from "@/components/erp/animated-number";
+import DiagnosisBoard from "./DiagnosisBoard";
+
+export default function ERPDashboard() {
+  const [stats, setStats] = useState({ studentCount: 0, warningCount: 0, newCount: 0, revenueMonth: 0 });
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const radarRef = useRef<HTMLDivElement>(null);
+
+  // V2.1: AI 运营诊断状态
+  const [diagnosis, setDiagnosis] = useState<any>(null);
+  const [directive, setDirective] = useState("");
+  const [diagLoading, setDiagLoading] = useState(true);
+
+  useEffect(() => {
+    // V2.1: 并行加载 Dashboard 数据 + 诊断数据
+    Promise.all([
+      loadDashboardData(),
+      getOperationalDiagnosis(),
+    ]).then(([dashData, diagData]) => {
+      // Dashboard 基础数据
+      setStats(dashData.stats);
+      setEnrollments(dashData.enrollments);
+      setClasses(dashData.classes);
+      setTrendData(dashData.trend);
+      setLoading(false);
+
+      // 诊断数据 → 然后生成 AI 指令
+      setDiagnosis(diagData);
+      if (diagData) {
+        generateOperationalDirective(diagData).then(text => {
+          setDirective(text);
+          setDiagLoading(false);
+        });
+      } else {
+        setDiagLoading(false);
+      }
+    });
+  }, []);
+
+  // ECharts 消课趋势图
+  useEffect(() => {
+    if (loading || !chartRef.current) return;
+    
+    const loadChart = async () => {
+      const echarts = await import("echarts");
+      const chart = echarts.init(chartRef.current!, undefined, { renderer: 'canvas' });
+      
+      const days = trendData.map(d => d.label);
+      const consumed = trendData.map(d => d.consumed);
+      const revenue = trendData.map(d => d.consumed * 200);
+
+      const isDark = document.documentElement.classList.contains('dark');
+
+      chart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: isDark ? '#18181b' : 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(12px)',
+          borderWidth: 1,
+          borderColor: isDark ? '#27272a' : '#e2e8f0',
+          padding: [12, 16],
+          textStyle: { color: isDark ? '#f4f4f5' : '#1e293b', fontSize: 12, fontWeight: '500' },
+          extraCssText: 'box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); border-radius: 12px;'
+        },
+        legend: {
+          data: ['消课量', '确认收入'],
+          right: 0,
+          top: 0,
+          icon: 'rect',
+          itemWidth: 12,
+          itemHeight: 4,
+          itemGap: 20,
+          textStyle: { fontSize: 12, color: '#94a3b8', fontWeight: 500 }
+        },
+        grid: { top: 60, right: 0, bottom: 20, left: 45, containLabel: false },
+        xAxis: {
+          type: 'category',
+          data: days,
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: '#64748b', fontSize: 11, margin: 16, fontWeight: 500 }
+        },
+        yAxis: [
+          {
+            type: 'value',
+            splitLine: { lineStyle: { color: isDark ? '#27272a' : '#f1f5f9', type: 'dashed' } },
+            axisLabel: { color: '#64748b', fontSize: 11, fontWeight: 500 }
+          },
+          {
+            type: 'value',
+            splitLine: { show: false },
+            axisLabel: { show: false }
+          }
+        ],
+        series: [
+          {
+            name: '消课量',
+            type: 'bar',
+            data: consumed,
+            barWidth: 10,
+            itemStyle: { 
+              borderRadius: [4, 4, 0, 0],
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#10b981' },
+                { offset: 1, color: '#059669' }
+              ])
+            }
+          },
+          {
+            name: '确认收入',
+            type: 'line',
+            yAxisIndex: 1,
+            data: revenue,
+            smooth: 0.4,
+            symbol: 'circle',
+            symbolSize: 0,
+            lineStyle: { width: 3, color: '#6366f1', shadowBlur: 15, shadowColor: 'rgba(99,102,241,0.4)' },
+            itemStyle: { color: '#6366f1', borderWidth: 2, borderColor: '#fff' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(99,102,241,0.15)' },
+                { offset: 1, color: 'rgba(99,102,241,0)' }
+              ])
+            }
+          }
+        ]
+      });
+
+      const handleResize = () => chart.resize();
+      window.addEventListener('resize', handleResize);
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        chart.dispose();
+      };
+    };
+
+    loadChart();
+  }, [loading, trendData]);
+
+  // 渲染健康度雷达图
+  useEffect(() => {
+    if (loading || !radarRef.current) return;
+    const loadRadar = async () => {
+      const echarts = await import('echarts');
+      const chart = echarts.init(radarRef.current);
+      
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+      const splitColor = isDark ? '#27272a' : '#f1f5f9';
+
+      chart.setOption({
+        radar: {
+          indicator: [
+            { name: '转化率', max: 100 },
+            { name: '出勤率', max: 100 },
+            { name: '续费预警', max: 100 },
+            { name: '客单价', max: 100 },
+            { name: '开课率', max: 100 }
+          ],
+          splitArea: { show: false },
+          axisLine: { lineStyle: { color: splitColor } },
+          splitLine: { lineStyle: { color: splitColor } },
+          axisName: { color: textColor, fontSize: 10, fontWeight: 600, padding: [5, 5] }
+        },
+        series: [{
+          name: '健康度',
+          type: 'radar',
+          symbol: 'none',
+          data: [{
+            value: [78, 92, 45, 88, 70],
+            name: '当前周期',
+            itemStyle: { color: '#6366f1' },
+            areaStyle: { color: 'rgba(99, 102, 241, 0.2)' },
+            lineStyle: { width: 2, color: '#6366f1' }
+          },
+          {
+             value: [65, 80, 60, 75, 55],
+             name: '上周同期',
+             itemStyle: { color: '#94a3b8' },
+             areaStyle: { color: 'rgba(148, 163, 184, 0.05)' },
+             lineStyle: { width: 1, type: 'dashed', color: '#94a3b8' }
+          }]
+        }]
+      });
+
+      const handleResize = () => chart.resize();
+      window.addEventListener('resize', handleResize);
+      return () => { window.removeEventListener('resize', handleResize); chart.dispose(); };
+    };
+    loadRadar();
+  }, [loading]);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "早安";
+    if (h < 18) return "下午好";
+    return "晚上好";
+  };
+
+  return (
+    <PageTransition>
+      <div className="space-y-10 pb-16">
+        {/* 顶部 Header - Linear 风格 */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "circOut" }}
+            className="space-y-2"
+          >
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+                System Operational · v4.2.0
+              </span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-zinc-900 dark:text-white">
+              {greeting()}，指挥官
+            </h2>
+            <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400 font-medium">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200/50 dark:border-zinc-700/50 text-xs">
+                <Activity className="h-3.5 w-3.5 text-indigo-500" />
+                FutureClass 教务中枢
+              </div>
+              <span className="text-xs opacity-60">/</span>
+              <span className="text-xs tabular-nums">
+                {new Date().toLocaleDateString("zh-CN", { month: 'long', day: 'numeric', weekday: 'long' })}
+              </span>
+            </div>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-3"
+          >
+            <Button variant="outline" size="sm" className="h-10 rounded-xl px-5 border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-300 font-bold text-xs">
+              导出经营报告
+            </Button>
+            <Link href="/futureclass/students">
+              <Button size="sm" className="h-10 rounded-xl px-6 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white shadow-[0_10px_20px_rgba(0,0,0,0.1)] dark:shadow-none transition-all duration-300 group font-bold text-xs">
+                <Zap className="h-3.5 w-3.5 mr-2 fill-current group-hover:scale-110 transition-transform" /> 
+                新开单报名
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* 4 张核心 KPI 卡 - Glassmorphism & High Contrast */}
+        {loading ? (
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonKPI key={i} />)}
+          </div>
+        ) : (
+          <StaggerContainer className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <StaggerItem>
+              <Card className="relative overflow-hidden border-none bg-zinc-950 dark:bg-white group transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)]">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform duration-700 ease-in-out">
+                  <Users className="h-20 w-20 text-white dark:text-zinc-900" />
+                </div>
+                <CardHeader className="pb-1">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500">活跃学员总数</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-5xl font-black text-white dark:text-zinc-950 tracking-tighter">
+                    <AnimatedNumber value={stats.studentCount} />
+                  </div>
+                  <div className="mt-6 flex items-center gap-2">
+                    <div className="flex -space-x-2">
+                      {[1,2,3].map(i => (
+                        <div key={i} className="h-5 w-5 rounded-full border-2 border-zinc-950 dark:border-white bg-zinc-800 dark:bg-zinc-200" />
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Live Tracking</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="relative overflow-hidden border border-zinc-200/60 dark:border-zinc-800/60 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl group hover:border-indigo-500/30 transition-all duration-500">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">本月新增报名</CardTitle>
+                  <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:rotate-12 transition-transform"><TrendingUp className="h-4 w-4" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-5xl font-black text-zinc-900 dark:text-zinc-100 tracking-tighter">
+                    <AnimatedNumber value={stats.newCount} />
+                  </div>
+                  <div className="mt-6 flex items-center gap-1.5">
+                    <span className="flex items-center text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                      <ArrowUpRight className="h-3 w-3 mr-0.5" /> 12.5%
+                    </span>
+                    <span className="text-[10px] font-medium text-zinc-400 uppercase">vs last month</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="relative overflow-hidden border border-zinc-200/60 dark:border-zinc-800/60 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl group hover:border-amber-500/30 transition-all duration-500">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">月度确认收入</CardTitle>
+                  <div className="p-2 bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform"><CreditCard className="h-4 w-4" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-5xl font-black text-zinc-900 dark:text-zinc-100 tracking-tighter">
+                    <AnimatedNumber value={stats.revenueMonth} prefix="¥" />
+                  </div>
+                  <div className="mt-6 flex items-center gap-2">
+                    <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: "84%" }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                        className="h-full bg-amber-500 rounded-full"
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-zinc-500">84%</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className={`relative overflow-hidden border transition-all duration-500 ${stats.warningCount > 0 ? 'border-red-200 bg-red-50/20 dark:border-red-900/30 dark:bg-red-950/10' : 'border-zinc-200/60 dark:border-zinc-800/60 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl'}`}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">课时预警人数</CardTitle>
+                  <div className={`p-2 rounded-lg ${stats.warningCount > 0 ? 'bg-red-500/10 text-red-600 dark:text-red-400 animate-pulse' : 'bg-zinc-500/10 text-zinc-600'}`}><Zap className="h-4 w-4" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-5xl font-black tracking-tighter ${stats.warningCount > 0 ? 'text-red-600 dark:text-red-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                    <AnimatedNumber value={stats.warningCount} />
+                  </div>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mt-6">
+                    Requires immediate action
+                  </p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+          </StaggerContainer>
+        )}
+
+        {/* V2.1: AI 运营诊断看板 - Enhanced Glow */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="relative group"
+        >
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-emerald-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition duration-1000" />
+          <div className="relative">
+            <DiagnosisBoard
+              diagnosis={diagnosis}
+              directive={directive}
+              loading={diagLoading && loading}
+            />
+          </div>
+        </motion.div>
+
+        {/* 图表 + 动态流 - Linear Layout */}
+        <div className="grid gap-8 grid-cols-1 lg:grid-cols-12">
+          <Card className="lg:col-span-8 border-zinc-200/60 dark:border-zinc-800/60 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl shadow-sm overflow-hidden rounded-3xl">
+            <CardHeader className="pb-0 border-b border-zinc-100 dark:border-zinc-800/50 mb-8 px-8 pt-8">
+              <div className="flex items-center justify-between pb-6">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">业务增长矩阵</CardTitle>
+                  <CardDescription className="text-xs font-medium text-zinc-500">消课趋势与校区健康度多维分析</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Analytics Engine</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-8 pb-8 pt-0 flex flex-col xl:flex-row gap-12">
+              <div className="flex-[1.6]">
+                {loading ? <SkeletonChart /> : <div ref={chartRef} className="w-full h-[340px]" />}
+              </div>
+              <div className="flex-1 flex flex-col justify-center border-t xl:border-t-0 xl:border-l border-zinc-100 dark:border-zinc-800 pt-8 xl:pt-0 xl:pl-12">
+                 <div className="mb-8">
+                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-3">
+                     <Target className="h-3.5 w-3.5"/> 
+                     <span className="text-[10px] font-bold uppercase tracking-wider">Health Index</span>
+                   </div>
+                   <p className="text-xs font-medium text-zinc-500 leading-relaxed">
+                     基于转化、出勤、续费等 5 个核心维度的自动化评估模型。
+                   </p>
+                 </div>
+                 {loading ? <SkeletonChart /> : <div ref={radarRef} className="w-full h-[260px]" />}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-4 border-zinc-200/60 dark:border-zinc-800/60 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl shadow-sm rounded-3xl">
+            <CardHeader className="pb-6 px-8 pt-8">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">实时动态</CardTitle>
+                <Badge variant="outline" className="rounded-full px-3 py-0.5 border-zinc-200 dark:border-zinc-800 text-[10px] font-bold text-zinc-500">LIVE FEED</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="px-8">
+              {loading ? (
+                <div className="space-y-8">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-zinc-100 dark:bg-zinc-800 rounded w-3/4 animate-pulse" />
+                        <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded w-1/2 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-[23px] top-2 bottom-2 w-[1px] bg-gradient-to-b from-zinc-100 via-zinc-200 to-zinc-100 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800" />
+                  <StaggerContainer className="space-y-8 relative">
+                    {enrollments.slice(0, 3).map((en, i) => {
+                      const value = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+                      return (
+                        <StaggerItem key={en.id || i}>
+                          <div className="flex items-start gap-5 group cursor-default">
+                            <div className="relative z-10 p-3 rounded-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-indigo-500 shadow-sm group-hover:scale-110 group-hover:border-indigo-500/50 transition-all duration-300">
+                              <CreditCard className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0 pt-1">
+                              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                {en.erp_students?.name || "学员"} 报课成交
+                              </p>
+                              <p className="text-[11px] font-medium text-zinc-500 truncate mt-1">
+                                {en.erp_courses?.name} · <span className="text-zinc-900 dark:text-zinc-300 font-bold">¥{value.toLocaleString()}</span>
+                              </p>
+                            </div>
+                            <div className="text-[10px] font-bold text-zinc-400 pt-2 tabular-nums">
+                              {new Date(en.created_at).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}
+                            </div>
+                          </div>
+                        </StaggerItem>
+                      );
+                    })}
+
+                    {classes.slice(0, 2).map((cls, i) => (
+                      <StaggerItem key={cls.id || i}>
+                        <div className="flex items-start gap-5 group cursor-default">
+                          <div className="relative z-10 p-3 rounded-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-emerald-500 shadow-sm group-hover:scale-110 group-hover:border-emerald-500/50 transition-all duration-300">
+                            <GraduationCap className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0 pt-1">
+                            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                              新开班级：{cls.name}
+                            </p>
+                            <p className="text-[11px] font-medium text-zinc-500 truncate mt-1">
+                              {cls.erp_courses?.name} · {cls.classroom || "标准教室"}
+                            </p>
+                          </div>
+                          <div className="text-[10px] font-bold text-zinc-400 pt-2 tabular-nums">
+                            {cls.start_date ? cls.start_date.split('-').slice(1).join('/') : 'NEW'}
+                          </div>
+                        </div>
+                      </StaggerItem>
+                    ))}
+                  </StaggerContainer>
+                </div>
+              )}
+              <Button variant="ghost" className="w-full mt-10 h-11 text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl transition-all duration-300">
+                查看全部动态日志 <ChevronRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* V2.1: 底部快捷入口 — 路由联通 - Glass Cards */}
+        <StaggerContainer className="grid gap-6 grid-cols-1 sm:grid-cols-3">
+          {[
+            { 
+              href: "/futureclass/students", 
+              icon: Users, 
+              title: "快速录入学员", 
+              desc: "创建新学员档案并分配班级", 
+              color: "emerald" 
+            },
+            { 
+              href: "/futureclass/courses", 
+              icon: BookOpen, 
+              title: "开设新课程", 
+              desc: "定义教学产品与定价体系", 
+              color: "indigo" 
+            },
+            { 
+              href: "/futureclass/attendance", 
+              icon: CalendarCheck, 
+              title: "开始今日点名", 
+              desc: "AI 考勤与即时课后报告", 
+              color: "purple" 
+            }
+          ].map((item, idx) => (
+            <StaggerItem key={idx}>
+              <Link href={item.href}>
+                <Card className="group relative overflow-hidden border border-zinc-200/60 dark:border-zinc-800/60 bg-white dark:bg-zinc-900/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all duration-500 cursor-pointer rounded-3xl">
+                  <div className={`absolute top-0 right-0 w-32 h-32 -mr-12 -mt-12 bg-${item.color}-500/5 rounded-full group-hover:scale-150 transition-transform duration-700`} />
+                  <CardContent className="p-8 flex items-center gap-6 relative z-10">
+                    <div className={`p-4 bg-${item.color}-500/10 rounded-2xl text-${item.color}-600 dark:text-${item.color}-400 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
+                      <item.icon className="h-7 w-7" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-black text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-950 dark:group-hover:text-white transition-colors">{item.title}</h3>
+                      <p className="text-xs font-medium text-zinc-500 mt-1.5">{item.desc}</p>
+                    </div>
+                    <div className="h-10 w-10 rounded-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 group-hover:bg-zinc-900 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-900 transition-all duration-500">
+                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-0.5" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      </div>
+    </PageTransition>
+  );
+}
+

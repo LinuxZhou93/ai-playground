@@ -1,0 +1,60 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useInView, useMotionValue, useTransform, motion, animate } from "motion/react";
+
+/**
+ * 数字递增动画组件
+ *
+ * 当元素进入视口时，数字从 0 平滑递增到目标值。
+ * 用于 Dashboard 和 Finance 的 KPI 显示。
+ *
+ * @example
+ * <AnimatedNumber value={1234} prefix="¥" />
+ * <AnimatedNumber value={86} suffix="%" />
+ */
+export function AnimatedNumber({
+  value,
+  prefix = "",
+  suffix = "",
+  duration = 1.2,
+  className = "",
+  formatOptions,
+}: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  duration?: number;
+  className?: string;
+  formatOptions?: Intl.NumberFormatOptions;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    const controls = animate(0, value, {
+      duration,
+      ease: [0.25, 0.46, 0.45, 0.94],
+      onUpdate(latest) {
+        setDisplayValue(Math.round(latest));
+      },
+    });
+
+    return () => controls.stop();
+  }, [isInView, value, duration]);
+
+  const formatted = formatOptions
+    ? new Intl.NumberFormat("zh-CN", formatOptions).format(displayValue)
+    : displayValue.toLocaleString();
+
+  return (
+    <span ref={ref} className={className}>
+      {prefix}
+      {formatted}
+      {suffix}
+    </span>
+  );
+}

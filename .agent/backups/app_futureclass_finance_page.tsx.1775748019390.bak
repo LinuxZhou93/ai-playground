@@ -1,0 +1,434 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  CreditCard, 
+  TrendingUp, 
+  ArrowUpRight, 
+  Search, 
+  Filter, 
+  Download,
+  Calendar,
+  Wallet,
+  Receipt,
+  PieChart,
+  ArrowRight,
+  ChevronRight
+} from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CardDescription
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { loadFinancePageData } from "../actions";
+import { PageTransition, StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
+import { SkeletonKPI, SkeletonTable } from "@/components/erp/skeleton-card";
+import { AnimatedNumber } from "@/components/erp/animated-number";
+import { motion, AnimatePresence } from "framer-motion";
+
+export default function FinancePage() {
+  const [stats, setStats] = useState({ totalRevenue: 0, orderCount: 0 });
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const pieRef = useRef<HTMLDivElement>(null);
+
+  // V2.0: 单次批量加载
+  useEffect(() => {
+    loadFinancePageData().then(({ stats: s, enrollments: e }) => {
+      setStats(s);
+      setEnrollments(e);
+      setLoading(false);
+    });
+  }, []);
+
+  // 收入分布环形图
+  useEffect(() => {
+    if (loading || !pieRef.current || enrollments.length === 0) return;
+    
+    const loadChart = async () => {
+      const echarts = await import("echarts");
+      const chart = echarts.init(pieRef.current!, undefined, { renderer: 'canvas' });
+
+      const courseMap: Record<string, number> = {};
+      enrollments.forEach(en => {
+        const name = en.erp_courses?.name || "未知课程";
+        const value = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+        courseMap[name] = (courseMap[name] || 0) + value;
+      });
+
+      const pieData = Object.entries(courseMap).map(([name, value]) => ({ name, value }));
+      // Linear/Stripe Style Palette
+      const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b'];
+
+      chart.setOption({
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)',
+          borderWidth: 0,
+          padding: [10, 14],
+          textStyle: { color: '#18181b', fontSize: 13, fontWeight: '500' },
+          extraCssText: 'box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 12px;',
+          formatter: (p: any) => `
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:8px; height:8px; border-radius:50%; background:${p.color}"></div>
+              <span>${p.name}</span>
+            </div>
+            <div style="margin-top:4px; font-weight:700; font-size:15px; color:#18181b">
+              ¥${p.value.toLocaleString()} <span style="font-size:11px; color:#71717a; font-weight:400">(${p.percent}%)</span>
+            </div>
+          `
+        },
+        legend: {
+          orient: 'vertical',
+          right: '5%',
+          top: 'center',
+          textStyle: { fontSize: 12, color: '#71717a', fontFamily: 'Inter' },
+          itemWidth: 8,
+          itemHeight: 8,
+          itemGap: 20,
+          icon: 'circle'
+        },
+        series: [{
+          type: 'pie',
+          radius: ['62%', '82%'],
+          center: ['35%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 4
+          },
+          label: { show: false },
+          emphasis: {
+            scale: true,
+            scaleSize: 10,
+            itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0,0,0,0.1)' }
+          },
+          data: pieData,
+          color: colors
+        }]
+      });
+
+      const handleResize = () => chart.resize();
+      window.addEventListener('resize', handleResize);
+      return () => { window.removeEventListener('resize', handleResize); chart.dispose(); };
+    };
+    loadChart();
+  }, [loading, enrollments]);
+
+  const filteredEnrollments = enrollments.filter(e => 
+    e.erp_students?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.erp_courses?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleExportCSV = () => {
+    if (filteredEnrollments.length === 0) {
+      toast.warning("没有可导出的数据");
+      return;
+    }
+    
+    const headers = ["订单时间", "学员姓名", "报读课程", "购买规格", "成交金额", "状态"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredEnrollments.map(en => {
+        const orderValue = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+        return [
+          new Date(en.created_at).toLocaleDateString(),
+          en.erp_students?.name,
+          en.erp_courses?.name,
+          `${en.total_purchased_lessons} 课时`,
+          orderValue,
+          en.enroll_status === 'STUDYING' ? '成交' : en.enroll_status
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `财务流水_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("账单流水导出成功");
+  };
+
+  return (
+    <PageTransition>
+      <div className="space-y-8 max-w-[1600px] mx-auto">
+        {/* 顶部 KPI 卡片 */}
+        {loading ? (
+          <div className="grid gap-6 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonKPI key={i} />)}
+          </div>
+        ) : (
+          <StaggerContainer className="grid gap-6 md:grid-cols-3">
+            <StaggerItem>
+              <Card className="relative overflow-hidden border-none bg-zinc-950 text-white shadow-2xl group">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-transparent opacity-50" />
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.3, 0.5, 0.3] 
+                  }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -right-4 -top-4 w-40 h-40 bg-indigo-500/20 blur-[60px] rounded-full"
+                />
+                <CardHeader className="pb-2 relative z-10">
+                  <CardTitle className="text-zinc-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+                      <Wallet className="h-3.5 w-3.5" />
+                    </div>
+                    累计课程收入
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="text-4xl font-bold tracking-tight mb-4">
+                    <AnimatedNumber value={stats.totalRevenue} prefix="¥" />
+                  </div>
+                  <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium bg-emerald-500/10 w-fit px-2.5 py-1 rounded-full border border-emerald-500/20">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    <span>+12.5%</span>
+                    <span className="text-emerald-400/60 font-normal ml-1">较上月</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="relative overflow-hidden border border-zinc-200/50 bg-white/50 backdrop-blur-xl shadow-sm hover:shadow-md transition-all duration-300 group">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-zinc-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-zinc-100 text-zinc-600 group-hover:bg-zinc-900 group-hover:text-white transition-colors duration-300">
+                      <Receipt className="h-3.5 w-3.5" />
+                    </div>
+                    成交订单
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-4xl font-bold tracking-tight text-zinc-900 mb-4">
+                    <AnimatedNumber value={stats.orderCount} />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-zinc-500 text-sm">
+                    <div className="flex -space-x-2 mr-2">
+                      {[1,2,3].map(i => (
+                        <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-zinc-200" />
+                      ))}
+                    </div>
+                    <span className="font-medium text-zinc-900">{enrollments.length}</span>
+                    <span>笔有效交易</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="relative overflow-hidden border border-zinc-200/50 bg-white/50 backdrop-blur-xl shadow-sm hover:shadow-md transition-all duration-300 group">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-zinc-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-zinc-100 text-zinc-600 group-hover:bg-zinc-900 group-hover:text-white transition-colors duration-300">
+                      <CreditCard className="h-3.5 w-3.5" />
+                    </div>
+                    客单价 (AOV)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-4xl font-bold tracking-tight text-zinc-900 mb-4">
+                    <AnimatedNumber
+                      value={stats.orderCount === 0 ? 0 : Math.round(stats.totalRevenue / stats.orderCount)}
+                      prefix="¥"
+                    />
+                  </div>
+                  <p className="text-sm text-zinc-500 flex items-center gap-1">
+                    平均每位学员报课价值 <ArrowRight className="h-3 w-3" />
+                  </p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+          </StaggerContainer>
+        )}
+
+        {/* 收入分布图 */}
+        <Card className="border border-zinc-200/60 bg-white/40 backdrop-blur-md shadow-sm overflow-hidden">
+          <CardHeader className="pb-0 border-b border-zinc-100/80 bg-zinc-50/30">
+            <div className="flex items-center justify-between py-4">
+              <div className="space-y-1">
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-zinc-900">
+                  <PieChart className="h-4 w-4 text-indigo-500" /> 课程收入分布
+                </CardTitle>
+                <CardDescription className="text-xs">按课程维度分析各产品线的营收贡献</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <Badge variant="secondary" className="bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border-none text-[10px] font-bold tracking-wider">LIVE DATA</Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-8">
+            <div className="relative">
+              <div ref={pieRef} className="w-full h-[300px]" />
+              {/* Center Overlay for Donut */}
+              <div className="absolute top-1/2 left-[35%] -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                <div className="text-zinc-400 text-[10px] font-bold uppercase tracking-tighter">Total Revenue</div>
+                <div className="text-xl font-black text-zinc-900">¥{(stats.totalRevenue/10000).toFixed(1)}w</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 账单流水 */}
+        <Card className="border border-zinc-200/60 bg-white shadow-xl shadow-zinc-200/20 rounded-xl overflow-hidden">
+          <CardHeader className="border-b border-zinc-100 bg-zinc-50/50 p-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+              <div className="space-y-1">
+                <CardTitle className="text-xl font-bold tracking-tight text-zinc-900">账单流水明细</CardTitle>
+                <CardDescription className="text-sm">记录 FutureClass 每一笔学员成交与课消转化。</CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+                <div className="relative flex-1 min-w-[240px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <Input 
+                    placeholder="搜索姓名或课程..." 
+                    className="pl-10 h-11 bg-white border-zinc-200 focus:ring-2 focus:ring-indigo-500/20 transition-all rounded-lg"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" className="h-11 border-zinc-200 hover:bg-zinc-50 font-medium px-5 rounded-lg">
+                  <Filter className="h-4 w-4 mr-2 text-zinc-500" /> 过滤
+                </Button>
+                <Button 
+                  variant="default" 
+                  className="h-11 bg-zinc-900 hover:bg-zinc-800 text-white font-medium px-5 rounded-lg shadow-lg shadow-zinc-200 transition-all active:scale-95"
+                  onClick={handleExportCSV}
+                >
+                  <Download className="h-4 w-4 mr-2" /> 导出报表
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50/50 border-b border-zinc-100">
+                    <th className="px-6 py-4 font-bold text-zinc-500 uppercase tracking-wider text-[10px]">订单时间</th>
+                    <th className="px-6 py-4 font-bold text-zinc-500 uppercase tracking-wider text-[10px]">学员姓名</th>
+                    <th className="px-6 py-4 font-bold text-zinc-500 uppercase tracking-wider text-[10px]">报读课程</th>
+                    <th className="px-6 py-4 font-bold text-zinc-500 uppercase tracking-wider text-[10px]">购买规格</th>
+                    <th className="px-6 py-4 font-bold text-zinc-500 uppercase tracking-wider text-[10px]">成交金额</th>
+                    <th className="px-6 py-4 font-bold text-zinc-500 uppercase tracking-wider text-[10px]">状态</th>
+                    <th className="px-6 py-4"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  <AnimatePresence mode="popLayout">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={7}><SkeletonTable rows={8} cols={7} /></td>
+                      </tr>
+                    ) : filteredEnrollments.length === 0 ? (
+                      <motion.tr
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <td colSpan={7} className="p-20 text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="p-4 bg-zinc-50 rounded-full">
+                              <Search className="h-8 w-8 text-zinc-300" />
+                            </div>
+                            <p className="text-zinc-500 font-medium">未找到匹配的账单记录</p>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ) : filteredEnrollments.map((en, idx) => {
+                      const orderValue = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+                      return (
+                        <motion.tr
+                          key={en.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.02 }}
+                          className="group hover:bg-zinc-50/80 transition-all duration-200"
+                        >
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-2.5 text-zinc-500">
+                              <div className="p-1.5 bg-zinc-100 rounded-md group-hover:bg-white transition-colors">
+                                <Calendar className="h-3.5 w-3.5" />
+                              </div>
+                              <span className="font-medium">{new Date(en.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs border border-indigo-100">
+                                {en.erp_students?.name?.charAt(0)}
+                              </div>
+                              <span className="font-bold text-zinc-900">{en.erp_students?.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-zinc-600 font-medium">{en.erp_courses?.name}</span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <Badge variant="outline" className="bg-white border-zinc-200 text-zinc-500 font-medium px-2 py-0.5">
+                              {en.total_purchased_lessons} 课时
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="font-bold text-zinc-900 text-base">
+                              ¥{orderValue.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-2">
+                              {en.enroll_status === 'STUDYING' ? (
+                                <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  已成交
+                                </span>
+                              ) : (
+                                <Badge variant="outline" className="text-zinc-400 border-zinc-200 font-medium">
+                                  {en.enroll_status}
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-900">
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </motion.tr>
+                      )
+                    })}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
+            {!loading && filteredEnrollments.length > 0 && (
+              <div className="p-4 border-t border-zinc-50 bg-zinc-50/30 flex justify-center">
+                <p className="text-[11px] text-zinc-400 font-medium uppercase tracking-widest">
+                  End of Transaction List • {filteredEnrollments.length} Records
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </PageTransition>
+  );
+}
+

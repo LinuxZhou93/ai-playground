@@ -22,7 +22,8 @@ import { CanvasToolbar } from '@/components/canvas/canvas-toolbar';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { toast } from 'sonner';
-import { useSettingsStore, PLAYBACK_SPEEDS } from '@/lib/store/settings';
+import { useSettingsStore, PLAYBACK_SPEEDS, type ConfiguredProvider, type ProviderId } from '@/lib/store/settings';
+import { ModelSelectorPopover } from '@/components/ai/model-selector-popover';
 import { ProactiveCard } from '@/components/chat/proactive-card';
 import { PresentationSpeechOverlay } from '@/components/roundtable/presentation-speech-overlay';
 import { AvatarDisplay } from '@/components/ui/avatar-display';
@@ -88,6 +89,12 @@ interface RoundtableProps {
   readonly controlsVisible?: boolean;
   readonly onTogglePresentation?: () => void;
   readonly onPresentationInteractionChange?: (active: boolean) => void;
+  // Model selector props
+  readonly configuredProviders?: ConfiguredProvider[];
+  readonly currentProviderId?: ProviderId;
+  readonly currentModelId?: string;
+  readonly currentProviderConfig?: { name: string; icon?: string } | undefined;
+  readonly setModel?: (providerId: ProviderId, modelId: string) => void;
   /** Ref to the fullscreen container — passed to ProactiveCard so its portal
    *  renders inside the top-layer during presentation mode. */
   readonly fullscreenContainerRef?: React.RefObject<HTMLDivElement | null>;
@@ -174,6 +181,11 @@ export function Roundtable({
   onTogglePresentation,
   onPresentationInteractionChange,
   fullscreenContainerRef,
+  configuredProviders = [],
+  currentProviderId = 'google' as ProviderId,
+  currentModelId = '',
+  currentProviderConfig,
+  setModel,
 }: RoundtableProps) {
   const { t } = useI18n();
   const ttsMuted = useSettingsStore((s) => s.ttsMuted);
@@ -636,7 +648,12 @@ export function Roundtable({
       onPlayPause={onPlayPause ?? (() => {})}
       onWhiteboardClose={onWhiteboardClose ?? (() => {})}
       isPresenting={isPresenting}
-      onTogglePresentation={onTogglePresentation}
+      onTogglePresentation={() => onTogglePresentation?.()}
+      configuredProviders={configuredProviders}
+      currentProviderId={currentProviderId}
+      currentModelId={currentModelId}
+      currentProviderConfig={currentProviderConfig}
+      setModel={setModel}
       showStopDiscussion={showStopButton}
       onStopDiscussion={onStopDiscussion}
       ttsEnabled={ttsEnabled}
@@ -738,6 +755,20 @@ export function Roundtable({
                 className="w-[min(480px,calc(100vw-3rem))] pointer-events-auto"
               >
                 <div className="flex items-center gap-3 bg-white/70 dark:bg-black/60 backdrop-blur-xl rounded-full px-4 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-gray-200/60 dark:border-white/10">
+                  {/* Model Selector in Presentation Input */}
+                  {configuredProviders.length > 0 && setModel && (
+                    <div className="shrink-0">
+                      <ModelSelectorPopover
+                        configuredProviders={configuredProviders}
+                        currentProviderId={currentProviderId}
+                        currentModelId={currentModelId}
+                        currentProviderConfig={currentProviderConfig}
+                        setModel={setModel}
+                        t={t}
+                        className="size-6 ring-0 border-none bg-transparent hover:bg-gray-200/50 dark:hover:bg-white/10"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0 flex items-center">
                     <textarea
                       value={inputValue}
@@ -1253,6 +1284,20 @@ export function Roundtable({
                   className="absolute inset-x-6 bottom-4 z-20 flex items-center justify-end"
                 >
                   <div className="relative w-fit max-w-[85%] sm:max-w-[65%] min-w-[200px] sm:min-w-[300px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-2 pr-2 rounded-2xl rounded-br-none shadow-2xl border border-purple-200 dark:border-purple-700 flex items-end gap-2 ring-1 ring-purple-100/50 dark:ring-purple-800/50">
+                    {/* Model Selector in Normal Input */}
+                    {configuredProviders.length > 0 && setModel && (
+                      <div className="pl-1 mb-1 shrink-0">
+                        <ModelSelectorPopover
+                          configuredProviders={configuredProviders}
+                          currentProviderId={currentProviderId}
+                          currentModelId={currentModelId}
+                          currentProviderConfig={currentProviderConfig}
+                          setModel={setModel}
+                          t={t}
+                          className="size-6 ring-0 border-none bg-transparent hover:bg-gray-200/50 dark:hover:bg-white/10"
+                        />
+                      </div>
+                    )}
                     <div className="pl-4 flex-1 py-1 min-w-0">
                       <textarea
                         value={inputValue}

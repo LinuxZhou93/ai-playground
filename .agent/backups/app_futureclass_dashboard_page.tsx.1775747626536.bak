@@ -1,0 +1,516 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  TrendingUp, 
+  Users, 
+  CreditCard, 
+  Zap,
+  ArrowRight,
+  BookOpen,
+  GraduationCap,
+  CalendarCheck,
+  Sparkles,
+  ChevronRight,
+  Activity
+} from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CardDescription
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { loadDashboardData } from "../actions";
+import { getOperationalDiagnosis, generateOperationalDirective } from "../diagnosis_actions";
+import { PageTransition, StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
+import { SkeletonKPI, SkeletonChart } from "@/components/erp/skeleton-card";
+import { AnimatedNumber } from "@/components/erp/animated-number";
+import DiagnosisBoard from "./DiagnosisBoard";
+
+export default function ERPDashboard() {
+  const [stats, setStats] = useState({ studentCount: 0, warningCount: 0, newCount: 0, revenueMonth: 0 });
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const radarRef = useRef<HTMLDivElement>(null);
+
+  // V2.1: AI 运营诊断状态
+  const [diagnosis, setDiagnosis] = useState<any>(null);
+  const [directive, setDirective] = useState("");
+  const [diagLoading, setDiagLoading] = useState(true);
+
+  useEffect(() => {
+    // V2.1: 并行加载 Dashboard 数据 + 诊断数据
+    Promise.all([
+      loadDashboardData(),
+      getOperationalDiagnosis(),
+    ]).then(([dashData, diagData]) => {
+      // Dashboard 基础数据
+      setStats(dashData.stats);
+      setEnrollments(dashData.enrollments);
+      setClasses(dashData.classes);
+      setTrendData(dashData.trend);
+      setLoading(false);
+
+      // 诊断数据 → 然后生成 AI 指令
+      setDiagnosis(diagData);
+      if (diagData) {
+        generateOperationalDirective(diagData).then(text => {
+          setDirective(text);
+          setDiagLoading(false);
+        });
+      } else {
+        setDiagLoading(false);
+      }
+    });
+  }, []);
+
+  // ECharts 消课趋势图
+  useEffect(() => {
+    if (loading || !chartRef.current) return;
+    
+    const loadChart = async () => {
+      const echarts = await import("echarts");
+      const chart = echarts.init(chartRef.current!, undefined, { renderer: 'canvas' });
+      
+      const days = trendData.map(d => d.label);
+      const consumed = trendData.map(d => d.consumed);
+      const revenue = trendData.map(d => d.consumed * 200);
+
+      chart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderWidth: 1,
+          borderColor: '#e2e8f0',
+          padding: [10, 14],
+          textStyle: { color: '#1e293b', fontSize: 12, fontWeight: '500' },
+          extraCssText: 'box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-radius: 8px;'
+        },
+        legend: {
+          data: ['消课量', '确认收入'],
+          right: 0,
+          top: 0,
+          icon: 'circle',
+          itemWidth: 8,
+          textStyle: { fontSize: 12, color: '#64748b' }
+        },
+        grid: { top: 40, right: 0, bottom: 20, left: 40, containLabel: false },
+        xAxis: {
+          type: 'category',
+          data: days,
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: '#94a3b8', fontSize: 11, margin: 12 }
+        },
+        yAxis: [
+          {
+            type: 'value',
+            splitLine: { lineStyle: { color: '#f1f5f9', type: 'solid' } },
+            axisLabel: { color: '#94a3b8', fontSize: 11 }
+          },
+          {
+            type: 'value',
+            splitLine: { show: false },
+            axisLabel: { show: false }
+          }
+        ],
+        series: [
+          {
+            name: '消课量',
+            type: 'bar',
+            data: consumed,
+            barWidth: 12,
+            itemStyle: { 
+              borderRadius: [4, 4, 0, 0],
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#10b981' },
+                { offset: 1, color: '#34d399' }
+              ])
+            }
+          },
+          {
+            name: '确认收入',
+            type: 'line',
+            yAxisIndex: 1,
+            data: revenue,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: { width: 3, color: '#6366f1', shadowBlur: 10, shadowColor: 'rgba(99,102,241,0.3)' },
+            itemStyle: { color: '#6366f1', borderWidth: 2, borderColor: '#fff' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(99,102,241,0.12)' },
+                { offset: 1, color: 'rgba(99,102,241,0)' }
+              ])
+            }
+          }
+        ]
+      });
+
+      const handleResize = () => chart.resize();
+      window.addEventListener('resize', handleResize);
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        chart.dispose();
+      };
+    };
+
+    loadChart();
+  }, [loading, trendData]);
+
+  // 渲染健康度雷达图
+  useEffect(() => {
+    if (loading || !radarRef.current) return;
+    const loadRadar = async () => {
+      const echarts = await import('echarts');
+      const chart = echarts.init(radarRef.current);
+      
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+      const splitColor = isDark ? '#334155' : '#f1f5f9';
+
+      chart.setOption({
+        radar: {
+          indicator: [
+            { name: '转化率', max: 100 },
+            { name: '出勤率', max: 100 },
+            { name: '续费预警', max: 100 },
+            { name: '客单价', max: 100 },
+            { name: '开课率', max: 100 }
+          ],
+          splitArea: { show: false },
+          axisLine: { lineStyle: { color: splitColor } },
+          splitLine: { lineStyle: { color: splitColor } },
+          axisName: { color: textColor, fontSize: 10, fontWeight: 500 }
+        },
+        series: [{
+          name: '健康度',
+          type: 'radar',
+          symbol: 'none',
+          data: [{
+            value: [78, 92, 45, 88, 70],
+            name: '当前周期',
+            itemStyle: { color: '#10b981' },
+            areaStyle: { color: 'rgba(16, 185, 129, 0.15)' },
+            lineStyle: { width: 2 }
+          },
+          {
+             value: [65, 80, 60, 75, 55],
+             name: '上周同期',
+             itemStyle: { color: '#94a3b8' },
+             areaStyle: { color: 'rgba(148, 163, 184, 0.1)' },
+             lineStyle: { width: 1, type: 'dashed' }
+          }]
+        }]
+      });
+
+      const handleResize = () => chart.resize();
+      window.addEventListener('resize', handleResize);
+      return () => { window.removeEventListener('resize', handleResize); chart.dispose(); };
+    };
+    loadRadar();
+  }, [loading]);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "早安";
+    if (h < 18) return "下午好";
+    return "晚上好";
+  };
+
+  return (
+    <PageTransition>
+      <div className="space-y-10 pb-10">
+        {/* 顶部 Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-1"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">System Operational</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
+              {greeting()}，指挥官
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
+              <Activity className="h-4 w-4 text-indigo-500" />
+              FutureClass 教务中枢 · {new Date().toLocaleDateString("zh-CN", { month: 'long', day: 'numeric', weekday: 'long' })}
+            </p>
+          </motion.div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="rounded-full px-5 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all">
+              导出报告
+            </Button>
+            <Link href="/futureclass/students">
+              <Button size="sm" className="rounded-full px-5 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white shadow-xl shadow-zinc-200 dark:shadow-none transition-all group">
+                <Zap className="h-4 w-4 mr-2 fill-current group-hover:scale-110 transition-transform" /> 
+                新开单报名
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* 4 张核心 KPI 卡 - Linear 风格 */}
+        {loading ? (
+          <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonKPI key={i} />)}
+          </div>
+        ) : (
+          <StaggerContainer className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <StaggerItem>
+              <Card className="relative overflow-hidden border-none bg-zinc-900 dark:bg-white group transition-all duration-300 hover:-translate-y-1 shadow-2xl shadow-zinc-200 dark:shadow-zinc-950/50">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                  <Users className="h-24 w-24 text-white dark:text-zinc-900" />
+                </div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">活跃学员</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-4xl font-black text-white dark:text-zinc-900 tracking-tighter">
+                    <AnimatedNumber value={stats.studentCount} />
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    <Badge className="bg-emerald-500/20 text-emerald-400 dark:bg-emerald-100 dark:text-emerald-700 border-none text-[10px]">
+                      LIVE STATUS
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="relative overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl group hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">本月新增</CardTitle>
+                  <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400"><TrendingUp className="h-4 w-4" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">
+                    <AnimatedNumber value={stats.newCount} />
+                  </div>
+                  <p className="text-[11px] font-medium text-slate-400 mt-4 flex items-center gap-1">
+                    较上月同期 <span className="text-emerald-500">+12%</span>
+                  </p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="relative overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl group hover:shadow-xl hover:shadow-amber-500/5 transition-all duration-300 hover:-translate-y-1">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">月确认收入</CardTitle>
+                  <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400"><CreditCard className="h-4 w-4" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">
+                    <AnimatedNumber value={stats.revenueMonth} prefix="¥" />
+                  </div>
+                  <p className="text-[11px] font-medium text-slate-400 mt-4 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-amber-500" /> 目标达成率 84%
+                  </p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className={`relative overflow-hidden border transition-all duration-300 hover:-translate-y-1 ${stats.warningCount > 0 ? 'border-red-200 bg-red-50/30 dark:border-red-900/30 dark:bg-red-950/10' : 'border-slate-200/60 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl'}`}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">课时预警</CardTitle>
+                  <div className={`p-2 rounded-lg ${stats.warningCount > 0 ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' : 'bg-slate-100 text-slate-600'}`}><Zap className="h-4 w-4" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-4xl font-black tracking-tighter ${stats.warningCount > 0 ? 'text-red-600 dark:text-red-500' : 'text-slate-900 dark:text-slate-100'}`}>
+                    <AnimatedNumber value={stats.warningCount} />
+                  </div>
+                  <p className="text-[11px] font-medium text-slate-400 mt-4">
+                    急需跟进续费的学员
+                  </p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+          </StaggerContainer>
+        )}
+
+        {/* V2.1: AI 运营诊断看板 */}
+        <div className="relative">
+          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-2xl blur opacity-10" />
+          <DiagnosisBoard
+            diagnosis={diagnosis}
+            directive={directive}
+            loading={diagLoading && loading}
+          />
+        </div>
+
+        {/* 图表 + 动态流 */}
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
+          <Card className="lg:col-span-8 border-slate-200/60 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl shadow-sm overflow-hidden">
+            <CardHeader className="pb-0 border-b border-slate-100 dark:border-slate-800/50 mb-6">
+              <div className="flex items-center justify-between pb-4">
+                <div>
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100">业务增长矩阵</CardTitle>
+                  <CardDescription className="text-xs">消课趋势与校区健康度多维分析</CardDescription>
+                </div>
+                <div className="flex gap-1">
+                  <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-[10px] font-bold">REAL-TIME</Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 pt-0 flex flex-col xl:flex-row gap-8">
+              <div className="flex-[1.5]">
+                {loading ? <SkeletonChart /> : <div ref={chartRef} className="w-full h-[300px]" />}
+              </div>
+              <div className="flex-1 flex flex-col justify-center border-t xl:border-t-0 xl:border-l border-slate-100 dark:border-slate-800 pt-6 xl:pt-0 xl:pl-8">
+                 <div className="mb-6">
+                   <h4 className="text-sm font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                     <Sparkles className="h-4 w-4 text-emerald-500"/> 
+                     Health Index
+                   </h4>
+                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                     基于转化、出勤、续费等 5 个核心维度的自动化评估模型。
+                   </p>
+                 </div>
+                 {loading ? <SkeletonChart /> : <div ref={radarRef} className="w-full h-[240px]" />}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-4 border-slate-200/60 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100">实时动态</CardTitle>
+                <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+              </div>
+              <CardDescription className="text-xs">全校区教务日志流</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-6">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-3/4 animate-pulse" />
+                        <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded w-1/2 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-[19px] top-2 bottom-2 w-[1px] bg-slate-100 dark:bg-slate-800" />
+                  <StaggerContainer className="space-y-6 relative">
+                    {enrollments.slice(0, 3).map((en, i) => {
+                      const value = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+                      return (
+                        <StaggerItem key={en.id || i}>
+                          <div className="flex items-start gap-4 group cursor-default">
+                            <div className="relative z-10 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-indigo-500 shadow-sm group-hover:border-indigo-200 dark:group-hover:border-indigo-800 transition-colors">
+                              <CreditCard className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0 pt-0.5">
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 transition-colors">
+                                {en.erp_students?.name || "学员"} 报课成交
+                              </p>
+                              <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                                {en.erp_courses?.name} · ¥{value.toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="text-[10px] font-medium text-slate-400 pt-1">
+                              {new Date(en.created_at).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}
+                            </div>
+                          </div>
+                        </StaggerItem>
+                      );
+                    })}
+
+                    {classes.slice(0, 2).map((cls, i) => (
+                      <StaggerItem key={cls.id || i}>
+                        <div className="flex items-start gap-4 group cursor-default">
+                          <div className="relative z-10 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-emerald-500 shadow-sm group-hover:border-emerald-200 dark:group-hover:border-emerald-800 transition-colors">
+                            <GraduationCap className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-emerald-600 transition-colors">
+                              新开班级：{cls.name}
+                            </p>
+                            <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                              {cls.erp_courses?.name} · {cls.classroom || "标准教室"}
+                            </p>
+                          </div>
+                          <div className="text-[10px] font-medium text-slate-400 pt-1">
+                            {cls.start_date ? cls.start_date.split('-').slice(1).join('/') : 'NEW'}
+                          </div>
+                        </div>
+                      </StaggerItem>
+                    ))}
+                  </StaggerContainer>
+                </div>
+              )}
+              <Button variant="ghost" className="w-full mt-8 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5 rounded-xl transition-all">
+                查看全部动态日志 <ChevronRight className="ml-1 h-3 w-3" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* V2.1: 底部快捷入口 — 路由联通 */}
+        <StaggerContainer className="grid gap-5 grid-cols-1 sm:grid-cols-3">
+          {[
+            { 
+              href: "/futureclass/students", 
+              icon: Users, 
+              title: "快速录入学员", 
+              desc: "创建新学员档案并分配班级", 
+              color: "emerald" 
+            },
+            { 
+              href: "/futureclass/courses", 
+              icon: BookOpen, 
+              title: "开设新课程", 
+              desc: "定义教学产品与定价体系", 
+              color: "indigo" 
+            },
+            { 
+              href: "/futureclass/attendance", 
+              icon: CalendarCheck, 
+              title: "开始今日点名", 
+              desc: "AI 考勤与即时课后报告", 
+              color: "purple" 
+            }
+          ].map((item, idx) => (
+            <StaggerItem key={idx}>
+              <Link href={item.href}>
+                <Card className="group relative overflow-hidden border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:shadow-2xl hover:shadow-slate-200 dark:hover:shadow-none transition-all duration-300 cursor-pointer">
+                  <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 bg-${item.color}-500/5 rounded-full group-hover:scale-150 transition-transform duration-500`} />
+                  <CardContent className="p-6 flex items-center gap-5 relative z-10">
+                    <div className={`p-4 bg-${item.color}-50 dark:bg-${item.color}-500/10 rounded-2xl text-${item.color}-600 dark:text-${item.color}-400 group-hover:scale-110 transition-transform duration-300`}>
+                      <item.icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{item.title}</h3>
+                      <p className="text-xs text-slate-500 mt-1">{item.desc}</p>
+                    </div>
+                    <ArrowRight className="ml-auto h-4 w-4 text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-all transform group-hover:translate-x-1" />
+                  </CardContent>
+                </Card>
+              </Link>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      </div>
+    </PageTransition>
+  );
+}

@@ -1,0 +1,471 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { 
+  TrendingUp, 
+  Users, 
+  CreditCard, 
+  Zap,
+  ArrowRight,
+  BookOpen,
+  GraduationCap,
+  CalendarCheck,
+  Sparkles
+} from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CardDescription
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { loadDashboardData } from "../actions";
+import { getOperationalDiagnosis, generateOperationalDirective } from "../diagnosis_actions";
+import { PageTransition, StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
+import { SkeletonKPI, SkeletonChart } from "@/components/erp/skeleton-card";
+import { AnimatedNumber } from "@/components/erp/animated-number";
+import DiagnosisBoard from "./DiagnosisBoard";
+
+export default function ERPDashboard() {
+  const [stats, setStats] = useState({ studentCount: 0, warningCount: 0, newCount: 0, revenueMonth: 0 });
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const radarRef = useRef<HTMLDivElement>(null);
+
+  // V2.1: AI 运营诊断状态
+  const [diagnosis, setDiagnosis] = useState<any>(null);
+  const [directive, setDirective] = useState("");
+  const [diagLoading, setDiagLoading] = useState(true);
+
+  useEffect(() => {
+    // V2.1: 并行加载 Dashboard 数据 + 诊断数据
+    Promise.all([
+      loadDashboardData(),
+      getOperationalDiagnosis(),
+    ]).then(([dashData, diagData]) => {
+      // Dashboard 基础数据
+      setStats(dashData.stats);
+      setEnrollments(dashData.enrollments);
+      setClasses(dashData.classes);
+      setTrendData(dashData.trend);
+      setLoading(false);
+
+      // 诊断数据 → 然后生成 AI 指令
+      setDiagnosis(diagData);
+      if (diagData) {
+        generateOperationalDirective(diagData).then(text => {
+          setDirective(text);
+          setDiagLoading(false);
+        });
+      } else {
+        setDiagLoading(false);
+      }
+    });
+  }, []);
+
+  // ECharts 消课趋势图
+  useEffect(() => {
+    if (loading || !chartRef.current) return;
+    
+    const loadChart = async () => {
+      const echarts = await import("echarts");
+      const chart = echarts.init(chartRef.current!, undefined, { renderer: 'canvas' });
+      
+      const days = trendData.map(d => d.label);
+      const consumed = trendData.map(d => d.consumed);
+      const revenue = trendData.map(d => d.consumed * 200);
+
+      chart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          borderWidth: 0,
+          textStyle: { color: '#fff', fontSize: 12 }
+        },
+        legend: {
+          data: ['消课量', '确认收入'],
+          right: 20,
+          top: 0,
+          textStyle: { fontSize: 12, color: '#888' }
+        },
+        grid: { top: 36, right: 20, bottom: 28, left: 50, containLabel: false },
+        xAxis: {
+          type: 'category',
+          data: days,
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: '#999', fontSize: 11 }
+        },
+        yAxis: [
+          {
+            type: 'value',
+            name: '课时',
+            splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
+            axisLabel: { color: '#999', fontSize: 11 }
+          },
+          {
+            type: 'value',
+            name: '¥',
+            splitLine: { show: false },
+            axisLabel: { color: '#999', fontSize: 11 }
+          }
+        ],
+        series: [
+          {
+            name: '消课量',
+            type: 'bar',
+            data: consumed,
+            barWidth: 20,
+            itemStyle: { 
+              borderRadius: [6, 6, 0, 0],
+              color: {
+                type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#34d399' },
+                  { offset: 1, color: '#10b981' }
+                ]
+              }
+            }
+          },
+          {
+            name: '确认收入',
+            type: 'line',
+            yAxisIndex: 1,
+            data: revenue,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: { width: 3, color: '#6366f1' },
+            itemStyle: { color: '#6366f1' },
+            areaStyle: {
+              color: {
+                type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(99,102,241,0.15)' },
+                  { offset: 1, color: 'rgba(99,102,241,0.01)' }
+                ]
+              }
+            }
+          }
+        ]
+      });
+
+      const handleResize = () => chart.resize();
+      window.addEventListener('resize', handleResize);
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        chart.dispose();
+      };
+    };
+
+    loadChart();
+  }, [loading, trendData]);
+
+  // 渲染健康度雷达图
+  useEffect(() => {
+    if (loading || !radarRef.current) return;
+    const loadRadar = async () => {
+      const echarts = await import('echarts');
+      const chart = echarts.init(radarRef.current);
+      
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#9ca3af' : '#6b7280';
+      const splitColor = isDark ? '#374151' : '#e5e7eb';
+
+      chart.setOption({
+        tooltip: { trigger: 'item' },
+        radar: {
+          indicator: [
+            { name: '转化率', max: 100 },
+            { name: '出勤率', max: 100 },
+            { name: '续费预警', max: 100 },
+            { name: '客单价', max: 100 },
+            { name: '开课率', max: 100 }
+          ],
+          splitArea: { show: false },
+          axisLine: { lineStyle: { color: splitColor } },
+          splitLine: { lineStyle: { color: splitColor } },
+          axisName: { color: textColor, fontSize: 11, fontWeight: 500 }
+        },
+        series: [{
+          name: '健康度',
+          type: 'radar',
+          data: [{
+            value: [78, 92, 45, 88, 70],
+            name: '当前周期',
+            itemStyle: { color: '#10b981' },
+            areaStyle: { color: 'rgba(16, 185, 129, 0.2)' }
+          },
+          {
+             value: [65, 80, 60, 75, 55],
+             name: '上周同期',
+             itemStyle: { color: '#6366f1' },
+             areaStyle: { color: 'rgba(99, 102, 241, 0.2)' }
+          }]
+        }]
+      });
+
+      const handleResize = () => chart.resize();
+      window.addEventListener('resize', handleResize);
+      return () => { window.removeEventListener('resize', handleResize); chart.dispose(); };
+    };
+    loadRadar();
+  }, [loading]);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "早安";
+    if (h < 18) return "下午好";
+    return "晚上好";
+  };
+
+  return (
+    <PageTransition>
+      <div className="space-y-8">
+        {/* 顶部 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {greeting()}，指挥官 <span className="animate-pulse inline-block">👋</span>
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              FutureClass 教务中枢 · {new Date().toLocaleDateString("zh-CN", { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm">下载报表</Button>
+            <Link href="/futureclass/students">
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20">
+                <Zap className="h-4 w-4 mr-1" /> 新开单报名
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* 4 张核心 KPI 卡 */}
+        {loading ? (
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonKPI key={i} />)}
+          </div>
+        ) : (
+          <StaggerContainer className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            <StaggerItem>
+              <Card className="overflow-hidden border-none shadow-md bg-gradient-to-br from-emerald-500 to-teal-600 text-white group hover:shadow-xl hover:shadow-emerald-500/20 transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-emerald-100">活跃学员</CardTitle>
+                  <div className="p-2 bg-white/20 rounded-lg"><Users className="h-4 w-4" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl sm:text-4xl font-black">
+                    <AnimatedNumber value={stats.studentCount} />
+                  </div>
+                  <p className="text-xs text-emerald-200 mt-2">正式在读学员总数</p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">本月新增</CardTitle>
+                  <div className="p-2 bg-indigo-500/10 rounded-lg"><TrendingUp className="h-4 w-4 text-indigo-500" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl sm:text-4xl font-black">
+                    <AnimatedNumber value={stats.newCount} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">新签约报课订单</p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">月确认收入</CardTitle>
+                  <div className="p-2 bg-amber-500/10 rounded-lg"><CreditCard className="h-4 w-4 text-amber-500" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl sm:text-4xl font-black">
+                    <AnimatedNumber value={stats.revenueMonth} prefix="¥" />
+                  </div>
+                  <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" /> +2.1% 较上月
+                  </p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className={`overflow-hidden border-none shadow-md hover:shadow-lg transition-shadow ${stats.warningCount > 0 ? 'ring-2 ring-red-500/30' : ''}`}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">课时预警</CardTitle>
+                  <div className="p-2 bg-red-500/10 rounded-lg"><Zap className="h-4 w-4 text-red-500" /></div>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-3xl sm:text-4xl font-black ${stats.warningCount > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    <AnimatedNumber value={stats.warningCount} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">剩余课时 ≤ 3 的学员</p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+          </StaggerContainer>
+        )}
+
+        {/* V2.1: AI 运营诊断看板 */}
+        <DiagnosisBoard
+          diagnosis={diagnosis}
+          directive={directive}
+          loading={diagLoading && loading}
+        />
+
+        {/* 图表 + 动态流 */}
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-7">
+          <Card className="lg:col-span-4 shadow-md border-none">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">消课趋势 &amp; 确认收入</CardTitle>
+                  <CardDescription>近 7 日消课量与对应确认收入可视化</CardDescription>
+                </div>
+                <Badge variant="outline" className="text-xs">实时</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 flex flex-col md:flex-row gap-6">
+              <div className="flex-1">
+                {loading ? <SkeletonChart /> : <div ref={chartRef} className="w-full h-[220px] sm:h-[300px]" />}
+              </div>
+              <div className="flex-1 border-t md:border-t-0 md:border-l border-muted pt-4 md:pt-0 pl-0 md:pl-6">
+                 <div className="mb-2">
+                   <h4 className="text-sm font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-emerald-500"/> 健康度雷达 (Health Index)</h4>
+                   <p className="text-xs text-muted-foreground mt-1">多维度对比校区流转效率，满格为 100 理论极值。</p>
+                 </div>
+                 {loading ? <SkeletonChart /> : <div ref={radarRef} className="w-full h-[200px] sm:h-[260px]" />}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-3 shadow-md border-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">最近动态</CardTitle>
+              <CardDescription>系统自动生成的教务日志</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-5">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                      <div className="h-9 w-9 rounded-full bg-muted/60 animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-muted/60 rounded w-3/4 animate-pulse" />
+                        <div className="h-2.5 bg-muted/60 rounded w-1/2 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <StaggerContainer className="space-y-5">
+                  {enrollments.slice(0, 4).map((en, i) => {
+                    const value = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+                    return (
+                      <StaggerItem key={en.id || i}>
+                        <div className="flex items-center gap-4 group">
+                          <div className="p-2 rounded-full bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                            <CreditCard className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">{en.erp_students?.name || "学员"} 报课成交</p>
+                            <p className="text-xs text-muted-foreground truncate">{en.erp_courses?.name} · {en.total_purchased_lessons}课时 · ¥{value.toLocaleString()}</p>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground whitespace-nowrap hidden sm:block">
+                            {new Date(en.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </StaggerItem>
+                    );
+                  })}
+
+                  {classes.slice(0, 2).map((cls, i) => (
+                    <StaggerItem key={cls.id || i}>
+                      <div className="flex items-center gap-4 group">
+                        <div className="p-2 rounded-full bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                          <GraduationCap className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">开班：{cls.name}</p>
+                          <p className="text-xs text-muted-foreground">{cls.erp_courses?.name} · {cls.classroom || "教室待定"}</p>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground whitespace-nowrap hidden sm:block">
+                          {cls.start_date || "待排期"}
+                        </div>
+                      </div>
+                    </StaggerItem>
+                  ))}
+                </StaggerContainer>
+              )}
+              <Button variant="ghost" className="w-full mt-6 text-sm text-emerald-600 hover:text-emerald-700">
+                查看全部动态 <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* V2.1: 底部快捷入口 — 路由联通 */}
+        <StaggerContainer className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+          <StaggerItem>
+            <Link href="/futureclass/students">
+              <Card className="group hover:shadow-lg transition-all cursor-pointer border-dashed hover:border-emerald-500/50">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500 group-hover:text-white transition-colors text-emerald-600">
+                    <Users className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">快速录入学员</h3>
+                    <p className="text-xs text-muted-foreground">创建新学员档案并分配班级</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </StaggerItem>
+          <StaggerItem>
+            <Link href="/futureclass/courses">
+              <Card className="group hover:shadow-lg transition-all cursor-pointer border-dashed hover:border-indigo-500/50">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 bg-indigo-500/10 rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-colors text-indigo-600">
+                    <BookOpen className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">开设新课程</h3>
+                    <p className="text-xs text-muted-foreground">定义教学产品与定价体系</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </StaggerItem>
+          <StaggerItem>
+            <Link href="/futureclass/attendance">
+              <Card className="group hover:shadow-lg transition-all cursor-pointer border-dashed hover:border-purple-500/50">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500 group-hover:text-white transition-colors text-purple-600">
+                    <CalendarCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">开始今日点名</h3>
+                    <p className="text-xs text-muted-foreground">AI 考勤与即时课后报告</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </StaggerItem>
+        </StaggerContainer>
+      </div>
+    </PageTransition>
+  );
+}

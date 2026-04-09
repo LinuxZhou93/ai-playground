@@ -1,0 +1,525 @@
+"use client";
+
+import React, { useState } from "react";
+import { 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  Sparkles, 
+  GraduationCap,
+  Loader2,
+  Copy,
+  Check,
+  Users,
+  CalendarDays,
+  TrendingUp,
+  ChevronRight,
+  Zap
+} from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CardDescription,
+  CardFooter
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  generateAIFeedback, 
+  getStudentsByClass, 
+  markAttendance,
+  batchMarkAttendance,
+  loadAttendanceData
+} from "../actions";
+import { toast } from "sonner";
+import { PageTransition, StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
+import { motion, AnimatePresence } from "motion/react";
+
+export default function AttendancePage() {
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [markingId, setMarkingId] = useState<string | null>(null);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [stats, setStats] = useState<any>(null);
+  
+  const [aiLoading, setAiLoading] = useState(false);
+  const [reportText, setReportText] = useState("");
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
+  const [selectedStudentForAI, setSelectedStudentForAI] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const weekDay = ["日", "一", "二", "三", "四", "五", "六"][today.getDay()];
+
+  // 初次加载 (批量)
+  React.useEffect(() => {
+    loadAttendanceData().then(({ classes: classData, stats: statsData }) => {
+      setClasses(classData);
+      setStats(statsData);
+      if (classData.length > 0) {
+        setSelectedClassId(classData[0].id);
+      }
+    });
+  }, []);
+
+  // 选择班级时加载学员
+  React.useEffect(() => {
+    if (selectedClassId) {
+      setLoading(true);
+      getStudentsByClass(selectedClassId).then(data => {
+        setStudents(data);
+        setLoading(false);
+      });
+    }
+  }, [selectedClassId]);
+
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    } catch(e) {}
+  };
+
+  const handleMarkAttendance = async (studentId: string, status: "PRESENT" | "ABSENT" | "LEAVE") => {
+    setMarkingId(studentId);
+    try {
+      await markAttendance({ studentId, classId: selectedClassId, status, consumptionValue: 1.0 });
+      setStudents(prev => prev.map(s => 
+        s.id === studentId ? { ...s, attendanceStatus: status, remaining_lessons: status === 'PRESENT' ? Math.max(0, Number(s.remaining_lessons) - 1) : s.remaining_lessons } : s
+      ));
+      if (status === "PRESENT") playBeep();
+      toast.success(`${status === "PRESENT" ? "✅ 出席，已扣 1 课时" : status === "ABSENT" ? "❌ 缺席已记录" : "⏳ 请假已记录"}`);
+    } catch (error) {
+      toast.error("操作失败");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
+  const handleBatchMark = async () => {
+    const unmarked = students.filter(s => !s.attendanceStatus);
+    if (unmarked.length === 0) {
+      toast.info("所有学员已完成签到");
+      return;
+    }
+    setBatchLoading(true);
+    try {
+      const result = await batchMarkAttendance(selectedClassId, unmarked.map(s => s.id));
+      setStudents(prev => prev.map(s => ({
+        ...s,
+        attendanceStatus: s.attendanceStatus || 'PRESENT',
+        remaining_lessons: !s.attendanceStatus ? Math.max(0, Number(s.remaining_lessons) - 1) : s.remaining_lessons
+      })));
+      playBeep();
+      toast.success(`🎉 批量签到完成！${result.count} 名学员全部出席`);
+    } catch (err) {
+      toast.error("批量签到失败");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    if (!selectedStudentForAI) {
+      toast.warning("请先在左侧点击学员以选中。");
+      return;
+    }
+    if (selectedKeywords.length === 0) {
+      toast.warning("请至少勾选一个关键词。");
+      return;
+    }
+    
+    setAiLoading(true);
+    setReportText("");
+    try {
+      const feedback = await generateAIFeedback(selectedStudentForAI.name, selectedKeywords);
+      // 打字机效果
+      let idx = 0;
+      const interval = setInterval(() => {
+        idx += 2;
+        setReportText(feedback.slice(0, idx));
+        if (idx >= feedback.length) clearInterval(interval);
+      }, 20);
+      toast.success("AI 点评生成成功！");
+    } catch (error) {
+      toast.error("生成失败");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleCopy = () => {
+    if (reportText) {
+      navigator.clipboard.writeText(reportText);
+      setCopied(true);
+      toast.success("已复制到剪贴板");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const toggleKeyword = (kw: string) => {
+    setSelectedKeywords(prev => 
+      prev.includes(kw) ? prev.filter(k => k !== kw) : [...prev, kw]
+    );
+  };
+
+  const presentCount = students.filter(s => s.attendanceStatus === 'PRESENT').length;
+  const markedCount = students.filter(s => s.attendanceStatus).length;
+  const attendanceRate = markedCount > 0 ? (presentCount / markedCount) * 100 : 0;
+  
+  // 圆环进度条属性
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (attendanceRate / 100) * circumference;
+
+  return (
+    <PageTransition>
+      <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
+        {/* Header Section with Glassmorphism */}
+        <div className="relative overflow-hidden rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-emerald-500/10 blur-[80px]" />
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-64 w-64 rounded-full bg-blue-500/10 blur-[80px]" />
+          
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner">
+                <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                    极速点名
+                  </h2>
+                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/5 backdrop-blur-sm">
+                    Live
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-4 text-slate-400">
+                  <div className="relative group">
+                    <select 
+                      className="bg-transparent font-semibold text-emerald-400 border-none p-0 pr-6 focus:ring-0 cursor-pointer appearance-none"
+                      value={selectedClassId}
+                      onChange={(e) => setSelectedClassId(e.target.value)}
+                    >
+                      {classes.map(c => <option key={c.id} value={c.id} className="bg-slate-900 text-white">{c.name}</option>)}
+                    </select>
+                    <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 rotate-90 pointer-events-none text-emerald-400/50" />
+                  </div>
+                  <div className="h-4 w-[1px] bg-slate-800" />
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <CalendarDays className="h-4 w-4" />
+                    {todayStr} <span className="opacity-60">周{weekDay}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-4 bg-white/5 backdrop-blur-xl p-3 px-5 rounded-2xl border border-white/10">
+                <div className="relative w-14 h-14 flex items-center justify-center">
+                  <svg className="w-14 h-14 transform -rotate-90 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+                    <circle cx="28" cy="28" r="22" stroke="currentColor" strokeWidth="3" fill="transparent" className="text-white/5" />
+                    <motion.circle
+                      cx="28" cy="28" r="22"
+                      stroke="currentColor" strokeWidth="3" fill="transparent"
+                      strokeDasharray={2 * Math.PI * 22}
+                      initial={{ strokeDashoffset: 2 * Math.PI * 22 }}
+                      animate={{ strokeDashoffset: 2 * Math.PI * 22 - (attendanceRate / 100) * (2 * Math.PI * 22) }}
+                      transition={{ duration: 1.5, ease: "circOut" }}
+                      className={attendanceRate >= 80 ? "text-emerald-400" : attendanceRate >= 60 ? "text-amber-400" : "text-rose-400"}
+                    />
+                  </svg>
+                  <span className="absolute text-xs font-black tracking-tighter">
+                    {students.length > 0 ? Math.round(attendanceRate) + "%" : "-"}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-0.5">Attendance Rate</p>
+                  <p className="text-xl font-mono font-bold">
+                    <span className="text-emerald-400">{markedCount}</span>
+                    <span className="text-slate-600 mx-1">/</span>
+                    <span className="text-slate-300">{students.length}</span>
+                  </p>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleBatchMark}
+                disabled={batchLoading}
+                className="h-14 px-8 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+              >
+                {batchLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5 mr-2 fill-current" />}
+                一键全员签到
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Attendance List */}
+          <Card className="lg:col-span-8 border-none bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md shadow-xl ring-1 ring-zinc-200/50 dark:ring-zinc-800/50 overflow-hidden">
+            <CardHeader className="border-b border-zinc-100 dark:border-zinc-800/50 bg-white/30 dark:bg-zinc-900/30 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold tracking-tight flex items-center gap-2">
+                    学员签到名册
+                    <span className="ml-2 px-2 py-0.5 text-[10px] bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-500 uppercase tracking-wider">
+                      {students.length} Total
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-sm mt-1">点击学员头像可快速开启 AI 点评模式</CardDescription>
+                </div>
+                <AnimatePresence>
+                  {markedCount === students.length && students.length > 0 && (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      今日任务已达成
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+               <div className="divide-y divide-zinc-100 dark:divide-zinc-800/50 relative min-h-[400px]">
+                  {loading ? (
+                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/40 dark:bg-zinc-950/40 backdrop-blur-sm z-10">
+                        <Loader2 className="h-10 w-10 animate-spin text-emerald-500 mb-4" />
+                        <p className="text-sm font-medium text-zinc-500 animate-pulse">正在同步教务数据...</p>
+                     </div>
+                  ) : students.length === 0 ? (
+                     <div className="flex flex-col items-center justify-center p-20 text-center">
+                        <div className="h-20 w-20 rounded-full bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center mb-4">
+                          <Users className="h-10 w-10 text-zinc-300" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">暂无学员数据</h3>
+                        <p className="text-sm text-zinc-500 max-w-[200px] mt-1">该班级目前没有在读学员，请先在教务系统添加。</p>
+                     </div>
+                  ) : (
+                    <div className="grid grid-cols-1">
+                      {students.map((student, idx) => (
+                        <motion.div
+                          key={student.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.03 }}
+                          className={`group flex items-center justify-between px-8 py-5 transition-all duration-300 cursor-pointer hover:bg-zinc-50/80 dark:hover:bg-zinc-800/30 ${selectedStudentForAI?.id === student.id ? "bg-indigo-50/50 dark:bg-indigo-500/5 ring-1 ring-inset ring-indigo-500/20" : ""}`}
+                          onClick={() => setSelectedStudentForAI(student)}
+                        >
+                           <div className="flex items-center gap-5">
+                              <div className="relative">
+                                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center font-bold text-lg transition-all duration-500 shadow-sm ${
+                                  student.attendanceStatus === 'PRESENT' 
+                                    ? 'bg-emerald-500 text-white rotate-3' 
+                                    : student.attendanceStatus === 'ABSENT'
+                                    ? 'bg-rose-500 text-white -rotate-3'
+                                    : student.attendanceStatus === 'LEAVE'
+                                    ? 'bg-amber-500 text-white'
+                                    : selectedStudentForAI?.id === student.id 
+                                    ? "bg-indigo-600 text-white scale-110 shadow-indigo-500/40 shadow-lg" 
+                                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:scale-105"
+                                }`}>
+                                   {student.name[0]}
+                                </div>
+                                {student.attendanceStatus && (
+                                  <motion.div 
+                                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                                    className="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 rounded-full p-1 shadow-lg ring-1 ring-zinc-200 dark:ring-zinc-700"
+                                  >
+                                    {student.attendanceStatus === 'PRESENT' && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                                    {student.attendanceStatus === 'ABSENT' && <XCircle className="h-4 w-4 text-rose-500" />}
+                                    {student.attendanceStatus === 'LEAVE' && <Clock className="h-4 w-4 text-amber-500" />}
+                                  </motion.div>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                 <p className="font-bold text-zinc-900 dark:text-zinc-100 tracking-tight text-base">{student.name}</p>
+                                 <div className="flex items-center gap-3">
+                                   <Badge variant="secondary" className={`text-[10px] font-bold px-2 py-0 shadow-none border-none ${Number(student.remaining_lessons) < 3 ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/10' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800'}`}>
+                                     {student.remaining_lessons} 课时剩余
+                                   </Badge>
+                                   {Number(student.remaining_lessons) < 3 && (
+                                     <span className="flex items-center gap-1 text-[10px] font-bold text-rose-500 animate-pulse">
+                                       <Zap className="h-3 w-3 fill-current" /> 余额不足
+                                     </span>
+                                   )}
+                                 </div>
+                              </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-3">
+                              <button 
+                                disabled={markingId === student.id}
+                                onClick={(e) => { e.stopPropagation(); handleMarkAttendance(student.id, "PRESENT"); }}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${student.attendanceStatus === "PRESENT" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-emerald-500/10 hover:text-emerald-600"}`}
+                              >
+                                 {markingId === student.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                 出席
+                              </button>
+                              <button 
+                                disabled={markingId === student.id}
+                                onClick={(e) => { e.stopPropagation(); handleMarkAttendance(student.id, "ABSENT"); }}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${student.attendanceStatus === "ABSENT" ? "bg-rose-500 text-white shadow-lg shadow-rose-500/30" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-rose-500/10 hover:text-rose-600"}`}
+                              >
+                                 <XCircle className="h-3.5 w-3.5" />
+                                 缺席
+                              </button>
+                              <button 
+                                disabled={markingId === student.id}
+                                onClick={(e) => { e.stopPropagation(); handleMarkAttendance(student.id, "LEAVE"); }}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 ${student.attendanceStatus === "LEAVE" ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-amber-500/10 hover:text-amber-600"}`}
+                              >
+                                 <Clock className="h-3.5 w-3.5" />
+                                 请假
+                              </button>
+                           </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+               </div>
+            </CardContent>
+            <CardFooter className="px-8 py-4 bg-zinc-50/50 dark:bg-zinc-900/50 border-t border-zinc-100 dark:border-zinc-800/50">
+              <p className="text-[11px] font-medium text-zinc-400 flex items-center gap-2">
+                <Zap className="h-3 w-3 text-amber-500" />
+                系统提示：确认出席后将自动核销 1 课时，并同步至家长端小程序。
+              </p>
+            </CardFooter>
+          </Card>
+
+          {/* Right Sidebar: AI & Stats */}
+          <div className="lg:col-span-4 space-y-8">
+            {/* AI Feedback Card */}
+            <Card className="relative overflow-hidden border-none bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-2xl shadow-indigo-500/20">
+              <div className="absolute top-0 right-0 p-4 opacity-20">
+                <Sparkles className="h-20 w-20 rotate-12" />
+              </div>
+              <CardHeader className="relative pb-4">
+                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-amber-300 animate-pulse" />
+                  AI 课堂点评
+                </CardTitle>
+                <CardDescription className="text-indigo-100/70 text-xs font-medium">
+                  {selectedStudentForAI 
+                    ? <>正在为 <span className="text-white font-bold underline decoration-amber-400 underline-offset-4">{selectedStudentForAI.name}</span> 撰写报告</>
+                    : "请在左侧列表点击学员头像以开始"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="relative space-y-5">
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-200/60">选择课堂表现标签</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["专注度高", "逻辑严密", "动手能力强", "积极参与", "有创意", "协作能力好", "需多加练习"].map(kw => (
+                      <button 
+                        key={kw}
+                        onClick={() => toggleKeyword(kw)}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-300 border ${
+                          selectedKeywords.includes(kw) 
+                            ? 'bg-white text-indigo-700 border-white shadow-lg' 
+                            : 'bg-indigo-500/30 border-indigo-400/30 text-indigo-100 hover:bg-indigo-500/50'
+                        }`}
+                      >
+                        {kw}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="relative group">
+                  <Textarea 
+                    placeholder="AI 生成结果将在此处展示..." 
+                    className="min-h-[160px] bg-white/10 border-white/20 text-white placeholder:text-indigo-200/50 resize-none text-sm leading-relaxed focus-visible:ring-white/30 rounded-2xl p-4"
+                    value={reportText}
+                    onChange={(e) => setReportText(e.target.value)}
+                  />
+                  <AnimatePresence>
+                    {reportText && (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute top-3 right-3">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-xl bg-white/20 hover:bg-white/30 text-white"
+                          onClick={handleCopy}
+                        >
+                          {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                <Button 
+                  className="w-full h-12 rounded-2xl bg-white text-indigo-700 hover:bg-indigo-50 font-black text-sm shadow-xl transition-all active:scale-95 disabled:opacity-50"
+                  onClick={handleGenerateAI}
+                  disabled={aiLoading || !selectedStudentForAI}
+                >
+                  {aiLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
+                  {aiLoading ? "AI 正在深度思考..." : "生成专业点评报告"}
+                </Button>
+              </CardContent>
+            </Card>
+            
+            {/* Stats Card */}
+            <Card className="border-none bg-zinc-950 text-white shadow-2xl overflow-hidden">
+              <CardHeader className="pb-2 border-b border-white/5">
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-zinc-400 uppercase tracking-widest">
+                  <TrendingUp className="h-4 w-4 text-emerald-400" />
+                  教务实时看板
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-2 divide-x divide-y divide-white/5">
+                  <div className="p-6 space-y-1">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase">在读学员</p>
+                    <p className="text-3xl font-mono font-bold tracking-tighter">{stats?.studentCount || "0"}</p>
+                  </div>
+                  <div className="p-6 space-y-1">
+                    <p className="text-[10px] font-bold text-rose-500 uppercase">课时预警</p>
+                    <p className="text-3xl font-mono font-bold tracking-tighter text-rose-500">{stats?.warningCount || 0}</p>
+                  </div>
+                  <div className="p-6 space-y-1">
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase">本月新签</p>
+                    <p className="text-3xl font-mono font-bold tracking-tighter text-indigo-400">{stats?.newCount || 0}</p>
+                  </div>
+                  <div className="p-6 space-y-1">
+                    <p className="text-[10px] font-bold text-emerald-400 uppercase">确认收入</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xs font-bold text-emerald-400/60">¥</span>
+                      <p className="text-2xl font-mono font-bold tracking-tighter text-emerald-400">
+                        {(stats?.revenueMonth || 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <div className="bg-emerald-500/10 p-4 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-tighter">教务健康度</span>
+                <div className="flex gap-1">
+                  {[1,2,3,4,5].map(i => <div key={i} className={`h-1.5 w-4 rounded-full ${i <= 4 ? 'bg-emerald-500' : 'bg-emerald-500/20'}`} />)}
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </PageTransition>
+  );
+}
+
