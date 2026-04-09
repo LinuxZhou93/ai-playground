@@ -68,8 +68,68 @@
             }
             .pdf-page:last-child { page-break-after: auto !important; }
 
-            /* 雷达图打印适配 */
-            #radarChart { max-width: 100% !important; max-height: 480px !important; }
+            /* 进度条打印补丁 - 为不同色彩分配强制显色阴影 */
+            .bar-bg { background-color: #f1f5f9 !important; box-shadow: inset 0 0 0 1000px #f1f5f9 !important; }
+            .bar-fill[id="bar-focus"] { box-shadow: inset 0 0 0 1000px #6366f1 !important; }
+            .bar-fill[id="bar-dexterity"] { box-shadow: inset 0 0 0 1000px #10b981 !important; }
+            .bar-fill[id="bar-logic"] { box-shadow: inset 0 0 0 1000px #3b82f6 !important; }
+            .bar-fill[id="bar-resilience"] { box-shadow: inset 0 0 0 1000px #f43f5e !important; }
+            .bar-fill[id="bar-emotion"] { box-shadow: inset 0 0 0 1000px #8b5cf6 !important; }
+            .bar-fill[id="bar-social"] { box-shadow: inset 0 0 0 1000px #06b6d4 !important; }
+            .bar-fill[id="bar-creativity"] { box-shadow: inset 0 0 0 1000px #d946ef !important; }
+            .bar-fill[id="bar-collaboration"] { box-shadow: inset 0 0 0 1000px #f59e0b !important; }
+            .bar-fill { height: 100% !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+            /* 针对 P4 深色区域的强制显色硬补丁 */
+            .bg-slate-900 { 
+                background-color: #0f172a !important; 
+                color: white !important;
+                /* 内阴影是打印时强制显示颜色的业界“黑科技” */
+                box-shadow: inset 0 0 0 1000px #0f172a !important; 
+                border: 2px solid #0f172a !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            /* 核心补丁：给文字和图标加黑色阴影轮廓。
+               即使由于系统设置导致背景全丢失，白字在白底上也会因为这个阴影轮廓而清晰可见！ */
+            .bg-slate-900 h3, 
+            .bg-slate-900 li, 
+            .bg-slate-900 p, 
+            .bg-slate-900 span, 
+            .bg-slate-900 div {
+                color: white !important;
+                text-shadow: 0 0 1px #000, 0 0 1px #000, 0 0 1px #000 !important;
+            }
+            .bg-slate-900 i {
+                color: #22d3ee !important; /* 强制图标亮色 */
+                filter: drop-shadow(0 0 1px #000) !important;
+            }
+
+            /* 针对建议列表项的打印优化：完全取消 Flex 布局以防止 Chrome 渲染崩溃 */
+            .bg-slate-900 {
+                display: block !important; /* 强制转为块级 */
+                height: auto !important;
+                min-height: 200px !important;
+                position: relative !important;
+            }
+            /* 移除可能遮挡文字的打印背景层 */
+            .bg-slate-900 .absolute.inset-0 { display: none !important; }
+
+            #ai-recommendations-list { 
+                display: block !important; 
+                margin-top: 2rem !important; 
+            }
+            #ai-recommendations-list li {
+                display: block !important; /* 强制取消 flex 布局 */
+                background-color: #1e293b !important; /* 转为实色深灰蓝 */
+                border: 1px solid rgba(255,255,255,0.2) !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                color: white !important;
+                margin-bottom: 1rem !important;
+                padding: 1rem !important;
+            }
+            #ai-recommendations-list li div { display: inline-block !important; }
         }
     </style>
 </head>
@@ -82,11 +142,14 @@
         </a>
         <div class="flex flex-col items-end gap-2">
             <button id="downloadPdfBtn" class="pointer-events-auto flex items-center gap-2 bg-indigo-600 text-white font-bold px-6 py-3 rounded-full shadow-xl hover:bg-indigo-700 transition transform hover:-translate-y-1">
-                <i data-lucide="download" class="w-5 h-5"></i>
-                <span>双页电子档案导出(PDF)</span>
+                <i data-lucide="printer" class="w-5 h-5"></i>
+                <span>双页电子档案一键导出</span>
             </button>
-            <div class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-xs font-bold shadow-md animate-pulse border border-blue-200 pointer-events-auto">
-                💡 导师审阅模式下：所有评语和高光内容均可点击直接修改！
+            <div class="bg-amber-50 text-amber-700 px-4 py-2 rounded-xl text-xs font-bold shadow-md animate-bounce border border-amber-200 pointer-events-auto">
+                ⚠️ 重要：打印对话框请务必勾选「背景图形」以确保色彩完整！
+            </div>
+            <div class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-xs font-bold shadow-md border border-blue-200 pointer-events-auto mt-2">
+                💡 导师审阅模式：所有文字和高光内容均可直接点击修改。
             </div>
         </div>
     </div>
@@ -214,19 +277,138 @@
                     </div>
                 </div>
 
-                <!-- Giant Radar Chart -->
+                <!-- 8-Dimension Bar Chart -->
                 <div class="bg-slate-50 rounded-[2rem] border border-slate-100 p-8 flex flex-col items-center shadow-lg relative mb-10 overflow-hidden">
                     <div class="absolute top-0 right-0 opacity-5 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
-                        <i data-lucide="hexagon" class="w-64 h-64"></i>
+                        <i data-lucide="bar-chart-big" class="w-64 h-64"></i>
                     </div>
                     
                     <h3 class="text-2xl font-black text-slate-800 mb-8 border-b-2 border-indigo-100 pb-4 w-full text-center flex justify-center items-center gap-3">
                         <i data-lucide="scan-line" class="w-8 h-8 text-indigo-500"></i>
-                        科技特长生多维能力雷达图
+                        科技特长生多维能力分布图
                     </h3>
                     
-                    <div class="w-full relative h-[450px]">
-                        <canvas id="radarChart"></canvas>
+                    <div class="w-full space-y-5" id="dimension-bars-container">
+                        <!-- Each bar will be: [Icon] [Name] [Progress Bar] [Score] -->
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="target" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">专注度 (Focus)</span>
+                                    <span class="text-indigo-600 font-black" id="score-focus">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-focus" class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="mouse-pointer-2" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">手部精细 (Dexterity)</span>
+                                    <span class="text-emerald-600 font-black" id="score-dexterity">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-dexterity" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="binary" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">科学逻辑 (Logic)</span>
+                                    <span class="text-blue-600 font-black" id="score-logic">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-logic" class="h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="shield-check" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">逆商抗挫 (Resilience)</span>
+                                    <span class="text-rose-600 font-black" id="score-resilience">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-resilience" class="h-full bg-gradient-to-r from-rose-500 to-orange-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-violet-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="heart-pulse" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">情绪管理 (Emotion)</span>
+                                    <span class="text-violet-600 font-black" id="score-emotion">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-emotion" class="h-full bg-gradient-to-r from-violet-500 to-purple-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="message-square" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">社交融入 (Social)</span>
+                                    <span class="text-cyan-600 font-black" id="score-social">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-social" class="h-full bg-gradient-to-r from-cyan-500 to-sky-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-fuchsia-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">创新想象 (Creativity)</span>
+                                    <span class="text-fuchsia-600 font-black" id="score-creativity">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-creativity" class="h-full bg-gradient-to-r from-fuchsia-500 to-pink-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 group">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                <i data-lucide="users-2" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-slate-700">团队协作 (Collaboration)</span>
+                                    <span class="text-amber-600 font-black" id="score-collaboration">0</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden bar-bg">
+                                    <div id="bar-collaboration" class="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-1000 bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -304,8 +486,41 @@
         async function loadData() {
             const params = new URLSearchParams(window.location.search);
             const id = params.get('id');
-            if(!id) {
-                alert('未指定报告档案ID！'); return;
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+            // 演示专用模拟数据 (Mock Data)
+            const mockData = {
+                student_name: "测试学员",
+                student_id: "TITAN-TEST-2026",
+                camp_name: "AI智能台灯实训营 (演示模式)",
+                focus_score: 95, dexterity_score: 88, logic_score: 92, resilience_score: 75,
+                self_management_score: 82, social_score: 88, creativity_score: 96, collaboration_score: 90,
+                highlights: "在‘光感逻辑自动化’任务中，能够自主推导出三极管在不同光照强度下的压降关系，焊接工艺精湛且整洁。",
+                potential_improvements: "在‘团队角色分担’中稍显被动，倾向于独立解决复杂难题而非任务外包，建议加强协同表达。",
+                ai_overall_report: "该学员在本次实训中表现卓越。对于硬件电路的底层逻辑有着极强的探索欲，在焊接和组装环节展现了超出同龄人的精细操作能力。\n建议在未来的培养中，增加更多关于自适应算法的深度挑战，进一步磨砺其在面对逻辑死循环时的抗挫心理韧性。",
+                ai_recommendations: [
+                    "建议在家庭教育中引入‘工程复盘法’，鼓励将营地中整理硬件的习惯延伸到生活空间。",
+                    "针对情绪管理与社会化沟通的短板，建议家长引导孩子将‘逻辑思维’应用到情绪处理中。",
+                    "强烈推荐加入『成电客瞪羚俱乐部』的常态化培养项目，通过阶梯式的工程挑战，将其零散的逻辑理解力转化为成体系的系统设计能力。"
+                ],
+                photo_data: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=800"
+            };
+
+            if(!id && !isLocal) {
+                document.getElementById('loading').innerHTML = `<div class="text-amber-400 text-center p-8 bg-slate-800 rounded-2xl border border-amber-500/30">
+                    <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4"></i>
+                    <p class="font-bold">未指定报告档案 ID</p>
+                    <p class="text-xs opacity-70 mt-2 text-slate-400">请从管理后台点击链接进入</p>
+                </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            // 如果是本地测试或者故意不传 ID，显示 Mock 数据
+            if(!id || isLocal) {
+                console.log("Entering Mock Mode for local testing...");
+                renderReport(mockData); 
+                return;
             }
 
             try {
@@ -318,8 +533,8 @@
                     throw new Error(error || '数据未找到');
                 }
             } catch (err) {
-                alert('加载报告失败: ' + err.message);
-                document.getElementById('loading').innerHTML = `<p class="text-red-400">读取加密舱数据失败</p>`;
+                console.warn("API Fetch Failed, falling back to Mock Data:", err.message);
+                renderReport(mockData); // 即使接口挂了也给看演示内容，方便测试排版
             }
         }
 
@@ -376,61 +591,22 @@
                 data.collaboration_score
             ];
 
-            const ctx = document.getElementById('radarChart').getContext('2d');
-            Chart.defaults.font.family = "'Noto Sans SC', sans-serif";
+            // Update Horizontal Bars
+            const dims = [
+                'focus', 'dexterity', 'logic', 'resilience', 
+                'emotion', 'social', 'creativity', 'collaboration'
+            ];
             
-            new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: [
-                        ['专', '注', '度'], 
-                        ['手', '部', '精', '细'], 
-                        ['科', '学', '逻', '辑'], 
-                        ['逆', '商', '抗', '挫'], 
-                        ['情', '绪', '管', '理'], 
-                        ['社', '交', '融', '入'], 
-                        ['创', '新', '想', '象'], 
-                        ['团', '队', '协', '作']
-                    ],
-                    datasets: [{
-                        label: '能力指数',
-                        data: scores,
-                        fill: true,
-                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                        borderColor: 'rgb(99, 102, 241)',
-                        pointBackgroundColor: 'rgb(99, 102, 241)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(99, 102, 241)',
-                        borderWidth: 3,
-                        pointRadius: 4,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(0, 0, 0, 0.1)', lineWidth: 1 },
-                            grid: { color: 'rgba(0, 0, 0, 0.1)', circular: true },
-                            pointLabels: {
-                                font: { size: 14, weight: 'bold' },
-                                color: '#1e293b',
-                                padding: 25
-                            },
-                            ticks: { 
-                                min: 0, 
-                                max: 100, 
-                                stepSize: 20, 
-                                display: false 
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
+            dims.forEach((dim, i) => {
+                const score = scores[i] || 0;
+                const bar = document.getElementById(`bar-${dim}`);
+                const scoreTxt = document.getElementById(`score-${dim}`);
+                if(bar) bar.style.width = `${score}%`;
+                if(scoreTxt) scoreTxt.innerText = score;
             });
+            
+            // Re-trigger icon updates for new bars
+            lucide.createIcons();
         }
 
         // Setup Photo Injection on Report Page

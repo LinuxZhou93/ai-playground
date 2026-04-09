@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const supabaseUrl = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
-
-export const runtime = 'edge';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znmbkxmnwuurzhevfxtq.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
 
 export async function POST(req: Request) {
   try {
@@ -72,7 +70,7 @@ ${potential_improvements}
     let backgraceKey = process.env.OPENAI_API_KEY || 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
 
     const openaiPayload = {
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3-flash',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
@@ -81,23 +79,37 @@ ${potential_improvements}
         response_format: { type: 'json_object' }
     };
 
+    // Use AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     const completionResponse = await fetch('https://backgrace.com/v1/chat/completions', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${backgraceKey}`
         },
-        body: JSON.stringify(openaiPayload)
+        body: JSON.stringify(openaiPayload),
+        signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!completionResponse.ok) {
-        throw new Error(`OpenAI API failed: ${completionResponse.statusText}`);
+        const errText = await completionResponse.text();
+        throw new Error(`OpenAI API failed (${completionResponse.status}): ${errText}`);
     }
 
     const openaiData = await completionResponse.json();
-
     let contentStr = openaiData.choices?.[0]?.message?.content || '{}';
-    contentStr = contentStr.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // Robust JSON extraction
+    const jsonMatch = contentStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        contentStr = jsonMatch[0];
+    } else {
+        console.error('No JSON found in AI response:', contentStr);
+        throw new Error('AI response did not contain a valid JSON object');
+    }
 
     const parsedOutput = JSON.parse(contentStr);
 

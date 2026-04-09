@@ -1,36 +1,69 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 /**
- * 墨子实验室 (Mozi Lab) 域名动态路由系统
+ * 墨子实验室 (Mozi Lab) 统一代理网关
  * 
- * 核心逻辑：
- * 1. 检测请求的 Hostname。
- * 2. 如果是 ai.zhouxiaomai.com，且访问根路径 (/)，重写至 /mozi 渲染 AI 助手主界面。
- * 3. 如果是 zhouxiaomai.com 或其他主域，则顺延至原有路由（将由 app/page.tsx 或 public/index.html 处理）。
+ * 核心功能：
+ * 1. Supabase 会话管理 (Legacy/Hybrid)
+ * 2. 域名智能分流：ai. 域名进入新版 App，主域名渲染旧版面板
+ * 3. 静态资源智能重映射：解决 resources/ 目录下的 404 问题
  */
-export function middleware(request: NextRequest) {
-  const url = request.nextUrl.clone();
-  const host = request.headers.get('host') || '';
-  const pathname = url.pathname;
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  // 🛡️ [Security & Efficiency] 处理根路径域名分流
+  // 🛡️ [Runtime Safety] 确保环境变量存在
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    // 如果没有配置 Supabase，也继续执行后续的路由逻辑
+  } else {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+    // await supabase.auth.getUser() // 目前全局禁用 Auth 检查以减小延迟
+  }
+
+  const url = request.nextUrl.clone()
+  const host = request.headers.get('host') || ''
+  const pathname = url.pathname
+
+  // 🛡️ [Domain Routing] 处理根路径域名分流
   if (pathname === '/') {
-    // 💡 情况 A：如果是 ai.zhouxiaomai.com 子域 -> 渲染新版 FutureClass (通过 app/page.tsx)
+    // 💡 情况 A：如果是 ai.zhouxiaomai.com 子域 -> 渲染新版 FutureClass
     if (host.includes('ai.zhouxiaomai.com')) {
-      console.log('🚀 [Domain Logic] ai.zhouxiaomai.com detected -> Serving Next.js App');
+      console.log('🚀 [Domain Logic] ai.zhouxiaomai.com -> Serving Next.js App');
       return NextResponse.next();
     }
 
     // 💡 情况 B：如果是 www.zhouxiaomai.com 或 zhouxiaomai.com 主域 -> 渲染旧版面板 (index.html)
-    // 使用 rewrite 确保用户在浏览器地址栏看到的仍是 zhouxiaomai.com
-    console.log(`📡 [Domain Logic] Main Domain (${host}) detected -> Rewriting to Legacy Dashboard (index.html)`);
+    console.log(`📡 [Domain Logic] Main Domain (${host}) -> Rewriting to Legacy Dashboard (index.html)`);
     return NextResponse.rewrite(new URL('/index.html', request.url));
   }
 
-  // 🛠️ [Resource Mapping Logic] 处理所有位于 resources/ 目录下的静态页面映射
-  
-  // 1. 显式处理常用简洁路径 (Clean URLs)
+  // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
   const cleanUrlMaps: Record<string, string> = {
     '/course': '/resources/course.html',
     '/pricing': '/resources/pricing-demo.html',
@@ -40,42 +73,33 @@ export function middleware(request: NextRequest) {
   };
 
   if (cleanUrlMaps[pathname]) {
-    console.log(`🔗 [Clean URL Logic] Mapping ${pathname} -> ${cleanUrlMaps[pathname]}`);
+    console.log(`🔗 [Clean URL] Mapping ${pathname} -> ${cleanUrlMaps[pathname]}`);
     url.pathname = cleanUrlMaps[pathname];
     return NextResponse.rewrite(url);
   }
 
-  // 2. 自动映射根路径下的所有 .html 文件到 resources/ 目录 (排除 index.html 和已经存在的 app 路由)
-  // 注意：Next.js 会优先查找 public/ 根目录下的文件，如果文件不存在才会进入 middleware（对于某些配置）
-  // 或者在 middleware 中统一处理非 app 路由的请求。
+  // 📂 [Resource Logic] 自动将根路径下的 .html 文件映射到 resources/ 目录
   if (pathname.endsWith('.html') && !pathname.includes('/', 1)) {
-    // 排除一些已知的根目录文件
     const rootFiles = ['/index.html', '/mozi_lab.html', '/mozi_curriculum_overview.html'];
     if (!rootFiles.includes(pathname)) {
-      console.log(`📂 [Resource Logic] Mapping root HTML ${pathname} -> /resources${pathname}`);
       url.pathname = `/resources${pathname}`;
       return NextResponse.rewrite(url);
     }
   }
 
-  // 🛠️ [Legacy Support] 保持对原有 hub-auto 逻辑的支持（如果它在子目录中）
+  // 🛠️ [Legacy Support] 保持对原有 hub-auto 逻辑的支持
   if (pathname.startsWith('/hub-auto-') && pathname.endsWith('.html')) {
-     if (!pathname.startsWith('/resources/')) {
-        url.pathname = `/resources${pathname}`;
-        return NextResponse.rewrite(url);
-     }
+    if (!pathname.startsWith('/resources/')) {
+      url.pathname = `/resources${pathname}`;
+      return NextResponse.rewrite(url);
+    }
   }
 
-  return NextResponse.next();
+  return response
 }
 
-// 🎯 配置匹配规则：匹配根路径、不带目录层级的 .html 请求，以及核心功能路径
+// 🎯 配置匹配规则
 export const config = {
-  // 匹配：
-  // /
-  // /course, /pricing 等
-  // /*.html
-  // /hub-auto-*.html
   matcher: [
     '/',
     '/course',
@@ -83,6 +107,9 @@ export const config = {
     '/download',
     '/labs',
     '/ide',
+    '/swarm/:path*',
+    '/hub-auto-:path*',
+    // 匹配所有非静态资源的 .html 文件请求
     '/((?!api|_next/static|_next/image|favicon.ico|assets|images|avatars|libs|css|js).+\\.html)',
   ],
-};
+}

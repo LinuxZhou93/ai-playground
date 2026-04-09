@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF 下载测试</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; }
+        button { display: block; width: 100%; padding: 16px; margin: 12px 0; font-size: 16px; cursor: pointer; border: 2px solid #333; border-radius: 8px; background: white; }
+        button:hover { background: #f0f0f0; }
+        #log { background: #1e1e1e; color: #0f0; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; white-space: pre-wrap; min-height: 200px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 PDF 下载文件名测试</h1>
+    <p>点击下面的按钮测试不同的下载方式，看哪种能正确显示文件名 <code>TEST_PDF.pdf</code></p>
+    
+    <button onclick="testMethod1()">方法1: jsPDF.save()</button>
+    <button onclick="testMethod2()">方法2: Blob + Anchor (appendChild)</button>
+    <button onclick="testMethod3()">方法3: Data URI + Anchor</button>
+    <button onclick="testMethod4()">方法4: window.open (新窗口预览)</button>
+
+    <button onclick="testMethod5()" style="background: #22c55e; color: white; font-weight: bold; border-color: #16a34a;">⭐ 方法5: 服务端下载 (终极方案)</button>
+
+    <div id="log">等待测试...</div>
+
+    <script>
+        const logEl = document.getElementById('log');
+        function log(msg) { logEl.textContent += '\n' + new Date().toLocaleTimeString() + ' | ' + msg; }
+
+        function makePDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            pdf.setFontSize(36);
+            pdf.text('PDF Download Test', 30, 50);
+            pdf.setFontSize(16);
+            pdf.text('如果你看到文件名是 TEST_PDF.pdf', 30, 80);
+            pdf.text('说明该方法在你的 Chrome 中可用', 30, 95);
+            pdf.text('生成时间: ' + new Date().toLocaleString(), 30, 120);
+            return pdf;
+        }
+
+        // 方法1: jsPDF 内置 save
+        function testMethod1() {
+            log('[方法1] jsPDF.save() ...');
+            try {
+                const pdf = makePDF();
+                pdf.save('TEST_PDF.pdf');
+                log('[方法1] 已触发下载，检查文件名');
+            } catch(e) { log('[方法1] 错误: ' + e.message); }
+        }
+
+        // 方法2: Blob + createElement('a') + appendChild
+        function testMethod2() {
+            log('[方法2] Blob + Anchor ...');
+            try {
+                const pdf = makePDF();
+                const blob = pdf.output('blob');
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'TEST_PDF.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 200);
+                log('[方法2] 已触发下载，检查文件名');
+            } catch(e) { log('[方法2] 错误: ' + e.message); }
+        }
+
+        // 方法3: Data URI + download attribute
+        function testMethod3() {
+            log('[方法3] Data URI ...');
+            try {
+                const pdf = makePDF();
+                const dataUri = pdf.output('datauristring');
+                const a = document.createElement('a');
+                a.href = dataUri;
+                a.download = 'TEST_PDF.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                log('[方法3] 已触发下载，检查文件名');
+            } catch(e) { log('[方法3] 错误: ' + e.message); }
+        }
+
+        // 方法4: 新窗口预览（用户手动另存为）
+        function testMethod4() {
+            log('[方法4] 新窗口预览 ...');
+            try {
+                const pdf = makePDF();
+                const blob = pdf.output('blob');
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                log('[方法4] 已在新窗口打开，请手动 Ctrl+S 保存');
+            } catch(e) { log('[方法4] 错误: ' + e.message); }
+        }
+
+        // 方法5: 表单直接提交到服务器（绕过所有客户端JS下载机制）
+        async function testMethod5() {
+            log('[方法5] 表单直接提交 ...');
+            try {
+                const pdf = makePDF();
+                const pdfBase64 = pdf.output('datauristring').split(',')[1];
+                
+                // 用隐藏iframe接收服务器响应，避免页面跳转
+                let iframe = document.getElementById('downloadFrame');
+                if (!iframe) {
+                    iframe = document.createElement('iframe');
+                    iframe.id = 'downloadFrame';
+                    iframe.name = 'downloadFrame';
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                }
+                
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/api/download-pdf';
+                form.target = 'downloadFrame';
+                form.style.display = 'none';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'data';
+                input.value = JSON.stringify({ pdfBase64, fileName: 'TEST_PDF.pdf' });
+                form.appendChild(input);
+                
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+                
+                log('[方法5] 表单已提交，浏览器将原生处理下载');
+            } catch(e) { log('[方法5] 错误: ' + e.message); }
+        }
+
+        log('jspdf 状态: ' + (window.jspdf ? '已加载 ✅' : '未加载 ❌'));
+    </script>
+</body>
+</html>
