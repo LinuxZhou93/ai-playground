@@ -52,6 +52,20 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // 📦 [Asset Intelligence] 自动补全资源路径
+  // 处理旧版 HTML 中引用的相对路径资源 (如 assets/css/..., libs/...)
+  const assetFolders = ['assets', 'libs', 'css', 'js', 'images', 'avatars'];
+  const firstSegment = pathname.split('/')[1];
+
+  if (assetFolders.includes(firstSegment)) {
+    // 如果请求的是这些文件夹，且不是直接访问 resources 目录，则自动重定向到 resources/ 内部
+    if (!pathname.startsWith('/resources/')) {
+       console.log(`🎨 [Asset Logic] Mapping legacy asset ${pathname} -> /resources${pathname}`);
+       url.pathname = `/resources${pathname}`;
+       return NextResponse.rewrite(url);
+    }
+  }
+
   // 🛠️ [Legacy Support] 保持对原有 hub-auto 逻辑的支持
   if (pathname.startsWith('/hub-auto-') && pathname.endsWith('.html')) {
     if (!pathname.startsWith('/resources/')) {
