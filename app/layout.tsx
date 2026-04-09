@@ -32,7 +32,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable} suppressHydrationWarning translate="no">
       <head>
         <link href="/assets/css/titan-ai-assistant.css" rel="stylesheet" />
-        <script src="https://kit.fontawesome.com/b2a7bd117b.js" crossOrigin="anonymous" async></script>
+        <link href="/assets/tcm/all.min.css" rel="stylesheet" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>采芝避劫 | 体感互动体验</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;700&family=Outfit:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #D4AF37; --dark: #0a0a0a; }
+        body { margin: 0; padding: 0; background: var(--dark); font-family: 'Noto Serif SC', serif; color: #fff; overflow: hidden; user-select: none; }
+        canvas { display: block; border: 1px solid rgba(212, 175, 55, 0.2); }
+        .back-btn {
+            position: absolute; top: 30px; left: 30px;
+            color: #fff; text-decoration: none; border: 1px solid #fff;
+            padding: 10px 20px; border-radius: 20px; font-family: 'Outfit';
+            transition: 0.3s; z-index: 10;
+        }
+        .back-btn.hovered { background: #fff; color: #000; box-shadow: 0 0 15px #fff;}
+        #hud { position: absolute; top: 30px; right: 30px; text-align: right; pointer-events: none; }
+        .score { font-size: 36px; color: var(--primary); font-family: 'Outfit'; font-weight: bold;}
+        .lives { font-size: 24px; color: #ff5252; margin-top: 5px; }
+
+        #gameover {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 20;
+        }
+        #gameover h1 { color: #fff; font-size: 48px; letter-spacing: 5px; margin-bottom: 10px;}
+        #gameover p { font-size: 24px; color: var(--primary); margin-bottom: 40px;}
+        .btn {
+            background: transparent; color: var(--primary); border: 2px solid var(--primary);
+            padding: 15px 50px; font-size: 20px; font-family: 'Noto Serif SC'; cursor: pointer;
+            transition: 0.3s; border-radius: 30px;
+        }
+        .btn.hovered { background: var(--primary); color: #000; box-shadow: 0 0 20px var(--primary);}
+
+        .input_video { display: none; }
+        
+        #hand-cursor {
+            position: fixed; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
+            border-radius: 50%; border: 3px solid var(--primary); box-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+            pointer-events: none; z-index: 10000; transition: width 0.3s, height 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #hand-cursor::after { content: ''; width: 6px; height: 6px; background: #fff; border-radius: 50%; }
+        
+        .cursor-loading {
+            width: 60px !important; height: 60px !important;
+            margin-left: -30px !important; margin-top: -30px !important;
+            border-color: #ff5252 !important; box-shadow: 0 0 30px #ff5252 !important;
+        }
+        #camera-status { position: fixed; top: 80px; left: 30px; color: #4fc3f7; font-size: 14px; pointer-events: none;}
+    </style>
+</head>
+<body>
+    <div id="hand-cursor" style="display:none;"></div>
+    <video class="input_video" autoplay playsinline></video>
+    <div id="camera-status">摄像头初始化中...</div>
+
+    <div class="back-btn interactive-obj" data-action="exit">← 悬停返回大厅</div>
+    <div id="hud">
+        <div class="score" id="score">0</div>
+        <div class="lives" id="lives">❤️❤️❤️</div>
+    </div>
+    <div id="gameover">
+        <h1>挑战结束</h1>
+        <p>最终采集量: <span id="final-score">0</span></p>
+        <div class="btn interactive-obj" data-action="replay">悬停再来一次</div>
+        <br>
+        <div class="btn interactive-obj" data-action="exit" style="margin-top:20px; border-color:#fff; color:#fff;">悬停返回大厅</div>
+    </div>
+    <canvas id="game"></canvas>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let lives = 3;
+        let gameRunning = true;
+        
+        let player = {
+            x: canvas.width / 2, y: canvas.height - 80, width: 120, height: 40,
+            draw: function() {
+                ctx.fillStyle = 'rgba(212, 175, 55, 0.4)';
+                ctx.strokeStyle = '#D4AF37';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(this.x - this.width/2, this.y, this.width, this.height, 10);
+                ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#fff'; ctx.font='20px sans-serif'; ctx.textAlign='center';
+                ctx.fillText('🧺', this.x, this.y + 26);
+            }
+        };
+
+        let items = [];
+        // Spawn items
+        setInterval(() => {
+            if (!gameRunning) return;
+            let type = Math.random() > 0.3 ? 'good' : 'bad';
+            items.push({
+                x: Math.random() * (canvas.width - 40) + 20,
+                y: -30,
+                radius: 20,
+                type: type,
+                speed: Math.random() * 3 + 2 + (score * 0.05) // Gets faster
+            });
+        }, 1000);
+
+        function update() {
+            if (!gameRunning) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw player
+            player.draw();
+
+            // Update items
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.y += item.speed;
+                
+                // Render item
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+                ctx.fillStyle = item.type === 'good' ? '#D4AF37' : '#8D6E63';
+                ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
+                ctx.fill(); ctx.shadowBlur = 0; // reset
+                ctx.fillStyle = '#111'; ctx.font='18px sans-serif'; ctx.textAlign='center';
+                ctx.fillText(item.type==='good' ? '🍄' : '🐛', item.x, item.y + 6);
+
+                // Collision Detection
+                if (item.y + item.radius > player.y && 
+                    item.y - item.radius < player.y + player.height &&
+                    item.x > player.x - player.width/2 && item.x < player.x + player.width/2) {
+                    
+                    if (item.type === 'good') {
+                        score += 10;
+                        document.getElementById('score').innerText = score;
+                    } else {
+                        lives--;
+                        let hearts = '';
+                        for(let h=0; h<lives; h++) hearts += '❤️';
+                        document.getElementById('lives').innerText = hearts;
+                        
+                        if (lives <= 0) {
+                            gameRunning = false;
+                            document.getElementById('gameover').style.display = 'flex';
+                            document.getElementById('final-score').innerText = score;
+                        }
+                    }
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // Remove off screen
+                if (item.y > canvas.height + 20) {
+                    items.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            player.y = canvas.height - 80;
+        });
+
+        // Hand tracking logic
+        const videoElement = document.querySelector('.input_video');
+        const cursor = document.getElementById('hand-cursor');
+        const statusEl = document.getElementById('camera-status');
+        
+        let interactables = document.querySelectorAll('.interactive-obj');
+        let currentHoveredObj = null;
+        let hoverStartTime = 0;
+        let cursorX = window.innerWidth / 2, cursorY = window.innerHeight / 2;
+
+        function refreshInteractables() {
+            interactables = document.querySelectorAll('.interactive-obj');
+        }
+
+        function onResults(results) {
+            statusEl.innerText = '🟢 体感追踪已就绪';
+            cursor.style.display = 'flex';
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const pt = results.multiHandLandmarks[0][8]; // index finger tip
+                let targetX = (1 - pt.x) * window.innerWidth;
+                let targetY = pt.y * window.innerHeight;
+
+                cursorX += (targetX - cursorX) * 0.3;
+                cursorY += (targetY - cursorY) * 0.3;
+
+                // Move basket if game is running
+                if (gameRunning) {
+                    player.x += (targetX - player.x) * 0.5; // smooth basket movement
+                    // Hide cursor during active gameplay to avoid distraction
+                    cursor.style.display = 'none';
+                } else {
+                    cursor.style.display = 'flex';
+                    cursor.style.left = cursorX + 'px';
+                    cursor.style.top = cursorY + 'px';
+                    checkCollision(cursorX, cursorY);
+                }
+                
+                // Allow back button even when running
+                if(gameRunning) {
+                    cursor.style.display = 'flex';
+                    cursor.style.left = cursorX + 'px';
+                    cursor.style.top = cursorY + 'px';
+                    checkCollision(cursorX, cursorY);
+                }
+
+            } else {
+                if (currentHoveredObj) currentHoveredObj.classList.remove('hovered');
+                currentHoveredObj = null;
+                cursor.classList.remove('cursor-loading');
+            }
+        }
+
+        function checkCollision(cx, cy) {
+            refreshInteractables();
+            let found = null;
+            interactables.forEach(obj => {
+                if (obj.offsetWidth === 0 && obj.offsetHeight === 0) return; // Hidden elements
+                const rect = obj.getBoundingClientRect();
+                if (cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom) {
+                    found = obj;
+                }
+            });
+
+            if (found !== currentHoveredObj) {
+                if(currentHoveredObj) currentHoveredObj.classList.remove('hovered');
+                currentHoveredObj = found;
+                if (found) {
+                    found.classList.add('hovered');
+                    hoverStartTime = Date.now();
+                    cursor.classList.add('cursor-loading');
+                } else {
+                    cursor.classList.remove('cursor-loading');
+                }
+            } else if (found) {
+                let delay = 1500;
+                if (Date.now() - hoverStartTime >= delay) {
+                    hoverStartTime = Date.now() + 5000;
+                    cursor.classList.remove('cursor-loading');
+                    found.classList.remove('hovered');
+                    
+                    const action = found.dataset.action;
+                    if (action === 'exit') {
+                        window.location.href = 'lingzhi-hub.html';
+                    } else if (action === 'replay') {
+                        location.reload();
+                    }
+                    currentHoveredObj = null;
+                }
+            }
+        }
+
+        const hands = new Hands({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+        hands.setOptions({ maxNumHands: 1, minDetectionConfidence: 0.5 });
+        hands.onResults(onResults);
+        const camera = new Camera(videoElement, { onFrame: async () => { await hands.send({image: videoElement}); }, width: 640, height: 480 });
+        camera.start();
+
+        update();
+    </script>
+</body>
+</html>

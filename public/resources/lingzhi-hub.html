@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵芝元宇宙互动体验区 | 正中大健康</title>
+    <!-- MediaPipe dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    
+    <link href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;700&family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #D4AF37; /* Gold */
+            --dark: #0a0a0a;
+            --text: #ffffff;
+            --surface: rgba(255, 255, 255, 0.05);
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            background-color: var(--dark);
+            font-family: 'Noto Serif SC', serif;
+            color: var(--text);
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Video element for Camera (hidden visual) */
+        .input_video { display: none; }
+        
+        /* The cursor pointer */
+        #hand-cursor {
+            position: fixed;
+            width: 40px; height: 40px;
+            margin-left: -20px; margin-top: -20px;
+            border-radius: 50%;
+            border: 3px solid var(--primary);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+            pointer-events: none;
+            z-index: 10000;
+            transition: width 0.3s, height 0.3s;
+            display: flex;
+            align-items: center; justify-content: center;
+        }
+
+        #hand-cursor::after {
+            content: '';
+            width: 6px; height: 6px;
+            background: var(--text); border-radius: 50%;
+        }
+
+        .cursor-loading {
+            width: 60px !important; height: 60px !important;
+            margin-left: -30px !important; margin-top: -30px !important;
+            border-color: #ff5252 !important;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 15px #ff5252; }
+            100% { transform: scale(1.1); box-shadow: 0 0 30px #ff5252; }
+        }
+
+        .header {
+            text-align: center;
+            padding: 80px 20px 40px;
+            background: radial-gradient(circle at center, rgba(212, 175, 55, 0.1) 0%, var(--dark) 70%);
+        }
+
+        .title {
+            font-size: 48px;
+            color: var(--primary);
+            letter-spacing: 8px;
+            margin: 0 0 15px 0;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .subtitle {
+            font-size: 18px;
+            opacity: 0.7;
+            letter-spacing: 4px;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .games-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+        }
+
+        .game-card {
+            background: var(--surface);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            text-decoration: none;
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .game-card.hovered {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5), 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+
+        .game-card.hovered .game-act { opacity: 1; gap: 15px; }
+
+        .game-visual {
+            height: 200px;
+            background: #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-visual::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.8));
+        }
+
+        .game-content {
+            padding: 30px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-tag {
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            color: var(--dark);
+            background: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            align-self: flex-start;
+            margin-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .game-title {
+            font-size: 24px;
+            margin: 0 0 15px 0;
+            color: var(--primary);
+        }
+
+        .game-desc {
+            font-size: 14px;
+            opacity: 0.6;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .game-act {
+            margin-top: auto;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0.8;
+            transition: 0.3s;
+        }
+
+        .btn-back {
+            position: fixed;
+            top: 30px; left: 40px;
+            color: var(--primary);
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: 2px;
+            font-size: 14px;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            padding: 10px 20px;
+            border-radius: 30px;
+            transition: 0.3s;
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+        
+        .btn-back.hovered {
+            background: var(--primary);
+            color: var(--dark);
+        }
+
+        #camera-status {
+            position: fixed; top: 10px; right: 20px; color: var(--primary); font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="hand-cursor" style="display:none;"></div>
+    <video class="input_video" autoplay playsinline></video>
+    <div id="camera-status">📷 摄像头初始化中...请挥动手臂进入纯体感模式</div>
+
+    <a href="zhengzhong.html" class="btn-back interactive-obj" data-action="zhengzhong.html">✨ 全体感操控 | ← 悬停 2 秒返回</a>
+
+    <div class="header">
+        <h1 class="title">灵芝元宇宙</h1>
+        <div class="subtitle">以手代指 · 隔空取物 (悬停光标2秒执行)</div>
+    </div>
+
+    <div class="games-container">
+        <!-- Game 1 -->
+        <div class="game-card interactive-obj" data-action="lingzhigame.html">
+            <div class="game-visual" style="background: linear-gradient(45deg, #2c3e50, #000000);">👋🍄</div>
+            <div class="game-content">
+                <span class="game-tag">AI 手势追踪</span>
+                <h3 class="game-title">寻溯灵芝 · 探秘黄村坝</h3>
+                <p class="game-desc">开启摄像头，挥动双手，在虚拟原始森林中捕捉飘落的金色灵芝孢子。体验手势识别带来的沉浸式抓取乐趣。</p>
+                <div class="game-act">ENTER EXPERIENCE →</div>
+            </div>
+        </div>
+
+        <!-- Game 2 -->
+        <div class="game-card interactive-obj" data-action="lingzhitaichi.html">
+            <div class="game-visual" style="background: linear-gradient(45deg, #1a2a6c, #b21f1f, #fdbb2d);">☯️🤸</div>
+            <div class="game-content">
+                <span class="game-tag">半/全身姿态追踪</span>
+                <h3 class="game-title">太极聚灵 · 抱元生息</h3>
+                <p class="game-desc">退后一步，全身入镜。通过标准的太极抱球动作，触发全屏聚灵大阵。结合传统中医养生与现代骨骼追踪技术。</p>
+                <div class="game-act">ENTER EXPERIENCE →</div>
+            </div>
+        </div>
+
+        <!-- Game 3 -->
+        <div class="game-card interactive-obj" data-action="lingzhi-cultivate.html">
+            <div class="game-visual" style="background: linear-gradient(45deg, #11998e, #38ef7d);">🌱💧</div>
+            <div class="game-content">
+                <span class="game-tag">左右开弓感应</span>
+                <h3 class="game-title">云雾培芝模拟器</h3>
+                <p class="game-desc">模拟黄村坝林下仿野生种植环境。通过挥动双手进行浇灌与采光，培育一株极品灵芝。</p>
+                <div class="game-act">ENTER EXPERIENCE →</div>
+            </div>
+        </div>
+
+        <!-- Game 4 -->
+        <div class="game-card interactive-obj" data-action="lingzhi-memory.html">
+            <div class="game-visual" style="background: linear-gradient(45deg, #8E2DE2, #4A00E0);">🧠🎴</div>
+            <div class="game-content">
+                <span class="game-tag">手势翻牌挑战</span>
+                <h3 class="game-title">灵芝记忆大挑战</h3>
+                <p class="game-desc">用手指隔空翻开卡牌，寻找并配对正中大健康的主打产品系列。考验你的瞬间记忆力与专注度。</p>
+                <div class="game-act">ENTER EXPERIENCE →</div>
+            </div>
+        </div>
+
+        <!-- Game 5 -->
+        <div class="game-card interactive-obj" data-action="lingzhi-catcher.html">
+            <div class="game-visual" style="background: linear-gradient(45deg, #f12711, #f5af19);">🧺🏃</div>
+            <div class="game-content">
+                <span class="game-tag">全身平移接物</span>
+                <h3 class="game-title">采芝避劫</h3>
+                <p class="game-desc">在现实中左右走动控制画面中的竹篮，精准接取金色灵芝孢子，并躲避害虫侵袭！</p>
+                <div class="game-act">ENTER EXPERIENCE →</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hand Tracking Interaction Logic -->
+    <script>
+        const videoElement = document.querySelector('.input_video');
+        const cursor = document.getElementById('hand-cursor');
+        const interactables = document.querySelectorAll('.interactive-obj');
+        let statusEl = document.getElementById('camera-status');
+
+        let currentHoveredObj = null;
+        let hoverStartTime = 0;
+        let HOVER_TRIGGER_DELAY = 2000; // 2 seconds
+
+        // Basic smoothing
+        let cursorX = window.innerWidth / 2;
+        let cursorY = window.innerHeight / 2;
+
+        function onResults(results) {
+            statusEl.innerText = '🟢 已通过体感隔空操控';
+            cursor.style.display = 'flex';
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                // Get right or left hand index finger tip (Landmark 8)
+                const pt = results.multiHandLandmarks[0][8];
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+
+                // MediaPipe gives mirrored x when video is not mirrored, we mirror it
+                let targetX = (1 - pt.x) * w;
+                let targetY = pt.y * h;
+
+                // Smooth movement
+                cursorX += (targetX - cursorX) * 0.4;
+                cursorY += (targetY - cursorY) * 0.4;
+
+                cursor.style.left = cursorX + 'px';
+                cursor.style.top = cursorY + 'px';
+
+                checkCollision(cursorX, cursorY);
+            }
+        }
+
+        function checkCollision(cx, cy) {
+            let found = null;
+            interactables.forEach(obj => {
+                const rect = obj.getBoundingClientRect();
+                // Add some margin of error
+                if (cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom) {
+                    found = obj;
+                }
+            });
+
+            if (found !== currentHoveredObj) {
+                if(currentHoveredObj) currentHoveredObj.classList.remove('hovered'); // remove hover style
+                currentHoveredObj = found;
+                if (found) {
+                    found.classList.add('hovered');
+                    hoverStartTime = Date.now();
+                    cursor.classList.add('cursor-loading');
+                } else {
+                    cursor.classList.remove('cursor-loading');
+                }
+            } else if (found) {
+                // Currently hovering same object
+                let elapsed = Date.now() - hoverStartTime;
+                if (elapsed >= HOVER_TRIGGER_DELAY) {
+                    // Trigger Click
+                    hoverStartTime = Date.now(); // reset
+                    cursor.classList.remove('cursor-loading');
+                    window.location.href = found.dataset.action;
+                }
+            }
+        }
+
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        hands.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 640,
+            height: 480
+        });
+
+        camera.start().catch(e => {
+            statusEl.innerText = '⚠️ 摄像头调用失败，请检查浏览器权限。';
+        });
+
+        // Add pure mouse sync fallback just for debugging/backup
+        document.addEventListener('mousemove', (e) => {
+            if(statusEl.innerText.includes('失败')) {
+                cursor.style.display = 'flex';
+                cursorX = e.clientX; cursorY = e.clientY;
+                cursor.style.left = cursorX + 'px'; cursor.style.top = cursorY + 'px';
+                checkCollision(cursorX, cursorY);
+            }
+        });
+    </script>
+</body>
+</html>

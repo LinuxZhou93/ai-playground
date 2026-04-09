@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云雾培芝 | 体感互动体验</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;700&family=Outfit:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #D4AF37;
+            --dark: #0a0a0a;
+            --text: #ffffff;
+        }
+        body, html {
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            background: var(--dark);
+            font-family: 'Noto Serif SC', serif; color: var(--text);
+            overflow: hidden; user-select: none;
+        }
+        #container {
+            width: 100%; height: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+        }
+        .header {
+            position: absolute; top: 40px; text-align: center;
+        }
+        .title { font-size: 36px; color: var(--primary); letter-spacing: 4px; margin: 0;}
+        .subtitle { font-size: 16px; opacity: 0.6; margin-top: 10px; letter-spacing: 2px;}
+        
+        .stage-indicator {
+            position: absolute; top: 120px;
+            display: flex; gap: 20px;
+        }
+        .stage-dot {
+            width: 15px; height: 15px; border-radius: 50%;
+            border: 2px solid var(--primary);
+            transition: all 0.3s; opacity: 0.5;
+        }
+        .stage-dot.active { background: var(--primary); opacity: 1; box-shadow: 0 0 10px var(--primary); }
+
+        #lingzhi-plant {
+            width: 300px; height: 300px;
+            background: rgba(255,255,255,0.05); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 100px; transition: all 1s ease-in-out;
+            border: 2px dashed rgba(212, 175, 55, 0.3);
+            position: relative;
+        }
+
+        .actions {
+            position: absolute; bottom: 80px; display: flex; gap: 40px;
+            z-index: 100;
+        }
+        .btn {
+            background: transparent; color: var(--primary);
+            border: 1px solid var(--primary); padding: 15px 40px;
+            font-size: 18px; cursor: pointer; border-radius: 30px;
+            font-family: inherit; transition: 0.3s;
+        }
+        .btn.hovered { background: var(--primary); color: black; box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); }
+        
+        #message {
+            position: absolute; bottom: 180px;
+            font-size: 20px; color: var(--primary);
+            opacity: 0; transition: opacity 0.3s;
+        }
+
+        .back-btn {
+            position: absolute; top: 30px; left: 30px;
+            color: #fff; text-decoration: none; border: 1px solid #fff;
+            padding: 10px 20px; border-radius: 20px; font-family: 'Outfit';
+            transition: 0.3s; z-index: 100;
+        }
+        .back-btn.hovered { background: #fff; color: #000; }
+        
+        /* Particle effects */
+        .particle {
+            position: absolute; pointer-events: none;
+            background: #fff; border-radius: 50%;
+            animation: fall 1s linear forwards;
+        }
+        @keyframes fall {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(50px); opacity: 0; }
+        }
+
+        .input_video { display: none; }
+        
+        #hand-cursor {
+            position: fixed; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
+            border-radius: 50%; border: 3px solid var(--primary); box-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+            pointer-events: none; z-index: 10000; transition: width 0.3s, height 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #hand-cursor::after { content: ''; width: 6px; height: 6px; background: #fff; border-radius: 50%; }
+        
+        .cursor-loading {
+            width: 60px !important; height: 60px !important;
+            margin-left: -30px !important; margin-top: -30px !important;
+            border-color: #ff5252 !important; box-shadow: 0 0 30px #ff5252 !important;
+        }
+
+        #camera-status { position: fixed; top: 80px; left: 30px; color: #4fc3f7; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="hand-cursor" style="display:none;"></div>
+    <video class="input_video" autoplay playsinline></video>
+    <div id="camera-status">摄像头初始化中...</div>
+
+    <div class="back-btn interactive-obj" data-action="exit">← 悬停返回大厅</div>
+    <div id="container">
+        <div class="header">
+            <h1 class="title">云雾培芝模拟器</h1>
+            <div class="subtitle">模拟黄村坝林下仿野生种植环境，利用手势悬停浇水与补光。</div>
+        </div>
+        
+        <div class="stage-indicator">
+            <div class="stage-dot active" id="dot-0"></div>
+            <div class="stage-dot" id="dot-1"></div>
+            <div class="stage-dot" id="dot-2"></div>
+            <div class="stage-dot" id="dot-3"></div>
+            <div class="stage-dot" id="dot-4"></div>
+        </div>
+
+        <div id="lingzhi-plant">🌱</div>
+        <div id="message">请悬停光标浇灌纯净山泉水...</div>
+
+        <div class="actions">
+            <div class="btn interactive-obj" data-action="water" id="btn-water">💧 浇灌泉水</div>
+            <div class="btn interactive-obj" data-action="sun" id="btn-sun">☀️ 补充光照</div>
+            <div class="btn interactive-obj" data-action="harvest" id="btn-harvest" style="display:none; background: var(--primary); color: black;">✨ 采摘灵芝</div>
+        </div>
+    </div>
+
+    <script>
+        let stage = 0;
+        const stages = ['🌱', '🌿', '🍄 (幼体)', '🍄 (成体)', '✨ 金边灵芝 ✨'];
+        const requirements = [
+            { type: 'water', msg: '孢子萌发需要水分...' },
+            { type: 'sun', msg: '幼苗需要温和的光照...' },
+            { type: 'water', msg: '子实体生长需要高湿度...' },
+            { type: 'sun', msg: '积累有效物质需要光照...' }
+        ];
+
+        const plant = document.getElementById('lingzhi-plant');
+        const msg = document.getElementById('message');
+        const btnWater = document.getElementById('btn-water');
+        const btnSun = document.getElementById('btn-sun');
+        const btnHarvest = document.getElementById('btn-harvest');
+
+        function showMessage(text) {
+            msg.innerText = text;
+            msg.style.opacity = 1;
+            setTimeout(() => { msg.style.opacity = 0; }, 2000);
+        }
+
+        function createParticles(emoji, color) {
+            for(let i=0; i<10; i++) {
+                let p = document.createElement('div');
+                p.className = 'particle';
+                p.style.width = '10px'; p.style.height = '10px';
+                p.style.left = (Math.random() * 200 + 50) + 'px';
+                p.style.top = (Math.random() * 100) + 'px';
+                p.style.background = color;
+                plant.appendChild(p);
+                setTimeout(() => p.remove(), 1000);
+            }
+        }
+
+        function advance(action) {
+            if (stage >= 4) return;
+            if (requirements[stage].type === action) {
+                stage++;
+                plant.innerText = stages[stage];
+                plant.style.transform = `scale(${1 + stage * 0.2})`;
+                document.getElementById(`dot-${stage}`).classList.add('active');
+                
+                if (stage < 4) {
+                    showMessage(`生长阶段提升！现在需要：${requirements[stage].type === 'water'? '水分' : '光照'}`);
+                } else {
+                    showMessage('培育成功！品质极佳的纯正灵芝！');
+                    btnHarvest.style.display = 'block';
+                    btnWater.style.display = 'none';
+                    btnSun.style.display = 'none';
+                }
+            } else {
+                showMessage(`当前阶段不需要${action === 'water' ? '浇水' : '光照'}哦~`);
+            }
+        }
+
+        function water() {
+            createParticles('💧', '#4fc3f7');
+            advance('water');
+        }
+
+        function sunlight() {
+            createParticles('☀️', '#ffee58');
+            advance('sun');
+        }
+
+        function harvest() {
+            plant.innerText = '🏆 获得极品灵芝';
+            plant.style.fontSize = '40px';
+            plant.style.color = '#D4AF37';
+            plant.style.border = 'none';
+            btnHarvest.style.display = 'none';
+            showMessage('恭喜！已收集至资产库。');
+            setTimeout(() => location.reload(), 4000);
+        }
+
+        // Camera Hover Interaction Logic
+        const videoElement = document.querySelector('.input_video');
+        const cursor = document.getElementById('hand-cursor');
+        const statusEl = document.getElementById('camera-status');
+        
+        let interactables = document.querySelectorAll('.interactive-obj');
+        let currentHoveredObj = null;
+        let hoverStartTime = 0;
+        let cursorX = window.innerWidth / 2, cursorY = window.innerHeight / 2;
+
+        function refreshInteractables() {
+            interactables = document.querySelectorAll('.interactive-obj');
+        }
+
+        function onResults(results) {
+            statusEl.innerText = '🟢 体感追踪已就绪';
+            cursor.style.display = 'flex';
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const pt = results.multiHandLandmarks[0][8]; // index finger tip
+                let targetX = (1 - pt.x) * window.innerWidth;
+                let targetY = pt.y * window.innerHeight;
+
+                cursorX += (targetX - cursorX) * 0.3;
+                cursorY += (targetY - cursorY) * 0.3;
+
+                cursor.style.left = cursorX + 'px';
+                cursor.style.top = cursorY + 'px';
+
+                checkCollision(cursorX, cursorY);
+            } else {
+                if (currentHoveredObj) currentHoveredObj.classList.remove('hovered');
+                currentHoveredObj = null;
+                cursor.classList.remove('cursor-loading');
+            }
+        }
+
+        function checkCollision(cx, cy) {
+            refreshInteractables();
+            let found = null;
+            interactables.forEach(obj => {
+                if (obj.style.display === 'none') return;
+                const rect = obj.getBoundingClientRect();
+                if (cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom) {
+                    found = obj;
+                }
+            });
+
+            if (found !== currentHoveredObj) {
+                if(currentHoveredObj) currentHoveredObj.classList.remove('hovered');
+                currentHoveredObj = found;
+                if (found) {
+                    found.classList.add('hovered');
+                    hoverStartTime = Date.now();
+                    cursor.classList.add('cursor-loading');
+                } else {
+                    cursor.classList.remove('cursor-loading');
+                }
+            } else if (found) {
+                let delay = 1500;
+                if (Date.now() - hoverStartTime >= delay) {
+                    hoverStartTime = Date.now() + 5000;
+                    cursor.classList.remove('cursor-loading');
+                    found.classList.remove('hovered');
+                    
+                    const action = found.dataset.action;
+                    if (action === 'exit') {
+                        window.location.href = 'lingzhi-hub.html';
+                    } else if (action === 'water') {
+                        water();
+                    } else if (action === 'sun') {
+                        sunlight();
+                    } else if (action === 'harvest') {
+                        harvest();
+                    }
+                    currentHoveredObj = null;
+                }
+            }
+        }
+
+        const hands = new Hands({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+        hands.setOptions({ maxNumHands: 1, minDetectionConfidence: 0.5 });
+        hands.onResults(onResults);
+        const camera = new Camera(videoElement, { onFrame: async () => { await hands.send({image: videoElement}); }, width: 640, height: 480 });
+        camera.start();
+    </script>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HuggingFace | 开源大语言模型实战课程</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        hf: {
+                            gold: '#FFD21E', // Hugging Face Yellow
+                            gray: '#F9FAFB',
+                            dark: '#111827'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #ffffff; color: #111827; }
+        .sidebar { background: #f9fafb; border-right: 1px solid #e5e7eb; }
+        .lesson-item { transition: all 0.2s; padding: 8px 12px; border-radius: 6px; margin-bottom: 4px; color: #4b5563; font-size: 0.875rem; border-left: 3px solid transparent; }
+        .lesson-item:hover { background: #f3f4f6; color: #111827; }
+        .lesson-item.active { background: #fffbeb; color: #92400e; border-left-color: #FFD21E; font-weight: 600; }
+        
+        /* Markdown Prose Styling specific for Hugging Face content */
+        .prose h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.025em; color: #111827; }
+        .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; color: #1f2937; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+        .prose h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #374151; }
+        .prose p { margin-bottom: 1.25rem; line-height: 1.75; color: #4b5563; }
+        .prose a { color: #2563eb; text-decoration: none; font-weight: 500; }
+        .prose a:hover { text-decoration: underline; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; color: #4b5563; }
+        .prose li { margin-bottom: 0.5rem; }
+        .prose pre { background: #1f2937; color: #f8f8f2; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1.5rem; font-size: 0.875rem; }
+        .prose code { background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.875em; color: #be185d; }
+        .prose pre code { background: transparent; padding: 0; color: inherit; }
+        .prose blockquote { border-left: 4px solid #FFD21E; background: #fffbeb; padding: 1rem; border-radius: 0 0.5rem 0.5rem 0; margin: 1.5rem 0; color: #92400e; font-style: italic; }
+        .prose img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1.5rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+        .prose th, .prose td { padding: 0.75rem; border: 1px solid #e5e7eb; text-align: left; }
+        .prose th { background-color: #f9fafb; font-weight: 600; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+    <div id="app" class="flex flex-col h-full">
+        <!-- 顶部导航 -->
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
+            <div class="flex items-center gap-4">
+                <a href="/resources/learn.html" class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-500 transition-colors">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div class="flex items-center gap-3">
+                    <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Hugging Face Logo" class="h-8 w-8">
+                    <div>
+                        <h1 class="font-bold text-gray-900 text-lg leading-none">Hugging Face 官方课程</h1>
+                        <p class="text-[10px] text-gray-500 font-medium uppercase tracking-wider mt-1">Open Source AI & LLM Course</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <a href="https://huggingface.co/learn/llm-course" target="_blank" class="text-sm font-medium text-gray-600 hover:text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-external-link-alt"></i> 访问官网
+                </a>
+                <div class="h-6 w-px bg-gray-200"></div>
+                <div class="flex gap-2">
+                    <button class="px-3 py-1.5 text-xs font-semibold bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-gray-700">
+                        <i class="fab fa-github mr-1"></i> Star
+                    </button>
+                    <button class="px-3 py-1.5 text-xs font-semibold bg-hf-gold text-hf-dark rounded-md shadow-sm hover:brightness-105">
+                        <i class="fas fa-rocket mr-1"></i> Course Hub
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主体 -->
+        <main class="flex-1 flex overflow-hidden bg-white">
+            <!-- 左侧侧边栏 -->
+            <aside class="w-72 sidebar overflow-y-auto px-4 py-6 custom-scrollbar shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.05)]">
+                <div v-for="stage in stages" :key="stage.id" class="mb-8">
+                    <h3 class="text-xs font-bold text-gray-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-hf-gold"></span>
+                        {{ stage.name }}
+                    </h3>
+                    <div class="flex flex-col gap-1 ml-2 border-l border-gray-200 pl-2">
+                        <button v-for="lesson in getLessonsByStage(stage.id)" :key="lesson.id"
+                             @click="selectLesson(lesson)"
+                             class="lesson-item text-left w-full truncate"
+                             :class="{ 'active': currentLesson && currentLesson.id === lesson.id }">
+                            {{ lesson.title }}
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中间内容区 -->
+            <section class="flex-1 overflow-y-auto custom-scrollbar relative">
+                <div v-if="currentLesson" class="max-w-4xl mx-auto px-12 py-12 pb-32">
+                    <!-- 面包屑 -->
+                    <div class="flex items-center text-sm text-gray-500 mb-8 font-medium">
+                        <span class="hover:text-gray-900 cursor-pointer">课程</span>
+                        <i class="fas fa-chevron-right mx-2 text-[10px]"></i>
+                        <span>{{ stageNameMap[currentLesson.stage] }}</span>
+                        <i class="fas fa-chevron-right mx-2 text-[10px]"></i>
+                        <span class="text-gray-900 font-semibold">{{ currentLesson.title }}</span>
+                    </div>
+
+                    <!-- 动态内容渲染 -->
+                    <article class="prose" v-html="parsedContent"></article>
+                    
+                    <!-- 极客挑战集成入口 (可选的墨子联动) -->
+                    <div class="mt-20 p-6 bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-xl flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-full bg-hf-gold/20 flex items-center justify-center shrink-0">
+                            <i class="fas fa-laptop-code text-hf-gold text-xl drop-shadow-sm"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900 mb-2">在 Cloud IDE 中实践</h4>
+                            <p class="text-sm text-gray-600 mb-4">本章节的部分内容可以导入至墨子云端实验环境（Carbon-X Space）直接运行代码，跳过繁琐的本地环境配置。</p>
+                            <button class="px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded hover:bg-gray-800 transition-colors shadow-sm">
+                                <i class="fas fa-terminal mr-2"></i> 启动 Cloud IDE
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 全局 Loading -->
+                <div v-if="loading" class="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <div class="w-12 h-12 border-4 border-gray-200 border-t-hf-gold rounded-full animate-spin"></div>
+                    <p class="mt-4 font-mono text-xs text-gray-600 tracking-widest uppercase font-semibold">正在解析 MDX 内容...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+        createApp({
+            setup() {
+                const stages = ref([]);
+                const lessons = ref([]);
+                const currentLesson = ref(null);
+                const loading = ref(false);
+                const stageNameMap = ref({});
+
+                const initLessons = async () => {
+                    loading.value = true;
+                    try {
+                        const res = await fetch('/resources/hf-course/chapters/zh-CN/_toctree.yml');
+                        if (res.ok) {
+                            const yamlText = await res.text();
+                            const tocData = jsyaml.load(yamlText);
+                            
+                            const newStages = [];
+                            const newLessons = [];
+                            const sMap = {};
+                            
+                            tocData.forEach((chapter, index) => {
+                                const stId = index + 1;
+                                newStages.push({ id: stId, name: chapter.title });
+                                sMap[stId] = chapter.title;
+                                
+                                if (chapter.sections) {
+                                    chapter.sections.forEach((sec, sIdx) => {
+                                        newLessons.push({
+                                            id: `hf-c${index}-s${sIdx}`,
+                                            stage: stId,
+                                            title: sec.title || sec.local,
+                                            local_path: sec.local
+                                        });
+                                    });
+                                }
+                            });
+                            stages.value = newStages;
+                            lessons.value = newLessons;
+                            stageNameMap.value = sMap;
+
+                            // 如果链接里带了 course=xxx，就尝试找到那个课节，否则默认第一个
+                            const targetId = new URLSearchParams(window.location.search).get('course');
+                            if (targetId && newLessons.find(l => l.id === targetId)) {
+                                const targetLesson = newLessons.find(l => l.id === targetId);
+                                currentLesson.value = targetLesson;
+                                fetchContent(targetLesson.id);
+                            } else if (newLessons.length > 0) {
+                                currentLesson.value = newLessons[0];
+                                fetchContent(newLessons[0].id);
+                            }
+                        }
+                    } catch(e) {
+                        console.error(e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const fetchContent = async (id) => {
+                    loading.value = true;
+                    try {
+                        let text = "## 🔧 内容加载失败\n未能读取到本地的 Markdown 文件，请确认 `hf-course` 仓库已拉取并放置在 public/resources 目录下。";
+                        if (currentLesson.value && currentLesson.value.local_path) {
+                            const basePath = `/resources/hf-course/chapters/zh-CN/${currentLesson.value.local_path}`;
+                            // 尝试带后缀拉取
+                            let res = await fetch(`${basePath}.mdx`);
+                            if (!res.ok) {
+                                res = await fetch(`${basePath}.md`);
+                            }
+                            // 如果还是不行，可能原仓库的 local 就是指向的文件夹中的 index 或其他名称，这里做了简化适配
+                            // (官方的 llm-course 通常通过 local: "1_architecture" 指向 "1_architecture.mdx")
+                            
+                            if (res.ok) {
+                                text = await res.text();
+                                // ==============================
+                                // MDX 清洁 & Svelte 移除逻辑
+                                // ==============================
+                                text = text.replace(/^---[\s\S]*?---\n/, ''); // clean yaml frontmatter
+                                
+                                // Process Svelte/MDX logic brackets (e.g. {#if fw === 'pt'})
+                                text = text.replace(/\{#if[^}]+\}/g, '');
+                                text = text.replace(/\{:else if[^}]+\}/g, '');
+                                text = text.replace(/\{:else\}/g, '');
+                                text = text.replace(/\{\/if\}/g, '');
+                                
+                                // Remove specific Self-Closing Custom Components that clutter the view (Handles newlines via [\s\S]*?)
+                                text = text.replace(/<[A-Z][A-Za-z0-9]*[\s\S]*?\/>/g, '');
+                                
+                                // Remove non-self-closing functional tags that wrap contents without markdown meaning
+                                text = text.replace(/<FrameworkSwitchCourse[^>]*>[\s\S]*?<\/FrameworkSwitchCourse>/g, '');
+                                text = text.replace(/<DocNotebookDropdown[^>]*>[\s\S]*?<\/DocNotebookDropdown>/g, '');
+
+                                // Transform <Question> tags into blockquotes
+                                text = text.replace(/<Question[^>]*>([\s\S]*?)<\/Question>/ig, '> **💡 思考题:**\n> $1');
+                            }
+                        }
+                        currentLesson.value.content = text;
+                    } catch (e) {
+                        console.error(e);
+                    } finally { 
+                        loading.value = false; 
+                    }
+                };
+
+                onMounted(() => { initLessons(); });
+
+                const selectLesson = (l) => {
+                    currentLesson.value = l;
+                    // Update URL without reload for better UX
+                    const url = new URL(window.location);
+                    url.searchParams.set('course', l.id);
+                    window.history.pushState({}, '', url);
+                    fetchContent(l.id);
+                };
+
+                return { 
+                    stages, lessons, currentLesson, loading, stageNameMap,
+                    getLessonsByStage: (id) => lessons.value.filter(l => l.stage === id),
+                    selectLesson,
+                    parsedContent: computed(() => currentLesson.value && currentLesson.value.content ? marked.parse(currentLesson.value.content) : '')
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

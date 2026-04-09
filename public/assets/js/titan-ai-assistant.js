@@ -1,6 +1,88 @@
 // TITAN OS - Global AI Assistant Module (LLM Integration)
 // Automatically injected into all TITAN OS nodes.
 
+/**
+ * Titan Audio Interface - ElevenLabs Inspired Streaming & Visualization
+ * 负责管理音频的流式输出、打断监听以及与 Sonic Aura 的视觉同步
+ */
+class TitanAudioInterface {
+    constructor(assistant) {
+        this.assistant = assistant;
+        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        this.analyser = this.audioCtx.createAnalyser();
+        this.analyser.fftSize = 256;
+        this.analyser.connect(this.audioCtx.destination);
+        this.source = null;
+        this.isPlaying = false;
+    }
+
+    // 将音频片段推入播放队列 (模拟流式感)
+    async play(audioBlob) {
+        if (this.audioCtx.state === 'suspended') await this.audioCtx.resume();
+        
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        const audioBuffer = await this.audioCtx.decodeAudioData(arrayBuffer);
+        
+        if (this.source) {
+            try { this.source.stop(); } catch(e) {}
+        }
+        
+        this.source = this.audioCtx.createBufferSource();
+        this.source.buffer = audioBuffer;
+        this.source.connect(this.analyser);
+        
+        this.isPlaying = true;
+        this.source.start(0);
+        this.source.onended = () => {
+            this.isPlaying = false;
+            this.stopAuraAnimation();
+        };
+
+        this.startAuraAnimation();
+    }
+
+    // 视觉联动：让光圈在 AI 说话时也动起来
+    startAuraAnimation() {
+        const draw = () => {
+            if (!this.isPlaying) return;
+            requestAnimationFrame(draw);
+            
+            const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+            this.analyser.getByteFrequencyData(dataArray);
+            
+            let sum = 0;
+            for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+            const average = sum / dataArray.length;
+            const volumeRatio = Math.min(1, average / 100);
+            
+            if (this.assistant.sonicSphere) {
+                const sc = 1 + (volumeRatio * 0.3);
+                const op = 0.8 + (volumeRatio * 0.2);
+                this.assistant.sonicSphere.style.transform = `scale(${sc})`;
+                this.assistant.sonicSphere.style.opacity = `${op}`;
+                this.assistant.sonicSphere.style.boxShadow = `0 0 ${20 + volumeRatio * 40}px rgba(14, 165, 233, ${0.5 + volumeRatio * 0.5})`;
+            }
+        };
+        draw();
+    }
+
+    stopAuraAnimation() {
+        if (this.assistant.sonicSphere) {
+            this.assistant.sonicSphere.style.transform = 'scale(1)';
+            this.assistant.sonicSphere.style.opacity = '0.7';
+        }
+    }
+
+    interrupt() {
+        if (this.source) {
+            try { this.source.stop(); } catch(e) {}
+            this.source = null;
+        }
+        this.isPlaying = false;
+        this.stopAuraAnimation();
+    }
+}
+
 class TitanAIAssistant {
     constructor() {
         if (document.getElementById('titan-ai-container')) return; // Already initialized
@@ -2143,6 +2225,38 @@ class TitanAIAssistant {
                 50% { opacity: 1; transform: scale(1); filter: blur(0px); }
             }
             
+            /* === [Sonic Aura] ElevenLabs Inspired Visualizer === */
+            .sonic-aura-container {
+                position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+                width: 180px; height: 180px; display: none; z-index: 999999;
+                pointer-events: none; justify-content: center; align-items: center;
+                animation: sonic-pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            .sonic-aura-container.active { display: flex; }
+            @keyframes sonic-pop-in { from { opacity: 0; transform: translateX(-50%) scale(0.5); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+            
+            .sonic-sphere {
+                width: 100px; height: 100px; border-radius: 50%;
+                background: radial-gradient(circle, #38bdf8 0%, #0ea5e9 40%, rgba(14, 165, 233, 0) 70%);
+                box-shadow: 0 0 40px rgba(14, 165, 233, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.5);
+                position: relative;
+            }
+            .sonic-ring {
+                position: absolute; inset: -10px; border-radius: 50%;
+                border: 2px solid rgba(56, 189, 248, 0.4);
+                animation: sonic-ring-ripple 2s infinite ease-out;
+            }
+            @keyframes sonic-ring-ripple {
+                0% { transform: scale(0.8); opacity: 0.8; }
+                100% { transform: scale(1.8); opacity: 0; }
+            }
+            .sonic-label {
+                position: absolute; bottom: -35px; width: 220px; text-align: center;
+                color: #38bdf8; font-size: 11px; font-weight: 900; letter-spacing: 2px;
+                text-transform: uppercase; text-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+                animation: status-breath 2s infinite;
+            }
+            
             /* Turbo-Smooth 流式输出：增强布局稳定性，防止回流抖动 */
             .msg-ai {
                 contain: layout;
@@ -2532,6 +2646,13 @@ class TitanAIAssistant {
                     <button type="button" class="ai-chip" data-prompt="🤔 结合生活中的物理/工程例子，用通俗语言帮我解释一下">🤔 通俗现象解释</button>
                     <button type="button" class="ai-chip" data-prompt="📝 给我出一道类似的题目练手，附带答案解析">📝 出一道类似题</button>
                 </div>
+
+                <div class="sonic-aura-container" id="titan-ai-sonic-aura">
+                    <div class="sonic-sphere">
+                        <div class="sonic-ring"></div>
+                    </div>
+                    <div class="sonic-label">正在聆听... Listening</div>
+                </div>
                 
                 <div class="ai-scroll-actions" id="titan-ai-scroll-actions">
                     <button type="button" id="titan-ai-scroll-bottom" title="回到最新对话 (Scroll to bottom)">
@@ -2683,7 +2804,14 @@ class TitanAIAssistant {
         this.historyList = document.getElementById('titan-ai-history-list');
 
         this.selectionBtn = document.getElementById('titan-ai-selection');
-        this.chips = document.querySelectorAll('.ai-chip'); // 绑定启发式引导磁片
+        this.sonicAura = document.getElementById('titan-ai-sonic-aura'); // ElevenLabs Inspired
+        this.sonicSphere = this.sonicAura ? this.sonicAura.querySelector('.sonic-sphere') : null;
+        this.sonicLabel = this.sonicAura ? this.sonicAura.querySelector('.sonic-label') : null;
+        
+        this.chips = document.querySelectorAll('.ai-chip'); 
+        
+        this.audioInterface = new TitanAudioInterface(this); // ElevenLabs Engine
+        
         this.mediaRecorder = null;
         this.audioStream = null;
         this.audioChunks = [];
@@ -3343,6 +3471,115 @@ class TitanAIAssistant {
         }
     }
 
+    async toggleVoiceRecording() {
+        if (this.isRecording) {
+            if (this.mediaRecorder) this.mediaRecorder.stop();
+            this.isRecording = false;
+            
+            if (this.silenceInterval) clearInterval(this.silenceInterval);
+            if (this.maxAudioDurationTimer) clearTimeout(this.maxAudioDurationTimer);
+            this.voiceBtn.classList.remove('recording');
+            this.input.placeholder = '输入你想问的问题...';
+            this.input.style.opacity = '1';
+            
+            if (this.sonicAura) {
+                this.sonicAura.classList.remove('active');
+                if (this.sonicLabel) this.sonicLabel.innerText = '完成完成... Idle';
+            }
+            const waveformCanvas = document.getElementById('titan-ai-waveform');
+            if (waveformCanvas) waveformCanvas.style.display = 'none';
+        } else {
+            try {
+                if (!this.audioStream) {
+                    this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+                
+                if (!this.hapticCtx) this.hapticCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.hapticCtx.state === 'suspended') this.hapticCtx.resume();
+                
+                if (!this.analyser) {
+                    this.analyser = this.hapticCtx.createAnalyser();
+                    this.analyser.fftSize = 64; 
+                    this.micSource = this.hapticCtx.createMediaStreamSource(this.audioStream);
+                    this.micSource.connect(this.analyser);
+                }
+                
+                this.mediaRecorder = new MediaRecorder(this.audioStream);
+                this.audioChunks = [];
+                
+                this.mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) this.audioChunks.push(e.data);
+                };
+                
+                this.mediaRecorder.onstop = () => {
+                    const durationInSeconds = Math.max(1, Math.round((Date.now() - this.recordingStartTime) / 1000));
+                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                    this.sendAudioToGemini(audioBlob, durationInSeconds);
+                };
+                
+                this.mediaRecorder.start();
+                this.recordingStartTime = Date.now();
+                this.lastVoiceTime = Date.now();
+                this.isRecording = true;
+                this.voiceBtn.classList.add('recording');
+                
+                if (this.maxAudioDurationTimer) clearTimeout(this.maxAudioDurationTimer);
+                this.maxAudioDurationTimer = setTimeout(() => {
+                    if (this.isRecording) {
+                        if (typeof this.playHapticSound === 'function') this.playHapticSound('send');
+                        this.appendMessage('system', '⏳ 录音上限，自动发送。');
+                        this.toggleVoiceRecording();
+                    }
+                }, 120000);
+
+                this.input.placeholder = '正在聆听...';
+                this.input.style.opacity = '0.3';
+                
+                if (this.sonicAura) {
+                    this.sonicAura.classList.add('active');
+                    this.sonicAura.style.display = 'flex';
+                    if (this.sonicLabel) this.sonicLabel.innerText = '正在聆听... Listening';
+                }
+                
+                const renderAura = () => {
+                    if (!this.isRecording) return;
+                    requestAnimationFrame(renderAura);
+                    
+                    const bufferLength = this.analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    this.analyser.getByteFrequencyData(dataArray);
+                    
+                    let sum = 0;
+                    for(let i=0; i<bufferLength/2; i++) sum += dataArray[i];
+                    const average = sum / (bufferLength/2);
+                    const volRat = Math.min(1, average / 128); 
+                    
+                    if (this.sonicSphere) {
+                        const sc = 1 + (volRat * 0.4); 
+                        const op = 0.7 + (volRat * 0.3);
+                        const gl = 15 + (volRat * 45); 
+                        this.sonicSphere.style.transform = `scale(${sc})`;
+                        this.sonicSphere.style.opacity = `${op}`;
+                        this.sonicSphere.style.boxShadow = `0 0 ${gl}px rgba(14, 165, 233, ${0.4 + volRat * 0.5})`;
+                    }
+
+                    if (average > 15) { 
+                        this.lastVoiceTime = Date.now();
+                    } else if (Date.now() - this.lastVoiceTime > 3500) { 
+                        this.toggleVoiceRecording();
+                        return;
+                    }
+                };
+                renderAura();
+                
+            } catch (err) {
+                console.error('Microphone error:', err);
+                this.appendMessage('system', '权限错误。');
+                this.audioStream = null; 
+            }
+        }
+    }
+
     async speakReply(text, callback) {
         const cleanText = text.replace(/[*_#`~]/g, '').trim();
         if (!cleanText) {
@@ -3423,28 +3660,19 @@ class TitanAIAssistant {
                     for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
                     
                     const blob = new Blob([bytes], { type: 'audio/mp3' });
-                    const audioUrl = URL.createObjectURL(blob);
-                    const audio = new Audio(audioUrl);
                     
-                    this.currentAudioPlayer = audio;
-                    if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'flex';
+                    // 🚀 ElevenLabs Style Injection: 使用核心音频接口播放并同步视觉
+                    if (this.sonicAura) {
+                        this.sonicAura.classList.add('active');
+                        this.sonicAura.style.display = 'flex';
+                        if (this.sonicLabel) this.sonicLabel.innerText = '正在回答... Speaking';
+                    }
                     
-                    audio.onended = () => {
-                        URL.revokeObjectURL(audioUrl);
-                        this.currentAudioPlayer = null;
-                        if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
-                        if (typeof this.stopVAD === 'function') this.stopVAD();
-                        if (callback) callback();
-                    };
-                    audio.onerror = () => {
-                        URL.revokeObjectURL(audioUrl);
-                        this.currentAudioPlayer = null;
-                        if (this.ttsStopBtn) this.ttsStopBtn.style.display = 'none';
-                        if (typeof this.stopVAD === 'function') this.stopVAD();
-                        this.fallbackSpeak(cleanText, callback);
-                    };
-                    await audio.play();
-                    if (typeof this.startVAD === 'function') this.startVAD();
+                    await this.audioInterface.play(blob);
+                    
+                    // 设置播放结束后的钩子
+                    if (typeof this.stopVAD === 'function') this.stopVAD();
+                    if (callback) callback();
                 } else {
                     this.fallbackSpeak(cleanText, callback);
                 }
@@ -3572,13 +3800,16 @@ class TitanAIAssistant {
 
     async toggleVoiceRecording() {
         if (this.isRecording) {
-            this.mediaRecorder.stop();
-            this.isRecording = false;
             if (this.silenceInterval) clearInterval(this.silenceInterval);
             if (this.maxAudioDurationTimer) clearTimeout(this.maxAudioDurationTimer);
             this.voiceBtn.classList.remove('recording');
             this.input.placeholder = '输入你想问的问题...';
             this.input.style.opacity = '1';
+            
+            if (this.sonicAura) {
+                this.sonicAura.classList.remove('active');
+                if (this.sonicLabel) this.sonicLabel.innerText = '完成等待... Idle';
+            }
             const waveformCanvas = document.getElementById('titan-ai-waveform');
             if (waveformCanvas) waveformCanvas.style.display = 'none';
         } else {
@@ -4596,6 +4827,12 @@ ${currentFullContent}
             try { this.currentAudioPlayer.pause(); } catch(e){}
             this.currentAudioPlayer = null;
         }
+        
+        // 🚀 核心打断逻辑：ElevenLabs Inspired Interrupt
+        if (this.audioInterface) {
+            this.audioInterface.interrupt();
+        }
+        
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
         }

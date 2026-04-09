@@ -55,6 +55,30 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  async rewrites() {
+    return [
+      {
+        source: '/course',
+        destination: '/resources/course.html',
+      },
+      {
+        source: '/pricing',
+        destination: '/resources/pricing-demo.html',
+      },
+      {
+        source: '/pricing-demo.html',
+        destination: '/resources/pricing-demo.html',
+      },
+      {
+        source: '/course-factory',
+        destination: '/resources/course-factory.html',
+      },
+      {
+        source: '/resources/course-factory',
+        destination: '/resources/course-factory.html',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

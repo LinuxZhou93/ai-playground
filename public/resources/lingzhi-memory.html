@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵芝记忆大挑战 | 体感互动体验</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;700&family=Outfit:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #D4AF37; --dark: #0a0a0a; --bg: #111; }
+        body { margin: 0; padding: 0; background: var(--dark); font-family: 'Noto Serif SC', serif; color: #fff; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; user-select: none; }
+        h1 { color: var(--primary); letter-spacing: 5px; margin-bottom: 5px;}
+        p { opacity: 0.6; margin-bottom: 30px; letter-spacing: 2px;}
+
+        .input_video { display: none; }
+        
+        #hand-cursor {
+            position: fixed; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
+            border-radius: 50%; border: 3px solid var(--primary); box-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+            pointer-events: none; z-index: 10000; transition: width 0.3s, height 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #hand-cursor::after { content: ''; width: 6px; height: 6px; background: #fff; border-radius: 50%; }
+        
+        /* Loading animation for hovering */
+        .cursor-loading {
+            width: 60px !important; height: 60px !important;
+            margin-left: -30px !important; margin-top: -30px !important;
+            border-color: #ff5252 !important; box-shadow: 0 0 30px #ff5252 !important;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(4, 100px); gap: 20px; perspective: 1000px; }
+        
+        .card { width: 100px; height: 100px; background: transparent; position: relative; transform-style: preserve-3d; transition: transform 0.5s; }
+        .card.hovered .front { border-color: #ff5252; box-shadow: 0 0 20px #ff5252; }
+        .card.hovered .back { border-color: #ff5252; box-shadow: 0 0 20px #ff5252; color: #ff5252; }
+        .card.flipped { transform: rotateY(180deg); }
+        .card.matched { opacity: 0; transform: rotateY(180deg) scale(0.5); pointer-events: none; transition: all 0.5s ease 0.2s; }
+
+        .face {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            display: flex; align-items: center; justify-content: center; font-size: 45px;
+            border-radius: 10px; border: 2px solid rgba(212, 175, 55, 0.4);
+        }
+        .front { background: rgba(255,255,255,0.05); transform: rotateY(180deg); }
+        .back { background: repeating-linear-gradient(45deg, #1a1a1a, #1a1a1a 10px, #111 10px, #111 20px); font-size: 30px;}
+        
+        .btn-back {
+            position: absolute; top: 30px; left: 30px; color: var(--primary); border: 1px solid var(--primary);
+            padding: 10px 20px; border-radius: 20px; font-family: 'Outfit'; z-index: 100;
+        }
+        .btn-back.hovered { background: var(--primary); color: #000; }
+
+        #score { position: absolute; top: 30px; right: 40px; font-size: 24px; color: var(--primary); font-family: 'Outfit'; }
+        #camera-status { position: fixed; top: 80px; right: 40px; color: #4fc3f7; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="hand-cursor" style="display:none;"></div>
+    <video class="input_video" autoplay playsinline></video>
+    
+    <div class="btn-back interactive-obj" data-id="exit">← 悬停2秒返回</div>
+    <div id="score">Moves: 0</div>
+    <div id="camera-status">摄像头初始化中...</div>
+    
+    <h1>灵芝记忆大挑战</h1>
+    <p>悬停光标 1.5 秒翻开卡牌进行配对</p>
+    
+    <div class="grid" id="game-board"></div>
+
+    <script>
+        const symbols = ['🍄', '🍄', '🧪', '🧪', '☕', '☕', '🍂', '🍂', '💊', '💊', '✨', '✨', '🌲', '🌲', '💧', '💧'];
+        let reversedSymbols = [...symbols].sort(() => 0.5 - Math.random());
+        let cards = [];
+        let flippedCards = [];
+        let matchedCount = 0;
+        let moves = 0;
+
+        const board = document.getElementById('game-board');
+        const scoreDisplay = document.getElementById('score');
+
+        reversedSymbols.forEach((symbol, index) => {
+            const card = document.createElement('div');
+            card.classList.add('card', 'interactive-obj');
+            card.dataset.id = index;
+            card.dataset.symbol = symbol;
+            
+            const front = document.createElement('div');
+            front.classList.add('face', 'front');
+            front.innerText = symbol;
+
+            const back = document.createElement('div');
+            back.classList.add('face', 'back');
+            back.innerText = '正';
+
+            card.appendChild(front);
+            card.appendChild(back);
+            board.appendChild(card);
+            cards.push(card);
+        });
+
+        // Game logic
+        function triggerCard(card) {
+            if (flippedCards.length < 2 && !card.classList.contains('flipped') && !card.classList.contains('matched')) {
+                card.classList.add('flipped');
+                flippedCards.push(card);
+                if (flippedCards.length === 2) {
+                    moves++;
+                    scoreDisplay.innerText = `Moves: ${moves}`;
+                    checkMatch();
+                }
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            if (card1.dataset.symbol === card2.dataset.symbol) {
+                matchedCount += 2;
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                flippedCards = [];
+                if (matchedCount === cards.length) {
+                    setTimeout(() => alert(`恭喜挑战成功！总步数: ${moves}\n双手并拢即可退回大厅 (或点击悬停)`), 800);
+                }
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    flippedCards = [];
+                }, 1000);
+            }
+        }
+
+        // Camera Hover Interaction Logic
+        const videoElement = document.querySelector('.input_video');
+        const cursor = document.getElementById('hand-cursor');
+        const statusEl = document.getElementById('camera-status');
+        
+        let interactables = document.querySelectorAll('.interactive-obj');
+        let currentHoveredObj = null;
+        let hoverStartTime = 0;
+        let cursorX = window.innerWidth / 2, cursorY = window.innerHeight / 2;
+
+        function onResults(results) {
+            statusEl.innerText = '🟢 体感追踪已就绪';
+            cursor.style.display = 'flex';
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const pt = results.multiHandLandmarks[0][8]; // index finger tip
+                let targetX = (1 - pt.x) * window.innerWidth;
+                let targetY = pt.y * window.innerHeight;
+
+                cursorX += (targetX - cursorX) * 0.3;
+                cursorY += (targetY - cursorY) * 0.3;
+
+                cursor.style.left = cursorX + 'px';
+                cursor.style.top = cursorY + 'px';
+
+                checkCollision(cursorX, cursorY);
+            } else {
+                if (currentHoveredObj) currentHoveredObj.classList.remove('hovered');
+                currentHoveredObj = null;
+                cursor.classList.remove('cursor-loading');
+            }
+        }
+
+        function checkCollision(cx, cy) {
+            let found = null;
+            interactables.forEach(obj => {
+                const rect = obj.getBoundingClientRect();
+                if (cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom) {
+                    found = obj;
+                }
+            });
+
+            if (found !== currentHoveredObj) {
+                if(currentHoveredObj) currentHoveredObj.classList.remove('hovered');
+                currentHoveredObj = found;
+                if (found) {
+                    found.classList.add('hovered');
+                    hoverStartTime = Date.now();
+                    cursor.classList.add('cursor-loading');
+                } else {
+                    cursor.classList.remove('cursor-loading');
+                }
+            } else if (found) {
+                let delay = found.dataset.id === 'exit' ? 2000 : 1500; // 1.5s for cards, 2s for exit
+                if (Date.now() - hoverStartTime >= delay) {
+                    hoverStartTime = Date.now() + 5000; // block re-triggering immediately
+                    cursor.classList.remove('cursor-loading');
+                    found.classList.remove('hovered');
+                    
+                    if (found.dataset.id === 'exit') {
+                        window.location.href = 'lingzhi-hub.html';
+                    } else {
+                        triggerCard(found);
+                        currentHoveredObj = null; // force re-eval
+                    }
+                }
+            }
+        }
+
+        const hands = new Hands({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+        hands.setOptions({ maxNumHands: 1, minDetectionConfidence: 0.5 });
+        hands.onResults(onResults);
+        const camera = new Camera(videoElement, { onFrame: async () => { await hands.send({image: videoElement}); }, width: 640, height: 480 });
+        camera.start();
+
+    </script>
+</body>
+</html>
