@@ -130,3 +130,64 @@ export async function generateOperationalDirective(data: any) {
     return "⚠️ 运营大脑暂无法连通，建议优先关注沉睡学员的 1 对 1 回访及剩余课时不足 3 节的学员续费跟进。";
   }
 }
+
+/**
+ * 将运营简报通过群机器人推送到飞书
+ */
+export async function pushDiagnosisToFeishu(data: any, directive: string) {
+  const webhookUrl = process.env.FEISHU_WEBHOOK_URL;
+  if (!webhookUrl) {
+    // 模拟成功，如果未配置 Webhook
+    console.warn("未配置 FEISHU_WEBHOOK_URL，已生成本地 Mock 发送结果");
+    return { success: true, mock: true };
+  }
+
+  try {
+    const cardBody = {
+      msg_type: "interactive",
+      card: {
+        config: { wide_screen_mode: true, enable_forward: true },
+        header: {
+          template: data.riskRevenue > 5000 ? "red" : "yellow",
+          title: { content: "🚨 FutureClass 运营风险实时预警", tag: "plain_text" }
+        },
+        elements: [
+          {
+            tag: "div",
+            text: {
+              content: `**⏰ 数据快照时间：** ${new Date(data.timestamp).toLocaleString()}\n\n**🚨 风险因子汇总：**\n- 沉睡学员（14天未消课）：\`${data.dormantCount} 人\`\n- 预估营收风险：\`¥${data.riskRevenue}\`\n- 低效班级（不满50%）：\`${data.inefficientClassesCount} 个\``,
+              tag: "lark_md"
+            }
+          },
+          { tag: "hr" },
+          {
+            tag: "div",
+            text: {
+              content: `**💡 AI 运营总监行动建议：**\n${directive}`,
+              tag: "lark_md"
+            }
+          },
+          {
+            tag: "action",
+            actions: [
+              { tag: "button", text: { content: "跟进高危学员", tag: "plain_text" }, type: "primary", url: "https://your-domain.com/futureclass/students" },
+              { tag: "button", text: { content: "合并班级", tag: "plain_text" }, type: "default", url: "https://your-domain.com/futureclass/classes" }
+            ]
+          }
+        ]
+      }
+    };
+
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cardBody)
+    });
+
+    if (!res.ok) throw new Error("Feishu webhook failed");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Push to Feishu error:", err);
+    return { success: false, error: err.message };
+  }
+}

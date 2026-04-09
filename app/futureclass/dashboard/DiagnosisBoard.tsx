@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
 import { AnimatedNumber } from "@/components/erp/animated-number";
 import { motion, AnimatePresence } from "motion/react";
+import { pushDiagnosisToFeishu } from "./../diagnosis_actions";
+import { toast } from "sonner";
 
 interface DiagnosisBoardProps {
   diagnosis: any;
@@ -228,9 +230,23 @@ export default function DiagnosisBoard({ diagnosis, directive, loading }: Diagno
                 <Button 
                   size="lg" 
                   variant="outline" 
+                  onClick={async () => {
+                    toast.loading("正在推送至飞书机器人...");
+                    const res = await pushDiagnosisToFeishu(diagnosis, directive);
+                    toast.dismiss();
+                    if (res.success) {
+                      if (res.mock) {
+                        toast.success("已生成预警简报 (本地模拟)");
+                      } else {
+                        toast.success("已成功推送至飞书运营群！", { icon: "🚀" });
+                      }
+                    } else {
+                      toast.error("推送飞书失败: " + res.error);
+                    }
+                  }}
                   className="bg-transparent border-zinc-700 dark:border-zinc-300 text-zinc-300 dark:text-zinc-600 hover:bg-white/5 dark:hover:bg-black/5 px-6 rounded-xl font-semibold"
                 >
-                  生成详细报告 <ChevronRight className="ml-2 h-4 w-4" />
+                  推送预警至飞书 <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>

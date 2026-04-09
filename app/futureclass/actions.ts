@@ -637,6 +637,24 @@ export async function loadStudentsPageData() {
 }
 
 /**
+ * 课程库缓存数据加载器
+ */
+const getCachedCoursesPageData = unstable_cache(
+  async () => {
+    const [courses] = await Promise.all([
+      getCoursesWithStats()
+    ]);
+    return courses;
+  },
+  ['erp-courses-page-data'],
+  { revalidate: 60, tags: ['erp-data'] }
+);
+
+export async function loadCoursesPageData() {
+  return getCachedCoursesPageData();
+}
+
+/**
  * 财务中心缓存数据加载器
  */
 const getCachedFinancePageData = unstable_cache(

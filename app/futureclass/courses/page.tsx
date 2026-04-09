@@ -46,7 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getCoursesWithStats, addCourse, deleteCourse } from "../actions";
+import { loadCoursesPageData, addCourse, deleteCourse } from "../actions";
 import { toast } from "sonner";
 import { PageTransition, StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
 import { SkeletonCard } from "@/components/erp/skeleton-card";
@@ -91,7 +91,7 @@ export default function CoursesPage() {
 
   const fetchCourses = () => {
     setLoading(true);
-    getCoursesWithStats().then(data => {
+    loadCoursesPageData().then(data => {
       setCourses(data);
       setLoading(false);
     });
