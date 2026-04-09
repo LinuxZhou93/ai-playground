@@ -11,46 +11,11 @@ import type { NextRequest } from 'next/server'
  * 3. 静态资源智能重映射：解决 resources/ 目录下的 404 问题
  */
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  // 🛡️ [Runtime Safety] 确保环境变量存在
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    // 如果没有配置 Supabase，也继续执行后续的路由逻辑
-  } else {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            })
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            )
-          },
-        },
-      }
-    )
-    // await supabase.auth.getUser() // 目前全局禁用 Auth 检查以减小延迟
-  }
-
   const url = request.nextUrl.clone()
   const host = request.headers.get('host') || ''
   const pathname = url.pathname
 
-  // 🛡️ [Domain Routing] 处理根路径域名分流
+  // 🛡️ [Domain Routing] 处理根路径域名分流 (最高优先级)
   if (pathname === '/') {
     // 💡 情况 A：如果是 ai.zhouxiaomai.com 子域 -> 渲染新版 FutureClass
     if (host.includes('ai.zhouxiaomai.com')) {
@@ -93,6 +58,41 @@ export async function middleware(request: NextRequest) {
       url.pathname = `/resources${pathname}`;
       return NextResponse.rewrite(url);
     }
+  }
+
+  // --- 💡 后置逻辑：Supabase 会话管理 (仅在上述路由未拦截时执行) ---
+  
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  // 保护：如果缺失关键环境变量，则跳过 Supabase 处理
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+    // await supabase.auth.getUser() 
   }
 
   return response
