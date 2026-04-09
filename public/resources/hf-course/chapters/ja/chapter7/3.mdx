@@ -1,0 +1,1045 @@
+<FrameworkSwitchCourse {fw} />
+
+# マスク言語モデルの微調整
+
+{#if fw === 'pt'}
+
+<CourseFloatingBanner chapter={7}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/ja/chapter7/section3_pt.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/ja/chapter7/section3_pt.ipynb"},
+]} />
+
+{:else}
+
+<CourseFloatingBanner chapter={7}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/ja/chapter7/section3_tf.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/ja/chapter7/section3_tf.ipynb"},
+]} />
+
+{/if}
+
+Transformerモデルを含む多くのNLPアプリケーションでは、ハギング フェイス ハブから事前学習済みのモデルを取り出し、自分が実行したいタスク用のデータを直接使って微調整を行うだけでよいのです。事前学習に使われたコーパスと微調整に使うコーパスがあまり違わない限り、転移学習は通常良い結果を生み出します。
+
+しかし、モデルのヘッド部だけを対象にタスクに特化したトレーニング行う前に、まずデータを使って言語モデルを微調整したいケースもいくつかあります。例えば、データセットに法的契約や科学論文が含まれている場合、BERTのような素のTransformerモデルは通常、コーパス内のドメイン特有の単語を稀なトークンとして扱うため、結果として満足のいく性能が得られない可能性があります。ドメイン内データで言語モデルを微調整することで、多くの下流タスクのパフォーマンスを向上させることができ、このステップは通常一度だけ行えばよいことになります。
+
+このように、事前に学習した言語モデルをドメイン内データで微調整するプロセスは、通常_ドメイン適応_と呼ばれます。これは2018年に[ULMFiT](https://arxiv.org/abs/1801.06146)によって普及しました。転移学習をNLPで本当に使えるようにした最初のニューラルアーキテクチャ（LSTMがベース）の1つです。ULMFiTによるドメイン適応の例を下の画像に示します。このセクションでは、LSTMの代わりにTransformerを使って、同様のことを行います！
+
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/ulmfit.svg" alt="ULMFiT."/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/ulmfit-dark.svg" alt="ULMFiT."/>
+</div>
+
+このセクションの終わりには、以下のような文章を自動補完できる[マスク言語モデル](https://huggingface.co/huggingface-course/distilbert-base-uncased-finetuned-imdb?text=This+is+a+great+%5BMASK%5D.)がHub上にできていることでしょう。
+
+<iframe src="https://course-demos-distilbert-base-uncased-finetune-7400b54.hf.space" frameBorder="0" height="300" title="Gradio app" class="block dark:hidden container p-0 flex-grow space-iframe" allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads"></iframe>
+
+それでは始めましょう！
+
+<Youtube id="mqElG5QJWUg"/>
+
+> [!TIP]
+> 🙋 「マスク言語モデリング」や「事前学習済みモデル」という言葉に聞き覚えがない方は、[第1章](/course/ja/chapter1)でこれらの主要な概念をすべて動画付きで説明していますので、ぜひご覧になってください。
+
+## マスク言語モデリング用の事前学習済みモデルの選択
+
+まず、マスク言語モデリングに適した事前学習済みモデルを選びましょう。以下のスクリーンショットのように、[ハギング フェイス ハブ](https://huggingface.co/models?pipeline_tag=fill-mask&sort=downloads)の "Fill-Mask "フィルタを適用すると、候補のリストが表示されます。
+
+<div class="flex justify-center">
+<img src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/mlm-models.png" alt="Hub models." width="80%"/>
+</div>
+
+BERT と RoBERTa モデルのファミリーが最もダウンロードされていますが、ここでは [DistilBERT](https://huggingface.co/distilbert-base-uncased) と呼ばれるモデルを使用することにします。このモデルは、下流タスクの性能をほとんど損なうことなく、より高速に学習させることができます。
+
+このモデルは、[_知識蒸留_](https://en.wikipedia.org/wiki/Knowledge_distillation)と呼ばれる特別な技術を使用して訓練されました。この手法は、BERTのような大きな「教師モデル」が、それよりはるかに少ないパラメータを持つ「生徒モデル」の訓練を導くために使用されています。
+
+知識蒸溜の詳細を説明すると、この章の内容から離れすぎてしまいますが、もし興味があれば、[_Natural Language Processing with Transformers_](https://www.oreilly.com/library/view/natural-language-processing/9781098136789/)（通称Transformers教科書）でそれについてすべて読むことができます。
+
+{#if fw === 'pt'}
+
+それでは、`AutoModelForMaskedLM`クラスを使ってDistilBERTをダウンロードしてみましょう。
+
+```python
+from transformers import AutoModelForMaskedLM
+
+model_checkpoint = "distilbert-base-uncased"
+model = AutoModelForMaskedLM.from_pretrained(model_checkpoint)
+```
+
+このモデルがいくつのパラメータを持っているかは、`num_parameters()` メソッドを呼び出すことで確認することができます。
+
+```python
+distilbert_num_parameters = model.num_parameters() / 1_000_000
+print(f"'>>> DistilBERT number of parameters: {round(distilbert_num_parameters)}M'")
+print(f"'>>> BERT number of parameters: 110M'")
+```
+
+```python out
+'>>> DistilBERT number of parameters: 67M'
+'>>> BERT number of parameters: 110M'
+```
+
+{:else}
+
+それでは、`AutoModelForMaskedLM`クラスを使ってDistilBERTをダウンロードしてみましょう。
+
+```python
+from transformers import TFAutoModelForMaskedLM
+
+model_checkpoint = "distilbert-base-uncased"
+model = TFAutoModelForMaskedLM.from_pretrained(model_checkpoint)
+```
+このモデルがいくつのパラメータを持っているかは、`summary()` メソッドを呼び出すことで確認することができます。
+
+```python
+model(model.dummy_inputs)  # Build the model
+model.summary()
+```
+
+```python out
+Model: "tf_distil_bert_for_masked_lm"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+distilbert (TFDistilBertMain multiple                  66362880  
+_________________________________________________________________
+vocab_transform (Dense)      multiple                  590592    
+_________________________________________________________________
+vocab_layer_norm (LayerNorma multiple                  1536      
+_________________________________________________________________
+vocab_projector (TFDistilBer multiple                  23866170  
+=================================================================
+Total params: 66,985,530
+Trainable params: 66,985,530
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+{/if}
+
+約6,700万パラメータを持つDistilBERTは、BERTの基本モデルよりも約2倍小さく、これは、学習時に約2倍のスピードアップに相当します（素晴らしい！）。それでは、このモデルが予測する、小さなテキストサンプルの最も可能性の高い完成形はどのような種類のトークンであるかを見てみましょう。
+
+```python
+text = "This is a great [MASK]."
+```
+
+人間なら `[MASK]` トークンに対して、"day", "ride", "painting" などの多くの可能性を想像することができます。事前学習済みモデルの場合、予測値はモデルが学習したコーパスに依存します。なぜなら、モデルはデータに存在する統計的パターンを選択するように学習するからです。BERTと同様に、DistilBERTは[English Wikipedia](https://huggingface.co/datasets/wikipedia) と [BookCorpus](https://huggingface.co/datasets/bookcorpus) のデータセットで事前学習されているので、`[MASK]`の予測はこれらのドメインを反映すると予想されます。マスクを予測するためには、モデルの入力生成用にDistilBERTのtokenizerが必要なので、これもHubからダウンロードしましょう。
+
+```python
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+```
+
+tokenizerモデルがあれば、テキストサンプルをモデルに渡し、ロジットを抽出し、上位5つの候補を出力することができます。
+
+{#if fw === 'pt'}
+
+```python
+import torch
+
+inputs = tokenizer(text, return_tensors="pt")
+token_logits = model(**inputs).logits
+# Find the location of [MASK] and extract its logits
+mask_token_index = torch.where(inputs["input_ids"] == tokenizer.mask_token_id)[1]
+mask_token_logits = token_logits[0, mask_token_index, :]
+# Pick the [MASK] candidates with the highest logits
+top_5_tokens = torch.topk(mask_token_logits, 5, dim=1).indices[0].tolist()
+
+for token in top_5_tokens:
+    print(f"'>>> {text.replace(tokenizer.mask_token, tokenizer.decode([token]))}'")
+```
+
+{:else}
+
+```python
+import numpy as np
+import tensorflow as tf
+
+inputs = tokenizer(text, return_tensors="np")
+token_logits = model(**inputs).logits
+# Find the location of [MASK] and extract its logits
+mask_token_index = np.argwhere(inputs["input_ids"] == tokenizer.mask_token_id)[0, 1]
+mask_token_logits = token_logits[0, mask_token_index, :]
+# Pick the [MASK] candidates with the highest logits
+# We negate the array before argsort to get the largest, not the smallest, logits
+top_5_tokens = np.argsort(-mask_token_logits)[:5].tolist()
+
+for token in top_5_tokens:
+    print(f">>> {text.replace(tokenizer.mask_token, tokenizer.decode([token]))}")
+```
+
+{/if}
+
+```python out
+'>>> This is a great deal.'
+'>>> This is a great success.'
+'>>> This is a great adventure.'
+'>>> This is a great idea.'
+'>>> This is a great feat.'
+```
+
+出力から、モデルの予測は日常的な用語に言及していることがわかりますが、これは英語版ウィキペディアが基盤となっている事を考えれば驚くことではありません。では、この領域をもう少しニッチなもの、つまり、分裂している映画評価データセットに変えてみましょう。
+
+## データセット
+
+ドメイン適応の例を示すために、私たちは有名な[Large Movie Review Dataset](https://huggingface.co/datasets/imdb) (略してIMDb)を使用します。これは、感情分析モデルのベンチマークによく使われる、映画のレビューのコーパスです。このコーパスでDistilBERTを微調整することで、言語モデルが事前学習したWikipediaの事実に基づくデータから、映画レビューのより主観的な要素に語彙を適応させることが期待されます。ハギング フェイス ハブのデータは、🤗 Datasetsの `load_dataset()` 関数で取得することができます。
+
+```python
+from datasets import load_dataset
+
+imdb_dataset = load_dataset("imdb")
+imdb_dataset
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['text', 'label'],
+        num_rows: 25000
+    })
+    test: Dataset({
+        features: ['text', 'label'],
+        num_rows: 25000
+    })
+    unsupervised: Dataset({
+        features: ['text', 'label'],
+        num_rows: 50000
+    })
+})
+```
+
+`train` と `test` 用のデータ分割にはそれぞれ25,000件のレビューから構成され、ラベル付けされていない `unsupervised` という分割には50,000件のレビューが含まれていることがわかります。どのようなテキストを扱っているか知るために、いくつかのサンプルを見てみましょう。このコースの前の章で行ったように、 `Dataset.shuffle()` と `Dataset.select()` 関数を連鎖させて、ランダムなサンプルを作成しましょう。
+
+```python
+sample = imdb_dataset["train"].shuffle(seed=42).select(range(3))
+
+for row in sample:
+    print(f"\n'>>> Review: {row['text']}'")
+    print(f"'>>> Label: {row['label']}'")
+```
+
+```python out
+
+'>>> Review: This is your typical Priyadarshan movie--a bunch of loony characters out on some silly mission. His signature climax has the entire cast of the film coming together and fighting each other in some crazy moshpit over hidden money. Whether it is a winning lottery ticket in Malamaal Weekly, black money in Hera Pheri, "kodokoo" in Phir Hera Pheri, etc., etc., the director is becoming ridiculously predictable. Don\'t get me wrong; as clichéd and preposterous his movies may be, I usually end up enjoying the comedy. However, in most his previous movies there has actually been some good humor, (Hungama and Hera Pheri being noteworthy ones). Now, the hilarity of his films is fading as he is using the same formula over and over again.<br /><br />Songs are good. Tanushree Datta looks awesome. Rajpal Yadav is irritating, and Tusshar is not a whole lot better. Kunal Khemu is OK, and Sharman Joshi is the best.'
+'>>> Label: 0'
+
+'>>> Review: Okay, the story makes no sense, the characters lack any dimensionally, the best dialogue is ad-libs about the low quality of movie, the cinematography is dismal, and only editing saves a bit of the muddle, but Sam" Peckinpah directed the film. Somehow, his direction is not enough. For those who appreciate Peckinpah and his great work, this movie is a disappointment. Even a great cast cannot redeem the time the viewer wastes with this minimal effort.<br /><br />The proper response to the movie is the contempt that the director San Peckinpah, James Caan, Robert Duvall, Burt Young, Bo Hopkins, Arthur Hill, and even Gig Young bring to their work. Watch the great Peckinpah films. Skip this mess.'
+'>>> Label: 0'
+
+'>>> Review: I saw this movie at the theaters when I was about 6 or 7 years old. I loved it then, and have recently come to own a VHS version. <br /><br />My 4 and 6 year old children love this movie and have been asking again and again to watch it. <br /><br />I have enjoyed watching it again too. Though I have to admit it is not as good on a little TV.<br /><br />I do not have older children so I do not know what they would think of it. <br /><br />The songs are very cute. My daughter keeps singing them over and over.<br /><br />Hope this helps.'
+'>>> Label: 1'
+```
+
+そう、これらは確かに映画のレビューです。もしあなたが十分に年を取っているなら、最後のレビューにあるVHS版を所有しているというコメントさえ理解できるかもしれません😜! 言語モデリングにはラベルは必要ありませんが、`0`は否定的なレビュー、`1`は肯定的なレビューに対応することがもうわかりました。
+
+> [!TIP]
+> ✏️ **挑戦してみましょう！** `unsupervised` のラベルがついた分割データのランダムサンプルを作成し、ラベルが `0` や `1` でないことを確認してみましょう。また、`train` と `test` 用の分割データのラベルが本当に `0` か `1` のみかを確認することもできます。これはすべての自然言語処理の実践者が新しいプロジェクトの開始時に実行すべき、有用なサニティチェックです!
+
+さて、データをざっと見たところで、マスク言語モデリングのための準備に取りかかりましょう。[第3章](/course/ja/chapter3)で見たシーケンス分類のタスクと比較すると、いくつかの追加ステップが必要であることがわかるでしょう。さあ、始めましょう！
+
+## データの前処理
+
+<Youtube id="8PmhEIXhBvI"/>
+
+自己回帰言語モデリングでもマスク言語モデリングでも、共通の前処理として、すべての用例を連結し、コーパス全体を同じ大きさの断片に分割することが行われます。これは、個々のサンプルを単純にトークン化するという、私達の通常のアプローチとは全く異なるものです。なぜすべてを連結するのでしょうか？それは、個々の例文が長すぎると切り捨てられる可能性があり、言語モデリングタスクに役立つかもしれない情報が失われてしまうからです！
+
+そこで、まずいつものようにコーパスをトークン化します。ただし、トークン化する際に `truncation=True` オプションをtokenizerに_設定しない_ようにします。また、単語IDがあればそれを取得します（[6章](/course/ja/chapter6/3)で説明した高速tokenizerを使用している場合はそうなります）。後で単語全体をマスキングするために必要になるからです。これをシンプルな関数にまとめ、ついでに `text` と `label` カラムも不要になったので削除してしまいましょう。
+
+```python
+def tokenize_function(examples):
+    result = tokenizer(examples["text"])
+    if tokenizer.is_fast:
+        result["word_ids"] = [result.word_ids(i) for i in range(len(result["input_ids"]))]
+    return result
+
+
+# Use batched=True to activate fast multithreading!
+tokenized_datasets = imdb_dataset.map(
+    tokenize_function, batched=True, remove_columns=["text", "label"]
+)
+tokenized_datasets
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['attention_mask', 'input_ids', 'word_ids'],
+        num_rows: 25000
+    })
+    test: Dataset({
+        features: ['attention_mask', 'input_ids', 'word_ids'],
+        num_rows: 25000
+    })
+    unsupervised: Dataset({
+        features: ['attention_mask', 'input_ids', 'word_ids'],
+        num_rows: 50000
+    })
+})
+```
+
+DistilBERTはBERTに似たモデルなので、エンコードされたテキストは、他の章で見た `input_ids` と `attention_mask` に加え、私達が追加した `word_ids` で構成されていることがわかります。
+
+さて、映画のレビューをトークン化したので、次のステップはそれらをすべてグループ化して、結果を断片に分割することです。しかし、この断片の大きさはどの程度にすべきでしょうか？これは最終的には利用可能な GPU メモリの量によって決まりますが、良い出発点はモデルの最大コンテキストサイズが何であるかを見ることです。これはtokenizerの `model_max_length` 属性を調べることで推測することができます。
+
+```python
+tokenizer.model_max_length
+```
+
+```python out
+512
+```
+
+この値は、チェックポイントに関連付けられた *tokenizer_config.json* ファイルから取得します。この場合、BERT と同様に、コンテキストサイズが 512 トークンであることが分かります。
+
+> [!TIP]
+> ✏️ ** あなたの番です！ ** [BigBird](https://huggingface.co/google/bigbird-roberta-base) や [Longformer](hf.co/allenai/longformer-base-4096) などのいくつかの Transformer モデルは、BERT や他の初期の Transformer モデルよりずっと長いコンテキスト長を持っています。これらのチェックポイントのトークナイザーをインスタンス化して、`model_max_length` がそのモデルカード内に記載されているものと一致することを検証してください。
+
+され、Google Colab内で利用可能なGPUで実験を行うために、メモリに収まるような少し小さめのものを選ぶことにします。
+
+```python
+chunk_size = 128
+```
+
+> [!WARNING]
+> なお、小さな断片サイズを使用すると、実際のシナリオでは不利になることがあるので、モデルを適用するユースケースに対応したサイズを使用する必要があります。
+
+さて、ここからが楽しいところです。連結がどのように機能するかを示すために、トークン化されたトレーニングセットからいくつかのレビューを取り出し、レビュー毎のトークン数を出力してみましょう。
+
+```python
+# Slicing produces a list of lists for each feature
+tokenized_samples = tokenized_datasets["train"][:3]
+
+for idx, sample in enumerate(tokenized_samples["input_ids"]):
+    print(f"'>>> Review {idx} length: {len(sample)}'")
+```
+
+```python out
+'>>> Review 0 length: 200'
+'>>> Review 1 length: 559'
+'>>> Review 2 length: 192'
+```
+
+そして、これらの例をすべてをシンプルな辞書内包表記を使って連結すると、次のようになります。
+
+```python
+concatenated_examples = {
+    k: sum(tokenized_samples[k], []) for k in tokenized_samples.keys()
+}
+total_length = len(concatenated_examples["input_ids"])
+print(f"'>>> Concatenated reviews length: {total_length}'")
+```
+
+```python out
+'>>> Concatenated reviews length: 951'
+```
+
+素晴らしい！全体の長さの裏付けがとれました。
+
+では、連結されたレビューを `block_size` で指定されたサイズの断片に分割してみましょう。そのために、 `concatenated_examples` を繰り返し処理し、リスト内包表記を使用して各特徴のスライスを作成します。その結果、断片の辞書ができあがります。
+
+```python
+chunks = {
+    k: [t[i : i + chunk_size] for i in range(0, total_length, chunk_size)]
+    for k, t in concatenated_examples.items()
+}
+
+for chunk in chunks["input_ids"]:
+    print(f"'>>> Chunk length: {len(chunk)}'")
+```
+
+```python out
+'>>> Chunk length: 128'
+'>>> Chunk length: 128'
+'>>> Chunk length: 128'
+'>>> Chunk length: 128'
+'>>> Chunk length: 128'
+'>>> Chunk length: 128'
+'>>> Chunk length: 128'
+'>>> Chunk length: 55'
+```
+
+この例でわかるように、一般的に最後の断片は最大断片サイズより小さくなります。これを扱うには、主に 2 つの方法があります。
+
+* 最後の断片が `chunk_size` よりも小さければ削除する
+* 最後の断片の長さが `chunk_size` と等しくなるまで、最後の断片にダミーデータを詰め込む
+
+ここでは、最初のアプローチをとります。上記のロジックをすべてひとつの関数にまとめ、トークン化されたデータセットに適用してみましょう。
+
+```python
+def group_texts(examples):
+    # Concatenate all texts
+    concatenated_examples = {k: sum(examples[k], []) for k in examples.keys()}
+    # Compute length of concatenated texts
+    total_length = len(concatenated_examples[list(examples.keys())[0]])
+    # We drop the last chunk if it's smaller than chunk_size
+    total_length = (total_length // chunk_size) * chunk_size
+    # Split by chunks of max_len
+    result = {
+        k: [t[i : i + chunk_size] for i in range(0, total_length, chunk_size)]
+        for k, t in concatenated_examples.items()
+    }
+    # Create a new labels column
+    result["labels"] = result["input_ids"].copy()
+    return result
+```
+
+`group_texts()` の最後のステップでは、 `input_ids` 列のコピーである新しい `labels` 列を作成していることに注意してください。これから説明するように、マスク言語モデリングでは、入力部に含まれるランダムなマスクトークンを予測することが目的です。 `labels` 列は、言語モデルが学習の際に参考する真実の値を提供するために使用します。
+
+それでは、信頼できる `Dataset.map()` 関数を使って、トークン化されたデータセットに `group_texts()` を適用してみましょう。
+
+```python
+lm_datasets = tokenized_datasets.map(group_texts, batched=True)
+lm_datasets
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['attention_mask', 'input_ids', 'labels', 'word_ids'],
+        num_rows: 61289
+    })
+    test: Dataset({
+        features: ['attention_mask', 'input_ids', 'labels', 'word_ids'],
+        num_rows: 59905
+    })
+    unsupervised: Dataset({
+        features: ['attention_mask', 'input_ids', 'labels', 'word_ids'],
+        num_rows: 122963
+    })
+})
+```
+
+テキストをグループ化し、断片に分けたことで`train`と`test`のデータセットで25,000よりも多くのサンプルが生成されていることがわかります。これは、元のコーパスに複数のレビューを含むものがあるため _連続トークン_ を含むサンプルができたからです。このことは、断片の1つにある特別な `[SEP]` と `[CLS]` トークンを探すことで明確にわかります。
+
+```python
+tokenizer.decode(lm_datasets["train"][1]["input_ids"])
+```
+
+```python out
+".... at.......... high. a classic line : inspector : i'm here to sack one of your teachers. student : welcome to bromwell high. i expect that many adults of my age think that bromwell high is far fetched. what a pity that it isn't! [SEP] [CLS] homelessness ( or houselessness as george carlin stated ) has been an issue for years but never a plan to help those on the street that were once considered human who did everything from going to school, work, or vote for the matter. most people think of the homeless"
+```
+
+上の例では、高校に関する映画とホームレスに関する映画のレビューが2つ重複しているのがわかります。また、マスク言語モデリングのラベルがどのように見えるか確認してみましょう。
+
+```python out
+tokenizer.decode(lm_datasets["train"][1]["labels"])
+```
+
+```python out
+".... at.......... high. a classic line : inspector : i'm here to sack one of your teachers. student : welcome to bromwell high. i expect that many adults of my age think that bromwell high is far fetched. what a pity that it isn't! [SEP] [CLS] homelessness ( or houselessness as george carlin stated ) has been an issue for years but never a plan to help those on the street that were once considered human who did everything from going to school, work, or vote for the matter. most people think of the homeless"
+```
+
+上の `group_texts()` 関数から予想されるように、これはデコードされた `input_ids` と同じに見えます。しかし、それではこのモデルはどうやって何かを学習するのでしょうか？入力のランダムな位置に `[MASK]` トークンを挿入する、という重要なステップが抜けているのです。それでは、特別なデータコレーターを使って、微調整の際にどのようにこれを行うか見てみましょう。
+
+## DistilBERTを`Trainer`APIで微調整する
+
+マスク言語モデルの微調整は、[第3章](/course/ja/chapter3)で行ったようなシーケンス分類モデルの微調整とほぼ同じです。唯一の違いは、各バッチのテキストに含まれるいくつかのトークンをランダムにマスクすることができる特別なデータコレーターが必要であることです。幸いなことに、🤗 Transformersにはこのタスクのために専用の `DataCollatorForLanguageModeling` が用意されています。私たちはtokenizerと、マスクするトークンの割合を指定する `mlm_probability` 引数を渡すだけでよいのです。ここでは、BERTで使用され、文献上でも一般的な選択である15％を選びます。
+
+```python
+from transformers import DataCollatorForLanguageModeling
+
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=0.15)
+```
+
+ランダムマスクがどのように機能するかを見るために、いくつかの例を data_collator に与えてみましょう。コレーターは辞書型 のリストを想定しており、各 辞書は連続したテキストの塊を表すので、まずデータセットを繰り返し処理してからコレーターにバッチを渡します。このデータコレーターは `"word_ids"` キーを必要としないので、これを削除します。
+
+```python
+samples = [lm_datasets["train"][i] for i in range(2)]
+for sample in samples:
+    _ = sample.pop("word_ids")
+
+for chunk in data_collator(samples)["input_ids"]:
+    print(f"\n'>>> {tokenizer.decode(chunk)}'")
+```
+
+```python output
+'>>> [CLS] bromwell [MASK] is a cartoon comedy. it ran at the same [MASK] as some other [MASK] about school life, [MASK] as " teachers ". [MASK] [MASK] [MASK] in the teaching [MASK] lead [MASK] to believe that bromwell high\'[MASK] satire is much closer to reality than is " teachers ". the scramble [MASK] [MASK] financially, the [MASK]ful students whogn [MASK] right through [MASK] pathetic teachers\'pomp, the pettiness of the whole situation, distinction remind me of the schools i knew and their students. when i saw [MASK] episode in [MASK] a student repeatedly tried to burn down the school, [MASK] immediately recalled. [MASK]...'
+
+'>>> .... at.. [MASK]... [MASK]... high. a classic line plucked inspector : i\'[MASK] here to [MASK] one of your [MASK]. student : welcome to bromwell [MASK]. i expect that many adults of my age think that [MASK]mwell [MASK] is [MASK] fetched. what a pity that it isn\'t! [SEP] [CLS] [MASK]ness ( or [MASK]lessness as george 宇in stated )公 been an issue for years but never [MASK] plan to help those on the street that were once considered human [MASK] did everything from going to school, [MASK], [MASK] vote for the matter. most people think [MASK] the homeless'
+```
+
+いいですね、うまくいきました！
+`[MASK]`トークンがテキストの様々な場所にランダムに挿入されていることがわかります。
+
+これらが学習中にモデルが予測しなければならないトークンになります。そしてデータコレーターの素晴らしいところは、バッチごとに`[MASK]`の挿入をランダムにすることです! 
+
+> [!TIP]
+> ✏️ ** あなたの番です！ ** 上のコードを何度か実行して、ランダムなマスキングがあなたの目の前で起こるのを見ましょう! また、`tokenizer.decode()` メソッドを `tokenizer.convert_ids_to_tokens()` に置き換えると、与えた単語内から一つのトークンが選択されてマスクされ、他の単語がマスクされないことを見ることができます。
+
+{#if fw === 'pt'}
+
+ランダムマスキングの副作用として、`Trainer`を使用する場合、評価指標が確定的でなくなることが挙げられます。
+これはトレーニングセットとテストセットに同じデータコレーターを使用するためです。後ほど、🤗 Accelerateで微調整を行う際に、カスタム評価ループの柔軟性を利用してランダム性をなくす方法について説明します。
+
+{/if}
+
+マスク言語モデルをトレーニングする場合、個々のトークンではなく、単語全体をマスキングする手法があります。この手法は _whole word masking_ と呼ばれます。単語全体をマスキングする場合、データコレーターを自作する必要があります。データコレーターとは、サンプルのリストを受け取り、それをバッチ変換する関数のことです。
+
+今からやってみましょう！
+
+先ほど計算した単語IDを使って、単語のインデックスと対応するトークンのマップを作る事にします。どの単語をマスクするかをランダムに決めて、そのマスクを入力に適用します。なお、ラベルはマスクする単語を除いて全て`-100`です。
+
+{#if fw === 'pt'}
+
+```py
+import collections
+import numpy as np
+
+from transformers import default_data_collator
+
+wwm_probability = 0.2
+
+
+def whole_word_masking_data_collator(features):
+    for feature in features:
+        word_ids = feature.pop("word_ids")
+
+        # Create a map between words and corresponding token indices
+        mapping = collections.defaultdict(list)
+        current_word_index = -1
+        current_word = None
+        for idx, word_id in enumerate(word_ids):
+            if word_id is not None:
+                if word_id != current_word:
+                    current_word = word_id
+                    current_word_index += 1
+                mapping[current_word_index].append(idx)
+
+        # Randomly mask words
+        mask = np.random.binomial(1, wwm_probability, (len(mapping),))
+        input_ids = feature["input_ids"]
+        labels = feature["labels"]
+        new_labels = [-100] * len(labels)
+        for word_id in np.where(mask)[0]:
+            word_id = word_id.item()
+            for idx in mapping[word_id]:
+                new_labels[idx] = labels[idx]
+                input_ids[idx] = tokenizer.mask_token_id
+        feature["labels"] = new_labels
+
+    return default_data_collator(features)
+```
+
+{:else}
+
+```py
+import collections
+import numpy as np
+
+from transformers.data.data_collator import tf_default_data_collator
+
+wwm_probability = 0.2
+
+
+def whole_word_masking_data_collator(features):
+    for feature in features:
+        word_ids = feature.pop("word_ids")
+
+        # Create a map between words and corresponding token indices
+        mapping = collections.defaultdict(list)
+        current_word_index = -1
+        current_word = None
+        for idx, word_id in enumerate(word_ids):
+            if word_id is not None:
+                if word_id != current_word:
+                    current_word = word_id
+                    current_word_index += 1
+                mapping[current_word_index].append(idx)
+
+        # Randomly mask words
+        mask = np.random.binomial(1, wwm_probability, (len(mapping),))
+        input_ids = feature["input_ids"]
+        labels = feature["labels"]
+        new_labels = [-100] * len(labels)
+        for word_id in np.where(mask)[0]:
+            word_id = word_id.item()
+            for idx in mapping[word_id]:
+                new_labels[idx] = labels[idx]
+                input_ids[idx] = tokenizer.mask_token_id
+        feature["labels"] = new_labels
+
+    return tf_default_data_collator(features)
+```
+
+{/if}
+
+次に、先ほどと同じサンプルで試してみます。
+
+```py
+samples = [lm_datasets["train"][i] for i in range(2)]
+batch = whole_word_masking_data_collator(samples)
+
+for chunk in batch["input_ids"]:
+    print(f"\n'>>> {tokenizer.decode(chunk)}'")
+```
+
+```python out
+'>>> [CLS] bromwell high is a cartoon comedy [MASK] it ran at the same time as some other programs about school life, such as " teachers ". my 35 years in the teaching profession lead me to believe that bromwell high\'s satire is much closer to reality than is " teachers ". the scramble to survive financially, the insightful students who can see right through their pathetic teachers\'pomp, the pettiness of the whole situation, all remind me of the schools i knew and their students. when i saw the episode in which a student repeatedly tried to burn down the school, i immediately recalled.....'
+
+'>>> .... [MASK] [MASK] [MASK] [MASK]....... high. a classic line : inspector : i\'m here to sack one of your teachers. student : welcome to bromwell high. i expect that many adults of my age think that bromwell high is far fetched. what a pity that it isn\'t! [SEP] [CLS] homelessness ( or houselessness as george carlin stated ) has been an issue for years but never a plan to help those on the street that were once considered human who did everything from going to school, work, or vote for the matter. most people think of the homeless'
+```
+
+> [!TIP]
+> ✏️ ** あなたの番です！ ** 上のコードを何度か実行して、ランダムなマスキングがあなたの目の前で起こるのを見ましょう! また、`tokenizer.decode()` メソッドを `tokenizer.convert_ids_to_tokens()` に置き換えると、与えられた単語からのトークンが常に一緒にマスクされることを確認できます。
+
+これで2つのデータコレーターが揃いましたので、残りの微調整ステップは標準的なものです。Google Colabで、神話に出てくるP100 GPUを運良く割り当てられなかった場合、学習に時間がかかることがあります😭そこで、まず学習セットのサイズを数千事例までダウンサンプルします。心配しないでください、それでもかなりまともな言語モデルができますよ。🤗 Datasets 内のデータセットは[第5章](/course/ja/chapter5)で紹介した `Dataset.train_test_split()` 関数で簡単にダウンサンプリングすることができます。
+
+```python
+train_size = 10_000
+test_size = int(0.1 * train_size)
+
+downsampled_dataset = lm_datasets["train"].train_test_split(
+    train_size=train_size, test_size=test_size, seed=42
+)
+downsampled_dataset
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['attention_mask', 'input_ids', 'labels', 'word_ids'],
+        num_rows: 10000
+    })
+    test: Dataset({
+        features: ['attention_mask', 'input_ids', 'labels', 'word_ids'],
+        num_rows: 1000
+    })
+})
+```
+
+これは自動的に新しい `train` と `test` にデータを分割し、トレーニングセットのサイズを 10,000 事例に、検証セットをその 10%に設定しました。もし強力なGPUをお持ちなら、この値を自由に増やしてください！
+
+次に必要なことは、ハギング フェイス ハブにログインすることです。このコードをnotebookで実行する場合は、次のユーティリティ関数で実行できます。
+
+```python
+from huggingface_hub import notebook_login
+
+notebook_login()
+```
+
+上記を実行すると、入力ウィジェットが表示され、認証情報を入力することができます。また実行することもできます。
+
+```
+huggingface-cli login
+```
+
+好みに応じて、ターミナルを起動し、そこからログインしてください。
+
+{#if fw === 'tf'}
+
+一度ログインしたら、`tf.data`データセットを作成する事ができます。ここでは標準的なデータコレーターを使いますが、練習として全単語マスキングのコレーターを試して結果を比較することも可能です。
+
+```python
+tf_train_dataset = downsampled_dataset["train"].to_tf_dataset(
+    columns=["input_ids", "attention_mask", "labels"],
+    collate_fn=data_collator,
+    shuffle=True,
+    batch_size=32,
+)
+
+tf_eval_dataset = downsampled_dataset["test"].to_tf_dataset(
+    columns=["input_ids", "attention_mask", "labels"],
+    collate_fn=data_collator,
+    shuffle=False,
+    batch_size=32,
+)
+```
+
+次に、学習用ハイパーパラメータを設定し、モデルをコンパイルします。Transformersライブラリの `create_optimizer()` 関数を使用し、学習率が線形に減衰する性質を持つ `AdamW` オプティマイザを使用します。また、モデルの組み込みの損失を使用します。これは `compile()` の引数に損失が指定されていない場合のデフォルトであり、学習精度は `"mixed_float16"` に設定されます。Colabで割り当てられたGPUやお使いのGPUがfloat16のサポートをしていない場合は、この行をコメントアウトする必要があります。
+
+さらに、各エポック後にモデルをハブに保存する `PushToHubCallback` をセットアップします。`hub_model_id` 引数で、プッシュしたいリポジトリの名前を指定します。（特に、組織を指定してプッシュする場合はこの引数を使用する必要があります）。例えば、モデルを [`huggingface-course` organization](https://huggingface.co/huggingface-course) にプッシュするには、 `hub_model_id="huggingface-course/distilbert-finetuned-imdb"` を追加しました。デフォルトでは、使用されるリポジトリはあなたの名前空間になり、設定された出力ディレクトリの名前になります。そのため、私達のケースでは`"lewtun/distilbert-finetuned-imdb"` となるでしょう。
+
+```python
+from transformers import create_optimizer
+from transformers.keras_callbacks import PushToHubCallback
+import tensorflow as tf
+
+num_train_steps = len(tf_train_dataset)
+optimizer, schedule = create_optimizer(
+    init_lr=2e-5,
+    num_warmup_steps=1_000,
+    num_train_steps=num_train_steps,
+    weight_decay_rate=0.01,
+)
+model.compile(optimizer=optimizer)
+
+# Train in mixed-precision float16
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
+
+callback = PushToHubCallback(
+    output_dir=f"{model_name}-finetuned-imdb", tokenizer=tokenizer
+)
+```
+
+これで `model.fit()` を実行する準備ができました。
+しかし、これを実行する前に言語モデルの性能を評価する一般的な指標である _パープレキシティ_ について簡単に見ておきましょう。
+
+{:else}
+
+一度ログインしたら、`Trainer` の引数を指定できます。
+
+```python
+from transformers import TrainingArguments
+
+batch_size = 64
+# Show the training loss with every epoch
+logging_steps = len(downsampled_dataset["train"]) // batch_size
+model_name = model_checkpoint.split("/")[-1]
+
+training_args = TrainingArguments(
+    output_dir=f"{model_name}-finetuned-imdb",
+    overwrite_output_dir=True,
+    evaluation_strategy="epoch",
+    learning_rate=2e-5,
+    weight_decay=0.01,
+    per_device_train_batch_size=batch_size,
+    per_device_eval_batch_size=batch_size,
+    push_to_hub=True,
+    fp16=True,
+    logging_steps=logging_steps,
+)
+```
+
+ここでは、各エポックでの学習損失を確実に追跡するために `logging_steps` を含むデフォルトのオプションを少し調整しました。また、 `fp16=True` を使用して、混合精度の学習を有効にし、さらに高速化しました。デフォルトでは、 `Trainer` はモデルの `forward()` メソッドに含まれない列をすべて削除します。つまり、全単語マスク用のデータコレーターを使用している場合は、 `remove_unused_columns=False` を設定して、学習時に `word_ids` カラムが失われないようにする必要があります。
+
+なお、 `hub_model_id` 引数でプッシュ先のリポジトリ名を指定することができます (特に、組織にプッシュする場合はこの引数を使用する必要があります)。例えば、モデルを [`huggingface-course` organization](https://huggingface.co/huggingface-course) にプッシュする場合、 `TrainingArguments` に `hub_model_id="huggingface-course/distilbert-finetuned-imdb"` を追加しています。デフォルトでは、使用するリポジトリはあなたの名前空間内にあり、設定した出力ディレクトリにちなんだ名前になるので、私たちの場合は `"lewtun/distilbert-finetuned-imdb"` となります。
+
+これで `Trainer` のインスタンスを作成するための材料が揃いました。ここでは、標準的な `data_collator` を使用しますが、練習として全単語マスキングのデータコレーターを試して、結果を比較することができます。
+
+```python
+from transformers import Trainer
+
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=downsampled_dataset["train"],
+    eval_dataset=downsampled_dataset["test"],
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+)
+```
+
+これで `trainer.train()` を実行する準備ができました。しかしその前に、言語モデルの性能を評価する一般的な指標である _パープレキシティ_ について簡単に見ておきましょう。
+
+{/if}
+
+### 言語モデルのパープレキシティ
+
+<Youtube id="NURcDHhYe98"/>
+
+テキストの分類や質問応答のように、ラベル付けされたコーパスを用いて学習する他のタスクとは異なり、言語モデリングでは明示的なラベルを一切持ちません。では、何が良い言語モデルなのか、どのように判断すればよいのでしょうか？
+
+携帯電話の自動補正機能のように、文法的に正しい文には高い確率で、無意味な文には低い確率で割り当てることができるものが良い言語モデルです。自動補正の失敗例として、携帯電話に搭載された自動補正モデルが、おかしな（そして往々にして不適切な）文章を生成している例がネット上に多数紹介されています。
+
+{#if fw === 'pt'}
+
+テストセットのほとんどが文法的に正しい文であると仮定すると、言語モデルの品質を測る一つの方法は、テストセットのすべての文において、次に出現する単語を正しく割り当てる確率を計算することです。確率が高いということは、モデルが未知の例文に「驚き」や「当惑」を感じていないことを示し、その言語の文法の基本パターンを学習していることを示唆しています。パープレキシティには様々な数学的定義がありますが、私達が使うのはクロスエントロピー損失の指数として定義するものです。したがって、`Trainer.evaluate()`関数を使ってテスト集合のクロスエントロピー損失を計算し、その結果の指数を取ることで事前学習済みモデルのパープレキシティを計算することができるのです。
+
+```python
+import math
+
+eval_results = trainer.evaluate()
+print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
+```
+
+{:else}
+テストセットのほとんどが文法的に正しい文章で構成されていると仮定すると、言語モデルの品質を測定する一つの方法は、テストセットのすべての文章で次の単語が正しく割り当てる確率を計算することです。確率が高いということは、モデルが未見の例文に「驚き」「当惑」していないことを示し、その言語の文法の基本パターンを学習していることを示唆しています。パープレキシティには様々な数学的定義がありますが、私達が使うのはクロスエントロピーの損失の指数として定義するものです。したがって、`model.evaluate()` メソッドを使ってテスト集合のクロスエントロピー損失を計算し、その結果の指数を取ることで事前学習済みモデルのパープレキシティを計算することができるのです。
+
+```python
+import math
+
+eval_loss = model.evaluate(tf_eval_dataset)
+print(f"Perplexity: {math.exp(eval_loss):.2f}")
+```
+
+{/if}
+
+```python out
+>>> Perplexity: 21.75
+```
+
+パープレキシティスコアが低いほど、良い言語モデルということになります。
+私達の開始時のモデルの値はやや大きいことがわかります。
+では、微調整によってこの値を下げられるか見てみましょう。そのために、まず学習ループを実行します。
+
+
+{#if fw === 'pt'}
+
+```python
+trainer.train()
+```
+
+{:else}
+
+```python
+model.fit(tf_train_dataset, validation_data=tf_eval_dataset, callbacks=[callback])
+```
+
+{/if}
+
+それから計算を実行し、その結果得られたテストセットに対するパープレキシティを先ほどと同様に計算します。
+
+{#if fw === 'pt'}
+
+```python
+eval_results = trainer.evaluate()
+print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
+```
+
+{:else}
+
+```python
+eval_loss = model.evaluate(tf_eval_dataset)
+print(f"Perplexity: {math.exp(eval_loss):.2f}")
+```
+
+{/if}
+
+```python out
+>>> Perplexity: 11.32
+```
+
+素敵！かなりパープレキシティを減らすことができました。
+これは、モデルが映画レビューの領域について何かを学んだことを示しています。
+
+{#if fw === 'pt'}
+
+一度、トレーニングが終了したら、トレーニング情報が入ったモデルカードをHubにプッシュする事ができます。（チェックポイントはトレーニングの最中に保存されます）。
+
+```python
+trainer.push_to_hub()
+```
+
+{/if}
+
+> [!TIP]
+> ✏️ ** あなたの番です！ ** データコレーターを全単語マスキングコレーターに変えて、上記のトレーニングを実行してみましょう。より良い結果が得られましたか？
+
+{#if fw === 'pt'} 
+
+今回の使用例では、トレーニングループに特別なことをする必要はありませんでしたが、場合によってはカスタムロジックを実装する必要があるかもしれません。そのようなアプリケーションでは、🤗 Accelerateを使用することができます。
+見てみましょう!
+
+## DistilBERTを🤗 Accelerateを使って微調整する
+
+`Trainer`で見たように、マスクされた言語モデルの微調整は[第3章](/course/ja/chapter3)のテキスト分類の例と非常によく似ています。実際、唯一のわずかな違いは特別なデータコレーターを使うことで、それはこのセクションの前半ですでに取り上げました! 
+
+しかし、`DataCollatorForLanguageModeling`は評価ごとにランダムなマスキングを行うので、学習実行ごとにパープレキシティスコアに多少の変動が見られることがわかりました。このランダム性を排除する一つの方法は、テストセット全体に _一度だけ_ マスキングを適用し、その後🤗 Transformersのデフォルトのデータコレーターを使用して、評価中にバッチを収集することです。これがどのように機能するかを見るために、`DataCollatorForLanguageModeling` を最初に使った時と同様に、バッチにマスキングを適用する簡単な関数を実装してみましょう。
+
+```python
+def insert_random_mask(batch):
+    features = [dict(zip(batch, t)) for t in zip(*batch.values())]
+    masked_inputs = data_collator(features)
+    # Create a new "masked" column for each column in the dataset
+    return {"masked_" + k: v.numpy() for k, v in masked_inputs.items()}
+```
+
+次に、この関数をテストセットに適用して、マスクされていないカラムを削除し、マスクされたカラムに置き換えることができるようにします。上の `data_collator` を適切なものに置き換えることで、全単語単位でのマスキングを行うことができます。
+その場合は、以下の最初の行を削除してください。
+
+```py
+downsampled_dataset = downsampled_dataset.remove_columns(["word_ids"])
+eval_dataset = downsampled_dataset["test"].map(
+    insert_random_mask,
+    batched=True,
+    remove_columns=downsampled_dataset["test"].column_names,
+)
+eval_dataset = eval_dataset.rename_columns(
+    {
+        "masked_input_ids": "input_ids",
+        "masked_attention_mask": "attention_mask",
+        "masked_labels": "labels",
+    }
+)
+```
+
+あとは通常通りデータローダーをセットアップしますが、ここでは評価セットに 🤗 Transformers の `default_data_collator` を使用します。
+
+```python
+from torch.utils.data import DataLoader
+from transformers import default_data_collator
+
+batch_size = 64
+train_dataloader = DataLoader(
+    downsampled_dataset["train"],
+    shuffle=True,
+    batch_size=batch_size,
+    collate_fn=data_collator,
+)
+eval_dataloader = DataLoader(
+    eval_dataset, batch_size=batch_size, collate_fn=default_data_collator
+)
+```
+
+ここでは、🤗 Accelerateを使った標準的なステップに従います。最初にやる事は、事前学習したモデルの新しいバージョンをロードすることです。
+
+```
+model = AutoModelForMaskedLM.from_pretrained(model_checkpoint)
+```
+
+次に、オプティマイザを指定します。ここでは、標準的な `AdamW` を使用します。
+
+```python
+from torch.optim import AdamW
+
+optimizer = AdamW(model.parameters(), lr=5e-5)
+```
+
+これらのオブジェクトがあれば、あとは `Accelerator` オブジェクトを使ってトレーニングのためのすべてを準備することができます。
+
+```python
+from accelerate import Accelerator
+
+accelerator = Accelerator()
+model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
+    model, optimizer, train_dataloader, eval_dataloader
+)
+```
+
+モデル、オプティマイザー、データローダーが設定されたので、学習率スケジューラーを以下のように指定することができます。
+
+```python
+from transformers import get_scheduler
+
+num_train_epochs = 3
+num_update_steps_per_epoch = len(train_dataloader)
+num_training_steps = num_train_epochs * num_update_steps_per_epoch
+
+lr_scheduler = get_scheduler(
+    "linear",
+    optimizer=optimizer,
+    num_warmup_steps=0,
+    num_training_steps=num_training_steps,
+)
+```
+
+トレーニングの前に最後にすることがあります。ハギング フェイス ハブにモデルリポジトリを作成することです。🤗 Hub ライブラリを使って、まずレポジトリのフルネームを生成します。
+
+```python
+from huggingface_hub import get_full_repo_name
+
+model_name = "distilbert-base-uncased-finetuned-imdb-accelerate"
+repo_name = get_full_repo_name(model_name)
+repo_name
+```
+
+```python out
+'lewtun/distilbert-base-uncased-finetuned-imdb-accelerate'
+```
+
+それから、🤗 Hub の `Repository` クラスを使用してリポジトリを作成し、クローンします。
+
+```python
+from huggingface_hub import Repository
+
+output_dir = model_name
+repo = Repository(output_dir, clone_from=repo_name)
+```
+
+これができれば、あとはトレーニングと評価のループをすべて書き出すだけです。
+
+```python
+from tqdm.auto import tqdm
+import torch
+import math
+
+progress_bar = tqdm(range(num_training_steps))
+
+for epoch in range(num_train_epochs):
+    # Training
+    model.train()
+    for batch in train_dataloader:
+        outputs = model(**batch)
+        loss = outputs.loss
+        accelerator.backward(loss)
+
+        optimizer.step()
+        lr_scheduler.step()
+        optimizer.zero_grad()
+        progress_bar.update(1)
+
+    # Evaluation
+    model.eval()
+    losses = []
+    for step, batch in enumerate(eval_dataloader):
+        with torch.no_grad():
+            outputs = model(**batch)
+
+        loss = outputs.loss
+        losses.append(accelerator.gather(loss.repeat(batch_size)))
+
+    losses = torch.cat(losses)
+    losses = losses[: len(eval_dataset)]
+    try:
+        perplexity = math.exp(torch.mean(losses))
+    except OverflowError:
+        perplexity = float("inf")
+
+    print(f">>> Epoch {epoch}: Perplexity: {perplexity}")
+
+    # Save and upload
+    accelerator.wait_for_everyone()
+    unwrapped_model = accelerator.unwrap_model(model)
+    unwrapped_model.save_pretrained(output_dir, save_function=accelerator.save)
+    if accelerator.is_main_process:
+        tokenizer.save_pretrained(output_dir)
+        repo.push_to_hub(
+            commit_message=f"Training in progress epoch {epoch}", blocking=False
+        )
+```
+
+```python out
+>>> Epoch 0: Perplexity: 11.397545307900472
+>>> Epoch 1: Perplexity: 10.904909330983092
+>>> Epoch 2: Perplexity: 10.729503505340409
+```
+
+イケてる！
+エポックごとにパープレキシティを評価し、複数回のトレーニングを実行した際の再現性を確保することができました
+
+{/if}
+
+## 微調整したモデルを使う
+
+微調整したモデルは、Hub上のウィジェットを使うか、🤗 Transformersの `pipeline` を使ってローカル環境で操作することができます。それでは後者に挑戦してみましょう。`fill-mask`パイプラインを使用してモデルをダウンロードします。
+
+```python
+from transformers import pipeline
+
+mask_filler = pipeline(
+    "fill-mask", model="huggingface-course/distilbert-base-uncased-finetuned-imdb"
+)
+```
+
+そして「これは素晴らしい[MASK]です」というサンプルテキストをパイプラインに送り、上位5つの予測を確認することができます。
+
+
+```python
+preds = mask_filler(text)
+
+for pred in preds:
+    print(f">>> {pred['sequence']}")
+```
+
+```python out
+'>>> this is a great movie.'
+'>>> this is a great film.'
+'>>> this is a great story.'
+'>>> this is a great movies.'
+'>>> this is a great character.'
+```
+
+すっきりしました。
+このモデルは、映画と関連する単語をより強く予測するように、明らかに重みを適応させていますね！
+
+<Youtube id="0Oxphw4Q9fo"/>
+
+これで、言語モデルを学習するための最初の実験を終えました。[セクション6](/course/ja/chapter7/section6)では、GPT-2のような自己回帰モデルをゼロから学習する方法を学びます。もし、あなた自身のTransformerモデルをどうやって事前学習するか見たいなら、そちらに向かってください
+
+> [!TIP]
+> ✏️ ** あなたの番です！ ** ドメイン適応の利点を定量化するために、IMDbラベルの分類器を、訓練前と微調整したDistilBERTチェックポイントの両方で微調整してください。テキスト分類について復習が必要な場合は、[第3章](/course/ja/chapter3)をチェックしてみてください。

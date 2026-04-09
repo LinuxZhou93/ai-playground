@@ -1,0 +1,766 @@
+<FrameworkSwitchCourse {fw} />
+
+# 調試訓練管道
+
+<DocNotebookDropdown
+  classNames="absolute z-10 right-0 top-0"
+  options={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/chapter8/section4.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/chapter8/section4.ipynb"},
+]} />
+
+你已經編寫了一個漂亮的腳本來訓練或微調給定任務的模型，盡職盡責地遵循 [Chapter 7](/course/chapter7) 中的建議。 但是當你啟動命令 `trainer.train()` 時，可怕的事情發生了：你得到一個錯誤😱！ 或者更糟糕的是，一切似乎都很好，訓練運行沒有錯誤，但生成的模型很糟糕。 在本節中，我們將向您展示如何調試此類問題。
+
+## 調試訓練管道
+
+<Youtube id="L-WSwUWde1U"/>
+
+當您在 `trainer.train()` 中遇到錯誤時，它可能來自多個來源，因為 `Trainer` 通常會將很多東西放在一起組合運行。 它將datasets轉換為dataloaders，因此問題可能出在datasets中，或者在嘗試將datasets的元素一起批處理時出現問題。 然後它需要準備一批數據並將其提供給模型，因此問題可能出在模型代碼中。 之後，它會計算梯度並執行優化器，因此問題也可能出在您的優化器中。 即使訓練一切順利，如果您的評估指標有問題，評估期間仍然可能出現問題。
+
+調試 `trainer.train()` 中出現的錯誤的最佳方法是手動檢查整個管道，看看哪裡出了問題。 錯誤通常很容易解決。
+
+為了證明這一點，我們將使用以下腳本（嘗試）在 [MNLI 數據集](https://huggingface.co/datasets/glue)上微調 DistilBERT 模型：
+
+```py
+from datasets import load_dataset, load_metric
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    TrainingArguments,
+    Trainer,
+)
+
+raw_datasets = load_dataset("glue", "mnli")
+
+model_checkpoint = "distilbert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+
+
+def preprocess_function(examples):
+    return tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
+
+
+tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
+model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint)
+
+args = TrainingArguments(
+    f"distilbert-finetuned-mnli",
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    learning_rate=2e-5,
+    num_train_epochs=3,
+    weight_decay=0.01,
+)
+
+metric = load_metric("glue", "mnli")
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    return metric.compute(predictions=predictions, references=labels)
+
+
+trainer = Trainer(
+    model,
+    args,
+    train_dataset=raw_datasets["train"],
+    eval_dataset=raw_datasets["validation_matched"],
+    compute_metrics=compute_metrics,
+)
+trainer.train()
+```
+
+如果你嘗試執行它，你會遇到一個相當神秘的錯誤：
+
+```python out
+'ValueError: You have to specify either input_ids or inputs_embeds'
+```
+
+### 檢查數據
+
+這是不言而喻的，如果你的數據被破壞，“Trainer”將無法形成批次，更不用說訓練你的模型了。 所以首先，你需要看看你的訓練集中有什麼。
+
+為了避免花費無數小時試圖檢查和修復不是錯誤來源的東西，我們建議您使用 `trainer.train_dataset` 進行檢查。 所以讓我們在這裡這樣做：
+
+```py
+trainer.train_dataset[0]
+```
+
+```python out
+{'hypothesis': 'Product and geography are what make cream skimming work. ',
+ 'idx': 0,
+ 'label': 1,
+ 'premise': 'Conceptually cream skimming has two basic dimensions - product and geography.'}
+```
+
+你注意到有什麼不對嗎？ 與缺少有關 `input_ids` 的錯誤消息相結合，應該讓您意識到數據集裡是文本，而不是模型可以理解的數字。 在這個例子，輸出的原始錯誤信息非常具有誤導性，因為 `Trainer` 會自動刪除與模型簽名不匹配的列（即模型預期的參數）。 這意味著在這裡，除了標籤之外的所有東西都被丟棄了。 因此，創建批次然後將它們發送到模型沒有問題，而模型又抱怨它沒有收到正確的輸入。
+
+為什麼沒有處理數據生成標記呢？ 我們確實在數據集上使用了“Dataset.map()”方法來對每個樣本應用標記器。 但是如果你仔細看代碼，你會發現我們在將訓練和評估集傳遞給`Trainer`時犯了一個錯誤。 我們在這裡沒有使用 `tokenized_datasets`，而是使用了 `raw_datasets` 🤦。 所以讓我們解決這個問題！
+
+```py
+from datasets import load_dataset, load_metric
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    TrainingArguments,
+    Trainer,
+)
+
+raw_datasets = load_dataset("glue", "mnli")
+
+model_checkpoint = "distilbert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+
+
+def preprocess_function(examples):
+    return tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
+
+
+tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
+model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint)
+
+args = TrainingArguments(
+    f"distilbert-finetuned-mnli",
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    learning_rate=2e-5,
+    num_train_epochs=3,
+    weight_decay=0.01,
+)
+
+metric = load_metric("glue", "mnli")
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    return metric.compute(predictions=predictions, references=labels)
+
+
+trainer = Trainer(
+    model,
+    args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation_matched"],
+    compute_metrics=compute_metrics,
+)
+trainer.train()
+```
+
+這個新代碼現在會給出一個不同的錯誤：
+
+```python out
+'ValueError: expected sequence of length 43 at dim 1 (got 37)'
+```
+
+查看traceback，我們可以看到錯誤發生在數據整理步驟中：
+
+```python out
+~/git/transformers/src/transformers/data/data_collator.py in torch_default_data_collator(features)
+    105                 batch[k] = torch.stack([f[k] for f in features])
+    106             else:
+--> 107                 batch[k] = torch.tensor([f[k] for f in features])
+    108 
+    109     return batch
+```
+
+所以，我們應該去研究一下那個。 然而，在我們這樣做之前，讓我們完成檢查我們的數據， 先確定它100%是正確的。
+
+在調試課程的內容時，您應該始終做的一件事是查看模型的解碼輸入。 我們無法理解直接提供給它的數字，所以我們應該看看這些數字代表什麼。 例如，在計算機視覺中，這意味著查看您傳遞的圖片像素的解碼，在語音中意味著解碼後的音頻樣本，對於我們的 NLP 示例，這意味著使用我們的標記器解碼的輸入：
+
+```py
+tokenizer.decode(trainer.train_dataset[0]["input_ids"])
+```
+
+```python out
+'[CLS] conceptually cream skimming has two basic dimensions - product and geography. [SEP] product and geography are what make cream skimming work. [SEP]'
+```
+
+所以這似乎是正確的。 您應該對輸入中的所有鍵執行此操作：
+
+```py
+trainer.train_dataset[0].keys()
+```
+
+```python out
+dict_keys(['attention_mask', 'hypothesis', 'idx', 'input_ids', 'label', 'premise'])
+```
+
+請注意，與模型接受的輸入不對應的鍵將被自動丟棄，因此這裡我們將僅保留 `input_ids`、`attention_mask` 和 `label`（將重命名為 `labels`）。 要仔細檢查模型輸入的列，您可以打印模型的類，然後查看其文檔：
+
+```py
+type(trainer.model)
+```
+
+```python out
+transformers.models.distilbert.modeling_distilbert.DistilBertForSequenceClassification
+```
+
+所以在我們的例子中，我們在[在這個頁面](https://huggingface.co/transformers/model_doc/distilbert.html#distilbertforsequenceclassification)可以檢查上接受的參數。 `Trainer` 也會記錄它丟棄的列。
+
+我們通過解碼檢查了輸入 ID 是否正確。 接下來是檢查 `attention_mask`：
+
+```py
+tokenizer.decode(trainer.train_dataset[0]["attention_mask"])
+```
+
+```python out
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+```
+
+由於我們沒有在預處理中應用填充，這看起來非常自然。 為確保該注意掩碼沒有問題，讓我們檢查它與輸入 ID 的長度是否相同：
+
+```py
+len(trainer.train_dataset[0]["attention_mask"]) == len(
+    trainer.train_dataset[0]["input_ids"]
+)
+```
+
+```python out
+True
+```
+
+那挺好的！ 最後，讓我們檢查一下我們的標籤：
+
+```py
+trainer.train_dataset[0]["label"]
+```
+
+```python out
+1
+```
+
+與輸入 ID 一樣，這是一個本身並沒有真正意義的數字。 正如我們之前看到的，整數和標籤名稱之間的映射存儲在數據集相應 *feature* 的 `names` 屬性中：
+
+```py
+trainer.train_dataset.features["label"].names
+```
+
+```python out
+['entailment', 'neutral', 'contradiction']
+```
+
+所以`1`表示`neutral`，表示我們上面看到的兩句話並不矛盾，也沒有包含關係。 這似乎是正確的！
+
+我們這裡沒有令牌類型 ID，因為 DistilBERT 不需要它們； 如果您的模型中有一些，您還應該確保它們正確匹配輸入中第一句和第二句的位置。
+
+> [!TIP]
+> ✏️ **輪到你了！** 檢查訓練數據集的第二個元素是否正確。
+
+我們在這裡只對訓練集進行檢查，但您當然應該以同樣的方式仔細檢查驗證集和測試集。
+
+現在我們知道我們的數據集看起來不錯，是時候檢查訓練管道的下一步了。
+
+### 從 datasets 到 dataloaders
+
+訓練管道中可能出錯的下一件事是當“Trainer”嘗試從訓練或驗證集形成批次時。 一旦你確定 `Trainer` 的數據集是正確的，你可以嘗試通過執行以下操作手動形成一個批次（可以將 `train` 替換為 `eval` 用於驗證數據加載器）：
+
+```py
+for batch in trainer.get_train_dataloader():
+    break
+```
+
+此代碼創建訓練數據加載器，然後對其進行迭代，在第一次迭代時停止。 如果代碼執行沒有錯誤，那麼您就有了可以檢查的第一個訓練批次，如果代碼出錯，您可以確定問題出在數據加載器中，如下所示：
+
+```python out
+~/git/transformers/src/transformers/data/data_collator.py in torch_default_data_collator(features)
+    105                 batch[k] = torch.stack([f[k] for f in features])
+    106             else:
+--> 107                 batch[k] = torch.tensor([f[k] for f in features])
+    108 
+    109     return batch
+
+ValueError: expected sequence of length 45 at dim 1 (got 76)
+```
+
+檢查trackback的最後一個堆棧的輸出應該足以給你一個線索，但讓我們做更多的挖掘。 批處理創建過程中的大多數問題是由於將示例整理到單個批處理中而出現的，因此在有疑問時首先要檢查的是您的 DataLoader 正在使用什麼 collate_fn：
+
+```py
+data_collator = trainer.get_train_dataloader().collate_fn
+data_collator
+```
+
+```python out
+<function transformers.data.data_collator.default_data_collator(features: List[InputDataClass], return_tensors='pt') -> Dict[str, Any]>
+```
+
+所以，目前使用的是 `default_data_collator`，但這不是我們在這種情況下想要的。 我們希望將示例填充到批處理中最長的句子，這是由 `DataCollatorWithPadding` 整理器完成的。 而這個數據收集器應該是默認被 `Trainer` 使用的，為什麼這裡沒有使用呢？
+
+答案是因為我們沒有將 `tokenizer` 傳遞給 `Trainer`，所以它無法創建我們想要的 `DataCollatorWithPadding`。 在實踐中，您應該明確地傳遞您想要使用的數據整理器，以確保避免這些類型的錯誤。 讓我們調整我們的代碼來做到這一點：
+
+```py
+from datasets import load_dataset, load_metric
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    DataCollatorWithPadding,
+    TrainingArguments,
+    Trainer,
+)
+
+raw_datasets = load_dataset("glue", "mnli")
+
+model_checkpoint = "distilbert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+
+
+def preprocess_function(examples):
+    return tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
+
+
+tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
+model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint)
+
+args = TrainingArguments(
+    f"distilbert-finetuned-mnli",
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    learning_rate=2e-5,
+    num_train_epochs=3,
+    weight_decay=0.01,
+)
+
+metric = load_metric("glue", "mnli")
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    return metric.compute(predictions=predictions, references=labels)
+
+
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+
+trainer = Trainer(
+    model,
+    args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation_matched"],
+    compute_metrics=compute_metrics,
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+)
+trainer.train()
+```
+
+好消息？ 我們沒有得到與以前相同的錯誤，這絕對是進步。 壞消息？ 我們得到了一個臭名昭著的 CUDA 錯誤：
+
+```python out
+RuntimeError: CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling `cublasCreate(handle)`
+```
+
+這很糟糕，因為 CUDA 錯誤通常很難調試。 我們稍後會看到如何解決這個問題，但首先讓我們完成對批處理創建的分析。
+
+如果您確定您的數據整理器是正確的，則應嘗試將其應用於數據集的幾個樣本：
+
+```py
+data_collator = trainer.get_train_dataloader().collate_fn
+batch = data_collator([trainer.train_dataset[i] for i in range(4)])
+```
+
+此代碼將失敗，因為 `train_dataset` 包含字符串列，`Trainer` 通常會刪除這些列。 您可以手動刪除它們，或者如果您想準確地修改 `Trainer` 在幕後所做的事情，您可以調用私有的 `Trainer._remove_unused_columns()` 方法來執行此操作：
+
+```py
+data_collator = trainer.get_train_dataloader().collate_fn
+actual_train_set = trainer._remove_unused_columns(trainer.train_dataset)
+batch = data_collator([actual_train_set[i] for i in range(4)])
+```
+
+如果錯誤仍然存在，您應該能夠手動調試數據整理器內部以確定具體的問題。
+
+現在我們已經調試了批處理創建過程，是時候將數據傳遞給模型了！
+
+### 檢查模型
+
+您應該能夠通過執行以下命令來獲得一個批次的數據：
+
+```py
+for batch in trainer.get_train_dataloader():
+    break
+```
+
+如果您在notebook中運行此代碼，您可能會收到與我們之前看到的類似的 CUDA 錯誤，在這種情況下，您需要重新啟動notebook並重新執行最後一個片段，而不運行 `trainer.train()` 行.這是關於 CUDA 錯誤的第二個最煩人的事情：它們會破壞您的Cuda內核，而且無法恢復。它們最煩人的事情是它們很難調試。
+
+這是為什麼？它與 GPU 的工作方式有關。它們在並行執行大量操作方面非常有效，但缺點是當其中一條指令導致錯誤時，您不會立即知道。只有當程序在 GPU 上調用多個進程的同步處理時，它才會意識到出現問題，因此錯誤實際上是在與創建它的原因無關的地方引發的。例如，如果我們查看之前的trackback，錯誤是在向後傳遞期間引發的，但我們會在一分鐘內看到它實際上源於向前傳遞中的某些東西。
+
+那麼我們如何調試這些錯誤呢？答案很簡單：我們沒有。除非您的 CUDA 錯誤是內存不足錯誤（這意味著您的 GPU 中沒有足夠的內存），否則您應該始終返回 CPU 進行調試。
+
+為此，我們只需將模型放回 CPU 上並在我們的一批數據中調用它——“DataLoader”返回的那批數據尚未移動到 GPU：
+
+```python
+outputs = trainer.model.cpu()(**batch)
+```
+
+```python out
+~/.pyenv/versions/3.7.9/envs/base/lib/python3.7/site-packages/torch/nn/functional.py in nll_loss(input, target, weight, size_average, ignore_index, reduce, reduction)
+   2386         )
+   2387     if dim == 2:
+-> 2388         ret = torch._C._nn.nll_loss(input, target, weight, _Reduction.get_enum(reduction), ignore_index)
+   2389     elif dim == 4:
+   2390         ret = torch._C._nn.nll_loss2d(input, target, weight, _Reduction.get_enum(reduction), ignore_index)
+
+IndexError: Target 2 is out of bounds.
+```
+
+所以，思路越來越清晰了。 我們現在在損失計算中沒有出現 CUDA 錯誤，而是有一個“IndexError”（因此與我們之前所說的反向傳播無關）。 更準確地說，我們可以看到是Target 2 造成了錯誤，所以這是檢查模型標籤數量的好時機：
+
+```python
+trainer.model.config.num_labels
+```
+
+```python out
+2
+```
+
+有兩個標籤，只允許 0 和 1 作為目標，但是根據錯誤信息我們得到一個 2。得到一個 2 實際上是正常的：如果我們記得我們之前提取的標籤名稱，有三個，所以我們有索引 0 , 1 和 2 在我們的數據集中。 問題是我們沒有告訴我們的模型，它應該創建三個標籤。 所以讓我們解決這個問題！
+
+```py
+from datasets import load_dataset, load_metric
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    DataCollatorWithPadding,
+    TrainingArguments,
+    Trainer,
+)
+
+raw_datasets = load_dataset("glue", "mnli")
+
+model_checkpoint = "distilbert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+
+
+def preprocess_function(examples):
+    return tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
+
+
+tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
+model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, num_labels=3)
+
+args = TrainingArguments(
+    f"distilbert-finetuned-mnli",
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    learning_rate=2e-5,
+    num_train_epochs=3,
+    weight_decay=0.01,
+)
+
+metric = load_metric("glue", "mnli")
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    return metric.compute(predictions=predictions, references=labels)
+
+
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+
+trainer = Trainer(
+    model,
+    args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation_matched"],
+    compute_metrics=compute_metrics,
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+)
+```
+
+我們還沒有包含 `trainer.train()` 行，以便花時間檢查一切是否正常。 如果我們請求一個批次的數據並將其傳遞給我們的模型，它現在可以正常工作了！
+
+```py
+for batch in trainer.get_train_dataloader():
+    break
+
+outputs = trainer.model.cpu()(**batch)
+```
+
+下一步是回到 GPU 並檢查一切是否仍然有效：
+
+```py
+import torch
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+batch = {k: v.to(device) for k, v in batch.items()}
+
+outputs = trainer.model.to(device)(**batch)
+```
+
+如果仍然出現錯誤，請確保重新啟動notebook並僅執行腳本的最後一個版本。
+
+### 執行一個優化器步驟
+
+現在我們知道我們可以構建實際通過模型檢查的成批次的數據，我們已經為訓練管道的下一步做好準備：計算梯度並執行優化步驟。
+
+第一部分只是在 loss 上調用 `backward()` 方法：
+
+```py
+loss = outputs.loss
+loss.backward()
+```
+
+在這個階段很少出現錯誤，但如果確實出現錯誤，請返回 CPU 以獲取有用的錯誤消息。
+
+要執行優化步驟，我們只需要創建 `optimizer` 並調用它的 `step()` 方法：
+
+```py
+trainer.create_optimizer()
+trainer.optimizer.step()
+```
+
+同樣，如果您在 `Trainer` 中使用默認優化器，則在此階段您不應該收到錯誤，但如果您有自定義優化器，則可能會出現一些問題需要在這裡調試。 如果您在此階段遇到奇怪的 CUDA 錯誤，請不要忘記返回 CPU。 說到 CUDA 錯誤，前面我們提到了一個特殊情況。 現在讓我們來看看。
+
+### 處理 CUDA out-of-memory錯誤
+
+每當您收到以`RuntimeError: CUDA out of memory`開頭的錯誤消息時，這表明您的 GPU 內存不足。 這與您的代碼沒有直接關聯，並且它可能發生在運行良好的代碼中。 此錯誤意味著您試圖在 GPU 的內部存儲器中放入太多東西，這導致了錯誤。 與其他 CUDA 錯誤一樣，您需要重新啟動內核才能再次運行訓練。
+
+要解決這個問題，您只需要使用更少的 GPU 空間——這往往說起來容易做起來難。 首先，確保您沒有同時在 GPU 上運行兩個模型（當然，除非您的問題需要這樣做）。 然後，您可能應該減少batch的大小，因為它直接影響模型的所有中間輸出的大小及其梯度。 如果問題仍然存在，請考慮使用較小版本的模型。
+
+> [!TIP]
+> 在課程的下一部分中，我們將介紹更先進的技術，這些技術可以幫助您減少內存佔用並讓您微調最大的模型。
+
+### 評估模型
+
+現在我們已經解決了代碼的所有問題，一切都很完美，訓練應該可以順利進行，對吧？ 沒那麼快！ 如果你運行 `trainer.train()` 命令，一開始一切看起來都不錯，但過一會兒你會得到以下信息：
+
+```py
+# This will take a long time and error out, so you shouldn't run this cell
+trainer.train()
+```
+
+```python out
+TypeError: only size-1 arrays can be converted to Python scalars
+```
+
+您將意識到此錯誤出現在評估階段，因此這是我們需要調試的最後一件事。
+
+您可以像這樣在訓練中獨立運行`Trainer`的評估循環：
+
+```py
+trainer.evaluate()
+```
+
+```python out
+TypeError: only size-1 arrays can be converted to Python scalars
+```
+
+> [!TIP]
+> 💡 您應該始終確保在啟動 `trainer.train()` 之前 `trainer.evaluate()`是可以運行的，以避免在遇到錯誤之前浪費大量計算資源。
+
+在嘗試調試評估循環中的問題之前，您應該首先確保您已經查看了數據，能夠正確地形成批處理，並且可以在其上運行您的模型。 我們已經完成了所有這些步驟，因此可以執行以下代碼而不會出錯：
+
+```py
+for batch in trainer.get_eval_dataloader():
+    break
+
+batch = {k: v.to(device) for k, v in batch.items()}
+
+with torch.no_grad():
+    outputs = trainer.model(**batch)
+```
+
+稍等一會兒，錯誤出現，在評估階段結束時，如果我們查看trackback，我們會看到：
+
+```python trace
+~/git/datasets/src/datasets/metric.py in add_batch(self, predictions, references)
+    431         """
+    432         batch = {"predictions": predictions, "references": references}
+--> 433         batch = self.info.features.encode_batch(batch)
+    434         if self.writer is None:
+    435             self._init_writer()
+```
+
+這告訴我們錯誤源自 `datasets/metric.py` 模塊——所以這是我們的 `compute_metrics()` 函數的問題。 它需要一個帶有 logits 和標籤的元組作為 NumPy 數組，所以讓我們嘗試輸入它：
+
+```py
+predictions = outputs.logits.cpu().numpy()
+labels = batch["labels"].cpu().numpy()
+
+compute_metrics((predictions, labels))
+```
+
+```python out
+TypeError: only size-1 arrays can be converted to Python scalars
+```
+
+我們得到同樣的錯誤，所以問題肯定出在那個函數上。 如果我們回顧它的代碼，我們會發現它只是將“預測”和“真實的標籤”轉發到“metric.compute()”。 那麼這種方法有問題嗎？ 並不真地。 讓我們快速瀏覽一下形狀：
+
+```py
+predictions.shape, labels.shape
+```
+
+```python out
+((8, 3), (8,))
+```
+
+我們的預測仍然是 logits，而不是實際的預測，這就是metrics返回這個（有點模糊）錯誤的原因。 修復很簡單； 我們只需要在 `compute_metrics()` 函數中添加一個 argmax：
+
+```py
+import numpy as np
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    predictions = np.argmax(predictions, axis=1)
+    return metric.compute(predictions=predictions, references=labels)
+
+
+compute_metrics((predictions, labels))
+```
+
+```python out
+{'accuracy': 0.625}
+```
+
+現在我們的錯誤已修復！ 這是最後一個，所以我們的腳本現在將正確訓練模型。
+
+作為參考，這裡是完全修正好的腳本：
+
+```py
+import numpy as np
+from datasets import load_dataset, load_metric
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    DataCollatorWithPadding,
+    TrainingArguments,
+    Trainer,
+)
+
+raw_datasets = load_dataset("glue", "mnli")
+
+model_checkpoint = "distilbert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+
+
+def preprocess_function(examples):
+    return tokenizer(examples["premise"], examples["hypothesis"], truncation=True)
+
+
+tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
+model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, num_labels=3)
+
+args = TrainingArguments(
+    f"distilbert-finetuned-mnli",
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    learning_rate=2e-5,
+    num_train_epochs=3,
+    weight_decay=0.01,
+)
+
+metric = load_metric("glue", "mnli")
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    predictions = np.argmax(predictions, axis=1)
+    return metric.compute(predictions=predictions, references=labels)
+
+
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+
+trainer = Trainer(
+    model,
+    args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation_matched"],
+    compute_metrics=compute_metrics,
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+)
+trainer.train()
+```
+
+在這種情況下，如果沒有更多錯誤，我們的腳本將微調一個應該給出合理結果的模型。 但是，如果訓練沒有任何錯誤，而訓練出來的模型根本表現不佳，我們該怎麼辦？ 這是機器學習中最難的部分，我們將向您展示一些可以提供幫助的技術。
+
+> [!TIP]
+> 💡 如果您使用手動訓練循環，則相同的步驟也適用於調試訓練管道，而且更容易將它們分開。 但是，請確保您沒有忘記正確位置的 `model.eval()` 或 `model.train()`，或者每個步驟中的 `zero_grad()`！
+
+## 在訓練期間調試靜默（沒有任何錯誤提示）錯誤
+
+我們可以做些什麼來調試一個沒有錯誤地完成但沒有得到好的結果的訓練？ 我們會在這裡給你一些提示，但請注意，這種調試是機器學習中最難的部分，並且沒有神奇的答案。
+
+### 檢查您的數據（再次！）
+
+只有在理論上可以從您的數據中學到任何東西時，您的模型才會學到一些東西。 如果存在損壞數據的錯誤或標籤是隨機屬性的，那麼您很可能不會在數據集上獲得任何知識。 因此，始終首先仔細檢查您的解碼輸入和標籤，然後問自己以下問題：
+
+- 解碼後的數據是否可以理解？
+- 你認同這些標籤嗎？
+- 有沒有一個標籤比其他標籤更常見？
+- 如果模型預測隨機的答案/總是相同的答案，那麼loss/評估指標應該是多少？
+
+> [!WARNING]
+> ⚠️ 如果您正在進行分佈式訓練，請在每個過程中打印數據集的樣本，並三次檢查您是否得到相同的結果。 一個常見的錯誤是在數據創建中有一些隨機性來源，這使得每個進程都有不同版本的數據集。
+
+查看您的數據後，查看模型的一些預測並對其進行解碼。 如果模型總是預測同樣的事情，那可能是因為你的數據集偏向一個類別（針對分類問題）； 過採樣稀有類等技術可能會有所幫助。
+
+如果您在初始模型上獲得的loss/評估指標與您期望的隨機預測的loss/評估指標非常不同，請仔細檢查您的loss或評估指標的計算方式，因為那裡可能存在錯誤。 如果您使用最後添加的多個loss，請確保它們具有相同的規模。
+
+當您確定您的數據是完美的時，您可以通過一個簡單的測試來查看模型是否能夠對其進行訓練。
+
+### 在一批上過度擬合你的模型
+
+過度擬合通常是我們在訓練時儘量避免的事情，因為這意味著模型沒有學習識別我們想要的一般特徵，而只是記住了訓練樣本。 在這種情況下，一遍又一遍地嘗試在一個批次上訓練您的模型是一個很好的測試，可以檢查您的問題是否可以通過您嘗試訓練的模型來解決。 它還將幫助您查看您的初始學習率是否太高。
+
+一旦你定義了你的 `Trainer` 之後，這樣做真的很容易； 只需獲取一批訓練數據，然後僅使用該批次運行一個小型手動訓練循環，大約 20 步：
+
+```py
+for batch in trainer.get_train_dataloader():
+    break
+
+batch = {k: v.to(device) for k, v in batch.items()}
+trainer.create_optimizer()
+
+for _ in range(20):
+    outputs = trainer.model(**batch)
+    loss = outputs.loss
+    loss.backward()
+    trainer.optimizer.step()
+    trainer.optimizer.zero_grad()
+```
+
+> [!TIP]
+> 💡 如果您的訓練數據不平衡，請確保構建一批包含所有標籤的訓練數據。
+
+生成的模型在一個“批次”上應該有接近完美的結果。 讓我們計算結果預測的指標：
+
+```py
+with torch.no_grad():
+    outputs = trainer.model(**batch)
+preds = outputs.logits
+labels = batch["labels"]
+
+compute_metrics((preds.cpu().numpy(), labels.cpu().numpy()))
+```
+
+```python out
+{'accuracy': 1.0}
+```
+
+100% 準確率，現在這是一個很好的過擬合示例（這意味著如果你在任何其他句子上嘗試你的模型，它很可能會給你一個錯誤的答案）！
+
+如果你沒有設法讓你的模型獲得這樣的完美結果，這意味著你構建問題或數據的方式有問題，所以你應該修復它。 只有當你可以通過過擬合測試時，你才能確定你的模型實際上可以學到一些東西。
+
+> [!WARNING]
+> ⚠️ 在此測試之後，您將不得不重新創建您的模型和“Trainer”，因為獲得的模型可能無法在您的完整數據集上恢復和學習有用的東西。
+
+### 在你有第一個基線之前不要調整任何東西
+
+超參數調優總是被強調為機器學習中最難的部分，但這只是幫助您在指標上有所收穫的最後一步。 大多數情況下，`Trainer` 的默認超參數可以很好地為您提供良好的結果，因此在您獲得超出數據集基線的東西之前，不要開始進行耗時且昂貴的超參數搜索 .
+
+一旦你有一個足夠好的模型，你就可以開始稍微調整一下。 不要嘗試使用不同的超參數啟動一千次運行，而是比較一個超參數的不同值的幾次運行，以瞭解哪個影響最大。
+
+如果您正在調整模型本身，不要嘗試任何您無法合理證明的事情。 始終確保您返回過擬合測試以驗證您的更改沒有產生任何意外後果。
+
+### 請求幫忙
+
+希望您會在本節中找到一些可以幫助您解決問題的建議，但如果不是這樣，請記住您可以隨時在 [論壇](https://discuss.huggingface.co/) 上向社區提問。
+
+以下是一些可能有用的額外資源：
+
+- [“作為工程最佳實踐工具的再現性”](https://docs.google.com/presentation/d/1yHLPvPhUs2KGI5ZWo0sU-PKU3GimAk3iTsI38Z-B5Gw/edit#slide=id.p)，作者：Joel Grus
+- [“神經網絡調試清單”](https://towardsdatascience.com/checklist-for-debugging-neural-networks-d8b2a9434f21) 作者：Cecelia Shao
+- [“如何對機器學習代碼進行單元測試”](https://medium.com/@keeper6928/how-to-unit-test-machine-learning-code-57cf6fd81765) by Chase Roberts
+- [“訓練神經網絡的秘訣”](http://karpathy.github.io/2019/04/25/recipe/)作者：Andrej Karpathy
+
+當然，並不是你在訓練神經網絡時遇到的每一個問題都是你自己的錯！ 如果您在 🤗 Transformers 或 🤗 Datasets 庫中遇到看起來不正確的內容，您可能遇到了錯誤。 你應該告訴我們這一切，在下一節中，我們將準確解釋如何做到這一點。

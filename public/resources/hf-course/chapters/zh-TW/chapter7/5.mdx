@@ -1,0 +1,1023 @@
+<FrameworkSwitchCourse {fw} />
+
+# 提取文本摘要
+
+{#if fw === 'pt'}
+
+<DocNotebookDropdown
+  classNames="absolute z-10 right-0 top-0"
+  options={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/chapter7/section5_pt.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/chapter7/section5_pt.ipynb"},
+]} />
+
+{:else}
+
+<DocNotebookDropdown
+  classNames="absolute z-10 right-0 top-0"
+  options={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/chapter7/section5_tf.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/chapter7/section5_tf.ipynb"},
+]} />
+
+{/if}
+
+
+在本節中，我們將看看如何使用 Transformer 模型將長文檔壓縮為摘要，這項任務稱為文本摘要.這是最具挑戰性的 NLP 任務之一，因為它需要一系列能力，例如理解長篇文章和生成能夠捕捉文檔中主要主題的連貫文本。但是，如果做得好，文本摘要是一種強大的工具，可以減輕領域專家詳細閱讀長文檔的負擔，從而加快各種業務流程。
+
+<Youtube id="yHnr5Dk2zCI"/>
+
+儘管在[Hugging Face Hub](https://huggingface.co/models?pipeline_tag=summarization=downloads)上已經存在各種微調模型用於文本摘要，幾乎所有這些都只適用於英文文檔。因此，為了在本節中添加一些變化，我們將為英語和西班牙語訓練一個雙語模型。在本節結束時，您將有一個可以總結客戶評論的[模型](https://huggingface.co/huggingface-course/mt5-small-finetuned-amazon-en-es)。
+
+<iframe src="https://course-demos-mt5-small-finetuned-amazon-en-es.hf.space" frameBorder="0" height="400" title="Gradio app" class="block dark:hidden container p-0 flex-grow space-iframe" allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads"></iframe>
+<iframe src="https://course-demos-mt5-small-finetuned-amazon-en-es-darkmode.hf.space" frameBorder="0" height="400" title="Gradio app" class="hidden dark:block container p-0 flex-grow space-iframe" allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads"></iframe>
+
+如下所示：正如我們將看到的，這些摘要很簡潔，因為它們是從客戶在產品評論中提供的標題中學到的。讓我們首先為這項任務準備一個合適的雙語語料庫。
+
+## 準備多語言語料庫
+
+我們將使用[多語言亞馬遜評論語料庫](https://huggingface.co/datasets/amazon_reviews_multi)創建我們的雙語摘要器。該語料庫由六種語言的亞馬遜產品評論組成，通常用於對多語言分類器進行基準測試。然而，由於每條評論都附有一個簡短的標題，我們可以使用標題作為我們模型學習的目標摘要！首先，讓我們從 Hugging Face Hub 下載英語和西班牙語子集：
+
+```python
+from datasets import load_dataset
+
+spanish_dataset = load_dataset("amazon_reviews_multi", "es")
+english_dataset = load_dataset("amazon_reviews_multi", "en")
+english_dataset
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['review_id', 'product_id', 'reviewer_id', 'stars', 'review_body', 'review_title', 'language', 'product_category'],
+        num_rows: 200000
+    })
+    validation: Dataset({
+        features: ['review_id', 'product_id', 'reviewer_id', 'stars', 'review_body', 'review_title', 'language', 'product_category'],
+        num_rows: 5000
+    })
+    test: Dataset({
+        features: ['review_id', 'product_id', 'reviewer_id', 'stars', 'review_body', 'review_title', 'language', 'product_category'],
+        num_rows: 5000
+    })
+})
+```
+
+如您所見，對於每種語言，都有 200,000 條評論 **train** 拆分，每個評論有 5,000 條評論 **validation** 和 **test** 分裂。我們感興趣的評論信息包含在 **review_body** 和 **review_title** 列。讓我們通過創建一個簡單的函數來查看一些示例，該函數使用我們在[第五章](/course/chapter5)學到過：
+
+```python
+def show_samples(dataset, num_samples=3, seed=42):
+    sample = dataset["train"].shuffle(seed=seed).select(range(num_samples))
+    for example in sample:
+        print(f"\n'>> Title: {example['review_title']}'")
+        print(f"'>> Review: {example['review_body']}'")
+
+
+show_samples(english_dataset)
+```
+
+```python out
+'>> Title: Worked in front position, not rear'
+'>> Review: 3 stars because these are not rear brakes as stated in the item description. At least the mount adapter only worked on the front fork of the bike that I got it for.'
+
+'>> Title: meh'
+'>> Review: Does it’s job and it’s gorgeous but mine is falling apart, I had to basically put it together again with hot glue'
+
+'>> Title: Can\'t beat these for the money'
+'>> Review: Bought this for handling miscellaneous aircraft parts and hanger "stuff" that I needed to organize; it really fit the bill. The unit arrived quickly, was well packaged and arrived intact (always a good sign). There are five wall mounts-- three on the top and two on the bottom. I wanted to mount it on the wall, so all I had to do was to remove the top two layers of plastic drawers, as well as the bottom corner drawers, place it when I wanted and mark it; I then used some of the new plastic screw in wall anchors (the 50 pound variety) and it easily mounted to the wall. Some have remarked that they wanted dividers for the drawers, and that they made those. Good idea. My application was that I needed something that I can see the contents at about eye level, so I wanted the fuller-sized drawers. I also like that these are the new plastic that doesn\'t get brittle and split like my older plastic drawers did. I like the all-plastic construction. It\'s heavy duty enough to hold metal parts, but being made of plastic it\'s not as heavy as a metal frame, so you can easily mount it to the wall and still load it up with heavy stuff, or light stuff. No problem there. For the money, you can\'t beat it. Best one of these I\'ve bought to date-- and I\'ve been using some version of these for over forty years.'
+```
+
+> [!TIP]
+> ✏️ **試試看！** 更改 `Dataset.shuffle()` 命令中的隨機種子以探索語料庫中的其他評論。 如果您是說西班牙語的人，請查看 `spanish_dataset` 中的一些評論，看看標題是否也像合理的摘要。
+
+此示例顯示了人們通常在網上找到的評論的多樣性，從正面到負面（以及介於兩者之間的所有內容！）。儘管標題為“meh”的示例信息量不大，但其他標題看起來像是對評論本身的體面總結。在單個 GPU 上訓練所有 400,000 條評論的摘要模型將花費太長時間，因此我們將專注於為單個產品領域生成摘要。為了瞭解我們可以選擇哪些域，讓我們將 **english_dataset** 轉換到 **pandas.DataFrame** 並計算每個產品類別的評論數量：
+
+```python
+english_dataset.set_format("pandas")
+english_df = english_dataset["train"][:]
+# Show counts for top 20 products
+english_df["product_category"].value_counts()[:20]
+```
+
+```python out
+home                      17679
+apparel                   15951
+wireless                  15717
+other                     13418
+beauty                    12091
+drugstore                 11730
+kitchen                   10382
+toy                        8745
+sports                     8277
+automotive                 7506
+lawn_and_garden            7327
+home_improvement           7136
+pet_products               7082
+digital_ebook_purchase     6749
+pc                         6401
+electronics                6186
+office_product             5521
+shoes                      5197
+grocery                    4730
+book                       3756
+Name: product_category, dtype: int64
+```
+
+英語數據集中最受歡迎的產品是家居用品、服裝和無線電子產品。不過，為了堅持亞馬遜的主題，讓我們專注於總結書籍的評論——畢竟，這是亞馬遜這家公司成立的基礎！我們可以看到兩個符合要求的產品類別（ **book** 和 **digital_ebook_purchase** )，所以讓我們為這些產品過濾兩種語言的數據集。正如我們在[第五章](/course/chapter5)學到的， 這 **Dataset.filter()** 函數允許我們非常有效地對數據集進行切片，因此我們可以定義一個簡單的函數來執行此操作：
+
+```python
+def filter_books(example):
+    return (
+        example["product_category"] == "book"
+        or example["product_category"] == "digital_ebook_purchase"
+    )
+```
+
+現在，當我們將此函數應用於 **english_dataset** 和 **spanish_dataset** ，結果將只包含涉及書籍類別的那些行。在應用過濾器之前，讓我們將**english_dataset**的格式從 **pandas** 切換回到 **arrow** ：
+
+```python
+english_dataset.reset_format()
+```
+
+然後我們可以應用過濾器功能，作為健全性檢查，讓我們檢查評論樣本，看看它們是否確實與書籍有關：
+
+```python
+spanish_books = spanish_dataset.filter(filter_books)
+english_books = english_dataset.filter(filter_books)
+show_samples(english_books)
+```
+
+```python out
+'>> Title: I\'m dissapointed.'
+'>> Review: I guess I had higher expectations for this book from the reviews. I really thought I\'d at least like it. The plot idea was great. I loved Ash but, it just didnt go anywhere. Most of the book was about their radio show and talking to callers. I wanted the author to dig deeper so we could really get to know the characters. All we know about Grace is that she is attractive looking, Latino and is kind of a brat. I\'m dissapointed.'
+
+'>> Title: Good art, good price, poor design'
+'>> Review: I had gotten the DC Vintage calendar the past two years, but it was on backorder forever this year and I saw they had shrunk the dimensions for no good reason. This one has good art choices but the design has the fold going through the picture, so it\'s less aesthetically pleasing, especially if you want to keep a picture to hang. For the price, a good calendar'
+
+'>> Title: Helpful'
+'>> Review: Nearly all the tips useful and. I consider myself an intermediate to advanced user of OneNote. I would highly recommend.'
+```
+
+好的，我們可以看到評論並不是嚴格意義上的書籍，可能是指日曆和 OneNote 等電子應用程序等內容。儘管如此，該領域似乎適合訓練摘要模型。在我們查看適合此任務的各種模型之前，我們還有最後一點數據準備要做：將英語和西班牙語評論合併為一個 **DatasetDict** 目的。 🤗 Datasets 提供了一個方便的 **concatenate_datasets()** 函數（顧名思義）合併 **Dataset** 對象。因此，為了創建我們的雙語數據集，我們將遍歷每個拆分，連接該拆分的數據集，並打亂結果以確保我們的模型不會過度擬合單一語言：
+
+```python
+from datasets import concatenate_datasets, DatasetDict
+
+books_dataset = DatasetDict()
+
+for split in english_books.keys():
+    books_dataset[split] = concatenate_datasets(
+        [english_books[split], spanish_books[split]]
+    )
+    books_dataset[split] = books_dataset[split].shuffle(seed=42)
+
+# Peek at a few examples
+show_samples(books_dataset)
+```
+
+```python out
+'>> Title: Easy to follow!!!!'
+'>> Review: I loved The dash diet weight loss Solution. Never hungry. I would recommend this diet. Also the menus are well rounded. Try it. Has lots of the information need thanks.'
+
+'>> Title: PARCIALMENTE DAÑADO'
+'>> Review: Me llegó el día que tocaba, junto a otros libros que pedí, pero la caja llegó en mal estado lo cual dañó las esquinas de los libros porque venían sin protección (forro).'
+
+'>> Title: no lo he podido descargar'
+'>> Review: igual que el anterior'
+```
+
+這當然看起來像是英語和西班牙語評論的混合！現在我們有了一個訓練語料庫，最後要檢查的一件事是評論中單詞的分佈及其標題。這對於摘要任務尤其重要，其中數據中的簡短參考摘要會使模型偏向於僅在生成的摘要中輸出一兩個單詞。下面的圖顯示了單詞分佈，我們可以看到有些標題嚴重偏向於 1-2 個單詞：
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/review-lengths.svg" alt="Word count distributions for the review titles and texts."/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/review-lengths-dark.svg" alt="Word count distributions for the review titles and texts."/>
+</div>
+
+為了解決這個問題，我們將過濾掉標題非常短的示例，以便我們的模型可以生成更有趣的摘要。由於我們正在處理英文和西班牙文文本，因此我們可以使用粗略的啟發式方法在空白處拆分標題，然後使用我們可信賴的 **Dataset.filter()** 方法如下：
+
+```python
+books_dataset = books_dataset.filter(lambda x: len(x["review_title"].split()) > 2)
+```
+
+現在我們已經準備好了我們的語料庫，讓我們來看看一些可以對其進行微調的可能的 Transformer 模型！
+
+## 文本摘要模型
+
+如果你仔細想想，文本摘要是一種類似於機器翻譯的任務：我們有一個像評論這樣的文本正文，我們希望將其“翻譯”成一個較短的版本，以捕捉輸入的顯著特徵。因此，大多數用於文本摘要的 Transformer 模型採用了我們在[第一章](/course/chapter1)遇到的編碼器-解碼器架構。儘管有一些例外，例如 GPT 系列模型，它們在few-shot（少量微調）之後也可以提取摘要。下表列出了一些流行的預訓練模型，可以對其進行微調以進行彙總。
+
+| Transformer 模型 | 描述                                                                                                                                                                                                    | 多種語言? |
+| :---------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----------: |
+|    [GPT-2](https://huggingface.co/gpt2-xl)    | 雖然訓練為自迴歸語言模型，但您可以通過在輸入文本末尾附加“TL;DR”來使 GPT-2 生成摘要。                                                                          |      ❌       |
+|   [PEGASUS](https://huggingface.co/google/pegasus-large)   | 在預訓練是的目標是來預測多句子文本中的屏蔽句子。 這個預訓練目標比普通語言建模更接近文本摘要，並且在流行的基準測試中得分很高。 |      ❌       |
+|     [T5](https://huggingface.co/t5-base)      | 通用的 Transformer 架構，在文本到文本的框架中制定所有任務； 例如，模型文本摘要的輸入格式是`summarize: ARTICLE`。                             |      ❌       |
+|     [mT5](https://huggingface.co/google/mt5-base)     | T5 的多語言版本，在多語言 Common Crawl 語料庫 (mC4) 上進行預訓練，涵蓋 101 種語言。                                                       |      ✅       |
+|    [BART](https://huggingface.co/facebook/bart-base)     | 一種新穎的 Transformer 架構，其中包含經過訓練的編碼器和解碼器堆棧，以重建被破壞的輸入，結合了 BERT 和 GPT-2 的預訓練方案。                                   |      ❌       |
+|  [mBART-50](https://huggingface.co/facebook/mbart-large-50)   | BART 的多語言版本，預訓練了 50 種語言。                                                                                                                                                    |      ✅       |
+
+從此表中可以看出，大多數用於摘要的 Transformer 模型（以及大多數 NLP 任務）都是單語的。如果您的任務是使用“有大量語料庫”的語言（如英語或德語），這很好，但對於世界各地正在使用的數千種其他語言，則不然。幸運的是，有一類多語言 Transformer 模型，如 mT5 和 mBART，可以解決問題。這些模型是使用語言建模進行預訓練的，但有一點不同：它們不是在一種語言的語料庫上訓練，而是同時在 50 多種語言的文本上進行聯合訓練！
+
+我們將使用 mT5，這是一種基於 T5 的有趣架構，在文本到文本框架中進行了預訓練。在 T5 中，每個 NLP 任務都是根據提示前綴來制定的，例如 **summarize:** 這使模型使生成的文本適應提示。如下圖所示，這讓 T5 變得非常通用，因為你可以用一個模型解決很多任務！
+
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/t5.svg" alt="Different tasks performed by the T5 architecture."/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/t5-dark.svg" alt="Different tasks performed by the T5 architecture."/>
+</div>
+
+mT5 不使用前綴，但具有 T5 的大部分功能，並且具有多語言的優勢。現在我們已經選擇了一個模型，讓我們來看看準備我們的訓練數據。
+
+> [!TIP]
+> ✏️ **試試看！** 完成本節後，通過使用相同的技術對 mBART 進行微調，看看 mT5 與 mBART 相比有多好。 對於獎勵積分，您還可以嘗試僅在英文評論上微調 T5。 由於 T5 需要一個特殊的前綴提示，因此您需要在下面的預處理步驟中將“summarize:”添加到輸入示例中。
+
+## 預處理數據
+
+<Youtube id="1m7BerpSq8A"/>
+
+我們的下一個任務是對我們的評論及其標題進行標記和編碼。像往常一樣，我們首先加載與預訓練模型檢查點相關的標記器。我們將使用 **mt5-small** 作為我們的檢查點，以便我們可以在合理的時間內微調模型：
+
+```python
+from transformers import AutoTokenizer
+
+model_checkpoint = "google/mt5-small"
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+```
+
+> [!TIP]
+> 💡在 NLP 項目的早期階段，一個好的做法是在小樣本數據上訓練一類“小”模型。這使您可以更快地調試和迭代端到端工作流。一旦您對結果充滿信心，您始終可以通過簡單地更改模型檢查點來在大規模數據上訓練模型！
+
+讓我們在一個小例子上測試 mT5 標記器：
+
+```python
+inputs = tokenizer("I loved reading the Hunger Games!")
+inputs
+```
+
+```python out
+{'input_ids': [336, 259, 28387, 11807, 287, 62893, 295, 12507, 1], 'attention_mask': [1, 1, 1, 1, 1, 1, 1, 1, 1]}
+```
+
+在這裡我們可以看到我們在[第三章](/course/chapter3)第一次微調實驗中遇到的熟悉的 **input_ids** 和 **attention_mask** .讓我們用分詞器解碼這些輸入 ID ，可以**convert_ids_to_tokens()** 函數來查看我們正在處理什麼樣的標記器：
+
+```python
+tokenizer.convert_ids_to_tokens(inputs.input_ids)
+```
+
+```python out
+['▁I', '▁', 'loved', '▁reading', '▁the', '▁Hung', 'er', '▁Games', '</s>']
+```
+
+特殊的 Unicode 字符 `▁` 和序列結束標記 `</s>` 表明我們正在處理 SentencePiece 分詞器，它基於在[第六章](/course/chapter6)中討論的Unigram分詞算法. Unigram 對多語言語料庫特別有用，因為它允許 SentencePiece 不知道重音、標點符號以及許多語言（如日語）沒有空格字符。
+
+為了標記我們的語料庫，我們必須處理與摘要相關的細節：因為我們的標籤也是文本，它們可能會超過模型的最大上下文大小。這意味著我們需要對評論及其標題進行截斷，以確保我們不會將過長的輸入傳遞給我們的模型。 🤗 Transformers 中的分詞器提供了一個漂亮的 **as_target_tokenizer()** 函數，它允許您並行分詞並標記標籤的函數。這通常是使用預處理函數內的上下文管理器完成的，該函數首先對輸入進行編碼，然後將標籤編碼為單獨的列。以下是 mT5 的此函數的示例：
+
+```python
+max_input_length = 512
+max_target_length = 30
+
+
+def preprocess_function(examples):
+    model_inputs = tokenizer(
+        examples["review_body"], max_length=max_input_length, truncation=True
+    )
+    # Set up the tokenizer for targets
+    with tokenizer.as_target_tokenizer():
+        labels = tokenizer(
+            examples["review_title"], max_length=max_target_length, truncation=True
+        )
+
+    model_inputs["labels"] = labels["input_ids"]
+    return model_inputs
+```
+
+讓我們通過這段代碼來了解發生了什麼。我們做的第一件事是定義值 **max_input_length** 和 **max_target_length** ，它為我們的評論和標題的長度設置了上限。由於評論正文通常比標題大得多，我們相應地調整了這些值。然後，在 **preprocess_function()** 我們可以看到評論首先被標記化，然後是標題在 **as_target_tokenizer()** 函數里也做了相同的處理.
+
+有了 `preprocess_function()`，我們在整個課程中廣泛使用的方便的 `Dataset.map()` 函數來標記整個語料庫是一件簡單的事情：
+
+```python
+tokenized_datasets = books_dataset.map(preprocess_function, batched=True)
+```
+
+既然語料庫已經預處理完畢，我們來看看一些常用的摘要指標。正如我們將看到的，在衡量機器生成的文本的質量方面沒有靈丹妙藥。
+
+> [!TIP]
+> 💡 你可能已經注意到我們在上面的 `Dataset.map()` 函數中使用了 `batched=True`。 這會以 1,000 個（默認）為單位對示例進行編碼，並允許您利用 🤗 Transformers 中快速標記器的多線程功能。 在可能的情況下，嘗試使用 `batched=True` 來加速您的預處理！
+
+
+## 文本摘要的指標
+
+<Youtube id="TMshhnrEXlg"/>
+
+與我們在本課程中涵蓋的大多數其他任務相比，衡量文本生成任務（如摘要或翻譯）的性能並不那麼簡單。例如，對於“我喜歡閱讀飢餓遊戲”這樣的評論，有多個有效摘要，例如“我喜歡飢餓遊戲”或“飢餓遊戲是一本好書”。顯然，在生成的摘要和標籤之間應用某種精確匹配並不是一個好的解決方案——即使是人類在這樣的指標下也會表現不佳，因為我們都有自己的寫作風格。
+
+總而言之，最常用的指標之一是[ROUGE 分數](https://en.wikipedia.org/wiki/ROUGE_(metric))（Recall-Oriented Understudy for Gisting Evaluation 的縮寫）。該指標背後的基本思想是將生成的摘要與一組通常由人類創建的參考摘要進行比較。為了更精確，假設我們要比較以下兩個摘要：
+
+```python
+generated_summary = "I absolutely loved reading the Hunger Games"
+reference_summary = "I loved reading the Hunger Games"
+```
+比較它們的一種方法是計算重疊單詞的數量，在這種情況下為 6。但是，這有點粗糙，因此 ROUGE 是基於計算計算重疊的 _precision_ 和 _recall_ 分數。。
+
+> [!TIP]
+> 🙋 如果這是您第一次聽說精確率和召回率，請不要擔心——我們將一起通過一些明確的示例來說明一切。 這些指標通常在分類任務中遇到，因此如果您想了解在該上下文中如何定義精確度和召回率，我們建議查看 scikit-learn [指南](https://scikit-learn.org/stable /auto_examples/model_selection/plot_precision_recall.html）。
+
+對於 ROUGE，recall 衡量生成的參考摘要包含了多少參考摘要。如果我們只是比較單詞，recall可以根據以下公式計算：
+
+$$ \mathrm{Recall} = \frac{\mathrm{Number\,of\,overlapping\, words}}{\mathrm{Total\, number\, of\, words\, in\, reference\, summary}} $$
+
+對於我們上面的簡單例子，這個公式給出了 6/6 = 1 的完美召回率；即，參考摘要中的所有單詞都已由模型生成。這聽起來可能很棒，但想象一下，如果我們生成的摘要是“我真的很喜歡整晚閱讀飢餓遊戲”。這也將有完美的recall，但可以說是一個更糟糕的總結，因為它很冗長。為了處理這些場景，我們還計算了pecision，它在 ROUGE 上下文中衡量生成的摘要中有多少是相關的：
+
+$$ \mathrm{Precision} = \frac{\mathrm{Number\,of\,overlapping\, words}}{\mathrm{Total\, number\, of\, words\, in\, generated\, summary}} $$
+
+將此應用到我們的詳細摘要中會得到 6/10 = 0.6 的精度，這比我們較短的摘要獲得的 6/7 = 0.86 的精度要差得多。在實踐中，通常計算精度和召回率，然後報告 F1-score（精度和召回率的調和平均值）。我們可以在 🤗 Datasets 中通過安裝 **rouge_score** 包來計算他們：
+
+```py
+!pip install rouge_score
+```
+
+然後按如下方式加載 ROUGE 指標：
+
+```python
+from datasets import load_metric
+
+rouge_score = load_metric("rouge")
+```
+
+然後我們可以使用 **rouge_score.compute()** 一次性計算所有指標的函數：
+
+```python
+scores = rouge_score.compute(
+    predictions=[generated_summary], references=[reference_summary]
+)
+scores
+```
+
+```python out
+{'rouge1': AggregateScore(low=Score(precision=0.86, recall=1.0, fmeasure=0.92), mid=Score(precision=0.86, recall=1.0, fmeasure=0.92), high=Score(precision=0.86, recall=1.0, fmeasure=0.92)),
+ 'rouge2': AggregateScore(low=Score(precision=0.67, recall=0.8, fmeasure=0.73), mid=Score(precision=0.67, recall=0.8, fmeasure=0.73), high=Score(precision=0.67, recall=0.8, fmeasure=0.73)),
+ 'rougeL': AggregateScore(low=Score(precision=0.86, recall=1.0, fmeasure=0.92), mid=Score(precision=0.86, recall=1.0, fmeasure=0.92), high=Score(precision=0.86, recall=1.0, fmeasure=0.92)),
+ 'rougeLsum': AggregateScore(low=Score(precision=0.86, recall=1.0, fmeasure=0.92), mid=Score(precision=0.86, recall=1.0, fmeasure=0.92), high=Score(precision=0.86, recall=1.0, fmeasure=0.92))}
+```
+
+哇，那個輸出中有很多信息——這都是什麼意思？首先，🤗 Datasets實際上計算了精度、召回率和 F1 分數的置信區間；這些是你可以在這裡看到的 **low** , **mid** ， 和 **high** 屬性。此外，🤗 Datasets在比較生成摘要和參考摘要時，會根據不同類型的文本粒度計算各種 ROUGE 分數。這 **rouge1** 變體是一元組的重疊——這只是表達單詞重疊的一種奇特方式，這正是我們上面討論的度量標準。為了驗證這一點，讓我們輸出 **mid** 的數值：
+
+```python
+scores["rouge1"].mid
+```
+
+```python out
+Score(precision=0.86, recall=1.0, fmeasure=0.92)
+```
+太好了，準確率和召回率匹配了！那麼其他的 ROUGE 分數呢？ **rouge2** 測量二元組之間的重疊（想想單詞對的重疊），而 **rougeL** 和 **rougeLsum** 通過在生成的和參考摘要中查找最長的公共子串來測量最長的單詞匹配序列。中的“總和” **rougeLsum** 指的是這個指標是在整個摘要上計算的，而 **rougeL** 計算為單個句子的平均值。
+
+> [!TIP]
+> ✏️ **試試看！** 創建您自己的生成和參考摘要示例，並查看生成的 ROUGE 分數是否與基於精確度和召回率公式的手動計算一致。 對於附加分，將文本拆分為二元組並比較“rouge2”指標的精度和召回率。
+
+我們將使用這些 ROUGE 分數來跟蹤我們模型的性能，但在此之前，讓我們做每個優秀的 NLP 從業者都應該做的事情：創建一個強大而簡單的baseline！
+
+### 創建強大的baseline
+
+文本摘要的一個常見基線是簡單地取一篇文章的前三個句子，通常稱為 _lead-3_ 基線。 我們可以使用句號(英文使用.)來跟蹤句子邊界，但這在"U.S." or "U.N."之類的首字母縮略詞上會失敗。所以我們將使用 `nltk` 庫，它包含一個更好的算法來處理這些情況。 您可以使用 `pip` 安裝軟件包，如下所示：
+
+```python
+!pip install nltk
+```
+
+然後下載標點規則：
+
+```python
+import nltk
+
+nltk.download("punkt")
+```
+接下來，我們從 `nltk` 導入句子標記器並創建一個簡單的函數來提取評論中的前三個句子。 文本摘要的約定是用換行符分隔每個摘要，因此我們也將其包含在內並在訓練示例上對其進行測試：
+
+```python
+from nltk.tokenize import sent_tokenize
+
+
+def three_sentence_summary(text):
+    return "\n".join(sent_tokenize(text)[:3])
+
+
+print(three_sentence_summary(books_dataset["train"][1]["review_body"]))
+```
+
+```python out
+'I grew up reading Koontz, and years ago, I stopped,convinced i had "outgrown" him.'
+'Still,when a friend was looking for something suspenseful too read, I suggested Koontz.'
+'She found Strangers.'
+```
+
+這似乎有效，所以讓我們現在實現一個函數，從數據集中提取這些“摘要”並計算baseline的 ROUGE 分數：
+
+```python
+def evaluate_baseline(dataset, metric):
+    summaries = [three_sentence_summary(text) for text in dataset["review_body"]]
+    return metric.compute(predictions=summaries, references=dataset["review_title"])
+```
+
+然後我們可以使用這個函數來計算驗證集上的 ROUGE 分數，並使用 Pandas 對它們進行一些美化：
+
+```python
+import pandas as pd
+
+score = evaluate_baseline(books_dataset["validation"], rouge_score)
+rouge_names = ["rouge1", "rouge2", "rougeL", "rougeLsum"]
+rouge_dict = dict((rn, round(score[rn].mid.fmeasure * 100, 2)) for rn in rouge_names)
+rouge_dict
+```
+
+```python out
+{'rouge1': 16.74, 'rouge2': 8.83, 'rougeL': 15.6, 'rougeLsum': 15.96}
+```
+
+我們可以看到`rouge2`的分數明顯低於其他； 這可能反映了這樣一個事實，即評論標題通常很簡潔，因此lead-3 baseline過於冗長。 現在我們有了一個很好的基準，讓我們將注意力轉向微調 mT5！
+
+{#if fw === 'pt'}
+
+## 使用 `Trainer` API微調mT5 
+
+微調模型以進行提取摘要與我們在本章中介紹的其他任務非常相似。 我們需要做的第一件事是從`mt5-small`檢查點加載預訓練模型。 由於摘要提取是一個序列到序列的任務，我們可以使用 AutoModelForSeq2SeqLM 類加載模型，該類會自動下載並緩存權重：
+
+```python
+from transformers import AutoModelForSeq2SeqLM
+
+model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+```
+
+{:else}
+
+## 使用 `Keras` API微調mT5 
+
+微調模型以進行提取摘要與我們在本章中介紹的其他任務非常相似。 我們需要做的第一件事是從`mt5-small`檢查點加載預訓練模型。 由於摘要提取是一個序列到序列的任務，我們可以使用 AutoModelForSeq2SeqLM 類加載模型，該類會自動下載並緩存權重：
+
+```python
+from transformers import TFAutoModelForSeq2SeqLM
+
+model = TFAutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+```
+
+{/if}
+
+> [!TIP]
+> 💡 If you're wondering why you don't see any warnings about fine-tuning the model on a downstream task, that's because for sequence-to-sequence tasks we keep all the weights of the network. Compare this to our text classification model in [Chapter 3](/course/chapter3), where the head of the pretrained model was replaced with a randomly initialized network.
+> 💡 如果您想知道為什麼在下游任務中沒有看到任何關於微調模型的警告，那是因為對於序列到序列的任務，我們保留了網絡的所有權重。與我們在[第三章] (/course/chapter3)中的文本分類模型進行比較，文本分類模型預訓練模型的頭部被隨機初始化的網絡替換。
+
+我們需要做的下一件事是登錄 Hugging Face Hub。如果您在notebook中運行此代碼，則可以使用以下實用程序函數執行此操作：
+
+```python
+from huggingface_hub import notebook_login
+
+notebook_login()
+```
+
+這將顯示一個小部件，您可以在其中輸入您的憑據。或者，您可以在終端中運行此命令並在那裡登錄：
+
+```
+huggingface-cli login
+```
+
+{#if fw === 'pt'}
+
+我們需要生成摘要以便在訓練期間計算 ROUGE 分數。幸運的是，🤗 Transformers 提供了專用的 `Seq2SeqTrainingArguments` 和 `Seq2SeqTrainer` 類，可以自動為我們完成這項工作！ 為了瞭解它是如何工作的，讓我們首先為我們的實驗定義超參數和其他參數：
+
+```python
+from transformers import Seq2SeqTrainingArguments
+
+batch_size = 8
+num_train_epochs = 8
+# Show the training loss with every epoch
+logging_steps = len(tokenized_datasets["train"]) // batch_size
+model_name = model_checkpoint.split("/")[-1]
+
+args = Seq2SeqTrainingArguments(
+    output_dir=f"{model_name}-finetuned-amazon-en-es",
+    evaluation_strategy="epoch",
+    learning_rate=5.6e-5,
+    per_device_train_batch_size=batch_size,
+    per_device_eval_batch_size=batch_size,
+    weight_decay=0.01,
+    save_total_limit=3,
+    num_train_epochs=num_train_epochs,
+    predict_with_generate=True,
+    logging_steps=logging_steps,
+    push_to_hub=True,
+)
+```
+
+在這裡， **predict_with_generate** 參數已設置為True表明我們應該在評估期間生成摘要，以便我們可以計算每個時期的 ROUGE 分數。正如在[第一章](/course/chapter1)所討論的，解碼器通過逐個預測令牌來執行推理，這是由模型的 **generate()** 方法實現的。設置 **predict_with_generate=True** 告訴 **Seq2SeqTrainer** 使用該方法進行評估。我們還調整了一些默認的超參數，例如學習率、epoch數和權重衰減，並且我們設置了 **save_total_limit** 訓練期間最多隻保存 3 個檢查點的選項——這是因為即使是 mT5 的“small”版本也使用大約 1 GB 的硬盤空間，我們可以通過限制我們保存的副本數量來節省一點空間。
+
+`push_to_hub=True` 參數將允許我們在訓練後將模型推送到 Hub； 您將在`output_dir`定義的位置中的用戶配置文件下找到存儲庫。 請注意，您可以使用 `hub_model_id` 參數指定要推送到的存儲庫的名稱（特別是當您想要推送到組織時，您必須使用此參數）。 例如，當我們將模型推送到 [`huggingface-course` 組織](https://huggingface.co/huggingface-course) 時，我們添加了`hub_model_id="huggingface-course/mt5-finetuned-amazon-en-es"` 到 `Seq2SeqTrainingArguments`。
+
+我們需要做的下一件事是為訓練器提供一個“compute_metrics()”函數，以便我們可以在訓練期間評估我們的模型。 總結起來，這比簡單地在模型的預測上調用 `rouge_score.compute()` 更復雜一些，因為我們需要在計算 ROUGE 分數之前將輸出和標籤解碼為文本。 下面的函數正是這樣做的，並且還利用 `nltk` 中的 `sent_tokenize()` 函數來用換行符分隔摘要語句：
+
+```python
+import numpy as np
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    # Decode generated summaries into text
+    decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    # Replace -100 in the labels as we can't decode them
+    labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+    # Decode reference summaries into text
+    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+    # ROUGE expects a newline after each sentence
+    decoded_preds = ["\n".join(sent_tokenize(pred.strip())) for pred in decoded_preds]
+    decoded_labels = ["\n".join(sent_tokenize(label.strip())) for label in decoded_labels]
+    # Compute ROUGE scores
+    result = rouge_score.compute(
+        predictions=decoded_preds, references=decoded_labels, use_stemmer=True
+    )
+    # Extract the median scores
+    result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+    return {k: round(v, 4) for k, v in result.items()}
+```
+
+{/if}
+
+接下來，我們需要為我們的序列到序列任務定義一個數據整理器。由於 mT5 是一個編碼器-解碼器 Transformer 模型，準備我們的批次的一個微妙之處是，在解碼過程中，我們需要將標籤向右移動一個。 這是為了確保解碼器只看到之前的真實的標籤，而不是當前或未來的標籤，這對於模型來說很容易記憶。 這類似於在 [因果語言建模](/course/chapter7/6) 等任務中如何將掩蔽的自我注意應用於輸入。
+
+幸運的是，🤗 Transformers 提供了一個 `DataCollatorForSeq2Seq` 整理器，它將為我們動態填充輸入和標籤。 要實例化這個收集器，我們只需要提供 `tokenizer` 和 `model`：
+
+{#if fw === 'pt'}
+
+```python
+from transformers import DataCollatorForSeq2Seq
+
+data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+```
+
+{:else}
+
+```python
+from transformers import DataCollatorForSeq2Seq
+
+data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, return_tensors="tf")
+```
+
+{/if}
+
+讓我們看看這個整理器在輸入一小批示例時會產生什麼。 首先，我們需要刪除帶有字符串的列，因為整理器不知道如何填充這些元素：
+
+```python
+tokenized_datasets = tokenized_datasets.remove_columns(
+    books_dataset["train"].column_names
+)
+```
+
+由於 collator 需要一個 `dict` 的列表，其中每個 `dict` 代表數據集中的一個示例，我們還需要在將數據傳遞給 data collator 之前將數據整理成預期的格式：
+
+```python
+features = [tokenized_datasets["train"][i] for i in range(2)]
+data_collator(features)
+```
+
+```python out
+{'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]), 'input_ids': tensor([[  1494,    259,   8622,    390,    259,    262,   2316,   3435,    955,
+            772,    281,    772,   1617,    263,    305,  14701,    260,   1385,
+           3031,    259,  24146,    332,   1037,    259,  43906,    305,    336,
+            260,      1,      0,      0,      0,      0,      0,      0],
+        [   259,  27531,  13483,    259,   7505,    260, 112240,  15192,    305,
+          53198,    276,    259,  74060,    263,    260,    459,  25640,    776,
+           2119,    336,    259,   2220,    259,  18896,    288,   4906,    288,
+           1037,   3931,    260,   7083, 101476,   1143,    260,      1]]), 'labels': tensor([[ 7483,   259,  2364, 15695,     1,  -100],
+        [  259, 27531, 13483,   259,  7505,     1]]), 'decoder_input_ids': tensor([[    0,  7483,   259,  2364, 15695,     1],
+        [    0,   259, 27531, 13483,   259,  7505]])}
+```
+
+這裡要注意的主要是第一個例子比第二個例子要長，所以第二個例子的 `input_ids` 和 `attention_mask` 已經在右側填充了一個 `[PAD]` 標記（其 ID 是 ` 0`）。 類似地，我們可以看到 `labels` 已用 `-100` 填充，以確保填充標記被損失函數忽略。 最後，我們可以看到一個新的 `decoder_input_ids`，它通過在第一個條目中插入 `[PAD]` 標記將標籤向右移動。
+
+{#if fw === 'pt'}
+
+我們終於擁有了訓練所需的所有的前期準備！我們現在只需要使用標準參數實例化訓練器：
+
+```python
+from transformers import Seq2SeqTrainer
+
+trainer = Seq2SeqTrainer(
+    model,
+    args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation"],
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics,
+)
+```
+
+並啟動我們的訓練：
+
+```python
+trainer.train()
+```
+
+在訓練期間，您應該會看到訓練損失減少並且 ROUGE 分數隨著每個 epoch 增加。訓練完成後，您可以通過運行**Trainer.evaluate()** 查看最終的 ROUGE 分數 ：
+
+```python
+trainer.evaluate()
+```
+
+```python out
+{'eval_loss': 3.028524398803711,
+ 'eval_rouge1': 16.9728,
+ 'eval_rouge2': 8.2969,
+ 'eval_rougeL': 16.8366,
+ 'eval_rougeLsum': 16.851,
+ 'eval_gen_len': 10.1597,
+ 'eval_runtime': 6.1054,
+ 'eval_samples_per_second': 38.982,
+ 'eval_steps_per_second': 4.914}
+```
+
+從分數中我們可以看到，我們的模型輕鬆超過了我們的lead-3 baseline——很好！最後要做的是將模型權重推送到 Hub，如下所示：
+
+```
+trainer.push_to_hub(commit_message="Training complete", tags="summarization")
+```
+
+```python out
+'https://huggingface.co/huggingface-course/mt5-finetuned-amazon-en-es/commit/aa0536b829b28e73e1e4b94b8a5aacec420d40e0'
+```
+
+這會將檢查點和配置文件保存到 **output_dir** , 在將所有文件上傳到模型中心之前。通過指定 **tags** 參數，我們還確保模型中心上的小部件將是一個用於彙總管道的小部件，而不是與 mT5 架構關聯的默認文本生成小部件（有關模型標籤的更多信息，請參閱[🤗 Hub 文檔](https://huggingface.co/docs/hub/main#how-is-a-models-type-of-inference-api-and-widget-determined)）。輸出來自 **trainer.push_to_hub()** 是 Git 提交哈希的 URL，因此您可以輕鬆查看對模型存儲庫所做的更改！
+
+在結束本節之前，讓我們看一下如何使用 🤗 Accelerate 提供的底層API對 mT5 進行微調。
+
+{:else}
+
+我們幾乎準備好訓練了！ 我們只需要使用我們上面定義的數據整理器將我們的數據集轉換為 tf.data.Dataset ，然後 `compile()` 和 `fit()` 模型。 首先，轉換數據集：
+```python
+tf_train_dataset = tokenized_datasets["train"].to_tf_dataset(
+    columns=["input_ids", "attention_mask", "labels"],
+    collate_fn=data_collator,
+    shuffle=True,
+    batch_size=8,
+)
+tf_eval_dataset = tokenized_datasets["validation"].to_tf_dataset(
+    columns=["input_ids", "attention_mask", "labels"],
+    collate_fn=data_collator,
+    shuffle=False,
+    batch_size=8,
+)
+```
+
+現在，我們定義訓練超參數並編譯：
+
+```python
+from transformers import create_optimizer
+import tensorflow as tf
+
+# The number of training steps is the number of samples in the dataset, divided by the batch size then multiplied
+# by the total number of epochs. Note that the tf_train_dataset here is a batched tf.data.Dataset,
+# not the original Hugging Face Dataset, so its len() is already num_samples // batch_size.
+num_train_epochs = 8
+num_train_steps = len(tf_train_dataset) * num_train_epochs
+model_name = model_checkpoint.split("/")[-1]
+
+optimizer, schedule = create_optimizer(
+    init_lr=5.6e-5,
+    num_warmup_steps=0,
+    num_train_steps=num_train_steps,
+    weight_decay_rate=0.01,
+)
+
+model.compile(optimizer=optimizer)
+
+# Train in mixed-precision float16
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
+```
+
+最後，我們擬合模型。 我們在每個 epoch 之後使用`PushToHubCallback`將模型保存到 Hub，這將允許我們稍後使用它進行推理：
+```python
+from transformers.keras_callbacks import PushToHubCallback
+
+callback = PushToHubCallback(
+    output_dir=f"{model_name}-finetuned-amazon-en-es", tokenizer=tokenizer
+)
+
+model.fit(
+    tf_train_dataset, validation_data=tf_eval_dataset, callbacks=[callback], epochs=8
+)
+```
+
+我們在訓練期間輸出了一些loss，但實際上我們希望看到我們之前計算的 ROUGE 指標。 要獲得這些指標，我們需要從模型生成輸出並將它們轉換為字符串。 讓我們為 ROUGE 指標構建一些標籤和預測列表以進行比較（請注意，如果您在本節中遇到import的錯誤，您可能需要`!pip install tqdm`）：
+
+```python
+from tqdm import tqdm
+import numpy as np
+
+all_preds = []
+all_labels = []
+for batch in tqdm(tf_eval_dataset):
+    predictions = model.generate(**batch)
+    decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    labels = batch["labels"].numpy()
+    labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+    decoded_preds = ["\n".join(sent_tokenize(pred.strip())) for pred in decoded_preds]
+    decoded_labels = ["\n".join(sent_tokenize(label.strip())) for label in decoded_labels]
+    all_preds.extend(decoded_preds)
+    all_labels.extend(decoded_labels)
+```
+
+一旦我們有了標籤和預測字符串列表，計算 ROUGE 分數就很容易了：
+
+```python
+result = rouge_score.compute(
+    predictions=decoded_preds, references=decoded_labels, use_stemmer=True
+)
+result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+{k: round(v, 4) for k, v in result.items()}
+```
+
+```
+{'rouge1': 31.4815, 'rouge2': 25.4386, 'rougeL': 31.4815, 'rougeLsum': 31.4815}
+```
+
+
+{/if}
+
+{#if fw === 'pt'}
+
+## 使用 🤗 Accelerate 微調 mT5
+
+使用 🤗 Accelerate 微調我們的模型與我們在 [Chapter 3](/course/chapter3) 中遇到的文本分類示例非常相似。 主要區別在於需要在訓練期間顯式生成摘要並定義我們如何計算 ROUGE 分數（回想一下，`Seq2SeqTrainer` 為我們生成了摘要）。 讓我們看看我們如何在 🤗 Accelerate 中實現這兩個要求！
+
+### 為訓練做好一切準備
+
+The first thing we need to do is create a `DataLoader` for each of our splits. Since the PyTorch dataloaders expect batches of tensors, we need to set the format to `"torch"` in our datasets:
+我們需要做的第一件事是為每個數據集的每一個拆分創建一個`DataLoader`。 由於 PyTorch 數據加載器需要成批的張量，我們需要在數據集中將格式設置為`torch`：
+
+```python
+tokenized_datasets.set_format("torch")
+```
+
+現在我們已經有了僅由張量組成的數據集，接下來要做的是再次實例化`DataCollatorForSeq2Seq`。 為此，我們需要提供模型微調前的版本，所以讓我們從緩存中再次加載它：
+
+```python
+model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+```
+
+然後我們可以實例化數據整理器並使用它來定義我們的數據加載器：
+
+```python
+from torch.utils.data import DataLoader
+
+batch_size = 8
+train_dataloader = DataLoader(
+    tokenized_datasets["train"],
+    shuffle=True,
+    collate_fn=data_collator,
+    batch_size=batch_size,
+)
+eval_dataloader = DataLoader(
+    tokenized_datasets["validation"], collate_fn=data_collator, batch_size=batch_size
+)
+```
+
+接下來要做的是定義我們想要使用的優化器。與我們的其他示例一樣，我們將使用 **AdamW** ，這適用於大多數問題：
+
+```python
+from torch.optim import AdamW
+
+optimizer = AdamW(model.parameters(), lr=2e-5)
+```
+
+最後，我們將模型、優化器和數據加載器提供給 **accelerator.prepare()** 方法：
+
+```python
+from accelerate import Accelerator
+
+accelerator = Accelerator()
+model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
+    model, optimizer, train_dataloader, eval_dataloader
+)
+```
+
+> [!TIP]
+> 🚨如果您在 TPU 上進行訓練，則需要將上述所有代碼移動到專門的訓練函數中。有關詳細信息，請參閱[第三章](/course/chapter3)。
+
+現在我們已經準備好了我們索要用的對象，還有三件事要做：
+
+* 定義學習率調度計劃。
+* 實現一個功能來對摘要進行後續處理以進行評估。
+* 在 Hub 上創建一個存儲庫，我們可以將模型推送到該存儲庫。
+
+對於學習率調度，我們將使用前幾節中的標準線性衰減：
+
+```python
+from transformers import get_scheduler
+
+num_train_epochs = 10
+num_update_steps_per_epoch = len(train_dataloader)
+num_training_steps = num_train_epochs * num_update_steps_per_epoch
+
+lr_scheduler = get_scheduler(
+    "linear",
+    optimizer=optimizer,
+    num_warmup_steps=0,
+    num_training_steps=num_training_steps,
+)
+```
+
+對於後續處理，我們需要一個函數，將生成的摘要拆分為由換行符分隔的句子。 這是 ROUGE 指標所期望的格式，我們可以使用以下代碼片段來實現：
+
+```python
+def postprocess_text(preds, labels):
+    preds = [pred.strip() for pred in preds]
+    labels = [label.strip() for label in labels]
+
+    # ROUGE expects a newline after each sentence
+    preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
+    labels = ["\n".join(nltk.sent_tokenize(label)) for label in labels]
+
+    return preds, labels
+```
+
+如果你還記得我們是如何定義 `Seq2SeqTrainer` 的 `compute_metrics()` 函數的，這對你來說應該很熟悉。
+
+最後，我們需要在 Hugging Face Hub 上創建一個模型存儲庫。 為此，我們可以使用🤗 Hub 庫的get_full_repo_name。 我們只需要為我們的存儲庫定義一個名稱，該庫有一個非常好用的函數可以將存儲庫 ID 與用戶配置文件結合起來：
+```python
+from huggingface_hub import get_full_repo_name
+
+model_name = "test-bert-finetuned-squad-accelerate"
+repo_name = get_full_repo_name(model_name)
+repo_name
+```
+
+```python out
+'lewtun/mt5-finetuned-amazon-en-es-accelerate'
+```
+
+現在我們可以使用這個存儲庫名稱將本地版本克隆到我們的結果目錄中，該目錄將存儲訓練的模型：
+
+```python
+from huggingface_hub import Repository
+
+output_dir = "results-mt5-finetuned-squad-accelerate"
+repo = Repository(output_dir, clone_from=repo_name)
+```
+這將允許我們在訓練期間通過調用 `repo.push_to_hub()` 方法將模型推送到 Hub！ 現在讓我們通過寫出完整的訓練循環來結束我們的分析。
+
+### 訓練循環
+
+文本摘要的訓練循環與我們遇到的其他 🤗 Accelerate 示例非常相似，大致分為四個主要步驟：這
+
+1. 通過在每個epoch 迭代 `train_dataloader` 中的所有示例來訓練模型。
+2. 在每個 epoch 結束時生成模型摘要，首先生成標記，然後將它們（和參考摘要）解碼為文本。
+3. 使用我們之前看到的相同技術計算 ROUGE 分數。
+4. 保存檢查點並將所有內容推送到 Hub。 在這裡，我們依賴 `Repository` 對象的巧妙的 `blocking=False` 參數，以便我們可以在每個 epoch 異步地上傳檢查點。 這使我們能夠繼續訓練，而不必等待與 GB 大小的模型慢呼呼的上傳！
+
+這些步驟可以在以下代碼塊中看到：
+
+```python
+from tqdm.auto import tqdm
+import torch
+import numpy as np
+
+progress_bar = tqdm(range(num_training_steps))
+
+for epoch in range(num_train_epochs):
+    # Training
+    model.train()
+    for step, batch in enumerate(train_dataloader):
+        outputs = model(**batch)
+        loss = outputs.loss
+        accelerator.backward(loss)
+
+        optimizer.step()
+        lr_scheduler.step()
+        optimizer.zero_grad()
+        progress_bar.update(1)
+
+    # Evaluation
+    model.eval()
+    for step, batch in enumerate(eval_dataloader):
+        with torch.no_grad():
+            generated_tokens = accelerator.unwrap_model(model).generate(
+                batch["input_ids"],
+                attention_mask=batch["attention_mask"],
+            )
+
+            generated_tokens = accelerator.pad_across_processes(
+                generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
+            )
+            labels = batch["labels"]
+
+            # If we did not pad to max length, we need to pad the labels too
+            labels = accelerator.pad_across_processes(
+                batch["labels"], dim=1, pad_index=tokenizer.pad_token_id
+            )
+
+            generated_tokens = accelerator.gather(generated_tokens).cpu().numpy()
+            labels = accelerator.gather(labels).cpu().numpy()
+
+            # Replace -100 in the labels as we can't decode them
+            labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+            if isinstance(generated_tokens, tuple):
+                generated_tokens = generated_tokens[0]
+            decoded_preds = tokenizer.batch_decode(
+                generated_tokens, skip_special_tokens=True
+            )
+            decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+            decoded_preds, decoded_labels = postprocess_text(
+                decoded_preds, decoded_labels
+            )
+
+            rouge_score.add_batch(predictions=decoded_preds, references=decoded_labels)
+
+    # Compute metrics
+    result = rouge_score.compute()
+    # Extract the median ROUGE scores
+    result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+    result = {k: round(v, 4) for k, v in result.items()}
+    print(f"Epoch {epoch}:", result)
+
+    # Save and upload
+    accelerator.wait_for_everyone()
+    unwrapped_model = accelerator.unwrap_model(model)
+    unwrapped_model.save_pretrained(output_dir, save_function=accelerator.save)
+    if accelerator.is_main_process:
+        tokenizer.save_pretrained(output_dir)
+        repo.push_to_hub(
+            commit_message=f"Training in progress epoch {epoch}", blocking=False
+        )
+```
+
+```python out
+Epoch 0: {'rouge1': 5.6351, 'rouge2': 1.1625, 'rougeL': 5.4866, 'rougeLsum': 5.5005}
+Epoch 1: {'rouge1': 9.8646, 'rouge2': 3.4106, 'rougeL': 9.9439, 'rougeLsum': 9.9306}
+Epoch 2: {'rouge1': 11.0872, 'rouge2': 3.3273, 'rougeL': 11.0508, 'rougeLsum': 10.9468}
+Epoch 3: {'rouge1': 11.8587, 'rouge2': 4.8167, 'rougeL': 11.7986, 'rougeLsum': 11.7518}
+Epoch 4: {'rouge1': 12.9842, 'rouge2': 5.5887, 'rougeL': 12.7546, 'rougeLsum': 12.7029}
+Epoch 5: {'rouge1': 13.4628, 'rouge2': 6.4598, 'rougeL': 13.312, 'rougeLsum': 13.2913}
+Epoch 6: {'rouge1': 12.9131, 'rouge2': 5.8914, 'rougeL': 12.6896, 'rougeLsum': 12.5701}
+Epoch 7: {'rouge1': 13.3079, 'rouge2': 6.2994, 'rougeL': 13.1536, 'rougeLsum': 13.1194}
+Epoch 8: {'rouge1': 13.96, 'rouge2': 6.5998, 'rougeL': 13.9123, 'rougeLsum': 13.7744}
+Epoch 9: {'rouge1': 14.1192, 'rouge2': 7.0059, 'rougeL': 14.1172, 'rougeLsum': 13.9509}
+```
+
+就是這樣！ 運行此程序後，您將獲得與我們使用“Trainer”獲得的模型和結果非常相似的模型和結果。
+
+{/if}
+
+## 使用您微調的模型
+
+將模型推送到 Hub 後，您可以通過推理小部件或“管道”對象來使用它，如下所示：
+
+```python
+from transformers import pipeline
+
+hub_model_id = "huggingface-course/mt5-small-finetuned-amazon-en-es"
+summarizer = pipeline("summarization", model=hub_model_id)
+```
+
+我們可以將測試集中的一些示例（模型還沒有看到）提供給我們的管道，以瞭解生成摘要的質量。 首先讓我們實現一個簡單的函數來一起顯示評論、標題和生成的摘要：
+
+```python
+def print_summary(idx):
+    review = books_dataset["test"][idx]["review_body"]
+    title = books_dataset["test"][idx]["review_title"]
+    summary = summarizer(books_dataset["test"][idx]["review_body"])[0]["summary_text"]
+    print(f"'>>> Review: {review}'")
+    print(f"\n'>>> Title: {title}'")
+    print(f"\n'>>> Summary: {summary}'")
+```
+
+讓我們看一下我們得到的一個英文例子：
+
+```python
+print_summary(100)
+```
+
+```python out
+'>>> Review: Nothing special at all about this product... the book is too small and stiff and hard to write in. The huge sticker on the back doesn’t come off and looks super tacky. I would not purchase this again. I could have just bought a journal from the dollar store and it would be basically the same thing. It’s also really expensive for what it is.'
+
+'>>> Title: Not impressed at all... buy something else'
+
+'>>> Summary: Nothing special at all about this product'
+```
+
+這還不錯！ 我們可以看到，我們的模型實際上已經能夠通過增加部分新詞來執行抽象摘要。 也許我們模型最酷的方面是它是雙語的，所以我們還可以生成西班牙語評論的摘要：
+
+```python
+print_summary(0)
+```
+
+```python out
+'>>> Review: Es una trilogia que se hace muy facil de leer. Me ha gustado, no me esperaba el final para nada'
+
+'>>> Title: Buena literatura para adolescentes'
+
+'>>> Summary: Muy facil de leer'
+```
+
+摘要翻譯成了英文的“非常容易閱讀”，在這種情況下，我們可以看到它是直接從評論中提取的。 這顯示了 mT5 模型的多功能性，並讓您體驗了處理多語言語料庫的感覺！
+
+接下來，我們將把注意力轉向稍微複雜的任務：從頭開始訓練語言模型。

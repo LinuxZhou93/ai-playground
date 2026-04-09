@@ -1,0 +1,350 @@
+<FrameworkSwitchCourse {fw} />
+
+# 處理多個序列
+
+{#if fw === 'pt'}
+
+<CourseFloatingBanner chapter={2}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/zh-CN/chapter2/section5_pt.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/zh-CN/chapter2/section5_pt.ipynb"},
+]} />
+
+{:else}
+
+<CourseFloatingBanner chapter={2}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/zh-CN/chapter2/section5_tf.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/zh-CN/chapter2/section5_tf.ipynb"},
+]} />
+
+{/if}
+
+{#if fw === 'pt'}
+<Youtube id="M6adb1j2jPI"/>
+{:else}
+<Youtube id="ROxrFOEbsQE"/>
+{/if}
+
+在上一節中，我們探討了最簡單的用例：對一個小長度的序列進行推理。然而，一些問題已經出現：
+
+* 我們如何處理多個序列？
+
+
+* 我們如何處理多個序列不同長度?
+
+
+* 詞彙索引是讓模型正常工作的唯一輸入嗎？
+
+
+* 是否存在序列太長的問題？
+
+讓我們看看這些問題會帶來什麼樣的問題，以及如何使用🤗 Transformers API解決它們
+
+## 模型需要一批輸入
+
+在上一個練習中，您看到了序列如何轉換為數字列表。讓我們將此數字列表轉換為張量，並將其發送到模型：
+
+{#if fw === 'pt'}
+```py
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+model = AutoModelForSequenceClassification.from_pretrained(checkpoint)
+
+sequence = "I've been waiting for a HuggingFace course my whole life."
+
+tokens = tokenizer.tokenize(sequence)
+ids = tokenizer.convert_tokens_to_ids(tokens)
+input_ids = torch.tensor(ids)
+# This line will fail.
+model(input_ids)
+```
+
+```python out
+IndexError: Dimension out of range (expected to be in range of [-1, 0], but got 1)
+```
+{:else}
+```py
+import tensorflow as tf
+from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
+
+checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+model = TFAutoModelForSequenceClassification.from_pretrained(checkpoint)
+
+sequence = "I've been waiting for a HuggingFace course my whole life."
+
+tokens = tokenizer.tokenize(sequence)
+ids = tokenizer.convert_tokens_to_ids(tokens)
+input_ids = tf.constant(ids)
+# This line will fail.
+model(input_ids)
+```
+
+```py out
+InvalidArgumentError: Input to reshape is a tensor with 14 values, but the requested shape has 196 [Op:Reshape]
+```
+{/if}
+
+哦不！為什麼失敗了？我們遵循了第2節中管道的步驟。
+
+問題是我們向模型發送了一個序列，而 🤗Transformers 模型默認情況下需要多個句子。在這裡，當我們將分詞器應用於一個應用程序時，我們嘗試在幕後完成分詞器所做的一切，但如果仔細觀察，您會發現它不僅將輸入ID列表轉換為張量，還在其頂部添加了一個維度：
+
+{#if fw === 'pt'}
+```py
+tokenized_inputs = tokenizer(sequence, return_tensors="pt")
+print(tokenized_inputs["input_ids"])
+```
+
+```python out
+tensor([[  101,  1045,  1005,  2310,  2042,  3403,  2005,  1037, 17662, 12172,
+          2607,  2026,  2878,  2166,  1012,   102]])
+```
+{:else}
+```py
+tokenized_inputs = tokenizer(sequence, return_tensors="tf")
+print(tokenized_inputs["input_ids"])
+```
+
+```py out
+tf.Tensor: shape=(1, 16), dtype=int32, numpy=
+array([[  101,  1045,  1005,  2310,  2042,  3403,  2005,  1037, 17662,
+        12172,  2607,  2026,  2878,  2166,  1012,   102]], dtype=int32)>
+```
+{/if}
+
+讓我們重試並添加一個新維度：
+
+{#if fw === 'pt'}
+```py
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+model = AutoModelForSequenceClassification.from_pretrained(checkpoint)
+
+sequence = "I've been waiting for a HuggingFace course my whole life."
+
+tokens = tokenizer.tokenize(sequence)
+ids = tokenizer.convert_tokens_to_ids(tokens)
+
+input_ids = torch.tensor([ids])
+print("Input IDs:", input_ids)
+
+output = model(input_ids)
+print("Logits:", output.logits)
+```
+{:else}
+```py
+import tensorflow as tf
+from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
+
+checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
+tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+model = TFAutoModelForSequenceClassification.from_pretrained(checkpoint)
+
+sequence = "I've been waiting for a HuggingFace course my whole life."
+
+tokens = tokenizer.tokenize(sequence)
+ids = tokenizer.convert_tokens_to_ids(tokens)
+
+input_ids = tf.constant([ids])
+print("Input IDs:", input_ids)
+
+output = model(input_ids)
+print("Logits:", output.logits)
+```
+{/if}
+
+我們打印輸入ID以及生成的logits-以下是輸出：
+
+{#if fw === 'pt'}
+```python out
+Input IDs: [[ 1045,  1005,  2310,  2042,  3403,  2005,  1037, 17662, 12172,  2607, 2026,  2878,  2166,  1012]]
+Logits: [[-2.7276,  2.8789]]
+```
+{:else}
+```py out
+Input IDs: tf.Tensor(
+[[ 1045  1005  2310  2042  3403  2005  1037 17662 12172  2607  2026  2878
+   2166  1012]], shape=(1, 14), dtype=int32)
+Logits: tf.Tensor([[-2.7276208  2.8789377]], shape=(1, 2), dtype=float32)
+```
+{/if}
+
+*Batching* 是一次通過模型發送多個句子的行為。如果你只有一句話，你可以用一個序列構建一個批次：
+
+
+```
+batched_ids = [ids, ids]
+```
+
+這是一批兩個相同的序列！
+
+> [!TIP]
+> ✏️ **試試看！** 將此列表轉換為張量並通過模型傳遞。檢查您是否獲得與之前相同的登錄（但是隻有兩次）
+
+批處理允許模型在輸入多個句子時工作。使用多個序列就像使用單個序列構建批一樣簡單。不過，還有第二個問題。當你試圖將兩個（或更多）句子組合在一起時，它們的長度可能不同。如果您以前使用過張量，那麼您知道它們必須是矩形，因此無法將輸入ID列表直接轉換為張量。為了解決這個問題，我們通常填充輸入。
+
+## 填充輸入
+
+以下列表不能轉換為張量：
+
+```py no-format
+batched_ids = [
+    [200, 200, 200],
+    [200, 200]
+]
+```
+
+為了解決這個問題，我們將使用填充使張量具有矩形。Padding通過在值較少的句子中添加一個名為Padding token的特殊單詞來確保我們所有的句子長度相同。例如，如果你有10個包含10個單詞的句子和1個包含20個單詞的句子，填充將確保所有句子都包含20個單詞。在我們的示例中，生成的張量如下所示：
+
+```py no-format
+padding_id = 100
+
+batched_ids = [
+    [200, 200, 200],
+    [200, 200, padding_id],
+]
+```
+
+可以在tokenizer.pad_token_id中找到填充令牌ID. 讓我們使用它，將我們的兩句話分別發送到模型中，並分批發送到一起：
+
+
+{#if fw === 'pt'}
+```py no-format
+model = AutoModelForSequenceClassification.from_pretrained(checkpoint)
+
+sequence1_ids = [[200, 200, 200]]
+sequence2_ids = [[200, 200]]
+batched_ids = [
+    [200, 200, 200],
+    [200, 200, tokenizer.pad_token_id],
+]
+
+print(model(torch.tensor(sequence1_ids)).logits)
+print(model(torch.tensor(sequence2_ids)).logits)
+print(model(torch.tensor(batched_ids)).logits)
+```
+
+```python out
+tensor([[ 1.5694, -1.3895]], grad_fn=<AddmmBackward>)
+tensor([[ 0.5803, -0.4125]], grad_fn=<AddmmBackward>)
+tensor([[ 1.5694, -1.3895],
+        [ 1.3373, -1.2163]], grad_fn=<AddmmBackward>)
+```
+{:else}
+```py no-format
+model = TFAutoModelForSequenceClassification.from_pretrained(checkpoint)
+
+sequence1_ids = [[200, 200, 200]]
+sequence2_ids = [[200, 200]]
+batched_ids = [
+    [200, 200, 200],
+    [200, 200, tokenizer.pad_token_id],
+]
+
+print(model(tf.constant(sequence1_ids)).logits)
+print(model(tf.constant(sequence2_ids)).logits)
+print(model(tf.constant(batched_ids)).logits)
+```
+
+```py out
+tf.Tensor([[ 1.5693678 -1.3894581]], shape=(1, 2), dtype=float32)
+tf.Tensor([[ 0.5803005  -0.41252428]], shape=(1, 2), dtype=float32)
+tf.Tensor(
+[[ 1.5693681 -1.3894582]
+ [ 1.3373486 -1.2163193]], shape=(2, 2), dtype=float32)
+```
+{/if}
+
+我們批處理預測中的logits有點問題：第二行應該與第二句的logits相同，但我們得到了完全不同的值！
+
+
+這是因為Transformer模型的關鍵特性是關注層，它將每個標記上下文化。這些將考慮填充標記，因為它們涉及序列中的所有標記。為了在通過模型傳遞不同長度的單個句子時，或者在傳遞一批應用了相同句子和填充的句子時獲得相同的結果，我們需要告訴這些注意層忽略填充標記。這是通過使用 attention mask來實現的。
+
+## 注意力遮罩（Attention masks）
+
+*Attention masks* 是與輸入 ID 張量形狀完全相同的張量，用0和1填充：1s表示應注意相應的標記，0s表示不應注意相應的標記（即，模型的注意力層應忽略它們）。
+
+讓我們用 attention mask 完成上一個示例：
+
+{#if fw === 'pt'}
+```py no-format
+batched_ids = [
+    [200, 200, 200],
+    [200, 200, tokenizer.pad_token_id],
+]
+
+attention_mask = [
+    [1, 1, 1],
+    [1, 1, 0],
+]
+
+outputs = model(torch.tensor(batched_ids), attention_mask=torch.tensor(attention_mask))
+print(outputs.logits)
+```
+
+```python out
+tensor([[ 1.5694, -1.3895],
+        [ 0.5803, -0.4125]], grad_fn=<AddmmBackward>)
+```
+{:else}
+```py no-format
+batched_ids = [
+    [200, 200, 200],
+    [200, 200, tokenizer.pad_token_id],
+]
+
+attention_mask = [
+    [1, 1, 1],
+    [1, 1, 0],
+]
+
+outputs = model(tf.constant(batched_ids), attention_mask=tf.constant(attention_mask))
+print(outputs.logits)
+```
+
+```py out
+tf.Tensor(
+[[ 1.5693681  -1.3894582 ]
+ [ 0.5803021  -0.41252586]], shape=(2, 2), dtype=float32)
+```
+{/if}
+
+現在我們得到了該批中第二個句子的相同登錄。
+
+請注意，第二個序列的最後一個值是一個填充ID，它在attention mask中是一個0值。
+
+> [!TIP]
+> ✏️ 試試看！在第2節中使用的兩個句子上手動應用標記化（“我一生都在等待Hugging Face課程。”和“我非常討厭這個！”）。通過模型傳遞它們，並檢查您是否獲得與第2節中相同的登錄。現在使用填充標記將它們批處理在一起，然後創建適當的注意掩碼。檢查通過模型時是否獲得相同的結果！
+
+## 長序列
+
+對於Transformers模型，我們可以通過模型的序列長度是有限的。大多數模型處理多達512或1024個令牌的序列，當要求處理更長的序列時，會崩潰。此問題有兩種解決方案：
+
+
+
+* 使用支持的序列長度較長的模型。
+
+
+* 截斷序列。
+
+
+模型有不同的支持序列長度，有些模型專門處理很長的序列。
+[Longformer](https://huggingface.co/transformers/model_doc/longformer.html)
+這是一個例子，另一個是
+[LED](https://huggingface.co/transformers/model_doc/led.html)
+. 如果您正在處理一項需要很長序列的任務，我們建議您查看這些模型。
+
+否則，我們建議您通過指定max_sequence_length參數：
+
+```py
+sequence = sequence[:max_sequence_length]
+```

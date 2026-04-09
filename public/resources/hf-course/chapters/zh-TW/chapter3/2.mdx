@@ -1,0 +1,375 @@
+<FrameworkSwitchCourse {fw} />
+
+# 處理數據
+
+{#if fw === 'pt'}
+
+<CourseFloatingBanner chapter={3}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/zh-CN/chapter3/section2_pt.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/zh-CN/chapter3/section2_pt.ipynb"},
+]} />
+
+{:else}
+
+<CourseFloatingBanner chapter={3}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/zh-CN/chapter3/section2_tf.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/zh-CN/chapter3/section2_tf.ipynb"},
+]} />
+
+{/if}
+
+{#if fw === 'pt'}
+這一小節學習[第一小節](/course/chapter2)中提到的「如何使用模型中心（hub）大型數據集」，下面是我們用模型中心的數據在 PyTorch 上訓練句子分類器的一個例子：
+
+```python
+import torch
+from torch.optim import AdamW
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+# Same as before
+checkpoint = "bert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+model = AutoModelForSequenceClassification.from_pretrained(checkpoint)
+sequences = [
+    "I've been waiting for a HuggingFace course my whole life.",
+    "This course is amazing!",
+]
+batch = tokenizer(sequences, padding=True, truncation=True, return_tensors="pt")
+
+# This is new
+batch["labels"] = torch.tensor([1, 1])
+
+optimizer = AdamW(model.parameters())
+loss = model(**batch).loss
+loss.backward()
+optimizer.step()
+```
+{:else}
+這一小節學習[第一小節](/course/chapter2)中提到的「如何使用模型中心（hub）大型數據集」，下面是我們用模型中心的數據在 TensorFlow 上訓練句子分類器的一個例子：
+
+```python
+import tensorflow as tf
+import numpy as np
+from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
+
+# Same as before
+checkpoint = "bert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+model = TFAutoModelForSequenceClassification.from_pretrained(checkpoint)
+sequences = [
+    "I've been waiting for a HuggingFace course my whole life.",
+    "This course is amazing!",
+]
+batch = dict(tokenizer(sequences, padding=True, truncation=True, return_tensors="tf"))
+
+# This is new
+model.compile(optimizer="adam", loss="sparse_categorical_crossentropy")
+labels = tf.convert_to_tensor([1, 1])
+model.train_on_batch(batch, labels)
+```
+{/if}
+
+當然，僅僅用兩句話訓練模型不會產生很好的效果。為了獲得更好的結果，您需要準備一個更大的數據集。
+
+在本節中，我們將使用MRPC（微軟研究釋義語料庫）數據集作為示例，該數據集由威廉·多蘭和克里斯·布羅克特在[這篇文章](https://www.aclweb.org/anthology/I05-5002.pdf)發佈。該數據集由5801對句子組成，每個句子對帶有一個標籤，指示它們是否為同義（即，如果兩個句子的意思相同）。我們在本章中選擇了它，因為它是一個小數據集，所以很容易對它進行訓練。
+
+### 從模型中心（Hub）加載數據集
+
+{#if fw === 'pt'}
+<Youtube id="_BZearw7f0w"/>
+{:else}
+<Youtube id="W_gMJF0xomE"/>
+{/if}
+
+模型中心（hub）不只是包含模型；它也有許多不同語言的多個數據集。點擊[數據集](https://huggingface.co/datasets)的鏈接即可進行瀏覽。我們建議您在閱讀本節後閱讀一下[加載和處理新的數據集](https://huggingface.co/docs/datasets/loading)這篇文章，這會讓您對huggingface的darasets更加清晰。但現在，讓我們使用MRPC數據集中的[GLUE 基準測試數據集](https://gluebenchmark.com/)，它是構成MRPC數據集的10個數據集之一，這是一個學術基準，用於衡量機器學習模型在10個不同文本分類任務中的性能。
+
+🤗 Datasets庫提供了一個非常便捷的命令，可以在模型中心（hub）上下載和緩存數據集。我們可以通過以下的代碼下載MRPC數據集：
+
+```py
+from datasets import load_dataset
+
+raw_datasets = load_dataset("glue", "mrpc")
+raw_datasets
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['sentence1', 'sentence2', 'label', 'idx'],
+        num_rows: 3668
+    })
+    validation: Dataset({
+        features: ['sentence1', 'sentence2', 'label', 'idx'],
+        num_rows: 408
+    })
+    test: Dataset({
+        features: ['sentence1', 'sentence2', 'label', 'idx'],
+        num_rows: 1725
+    })
+})
+```
+
+正如你所看到的，我們獲得了一個**DatasetDict**對象，其中包含訓練集、驗證集和測試集。每一個集合都包含幾個列(**sentence1**, **sentence2**, **label**, and **idx**)以及一個代表行數的變量，即每個集合中的行的個數（因此，訓練集中有3668對句子，驗證集中有408對，測試集中有1725對）。
+
+默認情況下，此命令在下載數據集並緩存到 **~/.cache/huggingface/dataset**. 回想一下第2章，您可以通過設置**HF_HOME**環境變量來自定義緩存的文件夾。
+
+我們可以訪問我們數據集中的每一個**raw_train_dataset**對象，如使用字典：
+
+```py
+raw_train_dataset = raw_datasets["train"]
+raw_train_dataset[0]
+```
+
+```python out
+{'idx': 0,
+ 'label': 1,
+ 'sentence1': 'Amrozi accused his brother , whom he called " the witness " , of deliberately distorting his evidence .',
+ 'sentence2': 'Referring to him as only " the witness " , Amrozi accused his brother of deliberately distorting his evidence .'}
+```
+
+我們可以看到標籤已經是整數了，所以我們不需要對標籤做任何預處理。要知道哪個數字對應於哪個標籤，我們可以查看**raw_train_dataset**的**features**. 這將告訴我們每列的類型：
+
+```py
+raw_train_dataset.features
+```
+
+```python out
+{'sentence1': Value(dtype='string', id=None),
+ 'sentence2': Value(dtype='string', id=None),
+ 'label': ClassLabel(num_classes=2, names=['not_equivalent', 'equivalent'], names_file=None, id=None),
+ 'idx': Value(dtype='int32', id=None)}
+```
+
+在上面的例子之中,**Label（標籤）** 是一種**ClassLabel（分類標籤）**，使用整數建立起到類別標籤的映射關係。**0**對應於**not_equivalent**，**1**對應於**equivalent**。
+
+> [!TIP]
+> ✏️ **試試看！** 查看訓練集的第15行元素和驗證集的87行元素。他們的標籤是什麼？
+
+### 預處理數據集
+
+{#if fw === 'pt'}
+<Youtube id="0u3ioSwev3s"/>
+{:else}
+<Youtube id="P-rZWqcB6CE"/>
+{/if}
+
+為了預處理數據集，我們需要將文本轉換為模型能夠理解的數字。正如你在[第二章](/course/chapter2)上看到的那樣
+
+```py
+from transformers import AutoTokenizer
+
+checkpoint = "bert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+tokenized_sentences_1 = tokenizer(raw_datasets["train"]["sentence1"])
+tokenized_sentences_2 = tokenizer(raw_datasets["train"]["sentence2"])
+```
+
+然而，在兩句話傳遞給模型，預測這兩句話是否是同義之前。我們需要這兩句話依次進行適當的預處理。幸運的是，標記器不僅僅可以輸入單個句子還可以輸入一組句子，並按照我們的BERT模型所期望的輸入進行處理：
+
+```py
+inputs = tokenizer("This is the first sentence.", "This is the second one.")
+inputs
+```
+
+```python out
+{ 
+  'input_ids': [101, 2023, 2003, 1996, 2034, 6251, 1012, 102, 2023, 2003, 1996, 2117, 2028, 1012, 102],
+  'token_type_ids': [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+  'attention_mask': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+}
+```
+
+我們在[第二章](/course/chapter2) 討論了**輸入詞id(input_ids)** 和 **注意力遮罩(attention_mask)** ，但我們在那個時候沒有討論**類型標記ID(token_type_ids)**。在這個例子中，**類型標記ID(token_type_ids)**的作用就是告訴模型輸入的哪一部分是第一句，哪一部分是第二句。
+
+> [!TIP]
+> ✏️ ** 試試看！** 選取訓練集中的第15個元素，將兩句話分別標記為一對。結果和上方的例子有什麼不同？
+
+如果我們將**input_ids**中的id轉換回文字:
+
+```py
+tokenizer.convert_ids_to_tokens(inputs["input_ids"])
+```
+
+我們將得到：
+
+```python out
+['[CLS]', 'this', 'is', 'the', 'first', 'sentence', '.', '[SEP]', 'this', 'is', 'the', 'second', 'one', '.', '[SEP]']
+```
+
+所以我們看到模型需要輸入的形式是 **[CLS] sentence1 [SEP] sentence2 [SEP]**。因此，當有兩句話的時候。**類型標記ID(token_type_ids)** 的值是：
+
+```python out
+['[CLS]', 'this', 'is', 'the', 'first', 'sentence', '.', '[SEP]', 'this', 'is', 'the', 'second', 'one', '.', '[SEP]']
+[      0,      0,    0,     0,       0,          0,   0,       0,      1,    1,     1,        1,     1,   1,       1]
+```
+
+如您所見，輸入中 **[CLS] sentence1 [SEP]** 它們的類型標記ID均為**0**，而其他部分，對應於**sentence2 [SEP]**，所有的類型標記ID均為**1**.
+
+請注意，如果選擇其他的檢查點，則不一定具有**類型標記ID(token_type_ids)**（例如，如果使用DistilBERT模型，就不會返回它們）。只有當它在預訓練期間使用過這一層，模型在構建時依賴它們，才會返回它們。
+
+用類型標記ID對BERT進行預訓練,並且使用[第一章](/course/chapter1)的遮罩語言模型，還有一個額外的應用類型，叫做下一句預測. 這項任務的目標是建立成對句子之間關係的模型。
+
+在下一個句子預測任務中，會給模型輸入成對的句子（帶有隨機遮罩的標記），並被要求預測第二個句子是否緊跟第一個句子。為了提高模型的泛化能力，數據集中一半的兩個句子在原始文檔中挨在一起，另一半的兩個句子來自兩個不同的文檔。
+
+一般來說，你不需要擔心是否有**類型標記ID(token_type_ids)**。在您的標輸入中：只要您對標記器和模型使用相同的檢查點，一切都會很好，因為標記器知道向其模型提供什麼。
+
+現在我們已經瞭解了標記器如何處理一對句子，我們可以使用它對整個數據集進行處理：如[之前的章節](/course/chapter2)，我們可以給標記器提供一組句子，第一個參數是它第一個句子的列表，第二個參數是第二個句子的列表。這也與我們在[第二章](/course/chapter2)中看到的填充和截斷選項兼容. 因此，預處理訓練數據集的一種方法是：
+
+```py
+tokenized_dataset = tokenizer(
+    raw_datasets["train"]["sentence1"],
+    raw_datasets["train"]["sentence2"],
+    padding=True,
+    truncation=True,
+)
+```
+
+這很有效，但它的缺點是返回字典（字典的鍵是**輸入詞id(input_ids)** ， **注意力遮罩(attention_mask)** 和 **類型標記ID(token_type_ids)**，字典的值是鍵所對應值的列表）。而且只有當您在轉換過程中有足夠的內存來存儲整個數據集時才不會出錯（而🤗數據集庫中的數據集是以[Apache Arrow](https://arrow.apache.org/)文件存儲在磁盤上，因此您只需將接下來要用的數據加載在內存中，因此會對內存容量的需求要低一些）。
+
+為了將數據保存為數據集，我們將使用[Dataset.map()](https://huggingface.co/docs/datasets/package_reference/main_classes#datasets.Dataset.map)方法，如果我們需要做更多的預處理而不僅僅是標記化，那麼這也給了我們一些額外的自定義的方法。這個方法的工作原理是在數據集的每個元素上應用一個函數，因此讓我們定義一個標記輸入的函數：
+
+```py
+def tokenize_function(example):
+    return tokenizer(example["sentence1"], example["sentence2"], truncation=True)
+```
+
+此函數的輸入是一個字典（與數據集的項類似），並返回一個包含**輸入詞id(input_ids)** ， **注意力遮罩(attention_mask)** 和 **類型標記ID(token_type_ids)** 鍵的新字典。請注意，如果像上面的**示例**一樣，如果鍵所對應的值包含多個句子（每個鍵作為一個句子列表），那麼它依然可以工作，就像前面的例子一樣標記器可以處理成對的句子列表。這樣的話我們可以在調用**map()**使用該選項 **batched=True** ，這將顯著加快標記與標記的速度。這個**標記器**來自[🤗 Tokenizers](https://github.com/huggingface/tokenizers)庫由Rust編寫而成。當我們一次給它大量的輸入時，這個標記器可以非常快。
+
+請注意，我們現在在標記函數中省略了**padding**參數。這是因為在標記的時候將所有樣本填充到最大長度的效率不高。一個更好的做法：在構建批處理時填充樣本更好，因為這樣我們只需要填充到該批處理中的最大長度，而不是整個數據集的最大長度。當輸入長度變化很大時，這可以節省大量時間和處理能力!
+
+下面是我們如何在所有數據集上同時應用標記函數。我們在調用**map**時使用了**batch =True**，這樣函數就可以同時應用到數據集的多個元素上，而不是分別應用到每個元素上。這將使我們的預處理快許多
+
+```py
+tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
+tokenized_datasets
+```
+
+🤗Datasets 庫應用這種處理的方式是向數據集添加新的字段，每個字段對應預處理函數返回的字典中的每個鍵:
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['attention_mask', 'idx', 'input_ids', 'label', 'sentence1', 'sentence2', 'token_type_ids'],
+        num_rows: 3668
+    })
+    validation: Dataset({
+        features: ['attention_mask', 'idx', 'input_ids', 'label', 'sentence1', 'sentence2', 'token_type_ids'],
+        num_rows: 408
+    })
+    test: Dataset({
+        features: ['attention_mask', 'idx', 'input_ids', 'label', 'sentence1', 'sentence2', 'token_type_ids'],
+        num_rows: 1725
+    })
+})
+```
+
+在使用預處理函數**map()**時，甚至可以通過傳遞**num_proc**參數使用並行處理。我們在這裡沒有這樣做，因為🤗標記器庫已經使用多個線程來更快地標記我們的樣本，但是如果您沒有使用該庫支持的快速標記器，使用**num_proc**可能會加快預處理。
+
+我們的**標記函數(tokenize_function)**返回包含**輸入詞id(input_ids)** ， **注意力遮罩(attention_mask)** 和 **類型標記ID(token_type_ids)** 鍵的字典,所以這三個字段被添加到數據集的標記的結果中。注意，如果預處理函數**map()**為現有鍵返回一個新值，那將會修改原有鍵的值。
+
+最後一件我們需要做的事情是，當我們一起批處理元素時，將所有示例填充到最長元素的長度——我們稱之為動態填充。
+
+### 動態填充
+
+<Youtube id="7q5NyFT8REg"/>
+
+{#if fw === 'pt'}
+負責在批處理中將數據整理為一個batch的函數稱為*collate函數*。它是你可以在構建**DataLoader**時傳遞的一個參數，默認是一個函數，它將把你的數據集轉換為PyTorch張量，並將它們拼接起來(如果你的元素是列表、元組或字典，則會使用遞歸)。這在我們的這個例子中下是不可行的，因為我們的輸入不是都是相同大小的。我們故意在之後每個batch上進行填充，避免有太多填充的過長的輸入。這將大大加快訓練速度，但請注意，如果你在TPU上訓練，這可能會導致問題——TPU喜歡固定的形狀，即使這需要額外的填充。
+
+{:else}
+
+負責在批處理中將數據整理為一個batch的函數稱為*collate函數*。它只會將您的樣本轉換為 tf.Tensor並將它們拼接起來(如果你的元素是列表、元組或字典，則會使用遞歸)。這在我們的這個例子中下是不可行的，因為我們的輸入不是都是相同大小的。我們故意在之後每個batch上進行填充，避免有太多填充的過長的輸入。這將大大加快訓練速度，但請注意，如果你在TPU上訓練，這可能會導致問題——TPU喜歡固定的形狀，即使這需要額外的填充。
+
+{/if}
+
+為了解決句子長度統一的問題，我們必須定義一個collate函數，該函數會將每個batch句子填充到正確的長度。幸運的是，🤗transformer庫通過**DataCollatorWithPadding**為我們提供了這樣一個函數。當你實例化它時，需要一個標記器(用來知道使用哪個詞來填充，以及模型期望填充在左邊還是右邊)，並將做你需要的一切:
+
+{#if fw === 'pt'}
+```py
+from transformers import DataCollatorWithPadding
+
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+```
+{:else}
+```py
+from transformers import DataCollatorWithPadding
+
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors="tf")
+```
+{/if}
+
+為了測試這個新玩具，讓我們從我們的訓練集中抽取幾個樣本。這裡，我們刪除列**idx**, **sentence1**和**sentence2**，因為不需要它們，並查看一個batch中每個條目的長度:
+
+```py
+samples = tokenized_datasets["train"][:8]
+samples = {k: v for k, v in samples.items() if k not in ["idx", "sentence1", "sentence2"]}
+[len(x) for x in samples["input_ids"]]
+```
+
+```python out
+[50, 59, 47, 67, 59, 50, 62, 32]
+```
+
+毫無疑問，我們得到了不同長度的樣本，從32到67。動態填充意味著該批中的所有樣本都應該填充到長度為67，這是該批中的最大長度。如果沒有動態填充，所有的樣本都必須填充到整個數據集中的最大長度，或者模型可以接受的最大長度。讓我們再次檢查**data_collator**是否正確地動態填充了這批樣本：
+
+```py:
+
+```py
+batch = data_collator(samples)
+{k: v.shape for k, v in batch.items()}
+```
+
+{#if fw === 'tf'}
+
+```python out
+{'attention_mask': TensorShape([8, 67]),
+ 'input_ids': TensorShape([8, 67]),
+ 'token_type_ids': TensorShape([8, 67]),
+ 'labels': TensorShape([8])}
+```
+
+{:else}
+
+```python out
+{'attention_mask': torch.Size([8, 67]),
+ 'input_ids': torch.Size([8, 67]),
+ 'token_type_ids': torch.Size([8, 67]),
+ 'labels': torch.Size([8])}
+```
+
+看起來不錯！現在，我們已經將原始文本轉化為了模型可以處理的數據，我們已準備好對其進行微調！
+
+{/if}
+
+> [!TIP]
+> ✏️ ** 試試看！** 在GLUE SST-2數據集上應用預處理。它有點不同，因為它是由單個句子而不是成對的句子組成的，但是我們所做的其他事情看起來應該是一樣的。另一個更難的挑戰，請嘗試編寫一個可用於任何GLUE任務的預處理函數。
+
+{#if fw === 'tf'}
+
+現在我們有了 dataset 和 data collator，我們需要將 dataset 批次地應用 data collator。 我們可以手動載入批次並整理它們，但這需要大量工作，性能可能也不是很好。 相反，有一個簡單的方法可以為這個問題提供高效的解決方案：`to_tf_dataset()`。 這將在您的數據集上調用一個 `tf.data.Dataset`的方法，這個方法帶有一個可選的 data collator 功能。 `tf.data.Dataset` 是 Keras 可用於 `model.fit()` 的原生 TensorFlow 格式，因此這種方法會立即將🤗 Dataset 轉換為可用於訓練的格式。 讓我們看看它在我們的數據集上是如何使用的！
+
+```py
+tf_train_dataset = tokenized_datasets["train"].to_tf_dataset(
+    columns=["attention_mask", "input_ids", "token_type_ids"],
+    label_cols=["labels"],
+    shuffle=True,
+    collate_fn=data_collator,
+    batch_size=8,
+)
+
+tf_validation_dataset = tokenized_datasets["validation"].to_tf_dataset(
+    columns=["attention_mask", "input_ids", "token_type_ids"],
+    label_cols=["labels"],
+    shuffle=False,
+    collate_fn=data_collator,
+    batch_size=8,
+)
+```
+
+就是這樣！ 我們可以將這些數據集帶入下一節，在經過所有艱苦的數據預處理工作之後，訓練將變得非常簡單。
+
+{/if}

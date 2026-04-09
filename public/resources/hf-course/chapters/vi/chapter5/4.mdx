@@ -1,0 +1,279 @@
+# Dữ liệu lớn? 🤗 Bộ dữ liệu để giải cứu!
+
+<CourseFloatingBanner chapter={5}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {
+      label: "Google Colab",
+      value:
+        "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/vi/chapter5/section4.ipynb",
+    },
+    {
+      label: "Aws Studio",
+      value:
+        "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/vi/chapter5/section4.ipynb",
+    },
+  ]}
+/>
+
+Ngày nay, không có gì lạ khi bạn đang làm việc với các bộ dữ liệu nhiều gigabyte, đặc biệt nếu bạn đang có kế hoạch huấn luyện trước một mô hình Transformer như BERT hoặc GPT-2 từ đầu. Trong những trường hợp này, thậm chí _tải_ dữ liệu có thể là một thách thức. Ví dụ: kho dữ liệu WebText được sử dụng để huấn luyện trước GPT-2 bao gồm hơn 8 triệu tài liệu và 40 GB văn bản - việc tải dữ liệu này vào RAM của máy tính xách tay của bạn có thể khiến bạn bị đau tim!
+
+May mắn thay, 🤗 Datasets đã được thiết kế để khắc phục những hạn chế này. Nó giải phóng bạn khỏi các vấn đề về quản lý bộ nhớ bằng cách coi các tập dữ liệu là tệp _ánh xạ bộ nhớ_ và thoát khỏi giới hạn ổ cứng bằng cách _truyền tải trực tiếp_ các mục trong một kho ngữ liệu.
+
+<Youtube id="JwISwTCPPWo" />
+
+Trong phần này, chúng ta sẽ khám phá các tính năng này của 🤗 Datasets với kho dữ liệu 825 GB khổng lồ được gọi là [Pile](https://pile.eleuther.ai). Bắt đầu thôi!
+
+## Pile là gì?
+
+The Pile là một kho ngữ liệu tiếng Anh được tạo ra bởi [EleutherAI](https://www.eleuther.ai) để huấn luyện các mô hình ngôn ngữ quy mô lớn. Nó bao gồm một loạt các bộ dữ liệu, các bài báo khoa học trải dài, kho mã GitHub và văn bản web được lọc. Kho tài liệu huấn luyện có sẵn trong [khối 14GB](https://the-eye.eu/public/AI/pile/) và bạn cũng có thể tải xuống một số [thành phần riêng lẻ](https://the-eye.eu/public/AI/pile_preliminary_components/). Hãy bắt đầu bằng cách xem qua tập dữ liệu PubMed Abstracts, tập dữ liệu tóm tắt từ 15 triệu ấn phẩm y sinh trên [PubMed](https://pubmed.ncbi.nlm.nih.gov/). Tập dữ liệu ở [định dạng JSON Lines](https://jsonlines.org) và được nén bằng thư viện `zstandard`, vì vậy trước tiên chúng ta cần cài đặt:
+
+```py
+!pip install zstandard
+```
+
+Tiếp theo, chúng ta có thể tải tập dữ liệu bằng phương pháp cho các tệp từ xa mà chúng ta đã học trong [phần 2](/course/chapter5/2):
+
+```py
+from datasets import load_dataset
+
+# Quá trình này mất một vài phút để chạy, vì vậy hãy làm cốc trà hoặc cà phê trong khi chờ đợi :)
+data_files = "https://the-eye.eu/public/AI/pile_preliminary_components/PUBMED_title_abstracts_2019_baseline.jsonl.zst"
+pubmed_dataset = load_dataset("json", data_files=data_files, split="train")
+pubmed_dataset
+```
+
+```python out
+Dataset({
+    features: ['meta', 'text'],
+    num_rows: 15518009
+})
+```
+
+Chúng ta có thể thấy rằng có 15,518,009 hàng và 2 cột trong tập dữ liệu của chúng tôi - đó là rất nhiều!
+
+> [!TIP]
+> ✎ Theo mặc định, 🤗 Datasets sẽ giải nén các tệp cần thiết để tải tập dữ liệu. Nếu bạn muốn bảo toàn dung lượng ổ cứng, bạn có thể truyền `DownloadConfig(delete_extracted=True)` vào tham số `download_config` của `load_dataset()`. Xem [tài liệu](https://huggingface.co/docs/datasets/package_reference/builder_classes#datasets.DownloadConfig) để biết thêm chi tiết.
+
+Hãy kiểm tra nội dung của mẫu đầu tiên:
+
+```py
+pubmed_dataset[0]
+```
+
+```python out
+{'meta': {'pmid': 11409574, 'language': 'eng'},
+ 'text': 'Epidemiology of hypoxaemia in children with acute lower respiratory infection.\nTo determine the prevalence of hypoxaemia in children aged under 5 years suffering acute lower respiratory infections (ALRI), the risk factors for hypoxaemia in children under 5 years of age with ALRI, and the association of hypoxaemia with an increased risk of dying in children of the same age ...'}
+```
+
+Được rồi, đây giống như phần tóm tắt từ một bài báo y khoa. Bây giờ chúng ta hãy xem chúng ta đã sử dụng bao nhiêu RAM để tải tập dữ liệu!
+
+## Sự kỳ diệu của ánh xạ bộ nhớ
+
+Một cách đơn giản để đo mức sử dụng bộ nhớ trong Python là sử dụng thư viện [`psutil`](https://psutil.readthedocs.io/en/latest/), có thể được cài đặt bằng `pip` như sau:
+
+```python
+!pip install psutil
+```
+
+Nó cung cấp một lớp `Process` cho phép chúng ta kiểm tra việc sử dụng bộ nhớ của tiến trình hiện tại như sau:
+
+```py
+import psutil
+
+# Process.memory_info được biểu thị bằng bytes, sau đó chuyển sang megabytes
+print(f"RAM used: {psutil.Process().memory_info().rss / (1024 * 1024):.2f} MB")
+```
+
+```python out
+RAM used: 5678.33 MB
+```
+
+Ở đây thuộc tính `rss` đề cập đến _resident set size_, là phần bộ nhớ mà một tiến trình chiếm trong RAM. Phép đo này cũng bao gồm bộ nhớ được sử dụng bởi trình thông dịch Python và các thư viện mà chúng tôi đã tải, do đó, lượng bộ nhớ thực tế được sử dụng để tải tập dữ liệu nhỏ hơn một chút. Để so sánh, hãy xem tập dữ liệu trên đĩa lớn như thế nào, sử dụng thuộc tính `dataset_size`. Vì kết quả được thể hiện bằng byte như trước đây, chúng tôi cần chuyển đổi thủ công nó thành gigabyte:
+
+```py
+print(f"Number of files in dataset : {pubmed_dataset.dataset_size}")
+size_gb = pubmed_dataset.dataset_size / (1024**3)
+print(f"Dataset size (cache file) : {size_gb:.2f} GB")
+```
+
+```python out
+Number of files in dataset : 20979437051
+Dataset size (cache file) : 19.54 GB
+```
+
+Tuyệt vời - mặc dù nó gần 20 GB, chúng ta có thể tải và truy cập tập dữ liệu với RAM ít hơn nhiều!
+
+> [!TIP]
+> ✏️ **Thử nghiệm thôi!** Chọn một trong các [tập hợp con](https://the-eye.eu/public/AI/pile_preliminary_components/) từ Pile sao cho lớn hơn RAM của máy tính xách tay hoặc máy tính để bàn của bạn, tải nó với 🤗 Datasets, và đo dung lượng RAM được sử dụng. Lưu ý rằng để có được một phép đo chính xác, bạn sẽ muốn thực hiện việc này trong một quy trình mới. Bạn có thể tìm thấy các kích thước đã giải nén của từng tập hợp con trong Bảng 1 của [bài báo về Pile](https://arxiv.org/abs/2101.00027).
+
+Nếu bạn đã quen thuộc với Pandas, kết quả này có thể gây bất ngờ vì theo [quy tắc ngón tay cái](https://wesmckinney.com/blog/apache-arrow-pandas-internals/) nổi tiếng của Wes Kinney, bạn thường cần gấp 5 gấp 10 lần RAM so với kích thước của tập dữ liệu của bạn. Vậy 🤗 Datasets giải quyết vấn đề quản lý bộ nhớ này như thế nào? 🤗 Datasets coi mỗi tập dữ liệu như một [tệp ánh xạ bộ nhớ](https://en.wikipedia.org/wiki/Memory-mapped_file), cung cấp ánh xạ giữa RAM và bộ nhớ hệ thống tệp cho phép thư viện truy cập và hoạt động trên các phần tử của tập dữ liệu mà không cần tải đầy đủ vào bộ nhớ.
+
+Các tệp được ánh xạ bộ nhớ cũng có thể được chia sẻ trên nhiều quy trình, cho phép các phương thức như `Dataset.map()` được thực thi song song mà không cần di chuyển hoặc sao chép tập dữ liệu. Bên cạnh đó, tất cả các khả năng này đều được thực hiện bởi định dạng bộ nhớ [Apache Arrow](https://arrow.apache.org) và thư viện[`pyarrow`](https://arrow.apache.org/docs/python/index.html), giúp tải và xử lý dữ liệu nhanh như chớp. (Để biết thêm chi tiết về Apache Arrow và so sánh với Pandas, hãy xem [Bài đăng trên blog của Dejan Simic](https://towardsdatascience.com/apache-arrow-read-dataframe-with-zero-memory-69634092b1a).) trong thực tế, hãy chạy một bài kiểm tra tốc độ nhỏ bằng cách lặp lại tất cả các phần tử trong tập dữ liệu PubMed Abstracts:
+
+```py
+import timeit
+
+code_snippet = """batch_size = 1000
+
+for idx in range(0, len(pubmed_dataset), batch_size):
+    _ = pubmed_dataset[idx:idx + batch_size]
+"""
+
+time = timeit.timeit(stmt=code_snippet, number=1, globals=globals())
+print(
+    f"Iterated over {len(pubmed_dataset)} examples (about {size_gb:.1f} GB) in "
+    f"{time:.1f}s, i.e. {size_gb/time:.3f} GB/s"
+)
+```
+
+```python out
+'Iterated over 15518009 examples (about 19.5 GB) in 64.2s, i.e. 0.304 GB/s'
+```
+
+Ở đây chúng ta đã sử dụng mô-đun `timeit` của Python để đo thời gian thực thi được thực hiện bởi `code_snippet`. Thông thường, bạn sẽ có thể lặp lại tập dữ liệu với tốc độ từ vài phần mười GB/s đến vài GB/s. Điều này hoạt động hiệu quả với đại đa số các ứng dụng, nhưng đôi khi bạn sẽ phải làm việc với một tập dữ liệu quá lớn, thậm chí không thể lưu trữ trên ổ cứng của máy tính xách tay của bạn. Ví dụ: nếu chúng tôi cố gắng tải xuống toàn bộ Pile, chúng tôi sẽ cần 825 GB dung lượng đĩa trống! Để xử lý những trường hợp này, 🤗 Datasets cung cấp tính năng phát trực tuyến cho phép chúng tôi tải xuống và truy cập các phần tử một cách nhanh chóng mà không cần tải xuống toàn bộ tập dữ liệu. Chúng ta hãy xem cách này hoạt động như thế nào.
+
+> [!TIP]
+> 💡 Trong sổ ghi chép Jupyter, bạn có thể định thời gian cho các ô bằng cách sử dụng[hàm ma thuật `%%timeit`](https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-timeit).
+
+## Truyền trực tuyến tập dữ liệu
+
+Để bật tính năng phát trực tuyến tập dữ liệu, bạn chỉ cần truyền tham số `streaming=True` vào hàm `load_dataset()`. Ví dụ: hãy tải lại tập dữ liệu PubMed Abstracts, nhưng ở chế độ phát trực tuyến:
+
+```py
+pubmed_dataset_streamed = load_dataset(
+    "json", data_files=data_files, split="train", streaming=True
+)
+```
+
+Thay vì `Dataset` quen thuộc mà chúng ta đã gặp ở những nơi khác trong chương này, đối tượng được trả về với `streaming=True` là một `IterableDataset`. Như cái tên cho thấy, để truy cập các phần tử của một `IterableDataset`, chúng ta cần phải lặp lại nó. Chúng tôi có thể truy cập phần tử đầu tiên của tập dữ liệu được phát trực tuyến của chúng tôi như sau:
+
+```py
+next(iter(pubmed_dataset_streamed))
+```
+
+```python out
+{'meta': {'pmid': 11409574, 'language': 'eng'},
+ 'text': 'Epidemiology of hypoxaemia in children with acute lower respiratory infection.\nTo determine the prevalence of hypoxaemia in children aged under 5 years suffering acute lower respiratory infections (ALRI), the risk factors for hypoxaemia in children under 5 years of age with ALRI, and the association of hypoxaemia with an increased risk of dying in children of the same age ...'}
+```
+
+Các phần tử từ một tập dữ liệu được truyền trực tuyến có thể được xử lý nhanh chóng bằng cách sử dụng `IterableDataset.map()`, rất hữu ích trong quá trình huấn luyện nếu bạn cần tokenize các đầu vào. Quy trình hoàn toàn giống với quy trình chúng ta đã sử dụng để tokenize tập dữ liệu của mình trong [Chương 3](/course/chapter3), với sự khác biệt duy nhất là các đầu ra được trả về từng cái một:
+
+```py
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+tokenized_dataset = pubmed_dataset_streamed.map(lambda x: tokenizer(x["text"]))
+next(iter(tokenized_dataset))
+```
+
+```python out
+{'input_ids': [101, 4958, 5178, 4328, 6779, ...], 'attention_mask': [1, 1, 1, 1, 1, ...]}
+```
+
+> [!TIP]
+> 💡 Để tăng tốc độ trình tokenize với tính năng phát trực tuyến, bạn có thể vượt qua `batched=True`, như chúng ta đã thấy trong phần trước. Nó sẽ xử lý hàng loạt các ví dụ; kích thước lô mặc định là 1,000 và có thể được chỉ định bằng tham số `batch_size`.
+
+Bạn cũng có thể xáo trộn một tập dữ liệu được phát trực tuyến bằng cách sử dụng `IterableDataset.shuffle()`, nhưng không giống như `Dataset.shuffle()` điều này chỉ xáo trộn các phần tử trong một `buffer_size` được định trước:
+
+```py
+shuffled_dataset = pubmed_dataset_streamed.shuffle(buffer_size=10_000, seed=42)
+next(iter(shuffled_dataset))
+```
+
+```python out
+{'meta': {'pmid': 11410799, 'language': 'eng'},
+ 'text': 'Randomized study of dose or schedule modification of granulocyte colony-stimulating factor in platinum-based chemotherapy for elderly patients with lung cancer ...'}
+```
+
+Trong ví dụ này, chúng ta đã chọn một mẫu ngẫu nhiên từ 10,000 mẫu đầu tiên trong bộ đệm. Khi một mẫu được truy cập, vị trí của nó trong bộ đệm sẽ được lấp đầy bằng ví dụ tiếp theo trong kho tài liệu (tức là ví dụ thứ 10,001 trong trường hợp trên). Bạn cũng có thể chọn các phần tử từ một tập dữ liệu được truyền trực tuyến bằng cách sử dụng các hàm `IterableDataset.take()` và `IterableDataset.skip()`, hoạt động theo cách tương tự như `Dataset.select()`. Ví dụ, để chọn 5 mẫu đầu tiên trong tập dữ liệu PubMed Abstracts, chúng ta có thể làm như sau:
+
+```py
+dataset_head = pubmed_dataset_streamed.take(5)
+list(dataset_head)
+```
+
+```python out
+[{'meta': {'pmid': 11409574, 'language': 'eng'},
+  'text': 'Epidemiology of hypoxaemia in children with acute lower respiratory infection ...'},
+ {'meta': {'pmid': 11409575, 'language': 'eng'},
+  'text': 'Clinical signs of hypoxaemia in children with acute lower respiratory infection: indicators of oxygen therapy ...'},
+ {'meta': {'pmid': 11409576, 'language': 'eng'},
+  'text': "Hypoxaemia in children with severe pneumonia in Papua New Guinea ..."},
+ {'meta': {'pmid': 11409577, 'language': 'eng'},
+  'text': 'Oxygen concentrators and cylinders ...'},
+ {'meta': {'pmid': 11409578, 'language': 'eng'},
+  'text': 'Oxygen supply in rural africa: a personal experience ...'}]
+```
+
+Tương tự, bạn có thể sử dụng hàm `IterableDataset.skip()` để tạo các tập huấn luyện và kiểm định từ một tập dữ liệu xáo trộn như sau:
+
+```py
+# Bỏ qua 1,000 mẫu đầu tiên và đưa phần còn lại vào tập huấn luyện
+train_dataset = shuffled_dataset.skip(1000)
+# Lấy 1,000 ví dụ đầu tiên cho tập kiểm định
+validation_dataset = shuffled_dataset.take(1000)
+```
+
+Hãy hoàn thành việc khám phá của chúng ta về việc truyền trực tuyến tập dữ liệu với một ứng dụng phổ biến: kết hợp nhiều tập dữ liệu với nhau để tạo ra một kho dữ liệu duy nhất. 🤗 Datasets cung cấp một hàm `interleave_datasets()` để chuyển đổi danh sách các đối tượng `IterableDataset` thành một `IterableDataset` duy nhất, trong đó các phần tử của tập dữ liệu mới được lấy bằng cách xen kẽ giữa các mẫu gốc. Hàm này đặc biệt hữu ích khi bạn đang cố gắng kết hợp các tập dữ liệu lớn, vì vậy, để làm ví dụ, hãy truyền trực tuyến tập con FreeLaw của Pile, là tập dữ liệu 51 GB về các ý kiến pháp lý từ các tòa án Hoa Kỳ:
+
+```py
+law_dataset_streamed = load_dataset(
+    "json",
+    data_files="https://the-eye.eu/public/AI/pile_preliminary_components/FreeLaw_Opinions.jsonl.zst",
+    split="train",
+    streaming=True,
+)
+next(iter(law_dataset_streamed))
+```
+
+```python out
+{'meta': {'case_ID': '110921.json',
+  'case_jurisdiction': 'scotus.tar.gz',
+  'date_created': '2010-04-28T17:12:49Z'},
+ 'text': '\n461 U.S. 238 (1983)\nOLIM ET AL.\nv.\nWAKINEKONA\nNo. 81-1581.\nSupreme Court of United States.\nArgued January 19, 1983.\nDecided April 26, 1983.\nCERTIORARI TO THE UNITED STATES COURT OF APPEALS FOR THE NINTH CIRCUIT\n*239 Michael A. Lilly, First Deputy Attorney General of Hawaii, argued the cause for petitioners. With him on the brief was James H. Dannenberg, Deputy Attorney General...'}
+```
+
+Tập dữ liệu này đủ lớn để kích hoạt RAM của hầu hết các máy tính xách tay, nhưng chúng ta vẫn có thể tải và truy cập nó mà không phải đổ mồ hôi! Bây giờ chúng ta hãy kết hợp các mẫu từ bộ dữ liệu FreeLaw và PubMed Abstracts với hàm `interleave_datasets()`:
+
+```py
+from itertools import islice
+from datasets import interleave_datasets
+
+combined_dataset = interleave_datasets([pubmed_dataset_streamed, law_dataset_streamed])
+list(islice(combined_dataset, 2))
+```
+
+```python out
+[{'meta': {'pmid': 11409574, 'language': 'eng'},
+  'text': 'Epidemiology of hypoxaemia in children with acute lower respiratory infection ...'},
+ {'meta': {'case_ID': '110921.json',
+   'case_jurisdiction': 'scotus.tar.gz',
+   'date_created': '2010-04-28T17:12:49Z'},
+  'text': '\n461 U.S. 238 (1983)\nOLIM ET AL.\nv.\nWAKINEKONA\nNo. 81-1581.\nSupreme Court of United States.\nArgued January 19, 1983.\nDecided April 26, 1983.\nCERTIORARI TO THE UNITED STATES COURT OF APPEALS FOR THE NINTH CIRCUIT\n*239 Michael A. Lilly, First Deputy Attorney General of Hawaii, argued the cause for petitioners. With him on the brief was James H. Dannenberg, Deputy Attorney General...'}]
+```
+
+Ở đây chúng ta đã sử dụng hàm `islice()` từ mô-đun `itertools` của Python để chọn hai mẫu đầu tiên từ tập dữ liệu kết hợp và chúng ta có thể thấy rằng chúng khớp với các ví dụ đầu tiên từ mỗi trong hai tập dữ liệu nguồn.
+
+Cuối cùng, nếu bạn muốn phát trực tuyến toàn bộ 825 GB của Pile, bạn có thể lấy tất cả các tệp đã chuẩn bị như sau:
+
+```py
+base_url = "https://the-eye.eu/public/AI/pile/"
+data_files = {
+    "train": [base_url + "train/" + f"{idx:02d}.jsonl.zst" for idx in range(30)],
+    "validation": base_url + "val.jsonl.zst",
+    "test": base_url + "test.jsonl.zst",
+}
+pile_dataset = load_dataset("json", data_files=data_files, streaming=True)
+next(iter(pile_dataset["train"]))
+```
+
+```python out
+{'meta': {'pile_set_name': 'Pile-CC'},
+ 'text': 'It is done, and submitted. You can play “Survival of the Tastiest” on Android, and on the web...'}
+```
+
+> [!TIP]
+> ✏️ **Thử nghiệm thôi!** Sử dụng một trong những kho tài liệu Common Crawl lớn như [`mc4`](https://huggingface.co/datasets/mc4) hoặc [`oscar`](https://huggingface.co/datasets/oscar) để tạo tập dữ liệu đa ngôn ngữ trực tuyến thể hiện tỷ lệ nói của các ngôn ngữ ở quốc gia bạn chọn. Ví dụ: bốn ngôn ngữ quốc gia ở Thụy Sĩ là tiếng Đức, tiếng Pháp, tiếng Ý và tiếng La Mã, vì vậy bạn có thể thử tạo một kho ngữ liệu tiếng Thụy Sĩ bằng cách lấy mẫu các tập hợp con Oscar theo tỷ lệ nói của chúng.
+
+Giờ đây, bạn có tất cả các công cụ cần thiết để tải và xử lý các tập dữ liệu ở mọi hình dạng và kích thước - nhưng trừ khi bạn đặc biệt may mắn, sẽ đến một thời điểm trong hành trình NLP của bạn, nơi bạn sẽ phải thực sự tạo một tập dữ liệu để giải quyết vấn đề vấn đề trong tầm tay. Đó là chủ đề của phần tiếp theo!

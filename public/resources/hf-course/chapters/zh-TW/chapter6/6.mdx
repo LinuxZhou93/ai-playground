@@ -1,0 +1,359 @@
+# WordPiece 標記化  
+
+<CourseFloatingBanner chapter={6}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/zh-CN/chapter6/section6.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/zh-CN/chapter6/section6.ipynb"},
+]} />
+
+WordPiece 是 Google 為預訓練 BERT 而開發的標記化算法。此後,它在不少基於 BERT 的 Transformer 模型中得到重用,例如 DistilBERT、MobileBERT、Funnel Transformers 和 MPNET。它在訓練方面與 BPE 非常相似,但實際標記化的方式不同。
+
+<Youtube id="qpv6ms_t_1A"/>
+
+> [!TIP]
+> 💡 本節深入介紹 WordPiece,甚至展示完整的實現。如果您只想大致瞭解標記化算法,可以跳到最後。
+
+## 訓練算法
+
+> [!WARNING]
+> ⚠️ Google 從未開源 WordPiece 訓練算法的實現,因此以下是我們基於已發表文獻的最佳猜測。它可能不是 100% 準確的。
+
+與 BPE 一樣,WordPiece 從一個小詞彙表開始,包括模型使用的特殊標記和初始字母表。因為它通過添加前綴來識別子詞 (如同 `##` 對於 BERT),每個單詞最初是通過將該前綴添加到單詞內的所有字符來拆分的。所以,例如 `"word"` ,像這樣拆分:
+
+```
+w ##o ##r ##d
+```
+
+因此,初始字母表包含出現在單詞開頭的所有字符以及出現在單詞內部的以 WordPiece 前綴開頭的字符。
+
+然後,再次像 BPE 一樣,WordPiece 學習合併規則。主要區別在於選擇要合併的對的方式。WordPiece 不是選擇最頻繁的對，而是使用以下公式計算每對的分數:
+
+$$\mathrm{score} = (\mathrm{freq\_of\_pair}) / (\mathrm{freq\_of\_first\_element} \times \mathrm{freq\_of\_second\_element})$$
+
+通過將配對的頻率除以其每個部分的頻率的乘積, 該算法優先合併單個部分在詞彙表中頻率較低的對。例如,它不一定會合並 `("un", "##able")` 即使這對在詞彙表中出現的頻率很高,因為 `"un"` 和 `"##able"` 很可能每個詞都出現在很多其他詞中並且出現頻率很高。相比之下,像 `("hu", "##gging")` 可能會更快地合併 (假設 "hugging" 經常出現在詞彙表中),因為 `"hu"` 和 `"##gging"` 這兩個詞單獨出現地頻率可能較低。
+
+讓我們看看我們在 BPE 訓練示例中使用的相同詞彙:
+
+```
+("hug", 10), ("pug", 5), ("pun", 12), ("bun", 4), ("hugs", 5)
+```
+
+這裡的拆分將是:
+
+```
+("h" "##u" "##g", 10), ("p" "##u" "##g", 5), ("p" "##u" "##n", 12), ("b" "##u" "##n", 4), ("h" "##u" "##g" "##s", 5)
+```
+
+所以最初的詞彙將是 `["b", "h", "p", "##g", "##n", "##s", "##u"]` (如果我們暫時忘記特殊標記)。最頻繁的一對是 `("##u", "##g")` (目前20次),但 `"##u"` 單獨出現的頻率非常高,所以它的分數不是最高的(它是 1 / 36)。所有帶有 `"##u"` 的對實際上都有相同的分數(1 / 36),所以分數最高的對是 `("##g", "##s")` -- 唯一沒有 `"##u"` 的對-- 1 / 20,所以學習的第一個合併是 `("##g", "##s") -> ("##gs")`。
+
+請注意,當我們合併時,我們刪除了兩個標記之間的 `##`,所以我們添加 `"##gs"` 到詞彙表中,並在語料庫的單詞中應用該合併:
+
+```
+Vocabulary: ["b", "h", "p", "##g", "##n", "##s", "##u", "##gs"]
+Corpus: ("h" "##u" "##g", 10), ("p" "##u" "##g", 5), ("p" "##u" "##n", 12), ("b" "##u" "##n", 4), ("h" "##u" "##gs", 5)
+```
+
+在這一點中, `"##u"` 是在所有可能的對中,因此它們最終都具有相同的分數。假設在這種情況下,第一對被合併, `("h", "##u") -> "hu"`。這使得我們:
+
+```
+Vocabulary: ["b", "h", "p", "##g", "##n", "##s", "##u", "##gs", "hu"]
+Corpus: ("hu" "##g", 10), ("p" "##u" "##g", 5), ("p" "##u" "##n", 12), ("b" "##u" "##n", 4), ("hu" "##gs", 5)
+```
+
+然後下一個最高的分數由 `("hu", "##g")` 和 `("hu", "##gs")` 共享(1/15,與其他所有對的 1/21 相比),因此合併得分最高的第一對:
+
+```
+Vocabulary: ["b", "h", "p", "##g", "##n", "##s", "##u", "##gs", "hu", "hug"]
+Corpus: ("hug", 10), ("p" "##u" "##g", 5), ("p" "##u" "##n", 12), ("b" "##u" "##n", 4), ("hu" "##gs", 5)
+```
+
+我們繼續這樣處理,直到達到我們所需的詞彙量。
+
+> [!TIP]
+> ✏️ **現在輪到你了!** 下一個合併規則是什麼？
+
+## 標記化算法
+
+WordPiece 和 BPE 中的標記化的不同在於 WordPiece 只保存最終詞彙,而不是學習的合併規則。從要標記的單詞開始,WordPiece 找到詞彙表中最長的子詞,然後對其進行拆分。例如,如果我們使用上面例子中學到的詞彙,對於單詞 `"hugs"`,詞彙表中從頭開始的最長子詞是 `"hug"`,所以我們在那裡拆分並得到 `["hug", "##s"]`。 然後我們繼續使用詞彙表中的 `"##s"`,因此 `"hugs"` 的標記化是 `["hug", "##s"]`.
+
+使用 BPE, 我們將按順序應用學習到的合併並將其標記為 `["hu", "##gs"]`,所以編碼不同。
+
+再舉一個例子,讓我們看看 `"bugs"` 將如何被標記化。 `"b"` 是從詞彙表中單詞開頭開始的最長子詞,所以我們在那裡拆分並得到 `["b", "##ugs"]`。然後 `"##u"` 是詞彙表中從 `"##ugs"` 開始的最長的子詞,所以我們在那裡拆分並得到 `["b", "##u, "##gs"]`。最後, `"##gs"` 在詞彙表中,所以最後一個列表是 `"bugs"` 的標記化。
+
+當分詞達到無法在詞彙表中找到子詞的階段時, 整個詞被標記為未知 -- 例如, `"mug"` 將被標記為 `["[UNK]"]`,就像 `"bum"` (即使我們可以以 `"b"` 和 `"##u"` 開始, `"##m"` 不在詞彙表中,由此產生的標記將只是 `["[UNK]"]`, 不是 `["b", "##u", "[UNK]"]`)。這是與 BPE 的另一個區別,BPE 只會將不在詞彙表中的單個字符分類為未知。
+
+> [!TIP]
+> ✏️ **現在輪到你了!** `"pugs"` 將被如何標記?
+
+## 實現 WordPiece
+
+現在讓我們看一下 WordPiece 算法的實現。與 BPE 一樣,這只是教學,你將無法在大型語料庫中使用它。
+
+我們將使用與 BPE 示例中相同的語料庫:
+
+```python
+corpus = [
+    "This is the Hugging Face course.",
+    "This chapter is about tokenization.",
+    "This section shows several tokenizer algorithms.",
+    "Hopefully, you will be able to understand how they are trained and generate tokens.",
+]
+```
+
+首先,我們需要將語料庫預先標記為單詞。由於我們正在複製 WordPiece 標記器 (如 BERT),因此我們將使用 `bert-base-cased` 標記器用於預標記化:
+
+```python
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+```
+
+然後我們在進行預標記化時計算語料庫中每個單詞的頻率:
+
+```python
+from collections import defaultdict
+
+word_freqs = defaultdict(int)
+for text in corpus:
+    words_with_offsets = tokenizer.backend_tokenizer.pre_tokenizer.pre_tokenize_str(text)
+    new_words = [word for word, offset in words_with_offsets]
+    for word in new_words:
+        word_freqs[word] += 1
+
+word_freqs
+```
+
+```python out
+defaultdict(
+    int, {'This': 3, 'is': 2, 'the': 1, 'Hugging': 1, 'Face': 1, 'Course': 1, '.': 4, 'chapter': 1, 'about': 1,
+    'tokenization': 1, 'section': 1, 'shows': 1, 'several': 1, 'tokenizer': 1, 'algorithms': 1, 'Hopefully': 1,
+    ',': 1, 'you': 1, 'will': 1, 'be': 1, 'able': 1, 'to': 1, 'understand': 1, 'how': 1, 'they': 1, 'are': 1,
+    'trained': 1, 'and': 1, 'generate': 1, 'tokens': 1})
+```
+
+正如我們之前看到的,字母表是由單詞的所有第一個字母組成的唯一集合,以及出現在前綴為 `##` 的其他字母:
+
+```python
+alphabet = []
+for word in word_freqs.keys():
+    if word[0] not in alphabet:
+        alphabet.append(word[0])
+    for letter in word[1:]:
+        if f"##{letter}" not in alphabet:
+            alphabet.append(f"##{letter}")
+
+alphabet.sort()
+alphabet
+
+print(alphabet)
+```
+
+```python out
+['##a', '##b', '##c', '##d', '##e', '##f', '##g', '##h', '##i', '##k', '##l', '##m', '##n', '##o', '##p', '##r', '##s',
+ '##t', '##u', '##v', '##w', '##y', '##z', ',', '.', 'C', 'F', 'H', 'T', 'a', 'b', 'c', 'g', 'h', 'i', 's', 't', 'u',
+ 'w', 'y']
+```
+
+我們還在該詞彙表的開頭添加了模型使用的特殊標記。在使用 BERT 的情況下,它是列表 `["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"]`:
+
+```python
+vocab = ["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"] + alphabet.copy()
+```
+
+接下來我們需要拆分每個單詞, 所有不是第一個字母的字母都以 `##` 為前綴:
+
+```python
+splits = {
+    word: [c if i == 0 else f"##{c}" for i, c in enumerate(word)]
+    for word in word_freqs.keys()
+}
+```
+
+現在我們已經準備好訓練了,讓我們編寫一個函數來計算每對的分數。我們需要在訓練的每個步驟中使用它:
+
+```python
+def compute_pair_scores(splits):
+    letter_freqs = defaultdict(int)
+    pair_freqs = defaultdict(int)
+    for word, freq in word_freqs.items():
+        split = splits[word]
+        if len(split) == 1:
+            letter_freqs[split[0]] += freq
+            continue
+        for i in range(len(split) - 1):
+            pair = (split[i], split[i + 1])
+            letter_freqs[split[i]] += freq
+            pair_freqs[pair] += freq
+        letter_freqs[split[-1]] += freq
+
+    scores = {
+        pair: freq / (letter_freqs[pair[0]] * letter_freqs[pair[1]])
+        for pair, freq in pair_freqs.items()
+    }
+    return scores
+```
+
+讓我們來看看這個字典在初始拆分後的一部分:
+
+```python
+pair_scores = compute_pair_scores(splits)
+for i, key in enumerate(pair_scores.keys()):
+    print(f"{key}: {pair_scores[key]}")
+    if i >= 5:
+        break
+```
+
+```python out
+('T', '##h'): 0.125
+('##h', '##i'): 0.03409090909090909
+('##i', '##s'): 0.02727272727272727
+('i', '##s'): 0.1
+('t', '##h'): 0.03571428571428571
+('##h', '##e'): 0.011904761904761904
+```
+
+現在,找到得分最高的對只需要一個快速循環:
+
+```python
+best_pair = ""
+max_score = None
+for pair, score in pair_scores.items():
+    if max_score is None or max_score < score:
+        best_pair = pair
+        max_score = score
+
+print(best_pair, max_score)
+```
+
+```python out
+('a', '##b') 0.2
+```
+
+所以第一個要學習的合併是 `('a', '##b') -> 'ab'`, 並且我們添加 `'ab'` 到詞彙表中:
+
+```python
+vocab.append("ab")
+```
+
+要繼續接下來的步驟,我們需要在我們的 `拆分` 字典中應用該合併。讓我們為此編寫另一個函數:
+
+```python
+def merge_pair(a, b, splits):
+    for word in word_freqs:
+        split = splits[word]
+        if len(split) == 1:
+            continue
+        i = 0
+        while i < len(split) - 1:
+            if split[i] == a and split[i + 1] == b:
+                merge = a + b[2:] if b.startswith("##") else a + b
+                split = split[:i] + [merge] + split[i + 2 :]
+            else:
+                i += 1
+        splits[word] = split
+    return splits
+```
+
+我們可以看看第一次合併的結果:
+
+```py
+splits = merge_pair("a", "##b", splits)
+splits["about"]
+```
+
+```python out
+['ab', '##o', '##u', '##t']
+```
+
+現在我們有了循環所需的一切,直到我們學會了我們想要的所有合併。我們的目標詞彙量為70:
+
+```python
+vocab_size = 70
+while len(vocab) < vocab_size:
+    scores = compute_pair_scores(splits)
+    best_pair, max_score = "", None
+    for pair, score in scores.items():
+        if max_score is None or max_score < score:
+            best_pair = pair
+            max_score = score
+    splits = merge_pair(*best_pair, splits)
+    new_token = (
+        best_pair[0] + best_pair[1][2:]
+        if best_pair[1].startswith("##")
+        else best_pair[0] + best_pair[1]
+    )
+    vocab.append(new_token)
+```
+
+然後我們可以查看生成的詞彙表:
+
+```py
+print(vocab)
+```
+
+```python out
+['[PAD]', '[UNK]', '[CLS]', '[SEP]', '[MASK]', '##a', '##b', '##c', '##d', '##e', '##f', '##g', '##h', '##i', '##k',
+ '##l', '##m', '##n', '##o', '##p', '##r', '##s', '##t', '##u', '##v', '##w', '##y', '##z', ',', '.', 'C', 'F', 'H',
+ 'T', 'a', 'b', 'c', 'g', 'h', 'i', 's', 't', 'u', 'w', 'y', '##fu', 'Fa', 'Fac', '##ct', '##ful', '##full', '##fully',
+ 'Th', 'ch', '##hm', 'cha', 'chap', 'chapt', '##thm', 'Hu', 'Hug', 'Hugg', 'sh', 'th', 'is', '##thms', '##za', '##zat',
+ '##ut']
+```
+
+正如我們所看到的,與 BPE 相比,這個標記器將單詞的一部分作為標記學習得更快一些。
+
+> [!TIP]
+> 💡 在同一語料庫上使用 `train_new_from_iterator()` 不會產生完全相同的詞彙表。這是因為 🤗 Tokenizers 庫沒有為訓練實現 WordPiece(因為我們不完全確定它的內部結構),而是使用 BPE。
+
+為了對新文本進行分詞,我們對其進行預分詞、拆分,然後對每個單詞應用分詞算法。也就是說,我們從第一個詞的開頭尋找最大的子詞並將其拆分,然後我們在第二部分重複這個過程,對於該詞的其餘部分和文本中的以下詞,依此類推:
+
+```python
+def encode_word(word):
+    tokens = []
+    while len(word) > 0:
+        i = len(word)
+        while i > 0 and word[:i] not in vocab:
+            i -= 1
+        if i == 0:
+            return ["[UNK]"]
+        tokens.append(word[:i])
+        word = word[i:]
+        if len(word) > 0:
+            word = f"##{word}"
+    return tokens
+```
+
+讓我們用詞彙表中的一個單詞和另一個不在詞彙表中的單詞進行測試:
+
+```python
+print(encode_word("Hugging"))
+print(encode_word("HOgging"))
+```
+
+```python out
+['Hugg', '##i', '##n', '##g']
+['[UNK]']
+```
+
+現在,讓我們編寫一個標記文本的函數:
+
+```python
+def tokenize(text):
+    pre_tokenize_result = tokenizer._tokenizer.pre_tokenizer.pre_tokenize_str(text)
+    pre_tokenized_text = [word for word, offset in pre_tokenize_result]
+    encoded_words = [encode_word(word) for word in pre_tokenized_text]
+    return sum(encoded_words, [])
+```
+
+我們可以在任何文本上嘗試:
+
+```python
+tokenize("This is the Hugging Face course!")
+```
+
+```python out
+['Th', '##i', '##s', 'is', 'th', '##e', 'Hugg', '##i', '##n', '##g', 'Fac', '##e', 'c', '##o', '##u', '##r', '##s',
+ '##e', '[UNK]']
+```
+
+這就是 WordPiece 算法的全部內容!現在讓我們來看看 Unigram。

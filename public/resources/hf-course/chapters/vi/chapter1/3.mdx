@@ -1,0 +1,307 @@
+# Transformers có thể làm những gì?
+
+<CourseFloatingBanner chapter={1}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/vi/chapter1/section3.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/vi/chapter1/section3.ipynb"},
+]} />
+
+Trong phần này, chúng ta sẽ xem các mô hình Transformer có thể làm được những gì và sử dụng công cụ đầu tiên từ thư viện 🤗 Transformers: hàm `pipeline()`.
+
+> [!TIP]
+> Bạn có thấy nút <em>Mở trong Colab</em> ở trên cùng bên phải không? Bấm vào nó để mở sổ ghi chép Google Colab với tất cả các đoạn mã của phần này. Nút này sẽ xuất hiện trong bất kỳ phần nào có chứa các mã ví dụ.
+>
+> Nếu bạn muốn chạy các ví dụ ở máy cá nhân, các bạn có thể tham khảo phần <a href="/course/chapter0">cài đặt</a>.
+
+## Transformers ở muôn nơi!
+
+Các mô hình Transformers được sử dụng để giải quyết tất cả các kiểu tác vụ NLP, giống như các mô hình đề cập trong phần trước. Dưới đây là một số công ty và tổ chức sử dụng Hugging Face và các mô hình Transformer, đồng thời đóng góp lại cho cộng đồng bằng cách chia sẻ các mô hình của họ:
+
+<img src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter1/companies.PNG" alt="Companies using Hugging Face" width="100%">
+
+Thư viện [🤗 Transformers](https://github.com/huggingface/transformers) cung cấp tính năng tạo và sử dụng các mô hình được chia sẻ đó. [Model Hub](https://huggingface.co/models) chứa hàng nghìn mô hình được huấn luyện trước mà bất kỳ ai cũng có thể tải xuống và sử dụng. Bạn cũng có thể tải các mô hình của riêng mình lên Hub!
+
+> [!TIP]
+> ⚠️ Hugging Face Hub không giới hạn ở các mô hình Transformer. Bất kỳ ai cũng có thể chia sẻ bất kỳ loại mô hình hoặc bộ dữ liệu nào họ muốn! <a href="https://huggingface.co/join"> Tạo tài khoản huggingface.co </a> để hưởng lợi từ tất cả các tính năng có sẵn này!
+
+Trước khi đi sâu vào cách hoạt động của các mô hình Transformer, hãy cùng xem một vài ví dụ về cách sử dụng chúng để giải quyết một số vấn đề NLP thú vị.
+
+## Làm việc với pipelines
+
+<Youtube id="tiZFewofSLM" />
+
+Đối tượng cơ bản nhất trong thư viện 🤗 Transformers là hàm `pipeline()`. Hàm kết nối một mô hình với các bước tiền xử lý và hậu xử lý cần thiết, cho phép chúng ta nhập trực tiếp bất kỳ văn bản nào và nhận được câu trả lời dễ hiểu:
+
+```python
+from transformers import pipeline
+
+classifier = pipeline("sentiment-analysis")
+classifier("I've been waiting for a HuggingFace course my whole life.")
+```
+
+```python out
+[{'label': 'POSITIVE', 'score': 0.9598047137260437}]
+```
+
+Chúng tôi thậm chí có thể truyền vào nhiều câu!
+
+```python
+classifier(
+    ["I've been waiting for a HuggingFace course my whole life.", "I hate this so much!"]
+)
+```
+
+```python out
+[{'label': 'POSITIVE', 'score': 0.9598047137260437},
+ {'label': 'NEGATIVE', 'score': 0.9994558095932007}]
+```
+
+Theo mặc định, quy trình này chọn một mô hình cụ thể được huấn luyện trước và đã được tinh chỉnh để phân tích cảm xúc văn bản tiếng Anh. Mô hình được tải xuống và lưu vào bộ nhớ cache khi bạn tạo đối tượng `classifier`. Nếu bạn chạy lại lệnh, mô hình đã lưu trong bộ nhớ cache sẽ được sử dụng thay thế và không cần tải lại mô hình một lần nữa.
+
+Có ba bước chính khi bạn chuyển một số văn bản vào một pipeline:
+
+1. Văn bản được tiền xử lý thành một định dạng mà mô hình có thể hiểu được.
+2. Các đầu vào đã tiền xử lý được đưa vào mô hình.
+3. Các dự đoán của mô hình được hậu xử lý để bạn có thể hiểu được chúng.
+
+Một số [pipeline](https://huggingface.co/transformers/main_classes/pipelines.html) hiện có có thể kể đến:
+
+- `feature-extraction` (trích xuất biểu diễn vectơ của một văn bản)
+- `fill-mask`
+- `ner` (nhận dạng thực thể)
+- `question-answering`
+- `sentiment-analysis`
+- `summarization`
+- `text-generation`
+- `translation`
+- `zero-shot-classification`
+
+Chúng ta hãy cùng xem một vài ví dụ trong số kể trên!
+
+## Phân loại không mẫu (Zero-shot)
+
+Chúng ta sẽ bắt đầu với việc giải quyết một tác vụ khó nhằn hơn: chúng ta cần phân loại các văn bản chưa được dán nhãn. Đây là một tình huống phổ biến trong các dự án thực tế vì việc đánh nhãn văn bản thường tốn nhiều thời gian và yêu cầu kiến thức chuyên môn. Đối với trường hợp này, `zero-shot-classification` là một phương án mạnh mẽ: nó cho phép bạn chỉ định nhãn nào sẽ sử dụng để phân loại, vì vậy bạn không cần phải dựa vào các nhãn của mô hình được huấn luyện trước.
+
+Bạn đã thấy cách mô hình có thể phân loại một câu là tích cực hay tiêu cực bằng cách sử dụng hai nhãn đó - nhưng nó cũng có thể phân loại văn bản bằng cách sử dụng bất kỳ bộ nhãn nào khác mà bạn thích.
+
+```python
+from transformers import pipeline
+
+classifier = pipeline("zero-shot-classification")
+classifier(
+    "This is a course about the Transformers library",
+    candidate_labels=["education", "politics", "business"],
+)
+```
+
+```python out
+{'sequence': 'This is a course about the Transformers library',
+ 'labels': ['education', 'business', 'politics'],
+ 'scores': [0.8445963859558105, 0.111976258456707, 0.043427448719739914]}
+```
+
+Quy trình này được gọi là _zero-shot_ (không mẫu) vì bạn không cần tinh chỉnh mô hình trên dữ liệu của bạn để sử dụng. Nó có thể trực tiếp trả về xác suất cho bất kỳ danh sách nhãn nào bạn muốn!
+
+> [!TIP]
+> ✏️ **Thử nghiệm thôi!** Cùng thử các chuỗi văn bản và các nhãn riêng của bạn để xem mô hình hoạt động như thế nào.
+
+## Tạo văn bản
+
+Giờ chúng ta hãy cùng xem cách sử dụng một pipeline để tạo ra văn bản. Ý tưởng chính ở đây là bạn cung cấp một lời gợi ý và mô hình sẽ tự động hoàn thành nó bằng cách tạo ra phần văn bản còn lại. Điều này tương tự như tính năng gợi ý văn bản được tìm thấy trên điện thoại. Việc tạo văn bản liên quan đến sự ngẫu nhiên, vì vậy nếu bạn không nhận được kết quả như hình dưới đây cũng là điều dễ hiểu.
+
+```python
+from transformers import pipeline
+
+generator = pipeline("text-generation")
+generator("In this course, we will teach you how to")
+```
+
+```python out
+[{'generated_text': 'In this course, we will teach you how to understand and use '
+                    'data flow and data interchange when handling user data. We '
+                    'will be working with one or more of the most commonly used '
+                    'data flows — data flows of various types, as seen by the '
+                    'HTTP'}]
+```
+
+Bạn có thể kiểm soát số lượng chuỗi khác nhau được tạo với tham số `num_return_sequences` và tổng độ dài của văn bản đầu ra với tham số `max_length`.
+
+> [!TIP]
+> ✏️ **Thử nghiệm thôi!** Sử dụng `num_return_sequences` và `max_length` để tạo ra hai câu, mỗi câu chứa 15 từ.
+
+## Sử dụng một mô hình bất kỳ từ Hub trong pipeline
+
+Các ví dụ trước đã sử dụng mô hình mặc định cho các tác vụ, nhưng bạn cũng có thể chọn một mô hình cụ thể từ Hub để sử dụng trong pipeline cho một tác vụ cụ thể - ví dụ, tạo văn bản. Truy cập [Model Hub](https://huggingface.co/models) và bấm vào thẻ tương ứng ở bên trái để chỉ hiển thị các mô hình được hỗ trợ cho tác vụ đó. Bạn sẽ đến một trang như [trang này](https://huggingface.co/models?pipeline_tag=text-generation).
+
+Hãy thử mô hình [`distilgpt2`](https://huggingface.co/distilgpt2)! Đây là cách tải nó vào cùng một pipeline như phần trước:
+
+```python
+from transformers import pipeline
+
+generator = pipeline("text-generation", model="distilgpt2")
+generator(
+    "In this course, we will teach you how to",
+    max_length=30,
+    num_return_sequences=2,
+)
+```
+
+```python out
+[{'generated_text': 'In this course, we will teach you how to manipulate the world and '
+                    'move your mental and physical capabilities to your advantage.'},
+ {'generated_text': 'In this course, we will teach you how to become an expert and '
+                    'practice realtime, and with a hands on experience on both real '
+                    'time and real'}]
+```
+
+Bạn có thể tinh chỉnh việc tìm kiếm cho một mô hình của mình bằng cách nhấp vào các thẻ ngôn ngữ và chọn một mô hình sẽ tạo văn bản bằng ngôn ngữ khác. Model Hub thậm chí còn chứa các checkpoints cho các mô hình đa ngôn ngữ hỗ trợ một số ngôn ngữ khác nhau.
+
+Sau khi bạn chọn một mô hình bằng cách bấm vào nó, bạn sẽ thấy rằng có một tiện ích cho phép bạn dùng thử trực tuyến. Bằng cách này, bạn có thể nhanh chóng kiểm tra khả năng của mô hình trước khi tải xuống.
+
+> [!TIP]
+> ✏️ **Thử nghiệm thôi!** Sử dụng bộ lọc để tìm mô hình tạo văn bản cho ngôn ngữ khác. Hãy thoải mái chơi với tiện ích này và sử dụng nó theo một pipeline!
+
+### Inference API
+
+Tất cả các mô hình có thể được kiểm tra trực tiếp thông qua trình duyệt của bạn bằng cách sử dụng Inference API, có sẵn trên [trang web Hugging Face](https://huggingface.co/). Bạn có thể chơi với mô hình trực tiếp trên trang này bằng cách nhập văn bản tùy chỉnh và xem mô hình xử lý dữ liệu đầu vào.
+
+Inference API hỗ trợ tiện ích này cũng có sẵn dưới dạng sản phẩm trả phí, rất hữu ích nếu bạn cần nó cho quy trình công việc của mình. Xem [trang giá](https://huggingface.co/pricing) để biết thêm chi tiết.
+
+## Điền vào chỗ trống
+
+Pipeline tiếp theo bạn sẽ thử nghiệm, đó là `fill-mask`. Ý tưởng của tác vụ này là điền vào chỗ trống trong một văn bản nhất định:
+
+```python
+from transformers import pipeline
+
+unmasker = pipeline("fill-mask")
+unmasker("This course will teach you all about <mask> models.", top_k=2)
+```
+
+```python out
+[{'sequence': 'This course will teach you all about mathematical models.',
+  'score': 0.19619831442832947,
+  'token': 30412,
+  'token_str': ' mathematical'},
+ {'sequence': 'This course will teach you all about computational models.',
+  'score': 0.04052725434303284,
+  'token': 38163,
+  'token_str': ' computational'}]
+```
+
+Tham số `top_k` kiểm soát số lượng khả năng bạn muốn được hiển thị. Lưu ý rằng ở đây mô hình điền từ vào vị trí bị che bởi từ `<mask>`, thường được gọi là *mask token*. Các mô hình điền khác có thể có các kiểu che từ khác nhau, vì vậy, tốt nhất nên xác minh từ bị che phù hợp khi khám phá các mô hình khác. Một cách để kiểm tra đó là xem từ bị che được sử dụng trong tiện ích con.
+
+> [!TIP]
+> ✏️ **Thử nghiệm thôi!** Tìm kiếm mô hình `bert-base-cased` trên Hub và xác định từ bị che của nó trong tiện ích Inference API. Mô hình này dự đoán điều gì cho câu trong ví dụ về `pipeline` của chúng ta ở trên?
+
+## Nhận dạng thực thể
+
+Nhận dạng thực thể được đặt tên (NER) là một tác vụ trong đó mô hình phải tìm ra những phần của văn bản đầu vào tương ứng với các thực thể như người, địa điểm, hoặc tổ chức. Hãy xem một ví dụ:
+
+```python
+from transformers import pipeline
+
+ner = pipeline("ner", grouped_entities=True)
+ner("My name is Sylvain and I work at Hugging Face in Brooklyn.")
+```
+
+```python out
+[{'entity_group': 'PER', 'score': 0.99816, 'word': 'Sylvain', 'start': 11, 'end': 18}, 
+ {'entity_group': 'ORG', 'score': 0.97960, 'word': 'Hugging Face', 'start': 33, 'end': 45}, 
+ {'entity_group': 'LOC', 'score': 0.99321, 'word': 'Brooklyn', 'start': 49, 'end': 57}
+]
+```
+
+Ở đây, mô hình đã xác định chính xác rằng Sylvain là một người (PER), Hugging Face là một tổ chức (ORG) và Brooklyn là một địa điểm (LOC).
+
+Chúng ta truyền `grouped_entities = True` vào trong hàm pipeline để yêu cầu pipeline nhóm lại các phần thuộc cùng một thực thể trong câu với nhau: ở đây mô hình đã nhóm chính xác "Hugging" và "Face" thành một tổ chức duy nhất, mặc dù tên bao gồm nhiều từ. Trên thực tế, như chúng ta sẽ thấy trong chương tiếp theo, quá trình tiền xử lý thậm chí còn chia một số từ thành các phần nhỏ hơn. Ví dụ: `Sylvain` được chia thành bốn phần: `S`, `##yl`, `##va`, và `##in`. Trong bước hậu xử lý, pipeline đã tập hợp lại thành công các phần đó.
+
+> [!TIP]
+> ✏️ **Thử nghiệm thôi!** Tìm kiếm trên Model Hub để tìm một mô hình có thể thực hiện gán nhãn từ loại (thường được viết tắt là POS) bằng tiếng Anh. Mô hình này dự đoán điều gì cho câu trong ví dụ trên?
+
+## Hỏi đáp
+
+Pipeline `question-answering` trả lời các câu hỏi sử dụng thông tin ngữ cảnh cho trước:
+
+```python
+from transformers import pipeline
+
+question_answerer = pipeline("question-answering")
+question_answerer(
+    question="Where do I work?",
+    context="My name is Sylvain and I work at Hugging Face in Brooklyn",
+)
+```
+
+```python out
+{'score': 0.6385916471481323, 'start': 33, 'end': 45, 'answer': 'Hugging Face'}
+```
+
+Lưu ý rằng pipeline này hoạt động bằng cách trích xuất thông tin từ ngữ cảnh được cung cấp; nó không tạo ra câu trả lời.
+
+## Tóm tắt
+
+Tóm tắt là tác vụ thu gọn một văn bản thành một văn bản ngắn hơn trong khi vẫn giữ tất cả (hoặc hầu hết) các ý quan trọng được đề cập trong văn bản. Dưới đây là một ví dụ:
+
+```python
+from transformers import pipeline
+
+summarizer = pipeline("summarization")
+summarizer(
+    """
+    America has changed dramatically during recent years. Not only has the number of 
+    graduates in traditional engineering disciplines such as mechanical, civil, 
+    electrical, chemical, and aeronautical engineering declined, but in most of 
+    the premier American universities engineering curricula now concentrate on 
+    and encourage largely the study of engineering science. As a result, there 
+    are declining offerings in engineering subjects dealing with infrastructure, 
+    the environment, and related issues, and greater concentration on high 
+    technology subjects, largely supporting increasingly complex scientific 
+    developments. While the latter is important, it should not be at the expense 
+    of more traditional engineering.
+
+    Rapidly developing economies such as China and India, as well as other 
+    industrial countries in Europe and Asia, continue to encourage and advance 
+    the teaching of engineering. Both China and India, respectively, graduate 
+    six and eight times as many traditional engineers as does the United States. 
+    Other industrial countries at minimum maintain their output, while America 
+    suffers an increasingly serious decline in the number of engineering graduates 
+    and a lack of well-educated engineers.
+"""
+)
+```
+
+```python out
+[{'summary_text': ' America has changed dramatically during recent years . The '
+                  'number of engineering graduates in the U.S. has declined in '
+                  'traditional engineering disciplines such as mechanical, civil '
+                  ', electrical, chemical, and aeronautical engineering . Rapidly '
+                  'developing economies such as China and India, as well as other '
+                  'industrial countries in Europe and Asia, continue to encourage '
+                  'and advance engineering .'}]
+```
+
+Tương tự như tạo văn bản, bạn có thể tuỳ chỉnh `max_length` và `min_length` cho kết quả trả về.
+
+## Dịch máy
+
+Đối với dịch máy, bạn có thể sử dụng mô hình mặc định nếu bạn cung cấp một cặp ngôn ngữ trong tên tác vụ (chẳng hạn như `"translation_en_to_fr"`), nhưng cách dễ nhất là chọn mô hình bạn muốn sử dụng trên [Model Hub](https://huggingface.co/models). Tại đây, chúng ta sẽ thử dịch từ tiếng Pháp sang tiếng Anh:
+
+```python
+from transformers import pipeline
+
+translator = pipeline("translation", model="Helsinki-NLP/opus-mt-fr-en")
+translator("Ce cours est produit par Hugging Face.")
+```
+
+```python out
+[{'translation_text': 'This course is produced by Hugging Face.'}]
+```
+
+Giống như tạo và tóm tắt văn bản, bạn có thể chỉ định giá trị `max_length` hoặc `min_length` cho kết quả trả về.
+
+> [!TIP]
+> ✏️ **Thử nghiệm thôi!** Tìm kiếm các mô hình dịch ở các ngôn ngữ khác và cố gắng dịch câu trước đó sang một vài ngôn ngữ khác nhau.
+
+Các pipeline ở trên hầu hết phục vụ mục đích trình diễn. Chúng được lập trình cho các tác vụ cụ thể và không thể thực hiện các biến thể của chúng. Trong chương tiếp theo, bạn sẽ tìm hiểu những gì bên trong một hàm  `pipeline()`  và cách tinh chỉnh hành vi của nó.

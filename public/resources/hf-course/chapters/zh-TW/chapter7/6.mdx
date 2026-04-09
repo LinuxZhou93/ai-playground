@@ -1,0 +1,882 @@
+<FrameworkSwitchCourse {fw} />
+
+# 從頭開始訓練因果語言模型
+
+{#if fw === 'pt'}
+
+<DocNotebookDropdown
+  classNames="absolute z-10 right-0 top-0"
+  options={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/chapter7/section6_pt.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/chapter7/section6_pt.ipynb"},
+]} />
+
+{:else}
+
+<DocNotebookDropdown
+  classNames="absolute z-10 right-0 top-0"
+  options={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/chapter7/section6_tf.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/chapter7/section6_tf.ipynb"},
+]} />
+
+{/if}
+
+到目前為止，我們主要使用預訓練模型，並通過重用預訓練的權重來針對新用例對它們進行微調。正如我們在[第一章](/course/chapter1), 這通常稱為遷移學習，這是將 Transformer 模型應用於大多數標記數據稀疏的現實世界用例的非常成功的策略。在本章中，我們將採用不同的方法並從頭開始訓練一個全新的模型。如果您有大量數據並且它與用於可用模型的預訓練數據有很大不同，那麼這是一個很好的方法。然而，它也需要更多的計算資源來預訓練語言模型，而不僅僅是微調現有的模型。訓練新模型有意義的示例包括由音符、分子序列（如 DNA）或編程語言組成的數據集。後者最近受到關注，這要歸功於 TabNine 和 GitHub 的 Copilot 等工具，它們由 OpenAI 的 Codex 模型提供支持，可以生成長代碼序列。這種文本生成任務最好使用自迴歸或因果語言模型（例如 GPT-2）來解決。
+
+在本節中，我們將構建代碼生成模型的縮小版本：我們將使用 Python 代碼的子集專注於單行完成而不是完整的函數或類。在 Python 中處理數據時，您會經常接觸 Python 數據科學堆棧，包括 `matplotlib` , `seaborn` , `pandas` ， 和 `scikit-learn` 庫。在使用這些框架時，通常需要查找特定的命令，因此如果我們可以使用模型來為我們完成這些調用，那就太好了。
+
+<Youtube id="Vpjb1lu0MDk"/>
+
+在[第六章](/course/chapter6) 我們創建了一個高效的分詞器來處理 Python 源代碼，但我們仍然需要一個大規模數據集來預訓練模型。在這裡，我們將我們的分詞器應用到源自 GitHub 存儲庫的 Python 代碼語料庫。然後我們將使用 `Trainer` API 和 🤗 Accelerate 來訓練模型。讓我們開始吧！
+
+<iframe src="https://course-demos-codeparrot-ds.hf.space" frameBorder="0" height="300" title="Gradio app" class="block dark:hidden container p-0 flex-grow space-iframe" allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads"></iframe>
+<iframe src="https://course-demos-codeparrot-ds-darkmode.hf.space" frameBorder="0" height="300" title="Gradio app" class="hidden dark:block container p-0 flex-grow space-iframe" allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads"></iframe>
+
+這實際上展示了使用本節中訓練並上傳到 Hub 的模型。你可以在[這裡](https://huggingface.co/huggingface-course/codeparrot-ds?text=plt.imshow%28)找到。請注意，由於在文本生成過程中發生了一些隨機化，您可能會得到略有不同的結果。
+## 收集數據
+
+Python 代碼可以從 GitHub 等代碼存儲庫中獲得，我們可以通過抓取每個 Python 存儲庫來使用它們來創建數據集。這是在[Transformers textbook](https://learning.oreilly.com/library/view/natural-language-processing/9781098103231/)預訓練大型的GPT-2 模型。使用大約 180 GB 的 GitHub 轉儲，其中包含大約 2000 萬個 Python 文件，稱為 `codeparrot` ，作者構建了一個數據集，然後在[Hugging Face Hub](https://huggingface.co/datasets/transformersbook/codeparrot)上分享出來了.
+
+然而，對完整語料庫的訓練既耗時又費力，我們只需要與 Python 數據科學堆棧相關的數據集子集。所以，讓我們開始過濾 `codeparrot` 包含此堆棧中任何庫的所有文件的數據集。由於數據集的太大，我們希望避免下載它；因此反，我們將使用流功能來動態過濾它。為了使用前面提到的庫過濾代碼示例，我們將使用以下函數：
+
+```py
+def any_keyword_in_string(string, keywords):
+    for keyword in keywords:
+        if keyword in string:
+            return True
+    return False
+```
+
+讓我們用兩個例子來測試一下：
+
+```py
+filters = ["pandas", "sklearn", "matplotlib", "seaborn"]
+example_1 = "import numpy as np"
+example_2 = "import pandas as pd"
+
+print(
+    any_keyword_in_string(example_1, filters), any_keyword_in_string(example_2, filters)
+)
+```
+
+```python out
+False True
+```
+
+我們可以使用它來創建一個函數來流式傳輸數據集並過濾我們想要的元素：
+
+```py
+def filter_streaming_dataset(dataset, filters):
+    filtered_dict = defaultdict(list)
+    total = 0
+    for sample in tqdm(iter(dataset)):
+        total += 1
+        if any_keyword_in_string(sample["content"], filters):
+            for k, v in sample.items():
+                filtered_dict[k].append(v)
+    print(f"{len(filtered_dict['content'])/total:.2%} of data after filtering.")
+    return Dataset.from_dict(filtered_dict)
+```
+
+然後我們可以簡單地將此函數應用於流數據集：
+
+```py
+# This cell will take a very long time to execute, so you should skip it and go to
+# the next one!
+from datasets import load_dataset
+
+split = "train"  # "valid"
+filters = ["pandas", "sklearn", "matplotlib", "seaborn"]
+
+data = load_dataset(f"transformersbook/codeparrot-{split}", split=split, streaming=True)
+filtered_data = filter_streaming_dataset(data, filters)
+```
+
+```python out
+3.26% of data after filtering.
+```
+
+這給我們留下了大約 3% 的原始數據集，這個數據集仍然相當可觀——結果數據集有 6 GB，包含 600,000 個 Python 腳本！過濾完整數據集可能需要 2-3 小時，具體取決於您的機器和帶寬。如果您不想自己經歷這個漫長的過程，我們在 Hub 上提供過濾後的數據集供您下載：
+
+```py
+from datasets import load_dataset, DatasetDict
+
+ds_train = load_dataset("huggingface-course/codeparrot-ds-train", split="train")
+ds_valid = load_dataset("huggingface-course/codeparrot-ds-valid", split="train")
+
+raw_datasets = DatasetDict(
+    {
+        "train": ds_train,  # .shuffle().select(range(50000)),
+        "valid": ds_valid,  # .shuffle().select(range(500))
+    }
+)
+
+raw_datasets
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['repo_name', 'path', 'copies', 'size', 'content', 'license'],
+        num_rows: 606720
+    })
+    valid: Dataset({
+        features: ['repo_name', 'path', 'copies', 'size', 'content', 'license'],
+        num_rows: 3322
+    })
+})
+```
+
+> [!TIP]
+> 預訓練語言模型需要一段時間。我們建議您首先通過取消註釋以上兩行的註釋對數據樣本運行訓練循環，並確保訓練成功完成並存儲模型。沒有什麼比最後一步的訓練失敗更令人沮喪的了，因為你忘記創建一個文件夾或者因為保存路徑在訓練循環結束時有一個錯字！
+
+讓我們看一個來自數據集的例子。我們將只顯示每個字段的前 200 個字符：
+
+```py
+for key in raw_datasets["train"][0]:
+    print(f"{key.upper()}: {raw_datasets['train'][0][key][:200]}")
+```
+
+```python out
+'REPO_NAME: kmike/scikit-learn'
+'PATH: sklearn/utils/__init__.py'
+'COPIES: 3'
+'SIZE: 10094'
+'''CONTENT: """
+The :mod:`sklearn.utils` module includes various utilites.
+"""
+
+from collections import Sequence
+
+import numpy as np
+from scipy.sparse import issparse
+import warnings
+
+from .murmurhash import murm
+LICENSE: bsd-3-clause'''
+```
+
+我們可以看到 `content` 字段包含我們希望我們的模型訓練的代碼。現在我們有了一個數據集，我們需要預處理文本，使其採用適合預訓練的格式。
+
+## 準備數據集
+
+<Youtube id="ma1TrR7gE7I"/>
+
+第一步是對數據進行標記，以便我們可以將其用於訓練。由於我們的目標主要是自動完成短函數調用，因此我們可以保持上下文大小相對較小。這樣做的好處是我們可以更快地訓練模型並且它需要的內存顯著減少。如果您的應用程序擁有更多上下文很重要（例如，如果您希望模型基於具有函數定義的文件編寫單元測試），請確保增加該數量，但請記住，這需要更大的 GPU 內存佔用。現在，讓我們將上下文大小固定為 128 個標記，而不是 GPT-2 或 GPT-3 中分別使用的 1,024 或 2,048 個標記。
+
+
+大多數文檔包含超過 128 個標記，因此簡單地將輸入截斷到最大長度將消除我們數據集的很大一部分。相反，我們將使用 `return_overflowing_tokens` 標記整個輸入並將其分成幾個塊的選項，就像我們在[第六章](/course/chapter6/4). 我們還將使用 `return_length` 選項自動返回每個創建的塊的長度。通常最後一個塊會小於上下文大小，我們會去掉這些塊以避免填充問題；因為無論如何我們都有大量數據。
+
+<div class="flex justify-center">
+<img class="block dark:hidden" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/chunking_texts.svg" alt="Chunking a large texts in several pieces."/>
+<img class="hidden dark:block" src="https://huggingface.co/datasets/huggingface-course/documentation-images/resolve/main/en/chapter7/chunking_texts-dark.svg" alt="Chunking a large texts in several pieces."/>
+</div>
+
+讓我們通過查看前兩個示例來確切瞭解這是如何工作的：
+
+```py
+from transformers import AutoTokenizer
+
+context_length = 128
+tokenizer = AutoTokenizer.from_pretrained("huggingface-course/code-search-net-tokenizer")
+
+outputs = tokenizer(
+    raw_datasets["train"][:2]["content"],
+    truncation=True,
+    max_length=context_length,
+    return_overflowing_tokens=True,
+    return_length=True,
+)
+
+print(f"Input IDs length: {len(outputs['input_ids'])}")
+print(f"Input chunk lengths: {(outputs['length'])}")
+print(f"Chunk mapping: {outputs['overflow_to_sample_mapping']}")
+```
+
+```python out
+Input IDs length: 34
+Input chunk lengths: [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 117, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 41]
+Chunk mapping: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+```
+
+我們可以看 到，從這兩個示例中我們總共得到了 34 個片段。查看塊長度，我們可以看到兩個文檔末尾的塊都少於 128 個標記（分別為 117 和 41）。這些僅代表我們擁有的數據集的一小部分，因此我們可以安全地將它們扔掉。通過 `overflow_to_sample_mapping` 字段，我們還可以重建哪些塊屬於哪些輸入樣本。
+
+通過這個操作，我們使用了一個方便的🤗 Datasets 中的` Dataset.map()` 函數，就是不需要一對一的映射；正如我們在[第三節](/course/chapter7/3),我們可以創建具有比輸入批次更多或更少元素的批次。這在執行更改元素數量的數據增強或數據過濾等操作時非常有用。在我們的例子中，當將每個元素標記為指定上下文大小的塊時，我們從每個文檔中創建了許多樣本。我們只需要確保刪除現有的列，因為它們的大小存在衝突。如果我們想保留它們，我們可以適當地重複它們，並在`Dataset.map()` 調用中返回它們:
+
+```py
+def tokenize(element):
+    outputs = tokenizer(
+        element["content"],
+        truncation=True,
+        max_length=context_length,
+        return_overflowing_tokens=True,
+        return_length=True,
+    )
+    input_batch = []
+    for length, input_ids in zip(outputs["length"], outputs["input_ids"]):
+        if length == context_length:
+            input_batch.append(input_ids)
+    return {"input_ids": input_batch}
+
+
+tokenized_datasets = raw_datasets.map(
+    tokenize, batched=True, remove_columns=raw_datasets["train"].column_names
+)
+tokenized_datasets
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['input_ids'],
+        num_rows: 16702061
+    })
+    valid: Dataset({
+        features: ['input_ids'],
+        num_rows: 93164
+    })
+})
+```
+
+我們現在有 1670 萬個示例，每個示例有 128 個tokens ，總共相當於大約 21 億個tokens 。作為參考，OpenAI 的 GPT-3 和 Codex 模型分別在 300 和 1000 億個tokens 上訓練，其中 Codex 模型從 GPT-3 檢查點初始化。我們在本節中的目標不是與這些模型競爭，這些模型可以生成長而連貫的文本，而是創建一個縮小版本，為數據科學家提供快速自動完成功能。
+
+現在我們已經準備好了數據集，讓我們設置模型！
+
+
+> [!TIP]
+> ✏️ **試試看！** 擺脫所有小於上下文大小的塊在這裡並不是什麼大問題，因為我們使用的是小上下文窗口。隨著上下文大小的增加（或者如果您有一個短文檔語料庫），被丟棄的塊的比例也會增加。準備數據的更有效方法是將所有標記化的樣本加入一個批次中，每個語料之間有一個`eos_token_id` 標記, 然後對連接的序列執行分塊。作為練習，修改 `tokenize()`函數以使用該方法。請注意，您需要設置`truncation=False` 和刪除標記生成器中的其他參數以獲取完整的標記 ID 序列。
+
+
+## 初始化新模型
+
+我們的第一步是新初始化一個 GPT-2 模型。我們將對我們的模型使用與小型 GPT-2 模型相同的配置，因此我們加載預訓練配置，確保分詞器大小與模型詞彙量大小匹配並設置 `bos` 和 `eos` （序列的開始和結束）令牌 ID：
+
+{#if fw === 'pt'}
+
+```py
+from transformers import AutoTokenizer, GPT2LMHeadModel, AutoConfig
+
+config = AutoConfig.from_pretrained(
+    "gpt2",
+    vocab_size=len(tokenizer),
+    n_ctx=context_length,
+    bos_token_id=tokenizer.bos_token_id,
+    eos_token_id=tokenizer.eos_token_id,
+)
+```
+
+使用該配置，我們可以加載一個新模型。請注意，這是我們第一次不使用 `from_pretrained()` 函數，因為我們實際上是在自己初始化模型
+
+```py
+model = GPT2LMHeadModel(config)
+model_size = sum(t.numel() for t in model.parameters())
+print(f"GPT-2 size: {model_size/1000**2:.1f}M parameters")
+```
+
+```python out
+GPT-2 size: 124.2M parameters
+```
+
+{:else}
+
+```py
+from transformers import AutoTokenizer, TFGPT2LMHeadModel, AutoConfig
+
+config = AutoConfig.from_pretrained(
+    "gpt2",
+    vocab_size=len(tokenizer),
+    n_ctx=context_length,
+    bos_token_id=tokenizer.bos_token_id,
+    eos_token_id=tokenizer.eos_token_id,
+)
+```
+
+通過該配置，我們可以加載新模型。請注意，這是我們剛開始不使用`from_pretrained()`函數，因為我們實際上是在自己初始化模型：
+
+```py
+model = TFGPT2LMHeadModel(config)
+model(model.dummy_inputs)  # Builds the model
+model.summary()
+```
+
+```python out
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+transformer (TFGPT2MainLayer multiple                  124242432 
+=================================================================
+Total params: 124,242,432
+Trainable params: 124,242,432
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+{/if}
+
+我們的模型有 1.24 億個參數，我們必須對其進行調整。在開始訓練之前，我們需要設置一個負責創建批次的數據整理器。我們可以使用 `DataCollatorForLanguageModeling` ，它是專為語言建模而設計（顧名思義）。除了堆疊和填充批次，它還負責創建語言模型標籤——在因果語言建模中，輸入也用作標籤（只是移動了一個元素），並且這個數據整理器在訓練期間即時創建它們，所以我們不需要複製 `input_ids`。 
+
+注意 `DataCollatorForLanguageModeling` 支持掩碼語言建模 (MLM) 和因果語言建模 (CLM)。默認情況下它為 MLM 準備數據，但我們可以通過設置`mlm=False`參數切換到 CLM ：
+
+{#if fw === 'pt'}
+
+```py
+from transformers import DataCollatorForLanguageModeling
+
+tokenizer.pad_token = tokenizer.eos_token
+data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
+```
+
+{:else}
+
+```py
+from transformers import DataCollatorForLanguageModeling
+
+tokenizer.pad_token = tokenizer.eos_token
+data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False, return_tensors="tf")
+```
+
+{/if}
+
+讓我們看一個例子：
+
+```py
+out = data_collator([tokenized_dataset["train"][i] for i in range(5)])
+for key in out:
+    print(f"{key} shape: {out[key].shape}")
+```
+
+{#if fw === 'pt'}
+
+```python out
+input_ids shape: torch.Size([5, 128])
+attention_mask shape: torch.Size([5, 128])
+labels shape: torch.Size([5, 128])
+```
+
+{:else}
+
+```python out
+input_ids shape: (5, 128)
+attention_mask shape: (5, 128)
+labels shape: (5, 128)
+```
+
+{/if}
+
+我們可以看到示例已經堆疊在一起，並且所有張量都具有相同的形狀。
+
+{#if fw === 'tf'}
+
+現在，我們可以使用`to_tf_dataset()`方法，使用上面創建的數據整理器將數據集轉換為TensorFlow數據集：
+
+```python
+tf_train_dataset = tokenized_dataset["train"].to_tf_dataset(
+    columns=["input_ids", "attention_mask", "labels"],
+    collate_fn=data_collator,
+    shuffle=True,
+    batch_size=32,
+)
+tf_eval_dataset = tokenized_dataset["valid"].to_tf_dataset(
+    columns=["input_ids", "attention_mask", "labels"],
+    collate_fn=data_collator,
+    shuffle=False,
+    batch_size=32,
+)
+```
+
+{/if}
+
+> [!WARNING]
+> ⚠️  移動輸入和標籤以對齊它們發生在模型內部，因此數據整理器只需複製輸入以創建標籤。
+
+
+現在我們已經準備好實際訓練我們的模型的一切了——畢竟這不是那麼多工作！在我們開始訓練之前，我們應該登錄 Hugging Face。如果您在筆記本上工作，則可以使用以下實用程序功能：
+
+```python
+from huggingface_hub import notebook_login
+
+notebook_login()
+```
+
+這將顯示一個小部件，您可以在其中輸入您的 Hugging Face 登錄憑據。
+
+如果您不是在notebook上工作，只需在終端中輸入以下行：
+
+```bash
+huggingface-cli login
+```
+
+{#if fw === 'pt'}
+
+剩下要做的就是配置訓練參數並啟動 `Trainer` .我們將使用餘弦學習率，並進行一些Warmup和有效批量大小為 256 ( `per_device_train_batch_size` * `gradient_accumulation_steps`）。當單個批次不適合內存時使用梯度累積，並通過多次向前/向後傳遞逐步建立梯度。當我們使用 🤗 Accelerate 創建訓練循環時，我們將看到這一點。
+
+```py
+from transformers import Trainer, TrainingArguments
+
+args = TrainingArguments(
+    output_dir="codeparrot-ds",
+    per_device_train_batch_size=32,
+    per_device_eval_batch_size=32,
+    evaluation_strategy="steps",
+    eval_steps=5_000,
+    logging_steps=5_000,
+    gradient_accumulation_steps=8,
+    num_train_epochs=1,
+    weight_decay=0.1,
+    warmup_steps=1_000,
+    lr_scheduler_type="cosine",
+    learning_rate=5e-4,
+    save_steps=5_000,
+    fp16=True,
+    push_to_hub=True,
+)
+
+trainer = Trainer(
+    model=model,
+    tokenizer=tokenizer,
+    args=args,
+    data_collator=data_collator,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["valid"],
+)
+```
+
+現在我們可以開始 `Trainer`並等待訓練完成。根據您是在整個訓練集還是在訓練集的一個子集上運行它，這將分別需要 20 或 2 個小時，因此請喝杯咖啡和一本好書來閱讀！
+
+```py
+trainer.train()
+```
+
+訓練完成後，我們可以將模型和標記器推送到 Hub：
+
+```py
+trainer.push_to_hub()
+```
+
+{:else}
+
+剩下要做的就是配置訓練超參數並調用 `compile()` 和 `fit()`。我們將使用帶有一些預熱的學習率調整策略來提高訓練的穩定性：
+
+```py
+from transformers import create_optimizer
+import tensorflow as tf
+
+num_train_steps = len(tf_train_dataset)
+optimizer, schedule = create_optimizer(
+    init_lr=5e-5,
+    num_warmup_steps=1_000,
+    num_train_steps=num_train_steps,
+    weight_decay_rate=0.01,
+)
+model.compile(optimizer=optimizer)
+
+# Train in mixed-precision float16
+tf.keras.mixed_precision.set_global_policy("mixed_float16")
+```
+
+現在我們可以調用`model.fit()，`並等待訓練完成。你是在完整的訓練集還是他的子集上運行，這將分別需要20和2個小時，所以拿一些咖啡和一本好書來閱讀！訓練完成後，我們可以將模型和分詞器推送到中心：
+
+```py
+from transformers.keras_callbacks import PushToHubCallback
+
+callback = PushToHubCallback(output_dir="codeparrot-ds", tokenizer=tokenizer)
+
+model.fit(tf_train_dataset, validation_data=tf_eval_dataset, callbacks=[callback])
+```
+
+{/if}
+
+> [!TIP]
+> ✏️ **試試看!** 除了`TrainingArguments` 之外，我們只需要大約30行代碼就可以從原始文本到訓練GPT-2。 用你自己的數據集試試看，看看你能不能得到好的結果！
+
+> [!TIP]
+> {#if fw === 'pt'}
+>
+> 💡 如果您可以訪問具有多個 GPU 的機器，請嘗試在那裡運行代碼。 `Trainer`自動管理多臺機器，這可以極大地加快訓練速度。
+>
+> {:else}
+>
+> 💡 如果您有權訪問具有多個 GPU 的計算機，則可以嘗試使用 `MirroredStrategy` 上下文來大幅加快訓練速度。您需要創建一個`tf.distribute.MirroredStrategy`對象，並確保 `to_tf_dataset` 命令以及模型創建和對 `fit()`的調用都在其 `scope()` context. 上下文中運行。您可以查看有關此內容的文檔[here](https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit).
+>
+> {/if}
+
+## 使用管道生成代碼
+
+現在是關鍵的部分：讓我們看看經過訓練的模型的實際效果如何！我們可以在日誌中看到損失穩步下降，但為了讓模型進行測試，讓我們看看它在某些測試上的表現如何。為此，我們將模型包裝在文本生成中的`pipeline` ，如果有可用的，我們會將它放在 GPU 上進行快速生成：
+
+{#if fw === 'pt'}
+
+```py
+import torch
+from transformers import pipeline
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+pipe = pipeline(
+    "text-generation", model="huggingface-course/codeparrot-ds", device=device
+)
+```
+
+{:else}
+
+```py
+from transformers import pipeline
+
+course_model = TFGPT2LMHeadModel.from_pretrained("huggingface-course/codeparrot-ds")
+course_tokenizer = AutoTokenizer.from_pretrained("huggingface-course/codeparrot-ds")
+pipe = pipeline(
+    "text-generation", model=course_model, tokenizer=course_tokenizer, device=0
+)
+```
+
+{/if}
+
+讓我們從創建散點圖的簡單任務開始：
+
+```py
+txt = """\
+# create some data
+x = np.random.randn(100)
+y = np.random.randn(100)
+
+# create scatter plot with x, y
+"""
+print(pipe(txt, num_return_sequences=1)[0]["generated_text"])
+```
+
+```python out
+# create some data
+x = np.random.randn(100)
+y = np.random.randn(100)
+
+# create scatter plot with x, y
+plt.scatter(x, y)
+
+# create scatter
+```
+
+結果看起來是正確的。它也適用於 `pandas` 類型？讓我們看看我們是否使用兩個數組可以創建一個 `DataFrame` ：
+
+```py
+txt = """\
+# create some data
+x = np.random.randn(100)
+y = np.random.randn(100)
+
+# create dataframe from x and y
+"""
+print(pipe(txt, num_return_sequences=1)[0]["generated_text"])
+```
+
+```python out
+# create some data
+x = np.random.randn(100)
+y = np.random.randn(100)
+
+# create dataframe from x and y
+df = pd.DataFrame({'x': x, 'y': y})
+df.insert(0,'x', x)
+for
+```
+
+很好，這是正確的答案——儘管它隨後再次插入了列 `x` 。由於生成的token數量有限，以下 `for` 循環被切斷。讓我們看看我們是否可以做一些更復雜的事情並讓模型幫助我們分組操作：
+
+```py
+txt = """\
+# dataframe with profession, income and name
+df = pd.DataFrame({'profession': x, 'income':y, 'name': z})
+
+# calculate the mean income per profession
+"""
+print(pipe(txt, num_return_sequences=1)[0]["generated_text"])
+```
+
+```python out
+# dataframe with profession, income and name
+df = pd.DataFrame({'profession': x, 'income':y, 'name': z})
+
+# calculate the mean income per profession
+profession = df.groupby(['profession']).mean()
+
+# compute the
+```
+
+不錯;這是正確的做法。最後，讓我們看看我們是否也可以將其用於 `scikit-learn` 並建立一個隨機森林模型：
+
+```py
+txt = """
+# import random forest regressor from scikit-learn
+from sklearn.ensemble import RandomForestRegressor
+
+# fit random forest model with 300 estimators on X, y:
+"""
+print(pipe(txt, num_return_sequences=1)[0]["generated_text"])
+```
+
+```python out
+# import random forest regressor from scikit-learn
+from sklearn.ensemble import RandomForestRegressor
+
+# fit random forest model with 300 estimators on X, y:
+rf = RandomForestRegressor(n_estimators=300, random_state=random_state, max_depth=3)
+rf.fit(X, y)
+rf
+```
+
+{#if fw === 'tf'}
+
+看看這幾個例子，似乎模型已經學習了Python數據科學堆棧的一些語法。當然，在將模型部署到現實世界之前，我們需要更徹底地評估模型，但這仍然是一個令人印象深刻的原型。
+
+{:else}
+
+從這幾個例子來看，模型似乎已經學習了 Python 數據科學堆棧的一些語法（當然，在將模型部署到現實世界之前，我們需要對其進行更全面的評估）。然而，有時需要對模型訓練進行更多定製才能實現給定用例的必要性能。例如，如果我們想動態更新批量大小或有一個條件訓練循環來即時跳過壞示例怎麼辦？一種選擇是將 `Trainer` 並添加必要的更改，但有時從頭開始編寫訓練循環會更簡單。這就是🤗 Accelerate 的用武之地。   
+
+{/if}
+
+{#if fw === 'pt'}
+
+## 用 🤗 Accelerate 訓練
+
+我們已經看到了如何使用 `Trainer` ，這可以允許一些自定義。然而，有時我們想要完全控制訓練循環，或者我們想要進行一些奇特的更改。在這種情況下 🤗 Accelerate 是一個不錯的選擇，在本節中，我們將逐步介紹使用它來訓練我們的模型的步驟。為了讓事情變得更有趣，我們還將在訓練循環中添加一些修改。
+
+<Youtube id="Hm8_PgVTFuc"/>
+
+由於我們主要對數據科學庫的合理自動填充感興趣，因此對更多使用這些庫的訓練樣本給予更多權重是有意義的。我們可以通過使用關鍵字輕鬆識別這些示例，例如 `plt`、`pd`、`sk`、`fit`和`predict`等關鍵字，我們可以很容易地識別這些示例，這些關鍵字是matplotlib最常用的導入名稱。`Pyplot`, `pandas`和`sklearn`以及後者的擬合/預測模式。如果這些都表示為單個標記，我們可以輕鬆檢查它們是否出現在輸入序列中。標記可能有一個空格前綴，因此我們還將在標記器詞彙表中檢查這些版本。為了驗證它是否有效，我們將添加一個測試token ，該token 應拆分為多個tokens：
+
+```py
+keytoken_ids = []
+for keyword in [
+    "plt",
+    "pd",
+    "sk",
+    "fit",
+    "predict",
+    " plt",
+    " pd",
+    " sk",
+    " fit",
+    " predict",
+    "testtest",
+]:
+    ids = tokenizer([keyword]).input_ids[0]
+    if len(ids) == 1:
+        keytoken_ids.append(ids[0])
+    else:
+        print(f"Keyword has not single token: {keyword}")
+```
+
+```python out
+'Keyword has not single token: testtest'
+```
+
+太好了，這似乎很好用！我們現在可以編寫一個自定義損失函數，它將輸入序列、logits 和我們剛剛選擇的關​​鍵標記作為輸入。首先，我們需要對齊 logits 和輸入：向右移動一個的輸入序列形成標籤，因為下一個標記是當前標記的標籤。我們可以通過從輸入序列的第二個標記開始標記來實現這一點，因為模型無論如何都不會對第一個標記進行預測。然後我們切斷最後一個 logit，因為我們沒有完整輸入序列之後的標記的標籤。有了這個，我們可以計算每個樣本的損失並計算每個樣本中所有關鍵字的出現次數。最後，我們使用出現次數作為權重計算所有樣本的加權平均值。由於我們不想扔掉所有沒有關鍵字的樣本，我們將權重加1：
+
+```py
+from torch.nn import CrossEntropyLoss
+import torch
+
+
+def keytoken_weighted_loss(inputs, logits, keytoken_ids, alpha=1.0):
+    # Shift so that tokens < n predict n
+    shift_labels = inputs[..., 1:].contiguous()
+    shift_logits = logits[..., :-1, :].contiguous()
+    # Calculate per-token loss
+    loss_fct = CrossEntropyLoss(reduce=False)
+    loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+    # Resize and average loss per sample
+    loss_per_sample = loss.view(shift_logits.size(0), shift_logits.size(1)).mean(axis=1)
+    # Calculate and scale weighting
+    weights = torch.stack([(inputs == kt).float() for kt in keytoken_ids]).sum(
+        axis=[0, 2]
+    )
+    weights = alpha * (1.0 + weights)
+    # Calculate weighted average
+    weighted_loss = (loss_per_sample * weights).mean()
+    return weighted_loss
+```
+
+在我們開始使用這個很棒的新損失函數進行訓練之前，我們需要準備一些東西：
+
+- 我們需要數據加載器來批量加載數據。
+- 我們需要設置權重衰減參數。
+- 有時我們想要求值，因此將求值代碼包裝在一個函數中是有意義的。
+
+讓我們從數據加載器開始。我們只需要將數據集的格式設置為 `"torch"`，然後我們可以將它傳遞給 PyTorch `DataLoader` ,同時設置適當的批量大小：
+
+```py
+from torch.utils.data.dataloader import DataLoader
+
+tokenized_dataset.set_format("torch")
+train_dataloader = DataLoader(tokenized_dataset["train"], batch_size=32, shuffle=True)
+eval_dataloader = DataLoader(tokenized_dataset["valid"], batch_size=32)
+```
+
+接下來，我們對參數進行分組，以便優化器知道哪些將獲得額外的權重衰減。通常，所有偏差和 LayerNorm 權重項都不受此限制；以下我們如何做到這一點：
+
+```py
+weight_decay = 0.1
+
+
+def get_grouped_params(model, no_decay=["bias", "LayerNorm.weight"]):
+    params_with_wd, params_without_wd = [], []
+    for n, p in model.named_parameters():
+        if any(nd in n for nd in no_decay):
+            params_without_wd.append(p)
+        else:
+            params_with_wd.append(p)
+    return [
+        {"params": params_with_wd, "weight_decay": weight_decay},
+        {"params": params_without_wd, "weight_decay": 0.0},
+    ]
+```
+
+由於我們希望在訓練期間定期在驗證集上評估模型，因此我們也為此編寫一個函數。它只是運行評估數據加載器並收集跨進程的所有損失：
+
+```py
+def evaluate():
+    model.eval()
+    losses = []
+    for step, batch in enumerate(eval_dataloader):
+        with torch.no_grad():
+            outputs = model(batch["input_ids"], labels=batch["input_ids"])
+
+        losses.append(accelerator.gather(outputs.loss))
+    loss = torch.mean(torch.cat(losses))
+    try:
+        perplexity = torch.exp(loss)
+    except OverflowError:
+        perplexity = float("inf")
+    return loss.item(), perplexity.item()
+```
+
+通過 `evaluate()` 函數我們定期可以獲取損失值和[perplexity](/course/chapter7/3)。接下來，我們重新定義我們的模型以確保我們再次從頭開始訓練：
+
+```py
+model = GPT2LMHeadModel(config)
+```
+
+然後我們可以定義我們的優化器，使用之前的函數來分割權重衰減的參數：
+
+```py
+from torch.optim import AdamW
+
+optimizer = AdamW(get_grouped_params(model), lr=5e-4)
+```
+
+現在讓我們準備模型、優化器和數據加載器，以便我們可以開始訓練：
+
+```py
+from accelerate import Accelerator
+
+accelerator = Accelerator(fp16=True)
+
+model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
+    model, optimizer, train_dataloader, eval_dataloader
+)
+```
+
+> [!TIP]
+> 🚨 如果您在 TPU 上進行訓練，則需要將從上面的單元格開始的所有代碼移動到專用的訓練函數中。有關詳細信息，請參閱 [第 3 章](/course/chapter3) for more details.
+
+現在我們已經發送了我們的 `train_dataloader`到 `accelerator.prepare()` ，我們可以使用它的長度來計算訓練步驟的數量。請記住，我們應該始終在準備好dataloader後執行此操作，因為該方法會改變其長度。我們使用經典線性學習率調度：
+
+```py
+num_train_epochs = 1
+num_update_steps_per_epoch = len(train_dataloader)
+num_training_steps = num_train_epochs * num_update_steps_per_epoch
+
+lr_scheduler = get_scheduler(
+    name="linear",
+    optimizer=optimizer,
+    num_warmup_steps=1_000,
+    num_training_steps=num_training_steps,
+)
+```
+
+最後，要將我們的模型推送到 Hub，我們需要創建一個 `Repository` 工作文件夾中的對象。如果您尚未登錄，請先登錄 Hugging Face。我們將從我們想要為模型提供的模型 ID 中確定存儲庫名稱（您可以自由地用自己的選擇替換 `repo_name` ；它只需要包含您的用戶名，可以使用`get_full_repo_name()`函數的查看目前的repo_name）：
+
+```py
+from huggingface_hub import Repository, get_full_repo_name
+
+model_name = "codeparrot-ds-accelerate"
+repo_name = get_full_repo_name(model_name)
+repo_name
+```
+
+```python out
+'sgugger/codeparrot-ds-accelerate'
+```
+
+然後我們可以在本地文件夾中克隆該存儲庫。如果它已經存在，這個本地文件夾應該是我們正在使用的存儲庫的克隆：
+
+```py
+output_dir = "codeparrot-ds-accelerate"
+repo = Repository(output_dir, clone_from=repo_name)
+```
+
+我們現在可以上傳我們保存的任何內容 `output_dir` 通過調用 `repo.push_to_hub()` 方法。這將幫助我們在每個 epoch 結束時上傳中間模型。在我們訓練之前，讓我們運行一個快速測試，看看評估函數是否正常工作：
+
+```py
+evaluate()
+```
+
+```python out
+(10.934126853942871, 56057.14453125)
+```
+
+這些損失和困惑度的值非常高，但這並不奇怪，因為我們還沒有訓練過模型。有了這個，我們已經準備好編寫訓練腳本的核心部分：訓練循環。在訓練循環中，我們遍歷數據加載器並將批次傳遞給模型。有了 logits，我們就可以評估我們的自定義損失函數。我們通過梯度累積步驟的數量來縮放損失，以便在聚合更多步驟時不會產生更大的損失。在我們優化之前，我們還剪輯了梯度以獲得更好的收斂性。最後，每隔幾步，我們就會使用新的 `evaluate()` 函數評估模型：
+
+```py
+from tqdm.notebook import tqdm
+
+gradient_accumulation_steps = 8
+eval_steps = 5_000
+
+model.train()
+completed_steps = 0
+for epoch in range(num_train_epochs):
+    for step, batch in tqdm(
+        enumerate(train_dataloader, start=1), total=len(train_dataloader)
+    ):
+        logits = model(batch["input_ids"]).logits
+        loss = keytoken_weighted_loss(batch["input_ids"], logits, keytoken_ids)
+        if step % 100 == 0:
+            accelerator.print(
+                {
+                    "lr": get_lr(),
+                    "samples": step * samples_per_step,
+                    "steps": completed_steps,
+                    "loss/train": loss.item() * gradient_accumulation_steps,
+                }
+            )
+        loss = loss / gradient_accumulation_steps
+        accelerator.backward(loss)
+        if step % gradient_accumulation_steps == 0:
+            accelerator.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
+            completed_steps += 1
+        if (step % (eval_steps * gradient_accumulation_steps)) == 0:
+            eval_loss, perplexity = evaluate()
+            accelerator.print({"loss/eval": eval_loss, "perplexity": perplexity})
+            model.train()
+            accelerator.wait_for_everyone()
+            unwrapped_model = accelerator.unwrap_model(model)
+            unwrapped_model.save_pretrained(output_dir, save_function=accelerator.save)
+            if accelerator.is_main_process:
+                tokenizer.save_pretrained(output_dir)
+                repo.push_to_hub(
+                    commit_message=f"Training in progress step {step}", blocking=False
+                )
+```
+
+就是這樣 - 您現在擁有自己的因果語言模型（例如 GPT-2）的自定義訓練循環，您可以根據自己的需要進一步自定義。
+
+> [!TIP]
+> ✏️ **試試看!** 創建適合您的用例的自定義損失函數，或在訓練循環中添加另一個自定義步驟。
+
+> [!TIP]
+> ✏️ **試試看!** 在運行長時間的訓練實驗時，最好使用 TensorBoard 或 Weights Biases 等工具記錄重要指標。向訓練循環添加適當的日誌記錄，以便您始終可以檢查訓練的進行情況。going.
+
+{/if}

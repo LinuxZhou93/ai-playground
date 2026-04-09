@@ -1,0 +1,272 @@
+# Big data? 🤗 Datasets ao resgate
+
+<CourseFloatingBanner chapter={5}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/pt/chapter5/section4.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/pt/chapter5/section4.ipynb"},
+]} />
+
+
+Hoje em dia, não é incomum encontrar-se trabalhando com conjuntos de dados de vários gigabytes, especialmente se você planeja pré-treinar um transformer como BERT ou GPT-2 do zero. Nesses casos, até mesmo _carregar_ os dados pode ser um desafio. Por exemplo, o corpus WebText usado para pré-treinar o GPT-2 consiste em mais de 8 milhões de documentos e 40 GB de texto - carregar isso na RAM do seu laptop provavelmente lhe causará um ataque cardíaco!
+
+Felizmente, 🤗 Datasets foram projetados para superar essas limitações. Ele libera você de problemas de gerenciamento de memória tratando conjuntos de dados como arquivos _memory-mapped_ e de limites de disco rígido por _streaming_ das entradas em um corpus.
+
+<Youtube id="JwISwTCPPWo"/>
+
+Nesta seção, exploraremos esses recursos de 🤗 Conjuntos de dados com um enorme corpus de 825 GB conhecido como [the Pile](https://pile.eleuther.ai). Vamos começar!
+
+## O que é the Pile?
+
+O `The Pile` é um corpus de texto em inglês que foi criado por [EleutherAI](https://www.eleuther.ai) para treinar modelos de linguagem em larga escala. Ele inclui uma gama diversificada de conjuntos de dados, abrangendo artigos científicos, repositórios de código do GitHub e texto da web filtrado. O corpus de treinamento está disponível em [blocos de 14 GB](https://the-eye.eu/public/AI/pile/), e você também pode baixar vários dos [componentes individuais](https://the-eye.eu/public/AI/pile_preliminary_components/). Vamos começar dando uma olhada no conjunto de dados PubMed Abstracts, que é um corpus de resumos de 15 milhões de publicações biomédicas no [PubMed](https://pubmed.ncbi.nlm.nih.gov/). O conjunto de dados está em [formato JSON Lines](https://jsonlines.org) e é compactado usando a biblioteca `zstandard`, então primeiro precisamos instalá-lo:
+
+```py
+!pip install zstandard
+```
+
+Em seguida, podemos carregar o conjunto de dados usando o método para arquivos remotos que aprendemos na [seção 2](/course/chapter5/2):
+
+```py
+from datasets import load_dataset
+
+# This takes a few minutes to run, so go grab a tea or coffee while you wait :)
+data_files = "https://the-eye.eu/public/AI/pile_preliminary_components/PUBMED_title_abstracts_2019_baseline.jsonl.zst"
+pubmed_dataset = load_dataset("json", data_files=data_files, split="train")
+pubmed_dataset
+```
+
+```python out
+Dataset({
+    features: ['meta', 'text'],
+    num_rows: 15518009
+})
+```
+
+Podemos ver que há 15.518.009 linhas e 2 colunas em nosso conjunto de dados - isso é muito!
+
+> [!TIP]
+> ✎ Por padrão, 🤗 Datasets descompactará os arquivos necessários para carregar um dataset. Se você quiser preservar espaço no disco rígido, você pode passar `DownloadConfig(delete_extracted=True)` para o argumento `download_config` de `load_dataset()`. Consulte a [documentação](https://huggingface.co/docs/datasets/package_reference/builder_classes#datasets.DownloadConfig) para obter mais detalhes.
+
+Vamos inspecionar o conteúdo do primeiro exemplo:
+
+```py
+pubmed_dataset[0]
+```
+
+```python out
+{'meta': {'pmid': 11409574, 'language': 'eng'},
+ 'text': 'Epidemiology of hypoxaemia in children with acute lower respiratory infection.\nTo determine the prevalence of hypoxaemia in children aged under 5 years suffering acute lower respiratory infections (ALRI), the risk factors for hypoxaemia in children under 5 years of age with ALRI, and the association of hypoxaemia with an increased risk of dying in children of the same age ...'}
+```
+
+Ok, isso parece o resumo de um artigo médico. Agora vamos ver quanta RAM usamos para carregar o conjunto de dados!
+
+## A magia do mapeamento de memória
+
+Uma maneira simples de medir o uso de memória em Python é com a biblioteca [`psutil`](https://psutil.readthedocs.io/en/latest/), que pode ser instalada com `pip` da seguinte forma:
+
+```python
+!pip install psutil
+```
+
+Ele fornece uma classe `Process` que nos permite verificar o uso de memória do processo atual da seguinte forma:
+
+```py
+import psutil
+
+# Process.memory_info is expressed in bytes, so convert to megabytes
+print(f"RAM used: {psutil.Process().memory_info().rss / (1024 * 1024):.2f} MB")
+```
+
+```python out
+RAM used: 5678.33 MB
+```
+
+Aqui o atributo `rss` refere-se ao _tamanho do conjunto residente_, que é a fração de memória que um processo ocupa na RAM. Essa medida também inclui a memória usada pelo interpretador Python e as bibliotecas que carregamos, portanto, a quantidade real de memória usada para carregar o conjunto de dados é um pouco menor. Para comparação, vamos ver o tamanho do conjunto de dados no disco, usando o atributo `dataset_size`. Como o resultado é expresso em bytes como antes, precisamos convertê-lo manualmente para gigabytes:
+
+```py
+print(f"Number of files in dataset : {pubmed_dataset.dataset_size}")
+size_gb = pubmed_dataset.dataset_size / (1024**3)
+print(f"Dataset size (cache file) : {size_gb:.2f} GB")
+```
+
+```python out
+Number of files in dataset : 20979437051
+Dataset size (cache file) : 19.54 GB
+```
+
+Legal -- apesar de ter quase 20 GB de tamanho, podemos carregar e acessar o conjunto de dados com muito menos RAM!
+
+> [!TIP]
+> ✏️ **Experimente!** Escolha um dos [subconjuntos](https://the-eye.eu/public/AI/pile_preliminary_components/) da `The Pile` que é maior que a RAM do seu laptop ou desktop, carregue com 🤗 Datasets e meça a quantidade de RAM usada. Observe que, para obter uma medição precisa, você desejará fazer isso em um novo processo. Você pode encontrar os tamanhos descompactados de cada subconjunto na Tabela 1 do [artigo do `The Pile`](https://arxiv.org/abs/2101.00027).
+
+Se você estiver familiarizado com Pandas, esse resultado pode ser uma surpresa por causa da famosa [regra de ouro] de Wes Kinney (https://wesmckinney.com/blog/apache-arrow-pandas-internals/) de que você normalmente precisa de 5 para 10 vezes mais RAM do que o tamanho do seu conjunto de dados. Então, como 🤗 Datasets resolve esse problema de gerenciamento de memória? 🤗 Os conjuntos de dados tratam cada conjunto de dados como um [arquivo mapeado em memória](https://en.wikipedia.org/wiki/Memory-mapped_file), que fornece um mapeamento entre RAM e armazenamento do sistema de arquivos que permite que a biblioteca acesse e opere em elementos do conjunto de dados sem precisar carregá-lo totalmente na memória.
+
+Arquivos mapeados em memória também podem ser compartilhados em vários processos, o que permite que métodos como `Dataset.map()` sejam paralelizados sem a necessidade de mover ou copiar o conjunto de dados. Sob o capô, esses recursos são todos realizados pelo formato de memória [Apache Arrow](https://arrow.apache.org) e [`pyarrow`](https://arrow.apache.org/docs/python/index.html), que tornam o carregamento e o processamento de dados extremamente rápidos. (Para mais detalhes sobre o Apache Arrow e comparações com o Pandas, confira [post do blog de Dejan Simic](https://towardsdatascience.com/apache-arrow-read-dataframe-with-zero-memory-69634092b1a).) Para ver isso em ação, vamos executar um pequeno teste de velocidade iterando sobre todos os elementos no conjunto de dados PubMed Abstracts:
+
+```py
+import timeit
+
+code_snippet = """batch_size = 1000
+
+for idx in range(0, len(pubmed_dataset), batch_size):
+    _ = pubmed_dataset[idx:idx + batch_size]
+"""
+
+time = timeit.timeit(stmt=code_snippet, number=1, globals=globals())
+print(
+    f"Iterated over {len(pubmed_dataset)} examples (about {size_gb:.1f} GB) in "
+    f"{time:.1f}s, i.e. {size_gb/time:.3f} GB/s"
+)
+```
+
+```python out
+'Iterated over 15518009 examples (about 19.5 GB) in 64.2s, i.e. 0.304 GB/s'
+```
+
+Aqui usamos o módulo `timeit` do Python para medir o tempo de execução do `code_snippet`. Normalmente, você poderá iterar em um conjunto de dados a uma velocidade de alguns décimos de GB/s a vários GB/s. Isso funciona muito bem para a grande maioria dos aplicativos, mas às vezes você terá que trabalhar com um conjunto de dados grande demais para ser armazenado no disco rígido do seu laptop. Por exemplo, se tentássemos baixar o Pile por completo, precisaríamos de 825 GB de espaço livre em disco! Para lidar com esses casos, 🤗 Datasets fornece um recurso de streaming que nos permite baixar e acessar elementos em tempo real, sem a necessidade de baixar todo o conjunto de dados. Vamos dar uma olhada em como isso funciona.
+
+> [!TIP]
+> 💡 Nos notebooks Jupyter, você também pode cronometrar células usando a [`%%timeit` função mágica](https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-timeit).
+
+## Conjuntos de dados em streaming
+
+Para habilitar o streaming do conjunto de dados você só precisa passar o argumento `streaming=True` para a função `load_dataset()`. Por exemplo, vamos carregar o conjunto de dados PubMed Abstracts novamente, mas em modo streaming:
+
+```py
+pubmed_dataset_streamed = load_dataset(
+    "json", data_files=data_files, split="train", streaming=True
+)
+```
+
+Em vez do familiar `Dataset` que encontramos em outro lugar neste capítulo, o objeto retornado com `streaming=True` é um `IterableDataset`. Como o nome sugere, para acessar os elementos de um `IterableDataset` precisamos iterar sobre ele. Podemos acessar o primeiro elemento do nosso conjunto de dados transmitido da seguinte forma:
+
+
+```py
+next(iter(pubmed_dataset_streamed))
+```
+
+```python out
+{'meta': {'pmid': 11409574, 'language': 'eng'},
+ 'text': 'Epidemiology of hypoxaemia in children with acute lower respiratory infection.\nTo determine the prevalence of hypoxaemia in children aged under 5 years suffering acute lower respiratory infections (ALRI), the risk factors for hypoxaemia in children under 5 years of age with ALRI, and the association of hypoxaemia with an increased risk of dying in children of the same age ...'}
+```
+
+Os elementos de um conjunto de dados transmitido podem ser processados dinamicamente usando `IterableDataset.map()`, o que é útil durante o treinamento se você precisar tokenizar as entradas. O processo é exatamente o mesmo que usamos para tokenizar nosso conjunto de dados no [Capítulo 3](/course/chapter3), com a única diferença de que as saídas são retornadas uma a uma:
+
+```py
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+tokenized_dataset = pubmed_dataset_streamed.map(lambda x: tokenizer(x["text"]))
+next(iter(tokenized_dataset))
+```
+
+```python out
+{'input_ids': [101, 4958, 5178, 4328, 6779, ...], 'attention_mask': [1, 1, 1, 1, 1, ...]}
+```
+
+> [!TIP]
+> 💡 Para acelerar a tokenização com streaming você pode passar `batched=True`, como vimos na última seção. Ele processará os exemplos lote por lote; o tamanho do lote padrão é 1.000 e pode ser especificado com o argumento `batch_size`.
+
+Você também pode embaralhar um conjunto de dados transmitido usando `IterableDataset.shuffle()`, mas, diferentemente de `Dataset.shuffle()`, isso apenas embaralha os elementos em um `buffer_size` predefinido:
+
+```py
+shuffled_dataset = pubmed_dataset_streamed.shuffle(buffer_size=10_000, seed=42)
+next(iter(shuffled_dataset))
+```
+
+```python out
+{'meta': {'pmid': 11410799, 'language': 'eng'},
+ 'text': 'Randomized study of dose or schedule modification of granulocyte colony-stimulating factor in platinum-based chemotherapy for elderly patients with lung cancer ...'}
+```
+
+Neste exemplo, selecionamos um exemplo aleatório dos primeiros 10.000 exemplos no buffer. Uma vez que um exemplo é acessado, seu lugar no buffer é preenchido com o próximo exemplo no corpus (ou seja, o 10.001º exemplo no caso acima). Você também pode selecionar elementos de um conjunto de dados transmitido usando as funções `IterableDataset.take()` e `IterableDataset.skip()`, que agem de maneira semelhante a `Dataset.select()`. Por exemplo, para selecionar os primeiros 5 exemplos no conjunto de dados PubMed Abstracts, podemos fazer o seguinte:
+
+```py
+dataset_head = pubmed_dataset_streamed.take(5)
+list(dataset_head)
+```
+
+```python out
+[{'meta': {'pmid': 11409574, 'language': 'eng'},
+  'text': 'Epidemiology of hypoxaemia in children with acute lower respiratory infection ...'},
+ {'meta': {'pmid': 11409575, 'language': 'eng'},
+  'text': 'Clinical signs of hypoxaemia in children with acute lower respiratory infection: indicators of oxygen therapy ...'},
+ {'meta': {'pmid': 11409576, 'language': 'eng'},
+  'text': "Hypoxaemia in children with severe pneumonia in Papua New Guinea ..."},
+ {'meta': {'pmid': 11409577, 'language': 'eng'},
+  'text': 'Oxygen concentrators and cylinders ...'},
+ {'meta': {'pmid': 11409578, 'language': 'eng'},
+  'text': 'Oxygen supply in rural africa: a personal experience ...'}]
+```
+
+Da mesma forma, você pode usar a função `IterableDataset.skip()` para criar divisões de treinamento e validação de um conjunto de dados embaralhado da seguinte forma:
+
+```py
+# Skip the first 1,000 examples and include the rest in the training set
+train_dataset = shuffled_dataset.skip(1000)
+# Take the first 1,000 examples for the validation set
+validation_dataset = shuffled_dataset.take(1000)
+```
+
+Vamos completar nossa exploração de streaming de conjuntos de dados com um aplicativo comum: combinar vários conjuntos de dados para criar um único corpus. 🤗 Datasets fornece uma função `interleave_datasets()` que converte uma lista de objetos `IterableDataset` em um único `IterableDataset`, onde os elementos do novo conjunto de dados são obtidos alternando entre os exemplos de origem. Essa função é especialmente útil quando você está tentando combinar grandes conjuntos de dados, então, como exemplo, vamos transmitir o subconjunto FreeLaw do Pile, que é um conjunto de dados de 51 GB de pareceres jurídicos dos tribunais dos EUA:
+
+```py
+law_dataset_streamed = load_dataset(
+    "json",
+    data_files="https://the-eye.eu/public/AI/pile_preliminary_components/FreeLaw_Opinions.jsonl.zst",
+    split="train",
+    streaming=True,
+)
+next(iter(law_dataset_streamed))
+```
+
+```python out
+{'meta': {'case_ID': '110921.json',
+  'case_jurisdiction': 'scotus.tar.gz',
+  'date_created': '2010-04-28T17:12:49Z'},
+ 'text': '\n461 U.S. 238 (1983)\nOLIM ET AL.\nv.\nWAKINEKONA\nNo. 81-1581.\nSupreme Court of United States.\nArgued January 19, 1983.\nDecided April 26, 1983.\nCERTIORARI TO THE UNITED STATES COURT OF APPEALS FOR THE NINTH CIRCUIT\n*239 Michael A. Lilly, First Deputy Attorney General of Hawaii, argued the cause for petitioners. With him on the brief was James H. Dannenberg, Deputy Attorney General...'}
+```
+
+Esse conjunto de dados é grande o suficiente para sobrecarregar a RAM da maioria dos laptops, mas conseguimos carregá-lo e acessá-lo sem suar a camisa! Vamos agora combinar os exemplos dos conjuntos de dados FreeLaw e PubMed Abstracts com a função `interleave_datasets()`:
+
+```py
+from itertools import islice
+from datasets import interleave_datasets
+
+combined_dataset = interleave_datasets([pubmed_dataset_streamed, law_dataset_streamed])
+list(islice(combined_dataset, 2))
+```
+
+```python out
+[{'meta': {'pmid': 11409574, 'language': 'eng'},
+  'text': 'Epidemiology of hypoxaemia in children with acute lower respiratory infection ...'},
+ {'meta': {'case_ID': '110921.json',
+   'case_jurisdiction': 'scotus.tar.gz',
+   'date_created': '2010-04-28T17:12:49Z'},
+  'text': '\n461 U.S. 238 (1983)\nOLIM ET AL.\nv.\nWAKINEKONA\nNo. 81-1581.\nSupreme Court of United States.\nArgued January 19, 1983.\nDecided April 26, 1983.\nCERTIORARI TO THE UNITED STATES COURT OF APPEALS FOR THE NINTH CIRCUIT\n*239 Michael A. Lilly, First Deputy Attorney General of Hawaii, argued the cause for petitioners. With him on the brief was James H. Dannenberg, Deputy Attorney General...'}]
+```
+
+Aqui usamos a função `islice()` do módulo `itertools` do Python para selecionar os dois primeiros exemplos do conjunto de dados combinado e podemos ver que eles correspondem aos primeiros exemplos de cada um dos dois conjuntos de dados de origem.
+
+Por fim, se você quiser transmitir o Pile em sua totalidade de 825 GB, poderá pegar todos os arquivos preparados da seguinte maneira:
+
+```py
+base_url = "https://the-eye.eu/public/AI/pile/"
+data_files = {
+    "train": [base_url + "train/" + f"{idx:02d}.jsonl.zst" for idx in range(30)],
+    "validation": base_url + "val.jsonl.zst",
+    "test": base_url + "test.jsonl.zst",
+}
+pile_dataset = load_dataset("json", data_files=data_files, streaming=True)
+next(iter(pile_dataset["train"]))
+```
+
+```python out
+{'meta': {'pile_set_name': 'Pile-CC'},
+ 'text': 'It is done, and submitted. You can play “Survival of the Tastiest” on Android, and on the web...'}
+```
+
+> [!TIP]
+> ✏️ **Experimente!** Use um dos grandes corpora Common Crawl como [`mc4`](https://huggingface.co/datasets/mc4) ou [`oscar`](https://huggingface.co/datasets/oscar) para criar um conjunto de dados multilíngue de streaming que represente as proporções faladas de idiomas em um país de sua escolha. Por exemplo, as quatro línguas nacionais na Suíça são alemão, francês, italiano e romanche, então você pode tentar criar um corpus suíço amostrando os subconjuntos do Oscar de acordo com sua proporção falada.
+
+Agora você tem todas as ferramentas necessárias para carregar e processar conjuntos de dados de todas as formas e tamanhos, mas, a menos que tenha muita sorte, chegará um ponto em sua jornada de PNL em que você terá que criar um conjunto de dados para resolver o problema. problema em mãos. Esse é o tema da próxima seção!

@@ -1,0 +1,166 @@
+<FrameworkSwitchCourse {fw} />
+
+# 使用 Trainer API 微調模型
+
+<CourseFloatingBanner chapter={3}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/zh-CN/chapter3/section3.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/zh-CN/chapter3/section3.ipynb"},
+]} />
+
+<Youtube id="nvBXf7s7vTI"/>
+
+🤗 Transformers提供了一個 **Trainer** 類來幫助您在自己的數據集上微調任何預訓練模型。完成上一節中的所有數據預處理工作後，您只需要執行幾個步驟來創建 **Trainer** .最難的部分可能是為 **Trainer.train()**配置運行環境，因為它在 CPU 上運行速度會非常慢。如果您沒有設置 GPU，您可以訪問免費的 GPU 或 TPU[Google Colab](https://colab.research.google.com/).
+
+下面的示例假設您已經執行了上一節中的示例。下面這段代碼，概括了您需要提前運行的代碼：
+
+```py
+from datasets import load_dataset
+from transformers import AutoTokenizer, DataCollatorWithPadding
+
+raw_datasets = load_dataset("glue", "mrpc")
+checkpoint = "bert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+
+
+def tokenize_function(example):
+    return tokenizer(example["sentence1"], example["sentence2"], truncation=True)
+
+
+tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+```
+
+### Training
+
+在我們定義我們的 **Trainer** 之前首先要定義一個 **TrainingArguments** 類，它將包含 **Trainer**用於訓練和評估的所有超參數。您唯一必須提供的參數是保存訓練模型的目錄，以及訓練過程中的檢查點。對於其餘的參數，您可以保留默認值，這對於基本微調應該非常有效。
+
+```py
+from transformers import TrainingArguments
+
+training_args = TrainingArguments("test-trainer")
+```
+
+> [!TIP]
+> 💡 如果您想在訓練期間自動將模型上傳到 Hub，請將push_to_hub=True添加到TrainingArguments之中. 我們將在[第四章](/course/chapter4/3)中詳細介紹這部分。
+
+第二步是定義我們的模型。正如在[之前的章節](/2_Using Transformers/Introduction)一樣，我們將使用 **AutoModelForSequenceClassification** 類，它有兩個參數：
+
+```py
+from transformers import AutoModelForSequenceClassification
+
+model = AutoModelForSequenceClassification.from_pretrained(checkpoint, num_labels=2)
+```
+
+你會注意到，和[第二章](/course/chapter2)不一樣的是，在實例化此預訓練模型後會收到警告。這是因為 BERT 沒有在句子對分類方面進行過預訓練，所以預訓練模型的頭部已經被丟棄，而是添加了一個適合句子序列分類的新頭部。警告表明一些權重沒有使用（對應於丟棄的預訓練頭的那些），而其他一些權重被隨機初始化（新頭的那些）。最後鼓勵您訓練模型，這正是我們現在要做的。
+
+一旦我們有了我們的模型，我們就可以定義一個 **Trainer** 通過將之前構造的所有對象傳遞給它——我們的**model** 、**training_args** ，訓練和驗證數據集，**data_collator** ，和 **tokenizer** ：
+
+```py
+from transformers import Trainer
+
+trainer = Trainer(
+    model,
+    training_args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation"],
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+)
+```
+
+請注意，當您在這裡完成**tokenizer**後，默認 **Trainer**使用 的**data_collator**會使用之前預定義的 **DataCollatorWithPadding** ，因此您可以在這個例子中跳過 **data_collator=data_collator**。在第 2 節中向您展示這部分處理仍然很重要！
+
+為了讓預訓練模型在在我們的數據集上微調，我們只需要調用**Trainer**的**train()** 方法 ：
+
+```py
+trainer.train()
+```
+
+這將開始微調（在GPU上應該需要幾分鐘），並每500步報告一次訓練損失。但是，它不會告訴您模型的性能如何（或質量如何）。這是因為:
+
+1. 我們沒有通過將**evaluation_strategy**設置為“**steps**”(在每次更新參數的時候評估)或“**epoch**”(在每個epoch結束時評估)來告訴**Trainer**在訓練期間進行評估。
+2. 我們沒有為**Trainer**提供一個**compute_metrics()**函數來直接計算模型的好壞(否則評估將只輸出loss，這不是一個非常直觀的數字)。
+
+
+### 評估
+
+讓我們看看如何構建一個有用的 **compute_metrics()** 函數並在我們下次訓練時使用它。該函數必須採用 **EvalPrediction** 對象（帶有 **predictions** 和 **label_ids** 字段的參數元組）並將返回一個字符串到浮點數的字典（字符串是返回的指標的名稱，而浮點數是它們的值）。我們可以使用 **Trainer.predict()** 命令來使用我們的模型進行預測：
+
+```py
+predictions = trainer.predict(tokenized_datasets["validation"])
+print(predictions.predictions.shape, predictions.label_ids.shape)
+```
+
+```python out
+(408, 2) (408,)
+```
+
+ **predict()** 的輸出結果是具有三個字段的命名元組： **predictions** , **label_ids** ， 和 **metrics** .這 **metrics** 字段將只包含傳遞的數據集的loss，以及一些運行時間（預測所需的總時間和平均時間）。如果我們定義了自己的 **compute_metrics()** 函數並將其傳遞給 **Trainer** ，該字段還將包含**compute_metrics()**的結果。
+
+**predict()** 方法是具有三個字段的命名元組： **predictions** , **label_ids** ， 和 **metrics** .這 **metrics** 字段將只包含傳遞的數據集的loss，以及一些運行時間（預測所需的總時間和平均時間）。如果我們定義了自己的 **compute_metrics()** 函數並將其傳遞給 **Trainer** ，該字段還將包含**compute_metrics()** 的結果。如你看到的， **predictions** 是一個形狀為 408 x 2 的二維數組（408 是我們使用的數據集中元素的數量）。這些是我們傳遞給**predict()**的數據集的每個元素的結果(logits)（正如你在[之前的章節](/course/chapter2)看到的情況）。要將我們的預測的可以與真正的標籤進行比較，我們需要在第二個軸上取最大值的索引：
+
+```py
+import numpy as np
+
+preds = np.argmax(predictions.predictions, axis=-1)
+```
+
+現在建立我們的 **compute_metric()** 函數來較為直觀地評估模型的好壞，我們將使用 🤗 [Evaluate](https://github.com/huggingface/evaluate/) 庫中的指標。我們可以像加載數據集一樣輕鬆加載與 MRPC 數據集關聯的指標，這次使用 **evaluate.load()** 函數。返回的對象有一個 **compute()**方法我們可以用來進行度量計算的方法：
+
+```py
+import evaluate
+
+metric = evaluate.load("glue", "mrpc")
+metric.compute(predictions=preds, references=predictions.label_ids)
+```
+
+```python out
+{'accuracy': 0.8578431372549019, 'f1': 0.8996539792387542}
+```
+
+您獲得的確切結果可能會有所不同，因為模型頭的隨機初始化可能會影響最終建立的模型。在這裡，我們可以看到我們的模型在驗證集上的準確率為 85.78%，F1 分數為 89.97。這是用於評估 GLUE 基準的 MRPC 數據集結果的兩個指標。而在[BERT 論文](https://arxiv.org/pdf/1810.04805.pdf)中展示的基礎模型的 F1 分數為 88.9。那是 **uncased** 模型，而我們目前正在使用 **cased** 模型，通過改進得到了更好的結果。
+
+最後將所有東西打包在一起，我們得到了我們的 **compute_metrics()** 函數：
+
+```py
+def compute_metrics(eval_preds):
+    metric = evaluate.load("glue", "mrpc")
+    logits, labels = eval_preds
+    predictions = np.argmax(logits, axis=-1)
+    return metric.compute(predictions=predictions, references=labels)
+```
+
+為了查看模型在每個訓練週期結束的好壞，下面是我們如何使用**compute_metrics()**函數定義一個新的 **Trainer** ：
+
+```py
+training_args = TrainingArguments("test-trainer", evaluation_strategy="epoch")
+model = AutoModelForSequenceClassification.from_pretrained(checkpoint, num_labels=2)
+
+trainer = Trainer(
+    model,
+    training_args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation"],
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics,
+)
+```
+
+請注意，我們設置了了一個新的 **TrainingArguments** 它的**evaluation_strategy** 設置為 **epoch** 並創建了一個新模型。如果不創建新的模型就直接訓練，就只會繼續訓練之前我們已經訓練過的模型。要啟動新的訓練運行，我們執行：
+
+```
+trainer.train()
+```
+
+這一次，它將在訓練loss之外，還會輸出每個 epoch 結束時的驗證loss和指標。同樣，由於模型的隨機頭部初始化，您達到的準確率/F1 分數可能與我們發現的略有不同，但它應該在同一範圍內。
+
+這 **Trainer** 將在多個 GPU 或 TPU 上開箱即用，並提供許多選項，例如混合精度訓練（在訓練的參數中使用 **fp16 = True** ）。我們將在第 10 章討論它支持的所有內容。
+
+使用**Trainer** API微調的介紹到此結束。對最常見的 NLP 任務執行此操作的示例將在第 7 章中給出，但現在讓我們看看如何在純 PyTorch 中執行相同的操作。
+
+> [!TIP]
+> ✏️ **試試看!** 使用您在第 2 節中進行的數據處理，在 GLUE SST-2 數據集上微調模型。
+

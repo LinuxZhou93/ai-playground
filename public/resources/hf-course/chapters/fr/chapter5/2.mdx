@@ -1,0 +1,160 @@
+# Que faire si mon jeu de données n'est pas sur le <i>Hub</i> ?
+
+<CourseFloatingBanner chapter={5}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "English", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/en/chapter5/section2.ipynb"},
+    {label: "Français", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/fr/chapter5/section2.ipynb"},
+    {label: "English", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/en/chapter5/section2.ipynb"},
+    {label: "Français", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/fr/chapter5/section2.ipynb"},
+]} />
+
+Vous savez comment utiliser le [*Hub*](https://huggingface.co/datasets) pour télécharger des jeux de données mais en pratique vous vous retrouverez souvent à travailler avec des données stockées sur votre ordinateur portable ou sur un serveur distant. Dans cette section, nous allons vous montrer comment 🤗 *Datasets* peut être utilisé pour charger des jeux de données qui ne sont pas disponibles sur le *Hub* d’Hugging Face.
+
+<Youtube id="HyQgpJTkRdE"/>
+
+## Travailler avec des jeux de données locaux et distants
+
+🤗 *Datasets* fournit des scripts de chargement de jeux de données locaux et distants. La bibliothèque prend en charge plusieurs formats de données courants, tels que :
+
+| Format des données  | Script de chargement |                         Exemple                         |
+| :----------------: | :------------------: | :-----------------------------------------------------: |
+|     CSV & TSV      |        `csv`         |     `load_dataset("csv", data_files="my_file.csv")`     |
+|   Fichiers texte   |        `text`        |    `load_dataset("text", data_files="my_file.txt")`     |
+| JSON & JSON Lines |        `json`        |   `load_dataset("json", data_files="my_file.jsonl")`    |
+| DataFrames en Pickle |       `pandas`       | `load_dataset("pandas", data_files="my_dataframe.pkl")` |
+
+Comme indiqué dans le tableau, pour chaque format de données, nous avons juste besoin de spécifier le type de script de chargement dans la fonction `load_dataset()`, ainsi qu'un argument `data_files` qui spécifie le chemin vers un ou plusieurs fichiers. Commençons par charger un jeu de données à partir de fichiers locaux puis plus tard comment faire la même chose avec des fichiers distants.
+
+## Charger un jeu de données local
+
+Pour cet exemple, nous utilisons le jeu de données [SQuAD-it](https://github.com/crux82/squad-it/) qui est un grand jeu de données pour la tâche de *Question Awnswering* en italien.
+
+Les échantillons d’entraînement et de test sont hébergés sur GitHub, nous pouvons donc les télécharger avec une simple commande `wget` :
+
+```python
+!wget https://github.com/crux82/squad-it/raw/master/SQuAD_it-train.json.gz
+!wget https://github.com/crux82/squad-it/raw/master/SQuAD_it-test.json.gz
+```
+
+Cela télécharge deux fichiers compressés appelés *SQuAD_it-train.json.gz* et *SQuAD_it-test.json.gz* que nous pouvons décompresser avec la commande Linux `gzip` :
+
+```python
+!gzip -dkv SQuAD_it-*.json.gz
+```
+
+```bash
+SQuAD_it-test.json.gz:	   87.4% -- replaced with SQuAD_it-test.json
+SQuAD_it-train.json.gz:	   82.2% -- replaced with SQuAD_it-train.json
+```
+
+Nous pouvons voir que les fichiers compressés ont été remplacés par _SQuAD_it-train.json_ et _SQuAD_it-text.json_, et que les données sont stockées au format JSON.
+
+> [!TIP]
+> ✎ Si vous vous demandez pourquoi il y a un caractère `!` dans les commandes *shell* ci-dessus, c'est parce que nous les exécutons dans un *notebook* Jupyter. Supprimez simplement le préfixe si vous souhaitez télécharger et décompresser le jeu de données dans un terminal.
+
+Pour charger un fichier JSON avec la fonction `load_dataset()`, nous avons juste besoin de savoir si nous avons affaire à du JSON ordinaire (similaire à un dictionnaire imbriqué) ou à des lignes JSON (JSON séparé par des lignes). Comme de nombreux jeux de données de questions-réponses, SQuAD-it utilise le format imbriqué où tout le texte est stocké dans un champ `data`. Cela signifie que nous pouvons charger le jeu de données en spécifiant l'argument `field` comme suit :
+
+```py
+from datasets import load_dataset
+
+squad_it_dataset = load_dataset("json", data_files="SQuAD_it-train.json", field="data")
+```
+
+Par défaut, le chargement de fichiers locaux crée un objet `DatasetDict` avec un échantillon `train`. Nous pouvons le voir en inspectant l'objet `squad_it_dataset` :
+
+```py
+squad_it_dataset
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['title', 'paragraphs'],
+        num_rows: 442
+    })
+})
+```
+
+Cela nous montre le nombre de lignes et les noms de colonnes associés à l’échantillon d’entraînement. Nous pouvons afficher l'un des exemples en indexant l’échantillon `train` comme suit :
+
+```py
+squad_it_dataset["train"][0]
+```
+
+```python out
+{
+    "title": "Terremoto del Sichuan del 2008", # Séisme du Sichuan 2008
+    "paragraphs": [
+        {
+            "context": "Il terremoto del Sichuan del 2008 o il terremoto...",
+			# Le tremblement de terre du Sichuan de 2008 ou le...
+            "qas": [
+                {
+                    "answers": [{"answer_start": 29, "text": "2008"}],
+                    "id": "56cdca7862d2951400fa6826",
+                    "question": "In quale anno si è verificato il terremoto nel Sichuan?", 
+					# En quelle année le tremblement de terre du Sichuan a-t-il eu lieu ?
+                },
+                ...
+            ],
+        },
+        ...
+    ],
+}
+```
+
+Super, nous avons chargé notre premier jeu de données local ! Mais ce que nous voulons vraiment, c'est inclure à la fois les échantillons `train` et `test` dans un seul objet `DatasetDict` afin que nous puissions appliquer les fonctions `Dataset.map()` sur les deux à la fois . Pour ce faire, nous pouvons fournir un dictionnaire à l'argument `data_files` qui associe chaque nom des échantillons à un fichier associé à cet échantillon :
+
+```py
+data_files = {"train": "SQuAD_it-train.json", "test": "SQuAD_it-test.json"}
+squad_it_dataset = load_dataset("json", data_files=data_files, field="data")
+squad_it_dataset
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['title', 'paragraphs'],
+        num_rows: 442
+    })
+    test: Dataset({
+        features: ['title', 'paragraphs'],
+        num_rows: 48
+    })
+})
+```
+
+C'est exactement ce que nous voulions. Désormais, nous pouvons appliquer diverses techniques de prétraitement pour nettoyer les données, tokeniser les avis, etc.
+
+> [!TIP]
+> L'argument `data_files` de la fonction `load_dataset()` est assez flexible et peut être soit un chemin de fichier unique, une liste de chemins de fichiers, ou un dictionnaire qui fait correspondre les noms des échantillons aux chemins de fichiers. Vous pouvez également regrouper les fichiers correspondant à un motif spécifié selon les règles utilisées par le shell Unix. Par exemple, vous pouvez regrouper tous les fichiers JSON d'un répertoire en une seule division en définissant `data_files="*.json"`. Voir la [documentation](https://huggingface.co/docs/datasets/loading#local-and-remote-files) de 🤗 *Datasets* pour plus de détails.
+
+Les scripts de chargement de 🤗 *Datasets* prennent en charge la décompression automatique des fichiers d'entrée. Nous aurions donc pu ignorer l'utilisation de `gzip` en pointant l'argument `data_files` directement sur les fichiers compressés :
+
+```py
+data_files = {"train": "SQuAD_it-train.json.gz", "test": "SQuAD_it-test.json.gz"}
+squad_it_dataset = load_dataset("json", data_files=data_files, field="data")
+```
+
+Cela peut être utile si vous ne souhaitez pas décompresser manuellement de nombreux fichiers GZIP. La décompression automatique s'applique également à d'autres formats courants tels que ZIP et TAR. Il vous suffit donc de pointer `data_files` vers les fichiers compressés et vous êtes prêt à partir !
+
+Maintenant que vous savez comment charger des fichiers locaux sur votre ordinateur portable ou de bureau, examinons le chargement de fichiers distants.
+
+## Charger un jeu de données distant
+
+Si vous travaillez en tant que *data scientist* ou codeur dans une entreprise, il y a de fortes chances que les jeux de données que vous souhaitez analyser soient stockés sur un serveur distant. Heureusement, charger des fichiers distants est aussi simple que de charger des fichiers locaux ! Au lieu de fournir un chemin vers les fichiers locaux, nous pointons l'argument `data_files` de `load_dataset()` vers une ou plusieurs URL où les fichiers distants sont stockés. Par exemple, pour le jeu de données SQuAD-it hébergé sur GitHub, nous pouvons simplement faire pointer `data_files` vers les URL _SQuAD_it-*.json.gz_ comme suit :
+
+```py
+url = "https://github.com/crux82/squad-it/raw/master/"
+data_files = {
+    "train": url + "SQuAD_it-train.json.gz",
+    "test": url + "SQuAD_it-test.json.gz",
+}
+squad_it_dataset = load_dataset("json", data_files=data_files, field="data")
+```
+
+Cela renvoie le même objet `DatasetDict` obtenu ci-dessus mais nous évite de télécharger et de décompresser manuellement les fichiers _SQuAD_it-*.json.gz_. Ceci conclut notre incursion dans les différentes façons de charger des jeux de données qui ne sont pas hébergés sur le *Hub*. Maintenant que nous avons un jeu de données avec lequel jouer, mettons la main à la pâte avec diverses techniques de gestion des données !
+
+> [!TIP]
+> ✏️ **Essayez !** Choisissez un autre jeu de données hébergé sur GitHub ou dans le [*UCI Machine Learning Repository*](https://archive.ics.uci.edu/ml/index.php) et essayez de le charger localement et à distance en utilisant les techniques présentées ci-dessus. Pour obtenir des points bonus, essayez de charger un jeu de données stocké au format CSV ou texte (voir la [documentation](https://huggingface.co/docs/datasets/loading#local-and-remote-files) pour plus d'informations sur ces formats).

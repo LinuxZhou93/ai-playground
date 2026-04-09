@@ -1,0 +1,158 @@
+# 如果我的數據集不在 Hub 上怎麼辦？
+
+<CourseFloatingBanner chapter={5}
+  classNames="absolute z-10 right-0 top-0"
+  notebooks={[
+    {label: "Google Colab", value: "https://colab.research.google.com/github/huggingface/notebooks/blob/master/course/zh-CN/chapter5/section2.ipynb"},
+    {label: "Aws Studio", value: "https://studiolab.sagemaker.aws/import/github/huggingface/notebooks/blob/master/course/zh-CN/chapter5/section2.ipynb"},
+]} />
+
+你知道如何使用[Hugging Face Hub](https://huggingface.co/datasets)下載數據集, 但你經常會發現自己正在處理存儲在筆記本電腦或遠程服務器上的數據。在本節中，我們將向您展示如何使用 🤗 Datasets來加載 Hugging Face Hub 上不可用的數據集。
+
+<Youtube id="HyQgpJTkRdE"/>
+
+## 使用本地和遠程數據集
+
+🤗 Datasets 提供了加載腳本來加載本地和遠程數據集。它支持幾種常見的數據格式，例如：
+
+|    Data format     | Loading script |                         Example                         |
+| :----------------: | :------------: | :-----------------------------------------------------: |
+|     CSV & TSV      |     `csv`      |     `load_dataset("csv", data_files="my_file.csv")`     |
+|     Text files     |     `text`     |    `load_dataset("text", data_files="my_file.txt")`     |
+| JSON & JSON Lines  |     `json`     |   `load_dataset("json", data_files="my_file.jsonl")`    |
+| Pickled DataFrames |    `pandas`    | `load_dataset("pandas", data_files="my_dataframe.pkl")` |
+
+如表所示, 對於每種數據格式, 我們只需要使用 `load_dataset()` 函數, 使用 `data_files` 指定一個或多個文件的路徑的參數。 讓我們從本地文件加載數據集開始；稍後我們將看到如何對遠程文件執行相同的操作。
+
+## 加載本地數據集
+
+對於這個例子，我們將使用 [SQuAD-it dataset](https://github.com/crux82/squad-it/), 這是一個大規模的意大利語問答數據集。
+
+訓練和測試都託管在 GitHub 上, 因此我們可以通過`wget`命令非常簡單地下載它們:
+
+```python
+!wget https://github.com/crux82/squad-it/raw/master/SQuAD_it-train.json.gz
+!wget https://github.com/crux82/squad-it/raw/master/SQuAD_it-test.json.gz
+```
+
+這將下載兩個名為*SQuAD_it-train.json.gz* 和 *SQuAD_it-test.json.gz*的壓縮文件, 我們可以用Linux的解壓命令 `gzip`:
+
+```python
+!gzip -dkv SQuAD_it-*.json.gz
+```
+
+```bash
+SQuAD_it-test.json.gz:	   87.4% -- replaced with SQuAD_it-test.json
+SQuAD_it-train.json.gz:	   82.2% -- replaced with SQuAD_it-train.json
+```
+
+我們可以看到壓縮文件已經被替換為SQuAD_it-train.json和SQuAD_it-text.json,並且數據以 JSON 格式存儲。
+
+> [!TIP]
+> ✎ 如果你想知道為什麼上面的shell命令中喲與一個字符`!`,那是因為我們是在 Jupyter notebook 中運行它們。如果您想在終端中下載和解壓縮數據集，只需刪除前綴!即可。
+
+使用`load_dataset()`函數來加載JSON文件, 我們只需要知道我們是在處理普通的 JSON(類似於嵌套字典)還是 JSON 行(行分隔的 JSON)。像許多問答數據集一樣, SQuAD-it 使用嵌套格式,所有文本都存儲在 `data`文件中。這意味著我們可以通過指定參數`field`來加載數據集,如下所示:
+
+```py
+from datasets import load_dataset
+
+squad_it_dataset = load_dataset("json", data_files="SQuAD_it-train.json", field="data")
+```
+
+默認情況下, 加載本地文件會創建一個帶有`train`的`DatasetDict` 對象。 我們可以通過 `squad_it_dataset`查看:
+
+```py
+squad_it_dataset
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['title', 'paragraphs'],
+        num_rows: 442
+    })
+})
+```
+
+這向我們顯示了與訓練集相關聯的行數和列名。我們可以通過索引到 `train` 查看示例，如下所示:
+
+```py
+squad_it_dataset["train"][0]
+```
+
+```python out
+{
+    "title": "Terremoto del Sichuan del 2008",
+    "paragraphs": [
+        {
+            "context": "Il terremoto del Sichuan del 2008 o il terremoto...",
+            "qas": [
+                {
+                    "answers": [{"answer_start": 29, "text": "2008"}],
+                    "id": "56cdca7862d2951400fa6826",
+                    "question": "In quale anno si è verificato il terremoto nel Sichuan?",
+                },
+                ...
+            ],
+        },
+        ...
+    ],
+}
+```
+
+很好, 我們已經加載了我們的第一個本地數據集! 但是, 雖然這對訓練集有效, 但是我們真正想要的是包括 `train` 和 `test` 的 `DatasetDict` 對象。這樣的話就可以使用 `Dataset.map()` 函數同時處理訓練集和測試集。 為此, 我們提供參數`data_files`的字典,將每個分割名稱映射到與該分割相關聯的文件：
+
+```py
+data_files = {"train": "SQuAD_it-train.json", "test": "SQuAD_it-test.json"}
+squad_it_dataset = load_dataset("json", data_files=data_files, field="data")
+squad_it_dataset
+```
+
+```python out
+DatasetDict({
+    train: Dataset({
+        features: ['title', 'paragraphs'],
+        num_rows: 442
+    })
+    test: Dataset({
+        features: ['title', 'paragraphs'],
+        num_rows: 48
+    })
+})
+```
+
+這正是我們想要的。現在, 現在，我們可以應用各種預處理技術來清理數據、標記評論等。
+
+> [!TIP]
+> `load_dataset()`函數的`data_files`參數非常靈活並且可以是單個文件路徑、文件路徑列表或將分割後的名稱映射到文件路徑的字典。您還可以根據Unix shell使用的規則對與指定模式匹配的文件進行全局定位（例如，您可以通過設置'data_files=“*.JSON”'將目錄中的所有JSON文件作為單個拆分進行全局定位）。有關更多詳細信息，請參閱🤗Datasets 文檔。
+
+🤗 Datasets實際上支持輸入文件的自動解壓,所以我們可以跳過使用`gzip`,直接設置 `data_files`參數傳遞壓縮文件:
+
+```py
+data_files = {"train": "SQuAD_it-train.json.gz", "test": "SQuAD_it-test.json.gz"}
+squad_it_dataset = load_dataset("json", data_files=data_files, field="data")
+```
+
+如果您不想手動解壓縮許多 GZIP 文件，這會很有用。自動解壓也適用於其他常見格式,如 ZIP 和 TAR,因此您只需將 `data_files` 設置為壓縮文件所在的路徑,你就可以開始了!
+
+現在你知道如何在筆記本電腦或臺式機上加載本地文件，讓我們來看看加載遠程文件。
+
+## 加載遠程數據集
+
+如果你在公司擔任數據研究員或編碼員,那麼你要分析的數據集很有可能存儲在某個遠程服務器上。幸運的是,加載遠程文件就像加載本地文件一樣簡單!我們沒有提供本地文件的路徑, 而是將`load_dataset()`的`data_files`參數指向存儲遠程文件的一個或多個URL。例如, 對於託管在 GitHub 上的 SQuAD-it 數據集, 我們可以將 `data_files` 指向 _SQuAD_it-*.json.gz_ 的網址,如下所示:
+
+```py
+url = "https://github.com/crux82/squad-it/raw/master/"
+data_files = {
+    "train": url + "SQuAD_it-train.json.gz",
+    "test": url + "SQuAD_it-test.json.gz",
+}
+squad_it_dataset = load_dataset("json", data_files=data_files, field="data")
+```
+
+這將返回和上面的本地例子相同的 `DatasetDict` 對象, 但省去了我們手動下載和解壓 _SQuAD_it-*.json.gz_ 文件的步驟。這是我們對加載未託管在Hugging Face Hub的數據集的各種方法的總結。既然我們已經有了一個可以使用的數據集,讓我們開始大展身手吧！
+
+> [!TIP]
+> ✏️ **試試看!** 選擇託管在GitHub或[UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/index.php)上的另一個數據集並嘗試使用上述技術在本地和遠程加載它。另外,可以嘗試加載CSV或者文本格式存儲的數據集(有關這些格式的更多信息,請參閱[文檔](https://huggingface.co/docs/datasets/loading#local-and-remote-files))。
+
+
