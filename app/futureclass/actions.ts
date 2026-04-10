@@ -1,9 +1,13 @@
 "use server";
 
 import { getSupabase } from "@/lib/supabase/singleton";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { getModel } from "@/lib/ai/providers";
 import { callLLM } from "@/lib/ai/llm";
+
+// ─────────────────────────────────────────────────────────────
+// 📦 基础查询
+// ─────────────────────────────────────────────────────────────
 
 /**
  * 获取所有学员列表
@@ -92,6 +96,10 @@ export async function getStudentsByClass(classId: string) {
     }));
 }
 
+// ─────────────────────────────────────────────────────────────
+// ⚡ 点名考勤（核心业务逻辑）
+// ─────────────────────────────────────────────────────────────
+
 /**
  * 执行点名考勤（核心业务逻辑：新增记录 + 扣减课时）
  */
@@ -144,49 +152,105 @@ export async function markAttendance({
 
   revalidatePath("/futureclass/attendance");
   revalidatePath("/futureclass/dashboard");
+  revalidateTag("erp-data");
   return { success: true };
 }
 
 /**
+ * 批量全员点名（全部出席）
+ * 
+ * V2.0 重写：使用 Promise.all 并行扣减课时，消灭 O(2N) 串行瓶颈。
+ */
+export async function batchMarkAttendance(classId: string, studentIds: string[]) {
+  const supabase = getSupabase();
+  const today = new Date().toISOString().split("T")[0];
+
+  // 1. 批量插入考勤记录（一次 DB 操作）
+  const records = studentIds.map(sid => ({
+    student_id: sid,
+    class_id: classId,
+    status: "PRESENT" as const,
+    lesson_date: today,
+    consumption_value: 1.0,
+  }));
+
+  const { error: attendError } = await supabase
+    .from("erp_attendance")
+    .insert(records);
+
+  if (attendError) throw attendError;
+
+  // 2. 并行扣减所有学员课时（从 O(2N) 串行 → O(1) 并行）
+  const deductOne = async (sid: string) => {
+    const { data: enrollment } = await supabase
+      .from("erp_enrollments")
+      .select("id, remaining_lessons")
+      .eq("student_id", sid)
+      .eq("class_id", classId)
+      .single();
+
+    if (enrollment) {
+      await supabase
+        .from("erp_enrollments")
+        .update({ remaining_lessons: Math.max(0, Number(enrollment.remaining_lessons) - 1) })
+        .eq("id", enrollment.id);
+    }
+  };
+
+  await Promise.all(studentIds.map(deductOne));
+
+  revalidatePath("/futureclass/attendance");
+  revalidatePath("/futureclass/dashboard");
+  revalidateTag("erp-data");
+  return { success: true, count: studentIds.length };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 📊 统计与聚合
+// ─────────────────────────────────────────────────────────────
+
+/**
  * 获取看板汇总统计数据
+ * 
+ * V2.0：4 次查询使用 Promise.all 并行执行
  */
 export async function getDashboardStats() {
   const supabase = getSupabase();
-
-  // 1. 总学员数 (移除强制 ACTIVE 过滤以兼容种子数据)
-  const { count: studentCount } = await supabase
-    .from("erp_students")
-    .select("*", { count: "exact", head: true });
-
-  // 2. 预警学员 (剩余课时 < 3)
-  const { count: warningCount } = await supabase
-    .from("erp_enrollments")
-    .select("*", { count: "exact", head: true })
-    .lt("remaining_lessons", 3);
-
-  // 3. 本月新报
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const { count: newCount } = await supabase
-    .from("erp_enrollments")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", firstDay);
 
-  // 4. 计算本月实际营收 (基于报课记录)
-  const { data: monthEnrollments } = await supabase
-    .from("erp_enrollments")
-    .select("total_purchased_lessons, erp_courses(price_per_lesson)")
-    .gte("created_at", firstDay);
+  // 并行执行 4 次独立查询
+  const [studentRes, warningRes, newRes, monthEnrollRes] = await Promise.all([
+    // 1. 总学员数
+    supabase
+      .from("erp_students")
+      .select("*", { count: "exact", head: true }),
+    // 2. 预警学员 (剩余课时 < 3)
+    supabase
+      .from("erp_enrollments")
+      .select("*", { count: "exact", head: true })
+      .lt("remaining_lessons", 3),
+    // 3. 本月新报
+    supabase
+      .from("erp_enrollments")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", firstDay),
+    // 4. 本月报课收入数据
+    supabase
+      .from("erp_enrollments")
+      .select("total_purchased_lessons, erp_courses(price_per_lesson)")
+      .gte("created_at", firstDay),
+  ]);
 
-  const revenueMonth = (monthEnrollments as any[] || []).reduce((sum, en) => {
+  const revenueMonth = (monthEnrollRes.data as any[] || []).reduce((sum, en) => {
     const price = en.erp_courses?.price_per_lesson || 0;
     return sum + (Number(en.total_purchased_lessons) * Number(price));
   }, 0);
 
   return {
-    studentCount: studentCount || 0,
-    warningCount: warningCount || 0,
-    newCount: newCount || 0,
+    studentCount: studentRes.count || 0,
+    warningCount: warningRes.count || 0,
+    newCount: newRes.count || 0,
     revenueMonth,
   };
 }
@@ -197,41 +261,26 @@ export async function getDashboardStats() {
 export async function getStudentDetail(studentId: string) {
   const supabase = getSupabase();
 
-  // 学员基础信息
-  const { data: student, error } = await supabase
-    .from("erp_students")
-    .select("*")
-    .eq("id", studentId)
-    .single();
+  // 并行获取学员基础信息 + 报读记录 + 考勤记录
+  const [studentRes, enrollRes, attendRes] = await Promise.all([
+    supabase.from("erp_students").select("*").eq("id", studentId).single(),
+    supabase.from("erp_enrollments")
+      .select(`*, erp_courses(name, price_per_lesson, category), erp_classes(name, classroom)`)
+      .eq("student_id", studentId)
+      .order("created_at", { ascending: false }),
+    supabase.from("erp_attendance")
+      .select(`*, erp_classes(name)`)
+      .eq("student_id", studentId)
+      .order("created_at", { ascending: false })
+      .limit(30),
+  ]);
 
-  if (error || !student) return null;
-
-  // 报读记录
-  const { data: enrollments } = await supabase
-    .from("erp_enrollments")
-    .select(`
-      *,
-      erp_courses(name, price_per_lesson, category),
-      erp_classes(name, classroom)
-    `)
-    .eq("student_id", studentId)
-    .order("created_at", { ascending: false });
-
-  // 考勤记录 (近 30 条)
-  const { data: attendanceRecords } = await supabase
-    .from("erp_attendance")
-    .select(`
-      *,
-      erp_classes(name)
-    `)
-    .eq("student_id", studentId)
-    .order("created_at", { ascending: false })
-    .limit(30);
+  if (studentRes.error || !studentRes.data) return null;
 
   return {
-    ...student,
-    enrollments: enrollments || [],
-    attendanceRecords: attendanceRecords || [],
+    ...studentRes.data,
+    enrollments: enrollRes.data || [],
+    attendanceRecords: attendRes.data || [],
   };
 }
 
@@ -277,127 +326,11 @@ export async function getAttendanceTrend(days: number = 7) {
 }
 
 /**
- * Dashboard 批量数据加载器
- * 将 4 次独立网络请求合并为 1 次 Server Action 调用，
- * 内部使用 Promise.all 并行查询，共享同一个 TCP 连接。
- */
-export async function loadDashboardData() {
-  const [stats, enrollments, classes, trend] = await Promise.all([
-    getDashboardStats(),
-    getEnrollments(),
-    getClasses(),
-    getAttendanceTrend(7),
-  ]);
-  return { stats, enrollments, classes, trend };
-}
-
-/**
- * 考勤页批量数据加载器
- */
-export async function loadAttendanceData() {
-  const [classes, stats] = await Promise.all([
-    getClasses(),
-    getDashboardStats(),
-  ]);
-  return { classes, stats };
-}
-
-/**
- * 新增学员档案
- */
-export async function addStudent(studentData: any) {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from("erp_students")
-    .insert([studentData])
-    .select()
-    .single();
-
-  if (error) throw error;
-  revalidatePath("/futureclass/students");
-  return data;
-}
-
-/**
- * 学员报课成交 (创建报读记录)
- */
-export async function enrollCourse(enrollData: {
-  studentId: string;
-  courseId: string;
-  classId?: string;
-  totalLessons: number;
-  remark?: string;
-}) {
-  const supabase = getSupabase();
-  const { error } = await supabase
-    .from("erp_enrollments")
-    .insert({
-      student_id: enrollData.studentId,
-      course_id: enrollData.courseId,
-      class_id: enrollData.classId,
-      total_purchased_lessons: enrollData.totalLessons,
-      remaining_lessons: enrollData.totalLessons,
-      enroll_status: 'STUDYING',
-      remark: enrollData.remark
-    });
-
-  if (error) throw error;
-  revalidatePath("/futureclass/students");
-  revalidatePath("/futureclass/dashboard");
-  return { success: true };
-}
-
-/**
- * 新增课程
- */
-export async function addCourse(courseData: {
-  name: string;
-  category: string;
-  price_per_lesson: number;
-  total_lessons: number;
-  duration_min: number;
-}) {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from("erp_courses")
-    .insert([courseData])
-    .select()
-    .single();
-
-  if (error) throw error;
-  revalidatePath("/futureclass/courses");
-  return data;
-}
-
-/**
- * 新增班级
- */
-export async function addClass(classData: {
-  name: string;
-  course_id: string;
-  classroom: string;
-  capacity: number;
-  start_date: string;
-}) {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from("erp_classes")
-    .insert([classData])
-    .select()
-    .single();
-
-  if (error) throw error;
-  revalidatePath("/futureclass/classes");
-  return data;
-}
-
-/**
  * 获取财务汇总统计
  */
 export async function getFinanceStats() {
   const supabase = getSupabase();
   
-  // 1. 获取所有报课记录，计算预估总营收
   const { data: enrollments, error } = await supabase
     .from("erp_enrollments")
     .select("total_purchased_lessons, erp_courses(price_per_lesson)");
@@ -434,6 +367,179 @@ export async function getEnrollments() {
 }
 
 /**
+ * 获取课程列表（含报读人数统计）
+ */
+export async function getCoursesWithStats() {
+  const supabase = getSupabase();
+  
+  // 并行获取课程列表和报读计数
+  const [coursesRes, enrollRes] = await Promise.all([
+    supabase.from("erp_courses").select("*").order("name"),
+    supabase.from("erp_enrollments").select("course_id"),
+  ]);
+
+  if (coursesRes.error) return [];
+
+  const countMap: Record<string, number> = {};
+  (enrollRes.data || []).forEach(en => {
+    countMap[en.course_id] = (countMap[en.course_id] || 0) + 1;
+  });
+
+  return coursesRes.data.map(c => ({
+    ...c,
+    enrollCount: countMap[c.id] || 0,
+    totalRevenue: (countMap[c.id] || 0) * Number(c.price_per_lesson) * Number(c.total_lessons)
+  }));
+}
+
+/**
+ * 获取班级列表（含学员计数与容量进度）
+ */
+export async function getClassesWithStats() {
+  const supabase = getSupabase();
+  
+  // 并行获取班级列表和报读数据
+  const [classesRes, enrollRes] = await Promise.all([
+    supabase.from("erp_classes").select("*, erp_courses(name, category)").order("created_at", { ascending: false }),
+    supabase.from("erp_enrollments").select("class_id, erp_students(name)"),
+  ]);
+
+  if (classesRes.error) return [];
+
+  const classMap: Record<string, { count: number; students: string[] }> = {};
+  (enrollRes.data || []).forEach((en: any) => {
+    const cid = en.class_id;
+    if (!cid) return;
+    if (!classMap[cid]) classMap[cid] = { count: 0, students: [] };
+    classMap[cid].count += 1;
+    if (en.erp_students?.name) classMap[cid].students.push(en.erp_students.name);
+  });
+
+  return classesRes.data.map(cls => ({
+    ...cls,
+    studentCount: classMap[cls.id]?.count || 0,
+    studentNames: classMap[cls.id]?.students || [],
+    fillRate: cls.capacity > 0 ? Math.round(((classMap[cls.id]?.count || 0) / cls.capacity) * 100) : 0
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────
+// ✏️ 写入操作
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 新增学员档案
+ */
+export async function addStudent(studentData: any) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_students")
+    .insert([studentData])
+    .select()
+    .single();
+
+  if (error) throw error;
+  revalidatePath("/futureclass/students");
+  revalidateTag("erp-data");
+  return data;
+}
+
+/**
+ * 学员报课成交 (创建报读记录)
+ */
+export async function enrollCourse(enrollData: {
+  studentId: string;
+  courseId: string;
+  classId?: string;
+  totalLessons: number;
+  remark?: string;
+}) {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("erp_enrollments")
+    .insert({
+      student_id: enrollData.studentId,
+      course_id: enrollData.courseId,
+      class_id: enrollData.classId,
+      total_purchased_lessons: enrollData.totalLessons,
+      remaining_lessons: enrollData.totalLessons,
+      enroll_status: 'STUDYING',
+      remark: enrollData.remark
+    });
+
+  if (error) throw error;
+  revalidatePath("/futureclass/students");
+  revalidatePath("/futureclass/dashboard");
+  revalidateTag("erp-data");
+  return { success: true };
+}
+
+/**
+ * 新增课程
+ */
+export async function addCourse(courseData: {
+  name: string;
+  category: string;
+  price_per_lesson: number;
+  total_lessons: number;
+  duration_min: number;
+}) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_courses")
+    .insert([courseData])
+    .select()
+    .single();
+
+  if (error) throw error;
+  revalidatePath("/futureclass/courses");
+  revalidateTag("erp-data");
+  return data;
+}
+
+/**
+ * 新增班级
+ */
+export async function addClass(classData: {
+  name: string;
+  course_id: string;
+  classroom: string;
+  capacity: number;
+  start_date: string;
+}) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_classes")
+    .insert([classData])
+    .select()
+    .single();
+
+  if (error) throw error;
+  revalidatePath("/futureclass/classes");
+  revalidateTag("erp-data");
+  return data;
+}
+
+/**
+ * 删除课程
+ */
+export async function deleteCourse(courseId: string) {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("erp_courses")
+    .delete()
+    .eq("id", courseId);
+
+  if (error) throw error;
+  revalidatePath("/futureclass/courses");
+  return { success: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 🤖 AI 智能
+// ─────────────────────────────────────────────────────────────
+
+/**
  * AI 智能生成课后点评 (集成 Gemini-3-Flash via Backgrace)
  */
 export async function generateAIFeedback(studentName: string, keywords: string[]) {
@@ -464,125 +570,124 @@ export async function generateAIFeedback(studentName: string, keywords: string[]
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// 🚀 V3.0 高速缓存数据加载器 (Data Loaders with LRU/Next.js Cache)
+// ─────────────────────────────────────────────────────────────
+
 /**
- * 获取课程列表（含报读人数统计）
+ * Dashboard 缓存数据加载器
+ * 将 4 次独立网络请求合并为 1 次，并加以服务端缓存。
  */
-export async function getCoursesWithStats() {
-  const supabase = getSupabase();
-  
-  const { data: courses, error } = await supabase
-    .from("erp_courses")
-    .select("*")
-    .order("name");
-  
-  if (error) return [];
+const getCachedDashboardData = unstable_cache(
+  async () => {
+    const [stats, enrollments, classes, trend] = await Promise.all([
+      getDashboardStats(),
+      getEnrollments(),
+      getClasses(),
+      getAttendanceTrend(7),
+    ]);
+    return { stats, enrollments, classes, trend };
+  },
+  ['erp-dashboard-data'],
+  { revalidate: 60, tags: ['erp-data'] }
+);
 
-  // 获取每个课程的报读人数
-  const { data: enrollments } = await supabase
-    .from("erp_enrollments")
-    .select("course_id");
-
-  const countMap: Record<string, number> = {};
-  (enrollments || []).forEach(en => {
-    countMap[en.course_id] = (countMap[en.course_id] || 0) + 1;
-  });
-
-  return courses.map(c => ({
-    ...c,
-    enrollCount: countMap[c.id] || 0,
-    totalRevenue: (countMap[c.id] || 0) * Number(c.price_per_lesson) * Number(c.total_lessons)
-  }));
+export async function loadDashboardData() {
+  return getCachedDashboardData();
 }
 
 /**
- * 获取班级列表（含学员计数与容量进度）
+ * 考勤页缓存数据加载器
  */
-export async function getClassesWithStats() {
-  const supabase = getSupabase();
-  
-  const { data: classes, error } = await supabase
-    .from("erp_classes")
-    .select("*, erp_courses(name, category)")
-    .order("created_at", { ascending: false });
-  
-  if (error) return [];
+const getCachedAttendanceData = unstable_cache(
+  async () => {
+    const [classes, stats] = await Promise.all([
+      getClasses(),
+      getDashboardStats(),
+    ]);
+    return { classes, stats };
+  },
+  ['erp-attendance-data'],
+  { revalidate: 60, tags: ['erp-data'] }
+);
 
-  // 获取每个班级的学员数
-  const { data: enrollments } = await supabase
-    .from("erp_enrollments")
-    .select("class_id, erp_students(name)");
-
-  const classMap: Record<string, { count: number; students: string[] }> = {};
-  (enrollments || []).forEach((en: any) => {
-    const cid = en.class_id;
-    if (!cid) return;
-    if (!classMap[cid]) classMap[cid] = { count: 0, students: [] };
-    classMap[cid].count += 1;
-    if (en.erp_students?.name) classMap[cid].students.push(en.erp_students.name);
-  });
-
-  return classes.map(cls => ({
-    ...cls,
-    studentCount: classMap[cls.id]?.count || 0,
-    studentNames: classMap[cls.id]?.students || [],
-    fillRate: cls.capacity > 0 ? Math.round(((classMap[cls.id]?.count || 0) / cls.capacity) * 100) : 0
-  }));
+export async function loadAttendanceData() {
+  return getCachedAttendanceData();
 }
 
 /**
- * 删除课程
+ * 学员管理页缓存数据加载器
  */
-export async function deleteCourse(courseId: string) {
-  const supabase = getSupabase();
-  const { error } = await supabase
-    .from("erp_courses")
-    .delete()
-    .eq("id", courseId);
+const getCachedStudentsPageData = unstable_cache(
+  async () => {
+    const [students, stats, courses, classes] = await Promise.all([
+      getStudents(),
+      getDashboardStats(),
+      getCourses(),
+      getClasses(),
+    ]);
+    return { students, stats, courses, classes };
+  },
+  ['erp-students-page-data'],
+  { revalidate: 60, tags: ['erp-data'] }
+);
 
-  if (error) throw error;
-  revalidatePath("/futureclass/courses");
-  return { success: true };
+export async function loadStudentsPageData() {
+  return getCachedStudentsPageData();
 }
 
 /**
- * 批量全员点名（全部出席）
+ * 课程库缓存数据加载器
  */
-export async function batchMarkAttendance(classId: string, studentIds: string[]) {
-  const supabase = getSupabase();
-  const today = new Date().toISOString().split("T")[0];
+const getCachedCoursesPageData = unstable_cache(
+  async () => {
+    const [courses] = await Promise.all([
+      getCoursesWithStats()
+    ]);
+    return courses;
+  },
+  ['erp-courses-page-data'],
+  { revalidate: 60, tags: ['erp-data'] }
+);
 
-  const records = studentIds.map(sid => ({
-    student_id: sid,
-    class_id: classId,
-    status: "PRESENT" as const,
-    lesson_date: today,
-    consumption_value: 1.0,
-  }));
+export async function loadCoursesPageData() {
+  return getCachedCoursesPageData();
+}
 
-  const { error: attendError } = await supabase
-    .from("erp_attendance")
-    .insert(records);
+/**
+ * 财务中心缓存数据加载器
+ */
+const getCachedFinancePageData = unstable_cache(
+  async () => {
+    const [stats, enrollments] = await Promise.all([
+      getFinanceStats(),
+      getEnrollments(),
+    ]);
+    return { stats, enrollments };
+  },
+  ['erp-finance-page-data'],
+  { revalidate: 60, tags: ['erp-data'] }
+);
 
-  if (attendError) throw attendError;
+export async function loadFinancePageData() {
+  return getCachedFinancePageData();
+}
 
-  // 批量扣减课时
-  for (const sid of studentIds) {
-    const { data: enrollment } = await supabase
-      .from("erp_enrollments")
-      .select("id, remaining_lessons")
-      .eq("student_id", sid)
-      .eq("class_id", classId)
-      .single();
+/**
+ * 班级管理页缓存数据加载器
+ */
+const getCachedClassesPageData = unstable_cache(
+  async () => {
+    const [classes, courses] = await Promise.all([
+      getClassesWithStats(),
+      getCourses(),
+    ]);
+    return { classes, courses };
+  },
+  ['erp-classes-page-data'],
+  { revalidate: 60, tags: ['erp-data'] }
+);
 
-    if (enrollment) {
-      await supabase
-        .from("erp_enrollments")
-        .update({ remaining_lessons: Math.max(0, Number(enrollment.remaining_lessons) - 1) })
-        .eq("id", enrollment.id);
-    }
-  }
-
-  revalidatePath("/futureclass/attendance");
-  revalidatePath("/futureclass/dashboard");
-  return { success: true, count: studentIds.length };
+export async function loadClassesPageData() {
+  return getCachedClassesPageData();
 }

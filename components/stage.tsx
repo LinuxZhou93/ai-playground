@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { ChatArea, type ChatAreaRef } from '@/components/chat/chat-area';
 import { agentsToParticipants, useAgentRegistry } from '@/lib/orchestration/registry/store';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
+import type { ConfiguredProvider } from '@/components/ai/model-selector-popover';
+import type { ProviderId } from '@/lib/ai/providers';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -111,7 +113,11 @@ export function Stage({
   // Selected agents from settings store (Zustand)
   const selectedAgentIds = useSettingsStore((s) => s.selectedAgentIds);
   const ttsMuted = useSettingsStore((s) => s.ttsMuted);
-  const ttsEnabled = useSettingsStore((s) => s.ttsEnabled);
+  const ttsEnabled = useSettingsStore((state) => state.ttsEnabled);
+  const providerId = useSettingsStore((s) => s.providerId);
+  const modelId = useSettingsStore((s) => s.modelId);
+  const setModel = useSettingsStore((s) => s.setModel);
+  const providersConfig = useSettingsStore((s) => s.providersConfig);
 
   // Generate participants from selected agents
   const participants = useMemo(
@@ -139,6 +145,30 @@ export function Stage({
       setAudioIndicatorState(state);
     },
   });
+
+  // Configured LLM providers (only those with valid credentials + models + endpoint)
+  const configuredProviders = useMemo(() => {
+    if (!providersConfig) return [];
+    return Object.entries(providersConfig)
+      .filter(
+        ([, config]) =>
+          (!config.requiresApiKey || config.apiKey || config.isServerConfigured) &&
+          config.models.length >= 1 &&
+          (config.baseUrl || config.defaultBaseUrl || config.serverBaseUrl),
+      )
+      .map(([id, config]) => ({
+        id: id as ProviderId,
+        name: config.name,
+        icon: config.icon,
+        isServerConfigured: config.isServerConfigured,
+        models:
+          config.isServerConfigured && !config.apiKey && config.serverModels?.length
+            ? config.models.filter((m) => new Set(config.serverModels).has(m.id))
+            : config.models,
+      }));
+  }, [providersConfig]);
+
+  const currentProviderConfig = providersConfig?.[providerId];
 
   // Pick a student agent for discussion trigger (prioritize student > non-teacher > fallback)
   const pickStudentAgent = useCallback((): string => {
@@ -1025,6 +1055,11 @@ export function Stage({
                 ? () => onRetryOutline(generatingOutlines[0].id)
                 : undefined
             }
+            configuredProviders={configuredProviders}
+            currentProviderId={providerId}
+            currentModelId={modelId}
+            currentProviderConfig={currentProviderConfig}
+            setModel={setModel}
           />
         </div>
 
@@ -1064,6 +1099,11 @@ export function Stage({
               thinkingState={thinkingState}
               isCueUser={isCueUser}
               isTopicPending={isTopicPending}
+              configuredProviders={configuredProviders}
+              currentProviderId={providerId}
+              currentModelId={modelId}
+              currentProviderConfig={currentProviderConfig}
+              setModel={setModel}
               onMessageSend={(msg) => {
                 // Clear soft-paused state — user is continuing the topic
                 if (isTopicPending) {

@@ -20,6 +20,8 @@ import { cn } from '@/lib/utils';
 import { useStageStore } from '@/lib/store';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ModelSelectorPopover, type ConfiguredProvider } from '@/components/ai/model-selector-popover';
+import type { ProviderId } from '@/lib/ai/providers';
 
 export interface CanvasToolbarProps {
   readonly currentSceneIndex: number;
@@ -50,6 +52,12 @@ export interface CanvasToolbarProps {
   readonly onToggleAutoPlay?: () => void;
   readonly playbackSpeed?: number;
   readonly onCycleSpeed?: () => void;
+  // Model selector props
+  readonly configuredProviders?: ConfiguredProvider[];
+  readonly currentProviderId?: ProviderId;
+  readonly currentModelId?: string;
+  readonly currentProviderConfig?: { name: string; icon?: string } | undefined;
+  readonly setModel?: (providerId: ProviderId, modelId: string) => void;
 }
 
 /* Compact control button */
@@ -108,6 +116,11 @@ export function CanvasToolbar({
   onToggleAutoPlay,
   playbackSpeed = 1,
   onCycleSpeed,
+  configuredProviders = [],
+  currentProviderId = 'google' as ProviderId,
+  currentModelId = '',
+  currentProviderConfig,
+  setModel,
 }: CanvasToolbarProps) {
   const { t } = useI18n();
   const canGoPrev = currentSceneIndex > 0;
@@ -164,6 +177,23 @@ export function CanvasToolbar({
           {scenesCount}
         </span>
       </div>
+
+      <CtrlDivider />
+
+      {/* ── Model Selector ── */}
+      {configuredProviders.length > 0 && setModel && (
+        <div className="flex items-center px-1">
+          <ModelSelectorPopover
+            configuredProviders={configuredProviders}
+            currentProviderId={currentProviderId}
+            currentModelId={currentModelId}
+            currentProviderConfig={currentProviderConfig}
+            setModel={setModel}
+            t={t}
+            className="size-6 ring-0 hover:bg-transparent"
+          />
+        </div>
+      )}
 
       <CtrlDivider />
 

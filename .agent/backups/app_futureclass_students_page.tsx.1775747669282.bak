@@ -1,0 +1,539 @@
+"use client";
+
+import React, { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { 
+  Users, 
+  Search, 
+  UserPlus, 
+  Filter, 
+  Download, 
+  MoreHorizontal,
+  GraduationCap,
+  Sparkles,
+  Loader2,
+  ArrowUpRight,
+  TrendingUp,
+  AlertCircle,
+  RefreshCw
+} from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  loadStudentsPageData,
+  addStudent,
+  enrollCourse
+} from "../actions";
+import { toast } from "sonner";
+import { PageTransition, StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
+import { AnimatedNumber } from "@/components/erp/animated-number";
+import { SkeletonKPI, SkeletonTable } from "@/components/erp/skeleton-card";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+function StudentsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams?.get("q") || "");
+  const [students, setStudents] = useState<any[]>([]);
+  const [stats, setStats] = useState({ studentCount: 0, warningCount: 0, newCount: 0, revenueMonth: 0 });
+  const [loading, setLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newStudent, setNewStudent] = useState({ name: "", phone: "", gender: "男", grade: "", source: "地推" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 报课相关的状态
+  const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
+  const [selectedStudentForEnroll, setSelectedStudentForEnroll] = useState<any>(null);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [allClasses, setAllClasses] = useState<any[]>([]);
+  const [enrollForm, setEnrollForm] = useState({ courseId: "", classId: "", totalLessons: 16 });
+
+  // V2.0: 单次批量加载所有数据
+  const fetchAll = () => {
+    setLoading(true);
+    loadStudentsPageData().then(({ students: s, stats: st, courses: c, classes: cl }) => {
+      setStudents(s);
+      setStats(st);
+      setCourses(c);
+      setAllClasses(cl);
+      setLoading(false);
+    });
+  };
+
+  React.useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const handleEnroll = async () => {
+    if (!enrollForm.courseId || !selectedStudentForEnroll) return;
+    setIsSubmitting(true);
+    try {
+      await enrollCourse({
+        studentId: selectedStudentForEnroll.id,
+        courseId: enrollForm.courseId,
+        classId: enrollForm.classId || undefined,
+        totalLessons: enrollForm.totalLessons
+      });
+      toast.success(`学员 ${selectedStudentForEnroll.name} 报课成功！`);
+      setIsEnrollDialogOpen(false);
+      fetchAll();
+    } catch (err) {
+      toast.error("报课失败，请检查网络或权限");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAddStudent = async () => {
+    if (!newStudent.name || !newStudent.phone) {
+      toast.error("完成必填项才能存档指挥官。");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await addStudent(newStudent);
+      toast.success(`学员 ${newStudent.name} 档案已建立`);
+      setIsAddDialogOpen(false);
+      setNewStudent({ name: "", phone: "", gender: "男", grade: "", source: "地推" });
+      fetchAll();
+    } catch (err) {
+      toast.error("录入失败，请检查数据库权限");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredStudents = students.filter(s => 
+    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    s.phone?.includes(searchTerm)
+  );
+
+  const availableClasses = allClasses.filter(c => c.course_id === enrollForm.courseId);
+
+  return (
+    <PageTransition>
+      <div className="space-y-8 max-w-[1600px] mx-auto">
+        {/* 报班续费对话框 - 升级为玻璃拟物化 */}
+        <Dialog open={isEnrollDialogOpen} onOpenChange={setIsEnrollDialogOpen}>
+          <DialogContent className="sm:max-w-[480px] border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-xl bg-white/90 dark:bg-zinc-950/90 shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold tracking-tight">学员报班续费</DialogTitle>
+              <DialogDescription className="text-zinc-500">
+                正在为 <span className="font-medium text-zinc-900 dark:text-zinc-100">{selectedStudentForEnroll?.name}</span> 办理报课业务。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 py-6">
+               <div className="space-y-2">
+                 <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">选择课程</label>
+                 <select 
+                   className="w-full h-11 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-500 transition-all outline-none"
+                   value={enrollForm.courseId}
+                   onChange={e => setEnrollForm({...enrollForm, courseId: e.target.value, classId: ""})}
+                 >
+                   <option value="">请选择课程</option>
+                   {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                 </select>
+               </div>
+               <div className="space-y-2">
+                 <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">选择班级</label>
+                 <select 
+                   className="w-full h-11 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-500 transition-all outline-none disabled:opacity-50"
+                   value={enrollForm.classId}
+                   onChange={e => setEnrollForm({...enrollForm, classId: e.target.value})}
+                   disabled={!enrollForm.courseId}
+                 >
+                   <option value="">（选填）选择排课班级</option>
+                   {availableClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                 </select>
+               </div>
+               <div className="space-y-2">
+                 <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">购买课时</label>
+                 <Input 
+                   type="number"
+                   className="h-11 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50"
+                   value={enrollForm.totalLessons}
+                   onChange={e => setEnrollForm({...enrollForm, totalLessons: Number(e.target.value)})}
+                 />
+               </div>
+            </div>
+            <DialogFooter>
+               <Button 
+                 onClick={handleEnroll} 
+                 disabled={isSubmitting || !enrollForm.courseId}
+                 className="w-full h-11 bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 hover:opacity-90 transition-all rounded-xl font-medium"
+               >
+                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                 {isSubmitting ? "正在处理订单..." : "确认报课"}
+               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 统计横图层 - Linear 风格卡片 */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonKPI key={i} />)}
+          </div>
+        ) : (
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <StaggerItem>
+              <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Card className="relative overflow-hidden border-zinc-200/60 dark:border-zinc-800/60 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm shadow-sm hover:shadow-xl hover:shadow-zinc-200/20 dark:hover:shadow-none transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[13px] font-medium text-zinc-500 uppercase tracking-wider">在读学员</p>
+                        <div className="flex items-baseline gap-2">
+                          <h3 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+                            <AnimatedNumber value={stats.studentCount} />
+                          </h3>
+                          <span className="text-xs font-medium text-emerald-600 flex items-center bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                            <TrendingUp className="h-3 w-3 mr-1" /> +12%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl ring-1 ring-zinc-200 dark:ring-zinc-700">
+                        <Users className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </StaggerItem>
+            
+            <StaggerItem>
+              <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Card className="relative overflow-hidden border-zinc-200/60 dark:border-zinc-800/60 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm shadow-sm hover:shadow-xl hover:shadow-zinc-200/20 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[13px] font-medium text-zinc-500 uppercase tracking-wider">月度转化</p>
+                        <h3 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">24.8%</h3>
+                      </div>
+                      <div className="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-2xl ring-1 ring-blue-100 dark:ring-blue-900/30">
+                        <ArrowUpRight className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Card className="relative overflow-hidden border-zinc-200/60 dark:border-zinc-800/60 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm shadow-sm hover:shadow-xl hover:shadow-red-200/20 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[13px] font-medium text-zinc-500 uppercase tracking-wider">欠费预警</p>
+                        <h3 className="text-3xl font-bold tracking-tight text-rose-600">
+                          <AnimatedNumber value={stats.warningCount} />
+                        </h3>
+                      </div>
+                      <div className="p-3 bg-rose-50 dark:bg-rose-500/10 rounded-2xl ring-1 ring-rose-100 dark:ring-rose-900/30">
+                        <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </StaggerItem>
+
+            <StaggerItem>
+              <motion.div whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Card className="relative overflow-hidden border-none bg-gradient-to-br from-zinc-900 to-zinc-800 dark:from-zinc-100 dark:to-zinc-300 shadow-lg transition-all duration-300">
+                  <div className="absolute top-0 right-0 p-2 opacity-20">
+                    <Sparkles className="h-12 w-12 text-white dark:text-zinc-900" />
+                  </div>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[13px] font-medium text-zinc-400 dark:text-zinc-600 uppercase tracking-wider">AI 续费潜力</p>
+                        <h3 className="text-3xl font-bold tracking-tight text-white dark:text-zinc-950">86%</h3>
+                      </div>
+                      <div className="p-3 bg-white/10 dark:bg-black/5 rounded-2xl backdrop-blur-md">
+                        <Sparkles className="h-5 w-5 text-zinc-100 dark:text-zinc-800 animate-pulse" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </StaggerItem>
+          </StaggerContainer>
+        )}
+
+        {/* 学员列表操作区 - 极简白/深灰风格 */}
+        <Card className="border-zinc-200/60 dark:border-zinc-800/60 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden">
+          <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 pb-8 border-b border-zinc-100 dark:border-zinc-900">
+            <div className="space-y-1">
+              <CardTitle className="text-2xl font-bold tracking-tight">学员名册</CardTitle>
+              <CardDescription className="text-zinc-500 font-medium">管理您的所有学员、报读状态及合同余额</CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" className="rounded-xl h-10 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
+                <Download className="mr-2 h-4 w-4" /> 导出数据
+              </Button>
+              <Button className="bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 hover:opacity-90 rounded-xl h-10 px-5 font-medium transition-all shadow-lg shadow-zinc-200/50 dark:shadow-none" onClick={() => setIsAddDialogOpen(true)}>
+                <UserPlus className="mr-2 h-4 w-4" /> 添加学员
+              </Button>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="pt-8">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-8">
+              <div className="relative w-full md:w-[400px] group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors" />
+                <Input 
+                  placeholder="搜索学员姓名、手机号..." 
+                  className="pl-11 h-12 bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 rounded-2xl focus:ring-2 focus:ring-zinc-500/20 transition-all"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3 w-full md:w-auto">
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogContent className="sm:max-w-[480px] border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-xl bg-white/90 dark:bg-zinc-950/90 shadow-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-semibold tracking-tight">新建学员档案</DialogTitle>
+                      <DialogDescription className="text-zinc-500">
+                        请输入学员基础信息，档案建立后可进行报班与消课。
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-5 py-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">姓名</label>
+                        <Input 
+                          className="h-11 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50" 
+                          value={newStudent.name}
+                          onChange={e => setNewStudent({...newStudent, name: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">手机号</label>
+                        <Input 
+                          className="h-11 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50"
+                          value={newStudent.phone}
+                          onChange={e => setNewStudent({...newStudent, phone: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">性别</label>
+                          <select 
+                            className="w-full h-11 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-500/20"
+                            value={newStudent.gender}
+                            onChange={e => setNewStudent({...newStudent, gender: e.target.value})}
+                          >
+                            <option>男</option>
+                            <option>女</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">年级</label>
+                          <Input 
+                            className="h-11 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50"
+                            value={newStudent.grade}
+                            onChange={e => setNewStudent({...newStudent, grade: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">来源</label>
+                        <Input 
+                          placeholder="例如：地推、转介绍"
+                          className="h-11 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50"
+                          value={newStudent.source}
+                          onChange={e => setNewStudent({...newStudent, source: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button 
+                        onClick={handleAddStudent} 
+                        disabled={isSubmitting}
+                        className="w-full h-11 bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 hover:opacity-90 transition-all rounded-xl font-medium"
+                      >
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {isSubmitting ? "正在存档..." : "保存学员"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Button variant="outline" className="h-12 rounded-2xl px-5 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
+                  <Filter className="h-4 w-4 mr-2 text-zinc-500" /> 筛选
+                </Button>
+                <Button variant="outline" className="h-12 rounded-2xl px-5 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all" onClick={fetchAll}>
+                  <RefreshCw className={cn("h-4 w-4 mr-2 text-zinc-500", loading && "animate-spin")} /> 刷新
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-medium">
+                    <th className="p-5 text-left font-semibold">姓名</th>
+                    <th className="p-5 text-left font-semibold">基本信息</th>
+                    <th className="p-5 text-left font-semibold">联系电话</th>
+                    <th className="p-5 text-left font-semibold">在读课程</th>
+                    <th className="p-5 text-left font-semibold">剩余课时</th>
+                    <th className="p-5 text-left font-semibold">状态</th>
+                    <th className="p-5 text-right font-semibold">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
+                  {loading ? (
+                     <tr>
+                       <td colSpan={7}><SkeletonTable rows={5} cols={7} /></td>
+                     </tr>
+                  ) : filteredStudents.length === 0 ? (
+                     <tr>
+                       <td colSpan={7} className="p-20 text-center">
+                          <div className="flex flex-col items-center gap-2 text-zinc-400">
+                            <Search className="h-10 w-10 opacity-20" />
+                            <p className="text-base font-medium">未找到对应的学员记录</p>
+                          </div>
+                       </td>
+                     </tr>
+                  ) : (
+                    <AnimatePresence mode="popLayout">
+                      {filteredStudents.map((student, idx) => {
+                        const enrollment = student.erp_enrollments?.[0];
+                        return (
+                          <motion.tr
+                            key={student.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ delay: idx * 0.02, duration: 0.2 }}
+                            className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors group"
+                          >
+                            <td className="p-5">
+                              <span
+                                className="font-bold text-zinc-900 dark:text-zinc-100 cursor-pointer hover:underline underline-offset-4 decoration-zinc-300 dark:decoration-zinc-700 transition-all"
+                                onClick={() => router.push(`/futureclass/students/${student.id}`)}
+                              >
+                                {student.name}
+                              </span>
+                            </td>
+                            <td className="p-5">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="rounded-md font-normal bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+                                  {student.gender || "未知"}
+                                </Badge>
+                                <span className="text-zinc-400">/</span>
+                                <span className="text-zinc-600 dark:text-zinc-400">{student.grade || "未填"}</span>
+                              </div>
+                            </td>
+                            <td className="p-5 text-zinc-600 dark:text-zinc-400 font-medium">{student.phone}</td>
+                            <td className="p-5">
+                              <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
+                                <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                                  <GraduationCap className="h-3.5 w-3.5 text-zinc-500" />
+                                </div>
+                                <span className="truncate max-w-[150px]">
+                                  {enrollment?.erp_classes?.name || enrollment?.erp_courses?.name || "未分班"}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-5">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "h-2 w-2 rounded-full",
+                                  (enrollment?.remaining_lessons || 0) < 3 ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
+                                )} />
+                                <span className={cn(
+                                  "font-bold text-base",
+                                  (enrollment?.remaining_lessons || 0) < 3 ? "text-rose-600" : "text-zinc-900 dark:text-zinc-100"
+                                )}>
+                                  {enrollment?.remaining_lessons ?? 0}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-5">
+                              <Badge 
+                                className={cn(
+                                  "rounded-full px-3 py-0.5 font-medium border-none shadow-sm",
+                                  student.status === "ACTIVE" 
+                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" 
+                                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                                )}
+                              >
+                                {student.status === "ACTIVE" ? "在读" : student.status}
+                              </Badge>
+                            </td>
+                            <td className="p-5 text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 opacity-0 group-hover:opacity-100 transition-all">
+                                    <MoreHorizontal className="h-4 w-4 text-zinc-500" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48 rounded-xl border-zinc-200 dark:border-zinc-800 shadow-xl">
+                                  <DropdownMenuLabel className="text-xs text-zinc-400 font-normal uppercase tracking-wider">学员操作</DropdownMenuLabel>
+                                  <DropdownMenuItem className="rounded-lg cursor-pointer" onClick={() => router.push(`/futureclass/students/${student.id}`)}>
+                                    查看画像
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-lg cursor-pointer" onClick={() => {
+                                     setSelectedStudentForEnroll(student);
+                                     setIsEnrollDialogOpen(true);
+                                  }}>
+                                    报班续费
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-lg cursor-pointer" onClick={() => router.push('/futureclass/attendance')}>
+                                    考勤签单
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-900" />
+                                  <DropdownMenuItem className="text-rose-600 rounded-lg cursor-pointer focus:bg-rose-50 focus:text-rose-600 dark:focus:bg-rose-950">
+                                    删除档案
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          </motion.tr>
+                        )
+                      })}
+                    </AnimatePresence>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </PageTransition>
+  );
+}
+
+export default function StudentsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 space-y-8"><SkeletonKPI /><SkeletonTable rows={10} cols={7} /></div>}>
+      <StudentsContent />
+    </Suspense>
+  );
+}

@@ -1,0 +1,326 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  CreditCard, 
+  TrendingUp, 
+  ArrowUpRight, 
+  Search, 
+  Filter, 
+  Download,
+  Calendar,
+  Wallet,
+  Receipt,
+  PieChart
+} from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle,
+  CardDescription
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { loadFinancePageData } from "../actions";
+import { PageTransition, StaggerContainer, StaggerItem } from "@/components/erp/page-transition";
+import { SkeletonKPI, SkeletonTable } from "@/components/erp/skeleton-card";
+import { AnimatedNumber } from "@/components/erp/animated-number";
+import { motion } from "motion/react";
+
+export default function FinancePage() {
+  const [stats, setStats] = useState({ totalRevenue: 0, orderCount: 0 });
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const pieRef = useRef<HTMLDivElement>(null);
+
+  // V2.0: 单次批量加载
+  useEffect(() => {
+    loadFinancePageData().then(({ stats: s, enrollments: e }) => {
+      setStats(s);
+      setEnrollments(e);
+      setLoading(false);
+    });
+  }, []);
+
+  // 收入分布环形图
+  useEffect(() => {
+    if (loading || !pieRef.current || enrollments.length === 0) return;
+    
+    const loadChart = async () => {
+      const echarts = await import("echarts");
+      const chart = echarts.init(pieRef.current!, undefined, { renderer: 'canvas' });
+
+      const courseMap: Record<string, number> = {};
+      enrollments.forEach(en => {
+        const name = en.erp_courses?.name || "未知课程";
+        const value = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+        courseMap[name] = (courseMap[name] || 0) + value;
+      });
+
+      const pieData = Object.entries(courseMap).map(([name, value]) => ({ name, value }));
+      const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#8b5cf6'];
+
+      chart.setOption({
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          borderWidth: 0,
+          textStyle: { color: '#fff', fontSize: 12 },
+          formatter: (p: any) => `${p.name}<br/>¥${p.value.toLocaleString()} (${p.percent}%)`
+        },
+        legend: {
+          orient: 'vertical',
+          right: 10,
+          top: 'center',
+          textStyle: { fontSize: 12, color: '#888' },
+          itemWidth: 10,
+          itemHeight: 10,
+          itemGap: 14
+        },
+        series: [{
+          type: 'pie',
+          radius: ['50%', '80%'],
+          center: ['35%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 8,
+            borderColor: '#fff',
+            borderWidth: 3
+          },
+          label: { show: false },
+          emphasis: {
+            label: { show: true, fontSize: 14, fontWeight: 'bold' },
+            itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' }
+          },
+          data: pieData,
+          color: colors
+        }]
+      });
+
+      const handleResize = () => chart.resize();
+      window.addEventListener('resize', handleResize);
+      return () => { window.removeEventListener('resize', handleResize); chart.dispose(); };
+    };
+    loadChart();
+  }, [loading, enrollments]);
+
+  const filteredEnrollments = enrollments.filter(e => 
+    e.erp_students?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.erp_courses?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleExportCSV = () => {
+    if (filteredEnrollments.length === 0) {
+      toast.warning("没有可导出的数据");
+      return;
+    }
+    
+    const headers = ["订单时间", "学员姓名", "报读课程", "购买规格", "成交金额", "状态"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredEnrollments.map(en => {
+        const orderValue = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+        return [
+          new Date(en.created_at).toLocaleDateString(),
+          en.erp_students?.name,
+          en.erp_courses?.name,
+          `${en.total_purchased_lessons} 课时`,
+          orderValue,
+          en.enroll_status === 'STUDYING' ? '成交' : en.enroll_status
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `财务流水_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("账单流水导出成功");
+  };
+
+  return (
+    <PageTransition>
+      <div className="space-y-8">
+        {/* 顶部 KPI 卡片 */}
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonKPI key={i} />)}
+          </div>
+        ) : (
+          <StaggerContainer className="grid gap-4 md:grid-cols-3">
+            <StaggerItem>
+              <Card className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-xl overflow-hidden relative">
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3"
+                />
+                <motion.div
+                  animate={{ y: [0, 6, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  className="absolute right-12 bottom-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/3"
+                />
+                <CardHeader className="pb-2 relative">
+                  <CardTitle className="text-indigo-100 text-sm font-medium flex items-center gap-2">
+                    <Wallet className="h-4 w-4" /> 累计课程收入
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="text-4xl font-black tracking-tighter">
+                    <AnimatedNumber value={stats.totalRevenue} prefix="¥" />
+                  </div>
+                  <div className="flex items-center gap-2 mt-4 text-indigo-200 text-sm">
+                    <div className="bg-white/20 p-1 rounded-md"><TrendingUp className="h-4 w-4" /></div>
+                    <span>较上周期增长 12%</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="border-none shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-muted-foreground text-sm font-medium flex items-center gap-2">
+                    <Receipt className="h-4 w-4" /> 成交订单
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-4xl font-black">
+                    <AnimatedNumber value={stats.orderCount} />
+                  </div>
+                  <div className="flex items-center gap-2 mt-4 text-emerald-600 text-sm">
+                    <ArrowUpRight className="h-4 w-4" />
+                    <span>共计 {enrollments.length} 笔有效交易</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+
+            <StaggerItem>
+              <Card className="border-none shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-muted-foreground text-sm font-medium flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" /> 客单价 (AOV)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-4xl font-black">
+                    <AnimatedNumber
+                      value={stats.orderCount === 0 ? 0 : Math.round(stats.totalRevenue / stats.orderCount)}
+                      prefix="¥"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-4">平均每位学员报课价值</p>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+          </StaggerContainer>
+        )}
+
+        {/* 收入分布图 */}
+        <Card className="border-none shadow-md">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <PieChart className="h-5 w-5 text-indigo-500" /> 课程收入分布
+                </CardTitle>
+                <CardDescription>按课程维度分析各产品线的营收贡献</CardDescription>
+              </div>
+              <Badge variant="outline" className="text-xs">实时</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div ref={pieRef} className="w-full h-[260px]" />
+          </CardContent>
+        </Card>
+
+        {/* 账单流水 */}
+        <Card className="border-none shadow-sm overflow-hidden">
+          <CardHeader className="border-b bg-muted/20 pb-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <CardTitle className="text-lg">账单流水明细</CardTitle>
+                <CardDescription>记录 FutureClass 每一笔学员成交与课消转化。</CardDescription>
+              </div>
+              <div className="flex gap-2 w-full md:w-auto">
+                <div className="relative flex-1 md:flex-none">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="搜索姓名或课程..." 
+                    className="pl-9 h-10 w-full md:w-64 bg-card"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" className="h-10"><Filter className="h-4 w-4 mr-2" /> 过滤</Button>
+                <Button variant="outline" className="h-10" onClick={handleExportCSV}><Download className="h-4 w-4 mr-2" /> 导出</Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
+                  <tr>
+                    <th className="px-6 py-4 font-medium">订单时间</th>
+                    <th className="px-6 py-4 font-medium">学员姓名</th>
+                    <th className="px-6 py-4 font-medium">报读课程</th>
+                    <th className="px-6 py-4 font-medium">购买规格</th>
+                    <th className="px-6 py-4 font-medium">成交金额</th>
+                    <th className="px-6 py-4 font-medium">状态</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6}><SkeletonTable rows={5} cols={6} /></td>
+                    </tr>
+                  ) : filteredEnrollments.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-12 text-center text-muted-foreground">暂无账单流水</td>
+                    </tr>
+                  ) : filteredEnrollments.map((en, idx) => {
+                    const orderValue = Number(en.total_purchased_lessons) * Number(en.erp_courses?.price_per_lesson || 0);
+                    return (
+                      <motion.tr
+                        key={en.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: idx * 0.03 }}
+                        className="hover:bg-muted/30 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {new Date(en.created_at).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-semibold">{en.erp_students?.name}</td>
+                        <td className="px-6 py-4">{en.erp_courses?.name}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{en.total_purchased_lessons} 课时</td>
+                        <td className="px-6 py-4 font-bold text-indigo-600">¥{orderValue.toLocaleString()}</td>
+                        <td className="px-6 py-4">
+                          <Badge variant={en.enroll_status === 'STUDYING' ? 'secondary' : 'outline'} className={en.enroll_status === 'STUDYING' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}>
+                            {en.enroll_status === 'STUDYING' ? '✓ 成交' : en.enroll_status}
+                          </Badge>
+                        </td>
+                      </motion.tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </PageTransition>
+  );
+}
