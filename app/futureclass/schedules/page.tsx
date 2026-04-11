@@ -277,7 +277,7 @@ export default function SchedulesPage() {
             <div className="overflow-x-auto">
               <div className="min-w-[900px]">
                 {/* 表头：星期 */}
-                <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-zinc-100 dark:border-zinc-800/60 sticky top-0 z-10 bg-white dark:bg-zinc-950">
+                <div style={{ display: "grid", gridTemplateColumns: "80px repeat(7, 1fr)" }} className="border-b border-zinc-100 dark:border-zinc-800/60 sticky top-0 z-10 bg-white dark:bg-zinc-950">
                   <div className="p-4 border-r border-zinc-100 dark:border-zinc-800/60" />
                   {weekDays.map((d, i) => {
                     const isToday = fmt(d) === today;
@@ -318,7 +318,7 @@ export default function SchedulesPage() {
                 ) : (
                   <div>
                     {HOURS.map(hour => (
-                      <div key={hour} className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-zinc-50 dark:border-zinc-900 min-h-[72px]">
+                      <div key={hour} style={{ display: "grid", gridTemplateColumns: "80px repeat(7, 1fr)" }} className="border-b border-zinc-50 dark:border-zinc-900 min-h-[72px]">
                         {/* 时间标签 */}
                         <div className="p-3 border-r border-zinc-100 dark:border-zinc-800/60 flex items-start justify-end">
                           <span className="text-[11px] font-bold text-zinc-300 dark:text-zinc-600 tabular-nums">
