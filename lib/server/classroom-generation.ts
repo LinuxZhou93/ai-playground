@@ -180,12 +180,17 @@ export async function generateClassroom(
     scenesGenerated: 0,
   });
 
-  // 🚀 [Titan Tech] 强制使用 OpenAI 兼容协议 (适配 Backgrace 代理)
+  // 🛡️ [Titan Order] 强行锁死 Gemini-3-Flash，确保协议与模型类型绝对匹配
   const { model: languageModel, modelInfo, modelString, apiKey: effectiveKey } = resolveModel({
-    modelString: 'google:gemini-2.0-flash', // 统一使用 2.0 稳定版
-    providerType: 'openai'
+    modelString: 'google:gemini-3-flash',
+    providerType: 'google' // 修正：明确指定 Google 提供商
   });
-  log.info(`Using resolved model: ${modelString} with key: ${effectiveKey?.slice(0, 8)}...`);
+  
+  if (!languageModel) {
+    throw new Error(`CRITICAL: Google Gemini-3-Flash model failed to initialize.`);
+  }
+  
+  log.info(`🚀 Starting FutureClass Pipeline | Model: ${modelString}`);
 
   const aiCall: AICallFn = async (systemPrompt, userPrompt, _images) => {
     const result = await callLLM(

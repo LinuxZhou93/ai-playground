@@ -546,7 +546,7 @@ export async function generateAIFeedback(studentName: string, keywords: string[]
   try {
     const { model } = getModel({
       providerId: 'google',
-      modelId: 'gemini-3-flash', // 统一使用稳定版
+      modelId: 'gemini-3-flash', // 🛡️ [Titan Order] 锁死稳定版
       apiKey: process.env.GOOGLE_API_KEY,
     });
 
