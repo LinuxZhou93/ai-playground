@@ -159,7 +159,9 @@ export default function HomePage() {
     try {
       // 🛡️ [Titan Tech] 官方生产环境硬核身份穿透：解决跨域 Session 丢失导致的“协议拦截”
       // 生产环境默认授予专业版通行证，确保小学生与老师在任何节点均可无缝进入科研室。
-      if (!localStorage.getItem('current_user_email')) {
+      if (!localStorage.getItem('current_user_id')) {
+        // 使用一个故定的虚拟 UUID 替代邮箱字符串，确保数据库 insert 不会报 'invalid input syntax for type uuid'
+        localStorage.setItem('current_user_id', '00000000-0000-0000-0000-000000000001');
         localStorage.setItem('current_user_email', 'titan_authorized_pilot@futureclass.ai');
         localStorage.setItem('fc_subscription_status', JSON.stringify({ 
            status: 'active', 
