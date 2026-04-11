@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   PackageOpen, // V3: 核心物料
   FileText, // V3: 家校互动档案
+  CalendarDays, // V4: 智能排课日历
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ const menuItems = [
   { name: "日常点名", icon: CheckCircle2, path: "/futureclass/attendance" },
   { name: "课程库", icon: BookOpen, path: "/futureclass/courses" },
   { name: "班级管理", icon: GraduationCap, path: "/futureclass/classes" },
+  { name: "排课日历", icon: CalendarDays, path: "/futureclass/schedules" },
   { name: "财务中心", icon: CreditCard, path: "/futureclass/finance" },
   { name: "系统设置", icon: Settings, path: "/futureclass/settings" },
 ];
