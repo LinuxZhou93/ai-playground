@@ -82,6 +82,13 @@ const initialFormState: FormState = {
   webSearch: false,
 };
 
+/**
+ * FutureClass 统一入口
+ * 
+ * 核心功能：
+ * 1. AI 课件生成管线
+ * 2. 互动课堂管理
+ */
 export default function HomePage() {
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
@@ -570,12 +577,9 @@ export default function HomePage() {
       }
     } catch(e) { console.warn('Auth checks skipped', e); }
 
-    // Validate setup before proceeding
-    if (!currentModelId) {
       // 🚀 [Titan Tech Override] Zero-Config Auto Fallback!
       const settings = useSettingsStore.getState();
-      settings.setModel('google', 'gemini-3-flash-preview');
-    }
+      settings.setModel('google', 'gemini-3-flash');
 
     // 🚀 [Titan OS] 自动发车时使用传入的 requirementOverride 绕过闭包陷阱
     const finalRequirement = requirementOverride || form.requirement.trim();

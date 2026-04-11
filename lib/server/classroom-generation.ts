@@ -182,7 +182,7 @@ export async function generateClassroom(
 
   // 🚀 [Titan Tech] 强制使用 OpenAI 兼容协议 (适配 Backgrace 代理)
   const { model: languageModel, modelInfo, modelString, apiKey: effectiveKey } = resolveModel({
-    modelString: 'google:gemini-1.5-flash-latest', // 对应用户在 settings.ts 中的新设定
+    modelString: 'google:gemini-2.0-flash', // 统一使用 2.0 稳定版
     providerType: 'openai'
   });
   log.info(`Using resolved model: ${modelString} with key: ${effectiveKey?.slice(0, 8)}...`);
