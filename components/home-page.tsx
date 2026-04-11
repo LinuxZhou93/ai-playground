@@ -579,9 +579,12 @@ export default function HomePage() {
       }
     } catch(e) { console.warn('Auth checks skipped', e); }
 
-      // 🚀 [Titan Tech Override] Zero-Config Auto Fallback!
+      // 🚀 [Titan Tech Override] 智能默认值：仅在用户未配置任何模型时，自动挂载预设。
+      // 这保证了系统“拆箱即用”，但绝不干扰指挥官在设置中的手动调整。
       const settings = useSettingsStore.getState();
-      settings.setModel('google', 'gemini-3-flash');
+      if (!settings.modelId) {
+        settings.setModel('google', 'gemini-3-flash');
+      }
 
     // 🚀 [Titan OS] 自动发车时使用传入的 requirementOverride 绕过闭包陷阱
     const finalRequirement = requirementOverride || form.requirement.trim();

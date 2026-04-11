@@ -17,15 +17,13 @@ export async function middleware(request: NextRequest) {
 
   // 🛡️ [Domain Routing] 域名分流逻辑 (最高优先级)
   if (host.includes('ai.zhouxiaomai.com')) {
-    // 强制：如果是 ai. 域名，无论访问什么路径，都通过 Next.js 路由处理 (FutureClass App)
-    // 绝不返回 index.html
+    // 强制：如果是 ai. 域名，渲染 Next.js 原生的响应式首页
     return NextResponse.next();
   }
 
   // 💡 处理主域名 (zhouxiaomai.com / www.) 的根路径逻辑
   if (pathname === '/' || pathname === '/index.html') {
     // 仅主域名重写到旧版面板
-    console.log(`📡 [Domain Logic] Main Domain (${host}) -> Rewriting to Legacy Dashboard (index.html)`);
     return NextResponse.rewrite(new URL('/index.html', request.url));
   }
 
