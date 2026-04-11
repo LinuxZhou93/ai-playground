@@ -82,6 +82,13 @@ const initialFormState: FormState = {
   webSearch: false,
 };
 
+/**
+ * FutureClass 统一入口
+ * 
+ * 核心功能：
+ * 1. AI 课件生成管线
+ * 2. 互动课堂管理
+ */
 export default function HomePage() {
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
@@ -152,7 +159,9 @@ export default function HomePage() {
     try {
       // 🛡️ [Titan Tech] 官方生产环境硬核身份穿透：解决跨域 Session 丢失导致的“协议拦截”
       // 生产环境默认授予专业版通行证，确保小学生与老师在任何节点均可无缝进入科研室。
-      if (!localStorage.getItem('current_user_email')) {
+      if (!localStorage.getItem('current_user_id')) {
+        // 使用一个故定的虚拟 UUID 替代邮箱字符串，确保数据库 insert 不会报 'invalid input syntax for type uuid'
+        localStorage.setItem('current_user_id', '00000000-0000-0000-0000-000000000001');
         localStorage.setItem('current_user_email', 'titan_authorized_pilot@futureclass.ai');
         localStorage.setItem('fc_subscription_status', JSON.stringify({ 
            status: 'active', 
@@ -570,12 +579,12 @@ export default function HomePage() {
       }
     } catch(e) { console.warn('Auth checks skipped', e); }
 
-    // Validate setup before proceeding
-    if (!currentModelId) {
-      // 🚀 [Titan Tech Override] Zero-Config Auto Fallback!
+      // 🚀 [Titan Tech Override] 智能默认值：仅在用户未配置任何模型时，自动挂载预设。
+      // 这保证了系统“拆箱即用”，但绝不干扰指挥官在设置中的手动调整。
       const settings = useSettingsStore.getState();
-      settings.setModel('google', 'gemini-3-flash-preview');
-    }
+      if (!settings.modelId) {
+        settings.setModel('google', 'gemini-3-flash');
+      }
 
     // 🚀 [Titan OS] 自动发车时使用传入的 requirementOverride 绕过闭包陷阱
     const finalRequirement = requirementOverride || form.requirement.trim();

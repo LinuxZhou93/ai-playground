@@ -15,16 +15,18 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') || ''
   const pathname = url.pathname
 
-  // 🛡️ [Domain Routing] 处理根路径域名分流 (最高优先级)
-  if (pathname === '/') {
-    // 💡 情况 A：如果是 ai.zhouxiaomai.com 子域 -> 渲染新版 FutureClass
-    if (host.includes('ai.zhouxiaomai.com')) {
-      console.log('🚀 [Domain Logic] ai.zhouxiaomai.com -> Serving Next.js App');
-      return NextResponse.next();
+  // 🛡️ [Domain Routing] 域名分流逻辑 (最高优先级)
+  if (host.includes('ai.zhouxiaomai.com')) {
+    // 🛡️ [Titan Enforced] 强制避开静态 index.html，渲染 Next.js 原生的响应式首页
+    if (pathname === '/' || pathname === '/index.html') {
+      return NextResponse.rewrite(new URL('/futureclass', request.url));
     }
+    return NextResponse.next();
+  }
 
-    // 💡 情况 B：如果是 www.zhouxiaomai.com 或 zhouxiaomai.com 主域 -> 渲染旧版面板 (index.html)
-    console.log(`📡 [Domain Logic] Main Domain (${host}) -> Rewriting to Legacy Dashboard (index.html)`);
+  // 💡 处理主域名 (zhouxiaomai.com / www.) 的根路径逻辑
+  if (pathname === '/' || pathname === '/index.html') {
+    // 仅主域名重写到旧版面板
     return NextResponse.rewrite(new URL('/index.html', request.url));
   }
 
