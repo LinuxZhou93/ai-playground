@@ -20,6 +20,8 @@ import {
   Zap,
   Cpu,
   ShieldCheck,
+  PackageOpen, // V3: 核心物料
+  FileText, // V3: 家校互动档案
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,8 @@ import { getDashboardStats } from "@/app/futureclass/actions";
 const menuItems = [
   { name: "教务看板", icon: LayoutDashboard, path: "/futureclass/dashboard" },
   { name: "学员管理", icon: Users, path: "/futureclass/students" },
+  { name: "核心物料", icon: PackageOpen, path: "/futureclass/inventory" },
+  { name: "家校通报告", icon: FileText, path: "/futureclass/reports" },
   { name: "日常点名", icon: CheckCircle2, path: "/futureclass/attendance" },
   { name: "课程库", icon: BookOpen, path: "/futureclass/courses" },
   { name: "班级管理", icon: GraduationCap, path: "/futureclass/classes" },

@@ -691,3 +691,102 @@ const getCachedClassesPageData = unstable_cache(
 export async function loadClassesPageData() {
   return getCachedClassesPageData();
 }
+// ─────────────────────────────────────────────────────────────
+// 📦 教具与硬件物料库存库 (erp_inventory)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 实时获取全栈物料库存
+ */
+export async function getInventoryItems() {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_inventory")
+    .select("*")
+    .order("category")
+    .order("sku");
+  
+  if (error) {
+    console.error("Error fetching inventory:", error);
+    return [];
+  }
+  return data;
+}
+
+/**
+ * 加载物料大盘的全部数据 (包含汇总统计)
+ */
+export const loadInventoryPageData = unstable_cache(
+  async () => {
+    const items = await getInventoryItems();
+    return { 
+      items,
+      totalValue: items.reduce((sum, i) => sum + (i.stock * i.cost), 0),
+      warningCount: items.filter(i => i.stock <= i.threshold).length
+    };
+  },
+  ['inventory-data-cache'],
+  { revalidate: 60, tags: ['erp-data', 'inventory-data'] }
+);
+
+/**
+ * 执行物料流转（入库 / 下发出库）
+ * @param itemId SKU 的内部唯一 ID
+ * @param operationType IN (入库) 或 OUT (出库)
+ * @param value 数量
+ */
+export async function executeInventoryOperation(itemId: string, operationType: "IN" | "OUT", value: number) {
+  const supabase = getSupabase();
+
+  // 获取当前物料状态
+  const { data: item, error: fetchErr } = await supabase
+    .from("erp_inventory")
+    .select("stock")
+    .eq("id", itemId)
+    .single();
+
+  if (fetchErr || !item) {
+    throw new Error("Target hardware asset not found.");
+  }
+
+  // 计算安全库存更新
+  const delta = operationType === "IN" ? value : -value;
+  const newStock = Math.max(0, item.stock + delta);
+
+  const { error: updateErr } = await supabase
+    .from("erp_inventory")
+    .update({ 
+      stock: newStock,
+      last_update: new Date().toISOString()
+    })
+    .eq("id", itemId);
+
+  if (updateErr) {
+    throw new Error("Hardware transaction failed at database level.");
+  }
+
+  // 释放缓存并全网广播
+  revalidateTag('inventory-data');
+  return { success: true, newStock };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 📱 智能家校互动与成长档案 (erp_growth_archives)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 实时获取所有学员的成长档案闪评记录
+ */
+export async function getGrowthArchives() {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_growth_archives")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching growth archives:", error);
+    return [];
+  }
+  return data;
+}
