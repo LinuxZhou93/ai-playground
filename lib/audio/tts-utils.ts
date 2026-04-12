@@ -15,12 +15,28 @@ export const TTS_MAX_TEXT_LENGTH: Partial<Record<TTSProviderId, number>> = {
 };
 
 /**
+ * Clean text before sending to TTS engines to prevent stuttering/pauses.
+ * Removes common markdown syntax (**, *, #, _, ~) and structural spacing
+ * that traditional TTS engines misinterpret as long pauses.
+ */
+export function cleanTextForTTS(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/[*#_~`]/g, '')     // Remove bold, italic, heading, strikethrough, code markers
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Extract text from markdown links
+    .replace(/[\r\n]+/g, ' ')     // CRITICAL: Replace newlines with spaces to prevent weird Doubao pauses
+    .replace(/([。！？!?；;：:])\s+/g, '$1') // Remove excessive whitespace after punctuation
+    .replace(/\s{2,}/g, ' ')      // Collapse multiple spaces into one
+    .trim();
+}
+
+/**
  * Split long text into chunks that respect sentence boundaries.
  * Tries splitting at sentence-ending punctuation first, then clause-level
  * punctuation, and finally hard-splits at maxLength as a last resort.
  */
 export function splitLongSpeechText(text: string, maxLength: number): string[] {
-  const normalized = text.trim();
+  const normalized = cleanTextForTTS(text);
   if (!normalized || normalized.length <= maxLength) return [normalized];
 
   const units = normalized
@@ -84,14 +100,18 @@ export function splitLongSpeechActions(actions: Action[], providerId: TTSProvide
   const maxLength = TTS_MAX_TEXT_LENGTH[providerId];
   if (!maxLength) return actions;
 
-  let didSplit = false;
   const nextActions: Action[] = actions.flatMap((action) => {
-    if (action.type !== 'speech' || !action.text || action.text.length <= maxLength)
-      return [action];
+    if (action.type !== 'speech' || !action.text) return [action];
 
-    const chunks = splitLongSpeechText(action.text, maxLength);
-    if (chunks.length <= 1) return [action];
-    didSplit = true;
+    const cleanedText = cleanTextForTTS(action.text);
+    
+    if (cleanedText.length <= maxLength) {
+       return [{ ...action, text: cleanedText }];
+    }
+
+    const chunks = splitLongSpeechText(cleanedText, maxLength);
+    if (chunks.length <= 1) return [{ ...action, text: cleanedText }];
+    
     const { audioId: _audioId, ...baseAction } = action as SpeechAction;
 
     log.info(
@@ -103,5 +123,5 @@ export function splitLongSpeechActions(actions: Action[], providerId: TTSProvide
       text: chunk,
     }));
   });
-  return didSplit ? nextActions : actions;
+  return nextActions;
 }
