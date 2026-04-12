@@ -232,7 +232,7 @@ async function generateOpenAITTS(
       'Content-Type': 'application/json; charset=utf-8',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini-tts',
+      model: 'tts-1',
       input: text,
       voice: config.voice,
       speed: config.speed || 1.0,
