@@ -1262,12 +1262,12 @@ export const useSettingsStore = create<SettingsState>()(
         if (!merged.ttsProvidersConfig['volcengine-tts']) {
           merged.ttsProvidersConfig['volcengine-tts'] = {
             apiKey: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z',
-            baseUrl: 'https://openspeech.bytedance.com/api/v1',
+            baseUrl: 'https://openspeech.bytedance.com/api/v1/tts',
             enabled: true,
           };
         } else {
           merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
-          merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
+          merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1/tts';
           merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
         }
 
