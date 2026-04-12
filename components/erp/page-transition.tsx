@@ -17,7 +17,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         duration: 0.45,
         ease: [0.16, 1, 0.3, 1],
       }}
-      className="will-change-[transform,opacity]"
+      className="will-change-[transform,opacity] w-full"
     >
       {children}
     </motion.div>

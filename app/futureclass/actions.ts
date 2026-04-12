@@ -691,3 +691,261 @@ const getCachedClassesPageData = unstable_cache(
 export async function loadClassesPageData() {
   return getCachedClassesPageData();
 }
+// ─────────────────────────────────────────────────────────────
+// 📦 教具与硬件物料库存库 (erp_inventory)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 实时获取全栈物料库存
+ */
+export async function getInventoryItems() {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_inventory")
+    .select("*")
+    .order("category")
+    .order("sku");
+  
+  if (error) {
+    console.error("Error fetching inventory:", error);
+    return [];
+  }
+  return data;
+}
+
+/**
+ * 加载物料大盘的全部数据 (包含汇总统计)
+ */
+export const loadInventoryPageData = unstable_cache(
+  async () => {
+    const items = await getInventoryItems();
+    return { 
+      items,
+      totalValue: items.reduce((sum, i) => sum + (i.stock * i.cost), 0),
+      warningCount: items.filter(i => i.stock <= i.threshold).length
+    };
+  },
+  ['inventory-data-cache'],
+  { revalidate: 60, tags: ['erp-data', 'inventory-data'] }
+);
+
+/**
+ * 执行物料流转（入库 / 下发出库）
+ * @param itemId SKU 的内部唯一 ID
+ * @param operationType IN (入库) 或 OUT (出库)
+ * @param value 数量
+ */
+export async function executeInventoryOperation(itemId: string, operationType: "IN" | "OUT", value: number) {
+  const supabase = getSupabase();
+
+  // 获取当前物料状态
+  const { data: item, error: fetchErr } = await supabase
+    .from("erp_inventory")
+    .select("stock")
+    .eq("id", itemId)
+    .single();
+
+  if (fetchErr || !item) {
+    throw new Error("Target hardware asset not found.");
+  }
+
+  // 计算安全库存更新
+  const delta = operationType === "IN" ? value : -value;
+  const newStock = Math.max(0, item.stock + delta);
+
+  const { error: updateErr } = await supabase
+    .from("erp_inventory")
+    .update({ 
+      stock: newStock,
+      last_update: new Date().toISOString()
+    })
+    .eq("id", itemId);
+
+  if (updateErr) {
+    throw new Error("Hardware transaction failed at database level.");
+  }
+
+  // 释放缓存并全网广播
+  revalidateTag('inventory-data');
+  return { success: true, newStock };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 📱 智能家校互动与成长档案 (erp_growth_archives)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 实时获取所有学员的成长档案闪评记录
+ */
+export async function getGrowthArchives() {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_growth_archives")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching growth archives:", error);
+    return [];
+  }
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 📅 智能排课引擎 (erp_schedules)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 获取排课日历所需的班级列表（含课程名、教室信息）
+ */
+export async function getScheduleClasses() {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_classes")
+    .select(`
+      id, name, classroom, capacity, start_date,
+      erp_courses ( id, name, category, duration_min, total_lessons )
+    `)
+    .order("name");
+
+  if (error) {
+    console.error("Error fetching schedule classes:", error);
+    return [];
+  }
+  return data || [];
+}
+
+/**
+ * 按日期区间获取排课记录（用于日历渲染）
+ */
+export async function getSchedulesByWeek(startDate: string, endDate: string) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("erp_schedules")
+    .select(`
+      *,
+      erp_classes ( id, name ),
+      erp_courses ( id, name, category )
+    `)
+    .gte("lesson_date", startDate)
+    .lte("lesson_date", endDate)
+    .order("lesson_date")
+    .order("start_time");
+
+  if (error) {
+    console.error("Error fetching schedules:", error);
+    return [];
+  }
+  return data || [];
+}
+
+/**
+ * 智能批量排课引擎
+ * @param classId 班级ID
+ * @param rule 排课规则 { dayOfWeek, startTime, endTime, totalLessons, startDate }
+ * 
+ * 碰撞检测维度：同一教室 + 同一日期 + 时间段重叠 → 硬拦截
+ */
+export async function generateSchedules(
+  classId: string,
+  rule: {
+    dayOfWeek: number;  // 0=周日, 1=周一 … 6=周六
+    startTime: string;  // "10:00"
+    endTime: string;    // "11:30"
+    totalLessons: number;
+    startDate: string;  // "2026-04-12"
+  }
+) {
+  const supabase = getSupabase();
+
+  // 1. 拉取班级关联信息
+  const { data: classInfo, error: classErr } = await supabase
+    .from("erp_classes")
+    .select("id, name, classroom, course_id, erp_courses(id, name)")
+    .eq("id", classId)
+    .single();
+
+  if (classErr || !classInfo) {
+    throw new Error("班级数据拉取失败，请检查班级是否存在。");
+  }
+
+  // 2. 计算未来 N 节课的日期序列
+  const dates: string[] = [];
+  const start = new Date(rule.startDate + "T00:00:00");
+  let cursor = new Date(start);
+
+  // 找到第一个匹配的 dayOfWeek
+  while (cursor.getDay() !== rule.dayOfWeek) {
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  for (let i = 0; i < rule.totalLessons; i++) {
+    const dateStr = cursor.toISOString().split("T")[0];
+    dates.push(dateStr);
+    cursor.setDate(cursor.getDate() + 7); // 每周一次
+  }
+
+  // 3. 碰撞检测：查询这些日期内该教室已存在的排课
+  const classroom = classInfo.classroom || "未分配";
+  if (classroom !== "未分配") {
+    const { data: conflicts } = await supabase
+      .from("erp_schedules")
+      .select("id, lesson_date, start_time, end_time, erp_classes(name)")
+      .eq("classroom", classroom)
+      .in("lesson_date", dates)
+      .neq("class_id", classId);
+
+    if (conflicts && conflicts.length > 0) {
+      // 检测时间段重叠
+      const overlaps = conflicts.filter((c: any) => {
+        return c.start_time < rule.endTime && c.end_time > rule.startTime;
+      });
+
+      if (overlaps.length > 0) {
+        const conflictDetails = overlaps.map((c: any) =>
+          `${c.lesson_date} ${c.start_time}-${c.end_time} (${(c.erp_classes as any)?.name || '未知班级'})`
+        ).join("；");
+        throw new Error(`🚨 排课冲突拦截！教室「${classroom}」在以下时段已被占用：${conflictDetails}`);
+      }
+    }
+  }
+
+  // 4. 批量插入排课记录
+  const scheduleRows = dates.map(date => ({
+    class_id: classId,
+    course_id: classInfo.course_id,
+    classroom: classroom,
+    lesson_date: date,
+    start_time: rule.startTime,
+    end_time: rule.endTime,
+    status: "PLANNED",
+  }));
+
+  const { data: inserted, error: insertErr } = await supabase
+    .from("erp_schedules")
+    .insert(scheduleRows)
+    .select();
+
+  if (insertErr) {
+    console.error("Schedule insert error:", insertErr);
+    throw new Error("排课写入失败：" + insertErr.message);
+  }
+
+  revalidatePath("/futureclass/schedules");
+  return { success: true, count: inserted?.length || 0, dates };
+}
+
+/**
+ * 删除单条排课记录
+ */
+export async function deleteSchedule(scheduleId: string) {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("erp_schedules")
+    .delete()
+    .eq("id", scheduleId);
+
+  if (error) throw new Error("删除排课失败：" + error.message);
+  revalidatePath("/futureclass/schedules");
+  return { success: true };
+}

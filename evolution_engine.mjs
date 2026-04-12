@@ -14,15 +14,23 @@ const openai = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://backgrace.com/v1',
 });
 
-// 第二波优化清单 (Wave 2)
+// 整夜突击全站优化清单 (Wave 3 - 顶级商业级 UI)
 const TARGET_FILES = [
-  'app/futureclass/settings/page.tsx',
-  'app/futureclass/layout.tsx',
+  'app/futureclass/dashboard/page.tsx',
   'app/futureclass/dashboard/DiagnosisBoard.tsx',
-  'components/erp/animated-number.tsx',
+  'app/futureclass/courses/page.tsx',
+  'app/futureclass/classes/page.tsx',
+  'app/futureclass/students/page.tsx',
+  'app/futureclass/finance/page.tsx',
+  'app/futureclass/attendance/page.tsx',
+  'app/futureclass/settings/page.tsx',
+  'app/futureclass/students/[id]/page.tsx',
+  'components/erp/sidebar.tsx',
+  'components/erp/command-palette.tsx',
   'components/erp/page-transition.tsx',
   'components/erp/skeleton-card.tsx',
-  'components/erp/command-palette.tsx',
+  'components/erp/animated-number.tsx',
+  'app/futureclass/layout.tsx',
 ];
 
 function extractCodeBlock(text) {
@@ -57,10 +65,11 @@ async function evolveFile(filePath) {
 请对以下代码进行高级 UI/UX 重构与极客级优化：
 1. **视觉跃升 (Stripe/Linear 风格)**: 增加极简的玻璃拟物化 (glassmorphism) 效果，增强 hover 时的暗黑模糊投影，使用更具高级感的色系 (slate/zinc)。
 2. **渐进式动画**: 为列表或卡片元素补充适当的 Framer Motion 或 CSS transition 动画。
-3. **数据展示**: 如果代码包含统计数字，请使用极简的高级样式呈现。
-4. **代码纯洁度**: 保持所有既有业务逻辑、import 路径和状态管理完全不变，**只进行样式与组件表现层级的升级**。
+3. **极致体验**: 检查现有组件结构，如果代码包含统计数字或列表，请使用极简的高级样式呈现。
+4. **精益代码**: 保持所有既有业务逻辑、import 路径结构和状态管理完全不变，**只进行样式与组件表现层级的升级**。
+5. **防御性重构**: 不要删除核心逻辑！
 
-**注意**: 你只能输出一个包含完整修改后代码的 Markdown 代码块，不允许缩略（不要写 "..."），必须是能直接拿去覆盖源文件的完整代码。
+**注意**: 你只能输出一个包含完整修改后代码的 Markdown 代码块（如 \`\`\`tsx 开头），绝对不允许缩略（不要写 "..."），必须是能直接拿去覆盖源文件的完整代码。如果代码太长必须耐心生成完整。
 
 下面是被优化的源代码：
 \`\`\`tsx
@@ -109,27 +118,35 @@ ${code}
 async function startEvolutionLoop() {
   await log('');
   await log('='.repeat(60));
-  await log('🚀 TITAN AUTO-EVOLUTION ENGINE v2 — WAVE 2');
-  await log(`🎯 顺序遍历 ${TARGET_FILES.length} 个辅助组件，循环优化`);
+  await log('🚀 TITAN AUTO-EVOLUTION ENGINE v3 — NIGHT MODE');
+  await log(`🎯 目标：循环遍历全站 ${TARGET_FILES.length} 个核心页面/组件，执行顶级商业化重构！`);
   await log('='.repeat(60));
 
   let round = 0;
-  const MAX_ROUNDS = TARGET_FILES.length * 2;
+  
+  // 死循环执行，利用日期或强制终端打断来停止
+  // 预计运行至次日早晨 8 点 (相当于未来 7 个小时)
+  const END_TIME = new Date();
+  END_TIME.setHours(8, 0, 0, 0);
+  if (END_TIME < new Date()) END_TIME.setDate(END_TIME.getDate() + 1);
 
-  for (let cycle = 0; cycle < 2 && round < MAX_ROUNDS; cycle++) {
-    await log(`\n📦 [Cycle ${cycle + 1}/3] 开始第 ${cycle + 1} 轮全文件扫描...`);
-    for (let f = 0; f < TARGET_FILES.length && round < MAX_ROUNDS; f++) {
+  await log(`⏰ 计划持续运行至：${END_TIME.toLocaleString()}`);
+
+  while (new Date() < END_TIME) {
+    await log(`\n📦 开始新一轮全站扫描...`);
+    for (let f = 0; f < TARGET_FILES.length; f++) {
+      if (new Date() >= END_TIME) break;
+      
       round++;
-      await log(`\n🔄 [Round ${round}/${MAX_ROUNDS}] - ${new Date().toLocaleTimeString()}`);
+      await log(`\n🔄 [Round ${round}] - ${new Date().toLocaleTimeString()}`);
       await evolveFile(TARGET_FILES[f]);
 
-      if (round < MAX_ROUNDS) {
-        await log(`🔥 直接开火，无冷却！`);
-      }
+      await log(`🧊 冷却 60 秒以防触发 API 限流...`);
+      await sleep(60000); // 防限流冷却机制
     }
   }
 
-  await log(`\n🎉 ${round} 轮进化全部完成！指挥官早上好！`);
+  await log(`\n🎉 通宵进化 (${round} 轮) 已全部完成！指挥官早上好！`);
 }
 
 startEvolutionLoop();

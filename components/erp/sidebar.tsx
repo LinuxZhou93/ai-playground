@@ -20,18 +20,23 @@ import {
   Zap,
   Cpu,
   ShieldCheck,
+  PackageOpen, // V3: 核心物料
+  FileText, // V3: 家校互动档案
+  CalendarDays, // V4: 智能排课日历
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "motion/react";
-import { getDashboardStats } from "@/app/futureclass/actions";
 
 const menuItems = [
   { name: "教务看板", icon: LayoutDashboard, path: "/futureclass/dashboard" },
   { name: "学员管理", icon: Users, path: "/futureclass/students" },
+  { name: "核心物料", icon: PackageOpen, path: "/futureclass/inventory" },
+  { name: "家校通报告", icon: FileText, path: "/futureclass/reports" },
   { name: "日常点名", icon: CheckCircle2, path: "/futureclass/attendance" },
   { name: "课程库", icon: BookOpen, path: "/futureclass/courses" },
   { name: "班级管理", icon: GraduationCap, path: "/futureclass/classes" },
+  { name: "排课日历", icon: CalendarDays, path: "/futureclass/schedules" },
   { name: "财务中心", icon: CreditCard, path: "/futureclass/finance" },
   { name: "系统设置", icon: Settings, path: "/futureclass/settings" },
 ];
@@ -40,27 +45,6 @@ export function ERPSidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
-
-  // V3: KPI 微组件 — 5 分钟缓存避免频繁 Server Action
-  const [kpi, setKpi] = React.useState<{ studentCount: number; warningCount: number } | null>(null);
-  React.useEffect(() => {
-    const CACHE_KEY = '__erp_sidebar_kpi';
-    const CACHE_TTL = 5 * 60 * 1000; // 5 分钟
-    try {
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, ts } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL) {
-          setKpi(data);
-          return; // 命中缓存，不请求
-        }
-      }
-    } catch {}
-    getDashboardStats().then(data => {
-      setKpi(data);
-      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() })); } catch {}
-    }).catch(() => {});
-  }, []);
 
   // 路由变化时关闭移动端菜单
   React.useEffect(() => {
@@ -179,92 +163,6 @@ export function ERPSidebar() {
           })}
         
       </nav>
-
-      {/* V2.5: AI 引擎运行状态监控区 - 极客玻璃拟物化 */}
-      <AnimatePresence>
-        {(!collapsed || isMobile) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="mx-3 mb-4"
-          >
-            <div className="group relative rounded-2xl p-4 overflow-hidden bg-zinc-900 dark:bg-zinc-900/60 border border-zinc-800 shadow-2xl">
-              <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-all duration-1000 group-hover:rotate-12 group-hover:scale-125">
-                <Cpu className="h-12 w-12 text-emerald-500" />
-              </div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </div>
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Titan Core</span>
-                  </div>
-                  <ShieldCheck className="h-3 w-3 text-emerald-500/50" />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between items-end">
-                    <p className="text-[12px] font-medium text-zinc-100 tracking-tight">Neural Processing</p>
-                    <span className="text-[10px] font-mono text-emerald-400">98.2%</span>
-                  </div>
-                  <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: "98.2%" }}
-                      transition={{ duration: 1.5, ease: "circOut" }}
-                      className="h-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 bg-black/40 rounded-lg px-2 py-1.5 border border-white/5">
-                    <Activity className="h-3 w-3 text-zinc-500 shrink-0" />
-                    <p className="text-[9px] text-zinc-400 truncate font-mono">
-                      L-Stream: Stable
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* V2.1: KPI 微组件 - 数字化看板风格 */}
-      <AnimatePresence>
-        {(!collapsed || isMobile) && kpi && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mx-3 mb-6 grid grid-cols-2 gap-2"
-          >
-            <div className="bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/50 dark:border-zinc-800/50 p-3 rounded-2xl group hover:border-emerald-500/30 transition-all duration-300">
-              <p className="text-[9px] text-zinc-400 font-bold mb-1 uppercase tracking-widest">Students</p>
-              <div className="flex items-baseline gap-1">
-                <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-mono tracking-tighter tabular-nums">
-                  {kpi.studentCount.toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <div className="bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/50 dark:border-zinc-800/50 p-3 rounded-2xl group hover:border-rose-500/30 transition-all duration-300">
-              <p className="text-[9px] text-zinc-400 font-bold mb-1 uppercase tracking-widest">Alerts</p>
-              <div className="flex items-center gap-1.5">
-                <p className={cn(
-                  "text-lg font-bold font-mono tracking-tighter tabular-nums",
-                  kpi.warningCount > 0 ? "text-rose-500" : "text-emerald-500"
-                )}>
-                  {kpi.warningCount}
-                </p>
-                {kpi.warningCount > 0 && (
-                  <span className="flex h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* 底部控制栏 */}
       <div className="p-4 border-t border-zinc-200/50 dark:border-zinc-800/50 flex flex-col items-center gap-4 bg-zinc-50/50 dark:bg-zinc-900/20">
