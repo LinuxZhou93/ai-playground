@@ -278,7 +278,7 @@ const getDefaultAudioConfig = () => ({
     'glm-tts': { apiKey: '', baseUrl: '', enabled: false },
     'qwen-tts': { apiKey: '', baseUrl: '', enabled: false },
     'elevenlabs-tts': { apiKey: '', baseUrl: '', enabled: false },
-    'volcengine-tts': { apiKey: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', baseUrl: 'https://openspeech.bytedance.com/api/v1', enabled: true },
+    'volcengine-tts': { apiKey: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', baseUrl: 'https://openspeech.bytedance.com/api/v1/tts', enabled: true },
     'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
   } as Record<TTSProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
   asrProvidersConfig: {
@@ -532,7 +532,7 @@ export const useSettingsStore = create<SettingsState>()(
         defaultAudioConfig.ttsProviderId = 'volcengine-tts';
         defaultAudioConfig.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
         defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
-        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
+        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1/tts';
         defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].enabled = true;
       }
 
