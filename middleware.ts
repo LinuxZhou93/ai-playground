@@ -17,9 +17,9 @@ export async function middleware(request: NextRequest) {
 
   // 🛡️ [Domain Routing] 域名分流逻辑 (最高优先级)
   if (host.includes('ai.zhouxiaomai.com')) {
-    // 🛡️ [Titan Enforced] 强制避开静态 index.html，渲染 Next.js 原生的响应式首页
-    if (pathname === '/' || pathname === '/index.html') {
-      return NextResponse.rewrite(new URL('/futureclass', request.url));
+    // 🛡️ 恢复：确保 ai.zhouxiaomai.com 访问原版的课件生成首页 (/app/page.tsx)
+    if (pathname === '/index.html') {
+      return NextResponse.rewrite(new URL('/', request.url));
     }
     return NextResponse.next();
   }
