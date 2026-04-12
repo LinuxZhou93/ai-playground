@@ -796,6 +796,7 @@ function GenerationPreviewContent() {
         );
 
         let ttsFailCount = 0;
+        const errorMessages: string[] = [];
         for (const action of speechActions) {
           const audioId = `tts_${action.id}`;
           action.audioId = audioId;
@@ -816,11 +817,14 @@ function GenerationPreviewContent() {
             });
             if (!resp.ok) {
               ttsFailCount++;
+              const errBody = await resp.text().catch(() => '');
+              errorMessages.push(`HTTP ${resp.status}: ${errBody.slice(0, 50)}`);
               continue;
             }
             const ttsData = await resp.json();
             if (!ttsData.success) {
               ttsFailCount++;
+              errorMessages.push(`API Error: ${ttsData.error || 'Unknown'}`);
               continue;
             }
             const binary = atob(ttsData.base64);
@@ -835,12 +839,13 @@ function GenerationPreviewContent() {
             });
           } catch (err) {
             log.warn(`[TTS] Failed for ${audioId}:`, err);
+            errorMessages.push(`Client Exception: ${(err as Error).message}`);
             ttsFailCount++;
           }
         }
 
         if (ttsFailCount > 0 && speechActions.length > 0) {
-          throw new Error(t('generation.speechFailed'));
+          throw new Error(t("generation.speechFailed") + ` (${errorMessages[0]})`);
         }
       }
 
