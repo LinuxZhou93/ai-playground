@@ -792,7 +792,12 @@ function GenerationPreviewContent() {
       if (settings.ttsEnabled && settings.ttsProviderId !== 'browser-native-tts') {
         const ttsProviderConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
         const speechActions = (data.scene.actions || []).filter(
-          (a: { type: string; text?: string }) => a.type === 'speech' && a.text,
+          (a: { type: string; text?: string }) => {
+            if (a.type !== 'speech' || !a.text) return false;
+            // Remove all whitespace, and all punctuation (including Chinese punctuation and brackets)
+            const textWithoutPunctuation = a.text.replace(/[\s\p{P}＋＝]/gu, '');
+            return textWithoutPunctuation.length > 0;
+          }
         );
 
         let ttsFailCount = 0;
