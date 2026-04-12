@@ -817,8 +817,15 @@ function GenerationPreviewContent() {
             });
             if (!resp.ok) {
               ttsFailCount++;
-              const errBody = await resp.text().catch(() => '');
-              errorMessages.push(`HTTP ${resp.status}: ${errBody.slice(0, 50)}`);
+              let errDetail = `HTTP ${resp.status}`;
+              try {
+                const errJson = await resp.json();
+                errDetail += `: ${errJson.error || JSON.stringify(errJson)}`;
+              } catch {
+                const errText = await resp.text().catch(() => '');
+                errDetail += `: ${errText.slice(0, 100)}`;
+              }
+              errorMessages.push(errDetail);
               continue;
             }
             const ttsData = await resp.json();
