@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Antigravity Mobile Assistant</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --accent: #bc00ff;
+            --bg: #050505;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0; padding: 0; background: var(--bg); color: #fff;
+            font-family: 'Outfit', sans-serif; height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column;
+            background: radial-gradient(circle at top right, #1a1a2e, #050505);
+        }
+
+        /* Header & Navigation */
+        header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .logo { 
+            font-weight: 600; font-size: 1.2rem; 
+            background: linear-gradient(45deg, #fff, var(--primary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .mode-toggle {
+            display: flex; background: var(--card-bg); 
+            border-radius: 20px; padding: 4px; border: 1px solid var(--border);
+        }
+
+        .mode-btn {
+            padding: 6px 16px; border-radius: 16px; font-size: 0.8rem;
+            cursor: pointer; transition: all 0.3s; color: rgba(255,255,255,0.5);
+        }
+
+        .mode-btn.active {
+            background: var(--primary); color: #000; font-weight: 600;
+        }
+
+        /* Chat & Terminal Screens */
+        #content-area {
+            flex: 1; overflow-y: auto; padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 20px; max-width: 85%; line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .message.user {
+            margin-left: auto; background: var(--primary); color: #000;
+            padding: 12px 18px; border-radius: 18px 18px 2px 18px;
+            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
+        }
+
+        .message.ai {
+            margin-right: auto; background: var(--card-bg);
+            padding: 15px; border-radius: 18px 18px 18px 2px;
+            border: 1px solid var(--border);
+        }
+
+        .message.terminal-log {
+            font-family: 'Fira Code', monospace; font-size: 0.85rem;
+            background: rgba(0,0,0,0.4); border-left: 3px solid var(--accent);
+            padding: 10px; border-radius: 4px; color: #aaa;
+            max-width: 100%;
+        }
+
+        /* Input Bar */
+        .input-container {
+            padding: 15px 20px;
+            padding-bottom: calc(var(--safe-bottom) + 15px);
+            background: rgba(10, 10, 10, 0.8);
+            border-top: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .input-row {
+            display: flex; gap: 10px; align-items: center;
+        }
+
+        #main-input {
+            flex: 1; padding: 14px 20px; border-radius: 25px;
+            background: var(--card-bg); border: 1px solid var(--border);
+            color: #fff; font-size: 1rem; transition: border 0.3s;
+        }
+
+        #main-input:focus { border-color: var(--primary); outline: none; }
+
+        .send-btn {
+            width: 50px; height: 50px; border-radius: 25px;
+            background: var(--primary); border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);
+        }
+
+        /* Auth Screen */
+        #auth-overlay {
+            position: fixed; inset: 0; background: var(--bg);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            padding: 40px; border-radius: 30px; text-align: center; width: 100%; max-width: 350px;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        }
+
+        .pin-input {
+            width: 100%; background: none; border: none; border-bottom: 2px solid var(--primary);
+            color: #fff; font-size: 2rem; text-align: center; letter-spacing: 10px; margin: 30px 0;
+            outline: none;
+        }
+
+        /* Quick Action Chips */
+        .chips-scroll {
+            display: flex; gap: 10px; overflow-x: auto; margin-bottom: 12px;
+            padding-bottom: 5px; -webkit-overflow-scrolling: touch;
+        }
+
+        .chip {
+            padding: 8px 16px; background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 20px; font-size: 0.8rem; white-space: nowrap; color: var(--primary);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="auth-overlay">
+        <div class="auth-card">
+            <div class="logo">Antigravity Bridge</div>
+            <p style="opacity: 0.6; margin-top: 10px;">请输入 4 位验证码以获得控制权</p>
+            <input type="password" class="pin-input" id="pin-input" maxlength="4" inputmode="numeric">
+            <button class="send-btn" style="width: 100%; border-radius: 15px;" onclick="authenticate()">接入控制中心</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="logo">Antigravity</div>
+        <div class="mode-toggle">
+            <div class="mode-btn active" id="btn-chat" onclick="setMode('chat')">Assistant</div>
+            <div class="mode-btn" id="btn-term" onclick="setMode('term')">Terminal</div>
+        </div>
+    </header>
+
+    <div id="content-area">
+        <div class="message ai">
+            你好！我是你的远程 AI 助手。你可以用自然语言命令我，或者切换到 Terminal 模式进行底层控制。
+        </div>
+    </div>
+
+    <div class="input-container">
+        <div class="chips-scroll">
+            <div class="chip" onclick="quickCmd('如何合并PPT？')">💡 合并PPT教程</div>
+            <div class="chip" onclick="quickCmd('修改品牌资料')">📝 运行品牌脚本</div>
+            <div class="chip" onclick="quickCmd('电脑目前状态如何？')">🖥️ 查询状态</div>
+        </div>
+        <div class="input-row">
+            <input type="text" id="main-input" placeholder="输入你想说的..." onkeypress="handleEnter(event)">
+            <button class="send-btn" onclick="sendMessage()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentMode = 'chat';
+        const contentArea = document.getElementById('content-area');
+        const mainInput = document.getElementById('main-input');
+
+        socket.on('auth_success', () => {
+            document.getElementById('auth-overlay').style.display = 'none';
+        });
+
+        socket.on('auth_error', (msg) => {
+            alert(msg);
+            document.getElementById('pin-input').value = '';
+        });
+
+        socket.on('output', (data) => {
+            appendMessage(data, currentMode === 'chat' ? 'ai' : 'terminal-log');
+        });
+
+        socket.on('clear_terminal', () => {
+            contentArea.innerHTML = '';
+        });
+
+        function authenticate() {
+            const pin = document.getElementById('pin-input').value;
+            socket.emit('auth', pin);
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-chat').classList.toggle('active', mode === 'chat');
+            document.getElementById('btn-term').classList.toggle('active', mode === 'term');
+            mainInput.placeholder = mode === 'chat' ? '输入你想说的...' : '输入 Shell 指令...';
+        }
+
+        function appendMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = text;
+            contentArea.appendChild(div);
+            contentArea.scrollTop = contentArea.scrollHeight;
+        }
+
+        function sendMessage() {
+            const val = mainInput.value;
+            if (!val) return;
+            
+            appendMessage(val, 'user');
+            socket.emit('command', { text: val, mode: currentMode }); 
+            mainInput.value = '';
+        }
+
+        function quickCmd(text) {
+            mainInput.value = text;
+            sendMessage();
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+    </script>
+</body>
+</html>
