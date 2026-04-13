@@ -101,16 +101,11 @@ export function splitLongSpeechActions(actions: Action[], providerId: TTSProvide
   if (!maxLength) return actions;
 
   const nextActions: Action[] = actions.flatMap((action) => {
-    if (action.type !== 'speech' || !action.text) return [action];
+    if (action.type !== 'speech' || !action.text || action.text.length <= maxLength)
+      return [action];
 
-    const cleanedText = cleanTextForTTS(action.text);
-    
-    if (cleanedText.length <= maxLength) {
-       return [{ ...action, text: cleanedText }];
-    }
-
-    const chunks = splitLongSpeechText(cleanedText, maxLength);
-    if (chunks.length <= 1) return [{ ...action, text: cleanedText }];
+    const chunks = splitLongSpeechText(action.text, maxLength);
+    if (chunks.length <= 1) return [action];
     
     const { audioId: _audioId, ...baseAction } = action as SpeechAction;
 
