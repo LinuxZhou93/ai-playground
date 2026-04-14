@@ -634,13 +634,13 @@ export default function GeneratorPage() {
           <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
             
             {/* 标题区 */}
-            <div className="text-center space-y-3">
+            <div className="text-center space-y-3" id="agent-gen-header" data-agent-target="true" data-agent-desc="当前模块功能：AI 课件生成中控台，提供表单以生成定制化PPT教案课件">
               <h2 className="text-4xl font-black text-white tracking-tight">AI 课件生成中控台</h2>
               <p className="text-slate-400 text-sm max-w-lg mx-auto">配置目标学员特征与课程参数，AI 将量身定制最合适的 PPT 教案课件</p>
             </div>
 
             {/* 主题输入 */}
-            <div className="relative group">
+            <div className="relative group" id="agent-gen-topic" data-agent-target="true" data-agent-desc="最上方输入框：用于输入课程主题或干瘪的课程概念概念，并配有一个【AI智能扩写】按钮">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
               <div className="relative bg-slate-900 border border-slate-700 rounded-2xl flex p-2 shadow-2xl items-center">
                 <input 
@@ -664,7 +664,7 @@ export default function GeneratorPage() {
             </div>
 
             {/* 参数面板网格 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5" id="agent-gen-params" data-agent-target="true" data-agent-desc="界面中部：一大片精美网格的 Chip 配置区。包含：面向学生年龄、学习水平、课程类型、PPT 生成页数、图文丰富度、教育流派与教学法映射等配置芯片。">
               
               {/* 面向年龄段 */}
               <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-5">
@@ -756,7 +756,7 @@ export default function GeneratorPage() {
             </div>
 
             {/* 补充教材/教案输入区 */}
-            <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-5">
+            <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-5" id="agent-gen-materials" data-agent-target="true" data-agent-desc="页面偏下方输入框：提供教案草稿或大纲文本输入区 (可填文本以辅助AI提炼)">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-sky-400" />
