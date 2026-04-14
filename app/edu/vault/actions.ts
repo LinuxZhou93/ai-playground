@@ -3,10 +3,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase variables on server');
+  }
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false },
   });
@@ -14,19 +17,24 @@ function getSupabaseAdmin() {
 
 // 1. 获取所有素材 (P1-7 Vault)
 export async function getEduAssets(category?: string) {
-  const supabase = getSupabaseAdmin();
-  let query = supabase.from("edu_assets").select("*").order("created_at", { ascending: false });
-  
-  if (category && category !== "全部") {
-    query = query.eq("category", category);
-  }
+  try {
+    const supabase = getSupabaseAdmin();
+    let query = supabase.from("edu_assets").select("*").order("created_at", { ascending: false });
+    
+    if (category && category !== "全部") {
+      query = query.eq("category", category);
+    }
 
-  const { data, error } = await query;
-  if (error) {
-    console.error("Error fetching assets:", error);
+    const { data, error } = await query;
+    if (error) {
+      console.error("Error fetching assets:", error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.warn("Vault downgraded gracefully because of missing configs:", err);
     return [];
   }
-  return data || [];
 }
 
 // 2. 将文件上传到 Supabase Storage, 然后在数据表插入记录
