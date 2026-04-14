@@ -838,18 +838,31 @@ export default function GeneratorPage() {
                                
                                {/* 特化渲染组件 */}
                                {block.type === 'image_prompt' ? (
-                                 <div className="w-full h-[200px] bg-slate-900 border border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center p-4">
-                                   <ImageIcon className="h-8 w-8 text-slate-600 mb-2" />
-                                   <div className="text-xs text-slate-500 text-center line-clamp-3 mb-4">{block.content}</div>
-                                   <button className="px-4 py-1.5 bg-pink-500/20 text-pink-400 rounded-lg text-xs font-bold hover:bg-pink-500/30 transition-colors border border-pink-500/30">
-                                     请求 Midjourney 生图
-                                   </button>
+                                 <div className="w-full h-auto bg-slate-900 border border-slate-700/50 rounded-xl flex flex-col items-center justify-center overflow-hidden shadow-black/50 shadow-lg group/img relative">
+                                   <div className="absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent px-4 py-2 flex items-center justify-between opacity-0 group-hover/img:opacity-100 transition-opacity z-10">
+                                     <span className="text-[10px] text-white/70 truncate mr-2">{block.content}</span>
+                                     <ImageIcon className="h-4 w-4 text-pink-400" />
+                                   </div>
+                                   <img 
+                                     src={`https://image.pollinations.ai/prompt/${encodeURIComponent(block.content)}?width=800&height=400&nologo=true&seed=42`} 
+                                     alt={block.content}
+                                     className="w-full object-cover max-h-[250px] transition-transform duration-700 hover:scale-105"
+                                     loading="lazy"
+                                   />
                                  </div>
                                ) : block.type === 'mermaid' ? (
-                                 <div className="w-full bg-[#080b0f] border border-cyan-900/50 rounded-xl p-4 font-mono text-[10px] text-cyan-400/80 overflow-auto max-h-[200px]">
-                                   {block.content}
-                                   <div className="mt-3 flex justify-end">
-                                     <button className="px-3 py-1 bg-cyan-500/10 text-cyan-400 rounded text-xs font-bold hover:bg-cyan-500/20 border border-cyan-500/20">渲染流程图</button>
+                                 <div className="w-full bg-[#080b0f] border border-cyan-900/50 rounded-xl overflow-hidden flex flex-col shadow-cyan-900/20 shadow-lg">
+                                   <div className="w-full bg-cyan-950/20 px-4 py-2 flex items-center justify-between border-b border-cyan-900/50">
+                                     <span className="text-[10px] text-cyan-500/50 font-mono tracking-widest uppercase">Mermaid Engine Rendered</span>
+                                     <Network className="h-4 w-4 text-cyan-500/50" />
+                                   </div>
+                                   <div className="p-4 bg-slate-100 flex justify-center items-center min-h-[150px]">
+                                     <img 
+                                       src={`https://mermaid.ink/svg/${btoa(unescape(encodeURIComponent(block.content)))}`}
+                                       onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = '<span class="text-xs text-red-500">图谱语法复杂暂不受理，请生成轻量级语法</span>' }}
+                                       alt="Mermaid Diagram" 
+                                       className="max-h-[250px] w-full object-contain mix-blend-multiply"
+                                     />
                                    </div>
                                  </div>
                                ) : (

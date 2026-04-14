@@ -3572,7 +3572,17 @@ class TitanAIAssistant {
 
     async toggleVoiceRecording() {
         if (this.isRecording) {
-            this.mediaRecorder.stop();
+            // 核心修复: 防卡死机制和数据兜底请求
+            try {
+                if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                    try { this.mediaRecorder.requestData(); } catch(e){} // 拉取残留数据
+                    this.mediaRecorder.stop();
+                } else if (this.mediaRecorder && this.mediaRecorder.state === 'inactive') {
+                    if(this.mediaRecorder.onstop) this.mediaRecorder.onstop();
+                }
+            } catch(e) {
+                console.warn('[Titan AI] 停止录音时环境冲突:', e);
+            }
             this.isRecording = false;
             if (this.silenceInterval) clearInterval(this.silenceInterval);
             if (this.maxAudioDurationTimer) clearTimeout(this.maxAudioDurationTimer);
@@ -3606,11 +3616,21 @@ class TitanAIAssistant {
                 
                 this.mediaRecorder.onstop = () => {
                     const durationInSeconds = Math.max(1, Math.round((Date.now() - this.recordingStartTime) / 1000));
+                    // 彻底阻断空包导致进程锁死的恶性 Bug
+                    if (this.audioChunks.length === 0) {
+                        this.appendMessage('system', '⚠️ 录音时间太短或麦克风未捕获到信号，请重新点击并靠近说话。');
+                        return;
+                    }
                     const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
                     this.sendAudioToGemini(audioBlob, durationInSeconds);
                 };
                 
-                this.mediaRecorder.start();
+                // 开启强行打片循环 (防部分浏览器不触发 ondataavailable)
+                try {
+                    this.mediaRecorder.start(500); 
+                } catch(e) {
+                    this.mediaRecorder.start(); 
+                }
                 this.recordingStartTime = Date.now();
                 this.lastVoiceTime = Date.now();
                 this.isRecording = true;
