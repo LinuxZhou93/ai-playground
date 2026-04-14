@@ -43,10 +43,10 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
         <div>
           <h1 className="text-3xl font-black text-white flex items-center gap-3">
             <MonitorPlay className="h-8 w-8 text-indigo-500" />
-            课程剧本微调台
+            课程集群协同工作台
           </h1>
           <p className="text-slate-400 mt-2 text-sm font-medium">
-            (P0 架构已打通) 基于真实 edu_lessons 数据结构映射的教研双视窗动线
+            基于「主题模块 / 合集架构」的多端协同中心，打通套系大纲与跨终端联合开发动线
           </p>
         </div>
         <div className="flex items-center gap-4">

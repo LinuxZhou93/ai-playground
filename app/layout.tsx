@@ -76,8 +76,8 @@ export default function RootLayout({
           </I18nProvider>
         </ThemeProvider>
         
-        {/* 全局悬浮的 Titan A.I. 侧边栏伴读中枢 */}
-        <Script src="/assets/js/titan-ai-assistant.js" strategy="lazyOnload" />
+        {/* 全局悬浮的 Titan A.I. 侧边栏伴读中枢 (强制开启时间戳以消除强缓存) */}
+        <Script src={`/assets/js/titan-ai-assistant.js?v=${Date.now()}`} strategy="lazyOnload" />
       </body>
     </html>
   );

@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from "motion/react";
 const menuItems = [
   { name: "教研总览", icon: LayoutDashboard, path: "/edu" },
   { name: "AI 智能生成器", icon: BrainCircuit, path: "/edu/generator" },
-  { name: "剧本微调台", icon: MonitorPlay, path: "/edu/tuning-desk" },
+  { name: "课程集群协同台", icon: MonitorPlay, path: "/edu/tuning-desk" },
   { name: "组件素材库", icon: FileBox, path: "/edu/vault" },
   { name: "WOW CREATOR", icon: Cpu, path: "/edu/labs" },
   { name: "系统集控", icon: Settings, path: "/edu/settings" },

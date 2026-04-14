@@ -3933,6 +3933,7 @@ class TitanAIAssistant {
                 spatialList.push(`- [区域: ${vPos}${hPos}] ID: "${el.id}", 描述: "${el.getAttribute('data-agent-desc') || '未知组件'}"`);
             });
             spatialContext = `【实时扫描：当前屏幕上的交互对象】\n` + spatialList.join('\n');
+            console.log('[Titan Agentic Spatial Context]', spatialContext);
         }
         
         const chengdianRAG = `
