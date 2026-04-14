@@ -1060,7 +1060,8 @@ export default function GeneratorPage() {
                                  />
                                )}
                              </div>
-                           ))
+                             );
+                           })
                          ) : (
                            /* 向下兼容旧的单文本框模式 */
                            <textarea 

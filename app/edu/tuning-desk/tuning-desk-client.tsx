@@ -7,6 +7,79 @@ import {
   Activity, CheckCircle2, MessageSquare, LineChart, ShieldCheck, Lock
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+
+function CollabEditor({ roomName, initialContent, currentUser }: { roomName: string, initialContent: string, currentUser: any }) {
+  const [ydocState, setYdocState] = useState<any>(null);
+
+  useEffect(() => {
+    let provider: any;
+    let ydoc: any;
+    let isMounted = true;
+    const init = async () => {
+      try {
+          const Y = await import('yjs');
+          const { WebrtcProvider } = await import('y-webrtc');
+          ydoc = new Y.Doc();
+          
+          provider = new WebrtcProvider(roomName, ydoc, { signaling: ['wss://signaling.yjs.dev'] });
+          if (isMounted) setYdocState({ ydoc, provider });
+      } catch(e) { console.error("协同频道连接失败", e) }
+    }
+    init();
+    return () => {
+      isMounted = false;
+      if (provider) provider.destroy();
+      if (ydoc) ydoc.destroy();
+    }
+  }, [roomName]);
+
+  const editor = useEditor({
+    extensions: ydocState ? [
+      StarterKit.configure({ history: false }),
+      Collaboration.configure({ document: ydocState.ydoc }),
+      CollaborationCursor.configure({
+        provider: ydocState.provider,
+        user: { name: currentUser.name, color: currentUser.color },
+      }),
+    ] : [],
+    content: initialContent, 
+  }, [ydocState]);
+
+  if (!editor || !ydocState) {
+    return <div className="animate-pulse bg-slate-900 border border-slate-800 rounded-xl p-4 min-h-24 flex items-center justify-center text-slate-500 text-xs">🚀 正在建立高频联机量子通道...</div>
+  }
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 leading-relaxed min-h-24 ProseMirror-custom relative transition-all focus-within:border-indigo-500/50 focus-within:shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+      <EditorContent editor={editor} />
+      <style dangerouslySetInnerHTML={{__html: `
+        .ProseMirror-custom .ProseMirror { outline: none; min-height: 80px; }
+        .ProseMirror-custom .collaboration-cursor__caret {
+          border-left: 2px solid #0d0d0d;
+          border-right: 2px solid #0d0d0d;
+          margin-left: -2px; margin-right: -2px; pointer-events: none; position: relative; word-break: normal;
+        }
+        .ProseMirror-custom .collaboration-cursor__label {
+          border-radius: 4px; font-weight: bold;
+          border-bottom-left-radius: 0; color: #1e293b; font-size: 10px;
+          font-variant: normal; font-weight: 900; left: -1px; line-height: normal; padding: 2px 6px;
+          pointer-events: none; position: absolute; top: -1.4em; user-select: none; white-space: nowrap;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .ProseMirror-custom p { margin-bottom: 0.5em; }
+        .ProseMirror-custom p:last-child { margin-bottom: 0; }
+        .ProseMirror-custom h2 { font-size: 2.2rem; font-weight: 900; color: #ffffff; margin-bottom: 0.5em; line-height: 1.2; letter-spacing: 0.02em; }
+        .ProseMirror-custom h3 { font-size: 1.5rem; font-weight: bold; color: #e2e8f0; margin-bottom: 0.5em; }
+        .ProseMirror-custom ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.5em; }
+        .ProseMirror-custom ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.5em; }
+      `}} />
+    </div>
+  )
+}
 
 export default function TuningDeskClient({ courses, classes }: { courses: any[], classes: any[] }) {
   // 生成多端协同下当前用户的拟真身份
@@ -263,25 +336,26 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                       
                       <div className="space-y-8">
                          <div>
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                               <FileText className="h-3 w-3" /> 预期教学目标
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
+                               <div className="flex items-center gap-2"><FileText className="h-3 w-3" /> 预期教学目标剧本</div>
+                               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-500/10 text-[9px] text-indigo-400 font-bold border border-indigo-500/20"><Sparkles className="h-2.5 w-2.5" /> 实时协同网络开启中</div>
                             </h4>
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-emerald-400/80 leading-relaxed min-h-24">
-                              {activeLesson.objectives?.length > 0 ? (
-                                <ul className="list-disc pl-4 space-y-1">
-                                  {activeLesson.objectives.map((obj: string, i: number) => <li key={i}>{obj}</li>)}
-                                </ul>
-                              ) : "未定义拆解目标，可交由 AI 补全。"}
-                            </div>
+                            <CollabEditor 
+                              roomName={`titan-collab-lesson-${activeLesson.id}-objectives`}
+                              initialContent={activeLesson.objectives?.length > 0 ? "<ul>" + activeLesson.objectives.map((o: string) => `<li>${o}</li>`).join("") + "</ul>" : "<p>未定义拆解目标，可交由 AI 补全。</p>"}
+                              currentUser={currentUser}
+                            />
                          </div>
 
                          <div>
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                               <BookOpen className="h-3 w-3" /> 评估要点 (对接课消 AI)
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
+                               <div className="flex items-center gap-2"><BookOpen className="h-3 w-3" /> 评估要点剧本 (对接课消 AI)</div>
                             </h4>
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-orange-400/80 leading-relaxed min-h-24">
-                              {activeLesson.assessment_criteria || "未设定课堂评估维度。"}
-                            </div>
+                            <CollabEditor 
+                              roomName={`titan-collab-lesson-${activeLesson.id}-assessment`}
+                              initialContent={`<p>${activeLesson.assessment_criteria || "未设定课堂评估维度。"}</p>`}
+                              currentUser={currentUser}
+                            />
                          </div>
                       </div>
                       
@@ -312,18 +386,25 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                                <span className="px-2 py-0.5 bg-indigo-500/20 rounded">Slide {(activeLesson.slide_index + 1).toString().padStart(2, '0')}</span>
                             </h4>
                             
-                            <div className="w-full aspect-[16/9] bg-[#0d121c] border border-slate-700 rounded-2xl shadow-xl flex flex-col p-10 relative group">
-                               <h3 className="text-3xl font-black text-white mb-6">
-                                 {activePlan.slides[activeLesson.slide_index].title}
-                               </h3>
-                               <div className="flex-1 text-slate-300 whitespace-pre-wrap font-mono text-lg leading-relaxed">
-                                 {activePlan.slides[activeLesson.slide_index].content}
+                            <div className="w-full aspect-[16/9] bg-slate-900/50 border border-slate-700 rounded-2xl shadow-xl flex flex-col p-8 relative transition-all focus-within:border-indigo-500/60 focus-within:shadow-[0_0_40px_rgba(99,102,241,0.2)]">
+                               <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/10 text-[10px] text-emerald-400 font-bold border border-emerald-500/20 backdrop-blur-md"><Sparkles className="h-3 w-3" /> Live Slide Syncing</div>
                                </div>
                                
-                               <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                                  <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-500/20">
-                                    <PenTool className="h-4 w-4" /> 进入课件编辑器修改该帧
-                                  </button>
+                               <div className="mb-4">
+                                 <CollabEditor 
+                                   roomName={`titan-collab-slide-${activePlan.id}-${activeLesson.slide_index}-title`}
+                                   initialContent={`<h2>${activePlan.slides[activeLesson.slide_index].title}</h2>`}
+                                   currentUser={currentUser}
+                                 />
+                               </div>
+                               
+                               <div className="flex-1 overflow-hidden flex flex-col">
+                                 <CollabEditor 
+                                   roomName={`titan-collab-slide-${activePlan.id}-${activeLesson.slide_index}-content`}
+                                   initialContent={`<div class="text-lg font-mono text-slate-300"><p>${activePlan.slides[activeLesson.slide_index].content.replace(/\n/g, '</p><p>')}</p></div>`}
+                                   currentUser={currentUser}
+                                 />
                                </div>
                             </div>
                          </div>
