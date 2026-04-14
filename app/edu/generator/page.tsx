@@ -65,6 +65,7 @@ const RICHNESS_OPTIONS = [
 
 export default function GeneratorPage() {
   const [topic, setTopic] = useState("");
+  const [referenceText, setReferenceText] = useState("");
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [lessonPlan, setLessonPlan] = useState("");
@@ -105,6 +106,7 @@ export default function GeneratorPage() {
             if (payload.slides?.length > 0) {
               setSlides(payload.slides);
               setTopic(payload.topic || "");
+              setReferenceText(payload.referenceText || "");
               setLessonPlan(payload.lessonPlan || "");
               setCourseMeta(payload.courseMeta || null);
               toast.success("草稿已成功恢复！");
@@ -119,10 +121,10 @@ export default function GeneratorPage() {
 
   useEffect(() => {
     if (mounted && slides.length > 0) {
-      const payload = { slides, topic, lessonPlan, courseMeta };
+      const payload = { slides, topic, lessonPlan, courseMeta, referenceText };
       localStorage.setItem("fc_draft_slides", JSON.stringify(payload));
     }
-  }, [slides, topic, lessonPlan, courseMeta, mounted]);
+  }, [slides, topic, lessonPlan, courseMeta, referenceText, mounted]);
   // --- 结束草稿保护系统 ---
 
   const activeSlide = slides[activeSlideIndex] || null;
@@ -134,7 +136,8 @@ export default function GeneratorPage() {
       "\n学习水平: " + level + 
       "\n课程类型: " + courseType + 
       "\n生成页数要求: " + slideCount + " 页" +
-      "\n图文风格: " + richness;
+      "\n图文风格: " + richness +
+      (referenceText ? "\n\n【核心教案/参考文档】:\n" + referenceText : "");
   };
 
   // 主生成
@@ -499,6 +502,24 @@ export default function GeneratorPage() {
                   onChange={setRichness} 
                 />
               </div>
+            </div>
+
+            {/* 补充教材/教案输入区 */}
+            <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-sky-400" />
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">提供教案草稿或大纲 (可选)</span>
+                </div>
+                <span className="text-[10px] bg-slate-800 text-slate-500 px-2 py-0.5 rounded">支持直接粘贴纯文本</span>
+              </div>
+              <textarea 
+                value={referenceText}
+                onChange={e => setReferenceText(e.target.value)}
+                disabled={isGeneratingAll}
+                placeholder="在此处粘贴已有的教学大纲、素材文本或讲义草稿，AI 将自动将其融合提炼..."
+                className="w-full bg-slate-950 border border-slate-700/50 rounded-xl p-4 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50 transition-colors resize-y custom-scrollbar min-h-[140px]"
+              />
             </div>
 
             {/* 当前配置预览条 */}
