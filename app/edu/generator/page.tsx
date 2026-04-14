@@ -82,6 +82,7 @@ export default function GeneratorPage() {
   const [referenceText, setReferenceText] = useState("");
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [isGeneratingQuizzes, setIsGeneratingQuizzes] = useState(false);
+  const [quizInteractState, setQuizInteractState] = useState<Record<string, { selectedIndex: number, revealed: boolean }>>({});
   const [slides, setSlides] = useState<Slide[]>([]);
   const [slideOutlines, setSlideOutlines] = useState<any[] | null>(null);
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
@@ -348,21 +349,45 @@ export default function GeneratorPage() {
       toast.error("当前课件中还没有测验题，请先在左侧点击「智能追加测试卷」！");
       return;
     }
-    let content = `# 【${courseMeta?.name || topic || '未命名课程'}】随堂测验卷\n\n`;
-    quizSlides.forEach((q, idx) => {
-      content += `### 第 ${idx + 1} 题: ${q.title}\n`;
-      q.blocks?.forEach(b => {
-        if (b.type === 'question') content += `**提问**：${b.content}\n`;
-        if (b.type === 'option') content += `- ${b.content.replace('[正确答案]', '( ✓ )')}\n`;
-      });
-      content += `\n> 讲师解析：${q.notes || '暂无解析'}\n\n---\n\n`;
-    });
+    const content = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head>
+      <meta charset='utf-8'>
+      <title>随堂测试卷</title>
+      <style>
+        body { font-family: 'Microsoft YaHei', 'SimHei', sans-serif; padding: 20px; line-height: 1.6; }
+        h1 { text-align: center; color: #333; }
+        .question { font-weight: bold; font-size: 16px; margin-top: 20px; text-indent: -20px; padding-left: 20px; }
+        .option { margin-left: 20px; color: #555; }
+        .notes { margin-top: 15px; padding: 12px; border-left: 4px solid #6366f1; background: #f8f9fa; color: #666; font-size: 14px;}
+      </style>
+    </head>
+    <body>
+      <h1>【${courseMeta?.name || topic || '未命名课程'}】随堂测验卷</h1>
+      <br/>
+      ${quizSlides.map((q, idx) => `
+        <div style="margin-bottom: 30px;">
+          <h3 style="color:#6366f1;">第 ${idx + 1} 题</h3>
+          ${q.blocks?.map(b => {
+            if (b.type === 'question') return `<div class="question">Q：${b.content}</div>`;
+            if (b.type === 'option') return `<div class="option">○ ${b.content.replace('[正确答案]', '')}</div>`;
+            return '';
+          }).join('')}
+          <div class="notes">
+            <strong>讲师解析：</strong><br/>
+            ${q.notes || '暂无解析'}
+          </div>
+        </div>
+      `).join('')}
+    </body>
+    </html>
+    `;
     
-    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const blob = new Blob([content], { type: "application/msword;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${courseMeta?.name || topic || '未知'}_随堂测试试卷.md`;
+    a.download = `${courseMeta?.name || topic || '未知'}_随堂测试试卷.doc`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("📑 全封闭测试试卷 (含答案解析) 导出成功！");
@@ -948,8 +973,33 @@ export default function GeneratorPage() {
                          'flex flex-col gap-6'
                        }`}>
                          {activeSlide?.blocks?.length ? (
-                           activeSlide.blocks.map((block, bIdx) => (
-                             <div key={bIdx} className={`p-4 rounded-xl border border-transparent transition-all group/block ${activeSlide?.layoutVariant === 'quiz-4-grid' ? (block.type === 'question' ? 'col-span-1 md:col-span-2 bg-[#1a1727]/50 border-amber-500/30 text-amber-300' : 'bg-slate-900/40 hover:bg-indigo-900/30 border-slate-700/50 cursor-pointer') : 'hover:border-slate-700/50 bg-[#0c101a]/30 hover:bg-[#0c101a]'} ${activeSlide?.layoutVariant === 'split-comparison' && bIdx > 0 ? 'pl-8' : ''}`}>
+                           activeSlide.blocks.map((block, bIdx) => {
+                             // 计算 Quiz 选项互动状态
+                             let optionStyle = "bg-slate-900/40 hover:bg-indigo-900/30 border-slate-700/50 cursor-pointer shadow-lg";
+                             const isCorrect = block.content.includes('[正确答案]');
+                             const quizState = quizInteractState[activeSlide?.id || ''];
+                             
+                             if (quizState?.revealed && block.type === 'option') {
+                               optionStyle = "cursor-default ";
+                               if (isCorrect) {
+                                 optionStyle += "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]";
+                               } else if (quizState.selectedIndex === bIdx) {
+                                  optionStyle += "bg-red-500/20 border-red-500 text-red-400";
+                               } else {
+                                  optionStyle += "bg-slate-900/20 border-slate-800 opacity-40";
+                               }
+                             }
+                             
+                             return (
+                             <div 
+                               key={bIdx} 
+                               onClick={() => {
+                                 if (block.type === 'option' && !quizState?.revealed) {
+                                   setQuizInteractState(p => ({ ...p, [activeSlide!.id]: { selectedIndex: bIdx, revealed: true } }));
+                                 }
+                               }}
+                               className={`p-4 rounded-xl border border-transparent transition-all group/block ${activeSlide?.layoutVariant === 'quiz-4-grid' ? (block.type === 'question' ? 'col-span-1 md:col-span-2 bg-[#1a1727]/50 border-amber-500/30 text-amber-300' : optionStyle) : 'hover:border-slate-700/50 bg-[#0c101a]/30 hover:bg-[#0c101a]'} ${activeSlide?.layoutVariant === 'split-comparison' && bIdx > 0 ? 'pl-8' : ''}`}
+                             >
                                {/* 区块类型角标 */}
                                {activeSlide?.layoutVariant !== 'quiz-4-grid' && (
                                  <div className="flex items-center gap-2 mb-3 opacity-50 group-hover/block:opacity-100 transition-opacity">
@@ -966,8 +1016,9 @@ export default function GeneratorPage() {
                                    {block.content}
                                  </div>
                                ) : block.type === 'option' ? (
-                                 <div className="w-full h-full min-h-[80px] p-4 flex items-center justify-center text-center font-bold text-slate-300 text-lg transition-transform group-hover/block:scale-105">
-                                   {block.content.replace('[正确答案]', ' ✅')}
+                                 <div className={`w-full h-full min-h-[80px] p-4 flex items-center justify-center text-center font-bold text-lg transition-transform ${quizState?.revealed ? '' : 'group-hover/block:scale-105 text-slate-300'}`}>
+                                   {block.content.replace('[正确答案]', '')}
+                                   {quizState?.revealed && isCorrect && <CheckCircle2 className="h-5 w-5 ml-2 text-emerald-400 animate-bounce" />}
                                  </div>
                                ) : block.type === 'image_prompt' ? (
                                  <div className="w-full h-auto bg-slate-900 border border-slate-700/50 rounded-xl flex flex-col items-center justify-center overflow-hidden shadow-black/50 shadow-lg group/img relative">
@@ -1020,6 +1071,20 @@ export default function GeneratorPage() {
                            />
                          )}
                        </div>
+                       
+                       {/* 揭晓解析区域 */}
+                       {activeSlide?.type === 'quiz' && quizInteractState[activeSlide.id]?.revealed && (
+                         <div className="w-full px-5 pb-5 z-20 animate__animated animate__fadeInUp">
+                           <div className="bg-indigo-900/30 border border-indigo-500/50 rounded-xl p-5 shadow-[0_10px_30px_rgba(99,102,241,0.2)] flex flex-col relative overflow-hidden">
+                             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                             <div className="text-xs font-black text-indigo-400 tracking-widest uppercase mb-2 flex items-center gap-2">
+                               <FileCheck className="h-4 w-4" /> 解析 (Explanation)
+                             </div>
+                             <div className="text-sm text-indigo-100 leading-relaxed font-medium">{activeSlide.notes}</div>
+                           </div>
+                         </div>
+                       )}
+
                     </div>
                  </div>
 
