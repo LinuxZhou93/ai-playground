@@ -7,7 +7,7 @@ import {
   Wand2, Image as ImageIcon, LayoutTemplate, PenTool,
   RefreshCcw, Send, FileCode2, Rocket, CheckCircle2, AlertCircle,
   Users, GraduationCap, BookOpen, Layers, Palette, SlidersHorizontal,
-  MonitorDown, Zap 
+  MonitorDown, Zap, MonitorPlay, X 
 } from "lucide-react";
 
 type Block = {
@@ -103,6 +103,10 @@ export default function GeneratorPage() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [isTweaking, setIsTweaking] = useState(false);
 
+  // 全屏演示 Ref 与 State
+  const slideDeckRef = React.useRef<HTMLDivElement>(null);
+  const [showGlobalPlan, setShowGlobalPlan] = useState(false);
+
   // Content Editable State
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleVal, setEditTitleVal] = useState("");
@@ -146,6 +150,25 @@ export default function GeneratorPage() {
     }
   }, [slides, topic, lessonPlan, courseMeta, referenceText, mounted]);
   // --- 结束草稿保护系统 ---
+
+  // 监听键盘左右按键以实现快捷翻页
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 避免在输入框里打字时触发翻页
+      if (['TEXTAREA', 'INPUT'].includes((e.target as HTMLElement).tagName)) return;
+      if (slides.length === 0) return;
+
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveSlideIndex(prev => Math.min(prev + 1, slides.length - 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveSlideIndex(prev => Math.max(prev - 1, 0));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [slides.length]);
 
   const activeSlide = slides[activeSlideIndex] || null;
 
@@ -458,15 +481,30 @@ export default function GeneratorPage() {
           </div>
         </div>
         
-        {slides.length > 0 && (
+         {slides.length > 0 && (
           <div className="flex items-center gap-3">
+             <button 
+               onClick={() => setShowGlobalPlan(true)}
+               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-slate-300 flex items-center gap-2 transition-colors border border-slate-700"
+             >
+               <BookOpen className="h-4 w-4" /> 全局大纲
+             </button>
+             <button 
+               onClick={() => {
+                  if (slideDeckRef.current) {
+                    if (slideDeckRef.current.requestFullscreen) {
+                      slideDeckRef.current.requestFullscreen();
+                    }
+                  }
+               }}
+               className="px-4 py-2 bg-gradient-to-r from-orange-600/20 to-pink-600/20 hover:border-orange-400 rounded-lg text-xs font-bold text-orange-400 flex items-center gap-2 transition-colors border border-orange-500/30"
+             >
+               <MonitorPlay className="h-4 w-4" /> 在线放映
+             </button>
+             <div className="w-px h-4 bg-slate-700 mx-1"></div>
              {courseMeta && (
-               <div className="hidden lg:flex items-center gap-3 px-4 py-1.5 bg-slate-800 rounded-lg border border-slate-700 text-xs text-slate-400">
-                 <span className="font-mono">{courseMeta.category}</span>
-                 <span className="text-slate-600">|</span>
-                 <span>{courseMeta.total_lessons} 课时</span>
-                 <span className="text-slate-600">|</span>
-                 <span>{courseMeta.duration_min} 分钟/节</span>
+               <div className="hidden lg:flex items-center gap-3 px-4 py-1.5 bg-slate-800 rounded-lg border border-slate-700 text-[10px] text-slate-400">
+                 <span className="font-mono truncate max-w-[100px]">{courseMeta.category}</span>
                </div>
              )}
              <button 
@@ -745,10 +783,18 @@ export default function GeneratorPage() {
                         {(idx + 1).toString().padStart(2, '0')} · {s.type.toUpperCase()}
                       </span>
                     </div>
-                    <div className={"w-full aspect-[16/9] rounded-xl border flex flex-col p-3 overflow-hidden transition-colors " + (activeSlideIndex === idx ? "border-indigo-500/30 bg-[#0d121c]" : "border-slate-800 bg-[#0d121c]/50")}>
-                      <div className={"text-xs font-bold truncate mb-1 " + (activeSlideIndex === idx ? "text-white" : "text-slate-300")}>{s.title}</div>
-                      <div className="text-[9px] text-slate-500 leading-relaxed flex-1 overflow-hidden">
-                        {(s.content || "").substring(0, 80)}...
+                    <div className={"w-full flex-1 rounded-xl border p-2 overflow-hidden transition-all bg-[url('/bg-dots.svg')] " + (activeSlideIndex === idx ? "border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)] bg-[#0d121c]" : "border-slate-800 bg-[#0a0d14] opacity-70 group-hover:opacity-100")}>
+                      <div className={"text-[10px] font-black truncate mb-1 leading-tight " + (activeSlideIndex === idx ? "text-white" : "text-slate-300")}>{s.title}</div>
+                      <div className="text-[8px] text-slate-500 leading-tight flex-1 overflow-hidden pointer-events-none origin-top-left scale-[0.8] w-[125%] max-h-[60px]">
+                        {s.blocks && s.blocks.length > 0 ? (
+                           s.blocks.map((b, i) => (
+                             <div key={i} className="mb-1 truncate">
+                               {b.type === 'text' ? b.content : `[${b.type.toUpperCase()}]`}
+                             </div>
+                           ))
+                        ) : (
+                           (s.content || "").substring(0, 50) + "..."
+                        )}
                       </div>
                     </div>
                   </div>
@@ -765,10 +811,10 @@ export default function GeneratorPage() {
            <div className="flex-1 flex flex-col overflow-hidden relative bg-[#0a0d14] bg-[url('/bg-dots.svg')] bg-center">
               
               {/* 上方：画布互动区 */}
-              <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col items-center custom-scrollbar">
+              <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8 flex flex-col items-center custom-scrollbar">
                  
                  {/* 大屏画布 (深色质感 强科技感模板) */}
-                 <div className="w-full max-w-[960px] aspect-[16/9] bg-[#090C12] rounded-2xl border border-slate-800 shadow-[0_0_60px_rgba(99,102,241,0.15)] overflow-hidden relative flex flex-col shrink-0 group transition-all">
+                 <div ref={slideDeckRef} className="w-full max-w-[1200px] min-h-[500px] 2xl:min-h-[675px] aspect-[16/9] bg-[#090C12] rounded-2xl border border-slate-800 shadow-[0_0_60px_rgba(99,102,241,0.15)] overflow-hidden relative flex flex-col shrink-0 group transition-all">
                     
                     {/* 赛博网格与流光极客背景 */}
                     <div className="absolute inset-0 bg-[url('/bg-dots.svg')] opacity-40 pointer-events-none mix-blend-screen" />
@@ -867,7 +913,7 @@ export default function GeneratorPage() {
                                  </div>
                                ) : (
                                  <textarea 
-                                   className="w-full h-full min-h-[100px] resize-none border-none outline-none focus:ring-0 bg-transparent custom-scrollbar text-lg text-slate-300 font-medium leading-relaxed"
+                                   className="w-full h-full min-h-[100px] resize-none border-none outline-none focus:ring-0 bg-transparent custom-scrollbar text-base lg:text-lg text-slate-300 font-medium leading-relaxed"
                                    value={block.content}
                                    onChange={(e) => {
                                      const newBlocks = [...(activeSlide.blocks || [])];
@@ -917,39 +963,50 @@ export default function GeneratorPage() {
                     </div>
                  </div>
 
-                 {/* 底部教案与讲义区（已经移动到滚动视图中间） */}
-                 <div className="w-full max-w-[960px] mt-8 shrink-0 bg-[#0d121c] border border-slate-800 rounded-2xl flex relative z-10 shadow-xl overflow-hidden mb-12">
-                   <div className="flex-1 border-r border-slate-800 p-6 flex flex-col relative group">
-                     <div className="absolute top-6 right-6 text-[10px] text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">当前选中页独占</div>
-                     <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                       <FileText className="h-4 w-4 text-emerald-400" /> 本页讲演逐字稿 (SPEAKER NOTES)
-                     </h4>
-                     <textarea 
-                       className="flex-1 w-full bg-[#0a0d14] border border-slate-800/50 rounded-xl p-5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500/50 transition-colors resize-none custom-scrollbar font-medium leading-relaxed"
-                       value={activeSlide?.notes || ""}
-                       onChange={(e) => updateActiveSlide({ notes: e.target.value })}
-                       rows={6}
-                       placeholder="在这里补充给讲师看的详细讲课指引..."
-                     />
-                   </div>
-                   <div className="flex-1 p-6 flex flex-col relative group">
-                     <div className="absolute top-6 right-6 text-[10px] text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">全局大纲</div>
-                     <h4 className="text-xs font-black text-purple-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                       <Network className="h-4 w-4 text-purple-400" /> 课程总教案大纲 (LESSON PLAN)
-                     </h4>
-                     <textarea 
-                       className="flex-1 w-full bg-[#0a0d14] border border-slate-800/50 rounded-xl p-5 text-sm text-slate-400 focus:outline-none focus:border-purple-500/50 transition-colors resize-none custom-scrollbar font-medium leading-relaxed"
-                       value={lessonPlan}
-                       onChange={(e) => setLessonPlan(e.target.value)}
-                       rows={6}
-                       placeholder="AI 会对总课程的教学目标形成一个概览说明..."
-                     />
-                   </div>
-                 </div>
+                  {/* 底部讲演逐字稿区（精简，去掉了冗余的主教案） */}
+                  <div className="w-full max-w-[1200px] mt-8 shrink-0 bg-[#0d121c] border border-slate-800 rounded-2xl flex relative z-10 shadow-xl overflow-hidden mb-12">
+                    <div className="flex-1 p-6 flex flex-col relative group">
+                      <div className="absolute top-6 right-6 text-[10px] text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">当前选中页独占</div>
+                      <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-emerald-400" /> 本页讲演逐字稿 (SPEAKER NOTES)
+                      </h4>
+                      <textarea 
+                        className="flex-1 w-full bg-[#0a0d14] border border-slate-800/50 rounded-xl p-5 text-sm text-slate-300 focus:outline-none focus:border-emerald-500/50 transition-colors resize-none custom-scrollbar font-medium leading-relaxed"
+                        value={activeSlide?.notes || ""}
+                        onChange={(e) => updateActiveSlide({ notes: e.target.value })}
+                        rows={4}
+                        placeholder="在这里补充给讲师看的详细讲课指引..."
+                      />
+                    </div>
+                  </div>
 
               </div>
 
            </div>
+           
+           {/* 全局教案大纲 悬浮模态框 */}
+           {showGlobalPlan && (
+             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate__animated animate__fadeIn animate__faster">
+               <div className="w-full max-w-4xl bg-[#0d121c] border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                 <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-900/50">
+                    <h4 className="flex items-center gap-2 font-black text-white text-lg">
+                      <BookOpen className="h-5 w-5 text-purple-400" /> 课程总教案大纲 (Global Lesson Plan)
+                    </h4>
+                    <button onClick={() => setShowGlobalPlan(false)} className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
+                      <X className="h-5 w-5 text-slate-400" />
+                    </button>
+                 </div>
+                 <div className="p-6 bg-[#0a0d14] flex-1">
+                    <textarea 
+                      className="w-full h-[50vh] bg-transparent border-none focus:ring-0 resize-none custom-scrollbar text-base text-slate-300 leading-relaxed"
+                      value={lessonPlan}
+                      onChange={(e) => setLessonPlan(e.target.value)}
+                      placeholder="总课程教学目标与概览说明..."
+                    />
+                 </div>
+               </div>
+             </div>
+           )}
         </div>
       )}
     </div>
