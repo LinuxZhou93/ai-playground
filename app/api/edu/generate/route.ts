@@ -63,6 +63,20 @@ export async function POST(req: Request) {
 `;
       userPrompt = "当前页面的原数据：\n" + JSON.stringify(currentSlide, null, 2) + "\n\n微调指令要求：\n\"" + prompt + "\"\n\n请不要使用特殊符号，立即输出更新后的纯 JSON 数据：";
     }
+    // 模式三：智能意图捕捉与扩写
+    else if (mode === 'enhance_topic') {
+      systemPrompt = `
+你是一位深谙教育心理学与高级教学设计的特级教师大模型。用户可能会偷懒，只输入一些干瘪的名词（例如“水循环”或“机器人”）。
+你的任务是将这些干瘪的需求自动扩展为一句极其专业、丰满、结构化并且有高度的具体课程生成提示（Prompt）。
+扩写后的主题不仅要明确方向，还可以顺带点明核心素养要求。
+
+请务必输出合法的 JSON 字符串，格式严格如下：
+{
+  "enhanced_topic": "（例如：以‘水循环’为线索的自然科学探究课：带领学生通过实验观察与现象解释，理解地球水资源的转化形态与环保意义）"
+}
+`;
+      userPrompt = "用户原始干瘪输入: \"" + topic + "\"\n\n请立刻对其进行专业教育向的发散与扩写，返回 JSON：";
+    }
 
     const backgraceKey = process.env.OPENAI_API_KEY || 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
 

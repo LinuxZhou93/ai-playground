@@ -63,6 +63,13 @@ const RICHNESS_OPTIONS = [
   { label: "视觉优先", value: "以视觉为主导，大量配图建议和互动元素描述", icon: "🎨" },
 ];
 
+const PEDAGOGY_OPTIONS = [
+  { label: "标准陈述与讲授", value: "标准陈述讲授法（基础定义解释-举例说明-总结）" },
+  { label: "PBL 项目式学习", value: "PBL 项目式（以终为始的任务驱动、情境导入、知识探索、成果复盘）" },
+  { label: "5E 探究教学法", value: "5E 探究式（Engagement参与、Exploration探究、Explanation解释、Elaboration精制、Evaluation评价）" },
+  { label: "布鲁姆认知分层法", value: "基于 Bloom 认知层级（从记忆、理解底层认知，层层递进到分析、评价和创造）" }
+];
+
 export default function GeneratorPage() {
   const [topic, setTopic] = useState("");
   const [referenceText, setReferenceText] = useState("");
@@ -78,6 +85,10 @@ export default function GeneratorPage() {
   const [courseType, setCourseType] = useState("社区体验课");
   const [slideCount, setSlideCount] = useState(8);
   const [richness, setRichness] = useState("图文并茂，每页建议配图位置和描述");
+  const [pedagogy, setPedagogy] = useState("标准陈述讲授法（基础定义解释-举例说明-总结）");
+  
+  // 意图增强器
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   // 微调器 State
   const [aiPrompt, setAiPrompt] = useState("");
@@ -137,7 +148,33 @@ export default function GeneratorPage() {
       "\n课程类型: " + courseType + 
       "\n生成页数要求: " + slideCount + " 页" +
       "\n图文风格: " + richness +
+      "\n教学法核心框架: " + pedagogy +
       (referenceText ? "\n\n【核心教案/参考文档】:\n" + referenceText : "");
+  };
+
+  // 魔法意图大模型扩写器
+  const handleEnhanceTopic = async () => {
+    if (!topic.trim() || isEnhancing) return;
+    setIsEnhancing(true);
+    try {
+      const res = await fetch('/api/edu/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'enhance_topic', topic })
+      });
+      const result = await res.json();
+      if (result.success && result.data?.enhanced_topic) {
+        setTopic(result.data.enhanced_topic);
+        toast.success("✨ 成功萃取深层教育意图！");
+      } else {
+        toast.error("意图探测失败: " + (result.error || "大模型未响应正确格式"));
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("网络异常，扩写失败");
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   // 主生成
@@ -422,16 +459,24 @@ export default function GeneratorPage() {
             {/* 主题输入 */}
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-              <div className="relative bg-slate-900 border border-slate-700 rounded-2xl flex p-2 shadow-2xl">
+              <div className="relative bg-slate-900 border border-slate-700 rounded-2xl flex p-2 shadow-2xl items-center">
                 <input 
                   type="text" 
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleGenerateAll()}
-                  disabled={isGeneratingAll}
-                  placeholder="输入课程主题，如：搭建红外避障巡线机器人、碳膜传感器穿戴设备..."
+                  disabled={isGeneratingAll || isEnhancing}
+                  placeholder="在此输入干瘪的课程概念，或直接点击右侧智能扩写..."
                   className="flex-1 bg-transparent border-none text-white px-5 py-3 focus:outline-none placeholder:text-slate-500 font-medium text-lg"
                 />
+                <button 
+                  onClick={handleEnhanceTopic}
+                  disabled={isEnhancing || !topic.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-500/40 hover:to-purple-500/40 border border-blue-500/30 rounded-xl text-blue-300 font-bold transition-all text-sm flex items-center gap-2 mr-1 disabled:opacity-50"
+                >
+                  {isEnhancing ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-purple-400" />}
+                  {isEnhancing ? '意图捕获中...' : 'AI 智能扩写'}
+                </button>
               </div>
             </div>
 
@@ -501,6 +546,29 @@ export default function GeneratorPage() {
                   value={richness} 
                   onChange={setRichness} 
                 />
+              </div>
+
+              {/* 教学法框架 */}
+              <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-5 md:col-span-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen className="h-4 w-4 text-teal-400" />
+                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">教育流派与教学法映射</span>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {PEDAGOGY_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setPedagogy(opt.value)}
+                      className={`px-4 py-2 rounded-lg text-sm border font-medium transition-all ${
+                        pedagogy === opt.value
+                          ? 'border-teal-500 bg-teal-500/20 text-teal-300 shadow-[0_0_15px_rgba(20,184,166,0.15)]'
+                          : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
