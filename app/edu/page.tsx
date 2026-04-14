@@ -60,16 +60,17 @@ export default async function EduDashboard() {
                <LibraryBig className="h-5 w-5 text-indigo-400" /> 
                专项教研开发库 (R&D Modules)
              </h3>
-             <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">5 大核心课程流</span>
+             <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">6 大核心课程流</span>
            </div>
            
            <div className="space-y-6">
               {[
-                { key: 'mech', name: "机械工程与结构", icon: Settings, color: "text-slate-400", bg: "bg-slate-800/40 border-slate-700", fill: "bg-slate-900/50", match: ['机械', '硬件'] },
+                { key: 'mech', name: "机械工程", icon: Settings, color: "text-slate-400", bg: "bg-slate-800/40 border-slate-700", fill: "bg-slate-900/50", match: ['机械', '硬件'] },
                 { key: 'elec', name: "电子信息工程", icon: Zap, color: "text-amber-400", bg: "bg-amber-900/20 border-amber-500/20", fill: "bg-amber-950/20", match: ['电子', '电路', 'Arduino', '硬件'] },
-                { key: 'cs', name: "计算机科学与编程", icon: Terminal, color: "text-blue-400", bg: "bg-blue-900/20 border-blue-500/20", fill: "bg-blue-950/20", match: ['编程', '代码', 'Python', 'C++'] },
-                { key: 'ai', name: "人工智能与模型化", icon: BrainCircuit, color: "text-purple-400", bg: "bg-purple-900/20 border-purple-500/20", fill: "bg-purple-950/20", match: ['AI', '人工智能', '模型'] },
-                { key: 'vex', name: "VEX 智能机器人", icon: Bot, color: "text-emerald-400", bg: "bg-emerald-900/20 border-emerald-500/20", fill: "bg-emerald-950/20", match: ['VEX', '机器人', 'Bot'] }
+                { key: 'cs', name: "计算机科学与软件编程", icon: Terminal, color: "text-blue-400", bg: "bg-blue-900/20 border-blue-500/20", fill: "bg-blue-950/20", match: ['编程', '代码', 'Python', 'C++'] },
+                { key: 'ai', name: "人工智能与具身智能", icon: BrainCircuit, color: "text-purple-400", bg: "bg-purple-900/20 border-purple-500/20", fill: "bg-purple-950/20", match: ['AI', '人工智能', '模型'] },
+                { key: 'vex', name: "VEX 国际竞赛机器人", icon: Bot, color: "text-emerald-400", bg: "bg-emerald-900/20 border-emerald-500/20", fill: "bg-emerald-950/20", match: ['VEX', '机器人', 'Bot'] },
+                { key: 'steam', name: "STEAM 综合科学", icon: LibraryBig, color: "text-indigo-400", bg: "bg-indigo-900/20 border-indigo-500/20", fill: "bg-indigo-950/20", match: ['STEAM', '科学', '综合', '科普'] }
               ].map((mod) => {
                 // Filter matching courses or randomly assign unassigned ones for visual fullness
                 const modCourses = courses.filter((c: any) => {
@@ -106,7 +107,7 @@ export default async function EduDashboard() {
                              : <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-bold flex items-center gap-1"><CircleDot className="h-3 w-3" /> 就绪发布服</span>
                            
                            return (
-                             <div key={course.id} className="group flex flex-col md:flex-row md:items-center justify-between p-3 rounded-xl bg-black/20 border border-transparent hover:border-slate-700 hover:bg-black/40 transition-all cursor-pointer">
+                             <div key={course.id} id={`agent-course-${course.id}`} data-agent-target="true" data-agent-desc={`[${mod.name}] 分组下的课程：${course.name}`} className="group flex flex-col md:flex-row md:items-center justify-between p-3 rounded-xl bg-black/20 border border-transparent hover:border-slate-700 hover:bg-black/40 transition-all cursor-pointer" onClick="this.style.transform='scale(0.95)';setTimeout(()=>this.style.transform='none',200);alert('【Titan Agent 操作渗透】已为您锁定并模拟点入课程: '+this.getAttribute('data-agent-desc'))">
                                <div className="flex items-center gap-3 mb-2 md:mb-0">
                                   <div className={`w-1.5 h-1.5 rounded-full ${mod.color.replace('text-', 'bg-')} opacity-50 group-hover:opacity-100 transition-opacity`} />
                                   <div>
