@@ -378,8 +378,8 @@ class TitanAIAssistant {
             document.body.appendChild(wrapper);
         }
 
-        // 2. 核心大招：防遮挡万能“返回首屏”悬浮胶囊，初始定位左上方，且支持全屏任意拖拽！
-        if (!isIndex) {
+        // 2. 核心大招：防遮挡万能“返回首屏”悬浮胶囊，已通过用户指令废弃！
+        if (false && !isIndex) {
             const returnBtnWrapper = document.createElement('div');
             returnBtnWrapper.id = 'titan-return-capsule';
             returnBtnWrapper.style.cssText = `

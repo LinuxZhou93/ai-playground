@@ -16,8 +16,16 @@ export async function middleware(request: NextRequest) {
   const pathname = url.pathname
 
   // 🛡️ [Domain Routing] 域名分流逻辑 (最高优先级)
+  // 1. 科创教研专属系统
+  if (host.includes('edu.') || pathname.startsWith('/edu')) {
+    if (pathname === '/' || pathname === '/index.html') {
+      return NextResponse.rewrite(new URL('/edu', request.url));
+    }
+    // 即使主域名直接访问 /edu，也直接放行，Next.js 会匹配 app/edu
+  }
+
+  // 2. 原版课件系统 (旧体系)
   if (host.includes('ai.zhouxiaomai.com')) {
-    // 🛡️ 恢复：确保 ai.zhouxiaomai.com 访问原版的课件生成首页 (/app/page.tsx)
     if (pathname === '/index.html') {
       return NextResponse.rewrite(new URL('/', request.url));
     }

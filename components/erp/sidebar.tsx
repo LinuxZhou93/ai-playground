@@ -23,29 +23,39 @@ import {
   PackageOpen, // V3: 核心物料
   FileText, // V3: 家校互动档案
   CalendarDays, // V4: 智能排课日历
+  Magnet, // V5: 招生线索漏斗
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "motion/react";
 
 const menuItems = [
-  { name: "教务看板", icon: LayoutDashboard, path: "/futureclass/dashboard" },
-  { name: "学员管理", icon: Users, path: "/futureclass/students" },
-  { name: "核心物料", icon: PackageOpen, path: "/futureclass/inventory" },
-  { name: "家校通报告", icon: FileText, path: "/futureclass/reports" },
-  { name: "日常点名", icon: CheckCircle2, path: "/futureclass/attendance" },
-  { name: "课程库", icon: BookOpen, path: "/futureclass/courses" },
-  { name: "班级管理", icon: GraduationCap, path: "/futureclass/classes" },
-  { name: "排课日历", icon: CalendarDays, path: "/futureclass/schedules" },
-  { name: "财务中心", icon: CreditCard, path: "/futureclass/finance" },
-  { name: "系统设置", icon: Settings, path: "/futureclass/settings" },
+  { name: "教务看板", icon: LayoutDashboard, path: "/erp/dashboard" },
+  { name: "学员管理", icon: Users, path: "/erp/students" },
+  { name: "招生线索", icon: Magnet, path: "/erp/leads" },
+  { name: "核心物料", icon: PackageOpen, path: "/erp/inventory" },
+  { name: "家校通报告", icon: FileText, path: "/erp/reports" },
+  { name: "日常点名", icon: CheckCircle2, path: "/erp/attendance" },
+  { name: "课程库", icon: BookOpen, path: "/erp/courses" },
+  { name: "班级管理", icon: GraduationCap, path: "/erp/classes" },
+  { name: "排课日历", icon: CalendarDays, path: "/erp/schedules" },
+  { name: "财务中心", icon: CreditCard, path: "/erp/finance" },
+  { name: "系统设置", icon: Settings, path: "/erp/settings" },
 ];
 
-export function ERPSidebar() {
+export function ERPSidebar({ role = "ADMIN" }: { role?: string }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
+  // 动态过滤菜单权限
+  const filteredItems = React.useMemo(() => {
+    return menuItems.filter(item => {
+      if (role === "SALES" && ["/erp/schedules", "/erp/settings", "/erp/courses"].includes(item.path)) return false;
+      if (role === "ACADEMIC" && ["/erp/finance", "/erp/settings", "/erp/leads"].includes(item.path)) return false; // 教务不看线索
+      return true;
+    });
+  }, [role]);
   // 路由变化时关闭移动端菜单
   React.useEffect(() => {
     setMobileOpen(false);
@@ -105,7 +115,7 @@ export function ERPSidebar() {
       {/* 导航菜单 */}
       <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1.5 custom-scrollbar">
         
-          {menuItems.map((item) => {
+          {filteredItems.map((item) => {
             const isActive = pathname === item.path || pathname?.startsWith(item.path + "/");
             return (
               <Link key={item.path} href={item.path} className="block relative group">

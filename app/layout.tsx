@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import localFont from 'next/font/local';
 import { GeistSans } from 'geist/font/sans';
@@ -21,6 +21,14 @@ export const metadata: Metadata = {
   title: 'FutureClass | TitanTech 科技特长生实训舱',
   description:
     'L4 Multi-Agent Educational Engine powered by Titan Tech. 专门为科技特长生打造的专属 AI 实境全息课室。',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

@@ -14,7 +14,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.45,
+        duration: 0.15,
         ease: [0.16, 1, 0.3, 1],
       }}
       className="will-change-[transform,opacity] w-full"
@@ -30,7 +30,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 export function StaggerContainer({
   children,
   className = "",
-  staggerDelay = 0.05,
+  staggerDelay = 0.015,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -47,7 +47,7 @@ export function StaggerContainer({
           opacity: 1,
           transition: {
             staggerChildren: staggerDelay,
-            delayChildren: 0.02,
+            delayChildren: 0.01,
           },
         },
       }}
@@ -81,7 +81,7 @@ export function StaggerItem({
         visible: {
           opacity: 1,
           y: 0,
-          transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] },
+          transition: { duration: 0.15, ease: [0.23, 1, 0.32, 1] },
         },
       }}
       {...props}

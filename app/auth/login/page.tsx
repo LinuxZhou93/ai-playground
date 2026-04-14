@@ -22,16 +22,18 @@ export default function LoginPage() {
       // 🚀 Supabase Auth: Try as Email (appending @swarm.local if it's just a phone number)
       const identifier = phone.includes('@') ? phone : `${phone}@swarm.local`
       
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: { session }, error } = await supabase.auth.signInWithPassword({
         email: identifier,
         password: password,
       })
 
       if (error) throw error
 
-      toast.success('指挥官，欢迎回归。系统脉冲已对齐。')
-      router.push('/swarm/dashboard')
-      router.refresh()
+      if (session) {
+        toast.success('您好，欢迎登录教务系统。')
+        router.push('/erp/dashboard')
+        router.refresh()
+      }
     } catch (error: any) {
       toast.error(`登录失败: ${error.message || '请检查凭据'}`)
     } finally {

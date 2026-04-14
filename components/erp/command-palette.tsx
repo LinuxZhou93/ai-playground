@@ -26,12 +26,12 @@ export function CommandPalette() {
   }, []);
 
   const commands = [
-    { id: "nav-dash", category: "导航", name: "教务看板", icon: <Monitor className="w-4 h-4" />, action: () => router.push("/futureclass/dashboard") },
-    { id: "nav-students", category: "导航", name: "学员管理", icon: <Users className="w-4 h-4" />, action: () => router.push("/futureclass/students") },
-    { id: "nav-courses", category: "导航", name: "课程库", icon: <BookOpen className="w-4 h-4" />, action: () => router.push("/futureclass/courses") },
-    { id: "nav-finance", category: "导航", name: "财务概览", icon: <CreditCard className="w-4 h-4" />, action: () => router.push("/futureclass/finance") },
-    { id: "action-add-student", category: "快捷动作", name: "快速录入学员", icon: <UserPlus className="w-4 h-4" />, action: () => router.push("/futureclass/students") },
-    { id: "action-mark", category: "快捷动作", name: "极速点名", icon: <Terminal className="w-4 h-4" />, action: () => router.push("/futureclass/attendance") },
+    { id: "nav-dash", category: "导航", name: "教务看板", icon: <Monitor className="w-4 h-4" />, action: () => router.push("/erp/dashboard") },
+    { id: "nav-students", category: "导航", name: "学员管理", icon: <Users className="w-4 h-4" />, action: () => router.push("/erp/students") },
+    { id: "nav-courses", category: "导航", name: "课程库", icon: <BookOpen className="w-4 h-4" />, action: () => router.push("/erp/courses") },
+    { id: "nav-finance", category: "导航", name: "财务概览", icon: <CreditCard className="w-4 h-4" />, action: () => router.push("/erp/finance") },
+    { id: "action-add-student", category: "快捷动作", name: "快速录入学员", icon: <UserPlus className="w-4 h-4" />, action: () => router.push("/erp/students") },
+    { id: "action-mark", category: "快捷动作", name: "极速点名", icon: <Terminal className="w-4 h-4" />, action: () => router.push("/erp/attendance") },
   ];
 
   const filteredCommands = search 
