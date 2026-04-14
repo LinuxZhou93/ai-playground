@@ -46,23 +46,31 @@ export async function POST(req: Request) {
       userPrompt = "主题: \"" + topic + "\"\n补充资料/要求: \"" + (content || '无') + "\"\n绝不遗漏核心要求，严格按照要求生成。立即返回 JSON：";
     } 
     // 阶段二：根据用户在前端审阅过的大纲数据，精确发散为单页幻灯片细节
+    // 阶段二：根据用户在前端审阅过的大纲数据，精确发散为单页幻灯片细节
     else if (mode === 'generate_slides') {
       systemPrompt = `
-你是一位顶级 PPT 呈现设计师。教学大纲和结构已经固定，你的任务是按部就班地把大纲转化为丰富高保真的单页幻灯片资料。
+你是一位顶级 PPT 多模态呈现设计师。教学大纲已经固定，请将大纲转化为极其丰富的多模态块级 (Block-Based) 幻灯片。
+你需要根据每一页的内容特性，为其精准分配排版版式 (layoutVariant)，并拆解为不同的 Blocks。
 请严格输出合法 JSON 字符串，格式如下：
 {
   "slides": [
     {
       "id": "随机短id如_abc123",
-      "type": "cover 或者 slide", 
+      "type": "cover 或者 slide",
+      "layoutVariant": "选择一种排版：'default'(默认图文) / 'split-comparison'(左右分栏对比) / 'grid-3'(三块内容栅格) / 'timeline'(时间轴节点) / 'focus'(纯核心观点居中)",
       "title": "大标题",
-      "content": "核心内容文案。注意：【禁止】使用 Markdown！保持纯净文字排版，要凸显硬核科技感，文字精炼，严禁废话。",
+      "blocks": [
+        { "type": "text", "content": "文本内容。若是分栏结构，一段独立文本即为一栏。" },
+        { "type": "mermaid", "content": "graph TD\\nA-->B" },
+        { "type": "image_prompt", "content": "用于交给Midjourney或Unsplash生成配图的英文检索词或详细描述" }
+      ],
       "notes": "这页PPT配给老师看的详细讲课逐字稿或提示。"
     }
   ]
 }
+要求：必须基于各页预审意图判断最美的 layoutVariant，并根据该排版填充等量的 blocks（例如 grid-3 最好配 3个独立的 text blocks 或者 text+image）。
 `;
-      userPrompt = "预审好的大纲结构：\n" + JSON.stringify(data.slideOutlines) + "\n\n请针对上述每一页大纲生成一张详尽的高保真幻灯片，严格对齐意图和故事线。返回 JSON：";
+      userPrompt = "预审好的大纲结构：\n" + JSON.stringify(data.slideOutlines, null, 2) + "\n\n请针对上述每一页大纲精雕细琢，给出高高保真多模态幻灯片 JSON：";
     }
     // 模式：针对某个孤立的 Slide 进行微调重生成
     else if (mode === 'regenerate_slide') {

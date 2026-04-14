@@ -10,11 +10,18 @@ import {
   MonitorDown, Zap 
 } from "lucide-react";
 
+type Block = {
+  type: "text" | "image_prompt" | "mermaid" | "code";
+  content: string;
+};
+
 type Slide = {
   id: string;
   type: string;
+  layoutVariant?: "default" | "split-comparison" | "grid-3" | "timeline" | "focus";
   title: string;
-  content: string;
+  content?: string; // Fallback for old simple rendering
+  blocks?: Block[]; // New multimodality block engine
   notes: string;
 };
 
@@ -334,8 +341,13 @@ export default function GeneratorPage() {
             x: "10%", y: "35%", w: "80%", h: "20%",
             fontSize: 48, bold: true, color: "FFFFFF", align: "center", charSpacing: 2
           });
-          if (s.content) {
-            slide.addText(sanitizeXml(s.content), { 
+          
+          let textContent = s.content || "";
+          if (!textContent && s.blocks) {
+            textContent = s.blocks.map(b => b.content).join("\n");
+          }
+          if (textContent) {
+            slide.addText(sanitizeXml(textContent), { 
               x: "10%", y: "55%", w: "80%", h: "15%",
               fontSize: 24, color: "A0AEC0", align: "center", breakLine: true
             });
@@ -354,7 +366,17 @@ export default function GeneratorPage() {
           
           slide.addShape(pres.ShapeType.rect, { x: "5%", y: "20%", w: "90%", h: "0.2%", fill: { color: "1E293B" } });
           
-          slide.addText(sanitizeXml(s.content), { 
+          let textContent = s.content || "";
+          if (!textContent && s.blocks) {
+            textContent = s.blocks.map(b => {
+               if (b.type === 'text') return b.content;
+               else if (b.type === 'image_prompt') return `[AI影像合成栏位: ${b.content}]`;
+               else if (b.type === 'mermaid') return `[算法拓展区]\n${b.content}`;
+               return b.content;
+            }).join("\n\n");
+          }
+
+          slide.addText(sanitizeXml(textContent), { 
             x: "5%", y: "25%", w: "90%", h: "62%",
             fontSize: 22, color: "E2E8F0", breakLine: true, bullet: false, lineSpacing: 36
           });
@@ -798,13 +820,60 @@ export default function GeneratorPage() {
                          </h2>
                        )}
 
-                       <div className="flex-1 w-full text-xl lg:text-2xl text-slate-300 font-medium leading-relaxed font-mono relative z-10">
-                         <textarea 
-                           className="w-full h-full resize-none border-none outline-none focus:ring-0 bg-transparent custom-scrollbar hover:bg-slate-800/30 focus:bg-[#0c101a] p-5 -ml-5 rounded-2xl transition-colors border border-transparent focus:border-indigo-500/30 placeholder-slate-600 focus:shadow-inner"
-                           value={activeSlide?.content || ""}
-                           onChange={(e) => updateActiveSlide({ content: e.target.value })}
-                           placeholder="输入正文内容（AI 会自动通过文本段落生成纯净排版）..."
-                         />
+                       <div className={`flex-1 w-full relative z-10 p-5 -ml-5 ${
+                         activeSlide?.layoutVariant === 'grid-3' ? 'grid grid-cols-1 md:grid-cols-3 gap-6' : 
+                         activeSlide?.layoutVariant === 'split-comparison' ? 'grid grid-cols-1 md:grid-cols-2 gap-8 divide-x divide-slate-700/50' : 
+                         'flex flex-col gap-6'
+                       }`}>
+                         {activeSlide?.blocks?.length ? (
+                           activeSlide.blocks.map((block, bIdx) => (
+                             <div key={bIdx} className={`p-4 rounded-xl border border-transparent hover:border-slate-700/50 bg-[#0c101a]/30 hover:bg-[#0c101a] transition-all group/block ${activeSlide?.layoutVariant === 'split-comparison' && bIdx > 0 ? 'pl-8' : ''}`}>
+                               {/* 区块类型角标 */}
+                               <div className="flex items-center gap-2 mb-3 opacity-50 group-hover/block:opacity-100 transition-opacity">
+                                 {block.type === 'text' && <FileText className="h-4 w-4 text-slate-400" />}
+                                 {block.type === 'image_prompt' && <ImageIcon className="h-4 w-4 text-pink-400" />}
+                                 {block.type === 'mermaid' && <Network className="h-4 w-4 text-cyan-400" />}
+                                 <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">{block.type} BLOCK</span>
+                               </div>
+                               
+                               {/* 特化渲染组件 */}
+                               {block.type === 'image_prompt' ? (
+                                 <div className="w-full h-[200px] bg-slate-900 border border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center p-4">
+                                   <ImageIcon className="h-8 w-8 text-slate-600 mb-2" />
+                                   <div className="text-xs text-slate-500 text-center line-clamp-3 mb-4">{block.content}</div>
+                                   <button className="px-4 py-1.5 bg-pink-500/20 text-pink-400 rounded-lg text-xs font-bold hover:bg-pink-500/30 transition-colors border border-pink-500/30">
+                                     请求 Midjourney 生图
+                                   </button>
+                                 </div>
+                               ) : block.type === 'mermaid' ? (
+                                 <div className="w-full bg-[#080b0f] border border-cyan-900/50 rounded-xl p-4 font-mono text-[10px] text-cyan-400/80 overflow-auto max-h-[200px]">
+                                   {block.content}
+                                   <div className="mt-3 flex justify-end">
+                                     <button className="px-3 py-1 bg-cyan-500/10 text-cyan-400 rounded text-xs font-bold hover:bg-cyan-500/20 border border-cyan-500/20">渲染流程图</button>
+                                   </div>
+                                 </div>
+                               ) : (
+                                 <textarea 
+                                   className="w-full h-full min-h-[100px] resize-none border-none outline-none focus:ring-0 bg-transparent custom-scrollbar text-lg text-slate-300 font-medium leading-relaxed"
+                                   value={block.content}
+                                   onChange={(e) => {
+                                     const newBlocks = [...(activeSlide.blocks || [])];
+                                     newBlocks[bIdx].content = e.target.value;
+                                     updateActiveSlide({ blocks: newBlocks });
+                                   }}
+                                 />
+                               )}
+                             </div>
+                           ))
+                         ) : (
+                           /* 向下兼容旧的单文本框模式 */
+                           <textarea 
+                             className="w-full h-full min-h-[200px] resize-none border-none outline-none focus:ring-0 bg-transparent custom-scrollbar text-xl lg:text-2xl text-slate-300 font-medium leading-relaxed hover:bg-slate-800/30 focus:bg-[#0c101a] p-5 rounded-2xl transition-colors border border-transparent focus:border-indigo-500/30"
+                             value={activeSlide?.content || ""}
+                             onChange={(e) => updateActiveSlide({ content: e.target.value })}
+                             placeholder="输入正文内容（AI 会自动通过文本段落生成纯净排版）..."
+                           />
+                         )}
                        </div>
                     </div>
                  </div>
