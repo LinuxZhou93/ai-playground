@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import React from "react";
 import { BrainCircuit, Cpu, LibraryBig, Activity, Sparkles, ArrowRight } from "lucide-react";
 import { getCourses, getClasses, getInventoryItems } from "@/app/erp/actions";

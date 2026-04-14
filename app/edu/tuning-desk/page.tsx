@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import React from "react";
 import { getEduCoursesWithDetails, getClasses } from "@/app/erp/actions";
 import TuningDeskClient from "./tuning-desk-client";
