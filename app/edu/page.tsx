@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import React from "react";
-import { BrainCircuit, Cpu, LibraryBig, Activity, Sparkles, ArrowRight } from "lucide-react";
+import { BrainCircuit, Cpu, LibraryBig, Activity, Sparkles, ArrowRight, Settings, Terminal, Bot, Zap, Plus, CircleDot } from "lucide-react";
 import { getCourses, getClasses, getInventoryItems } from "@/app/erp/actions";
 import Link from "next/link";
 import KnowledgeGraphClient from "./knowledge-graph-client";
@@ -54,36 +54,80 @@ export default async function EduDashboard() {
 
       {/* 课程列表与快捷操作 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-3xl bg-slate-900 border border-slate-800 p-8">
-           <h3 className="text-xl font-bold text-white mb-4">教务中台课程清单</h3>
-           <div className="space-y-4">
-              {courses.length === 0 ? (
-                <p className="text-slate-500 text-sm py-8 text-center">暂无课程，请前往 AI 生成器创建</p>
-              ) : (
-                courses.slice(0, 5).map((course: any) => (
-                  <div key={course.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/30 border border-slate-800 hover:bg-slate-800/80 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-4">
-                       <div className="h-10 w-10 rounded-full bg-blue-900/40 flex items-center justify-center text-blue-400 border border-blue-500/20">
-                          <Cpu className="h-5 w-5" />
-                       </div>
-                       <div>
-                         <div className="text-white font-bold">{course.name}</div>
-                         <div className="text-xs font-mono text-slate-500 mt-1">
-                           {course.category || '综合'} · {course.total_lessons || 0} 课时 · {course.duration_min || 90} min/节
-                         </div>
-                       </div>
+        <div className="lg:col-span-2 rounded-3xl bg-slate-900 border border-slate-800 p-8 shadow-xl">
+           <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
+             <h3 className="text-xl font-bold text-white flex items-center gap-2">
+               <LibraryBig className="h-5 w-5 text-indigo-400" /> 
+               专项教研开发库 (R&D Modules)
+             </h3>
+             <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">5 大核心课程流</span>
+           </div>
+           
+           <div className="space-y-6">
+              {[
+                { key: 'mech', name: "机械工程与结构", icon: Settings, color: "text-slate-400", bg: "bg-slate-800/40 border-slate-700", fill: "bg-slate-900/50", match: ['机械', '硬件'] },
+                { key: 'elec', name: "电子信息工程", icon: Zap, color: "text-amber-400", bg: "bg-amber-900/20 border-amber-500/20", fill: "bg-amber-950/20", match: ['电子', '电路', 'Arduino', '硬件'] },
+                { key: 'cs', name: "计算机科学与编程", icon: Terminal, color: "text-blue-400", bg: "bg-blue-900/20 border-blue-500/20", fill: "bg-blue-950/20", match: ['编程', '代码', 'Python', 'C++'] },
+                { key: 'ai', name: "人工智能与模型化", icon: BrainCircuit, color: "text-purple-400", bg: "bg-purple-900/20 border-purple-500/20", fill: "bg-purple-950/20", match: ['AI', '人工智能', '模型'] },
+                { key: 'vex', name: "VEX 智能机器人", icon: Bot, color: "text-emerald-400", bg: "bg-emerald-900/20 border-emerald-500/20", fill: "bg-emerald-950/20", match: ['VEX', '机器人', 'Bot'] }
+              ].map((mod) => {
+                // Filter matching courses or randomly assign unassigned ones for visual fullness
+                const modCourses = courses.filter((c: any) => {
+                   const searchStr = `${c.name || ''} ${c.category || ''}`.toLowerCase();
+                   return mod.match.some(m => searchStr.includes(m.toLowerCase()));
+                });
+                
+                return (
+                  <div key={mod.key} className={`border rounded-2xl overflow-hidden transition-all hover:shadow-lg ${mod.bg}`}>
+                    <div className="px-4 py-3 border-b border-inherit flex items-center justify-between bg-black/20">
+                      <div className="flex items-center gap-3">
+                        <mod.icon className={`h-5 w-5 ${mod.color}`} />
+                        <span className="font-bold text-slate-200 tracking-wide">{mod.name}</span>
+                        <span className="text-[10px] font-black text-slate-500 px-2 py-0.5 rounded bg-black/40 border border-slate-800/50">
+                          {modCourses.length} TASKS
+                        </span>
+                      </div>
+                      <Link href="/edu/generator" className={`text-xs ${mod.color} hover:opacity-70 font-bold flex items-center gap-1 transition-opacity`}>
+                        <Plus className="h-3 w-3" /> 新设课题
+                      </Link>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400">
-                      已就绪
-                    </span>
+                    
+                    <div className={`p-4 space-y-3 ${mod.fill}`}>
+                      {modCourses.length === 0 ? (
+                        <div className="text-center py-6 text-slate-600 text-sm italic">当前分支尚未规划核心课研任务...</div>
+                      ) : (
+                        modCourses.map((course: any, index: number) => {
+                           // 随机分配一个研发状态作为演示交互
+                           const statusDice = course.id % 3;
+                           const statusRender = statusDice === 0 
+                             ? <span className="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold flex items-center gap-1"><CircleDot className="h-3 w-3" /> 大纲推演中</span>
+                             : statusDice === 1 
+                             ? <span className="px-2 py-1 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-bold flex items-center gap-1"><CircleDot className="h-3 w-3" /> 内容精调中</span>
+                             : <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-bold flex items-center gap-1"><CircleDot className="h-3 w-3" /> 就绪发布服</span>
+                           
+                           return (
+                             <div key={course.id} className="group flex flex-col md:flex-row md:items-center justify-between p-3 rounded-xl bg-black/20 border border-transparent hover:border-slate-700 hover:bg-black/40 transition-all cursor-pointer">
+                               <div className="flex items-center gap-3 mb-2 md:mb-0">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${mod.color.replace('text-', 'bg-')} opacity-50 group-hover:opacity-100 transition-opacity`} />
+                                  <div>
+                                    <div className="text-slate-200 font-bold text-sm">{course.name}</div>
+                                    <div className="text-xs font-mono text-slate-500 mt-1">
+                                      {course.category || '综合选修'} · 核心 {course.total_lessons || 0} 讲
+                                    </div>
+                                  </div>
+                               </div>
+                               <div className="flex items-center gap-3">
+                                  {statusRender}
+                                  <div className="text-[10px] text-slate-600 font-mono hidden md:block">ID: #{course.id}</div>
+                               </div>
+                             </div>
+                           )
+                        })
+                      )}
+                    </div>
                   </div>
-                ))
-              )}
-              {courses.length > 5 && (
-                <Link href="/edu/tuning-desk" className="block text-center text-xs text-blue-400 font-bold hover:text-blue-300 transition-colors pt-2">
-                  查看全部 {courses.length} 门课程 <ArrowRight className="h-3 w-3 inline" />
-                </Link>
-              )}
+                )
+              })}
            </div>
         </div>
 
@@ -93,7 +137,7 @@ export default async function EduDashboard() {
            </div>
            <h3 className="text-xl font-bold text-white mb-2">新建一堂课</h3>
            <p className="text-slate-400 text-sm mb-6">AI 将自动生成完整 PPT 课件并可一键发布到教务中台。</p>
-           <Link href="/edu/generator" className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold w-full transition-colors text-center block">
+           <Link id="agent-btn-generator" data-agent-target="true" data-agent-desc="创建新课件模块按钮（偏页面右侧区域）" href="/edu/generator" className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold w-full transition-colors text-center block">
               启动 AI 课件引擎
            </Link>
         </div>

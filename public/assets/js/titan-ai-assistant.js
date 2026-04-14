@@ -3921,6 +3921,20 @@ class TitanAIAssistant {
         const currentTitle = document.title;
         const currentHeader = document.querySelector('h1')?.innerText || '';
         
+        // 【新增】：POC 视场空间提取
+        let spatialContext = "当前系统未检测到具备空间定位的特征元素。";
+        const targetElements = document.querySelectorAll('[data-agent-target="true"]');
+        if (targetElements.length > 0) {
+            let spatialList = [];
+            targetElements.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                const vPos = rect.top < window.innerHeight / 3 ? '顶部' : (rect.bottom > window.innerHeight * 2 / 3 ? '底部' : '中部');
+                const hPos = rect.left < window.innerWidth / 3 ? '左侧' : (rect.right > window.innerWidth * 2 / 3 ? '右侧' : '居中');
+                spatialList.push(`- [区域: ${vPos}${hPos}] ID: "${el.id}", 描述: "${el.getAttribute('data-agent-desc') || '未知组件'}"`);
+            });
+            spatialContext = `【实时扫描：当前屏幕上的交互对象】\n` + spatialList.join('\n');
+        }
+        
         const chengdianRAG = `
 【🔐 内置教育知识库RAG：成电创客教学大纲与理念精华】
 1. 教育愿景：强校背书赋能，坚信“由于动手，所以可能”。
@@ -3938,6 +3952,9 @@ class TitanAIAssistant {
 当前学生正在浏览的本系统中某个模块页面：${currentTitle} (${currentHeader})
 以下是系统刚刚抓取到的该网页内的当前页面核心文本（这是他此刻可能在问的直接上下文）：
 ${currentFullContent}
+
+${spatialContext}
+【⚠️ AI 控制者权限】：如果你想帮用户操作上面的可交互对象（比如点击某个课程或按钮），请直接在回答体的结尾输出操作指令，不许解释，格式为：[ACTION: CLICK, target="{对象的专属ID}"]。例如若ID为agent-course-1 则输出直接拼接的字符串 [ACTION: CLICK, target="agent-course-1"]。请放心，底层核心探针将自动剥离这一段并执行动作。
 
 【🎓 极致排版指令 - Notion Educational Mastery 3.0】：
 你不仅是在对话，你是在为学生构建一份高保真、结构化的“交互式科创手记”。必须严格遵守以下法则：
@@ -4061,6 +4078,25 @@ ${currentFullContent}
 
             if (typeof data === 'undefined') var data = await response.json();
             let aiReply = data.choices[0].message.content;
+            
+            // 【POC增量】：检测页内点击 ACTION 调用并拦截剥离
+            const actionRegex = /\[ACTION:\s*CLICK,\s*target="([^"]+)"\]/gi;
+            let actionMatch;
+            while ((actionMatch = actionRegex.exec(aiReply)) !== null) {
+                const targetId = actionMatch[1];
+                // 延迟 1500 毫秒点击以模拟大模型完成阅读后的响应，提升体验感觉
+                setTimeout(() => {
+                    const targetEl = document.getElementById(targetId);
+                    if (targetEl) {
+                         console.log('[Titan Agentic Action] Executing click on', targetId);
+                         targetEl.click();
+                    } else {
+                         console.warn('[Titan Agentic Action] Target ID not found:', targetId);
+                    }
+                }, 1500);
+            }
+            aiReply = aiReply.replace(actionRegex, '').trim();
+
             this.chatHistory.push({ role: 'assistant', content: aiReply });
             this.saveSession();
             // 🔐 每 5 轮对话自动静默存档
