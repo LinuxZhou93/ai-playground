@@ -4090,6 +4090,9 @@ ${spatialContext}
                     const targetEl = document.getElementById(targetId);
                     if (targetEl) {
                          console.log('[Titan Agentic Action] Executing click on', targetId);
+                         targetEl.style.transform = 'scale(0.95)';
+                         setTimeout(()=>targetEl.style.transform='none', 200);
+                         alert('【Titan Agent 凌空接管】已为您触达并模拟进入课程: ' + (targetEl.getAttribute('data-agent-desc')||targetId));
                          targetEl.click();
                     } else {
                          console.warn('[Titan Agentic Action] Target ID not found:', targetId);

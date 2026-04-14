@@ -107,7 +107,7 @@ export default async function EduDashboard() {
                              : <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-bold flex items-center gap-1"><CircleDot className="h-3 w-3" /> 就绪发布服</span>
                            
                            return (
-                             <div key={course.id} id={`agent-course-${course.id}`} data-agent-target="true" data-agent-desc={`[${mod.name}] 分组下的课程：${course.name}`} className="group flex flex-col md:flex-row md:items-center justify-between p-3 rounded-xl bg-black/20 border border-transparent hover:border-slate-700 hover:bg-black/40 transition-all cursor-pointer" onClick="this.style.transform='scale(0.95)';setTimeout(()=>this.style.transform='none',200);alert('【Titan Agent 操作渗透】已为您锁定并模拟点入课程: '+this.getAttribute('data-agent-desc'))">
+                             <div key={course.id} id={`agent-course-${course.id}`} data-agent-target="true" data-agent-desc={`[${mod.name}] 分组下的课程：${course.name}`} className="group flex flex-col md:flex-row md:items-center justify-between p-3 rounded-xl bg-black/20 border border-transparent hover:border-slate-700 hover:bg-black/40 transition-all cursor-pointer">
                                <div className="flex items-center gap-3 mb-2 md:mb-0">
                                   <div className={`w-1.5 h-1.5 rounded-full ${mod.color.replace('text-', 'bg-')} opacity-50 group-hover:opacity-100 transition-opacity`} />
                                   <div>

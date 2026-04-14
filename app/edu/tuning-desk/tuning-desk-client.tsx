@@ -1,16 +1,72 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   MonitorPlay, Clock, Layers, BookOpen, ChevronRight, ChevronDown,
   Users, Calendar, Sparkles, PenTool, LayoutTemplate, FileText,
-  Activity, CheckCircle2, MessageSquare, LineChart, ShieldCheck
+  Activity, CheckCircle2, MessageSquare, LineChart, ShieldCheck, Lock
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function TuningDeskClient({ courses, classes }: { courses: any[], classes: any[] }) {
+  // 生成多端协同下当前用户的拟真身份
+  const [currentUser] = useState(() => {
+     if (typeof window === 'undefined') return { id: 'dummy', name: '加载中', color: '#ccc' };
+     const names = ['黄老师 (教研)', '李老师 (教研)', '张老师 (产品)', '王老师 (教学)'];
+     const colors = ['#b6e3f4', '#ffd5dc', '#c1f0c1', '#d4c4fb'];
+     const idx = Math.floor(Math.random() * 4);
+     return { id: crypto.randomUUID(), name: names[idx], color: colors[idx] };
+  });
+
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(courses[0]?.id || null);
   const [activeLesson, setActiveLesson] = useState<any | null>(null);
   const [activePlan, setActivePlan] = useState<any | null>(null);
+
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const roomRef = useRef<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const room = supabase.channel('tuning_desk_presence', {
+      config: { presence: { key: currentUser.id } }
+    });
+    roomRef.current = room;
+
+    room.on('presence', { event: 'sync' }, () => {
+      const state = room.presenceState();
+      const users: any[] = [];
+      for (const id in state) {
+        users.push(state[id][0]); 
+      }
+      setOnlineUsers(users);
+    });
+
+    room.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        room.track({ 
+          user: currentUser, 
+          editingCourse: expandedCourseId, 
+          editingLesson: activeLesson?.id 
+        });
+      }
+    });
+
+    return () => {
+      supabase.removeChannel(room);
+    };
+  }, []);
+
+  // 当选项发生变化时，更新状态向全局广播当前光标占有权
+  useEffect(() => {
+    if (roomRef.current && roomRef.current.state === 'joined') {
+      roomRef.current.track({ 
+        user: currentUser, 
+        editingCourse: expandedCourseId, 
+        editingLesson: activeLesson?.id 
+      });
+    }
+  }, [expandedCourseId, activeLesson]);
 
   // 当点击某一节课时，提取对应的教案内容
   const handleSelectLesson = (courseId: string, lesson: any) => {
@@ -50,18 +106,28 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
           </p>
         </div>
         <div className="flex items-center gap-4">
-          {/* P2-9 多教师协作状态灯 */}
-          <div className="hidden lg:flex items-center bg-slate-900 border border-slate-800 rounded-full px-1.5 py-1.5 pr-4 gap-3 shadow-lg shadow-black/20">
+          {/* P2-9 多教师协作状态灯 (Realtime Awareness) */}
+          <div className="hidden lg:flex items-center bg-slate-900 border border-slate-800 rounded-full px-1.5 py-1.5 pr-4 gap-3 shadow-lg shadow-black/20 transition-all">
              <div className="flex -space-x-2">
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=TeacherA&backgroundColor=b6e3f4`} className="h-7 w-7 rounded-full border-2 border-slate-900" />
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=TeacherB&backgroundColor=ffd5dc`} className="h-7 w-7 rounded-full border-2 border-slate-900" />
+                {onlineUsers.length > 0 ? onlineUsers.map((u, i) => (
+                  <div key={i} title={u.user?.name} className="h-7 w-7 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold text-slate-800 shadow-sm relative group cursor-help transition-transform hover:scale-110 hover:z-10" style={{ backgroundColor: u.user?.color || '#ccc' }}>
+                    {u.user?.name?.[0]}
+                    <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none">
+                       {u.user?.name}
+                    </div>
+                  </div>
+                )) : (
+                  <div className="h-7 w-7 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] text-slate-500">?</div>
+                )}
              </div>
              <div className="flex items-center gap-1.5">
                <span className="relative flex h-2 w-2">
                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                </span>
-               <span className="text-xs font-bold text-slate-300">2 人正在协同</span>
+               <span className="text-xs font-bold text-slate-300">
+                 {onlineUsers.length > 0 ? `${onlineUsers.length} 人在线协同` : '正在连接协同网络...'}
+               </span>
              </div>
           </div>
           <a 
@@ -91,6 +157,8 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
             {courses.map((course) => {
               const isExpanded = expandedCourseId === course.id;
               const theme = getThemeVars(course.category);
+              const courseOccupiers = onlineUsers.filter(u => u.user?.id !== currentUser.id && u.editingCourse === course.id);
+              
               return (
                 <div key={course.id} className={"rounded-xl border transition-colors overflow-hidden " + (isExpanded ? "bg-slate-900/80 border-slate-700" : "bg-slate-900/40 border-slate-800 hover:border-slate-700")}>
                    {/* 课程头 */}
@@ -99,7 +167,15 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                      className="p-4 cursor-pointer flex items-center justify-between"
                    >
                      <div className="flex-1 min-w-0">
-                       <h3 className="font-bold text-slate-200 truncate pr-4">{course.name}</h3>
+                       <div className="flex items-center gap-2">
+                         <h3 className="font-bold text-slate-200 truncate">{course.name}</h3>
+                         {courseOccupiers.map(u => (
+                           <div key={u.user.id} className="flex flex-shrink-0 items-center px-1.5 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/20 whitespace-nowrap animate-pulse">
+                              <Lock className="h-3 w-3 mr-1" />
+                              {u.user.name.split(' ')[0]} 正在研讨
+                           </div>
+                         ))}
+                       </div>
                        <div className="flex items-center gap-2 mt-1">
                          <span className={"px-2 rounded text-[9px] font-black uppercase " + theme}>{course.category || '综合'}</span>
                          <span className="text-[10px] text-slate-500">{course.edu_lessons?.length || 0} 讲</span>
@@ -114,18 +190,29 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                        {course.edu_lessons?.length > 0 ? (
                          course.edu_lessons.map((lesson: any) => {
                            const isActive = activeLesson?.id === lesson.id;
+                           const lessonOccupiers = onlineUsers.filter(u => u.user?.id !== currentUser.id && u.editingLesson === lesson.id);
+                           
                            return (
                              <div 
                                key={lesson.id}
                                onClick={() => handleSelectLesson(course.id, lesson)}
                                className={"flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border " + (isActive ? "bg-indigo-600/10 border-indigo-500/30 shadow-inner" : "border-transparent hover:bg-slate-800/50")}
                              >
-                                <div className={"h-6 w-6 shrink-0 rounded flex items-center justify-center text-[10px] font-black " + (isActive ? "bg-indigo-500 text-white" : "bg-slate-800 text-slate-400")}>
+                                <div className={"h-6 w-6 shrink-0 rounded flex items-center justify-center text-[10px] font-black relative overflow-hidden " + (isActive ? "bg-indigo-500 text-white" : "bg-slate-800 text-slate-400")}>
                                   {lesson.lesson_number}
+                                  {lessonOccupiers.length > 0 && <div className="absolute inset-0 bg-red-500/20 border border-red-500/50 rounded animate-pulse" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className={"text-[12px] font-bold truncate " + (isActive ? "text-indigo-300" : "text-slate-300")}>{lesson.title}</div>
-                                  <div className="text-[9px] text-slate-500 truncate">{lesson.duration_min} 分钟 · 关联 {lesson.slide_index !== null ? `Slide ${lesson.slide_index + 1}` : '暂无课件映射'}</div>
+                                  <div className={"text-[12px] font-bold flex items-center gap-2 truncate " + (isActive ? "text-indigo-300" : "text-slate-300")}>
+                                    <span>{lesson.title}</span>
+                                    {lessonOccupiers.map(u => (
+                                       <div key={u.user.id} title={`${u.user.name} 正在深度编辑`} className="relative flex h-3 w-3">
+                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                         <span className="relative inline-flex rounded-full h-3 w-3 border border-slate-700 font-black text-[6px] text-slate-800 flex items-center justify-center" style={{ backgroundColor: u.user.color }}>{u.user.name[0]}</span>
+                                       </div>
+                                    ))}
+                                  </div>
+                                  <div className="text-[9px] text-slate-500 truncate mt-0.5">{lesson.duration_min} 分钟 · 关联 {lesson.slide_index !== null ? `Slide ${lesson.slide_index + 1}` : '暂无课件映射'}</div>
                                 </div>
                              </div>
                            )
