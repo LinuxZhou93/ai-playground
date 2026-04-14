@@ -35,22 +35,28 @@ function CollabEditor({ roomName, initialContent, currentUser }: { roomName: str
       if (provider) provider.destroy();
       if (ydoc) ydoc.destroy();
     }
-  }, [roomName]);
+  if (!ydocState) {
+    return <div className="animate-pulse bg-slate-900 border border-slate-800 rounded-xl p-4 min-h-24 flex items-center justify-center text-slate-500 text-xs">🚀 正在建立高频联机量子通道...</div>
+  }
 
+  return <CollabEditorInner ydocState={ydocState} initialContent={initialContent} currentUser={currentUser} />;
+}
+
+function CollabEditorInner({ ydocState, initialContent, currentUser }: { ydocState: any, initialContent: string, currentUser: any }) {
   const editor = useEditor({
-    extensions: ydocState ? [
+    extensions: [
       StarterKit.configure({ history: false }),
       Collaboration.configure({ document: ydocState.ydoc }),
       CollaborationCursor.configure({
         provider: ydocState.provider,
         user: { name: currentUser.name, color: currentUser.color },
       }),
-    ] : [],
+    ],
     content: initialContent, 
-  }, [ydocState]);
+  });
 
-  if (!editor || !ydocState) {
-    return <div className="animate-pulse bg-slate-900 border border-slate-800 rounded-xl p-4 min-h-24 flex items-center justify-center text-slate-500 text-xs">🚀 正在建立高频联机量子通道...</div>
+  if (!editor) {
+    return <div className="animate-pulse bg-slate-900 border border-slate-800 rounded-xl p-4 min-h-24 flex items-center justify-center text-slate-500 text-xs">🚀 正在启动量子渲染引擎...</div>
   }
 
   return (
@@ -83,13 +89,16 @@ function CollabEditor({ roomName, initialContent, currentUser }: { roomName: str
 
 export default function TuningDeskClient({ courses, classes }: { courses: any[], classes: any[] }) {
   // 生成多端协同下当前用户的拟真身份
-  const [currentUser] = useState(() => {
-     if (typeof window === 'undefined') return { id: 'dummy', name: '加载中', color: '#ccc' };
+  const [currentUser, setCurrentUser] = useState({ id: 'dummy', name: '加载中', color: '#ccc' });
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+     setIsClient(true);
      const names = ['黄老师 (教研)', '李老师 (教研)', '张老师 (产品)', '王老师 (教学)'];
      const colors = ['#b6e3f4', '#ffd5dc', '#c1f0c1', '#d4c4fb'];
      const idx = Math.floor(Math.random() * 4);
-     return { id: crypto.randomUUID(), name: names[idx], color: colors[idx] };
-  });
+     setCurrentUser({ id: crypto.randomUUID(), name: names[idx], color: colors[idx] });
+  }, []);
 
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(courses[0]?.id || null);
   const [activeLesson, setActiveLesson] = useState<any | null>(null);
