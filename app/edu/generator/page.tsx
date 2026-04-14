@@ -75,6 +75,8 @@ export default function GeneratorPage() {
   const [referenceText, setReferenceText] = useState("");
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [slides, setSlides] = useState<Slide[]>([]);
+  const [slideOutlines, setSlideOutlines] = useState<any[] | null>(null);
+  const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
   const [lessonPlan, setLessonPlan] = useState("");
   const [courseMeta, setCourseMeta] = useState<CourseMeta | null>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
@@ -177,34 +179,63 @@ export default function GeneratorPage() {
     }
   };
 
-  // 主生成
-  const handleGenerateAll = async () => {
-    if (!topic || isGeneratingAll) return;
-    setIsGeneratingAll(true);
+  // 阶段一：极速推演课程大纲框架
+  const handleGenerateOutline = async () => {
+    if (!topic || isGeneratingOutline) return;
+    setIsGeneratingOutline(true);
     setSlides([]);
+    setSlideOutlines(null);
     setCourseMeta(null);
     setPublishResult(null);
-    localStorage.removeItem("fc_draft_slides"); // 新生成时清空旧草稿
+    localStorage.removeItem("fc_draft_slides"); 
     try {
       const res = await fetch('/api/edu/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          mode: 'generate_all', 
+          mode: 'generate_outline', 
           topic,
           content: buildFullPrompt(),
           slideCount
         })
       });
       const result = await res.json();
-      if (result.success && result.data.slides) {
-        setSlides(result.data.slides);
+      if (result.success && result.data.slide_outlines) {
+        setSlideOutlines(result.data.slide_outlines);
         setLessonPlan(result.data.lesson_plan || "");
         setCourseMeta(result.data.course_meta || null);
-        setActiveSlideIndex(0);
-        toast.success("全景课程神经重构完成！");
+        toast.success("🎯 课程大纲结构推导完毕！");
       } else {
         toast.error("生成异常：" + (result.error || "未知原因"));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("网络连接或响应解析异常，生成失败");
+    } finally {
+      setIsGeneratingOutline(false);
+    }
+  };
+
+  // 阶段二：根据预审完毕的大纲正式展开为详细图文的幻灯片
+  const handleGenerateSlidesFromOutline = async () => {
+    if (!slideOutlines || isGeneratingAll) return;
+    setIsGeneratingAll(true);
+    try {
+      const res = await fetch('/api/edu/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          mode: 'generate_slides', 
+          slideOutlines
+        })
+      });
+      const result = await res.json();
+      if (result.success && result.data.slides) {
+        setSlides(result.data.slides);
+        setActiveSlideIndex(0);
+        toast.success("✅ 全景课程神经重构完成！");
+      } else {
+        toast.error("幻灯图文填充异常：" + (result.error || "大模型未响应正确格式"));
       }
     } catch (error) {
       console.error(error);
@@ -600,17 +631,72 @@ export default function GeneratorPage() {
               <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded border border-purple-500/20">{slideCount}页</span>
             </div>
 
-            {/* 生成按钮 */}
-            <div className="flex justify-center pt-2 pb-8">
-              <button 
-                onClick={handleGenerateAll}
-                disabled={isGeneratingAll || !topic.trim()}
-                className="px-12 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-lg flex items-center gap-3 disabled:opacity-50 transition-all shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                {isGeneratingAll ? <Wand2 className="h-5 w-5 animate-spin"/> : <Sparkles className="h-5 w-5"/>} 
-                {isGeneratingAll ? '正在生成课件...' : '启动 AI 课件引擎'}
-              </button>
-            </div>
+            {/* 两阶段生成：大纲预审视图 */}
+            {slideOutlines && slides.length === 0 && (
+              <div className="bg-slate-900/80 border border-indigo-500/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(99,102,241,0.15)] mt-4">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-8 w-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-black">1</div>
+                  <h3 className="text-xl font-bold text-white">大纲预审与意图固化</h3>
+                  <span className="text-xs text-indigo-400/80 ml-auto border border-indigo-500/30 px-2 py-1 rounded">可直接修改文本意图，满意后生成</span>
+                </div>
+                
+                <div className="space-y-4 mb-8">
+                  {slideOutlines.map((so, idx) => (
+                    <div key={idx} className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex gap-4">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 font-black flex items-center justify-center shrink-0">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <input 
+                          type="text" 
+                          value={so.title}
+                          onChange={e => {
+                            const newOutlines = [...slideOutlines];
+                            newOutlines[idx].title = e.target.value;
+                            setSlideOutlines(newOutlines);
+                          }}
+                          className="w-full bg-transparent text-white font-bold text-lg focus:outline-none border-b border-dashed border-slate-700/50 pb-1" 
+                        />
+                        <textarea 
+                          value={so.core_intent}
+                          onChange={e => {
+                            const newOutlines = [...slideOutlines];
+                            newOutlines[idx].core_intent = e.target.value;
+                            setSlideOutlines(newOutlines);
+                          }}
+                          className="w-full bg-slate-900 border border-slate-800 rounded p-3 text-sm text-slate-400 focus:outline-none resize-y min-h-[60px]" 
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex justify-center">
+                  <button 
+                    onClick={handleGenerateSlidesFromOutline}
+                    disabled={isGeneratingAll}
+                    className="px-12 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-lg flex items-center gap-3 transition-all shadow-2xl shadow-emerald-500/30 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    {isGeneratingAll ? <RefreshCcw className="h-5 w-5 animate-spin" /> : <Rocket className="h-5 w-5" />}
+                    {isGeneratingAll ? '高保真图文重构中...' : '2. 确认大纲，神经重构高保真课件'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 生成按钮（阶段一） */}
+            {!slideOutlines && (
+              <div className="flex justify-center pt-2 pb-8">
+                <button 
+                  onClick={handleGenerateOutline}
+                  disabled={isGeneratingOutline || !topic.trim()}
+                  className="px-12 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-lg flex items-center gap-3 disabled:opacity-50 transition-all shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {isGeneratingOutline ? <RefreshCcw className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                  {isGeneratingOutline ? '大纲逻辑推演中...' : '1. 启动教研引擎 (优先预审大纲)'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : (

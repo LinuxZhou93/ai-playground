@@ -12,18 +12,16 @@ export async function POST(req: Request) {
     let systemPrompt = "";
     let userPrompt = "";
 
-    // 模式一：全量生成整个 PPT 阵列与全景教案大纲
-    if (mode === 'generate_all') {
+    // 阶段一：纯粹推演课程元数据与整体大纲（极速响应）
+    if (mode === 'generate_outline') {
       systemPrompt = `
-你是一位顶级人工智能科创教研总监。你的任务不仅是设计精美的幻灯片，更要在底层架构上落实【新课标信息科技核心素养】与【布鲁姆(Bloom)认知层级】。
-
-请你根据提供的主题、水平和受众，生成一套结构完备的教学资产包。
+你是一位顶级人工智能科创教研总监。请根据提供的主题、水平和受众，规划一套结构完备的教学资产大纲。
 请务必输出合法的 JSON 字符串，格式严格如下：
 {
   "lesson_plan": "一份简要的全局配套教辅说明...",
   "course_meta": {
-    "name": "课程的中文全名，如《碳膜传感器穿戴设备开发》",
-    "category": "课程分类（机器人, 编程, 电子, 3D打印, 综合）",
+    "name": "课程全名",
+    "category": "课程分类",
     "total_lessons": 8,
     "duration_min": 90
   },
@@ -31,28 +29,42 @@ export async function POST(req: Request) {
     {
       "lesson_number": 1,
       "title": "具体的一次课主题",
-      "objectives": ["能够复述XXX的原理 (Bloom 记忆)", "能够独立搭建XXX结构 (Bloom 应用)"],
-      "materials": ["主控板x1", "连接线x4"]
+      "objectives": ["(明确带Bloom层级)"],
+      "materials": ["主控板x1"]
     }
   ],
+  "slide_outlines": [
+    {
+      "page_number": 1,
+      "title": "单页幻灯片的主标题",
+      "core_intent": "这一页需要用来讲什么，核心意图是什么？"
+    }
+  ]
+}
+要求：slide_outlines 数组长度必须满足用户要求的总 PPT 页数，构建好起承转合的故事线。
+`;
+      userPrompt = "主题: \"" + topic + "\"\n补充资料/要求: \"" + (content || '无') + "\"\n绝不遗漏核心要求，严格按照要求生成。立即返回 JSON：";
+    } 
+    // 阶段二：根据用户在前端审阅过的大纲数据，精确发散为单页幻灯片细节
+    else if (mode === 'generate_slides') {
+      systemPrompt = `
+你是一位顶级 PPT 呈现设计师。教学大纲和结构已经固定，你的任务是按部就班地把大纲转化为丰富高保真的单页幻灯片资料。
+请严格输出合法 JSON 字符串，格式如下：
+{
   "slides": [
     {
       "id": "随机短id如_abc123",
-      "type": "cover", 
-      "title": "大标题或封面标题",
-      "content": "核心幻灯片正文内容。注意：【绝对禁止】使用 Markdown（如 ###, **, * 等）！请用纯净文字和空行排版，保持高级科技感，不要有任何特殊符号占位符。",
+      "type": "cover 或者 slide", 
+      "title": "大标题",
+      "content": "核心内容文案。注意：【禁止】使用 Markdown！保持纯净文字排版，要凸显硬核科技感，文字精炼，严禁废话。",
       "notes": "这页PPT配给老师看的详细讲课逐字稿或提示。"
     }
   ]
 }
-
-要求：
-1. lessons_outline 必须与要求生成的 total_lessons 数量一致或覆盖首周进程。
-2. 每节课必须提炼 2-3 个明确的 objective，必须标注 Bloom 认知层级（记忆/理解/应用/分析/评价/创造）。
 `;
-      userPrompt = "主题: \"" + topic + "\"\n补充资料/要求: \"" + (content || '无') + "\"\n绝不遗漏核心要求，严格按照要求生成，保持体系级的专业性。立即返回 JSON：";
-    } 
-    // 模式二：针对某个孤立的 Slide 进行微调重生成
+      userPrompt = "预审好的大纲结构：\n" + JSON.stringify(data.slideOutlines) + "\n\n请针对上述每一页大纲生成一张详尽的高保真幻灯片，严格对齐意图和故事线。返回 JSON：";
+    }
+    // 模式：针对某个孤立的 Slide 进行微调重生成
     else if (mode === 'regenerate_slide') {
       systemPrompt = `
 你是一位 PPT 微调润色专家。用户将提供目前某一页幻灯片的完整 JSON 数据，以及对其进行修改的要求指令。
