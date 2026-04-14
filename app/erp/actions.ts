@@ -42,7 +42,7 @@ export async function getStudents() {
     console.error("Error fetching students:", error);
     return [];
   }
-  return data;
+  return data || [];
 }
 
 /**
@@ -56,7 +56,7 @@ export async function getCourses() {
     .order("name");
   
   if (error) return [];
-  return data;
+  return data || [];
 }
 
 /**
@@ -77,7 +77,7 @@ export async function getClasses() {
   const { data, error } = await query;
   
   if (error) return [];
-  return data;
+  return data || [];
 }
 
 /**
@@ -426,7 +426,7 @@ export async function getEnrollments() {
   const { data, error } = await query;
   
   if (error) return [];
-  return data;
+  return data || [];
 }
 
 /**
@@ -510,7 +510,7 @@ export async function addStudent(studentData: any) {
   if (error) throw error;
   revalidatePath("/erp/students");
   revalidateTag("erp-data");
-  return data;
+  return data || [];
 }
 
 /**
@@ -581,7 +581,7 @@ export async function addCourse(courseData: {
   if (error) throw error;
   revalidatePath("/erp/courses");
   revalidateTag("erp-data");
-  return data;
+  return data || [];
 }
 
 /**
@@ -604,7 +604,7 @@ export async function addClass(classData: {
   if (error) throw error;
   revalidatePath("/erp/classes");
   revalidateTag("erp-data");
-  return data;
+  return data || [];
 }
 
 /**
@@ -647,7 +647,7 @@ export async function getEduCoursesWithDetails() {
   }
   
   // 对于 edu_lessons 需要按照 lesson_number 排序
-  const formattedData = data.map(course => ({
+  const formattedData = (data || []).map(course => ({
      ...course,
      edu_lessons: (course.edu_lessons || []).sort((a: any, b: any) => a.lesson_number - b.lesson_number),
      edu_lesson_plans: (course.edu_lesson_plans || []).sort((a: any, b: any) => b.version - a.version) // 取最新版本
@@ -822,7 +822,7 @@ export async function getInventoryItems() {
     console.error("Error fetching inventory:", error);
     return [];
   }
-  return data;
+  return data || [];
 }
 
 /**
@@ -900,7 +900,7 @@ export async function getGrowthArchives() {
     console.error("Error fetching growth archives:", error);
     return [];
   }
-  return data;
+  return data || [];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1264,7 +1264,7 @@ export async function getCampusesList() {
     .order("created_at", { ascending: true });
   
   if (error) return [];
-  return data;
+  return data || [];
 }
 
 /**
@@ -1281,7 +1281,7 @@ export async function getStaffList() {
     .order("created_at", { ascending: false });
 
   if (error) return [];
-  return data;
+  return data || [];
 }
 
 /**
@@ -1354,7 +1354,7 @@ export async function getLeads() {
     console.error("Error fetching leads:", error);
     return [];
   }
-  return data;
+  return data || [];
 }
 
 export async function addLead(leadData: any) {
@@ -1455,5 +1455,5 @@ export async function getLedgerLogs(limit = 100) {
     console.error("查账失败:", error);
     return [];
   }
-  return data;
+  return data || [];
 }

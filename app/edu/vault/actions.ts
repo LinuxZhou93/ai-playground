@@ -26,7 +26,7 @@ export async function getEduAssets(category?: string) {
     console.error("Error fetching assets:", error);
     return [];
   }
-  return data;
+  return data || [];
 }
 
 // 2. 将文件上传到 Supabase Storage, 然后在数据表插入记录

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { 
   Network, Sparkles, Download, FileText, Plus,
   Wand2, Image as ImageIcon, LayoutTemplate, PenTool,
@@ -89,6 +90,41 @@ export default function GeneratorPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState<{ success: boolean; message: string } | null>(null);
   
+  // --- 草稿保护系统 ---
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem("fc_draft_slides");
+    if (saved) {
+      // 延时一点弹出让主界面先呈现
+      setTimeout(() => {
+        if (window.confirm("📡 侦测到您上次编辑的课件草稿，是否恢复？")) {
+          try {
+            const payload = JSON.parse(saved);
+            if (payload.slides?.length > 0) {
+              setSlides(payload.slides);
+              setTopic(payload.topic || "");
+              setLessonPlan(payload.lessonPlan || "");
+              setCourseMeta(payload.courseMeta || null);
+              toast.success("草稿已成功恢复！");
+            }
+          } catch (e) {}
+        } else {
+          localStorage.removeItem("fc_draft_slides");
+        }
+      }, 500);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mounted && slides.length > 0) {
+      const payload = { slides, topic, lessonPlan, courseMeta };
+      localStorage.setItem("fc_draft_slides", JSON.stringify(payload));
+    }
+  }, [slides, topic, lessonPlan, courseMeta, mounted]);
+  // --- 结束草稿保护系统 ---
+
   const activeSlide = slides[activeSlideIndex] || null;
 
   // 构建完整的 prompt（将所有中控台参数注入）
@@ -103,11 +139,12 @@ export default function GeneratorPage() {
 
   // 主生成
   const handleGenerateAll = async () => {
-    if (!topic) return;
+    if (!topic || isGeneratingAll) return;
     setIsGeneratingAll(true);
     setSlides([]);
     setCourseMeta(null);
     setPublishResult(null);
+    localStorage.removeItem("fc_draft_slides"); // 新生成时清空旧草稿
     try {
       const res = await fetch('/api/edu/generate', {
         method: 'POST',
@@ -125,9 +162,13 @@ export default function GeneratorPage() {
         setLessonPlan(result.data.lesson_plan || "");
         setCourseMeta(result.data.course_meta || null);
         setActiveSlideIndex(0);
+        toast.success("全景课程神经重构完成！");
+      } else {
+        toast.error("生成异常：" + (result.error || "未知原因"));
       }
     } catch (error) {
       console.error(error);
+      toast.error("网络连接或响应解析异常，生成失败");
     } finally {
       setIsGeneratingAll(false);
     }
@@ -135,7 +176,7 @@ export default function GeneratorPage() {
 
   // 单页微调重生成
   const handleRegenerateSlide = async () => {
-    if (!activeSlide || !aiPrompt) return;
+    if (!activeSlide || !aiPrompt || isTweaking) return;
     setIsTweaking(true);
     try {
       const res = await fetch('/api/edu/generate', {
@@ -156,11 +197,11 @@ export default function GeneratorPage() {
         });
         setAiPrompt("");
       } else {
-        alert("⚠️ 微调生成失败: " + (result.error || "大模型未按预期返回数据格式"));
+        toast.error("微调生成失败: " + (result.error || "大模型未按预期返回数据格式"));
       }
     } catch (error) {
       console.error(error);
-      alert("⚠️ 网络连接或响应解析异常，请重试");
+      toast.error("网络连接或响应解析异常，请重试");
     } finally {
       setIsTweaking(false);
     }
@@ -211,30 +252,50 @@ export default function GeneratorPage() {
       pres.title = sanitizeXml(courseMeta?.name) || "AI自动生成幻灯片";
       pres.layout = "LAYOUT_16x9";
 
-      slides.forEach((s) => {
+      slides.forEach((s, idx) => {
         const slide = pres.addSlide();
         slide.background = { color: "0B0E14" };
 
         if (s.type === 'cover') {
+          // 封面高级感点缀
+          slide.addShape(pres.ShapeType.rect, { x: "40%", y: "30%", w: "20%", h: "1%", fill: { color: "3B82F6" } });
           slide.addText(sanitizeXml(s.title), { 
-            x: "10%", y: "40%", w: "80%", h: "20%",
-            fontSize: 48, bold: true, color: "FFFFFF", align: "center"
+            x: "10%", y: "35%", w: "80%", h: "20%",
+            fontSize: 48, bold: true, color: "FFFFFF", align: "center", charSpacing: 2
           });
           if (s.content) {
             slide.addText(sanitizeXml(s.content), { 
-              x: "10%", y: "65%", w: "80%", h: "15%",
+              x: "10%", y: "55%", w: "80%", h: "15%",
               fontSize: 24, color: "A0AEC0", align: "center", breakLine: true
             });
           }
+          // 封面科技感印章水印
+          slide.addText("FutureClass 科创基地", { x: "5%", y: "85%", w: "90%", h: "10%", fontSize: 14, color: "334155", align: "center", bold: true, charSpacing: 8 });
         } else {
-          slide.addShape(pres.ShapeType.rect, { x: 0, y: "10%", w: "3%", h: "10%", fill: { color: "3B82F6" } });
+          // 内页高级感光带与层次
+          slide.addShape(pres.ShapeType.rect, { x: 0, y: "8%", w: "4%", h: "10%", fill: { color: "3B82F6" } });
+          slide.addShape(pres.ShapeType.rect, { x: "4%", y: "8%", w: "1%", h: "10%", fill: { color: "4F46E5" } });
+          
           slide.addText(sanitizeXml(s.title), { 
-            x: "5%", y: "10%", w: "90%", h: "10%",
+            x: "7%", y: "8%", w: "85%", h: "10%",
             fontSize: 32, bold: true, color: "FFFFFF"
           });
+          
+          slide.addShape(pres.ShapeType.rect, { x: "5%", y: "20%", w: "90%", h: "0.2%", fill: { color: "1E293B" } });
+          
           slide.addText(sanitizeXml(s.content), { 
-            x: "5%", y: "25%", w: "90%", h: "60%",
-            fontSize: 22, color: "E2E8F0", breakLine: true, bullet: false
+            x: "5%", y: "25%", w: "90%", h: "62%",
+            fontSize: 22, color: "E2E8F0", breakLine: true, bullet: false, lineSpacing: 36
+          });
+
+          // 全局页码与版权印记
+          slide.addText(`© FutureClass 教研中心`, { 
+            x: "5%", y: "92%", w: "50%", h: "5%",
+            fontSize: 12, color: "475569", italic: true
+          });
+          slide.addText(`SLIDE ${(idx + 1).toString().padStart(2, '0')}`, { 
+            x: "85%", y: "92%", w: "10%", h: "5%",
+            fontSize: 16, color: "3B82F6", bold: true, align: "right", charSpacing: 2
           });
         }
         
@@ -245,10 +306,10 @@ export default function GeneratorPage() {
 
       const safeFileName = `[FutureClass] ${sanitizeXml(courseMeta?.name) || sanitizeXml(topic) || '课件'}`.replace(/[/\\?%*:|"<>]/g, '-');
       await pres.writeFile({ fileName: `${safeFileName}.pptx` });
-      alert("✅ 课件导出成功！");
+      toast.success("课件导出成功！");
     } catch (error: any) {
       console.error("PPTX 导出失败", error);
-      alert("⚠️ 导出失败，PPT 模块未就绪或出现异常: " + (error?.message || String(error)));
+      toast.error("导出失败，PPT 模块未就绪或出现异常: " + (error?.message || String(error)));
     }
   };
 
