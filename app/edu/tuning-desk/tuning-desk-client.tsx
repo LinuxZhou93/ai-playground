@@ -35,6 +35,8 @@ function CollabEditor({ roomName, initialContent, currentUser }: { roomName: str
       if (provider) provider.destroy();
       if (ydoc) ydoc.destroy();
     }
+  }, [roomName]);
+
   if (!ydocState) {
     return <div className="animate-pulse bg-slate-900 border border-slate-800 rounded-xl p-4 min-h-24 flex items-center justify-center text-slate-500 text-xs">🚀 正在建立高频联机量子通道...</div>
   }
@@ -351,7 +353,7 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                             </h4>
                             <CollabEditor 
                               roomName={`titan-collab-lesson-${activeLesson.id}-objectives`}
-                              initialContent={activeLesson.objectives?.length > 0 ? "<ul>" + activeLesson.objectives.map((o: string) => `<li>${o}</li>`).join("") + "</ul>" : "<p>未定义拆解目标，可交由 AI 补全。</p>"}
+                              initialContent={Array.isArray(activeLesson.objectives) && activeLesson.objectives.length > 0 ? "<ul>" + activeLesson.objectives.map((o: string) => `<li>${o}</li>`).join("") + "</ul>" : `<p>${activeLesson.objectives || "未定义拆解目标，可交由 AI 补全。"}</p>`}
                               currentUser={currentUser}
                             />
                          </div>
@@ -388,7 +390,7 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
 
                    {/* 会合并显示绑定的 Slide 课件 */}
                    <div className="flex-1 p-8 overflow-y-auto custom-scrollbar flex flex-col items-center">
-                      {activePlan && activeLesson.slide_index !== null && activePlan.slides[activeLesson.slide_index] ? (
+                      {activePlan && activeLesson.slide_index !== null && Array.isArray(activePlan.slides) && activePlan.slides[activeLesson.slide_index] ? (
                          <div className="w-full max-w-[800px] space-y-6">
                             <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center justify-between">
                                <span>映射关联的 PPT 课件</span>
@@ -403,7 +405,7 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                                <div className="mb-4">
                                  <CollabEditor 
                                    roomName={`titan-collab-slide-${activePlan.id}-${activeLesson.slide_index}-title`}
-                                   initialContent={`<h2>${activePlan.slides[activeLesson.slide_index].title}</h2>`}
+                                   initialContent={`<h2>${activePlan.slides[activeLesson.slide_index]?.title || "未命名标题"}</h2>`}
                                    currentUser={currentUser}
                                  />
                                </div>
@@ -411,7 +413,7 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                                <div className="flex-1 overflow-hidden flex flex-col">
                                  <CollabEditor 
                                    roomName={`titan-collab-slide-${activePlan.id}-${activeLesson.slide_index}-content`}
-                                   initialContent={`<div class="text-lg font-mono text-slate-300"><p>${activePlan.slides[activeLesson.slide_index].content.replace(/\n/g, '</p><p>')}</p></div>`}
+                                   initialContent={`<div class="text-lg font-mono text-slate-300"><p>${String(activePlan.slides[activeLesson.slide_index]?.content || "").replace(/\n/g, '</p><p>')}</p></div>`}
                                    currentUser={currentUser}
                                  />
                                </div>
