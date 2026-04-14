@@ -526,7 +526,11 @@ class TitanAIAssistant {
                             ipcRenderer.send('return-home');
                         } catch (e) {
                             // Fallback for non-Electron or pure web environment
-                            location.href = 'index.html'; 
+                            if (location.pathname.includes('/carbon-x/slides/')) {
+                                location.href = '../../course-factory.html?theme=碳基极客工程Carbon-X';
+                            } else {
+                                location.href = 'index.html';
+                            }
                         }
                     }
                 };

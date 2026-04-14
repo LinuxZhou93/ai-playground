@@ -792,10 +792,16 @@ function GenerationPreviewContent() {
       if (settings.ttsEnabled && settings.ttsProviderId !== 'browser-native-tts') {
         const ttsProviderConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
         const speechActions = (data.scene.actions || []).filter(
-          (a: { type: string; text?: string }) => a.type === 'speech' && a.text,
+          (a: { type: string; text?: string }) => {
+            if (a.type !== 'speech' || !a.text) return false;
+            // Remove all whitespace, and all punctuation (including Chinese punctuation and brackets)
+            const textWithoutPunctuation = a.text.replace(/[\s\p{P}＋＝]/gu, '');
+            return textWithoutPunctuation.length > 0;
+          }
         );
 
         let ttsFailCount = 0;
+        const errorMessages: string[] = [];
         for (const action of speechActions) {
           const audioId = `tts_${action.id}`;
           action.audioId = audioId;
@@ -816,11 +822,21 @@ function GenerationPreviewContent() {
             });
             if (!resp.ok) {
               ttsFailCount++;
+              let errDetail = `HTTP ${resp.status}`;
+              try {
+                const errJson = await resp.json();
+                errDetail += `: ${errJson.error || JSON.stringify(errJson)}`;
+              } catch {
+                const errText = await resp.text().catch(() => '');
+                errDetail += `: ${errText.slice(0, 100)}`;
+              }
+              errorMessages.push(errDetail);
               continue;
             }
             const ttsData = await resp.json();
             if (!ttsData.success) {
               ttsFailCount++;
+              errorMessages.push(`API Error: ${ttsData.error || 'Unknown'}`);
               continue;
             }
             const binary = atob(ttsData.base64);
@@ -835,12 +851,13 @@ function GenerationPreviewContent() {
             });
           } catch (err) {
             log.warn(`[TTS] Failed for ${audioId}:`, err);
+            errorMessages.push(`Client Exception: ${(err as Error).message}`);
             ttsFailCount++;
           }
         }
 
         if (ttsFailCount > 0 && speechActions.length > 0) {
-          throw new Error(t('generation.speechFailed'));
+          throw new Error(t("generation.speechFailed") + ` (${errorMessages[0]})`);
         }
       }
 

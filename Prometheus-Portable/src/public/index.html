@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PROMETHEUS UPLINK</title>
+    <!-- PWA Support -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <style>
+        :root {
+            --bg-color: #050a14;
+            --panel-color: #0f172a;
+            --primary-color: #00f0ff;
+            --secondary-color: #ff003c;
+            --text-color: #94a3b8;
+            --terminal-bg: #000000;
+            --terminal-text: #00ff00;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            /* Use dynamic viewport height (fallback to 100vh) */
+            height: calc(var(--vh, 1vh) * 100);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        header {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--primary-color);
+        }
+
+        #status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #333;
+            box-shadow: 0 0 5px #333;
+        }
+
+        #status-indicator.online {
+            background-color: var(--secondary-color);
+            box-shadow: 0 0 10px var(--secondary-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Terminal Window */
+        #log-window {
+            flex-grow: 1;
+            background-color: var(--terminal-bg);
+            border: 1px solid #333;
+            padding: 10px;
+            font-size: 0.8rem;
+            color: var(--terminal-text);
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #111;
+            padding-bottom: 2px;
+        }
+
+        .log-cmd {
+            color: var(--primary-color);
+            opacity: 0.8;
+        }
+
+        .log-out {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-err {
+            color: var(--secondary-color);
+        }
+
+        /* Control Panel */
+        #control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 15px;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        button:active {
+            background: var(--primary-color);
+            color: #000;
+            transform: translateY(2px);
+        }
+
+        button.danger {
+            border-color: var(--secondary-color);
+            color: var(--secondary-color);
+            background: rgba(255, 0, 60, 0.1);
+        }
+
+        button.danger:active {
+            background: var(--secondary-color);
+            color: #fff;
+        }
+
+        /* Command Input */
+        #custom-cmd-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex-grow: 1;
+            background: #0f172a;
+            border: 1px solid #333;
+            color: white;
+            padding: 10px;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header Removed by user request -->
+
+    <!-- Visual Uplink (Maximized) -->
+    <!-- Changed: align-items: start (Top Align), flex: 1 (Take remaining space) -->
+    <div id="visual-uplink"
+        style="flex: 1; background: #000; position: relative; display: flex; align-items: flex-start; justify-content: center; overflow: hidden; width: 100%;">
+        <div
+            style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 4px 8px; font-size: 12px; color: rgba(255,255,255,0.5); pointer-events: none; border-radius: 4px; z-index: 10;">
+            LIVE</div>
+        <!-- Style changed: allow JS to control size -->
+        <img id="live-feed" src=""
+            style="display: block; max-width: 100%; max-height: 100%; box-shadow: 0 0 20px rgba(0,255,255,0.1);"
+            alt="Live View">
+    </div>
+
+    <!-- Bottom Controls (Compact Footer) -->
+    <!-- Changed: position: relative/static (Flex Flow) - No longer overlaps video -->
+    <div id="bottom-bar"
+        style="flex: 0 0 auto; width: 100%; padding: 10px; padding-bottom: calc(env(safe-area-inset-bottom, 10px) + 10px); background: #0f172a; display: flex; gap: 10px; align-items: center; border-top: 1px solid #333; box-sizing: border-box; z-index: 1000;">
+        <input type="text" id="chat-input" placeholder="Type..."
+            style="flex-grow: 1; padding: 12px; border: 1px solid #333; background: #000; color: white; border-radius: 20px; padding-left: 20px; font-size: 16px;">
+        <button onclick="sendChat()"
+            style="width: 70px; border-radius: 20px; padding: 12px; margin: 0; color: #00f0ff; border: 1px solid #00f0ff; background: transparent;">SEND</button>
+        <div id="log-window" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Fix for mobile 100vh issue (address bar)
+        function setVh() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            resizeVideo(); // Resize video on viewport change
+        }
+        window.addEventListener('resize', setVh);
+        setVh();
+    </script>
+
+    <script>
+        const statusInd = document.getElementById('status-indicator');
+        const logWindow = document.getElementById('log-window');
+        const cmdInput = document.getElementById('cmd-input');
+        const liveFeed = document.getElementById('live-feed');
+        const container = document.getElementById('visual-uplink');
+
+        // [NEW] Robust Video Resizer
+        // Force the IMG element to be the EXACT size of the video content
+        // This lets the parent Flexbox handle centering (black bars), 
+        // and makes getBoundingClientRect() accurate for clicks.
+        function resizeVideo() {
+            if (!liveFeed.naturalWidth) return;
+
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
+            const nw = liveFeed.naturalWidth;
+            const nh = liveFeed.naturalHeight;
+
+            const scale = Math.min(cw / nw, ch / nh);
+
+            liveFeed.style.width = (nw * scale) + 'px';
+            liveFeed.style.height = (nh * scale) + 'px';
+            // Disable object-fit, rely on explicit size
+            liveFeed.style.objectFit = "fill";
+        }
+
+        liveFeed.onload = resizeVideo;
+        window.addEventListener('resize', resizeVideo);
+        setInterval(resizeVideo, 2000); // Periodic check for layout shifts
+
+        // Check health
+        async function checkHealth() {
+            try {
+                const res = await fetch('/api/status');
+                if (res.ok) statusInd.classList.add('online');
+                else statusInd.classList.remove('online');
+            } catch (e) {
+                statusInd.classList.remove('online');
+            }
+        }
+        setInterval(checkHealth, 5000);
+        checkHealth();
+        // Visual Uplink Loop (MJPEG Stream)
+        // Just set the src once, the browser maintains the open connection for the stream
+        liveFeed.src = `/api/stream`;
+
+        // Mouse/Touch Handler
+        const touchState = {
+            startX: 0,
+            startY: 0,
+            startTime: 0,
+            isDragging: false,
+            lastScroll: 0,
+            lastTapTime: 0,
+            lastTapX: 0,
+            lastTapY: 0
+        };
+
+        liveFeed.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent default browser scrolling
+            const touch = e.touches[0];
+            touchState.startX = touch.clientX;
+            touchState.startY = touch.clientY;
+            touchState.startTime = Date.now();
+            touchState.isDragging = false;
+        }, { passive: false });
+
+        liveFeed.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const dx = touch.clientX - touchState.startX;
+            const dy = touch.clientY - touchState.startY;
+
+            // Threshold to consider it a drag/scroll (降低阈值，更灵敏)
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                touchState.isDragging = true;
+
+                // Throttle scroll events (50ms for smoother scrolling)
+                const now = Date.now();
+                if (now - touchState.lastScroll > 50) {
+                    // Determine primary direction
+                    let direction = '';
+                    if (Math.abs(dy) > Math.abs(dx)) {
+                        // Vertical
+                        direction = dy < 0 ? 'down' : 'up';
+                    } else {
+                        // Horizontal
+                        direction = dx < 0 ? 'right' : 'left';
+                    }
+
+                    sendScroll(direction);
+                    touchState.lastScroll = now;
+
+                    // Visual feedback for scroll
+                    if (navigator.vibrate) navigator.vibrate(10);
+
+                    // Reset start to allow continuous scrolling
+                    touchState.startX = touch.clientX;
+                    touchState.startY = touch.clientY;
+                }
+            }
+        }, { passive: false });
+
+        liveFeed.addEventListener('touchend', (e) => {
+            const duration = Date.now() - touchState.startTime;
+            if (!touchState.isDragging && duration < 300) {
+                // It was a Tap
+                const touch = e.changedTouches[0];
+                const now = Date.now();
+                const tapX = touch.clientX;
+                const tapY = touch.clientY;
+
+                // Check for double tap (放宽限制：800ms and 100px)
+                const timeSinceLastTap = now - touchState.lastTapTime;
+                const distanceFromLastTap = Math.sqrt(
+                    Math.pow(tapX - touchState.lastTapX, 2) +
+                    Math.pow(tapY - touchState.lastTapY, 2)
+                );
+
+                if (timeSinceLastTap < 800 && distanceFromLastTap < 100) {
+                    // Double Tap detected!
+                    handleDoubleClick(tapX, tapY);
+                    // Reset to prevent triple tap
+                    touchState.lastTapTime = 0;
+                } else {
+                    // Single Tap
+                    handleClick(tapX, tapY);
+                    touchState.lastTapTime = now;
+                    touchState.lastTapX = tapX;
+                    touchState.lastTapY = tapY;
+                }
+            }
+        });
+
+        async function sendScroll(direction) {
+            try {
+                await fetch('/api/scroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ direction })
+                });
+            } catch (e) {
+                console.error("Scroll failed", e);
+            }
+        }
+
+        async function handleClick(clientX, clientY) {
+            // Because we resize the IMG element to match the content exactly,
+            // getBoundingClientRect returns the EXACT video pixels.
+            // No manual letterbox calculation needed!
+            const rect = liveFeed.getBoundingClientRect();
+
+            const x = (clientX - rect.left) / rect.width;
+            const y = (clientY - rect.top) / rect.height;
+
+            // Debug Log
+            addLog(`Tap: ${x.toFixed(3)}, ${y.toFixed(3)}`, 'log-cmd');
+
+            // Sanity Check
+            if (x < 0 || x > 1 || y < 0 || y > 1) return;
+
+            // Enhanced Visual Feedback (Ripple with animation)
+            const ripple = document.createElement('div');
+            ripple.style.position = 'absolute';
+            ripple.style.left = clientX + 'px';
+            ripple.style.top = clientY + 'px';
+            ripple.style.width = '40px';
+            ripple.style.height = '40px';
+            ripple.style.background = 'radial-gradient(circle, rgba(0,240,255,0.8) 0%, rgba(0,240,255,0) 70%)';
+            ripple.style.borderRadius = '50%';
+            ripple.style.transform = 'translate(-50%, -50%) scale(0)';
+            ripple.style.pointerEvents = 'none';
+            ripple.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+            ripple.style.opacity = '1';
+            document.body.appendChild(ripple);
+
+            // Trigger animation
+            requestAnimationFrame(() => {
+                ripple.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                ripple.style.opacity = '0';
+            });
+
+            setTimeout(() => ripple.remove(), 300);
+
+            // Haptic feedback
+            if (navigator.vibrate) navigator.vibrate(20);
+
+            try {
+                await fetch('/api/click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x, y })
+                });
+            } catch (e) {
+                console.error("Click failed", e);
+            }
+        }
+
+        async function handleDoubleClick(clientX, clientY) {
+            const rect = liveFeed.getBoundingClientRect();
+
+            const x = (clientX - rect.left) / rect.width;
+            const y = (clientY - rect.top) / rect.height;
+
+            // Debug Log
+            addLog(`Double Tap: ${x.toFixed(3)}, ${y.toFixed(3)}`, 'log-cmd');
+
+            // Sanity Check
+            if (x < 0 || x > 1 || y < 0 || y > 1) return;
+
+            // Enhanced visual feedback for double click (different color)
+            const ripple = document.createElement('div');
+            ripple.style.position = 'absolute';
+            ripple.style.left = clientX + 'px';
+            ripple.style.top = clientY + 'px';
+            ripple.style.width = '50px';
+            ripple.style.height = '50px';
+            ripple.style.background = 'radial-gradient(circle, rgba(255,0,60,0.9) 0%, rgba(255,0,60,0) 70%)';
+            ripple.style.borderRadius = '50%';
+            ripple.style.transform = 'translate(-50%, -50%) scale(0)';
+            ripple.style.pointerEvents = 'none';
+            ripple.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+            ripple.style.opacity = '1';
+            document.body.appendChild(ripple);
+
+            requestAnimationFrame(() => {
+                ripple.style.transform = 'translate(-50%, -50%) scale(2)';
+                ripple.style.opacity = '0';
+            });
+
+            setTimeout(() => ripple.remove(), 300);
+
+            // Stronger haptic feedback for double click
+            if (navigator.vibrate) navigator.vibrate([20, 50, 20]);
+
+            try {
+                await fetch('/api/doubleclick', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x, y })
+                });
+            } catch (e) {
+                console.error("Double click failed", e);
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendCustomCmd();
+        }
+
+        function sendCustomCmd() {
+            const cmd = cmdInput.value;
+            if (!cmd) return;
+            runCmd(cmd);
+            cmdInput.value = '';
+        }
+
+        async function sendChat() {
+            const chatInput = document.getElementById('chat-input');
+            const text = chatInput.value;
+            if (!text) return;
+
+            const btn = document.querySelector('button[onclick="sendChat()"]');
+            const originalText = btn.innerText;
+            btn.innerText = 'SENDING...';
+            btn.disabled = true;
+
+            addLog(`[CHAT] ${text}`, 'log-cmd');
+            chatInput.value = '';
+
+            try {
+                // Set a timeout for the fetch
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                await fetch('/api/type', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+            } catch (e) {
+                addLog(`Chat Error: ${e.message}`, 'log-err');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function clearLog() {
+            logWindow.innerHTML = '<div class="log-entry">Log cleared.</div>';
+        }
+
+        async function runCmd(command) {
+            addLog(`> ${command}`, 'log-cmd');
+
+            try {
+                const res = await fetch('/api/cmd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command })
+                });
+                const data = await res.json();
+
+                if (data.output) addLog(data.output, 'log-out');
+                if (data.error) addLog(data.error, 'log-err');
+
+            } catch (e) {
+                addLog(`Connection Error: ${e.message}`, 'log-err');
+            }
+        }
+
+        function addLog(text, className) {
+            const div = document.createElement('div');
+            div.className = `log-entry ${className || ''}`;
+            div.textContent = text;
+            logWindow.appendChild(div);
+            logWindow.scrollTop = logWindow.scrollHeight;
+        }
+    </script>
+</body>
+
+</html>

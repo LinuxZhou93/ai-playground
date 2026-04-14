@@ -1059,7 +1059,8 @@ export const useSettingsStore = create<SettingsState>()(
                 const serverTtsIds = Object.keys(data.tts) as TTSProviderId[];
                 if (
                   serverTtsIds.length > 0 &&
-                  !newTTSConfig[state.ttsProviderId]?.isServerConfigured
+                  !newTTSConfig[state.ttsProviderId]?.isServerConfigured &&
+                  state.ttsProviderId !== 'volcengine-tts'
                 ) {
                   autoTtsProvider = serverTtsIds[0];
                   autoTtsVoice = DEFAULT_TTS_VOICES[autoTtsProvider] || 'default';

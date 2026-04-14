@@ -178,7 +178,11 @@ async function generateTTSForScene(
   const providerId = useSettingsStore.getState().ttsProviderId;
   scene.actions = splitLongSpeechActions(scene.actions || [], providerId);
   const speechActions = scene.actions.filter(
-    (a): a is SpeechAction => a.type === 'speech' && !!a.text,
+    (a): a is SpeechAction => {
+      if (a.type !== 'speech' || !a.text) return false;
+      const textWithoutPunctuation = a.text.replace(/[\s\p{P}＋＝]/gu, '');
+      return textWithoutPunctuation.length > 0;
+    }
   );
   if (speechActions.length === 0) return { success: true, failedCount: 0 };
 

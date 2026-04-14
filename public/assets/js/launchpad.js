@@ -687,12 +687,24 @@ window.Launchpad = (() => {
         dock.style.justifyContent = 'flex-start'; // Align left so scrolling works naturally
 
         // --- TEE INTEGRATION ---
-        const evolvedApps = window.TitanEvolutionEngine ? 
+        let evolvedApps = window.TitanEvolutionEngine ? 
             window.TitanEvolutionEngine.getEvolvedApps(apps) : apps;
 
+        // Force "脑科学与类脑智能" to always be in the dock at a fixed leading position (e.g., 1st or 2nd after system apps)
+        const FIXED_APP_NAME = '脑科学与类脑智能';
+        const fixedApp = apps.find(a => a.name === FIXED_APP_NAME);
+        if (fixedApp) {
+            // Remove if already exists to avoid duplicates
+            evolvedApps = evolvedApps.filter(a => a.name !== FIXED_APP_NAME);
+            // Insert it at the front (after the 0th item which might be a system core app)
+            evolvedApps.splice(0, 0, fixedApp);
+            // Limit to 15 items max in dock to prevent overflow if TEE returned too many
+            evolvedApps = evolvedApps.slice(0, 15);
+        }
+
         evolvedApps.forEach((app, i) => {
-            // Do not render full academic/discipline hubs in the bottom dock to save space
-            if (app.link && app.link.startsWith('hub-')) return;
+            // Do not render full academic/discipline hubs in the bottom dock to save space, BUT always render the fixed app
+            if (app.link && app.link.startsWith('hub-') && app.name !== FIXED_APP_NAME) return;
 
             const item = document.createElement('div');
             item.className = 'dock-icon-box';

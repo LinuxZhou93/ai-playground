@@ -180,8 +180,8 @@ async function generateVolcengineTTS(
       },
       user: { uid: "titan_student" },
       audio: {
-          voice_type: "zh_male_shaonianzixin_uranus_bigtts", 
-          encoding: "mp3",
+          voice_type: config.voice || "zh_male_shaonianzixin_uranus_bigtts",
+          encoding: "wav", // Use wav instead of mp3 to avoid 100ms encoder padding gaps
           speed_ratio: config.speed || 1.0,
           volume_ratio: 1.0,
           pitch_ratio: 1.0
@@ -211,7 +211,7 @@ async function generateVolcengineTTS(
 
   return {
     audio: bytes,
-    format: 'mp3',
+    format: 'wav',
   };
 }
 
