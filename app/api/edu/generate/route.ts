@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const maxDuration = 60;
+
 function generateRandomId() {
   return Math.random().toString(36).substring(2, 9);
 }
@@ -111,7 +113,7 @@ export async function POST(req: Request) {
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    const timeoutId = setTimeout(() => controller.abort(), 55000);
 
     const completionResponse = await fetch('https://backgrace.com/v1/chat/completions', {
         method: 'POST',

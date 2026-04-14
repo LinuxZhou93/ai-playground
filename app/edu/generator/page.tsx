@@ -700,7 +700,7 @@ export default function GeneratorPage() {
                     className="px-12 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-lg flex items-center gap-3 transition-all shadow-2xl shadow-emerald-500/30 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     {isGeneratingAll ? <RefreshCcw className="h-5 w-5 animate-spin" /> : <Rocket className="h-5 w-5" />}
-                    {isGeneratingAll ? '高保真图文重构中...' : '2. 确认大纲，神经重构高保真课件'}
+                    {isGeneratingAll ? '高保真图文重构中...' : '2. 确认大纲，生成课件'}
                   </button>
                 </div>
               </div>
