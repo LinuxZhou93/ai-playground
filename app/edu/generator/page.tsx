@@ -7,18 +7,18 @@ import {
   Wand2, Image as ImageIcon, LayoutTemplate, PenTool,
   RefreshCcw, Send, FileCode2, Rocket, CheckCircle2, AlertCircle,
   Users, GraduationCap, BookOpen, Layers, Palette, SlidersHorizontal,
-  MonitorDown, Zap, MonitorPlay, X 
+  MonitorDown, Zap, MonitorPlay, X, HelpCircle, FileCheck
 } from "lucide-react";
 
 type Block = {
-  type: "text" | "image_prompt" | "mermaid" | "code";
+  type: "text" | "image_prompt" | "mermaid" | "code" | "question" | "option";
   content: string;
 };
 
 type Slide = {
   id: string;
   type: string;
-  layoutVariant?: "default" | "split-comparison" | "grid-3" | "timeline" | "focus";
+  layoutVariant?: "default" | "split-comparison" | "grid-3" | "timeline" | "focus" | "quiz-4-grid";
   title: string;
   content?: string; // Fallback for old simple rendering
   blocks?: Block[]; // New multimodality block engine
@@ -81,6 +81,7 @@ export default function GeneratorPage() {
   const [topic, setTopic] = useState("");
   const [referenceText, setReferenceText] = useState("");
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [isGeneratingQuizzes, setIsGeneratingQuizzes] = useState(false);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [slideOutlines, setSlideOutlines] = useState<any[] | null>(null);
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
@@ -308,6 +309,65 @@ export default function GeneratorPage() {
     }
   };
 
+  // 生成互动随堂测验
+  const handleGenerateQuizzes = async () => {
+    if (!topic.trim() || slides.length === 0 || isGeneratingQuizzes) return;
+    setIsGeneratingQuizzes(true);
+    try {
+      const prompt = buildFullPrompt();
+      const res = await fetch('/api/edu/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'generate_quizzes', topic, prompt })
+      });
+      const result = await res.json();
+      if (result.success && result.data?.quizzes) {
+        // 分配随机 ID 给到这些新建的测试题幻灯片
+        const formattedQuizzes = result.data.quizzes.map((q: any) => ({
+          ...q,
+          id: Math.random().toString(36).substring(2, 9)
+        }));
+        setSlides(prev => [...prev, ...formattedQuizzes]);
+        setActiveSlideIndex(slides.length); // 跳转到第一道题
+        toast.success("🧠 互动随堂小测生成完毕，已自动挂载到课件末尾！");
+      } else {
+        toast.error("生成测验失败: " + (result.error || "大模型未响应正确格式"));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("网络连接或响应解析异常，请重试");
+    } finally {
+      setIsGeneratingQuizzes(false);
+    }
+  };
+
+  // 导出文本版试卷
+  const handleExportQuizPaper = () => {
+    const quizSlides = slides.filter(s => s.type === 'quiz');
+    if (quizSlides.length === 0) {
+      toast.error("当前课件中还没有测验题，请先在左侧点击「智能追加测试卷」！");
+      return;
+    }
+    let content = `# 【${courseMeta?.name || topic || '未命名课程'}】随堂测验卷\n\n`;
+    quizSlides.forEach((q, idx) => {
+      content += `### 第 ${idx + 1} 题: ${q.title}\n`;
+      q.blocks?.forEach(b => {
+        if (b.type === 'question') content += `**提问**：${b.content}\n`;
+        if (b.type === 'option') content += `- ${b.content.replace('[正确答案]', '( ✓ )')}\n`;
+      });
+      content += `\n> 讲师解析：${q.notes || '暂无解析'}\n\n---\n\n`;
+    });
+    
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${courseMeta?.name || topic || '未知'}_随堂测试试卷.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("📑 全封闭测试试卷 (含答案解析) 导出成功！");
+  };
+
   // 发布到 FutureClass ERP 教务中台
   const handlePublishToERP = async () => {
     if (!courseMeta) return;
@@ -483,6 +543,13 @@ export default function GeneratorPage() {
         
          {slides.length > 0 && (
           <div className="flex items-center gap-3">
+             <button 
+               onClick={handleExportQuizPaper}
+               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-amber-400 flex items-center gap-2 transition-colors border border-amber-500/30"
+               title="将目前幻灯片里的测验题全集导出为文档试卷"
+             >
+               <FileCheck className="h-4 w-4" /> 导出试卷
+             </button>
              <button 
                onClick={() => setShowGlobalPlan(true)}
                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-slate-300 flex items-center gap-2 transition-colors border border-slate-700"
@@ -799,11 +866,19 @@ export default function GeneratorPage() {
                     </div>
                   </div>
                 ))}
-                
-                <button className="w-full py-4 mt-2 rounded-xl border-2 border-dashed border-slate-700/50 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/5 hover:border-indigo-500/30 transition-all flex flex-col items-center justify-center gap-1.5 focus:outline-none">
-                   <Plus className="h-5 w-5" />
-                   <span className="text-[10px] font-black uppercase tracking-wider">插入一页</span>
-                </button>
+                <div className="flex gap-2 w-full">
+                  <button className="flex-1 py-3 rounded-xl border border-slate-700/50 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/5 transition-all outline-none text-[10px] font-black uppercase tracking-wider">
+                     <Plus className="h-4 w-4 mx-auto mb-1" /> 插入页
+                  </button>
+                  <button 
+                    onClick={handleGenerateQuizzes}
+                    disabled={isGeneratingQuizzes}
+                    className="flex-[2] py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-500 hover:bg-amber-500/20 transition-all outline-none text-[10px] font-black uppercase tracking-wider disabled:opacity-50 flex flex-col items-center justify-center"
+                  >
+                     {isGeneratingQuizzes ? <RefreshCcw className="h-4 w-4 mb-1 animate-spin" /> : <HelpCircle className="h-4 w-4 mb-1" />}
+                     {isGeneratingQuizzes ? '抽题中...' : '智能追加随堂测验'}
+                  </button>
+                </div>
               </div>
            </div>
 
@@ -869,21 +944,32 @@ export default function GeneratorPage() {
                        <div className={`flex-1 w-full relative z-10 p-5 -ml-5 ${
                          activeSlide?.layoutVariant === 'grid-3' ? 'grid grid-cols-1 md:grid-cols-3 gap-6' : 
                          activeSlide?.layoutVariant === 'split-comparison' ? 'grid grid-cols-1 md:grid-cols-2 gap-8 divide-x divide-slate-700/50' : 
+                         activeSlide?.layoutVariant === 'quiz-4-grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 
                          'flex flex-col gap-6'
                        }`}>
                          {activeSlide?.blocks?.length ? (
                            activeSlide.blocks.map((block, bIdx) => (
-                             <div key={bIdx} className={`p-4 rounded-xl border border-transparent hover:border-slate-700/50 bg-[#0c101a]/30 hover:bg-[#0c101a] transition-all group/block ${activeSlide?.layoutVariant === 'split-comparison' && bIdx > 0 ? 'pl-8' : ''}`}>
+                             <div key={bIdx} className={`p-4 rounded-xl border border-transparent transition-all group/block ${activeSlide?.layoutVariant === 'quiz-4-grid' ? (block.type === 'question' ? 'col-span-1 md:col-span-2 bg-[#1a1727]/50 border-amber-500/30 text-amber-300' : 'bg-slate-900/40 hover:bg-indigo-900/30 border-slate-700/50 cursor-pointer') : 'hover:border-slate-700/50 bg-[#0c101a]/30 hover:bg-[#0c101a]'} ${activeSlide?.layoutVariant === 'split-comparison' && bIdx > 0 ? 'pl-8' : ''}`}>
                                {/* 区块类型角标 */}
-                               <div className="flex items-center gap-2 mb-3 opacity-50 group-hover/block:opacity-100 transition-opacity">
-                                 {block.type === 'text' && <FileText className="h-4 w-4 text-slate-400" />}
-                                 {block.type === 'image_prompt' && <ImageIcon className="h-4 w-4 text-pink-400" />}
-                                 {block.type === 'mermaid' && <Network className="h-4 w-4 text-cyan-400" />}
-                                 <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">{block.type} BLOCK</span>
-                               </div>
+                               {activeSlide?.layoutVariant !== 'quiz-4-grid' && (
+                                 <div className="flex items-center gap-2 mb-3 opacity-50 group-hover/block:opacity-100 transition-opacity">
+                                   {block.type === 'text' && <FileText className="h-4 w-4 text-slate-400" />}
+                                   {block.type === 'image_prompt' && <ImageIcon className="h-4 w-4 text-pink-400" />}
+                                   {block.type === 'mermaid' && <Network className="h-4 w-4 text-cyan-400" />}
+                                   <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">{block.type} BLOCK</span>
+                                 </div>
+                               )}
                                
                                {/* 特化渲染组件 */}
-                               {block.type === 'image_prompt' ? (
+                               {block.type === 'question' ? (
+                                 <div className="w-full text-xl md:text-2xl font-black text-center p-6 bg-transparent outline-none resize-none leading-relaxed text-amber-400/90 [text-wrap:balance]">
+                                   {block.content}
+                                 </div>
+                               ) : block.type === 'option' ? (
+                                 <div className="w-full h-full min-h-[80px] p-4 flex items-center justify-center text-center font-bold text-slate-300 text-lg transition-transform group-hover/block:scale-105">
+                                   {block.content.replace('[正确答案]', ' ✅')}
+                                 </div>
+                               ) : block.type === 'image_prompt' ? (
                                  <div className="w-full h-auto bg-slate-900 border border-slate-700/50 rounded-xl flex flex-col items-center justify-center overflow-hidden shadow-black/50 shadow-lg group/img relative">
                                    <div className="absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent px-4 py-2 flex items-center justify-between opacity-0 group-hover/img:opacity-100 transition-opacity z-10">
                                      <span className="text-[10px] text-white/70 truncate mr-2">{block.content}</span>

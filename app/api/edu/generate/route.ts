@@ -99,6 +99,42 @@ export async function POST(req: Request) {
 `;
       userPrompt = "用户原始干瘪输入: \"" + topic + "\"\n\n请立刻对其进行专业教育向的发散与扩写，返回 JSON：";
     }
+    // 模式四：随堂测验萃取模式
+    else if (mode === 'generate_quizzes') {
+      systemPrompt = `
+你是一位顶级的命题专家。你需要根据当前的课程纲要，自动生成 3 道兼具启发性与趣味性的【情景选择题】。
+每道题将自动成为一个幻灯片卡片。
+你返回的 JSON 必须是一个对象，包含一个 \`quizzes\` 数组。
+数组里的每一个元素都是完全符合以下 Slide 结构的试题数据：
+1. \`type\` 必须为 \`"quiz"\`。
+2. \`title\` 是测验标题，如“互动小测 1”。
+3. \`layoutVariant\` 必须为 \`"quiz-4-grid"\`。
+4. \`blocks\` 数组必须有且仅有 5 个模块，按照固定顺序：
+   第1个：\`type: "question"\`，内容为题干。
+   第2、3、4、5个：\`type: "option"\`，内容为四个选项。请在正确选项的内容最后原样带上 "[正确答案]" 字样。
+5. \`notes\` 为讲师逐字稿说明，请直接给出该题的“解析：...”。
+
+输出 JSON 范例:
+{
+  "quizzes": [
+    {
+      "type": "quiz",
+      "title": "互动测评 1",
+      "layoutVariant": "quiz-4-grid",
+      "blocks": [
+        { "type": "question", "content": "题干..." },
+        { "type": "option", "content": "A. 选项... [正确答案]" },
+        { "type": "option", "content": "B. 选项..." },
+        { "type": "option", "content": "C. 选项..." },
+        { "type": "option", "content": "D. 选项..." }
+      ],
+      "notes": "解析：正确答案是A，因为..."
+    }
+  ]
+}
+`;
+      userPrompt = "请根据以下课程大纲和主体方向，生成针对性试题：\n" + prompt + "\n\n请直接输出纯 JSON：";
+    }
 
     const backgraceKey = process.env.OPENAI_API_KEY || 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
 
