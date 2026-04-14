@@ -1042,7 +1042,7 @@ export default function GeneratorPage() {
                                    <div className="p-4 bg-slate-100 flex justify-center items-center min-h-[150px]">
                                      <img 
                                        src={`https://mermaid.ink/svg/${btoa(unescape(encodeURIComponent(block.content)))}`}
-                                       onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = '<span class="text-xs text-red-500">图谱语法复杂暂不受理，请生成轻量级语法</span>' }}
+                                       onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerText = '图谱语法复杂暂不受理，请生成轻量级语法'; }}
                                        alt="Mermaid Diagram" 
                                        className="max-h-[250px] w-full object-contain mix-blend-multiply"
                                      />
