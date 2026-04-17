@@ -84,6 +84,24 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // 🔒 [RBAC Guard] 教务 ERP 权限拦截
+  if (pathname.startsWith('/erp')) {
+    const role = request.cookies.get('X-FC-Role')?.value || 'ADMIN';
+    
+    // 教师限制
+    if (role === 'TEACHER' && ['/erp/finance', '/erp/settings', '/erp/leads', '/erp/inventory', '/erp/courses'].some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL('/erp/dashboard', request.url));
+    }
+    // 教务限制
+    if (role === 'ACADEMIC' && ['/erp/finance', '/erp/settings', '/erp/leads'].some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL('/erp/dashboard', request.url));
+    }
+    // 销售限制
+    if (role === 'SALES' && ['/erp/schedules', '/erp/settings', '/erp/courses', '/erp/inventory', '/erp/attendance', '/erp/classes'].some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL('/erp/dashboard', request.url));
+    }
+  }
+
   // --- 💡 后置逻辑：Supabase 会话管理 (仅在上述路由未拦截时执行) ---
   
   let response = NextResponse.next({
@@ -132,6 +150,7 @@ export const config = {
     '/labs',
     '/ide',
     '/swarm/:path*',
+    '/erp/:path*',
     '/hub-auto-:path*',
     // 匹配所有非静态资源的 .html 文件请求
     '/((?!api|_next/static|_next/image|favicon.ico|assets|images|avatars|libs|css|js).+\\.html)',

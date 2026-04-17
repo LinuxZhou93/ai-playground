@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 const ROLES = [
   { id: "ADMIN", label: "超级管理员 (全限)" },
   { id: "ACADEMIC", label: "教务主管" },
+  { id: "TEACHER", label: "授课教师" },
   { id: "SALES", label: "销售顾问" },
 ];
 

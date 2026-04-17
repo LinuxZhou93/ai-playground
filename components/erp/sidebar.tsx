@@ -51,8 +51,9 @@ export function ERPSidebar({ role = "ADMIN" }: { role?: string }) {
   // 动态过滤菜单权限
   const filteredItems = React.useMemo(() => {
     return menuItems.filter(item => {
-      if (role === "SALES" && ["/erp/schedules", "/erp/settings", "/erp/courses"].includes(item.path)) return false;
-      if (role === "ACADEMIC" && ["/erp/finance", "/erp/settings", "/erp/leads"].includes(item.path)) return false; // 教务不看线索
+      if (role === "SALES" && ["/erp/schedules", "/erp/settings", "/erp/courses", "/erp/inventory", "/erp/attendance", "/erp/classes"].includes(item.path)) return false;
+      if (role === "ACADEMIC" && ["/erp/finance", "/erp/settings", "/erp/leads"].includes(item.path)) return false; // 教务不看线索和财务
+      if (role === "TEACHER" && ["/erp/finance", "/erp/settings", "/erp/leads", "/erp/inventory", "/erp/courses"].includes(item.path)) return false; // 教师专注于上课与排课
       return true;
     });
   }, [role]);
