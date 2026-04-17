@@ -128,6 +128,7 @@ export function StaffManagementPanel() {
                   onChange={e => setFormData({...formData, role: e.target.value})}
                 >
                   <option value="ACADEMIC">教务/主教 (ACADEMIC)</option>
+                  <option value="TEACHER">授课教师 (TEACHER)</option>
                   <option value="SALES">招生/销售顾问 (SALES)</option>
                   <option value="ADMIN">超级管理体系 (ADMIN)</option>
                 </select>
