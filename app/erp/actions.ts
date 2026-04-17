@@ -800,6 +800,17 @@ const getCachedClassesPageData = unstable_cache(
   { revalidate: 60, tags: ['erp-data'] }
 );
 
+/**
+ * 家校通 (Scribe) 缓存数据加载器
+ */
+export async function loadReportsPageData() {
+  const [students, archives] = await Promise.all([
+    getStudents(),
+    getGrowthArchives()
+  ]);
+  return { students, archives };
+}
+
 export async function loadClassesPageData() {
   return getCachedClassesPageData();
 }

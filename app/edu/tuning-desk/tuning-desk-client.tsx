@@ -4,65 +4,143 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   MonitorPlay, Clock, Layers, BookOpen, ChevronRight, ChevronDown,
   Users, Calendar, Sparkles, PenTool, LayoutTemplate, FileText,
-  Activity, CheckCircle2, MessageSquare, LineChart, ShieldCheck, Lock
+  Activity, CheckCircle2, MessageSquare, LineChart, ShieldCheck, Lock, LayoutGrid
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useEditor, EditorContent } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import { persistCollabContent } from './collab-actions';
+import * as Y from 'yjs';
+import { RobotPart } from './extensions/robot-part';
+import { FutureCodeBlock } from './extensions/future-code-block';
+import VaultSidebar from './vault-sidebar';
 
-function CollabEditor({ roomName, initialContent, currentUser }: { roomName: string, initialContent: string, currentUser: any }) {
-  const [ydocState, setYdocState] = useState<any>(null);
+// 🚀 原子化扩展导入，避开 StarterKit 的 History 冲突
+import Document from '@tiptap/extension-document';
+import Paragraph from '@tiptap/extension-paragraph';
+import Text from '@tiptap/extension-text';
+import Heading from '@tiptap/extension-heading';
+import BulletList from '@tiptap/extension-bullet-list';
+import ListItem from '@tiptap/extension-list-item';
+import Bold from '@tiptap/extension-bold';
 
-  useEffect(() => {
-    let provider: any;
-    let ydoc: any;
-    let isMounted = true;
-    const init = async () => {
-      try {
-          const Y = await import('yjs');
-          const { WebrtcProvider } = await import('y-webrtc');
-          ydoc = new Y.Doc();
-          
-          provider = new WebrtcProvider(roomName, ydoc, { signaling: ['wss://signaling.yjs.dev'] });
-          if (isMounted) setYdocState({ ydoc, provider });
-      } catch(e) { console.error("协同频道连接失败", e) }
-    }
-    init();
-    return () => {
-      isMounted = false;
-      if (provider) provider.destroy();
-      if (ydoc) ydoc.destroy();
-    }
-  }, [roomName]);
-
-  if (!ydocState) {
-    return <div className="animate-pulse bg-slate-900 border border-slate-800 rounded-xl p-4 min-h-24 flex items-center justify-center text-slate-500 text-xs">🚀 正在建立高频联机量子通道...</div>
-  }
-
-  return <CollabEditorInner ydocState={ydocState} initialContent={initialContent} currentUser={currentUser} />;
+function CollabEditor({ roomName, initialContent, currentUser, onRegisterEditor }: { roomName: string, initialContent: string, currentUser: any, onRegisterEditor?: (editor: any) => void }) {
+  // 🚀 紧急熔断：暂时进入单机稳定模式，避开协同包的内核冲突
+  return <CollabEditorInner key={roomName} initialContent={initialContent} currentUser={currentUser} roomName={roomName} onRegisterEditor={onRegisterEditor} />;
 }
 
-function CollabEditorInner({ ydocState, initialContent, currentUser }: { ydocState: any, initialContent: string, currentUser: any }) {
+const CollabEditorInner = React.memo(({ roomName, initialContent, currentUser, onRegisterEditor }: { roomName: string, initialContent: string, currentUser: any, onRegisterEditor?: (editor: any) => void }) => {
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isCopilotThinking, setIsCopilotThinking] = useState(false);
+
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ history: false }),
-      Collaboration.configure({ document: ydocState.ydoc }),
-      CollaborationCursor.configure({
-        provider: ydocState.provider,
-        user: { name: currentUser.name, color: currentUser.color },
-      }),
+      StarterKit,
+      RobotPart,
+      FutureCodeBlock,
     ],
     content: initialContent, 
+    immediatelyRender: false,
+    onCreate: ({ editor }) => {
+       if (onRegisterEditor && editor) onRegisterEditor(editor);
+    },
+    onUpdate: ({ editor }) => {
+      if (!editor || editor.isDestroyed) return;
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+         try {
+           const html = editor.getHTML();
+           persistCollabContent(roomName, html).catch(e => console.warn("Auto-Save Failure", e));
+         } catch(e) {}
+      }, 2000);
+    }
   });
 
   if (!editor) {
     return <div className="animate-pulse bg-slate-900 border border-slate-800 rounded-xl p-4 min-h-24 flex items-center justify-center text-slate-500 text-xs">🚀 正在启动量子渲染引擎...</div>
   }
 
+  const handleCopilot = async (promptType: string) => {
+    if (!editor || editor.isDestroyed) return;
+    const { from, to } = editor.state.selection;
+    const text = editor?.state?.doc?.textBetween(from, to, ' ');
+    if (!text) return;
+    
+    setIsCopilotThinking(true);
+    try {
+        const response = await fetch('/api/edu/copilot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selection: text, promptType, context: roomName })
+        } as any);
+
+        if (!response.body) return;
+
+        // 1. 在当前选区下方插入 AI 标识头
+        editor.chain().focus().insertContent(`<p><br/><strong>🤖 [Titan AI 流式计算中...]</strong></p>`).run();
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        let fullAIResponse = "";
+
+        while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            done = doneReading;
+            const chunkValue = decoder.decode(value);
+            
+            // 解析 Vercel AI SDK 的 DataStream 格式 (0:"text")
+            const lines = chunkValue.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('0:')) {
+                    try {
+                        const content = JSON.parse(line.substring(2));
+                        fullAIResponse += content;
+                    } catch (e) {}
+                }
+            }
+        }
+
+        // 3. 渲染完成后，用最终版本替换临时状态
+        if (fullAIResponse && !editor.isDestroyed) {
+            editor.chain().focus()
+                .insertContent(`<p><strong>🤖 [Titan AI]：</strong><br/>${fullAIResponse.replace(/\n/g, '<br/>')}</p>`)
+                .run();
+        }
+
+    } catch(e) {
+        console.error("AI 扩写失败", e);
+    } finally {
+        setIsCopilotThinking(false);
+    }
+  };
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 leading-relaxed min-h-24 ProseMirror-custom relative transition-all focus-within:border-indigo-500/50 focus-within:shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+      {editor && (
+        <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="bg-slate-800 border border-slate-700 shadow-2xl rounded-xl overflow-hidden flex items-center p-1 gap-1 z-50">
+          <button 
+            onClick={() => handleCopilot('expand')} 
+            disabled={isCopilotThinking}
+            className="px-3 py-1.5 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-indigo-400 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            <Sparkles className="h-3 w-3" />
+            {isCopilotThinking ? "AI 脑暴中..." : "教学步骤细化"}
+          </button>
+          <div className="w-px h-4 bg-slate-700 mx-1"></div>
+          <button 
+            onClick={() => handleCopilot('assessment')} 
+            disabled={isCopilotThinking}
+            className="px-3 py-1.5 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-amber-400 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            <BookOpen className="h-3 w-3" />
+            {isCopilotThinking ? "AI 生成中..." : "考评指标提取"}
+          </button>
+        </BubbleMenu>
+      )}
       <EditorContent editor={editor} />
       <style dangerouslySetInnerHTML={{__html: `
         .ProseMirror-custom .ProseMirror { outline: none; min-height: 80px; }
@@ -82,17 +160,23 @@ function CollabEditorInner({ ydocState, initialContent, currentUser }: { ydocSta
         .ProseMirror-custom p:last-child { margin-bottom: 0; }
         .ProseMirror-custom h2 { font-size: 2.2rem; font-weight: 900; color: #ffffff; margin-bottom: 0.5em; line-height: 1.2; letter-spacing: 0.02em; }
         .ProseMirror-custom h3 { font-size: 1.5rem; font-weight: bold; color: #e2e8f0; margin-bottom: 0.5em; }
-        .ProseMirror-custom ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.5em; }
-        .ProseMirror-custom ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.5em; }
       `}} />
     </div>
   )
-}
+});
 
-export default function TuningDeskClient({ courses, classes }: { courses: any[], classes: any[] }) {
-  // 生成多端协同下当前用户的拟真身份
+export default function TuningDeskClient({ courses, classes, initialAssets }: { courses: any[], classes: any[], initialAssets: any[] }) {
   const [currentUser, setCurrentUser] = useState({ id: 'dummy', name: '加载中', color: '#ccc' });
   const [isClient, setIsClient] = useState(false);
+  const [focusedEditor, setFocusedEditor] = useState<any>(null);
+  const [currentTab, setCurrentTab] = useState<'cluster' | 'visuals' | 'scribe'>('cluster');
+  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(courses[0]?.id || null);
+  const [activeLesson, setActiveLesson] = useState<any | null>(null);
+  const [activePlan, setActivePlan] = useState<any | null>(null);
+  const [isVaultOpen, setIsVaultOpen] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const roomRef = useRef<any>(null);
+  const supabase = createClient();
 
   useEffect(() => {
      setIsClient(true);
@@ -102,16 +186,8 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
      setCurrentUser({ id: crypto.randomUUID(), name: names[idx], color: colors[idx] });
   }, []);
 
-  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(courses[0]?.id || null);
-  const [activeLesson, setActiveLesson] = useState<any | null>(null);
-  const [activePlan, setActivePlan] = useState<any | null>(null);
-
-  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
-  const roomRef = useRef<any>(null);
-  const supabase = createClient();
-
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !isClient) return;
     const room = supabase.channel('tuning_desk_presence', {
       config: { presence: { key: currentUser.id } }
     });
@@ -126,11 +202,12 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
       setOnlineUsers(users);
     });
 
-    room.subscribe(async (status) => {
+    room.subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED') {
         room.track({ 
           user: currentUser, 
           editingCourse: expandedCourseId, 
+          tab: currentTab,
           editingLesson: activeLesson?.id 
         });
       }
@@ -170,6 +247,32 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
       '综合':   'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
     };
     return map[category] || map['综合'];
+  };
+
+  const insertAsset = (asset: any) => {
+    if (!focusedEditor) return;
+    
+    if (asset.type === 'IMAGE' || asset.type === '3D' || asset.type === 'WRENCH' || asset.category === '机械零件' || asset.category === '电子元件') {
+        focusedEditor.chain().focus().insertContent({
+            type: 'robotPart',
+            attrs: {
+                name: asset.name,
+                category: asset.category,
+                thumbnail: asset.thumbnail_url,
+                spec: `${asset.format} 格式物料 · 大小: ${(asset.size_bytes / 1024).toFixed(1)} KB`
+            }
+        }).run();
+    } else if (asset.type === 'CODE') {
+        focusedEditor.chain().focus().insertContent({
+            type: 'futureCodeBlock',
+            attrs: {
+                language: asset.format.toLowerCase() || 'javascript',
+                content: `// ${asset.name}\n// 从素材库注入的代码片段\n\nfunction example() {\n  console.log("FutureClass Logic");\n}`
+            }
+        }).run();
+    } else {
+        focusedEditor.chain().focus().insertContent(`<p>关联素材：<a href="#" class="text-indigo-400 font-bold underline">${asset.name}</a></p>`).run();
+    }
   };
 
   return (
@@ -325,11 +428,41 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                 {/* 顶栏信息 */}
                 <div className="h-20 shrink-0 border-b border-slate-800 bg-[#0d121c] flex items-center px-8 relative">
                    <div>
-                     <h2 className="text-2xl font-black text-white">第 {activeLesson.lesson_number} 讲：{activeLesson.title}</h2>
-                     <p className="text-xs text-indigo-400 mt-1 font-mono tracking-wider uppercase">Lesson Objectives & Slide Sync</p>
-                   </div>
-                   
-                   <div className="ml-auto flex gap-3">
+                      <h2 className="text-2xl font-black text-white">第 {activeLesson.lesson_number} 讲：{activeLesson.title}</h2>
+                      <p className="text-[10px] text-indigo-400 mt-1 font-mono tracking-wider uppercase">High-Fidelity Curriculum Workspace</p>
+                    </div>
+
+                    <div className="flex -space-x-3 ml-12 items-center">
+                       {onlineUsers.map((u, i) => (
+                         <div 
+                           key={u.user.id || i}
+                           className="h-9 w-9 rounded-xl border-2 border-[#0d121c] flex items-center justify-center text-[11px] font-black group relative transition-all hover:z-50 hover:-translate-y-1 cursor-help shadow-lg"
+                           style={{ backgroundColor: u.user.color, color: '#1e293b' }}
+                         >
+                           {u.user.name[0]}
+                           <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 border-2 border-[#0d121c]" />
+                           
+                           {/* Hover 提示标签 */}
+                           <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-[9px] text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[100] border border-slate-700 shadow-xl">
+                              {u.user.name} (已联机)
+                           </div>
+                         </div>
+                       ))}
+                       {onlineUsers.length > 0 && (
+                          <div className="ml-4 flex items-center gap-2">
+                             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{onlineUsers.length} 位专家在线共创</span>
+                          </div>
+                       )}
+                    </div>
+
+                    <div className="ml-auto flex gap-3">
+                      <button 
+                        onClick={() => setIsVaultOpen(!isVaultOpen)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${isVaultOpen ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}
+                      >
+                        <LayoutGrid className="h-4 w-4" /> {isVaultOpen ? '收起素材仓' : '展开素材仓'}
+                      </button>
                       <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 transition-colors flex items-center gap-2">
                         <PenTool className="h-3 w-3" /> 锁定/编撰教纲
                       </button>
@@ -340,7 +473,11 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                 </div>
 
                 {/* 内容区 2列 */}
-                <div className="flex-1 flex overflow-hidden">
+                <div className="flex-1 flex overflow-hidden relative">
+                   {/* 沉浸式课件背景遮罩 */}
+                   {isSlideImmersive && (
+                     <div className="absolute inset-0 bg-slate-950/90 z-40 backdrop-blur-md animate-in fade-in duration-500" />
+                   )}
                    
                    {/* 课次专属信息 (目标、物料、AI考评) */}
                    <div className="w-[320px] shrink-0 border-r border-slate-800 bg-[#0b0e14]/80 p-6 overflow-y-auto custom-scrollbar">
@@ -352,9 +489,11 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-500/10 text-[9px] text-indigo-400 font-bold border border-indigo-500/20"><Sparkles className="h-2.5 w-2.5" /> 实时协同网络开启中</div>
                             </h4>
                             <CollabEditor 
+                              key={`collab-obj-${activeLesson.id}`}
                               roomName={`titan-collab-lesson-${activeLesson.id}-objectives`}
                               initialContent={Array.isArray(activeLesson.objectives) && activeLesson.objectives.length > 0 ? "<ul>" + activeLesson.objectives.map((o: string) => `<li>${o}</li>`).join("") + "</ul>" : `<p>${activeLesson.objectives || "未定义拆解目标，可交由 AI 补全。"}</p>`}
                               currentUser={currentUser}
+                              onRegisterEditor={(editor) => setFocusedEditor(editor)}
                             />
                          </div>
 
@@ -363,9 +502,11 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                                <div className="flex items-center gap-2"><BookOpen className="h-3 w-3" /> 评估要点剧本 (对接课消 AI)</div>
                             </h4>
                             <CollabEditor 
+                              key={`collab-asmt-${activeLesson.id}`}
                               roomName={`titan-collab-lesson-${activeLesson.id}-assessment`}
-                              initialContent={`<p>${activeLesson.assessment_criteria || "未设定课堂评估维度。"}</p>`}
+                              initialContent={activeLesson.assessment_criteria ? `<p>${activeLesson.assessment_criteria}</p>` : `<p>暂无考评，请点击上方按钮提取。</p>`}
                               currentUser={currentUser}
+                              onRegisterEditor={(editor) => setFocusedEditor(editor)}
                             />
                          </div>
                       </div>
@@ -393,28 +534,47 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                       {activePlan && activeLesson.slide_index !== null && Array.isArray(activePlan.slides) && activePlan.slides[activeLesson.slide_index] ? (
                          <div className="w-full max-w-[800px] space-y-6">
                             <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center justify-between">
-                               <span>映射关联的 PPT 课件</span>
+                               <div className="flex items-center gap-2">
+                                  <span>映射关联的 PPT 课件</span>
+                                  <button 
+                                    onClick={() => setIsSlideImmersive(!isSlideImmersive)}
+                                    className="px-2 py-0.5 bg-indigo-500/10 hover:bg-indigo-500/40 rounded text-[9px] transition-colors"
+                                  >
+                                    {isSlideImmersive ? '退出沉浸模式' : '进入沉浸模式'}
+                                  </button>
+                               </div>
                                <span className="px-2 py-0.5 bg-indigo-500/20 rounded">Slide {(activeLesson.slide_index + 1).toString().padStart(2, '0')}</span>
                             </h4>
                             
-                            <div className="w-full aspect-[16/9] bg-slate-900/50 border border-slate-700 rounded-2xl shadow-xl flex flex-col p-8 relative transition-all focus-within:border-indigo-500/60 focus-within:shadow-[0_0_40px_rgba(99,102,241,0.2)]">
-                               <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                            <div className={`w-full ${isSlideImmersive ? 'fixed inset-0 z-50 p-12 bg-slate-950 flex flex-col items-center justify-center' : 'aspect-[16/9] bg-slate-900/50 border border-slate-700 rounded-2xl shadow-xl flex flex-col p-8 relative transition-all focus-within:border-indigo-500/60 focus-within:shadow-[0_0_40px_rgba(99,102,241,0.2)]'}`}>
+                               {isSlideImmersive && (
+                                 <button 
+                                   onClick={() => setIsSlideImmersive(false)}
+                                   className="absolute top-6 left-6 text-slate-500 hover:text-white transition-colors"
+                                 >
+                                   <MonitorPlay className="h-8 w-8" />
+                                 </button>
+                               )}
+                               <div className={`absolute top-4 right-4 flex items-center gap-2 z-10 ${isSlideImmersive ? 'scale-150' : ''}`}>
                                   <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/10 text-[10px] text-emerald-400 font-bold border border-emerald-500/20 backdrop-blur-md"><Sparkles className="h-3 w-3" /> Live Slide Syncing</div>
                                </div>
                                
-                               <div className="mb-4">
+                               <div className={`mb-4 w-full max-w-[90%] ${isSlideImmersive ? 'scale-125 mb-12' : ''}`}>
                                  <CollabEditor 
+                                   key={`collab-cont-${activeLesson.id}`}
                                    roomName={`titan-collab-slide-${activePlan.id}-${activeLesson.slide_index}-title`}
                                    initialContent={`<h2>${activePlan.slides[activeLesson.slide_index]?.title || "未命名标题"}</h2>`}
                                    currentUser={currentUser}
+                                   onRegisterEditor={(editor) => setFocusedEditor(editor)}
                                  />
                                </div>
                                
-                               <div className="flex-1 overflow-hidden flex flex-col">
+                               <div className={`flex-1 overflow-hidden flex flex-col w-full max-w-[90%] ${isSlideImmersive ? 'scale-110' : ''}`}>
                                  <CollabEditor 
                                    roomName={`titan-collab-slide-${activePlan.id}-${activeLesson.slide_index}-content`}
                                    initialContent={`<div class="text-lg font-mono text-slate-300"><p>${String(activePlan.slides[activeLesson.slide_index]?.content || "").replace(/\n/g, '</p><p>')}</p></div>`}
                                    currentUser={currentUser}
+                                   onRegisterEditor={(editor) => setFocusedEditor(editor)}
                                  />
                                </div>
                             </div>
@@ -427,6 +587,14 @@ export default function TuningDeskClient({ courses, classes }: { courses: any[],
                          </div>
                       )}
                    </div>
+
+                   {/* 阶段 3: Vault 素材仓侧边栏 */}
+                   {isVaultOpen && (
+                     <VaultSidebar 
+                        assets={initialAssets} 
+                        onInsert={insertAsset} 
+                     />
+                   )}
                 </div>
              </div>
           )}

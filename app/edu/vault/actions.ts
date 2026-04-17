@@ -27,12 +27,13 @@ export async function getEduAssets(category?: string) {
 
     const { data, error } = await query;
     if (error) {
-      console.error("Error fetching assets:", error);
+      // 这里的错误通常是由于 edu_assets 表尚未在大数据迁移中创建
+      console.warn("Vault downgraded: edu_assets table not found or inaccessible.");
       return [];
     }
     return data || [];
   } catch (err) {
-    console.warn("Vault downgraded gracefully because of missing configs:", err);
+    console.warn("Vault action failed gracefully:", err);
     return [];
   }
 }
