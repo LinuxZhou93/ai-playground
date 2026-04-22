@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS-STEM 网络 | 墨子实验室机器人学院</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* 内部 SVG 图标样式 */
+        .icon-svg {
+            width: 32px;
+            height: 32px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-bg">
+        <canvas id="neural-canvas"></canvas>
+        <div class="glow-orb" style="top: -100px; right: -100px; background: var(--primary-glow);"></div>
+        <div class="glow-orb" style="bottom: -200px; left: -200px; width: 800px; height: 800px; opacity: 0.1;"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo">MOZI LAB / CS-STEM</div>
+            <nav>
+                <a href="https://www.cs2n.org/" target="_blank" class="btn" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">访问原站</a>
+            </nav>
+        </header>
+
+        <section class="hero">
+            <h1>开启 AI 与机器人<br>跨学科探索</h1>
+            <p>集成 CS2N 全球领先的 STEM 教育资源，为未来的科技特长生提供从基础编程到高级机器人仿真的一站式学习路径。</p>
+            <a href="#courses" class="btn">立即开始探索</a>
+        </section>
+
+        <div class="grid" id="courses">
+            <!-- VEX Robotics Card -->
+            <div class="card" onclick="window.open('https://www.cs2n.org/curriculum/robotc-vex-iq', '_blank')">
+                <div class="card-icon">
+                    <svg class="icon-svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                </div>
+                <h3>VEX 机器人仿真</h3>
+                <p>全球标准的机器人课程，涵盖 ROBOTC、VEXcode 及虚拟仿真实验室。无需硬件即可开始机器人竞技学习。</p>
+            </div>
+
+            <!-- AI & Programming Card -->
+            <div class="card" onclick="window.open('https://www.cs2n.org/curriculum/programming-foundations', '_blank')">
+                <div class="card-icon">
+                    <svg class="icon-svg"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                </div>
+                <h3>编程与逻辑基础</h3>
+                <p>从图形化跨向 Python/C++。通过互动式挑战掌握循环、变量及 AI 核心逻辑。</p>
+            </div>
+
+            <!-- Certification Card -->
+            <div class="card" onclick="window.open('https://www.cs2n.org/activities', '_blank')">
+                <div class="card-icon">
+                    <svg class="icon-svg"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </div>
+                <h3>认证与技术评估</h3>
+                <p>记录学习足迹，获取 CS-STEM 教育中心颁发的课程认证，为科技特长生背景提升加码。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Neural Flow Particle System ---
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 0.5 - 0.25;
+                this.speedY = Math.random() * 0.5 - 0.25;
+                this.opacity = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0) this.y = canvas.height;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(0, 112, 243, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function createParticles() {
+            for (let i = 0; i < 60; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+        createParticles();
+        animate();
+
+        // --- Intersection Observer for Animations ---
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>

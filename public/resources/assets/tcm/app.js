@@ -4,12 +4,12 @@
  */
 
 const products = [
-    { id: 1, cat: "核心产品", name: "灵芝庄园·仿野生孢子粉", price: 898, desc: "通济黄村坝林下采收 | 林深雾养 | 院内制剂标准", img: "https://images.unsplash.com/photo-1694035449560-bbcfc84baef2?fm=jpg&q=80&w=3000&auto=format&fit=crop", type: "base" },
-    { id: 2, cat: "道地药材", name: "龙门山特级灵芝切片", price: 158, desc: "湔江河谷上游直供 | 天然无害 | 足年份生长", img: "https://images.unsplash.com/photo-1559484237-0bd6c0f6c963?fm=jpg&q=80&w=3000&auto=format&fit=crop", type: "base" },
-    { id: 3, cat: "文创摆件", name: "活态灵芝盆景·黄村坝特色", price: 1280, desc: "庄园特培活态灵芝 | 招财纳福 | 艺术观赏", img: "assets/tcm/jingcheng_hall.png", type: "creative" },
-    { id: 4, cat: "睡眠康养", name: "酸枣仁百合舒睡茶", price: 79, desc: "庄园药膳配比 | 汉方古法 | 舒缓助眠", img: "assets/tcm/tea_icon.png", type: "sleep" },
-    { id: 5, cat: "研学教育", name: "灵芝文化研习·半日通票", price: 68, desc: "文化讲座 | 现场采收体验 | 庄园康养游", img: "assets/tcm/article_acupuncture.png", type: "tour" },
-    { id: 6, cat: "睡眠康养", name: "磁疗护颈决明子枕", price: 199, desc: "人体工学设计 | 决明子填充 | 模拟林间深度睡眠", img: "https://images.unsplash.com/photo-1606796913825-2b02883605e9?fm=jpg&q=80&w=3000&auto=format&fit=crop", type: "sleep" }
+    { id: 1, cat: "核心产品", name: "臻博园牌破壁灵芝孢子粉", price: 898, desc: "通济黄村坝林下采收 | 99.8%破壁率 | 院内制剂标准", img: "assets/img/zhengzhong_spore_powder.png", type: "base" },
+    { id: 2, cat: "核心产品", name: "臻博园参灵枣仁膏", price: 358, desc: "汉方精粹 | 助眠安神 | 匠心萃取", img: "assets/tcm/bottle_icon.png", type: "sleep" },
+    { id: 3, cat: "灵芝花叙", name: "臻博园灵芝桂花茶", price: 128, desc: "湔江河谷灵芝 | 苏州金桂 | 沁人心脾", img: "assets/tcm/tea_icon.png", type: "creative" },
+    { id: 4, cat: "灵芝花叙", name: "臻博园灵芝玫瑰茶", price: 128, desc: "道地灵芝 | 墨红玫瑰 | 滋补悦颜", img: "assets/tcm/tea_icon.png", type: "creative" },
+    { id: 5, cat: "灵芝花叙", name: "臻博园灵芝陈皮茶", price: 158, desc: "10年陈皮 | 仿野生灵芝 | 理气健脾", img: "assets/tcm/article_reishi.png", type: "base" },
+    { id: 6, cat: "睡眠康养", name: "磁疗护颈决明子枕", price: 199, desc: "人体工学设计 | 决明子填充 | 模拟林间深度睡眠", img: "assets/tcm/bottle_icon.png", type: "sleep" }
 ];
 
 const researchItems = [
@@ -18,12 +18,12 @@ const researchItems = [
 ];
 
 const studyTours = [
-    { id: 101, name: "现场灵芝采收·亲子研习营", date: "本周六/日", seats: "余8位", price: 199, img: "https://images.unsplash.com/photo-1559484237-0bd6c0f6c963?fm=jpg&q=80&w=3000&auto=format&fit=crop" },
+    { id: 101, name: "现场灵芝采收·亲子研习营", date: "本周六/日", seats: "余8位", price: 199, img: "assets/img/zhengzhong_museum.png" },
     { id: 102, name: "庄园药膳体验：灵芝养生宴", date: "每日预约", seats: "仅限20人/天", price: 288, img: "assets/tcm/jingcheng_hall.png" }
 ];
 
 const banners = [
-    { title: "黄村坝·灵芝庄园", sub: "龙门山脉湔江河谷 仿野生生长基地", img: "https://images.unsplash.com/photo-1694035449560-bbcfc84baef2?fm=jpg&q=80&w=3000&auto=format&fit=crop" },
+    { title: "黄村坝·灵芝庄园", sub: "龙门山脉湔江河谷 仿野生生长基地", img: "assets/img/zhengzhong_hero_bg_2.png" },
     { title: "林深雾养 光阴成材", sub: "体验灵芝采收 尊享庄园药膳", img: "assets/tcm/jingcheng_hall.png" }
 ];
 
@@ -125,7 +125,7 @@ window.showModuleDetail = function (title) {
         content.innerHTML = `
             <div style="padding:24px; text-align:center;">
                 <div style="width:100%; height:200px; background:#000; border-radius:12px; display:flex; justify-content:center; align-items:center; color:white; overflow:hidden; position:relative;">
-                    <img src="https://images.unsplash.com/photo-1694035449560-bbcfc84baef2?fm=jpg&q=80&w=3000&auto=format&fit=crop" style="width:100%; height:100%; object-fit:cover; opacity:0.6;">
+                    <img src="assets/img/zhengzhong_hero_bg_1.png" style="width:100%; height:100%; object-fit:cover; opacity:0.6;">
                     <div style="position:absolute; top:10px; right:10px; background:rgba(255,0,0,0.7); font-size:10px; padding:3px 6px; border-radius:4px; color:white;">LIVE: 黄村坝</div>
                     <i class="fas fa-play-circle" style="font-size:48px; position:absolute;"></i>
                 </div>
@@ -167,7 +167,7 @@ window.showModuleDetail = function (title) {
         content.innerHTML = `
             <div style="padding:20px;">
                 <div style="position:relative; border-radius:16px; overflow:hidden; padding:24px; color:white; box-shadow:0 10px 30px rgba(10,20,50,0.4);">
-                    <div style="position:absolute; inset:0; background-image:url('https://images.unsplash.com/photo-1619166855707-bba87a7772a2?fm=jpg&q=80&w=3000&auto=format&fit=crop'); background-size:cover; filter: brightness(0.4);"></div>
+                    <div style="position:absolute; inset:0; background-image:url('assets/img/zhengzhong_hero_bg_2.png'); background-size:cover; filter: brightness(0.4);"></div>
                     <div style="position:relative; z-index:1; text-align:center;">
                         <div style="width:60px; height:60px; margin:0 auto 15px; background:rgba(255,255,255,0.1); border-radius:30px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(5px);">
                             <i class="fas fa-moon" style="font-size:28px; color:#FFD700;"></i>
@@ -194,7 +194,7 @@ window.showModuleDetail = function (title) {
     } else if (title === '基地实景') {
         content.innerHTML = `
              <div style="position:relative; width:100%; height:450px; background:#000; overflow:hidden;">
-                <img src="https://images.unsplash.com/photo-1694035449560-bbcfc84baef2?fm=jpg&q=80&w=3000&auto=format&fit=crop" style="width:100%; height:100%; object-fit:cover; opacity:0.6;">
+                <img src="assets/img/zhengzhong_hero_bg_1.png" style="width:100%; height:100%; object-fit:cover; opacity:0.6;">
                 <div style="position:absolute; inset:0; padding:20px; font-family:'Courier New', monospace; color:rgba(100,255,100,0.9); pointer-events:none;">
                     <div style="display:flex; justify-content:space-between;">
                         <div style="border:1px solid rgba(100,255,100,0.5); padding:4px 8px; font-size:10px;">HUANGCUNBA_LIVE</div>
