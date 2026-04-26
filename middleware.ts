@@ -16,8 +16,16 @@ export async function middleware(request: NextRequest) {
   const pathname = url.pathname
 
   // 🛡️ [Domain Routing] 域名分流逻辑 (最高优先级)
+  // 1. 科创教研专属系统
+  if (host.includes('edu.') || pathname.startsWith('/edu')) {
+    if (pathname === '/' || pathname === '/index.html') {
+      return NextResponse.rewrite(new URL('/edu', request.url));
+    }
+    // 即使主域名直接访问 /edu，也直接放行，Next.js 会匹配 app/edu
+  }
+
+  // 2. 原版课件系统 (旧体系)
   if (host.includes('ai.zhouxiaomai.com')) {
-    // 🛡️ 恢复：确保 ai.zhouxiaomai.com 访问原版的课件生成首页 (/app/page.tsx)
     if (pathname === '/index.html') {
       return NextResponse.rewrite(new URL('/', request.url));
     }
@@ -76,6 +84,24 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // 🔒 [RBAC Guard] 教务 ERP 权限拦截
+  if (pathname.startsWith('/erp')) {
+    const role = request.cookies.get('X-FC-Role')?.value || 'ADMIN';
+    
+    // 教师限制
+    if (role === 'TEACHER' && ['/erp/finance', '/erp/settings', '/erp/leads', '/erp/inventory', '/erp/courses'].some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL('/erp/dashboard', request.url));
+    }
+    // 教务限制
+    if (role === 'ACADEMIC' && ['/erp/finance', '/erp/settings', '/erp/leads'].some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL('/erp/dashboard', request.url));
+    }
+    // 销售限制
+    if (role === 'SALES' && ['/erp/schedules', '/erp/settings', '/erp/courses', '/erp/inventory', '/erp/attendance', '/erp/classes'].some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL('/erp/dashboard', request.url));
+    }
+  }
+
   // --- 💡 后置逻辑：Supabase 会话管理 (仅在上述路由未拦截时执行) ---
   
   let response = NextResponse.next({
@@ -124,6 +150,7 @@ export const config = {
     '/labs',
     '/ide',
     '/swarm/:path*',
+    '/erp/:path*',
     '/hub-auto-:path*',
     // 匹配所有非静态资源的 .html 文件请求
     '/((?!api|_next/static|_next/image|favicon.ico|assets|images|avatars|libs|css|js).+\\.html)',
