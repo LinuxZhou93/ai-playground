@@ -1,5 +1,4 @@
-/**
- * 精诚灵芝庄园 (通济黄村坝) - 智慧全产业链 App 逻辑
+ * 臻博园 · 正中灵芝庄园 (通济黄村坝) - 智慧全产业链 App 逻辑
  * 涵盖：林下种植监控、文化研习、庄园甄选、医康旅游
  */
 
@@ -158,7 +157,7 @@ window.showModuleDetail = function (title) {
                     <div style="font-size:11px; color:#666; line-height:1.8;">
                         <div>产地：龙门山通济黄村坝核心区</div>
                         <div>质量等级：院内制剂标准</div>
-                        <div>检测签章：精诚质量中心 (通济站)</div>
+                        <div>检测签章：臻博园质量中心 (通济站)</div>
                     </div>
                 </div>
             </div>
