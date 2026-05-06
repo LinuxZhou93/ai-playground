@@ -1,6 +1,1 @@
-// pages/profile/index.js
-Page({
-  data: {
-    url: 'https://www.zhouxiaomai.com/profile.html?ui_mode=miniprogram'
-  }
-})
+Page({ data: { url: 'https://www.zhouxiaomai.com/resources/profile.html?ui_mode=miniprogram' } })

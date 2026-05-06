@@ -1,10 +1,7 @@
 // pages/index/index.js
 Page({
   data: {
-    // 增加一个超级随机数，强制微信不使用缓存
-    url: 'https://zhouxiaomai.com?ui_mode=miniprogram&cache_bust=' + Math.random().toString(36).substring(7)
-  },
-  onLoad(options) {
-    console.log("🔗 [FutureClass] Force Reloading with Cache Buster:", this.data.url);
+    // 直接访问 index.html，避开根路径的中间件拦截
+    url: 'https://www.zhouxiaomai.com/index.html?ui_mode=miniprogram'
   }
 })
