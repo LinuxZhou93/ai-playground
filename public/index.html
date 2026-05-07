@@ -3654,36 +3654,41 @@
                     }
                 }
 
-                // 5. 座舱首屏保护：隐藏 Slide 2-5，只保留第一屏
-                // 真正的根因：微信 WebView 对 scroll-snap 支持有bug，导致所有 slide 同时可见
-                const allSlides = document.querySelectorAll('.landing-slide');
-                allSlides.forEach(slide => {
-                    const idx = slide.getAttribute('data-index');
-                    if (idx !== '0') {
-                        slide.style.opacity = '0';
-                        slide.style.visibility = 'hidden';
-                        slide.style.transition = 'opacity 0.6s ease, visibility 0.6s ease';
-                    }
+                // 6. 物理遮罩行动：创建一个绝对顶层的屏蔽层，彻底阻断堆叠闪现
+                const shield = document.createElement('div');
+                shield.id = 'FC-Shield';
+                Object.assign(shield.style, {
+                    position: 'fixed',
+                    top: '0',
+                    left: '0',
+                    width: '100vw',
+                    height: '100vh',
+                    background: 'radial-gradient(circle at 50% 50%, #1a1a40 0%, #02040a 100%)',
+                    zIndex: '2147483647', // 浏览器最大 z-index
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    transition: 'opacity 1s ease-out',
+                    pointerEvents: 'none'
                 });
+                
+                // 在遮罩层里放一个 Logo 或者 Slogan，让加载显得高级
+                shield.innerHTML = `
+                    <div style="text-align: center; color: white; font-family: 'Orbitron', sans-serif;">
+                        <h1 style="margin: 0; font-size: 24px; letter-spacing: 4px;">FUTURE CLASS</h1>
+                        <p style="margin-top: 10px; font-size: 10px; color: #00f0ff; letter-spacing: 2px;">OS INITIALIZING...</p>
+                    </div>
+                `;
+                
+                document.body.appendChild(shield);
 
-                // 监听滚动容器，当用户滑动时逐渐显示后续 slide
-                const scrollContainer = document.getElementById('landing-scroll');
-                if (scrollContainer) {
-                    scrollContainer.addEventListener('scroll', () => {
-                        const scrollTop = scrollContainer.scrollTop;
-                        const vh = window.innerHeight;
-                        allSlides.forEach(slide => {
-                            const idx = parseInt(slide.getAttribute('data-index'));
-                            // 当滚动距离接近该 slide 时，显示它
-                            if (scrollTop > (idx - 0.5) * vh) {
-                                slide.style.opacity = '1';
-                                slide.style.visibility = 'visible';
-                            }
-                        });
-                    });
-                }
-
-                console.log("🛠️ [FutureClass] 小程序适配完成，首屏保护已激活");
+                setTimeout(() => {
+                    shield.style.opacity = '0';
+                    setTimeout(() => shield.remove(), 1000);
+                    document.documentElement.classList.add('ready');
+                    console.log("✨ [FutureClass] 物理遮罩已移除，环境已稳定");
+                }, 3500); // 增加到 3.5 秒
             }
         })();
     </script>
