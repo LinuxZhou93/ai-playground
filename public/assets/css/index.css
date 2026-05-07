@@ -369,44 +369,30 @@ body {
 /* 强力锁定首屏：盖住所有后续内容 */
 .miniprogram-mode .hero-section {
     position: relative !important;
-    z-index: 100 !important;
+    z-index: 1000 !important; /* 极高层级 */
     height: 100vh !important;
-    height: 100svh !important; /* 适配移动端动态视口 */
     width: 100vw !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
     overflow: hidden !important;
-    margin: 0 !important;
-    padding: 0 !important;
     background: radial-gradient(circle at 50% 50%, #1a1a40 0%, #02040a 100%) !important;
 }
 
-/* 适配微信胶囊按钮的顶距 */
-.miniprogram-mode .header {
-    padding-top: calc(env(safe-area-inset-top) + 20px) !important;
-    z-index: 110 !important;
-}
-
-/* 隐藏小程序环境下的重复导航 */
-.miniprogram-mode .dock-wrapper,
-.miniprogram-mode .dock-bar,
-.miniprogram-mode .mobile-nav-toggle {
-    display: none !important;
-}
-
-/* 后续内容：强制推到首屏下方，绝不允许闪现 */
+/* 暴力方案：初始状态下，后续内容全部透明且不可见 */
 .miniprogram-mode section:not(.hero-section),
 .miniprogram-mode .glass-panel {
-    position: relative !important;
-    z-index: 10 !important;
-    width: calc(100% - 40px) !important;
-    margin: 100px 20px 40px !important; /* 保持间距 */
-    transform: none !important;
-    height: auto !important;
-    min-height: 200px !important;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(100px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
 }
+
+/* 当页面加载完成 1.5s 后（通过 JS 注入这个类），再显示内容 */
+.miniprogram-mode.ready section:not(.hero-section),
+.miniprogram-mode.ready .glass-panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
 
 /* 确保首屏之后的第一个元素有足够的顶间距，防止衔接生硬 */
 .miniprogram-mode .hero-section + section,
