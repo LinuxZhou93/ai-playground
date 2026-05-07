@@ -944,99 +944,124 @@
             border-color: #fff;
         }
         }
-        /* --- MOBILE ADAPTATION (V5.3) --- */
+        /* --- MOBILE ADAPTATION (V5.4: DRAWER MODE) --- */
         @media screen and (max-width: 768px) {
             body {
-                overflow: auto;
-                height: auto;
-                background-attachment: fixed;
+                overflow: hidden; /* 防止主页面乱滚 */
+                height: 100vh;
             }
 
             .app-container {
-                flex-direction: column;
-                height: auto;
+                position: relative;
+                width: 100vw;
+                height: 100vh;
+                overflow: hidden;
             }
 
+            /* 侧边栏变为抽屉 */
             .sidebar {
-                width: 100% !important;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid var(--glass-border);
-                padding: 40px 20px 20px;
-                box-sizing: border-box;
+                position: absolute;
+                top: 0;
+                left: -100%; /* 默认隐藏在左侧 */
+                width: 280px !important;
+                height: 100%;
+                z-index: 999;
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                background: rgba(10, 10, 20, 0.98);
+                backdrop-filter: blur(20px);
+                box-shadow: 20px 0 50px rgba(0,0,0,0.5);
             }
 
+            .sidebar.active {
+                transform: translateX(100%); /* 呼出侧边栏 */
+            }
+
+            /* 右侧内容占据全屏 */
             .main-wall {
-                width: 100%;
-                height: auto;
-                overflow: visible;
-            }
-
-            .data-track-container {
-                padding: 15px;
-                overflow: visible;
+                width: 100vw !important;
+                height: 100vh;
+                overflow-x: auto;
+                position: absolute;
+                top: 0;
+                left: 0;
             }
 
             .data-grid-wall {
-                grid-template-columns: 1fr !important; /* 手机端改为单列 */
-                grid-template-rows: auto !important;
-                width: 100%;
-                padding-right: 0;
+                grid-template-columns: repeat(8, 300px) !important; /* 保持横向图标展示模式 */
+                grid-template-rows: repeat(2, 280px) !important;
+                padding: 60px 20px !important;
             }
 
-            .chart-card {
-                width: 100% !important;
-                height: 350px !important; /* 强制卡片高度 */
-                margin-bottom: 15px;
-            }
-
-            .profile-hero {
-                margin-bottom: 25px;
-            }
-
-            .user-title {
-                font-size: 18px;
-            }
-
-            .sidebar-nav {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr); /* 导航菜单两列显示 */
-                gap: 8px;
-                margin-bottom: 20px;
-            }
-
-            .nav-item {
-                padding: 10px;
-                font-size: 12px;
-                background: rgba(255, 255, 255, 0.03);
-            }
-
-            /* 隐藏手机端不需要的提示 */
-            .scroll-hint {
-                display: none;
-            }
-
-            /* 调整激活/兑换卡片的布局 */
-            .redeem-mini {
-                width: 100%;
-                box-sizing: border-box;
+            /* 悬浮菜单按钮 */
+            .mobile-menu-btn {
+                display: flex !important;
+                position: fixed;
+                top: 70px; /* 避开胶囊按钮 */
+                left: 20px;
+                width: 44px;
+                height: 44px;
+                background: var(--primary-dim);
+                border: 1px solid var(--primary);
+                border-radius: 50%;
+                z-index: 1000;
+                justify-content: center;
+                align-items: center;
+                color: var(--primary);
+                box-shadow: 0 0 15px var(--primary-dim);
             }
             
-            .sidebar-footer {
-                padding-bottom: 40px;
+            /* 遮罩层 */
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.6);
+                z-index: 998;
             }
+            
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
+
+        /* PC端隐藏按钮 */
+        .mobile-menu-btn {
+            display: none;
         }
     </style>
 
+
     <link rel="stylesheet" href="assets/css/titan-core.css">
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+    </script>
 </head>
 
 <body>
 
     <div class="app-container">
+        <!-- 手机端悬浮菜单按钮 -->
+        <div class="mobile-menu-btn" onclick="toggleSidebar()">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </div>
+        
+        <!-- 侧边栏遮罩层 -->
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-        <!-- FIXED SIDEBAR -->
-        <aside class="sidebar">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
             <!-- 给顶部预留出系统拖拽区域和 Mac 红绿灯的空间 -->
             <div style="height: 40px; width: 100%; -webkit-app-region: drag; position: absolute; top: 0; left: 0;"></div>
             
