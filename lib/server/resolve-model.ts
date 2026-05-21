@@ -40,10 +40,8 @@ export function resolveModel(params: {
     }
   }
 
-  const apiKey = clientBaseUrl
-    ? params.apiKey || ''
-    : resolveApiKey(providerId, params.apiKey || '');
-  const baseUrl = clientBaseUrl ? clientBaseUrl : resolveBaseUrl(providerId, params.baseUrl);
+  const apiKey = resolveApiKey(providerId, params.apiKey || '');
+  const baseUrl = resolveBaseUrl(providerId, params.baseUrl);
   const proxy = resolveProxy(providerId);
   const { model, modelInfo } = getModel({
     providerId,
