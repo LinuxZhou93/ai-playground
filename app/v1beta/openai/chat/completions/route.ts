@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 // Server-side hardened key to bypass client-side proxy issues
 const BACKGRACE_URL = 'https://backgrace.com/v1/chat/completions';
-const PROD_KEY = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+const PROD_KEY = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
 
 export async function POST(req: Request) {
   try {

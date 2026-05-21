@@ -1,4 +1,4 @@
-import { resolveApiKey, resolveBaseUrl } from './openmaic-core/lib/server/provider-config';
+import { resolveApiKey, resolveBaseUrl } from './lib/server/provider-config';
 
 async function testConnectivity() {
   console.log('--- Titan Tech API 连通性深度审计 ---');
@@ -11,15 +11,13 @@ async function testConnectivity() {
   console.log(`Resolved Key: ${resolvedKey.slice(0, 8)}...${resolvedKey.slice(-4)}`);
   console.log(`Resolved URL: ${resolvedUrl}`);
   
-  const expectedKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
-  if (resolvedKey === expectedKey) {
-    console.log('✅ Key 校验成功：已正确指向 Backgrace 生产通道。');
+  // 移除硬编码校验，仅检查 key 是否存在且非空
+  if (resolvedKey && resolvedKey.length > 10) {
+    console.log('✅ Key 校验成功：已加载有效的 API 密钥。');
   } else {
-    console.log('❌ Key 校验失败：当前 Key [', resolvedKey, '] 与预期不符！');
-    if (process.env.GOOGLE_API_KEY) {
-        console.log('⚠️ 发现异常：环境变量 GOOGLE_API_KEY [', process.env.GOOGLE_API_KEY.slice(0, 8), '...] 正在干扰解析。');
-    }
+    console.log('❌ Key 校验失败：未能解析到有效的 API 密钥！');
   }
+
 
   // 测试实际调用 (Mock 一个简单的 API 请求)
   try {

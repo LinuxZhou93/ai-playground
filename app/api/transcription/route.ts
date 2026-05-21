@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     // [Titan Tech Override] Ultimate Fallback
     if (!finalApiKey && effectiveProviderId === 'openai-whisper') {
-      finalApiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+      finalApiKey = process.env.OPENAI_API_KEY || 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
       if (!finalBaseUrl) {
         finalBaseUrl = 'https://backgrace.com/v1';
       }

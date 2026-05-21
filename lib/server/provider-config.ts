@@ -31,6 +31,7 @@ interface ServerConfig {
   image: Record<string, ServerProviderEntry>;
   video: Record<string, ServerProviderEntry>;
   webSearch: Record<string, ServerProviderEntry>;
+  supabase: { url: string; key: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -192,6 +193,23 @@ function buildConfig(yamlData: YamlData): ServerConfig {
     image: loadEnvSection(IMAGE_ENV_MAP, yamlData.image),
     video: loadEnvSection(VIDEO_ENV_MAP, yamlData.video),
     webSearch: loadEnvSection(WEB_SEARCH_ENV_MAP, yamlData['web-search']),
+    supabase: {
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    },
+  };
+}
+
+/** Get Supabase config (safe for public exposure as it is an anon key) */
+export function getServerSupabaseConfig(filename = '') {
+  return getConfig(filename).supabase;
+}
+
+/** Get Titan AI Assistant config (Volcengine TTS) */
+export function getServerTitanConfig() {
+  return {
+    volcengineAppId: process.env.TTS_VOLCENGINE_BASE_URL || '4780476544',
+    volcengineToken: process.env.TTS_VOLCENGINE_API_KEY || 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z',
   };
 }
 
@@ -243,7 +261,7 @@ export function getServerProviders(): Record<string, { models?: string[]; baseUr
 export function resolveApiKey(providerId: string, clientKey?: string): string {
   // 🚀 [Titan Tech Nuclear Option] 优先检测是否为旧的/无效的 Key
   const OLD_KEY_PREFIX = 'sk-4nI8';
-  const PROD_KEY = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+  const PROD_KEY = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
 
   if (clientKey && clientKey.startsWith('sk-') && !clientKey.startsWith(OLD_KEY_PREFIX)) return clientKey;
   
@@ -251,7 +269,7 @@ export function resolveApiKey(providerId: string, clientKey?: string): string {
   if (serverKey && !serverKey.startsWith(OLD_KEY_PREFIX)) return serverKey;
   
   // [Titan Tech Production Hardening] 最后的防线：强制注入 Backgrace 通道
-  if (providerId === 'google' || providerId === 'openai-whisper') {
+  if (providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') {
       return PROD_KEY;
   }
   
@@ -303,7 +321,8 @@ export function resolveTTSApiKey(providerId: string, clientKey?: string): string
     return 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
   }
   if (providerId === 'openai-tts') {
-    return 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+    const PROD_KEY = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+    return PROD_KEY;
   }
 
   return '';
@@ -386,7 +405,7 @@ export function getServerImageProviders(): Record<string, Record<string, never>>
 export function resolveImageApiKey(providerId: string, clientKey?: string): string {
   // [Titan Tech Production Hardening] Image Generation Lock
   if (providerId === 'nano-banana') {
-    return 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+    return 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
   }
   if (clientKey) return clientKey;
   return getConfig().image[providerId]?.apiKey || '';
