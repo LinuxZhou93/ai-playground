@@ -2,7 +2,16 @@ import { NextResponse } from 'next/server';
 
 // Server-side hardened key to bypass client-side proxy issues
 const BACKGRACE_URL = 'https://backgrace.com/v1/chat/completions';
-const PROD_KEY = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+const getCleanApiKey = () => {
+  const keys = [process.env.OPENAI_API_KEY, process.env.GEMINI_API_KEY];
+  for (const k of keys) {
+    if (k && !k.startsWith('sk-Ob49') && !k.startsWith('sk-4nI8')) {
+      return k;
+    }
+  }
+  return 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+};
+const PROD_KEY = getCleanApiKey();
 
 export async function POST(req: Request) {
   try {

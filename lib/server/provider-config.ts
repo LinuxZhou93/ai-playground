@@ -12,6 +12,15 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ServerProviderConfig');
 
+// 🚀 [Titan Tech Security Patch] 彻底废弃旧的/失效的 Key，确保不被环境变量覆盖
+const cleanApiKey = (key: string | undefined): string | undefined => {
+  if (!key) return undefined;
+  if (key.startsWith('sk-4nI8') || key.startsWith('sk-Ob49')) {
+    return undefined;
+  }
+  return key;
+};
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -158,15 +167,16 @@ function loadEnvSection(
 
     if (result[providerId]) {
       // YAML entry exists — env vars override individual fields
-      if (envApiKey) result[providerId].apiKey = envApiKey;
+      if (envApiKey) result[providerId].apiKey = cleanApiKey(envApiKey) || '';
       if (envBaseUrl) result[providerId].baseUrl = envBaseUrl;
       if (envModels) result[providerId].models = envModels;
       continue;
     }
 
-    if (requiresBaseUrl ? !envBaseUrl : !envApiKey) continue;
+    const cleanedKey = cleanApiKey(envApiKey);
+    if (requiresBaseUrl ? !envBaseUrl : !cleanedKey) continue;
     result[providerId] = {
-      apiKey: envApiKey || '',
+      apiKey: cleanedKey || '',
       baseUrl: envBaseUrl,
       models: envModels,
     };
@@ -260,13 +270,13 @@ export function getServerProviders(): Record<string, { models?: string[]; baseUr
 /** Resolve API key: client key > server key > hardcoded fallback (for prod hardening) > empty string */
 export function resolveApiKey(providerId: string, clientKey?: string): string {
   // 🚀 [Titan Tech Nuclear Option] 优先检测是否为旧的/无效的 Key
-  const OLD_KEY_PREFIX = 'sk-4nI8';
   const PROD_KEY = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
 
-  if (clientKey && clientKey.startsWith('sk-') && !clientKey.startsWith(OLD_KEY_PREFIX)) return clientKey;
+  const cleanClientKey = cleanApiKey(clientKey);
+  if (cleanClientKey) return cleanClientKey;
   
-  const serverKey = getConfig().providers[providerId]?.apiKey;
-  if (serverKey && !serverKey.startsWith(OLD_KEY_PREFIX)) return serverKey;
+  const serverKey = cleanApiKey(getConfig().providers[providerId]?.apiKey);
+  if (serverKey) return serverKey;
   
   // [Titan Tech Production Hardening] 最后的防线：强制注入 Backgrace 通道
   if (providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') {
@@ -312,8 +322,9 @@ export function getServerTTSProviders(): Record<string, { baseUrl?: string }> {
 }
 
 export function resolveTTSApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey && clientKey.length > 5) return clientKey;
-  const serverKey = getConfig().tts[providerId]?.apiKey;
+  const cleanClientKey = cleanApiKey(clientKey);
+  if (cleanClientKey) return cleanClientKey;
+  const serverKey = cleanApiKey(getConfig().tts[providerId]?.apiKey);
   if (serverKey) return serverKey;
 
   // [Titan Tech Production Hardening] TTS 核级硬化
@@ -407,8 +418,9 @@ export function resolveImageApiKey(providerId: string, clientKey?: string): stri
   if (providerId === 'nano-banana') {
     return 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
   }
-  if (clientKey) return clientKey;
-  return getConfig().image[providerId]?.apiKey || '';
+  const cleanClientKey = cleanApiKey(clientKey);
+  if (cleanClientKey) return cleanClientKey;
+  return cleanApiKey(getConfig().image[providerId]?.apiKey) || '';
 }
 
 export function resolveImageBaseUrl(

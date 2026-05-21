@@ -136,7 +136,10 @@ export async function POST(req: Request) {
       userPrompt = "请根据以下课程大纲和主体方向，生成针对性试题：\n" + prompt + "\n\n请直接输出纯 JSON：";
     }
 
-    const backgraceKey = process.env.OPENAI_API_KEY || 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+    const rawKey = process.env.OPENAI_API_KEY;
+    const backgraceKey = (rawKey && !rawKey.startsWith('sk-Ob49') && !rawKey.startsWith('sk-4nI8'))
+        ? rawKey
+        : 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
 
     const openaiPayload = {
         model: 'gemini-3-flash',
