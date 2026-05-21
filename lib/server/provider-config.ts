@@ -15,7 +15,7 @@ const log = createLogger('ServerProviderConfig');
 // 🚀 [Titan Tech Security Patch] 彻底废弃旧的/失效的 Key，确保不被环境变量覆盖
 const cleanApiKey = (key: string | undefined): string | undefined => {
   if (!key) return undefined;
-  if (key.startsWith('sk-4nI8') || key.startsWith('sk-Ob49')) {
+  if (key.startsWith('sk-4nI8') || key.startsWith('sk-Ob49') || key.startsWith('sk-yRWW')) {
     return undefined;
   }
   return key;
@@ -273,10 +273,22 @@ export function resolveApiKey(providerId: string, clientKey?: string): string {
   const PROD_KEY = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
 
   const cleanClientKey = cleanApiKey(clientKey);
-  if (cleanClientKey) return cleanClientKey;
+  if (cleanClientKey) {
+    if ((providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') &&
+        !cleanClientKey.startsWith('sk-YU1Cu')) {
+      return PROD_KEY;
+    }
+    return cleanClientKey;
+  }
   
   const serverKey = cleanApiKey(getConfig().providers[providerId]?.apiKey);
-  if (serverKey) return serverKey;
+  if (serverKey) {
+    if ((providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') &&
+        !serverKey.startsWith('sk-YU1Cu')) {
+      return PROD_KEY;
+    }
+    return serverKey;
+  }
   
   // [Titan Tech Production Hardening] 最后的防线：强制注入 Backgrace 通道
   if (providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') {
