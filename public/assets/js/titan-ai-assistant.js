@@ -25,23 +25,18 @@ class TitanAIAssistant {
             fullContent: fullContent
         };
         
-        // Settings (Obfuscated internal config to prevent direct scanning)
-        const _k = [
-            'QUl6YVN5QW', '84RVlub2Rl', 'aktBanFaaU', '4yUDNFc1R4', 'VWJqLXVka0', 'tJ'
-        ];
         this.settings = {
-            // 🛡️ [终极生产环境密钥]：已注入 Backgrace 官方商业金钥，保障全时段高并发服务稳若泰山
-            apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', 
-            endpoint: 'https://backgrace.com/v1/chat/completions', 
-            backupEndpoint: 'https://ai.zhouxiaomai.com/v1beta/openai/chat/completions', // 降级为原生备用节点
-            backupApiKey: atob(_k.join('')),
+            // 🛡️ [终极生产环境安全架构]：移除前端硬编码密钥，改为请求后端安全代理
+            apiKey: '', 
+            endpoint: '/v1beta/openai/chat/completions', 
+            backupEndpoint: '/v1beta/openai/chat/completions', 
+            backupApiKey: '',
             model: 'gemini-3-flash', // 顶配更新：已解锁 3.0 版本
-            // 🎙️ 【终极企业架构：豆包发声模块】（你的大脑依旧是强无敌的 Gemini 3.0 Flash 视觉大模型）
-            volcengineAppId: '4780476544', // 去火山引擎注册后拿到的 AppID
-            volcengineToken: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', // 去火山引擎拿到的真实身份 Token (含小写l修正)
-            volcengineCluster: 'volcano_tts', // 默认使用火山 TTS 集群
-            volcengineVoice: 'zh_male_shaonianzixin_moon_bigtts', // 🎯 核心音色设定：豆包 - 少年梓辛
-            // 💎 [会员权限硬核固化]：生产版默认授予永久 VIP 权限 (2033年过期)，解决跨域 Session 丢失导致的访客模式回滚。
+            // 🎙️ 【终极企业架构：豆包发声模块】
+            volcengineAppId: '',
+            volcengineToken: '',
+            volcengineCluster: 'volcano_tts',
+            volcengineVoice: 'zh_male_shaonianzixin_moon_bigtts',
             memberExpired: 2000000000000 
         };
         
@@ -63,7 +58,19 @@ class TitanAIAssistant {
                         // 提取并自动拼接正确的聊天补全端点
                         let activeUrl = config.baseUrl || config.defaultBaseUrl || 'https://api.openai.com/v1';
                         activeUrl = activeUrl.replace(/\/+$/, '');
-                        this.settings.endpoint = activeUrl + '/chat/completions';
+                        
+                        // 🚀 [Titan Tech Enterprise Security Patch]
+                        // 强制过滤失效 Key 及防止直连 backgrace.com 导致无 Auth 报错
+                        const cleanKey = config.apiKey || '';
+                        const isInvalid = cleanKey.startsWith('sk-Ob49') || cleanKey.startsWith('sk-4nI8');
+                        if (isInvalid || activeUrl.includes('backgrace.com')) {
+                            console.log('[Titan AI] 🛡️ 检测到失效的秘钥或直连中转域，已强制降级路由到本站安全代理。');
+                            this.settings.apiKey = '';
+                            this.settings.endpoint = '/v1beta/openai/chat/completions';
+                            this.settings.backupEndpoint = '/v1beta/openai/chat/completions';
+                        } else {
+                            this.settings.endpoint = activeUrl + '/chat/completions';
+                        }
                         
                         console.log(`[Titan AI] 🚀 成功与 OpenMAIC 核心接轨! Provider: ${providerId} | Model: ${modelId}`);
                     }
@@ -544,7 +551,23 @@ class TitanAIAssistant {
         }, 1000);
     }
 
+    async fetchServerConfig() {
+        try {
+            const resp = await fetch('/api/server-providers');
+            const data = await resp.json();
+            if (data.success && data.data && data.data.titan) {
+                const titan = data.data.titan;
+                this.settings.volcengineAppId = titan.volcengineAppId || this.settings.volcengineAppId;
+                this.settings.volcengineToken = titan.volcengineToken || this.settings.volcengineToken;
+                console.log('[Titan AI] 🛡️ 成功从服务器同步最新安全配置 (Volcengine Token Loaded)');
+            }
+        } catch (e) {
+            console.warn('[Titan AI] 无法从服务器获取配置，降级使用内建默认值。', e);
+        }
+    }
+
     init() {
+        this.fetchServerConfig();
         this.loadDependencies();
         this.injectCSS();
         this.injectUI();
@@ -3392,9 +3415,9 @@ class TitanAIAssistant {
                 });
             } else {
                 // 🚀 【Titan AI Web 直接接入火山引擎】
-                // 强制使用生产级 Token，实现全平台高保真音色一致性
-                const appId = "4780476544";
-                const token = "e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z";
+                // 使用动态获取的生产级配置，实现全平台高保真音色一致性
+                const appId = this.settings.volcengineAppId;
+                const token = this.settings.volcengineToken;
                 const reqid = 'req-' + Date.now();
 
                 const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
@@ -4026,8 +4049,7 @@ ${spatialContext}
                     method: 'POST',
                     signal: this.currentAbortController.signal,
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.settings.apiKey}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         model: this.settings.model,
@@ -4056,8 +4078,7 @@ ${spatialContext}
                         method: 'POST',
                         signal: this.currentAbortController.signal,
                         headers: { 
-                            'Content-Type': 'application/json', 
-                            'Authorization': `Bearer ${this.settings.backupApiKey || this.settings.apiKey}` 
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ model: this.settings.model, messages: apiMessages, temperature: 0.7, max_tokens: 4096 })
                     });
