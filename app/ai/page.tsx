@@ -358,7 +358,7 @@ graph LR
           {sectionsData.map((sec, i) => (
             <li key={i}>
               <a 
-                href={\`#wiki-section-\${i + 1}\`}
+                href={`#wiki-section-${i + 1}`}
                 className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors truncate"
               >
                 {sec.title}
@@ -398,7 +398,7 @@ graph LR
 
           {/* Sections */}
           {sectionsData.map((sec, i) => (
-            <section key={i} id={\`wiki-section-\${i + 1}\`} className="space-y-6">
+            <section key={i} id={`wiki-section-${i + 1}`} className="space-y-6">
               <div>
                 <h2 className="text-2xl font-semibold mb-2">{sec.title}</h2>
                 <p 

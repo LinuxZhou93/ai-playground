@@ -42,6 +42,7 @@ export async function middleware(request: NextRequest) {
   const cleanUrlMaps: Record<string, string> = {
     '/course': '/resources/course.html',
     '/pricing': '/resources/pricing-demo.html',
+    '/pengzhou-mall-demo': '/resources/pengzhou-mall-demo.html',
     '/download': '/resources/download.html',
     '/labs': '/resources/labs.html',
     '/ide': '/resources/ide-scratch.html',
@@ -146,6 +147,7 @@ export const config = {
     '/',
     '/course',
     '/pricing',
+    '/pengzhou-mall-demo',
     '/download',
     '/labs',
     '/ide',
