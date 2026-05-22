@@ -10,8 +10,8 @@ COURSE_DIR = os.path.join(BASE_DIR, 'public', 'resources', 'hf-course', 'chapter
 TOCTREE_PATH = os.path.join(COURSE_DIR, '_toctree.yml')
 
 # Supabase Configurations
-SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co'
-SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g'
+SUPABASE_URL = os.getenv('NEXT_PUBLIC_SUPABASE_URL', 'https://znmbkxuurzhevfxtq.supabase.co')
+SUPABASE_KEY = os.getenv('NEXT_PUBLIC_SUPABASE_ANON_KEY', '')
 TABLE_NAME = 'courses'
 
 def extract_summary(md_path):

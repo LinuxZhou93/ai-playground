@@ -108,7 +108,7 @@ export function ProviderConfigPanel({
   };
 
   const isForceLocked = provider.id === 'google';
-  const effectiveApiKey = isForceLocked ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK' : apiKey;
+  const effectiveApiKey = apiKey;
 
   const handleTestApi = useCallback(async () => {
     setTestStatus('testing');
@@ -180,11 +180,7 @@ export function ProviderConfigPanel({
               data-lpignore="true"
               data-bwignore="true"
               placeholder={isServerConfigured ? t('settings.optionalOverride') : 'sk-...'}
-              value={
-                isForceLocked
-                  ? 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK'
-                  : apiKey
-              }
+              value={apiKey}
               onChange={(e) => !isForceLocked && handleApiKeyChange(e.target.value)}
               onBlur={isForceLocked ? undefined : onSave}
               disabled={isForceLocked || (!requiresApiKey && !isServerConfigured)}

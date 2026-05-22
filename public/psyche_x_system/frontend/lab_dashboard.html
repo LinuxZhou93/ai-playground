@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TITAN 管理总表 - 社区实验室课程评价</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- QR Code Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Fredoka', 'Noto Sans SC', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* Modal Style */
+        .modal { transition: opacity 0.25s ease; }
+        .modal-active { overflow-x: hidden; overflow-y: hidden !important; }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-slate-800/50 p-6 rounded-3xl border border-slate-700 backdrop-blur-md">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
+                    <i data-lucide="layout-dashboard" class="w-7 h-7 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-wider">实验室数据总控仓</h1>
+                    <p class="text-slate-400 text-sm">成电创客 wowcreator 社区实验室 · 2025-2026春季学期</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="lab_input.html" class="px-5 py-3 bg-emerald-500/20 text-emerald-400 font-bold rounded-xl border border-emerald-500/30 hover:bg-emerald-500/30 transition flex items-center gap-2">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    新增课程评价
+                </a>
+                <button id="exportCsvBtn" class="px-5 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 hover:bg-indigo-500 transition flex items-center gap-2">
+                    <i data-lucide="sheet" class="w-5 h-5"></i>
+                    导出总表 (CSV)
+                </button>
+            </div>
+        </header>
+
+        <!-- Table Container -->
+        <div class="bg-slate-800 rounded-3xl border border-slate-700 shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full whitespace-nowrap text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900 border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider">
+                            <th class="p-4 font-bold">时间</th>
+                            <th class="p-4 font-bold">学号</th>
+                            <th class="p-4 font-bold">姓名</th>
+                            <!-- Dimensions -->
+                            <th class="p-4 font-bold text-center">专注</th>
+                            <th class="p-4 font-bold text-center">动手</th>
+                            <th class="p-4 font-bold text-center">逻辑</th>
+                            <th class="p-4 font-bold text-center">抗挫</th>
+                            <th class="p-4 font-bold text-center">情绪</th>
+                            <th class="p-4 font-bold text-center">破冰</th>
+                            <th class="p-4 font-bold text-center">创新</th>
+                            <th class="p-4 font-bold text-center">协作</th>
+                            <!-- Actions -->
+                            <th class="p-4 font-bold text-right">档案操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-700/50">
+                        <tr>
+                            <td colspan="12" class="p-8 text-center text-slate-500">
+                                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2"></i>
+                                正在连接 Supabase 获取实验室数据...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-slate-900 opacity-80" onclick="closeModal()"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded-[2rem] shadow-2xl z-50 overflow-y-auto">
+            <div class="modal-content py-6 text-left px-8 text-slate-800 flex flex-col items-center">
+                <div class="flex justify-between items-center pb-3 w-full border-b border-slate-100 mb-6">
+                    <p class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-blue-500">一键分享电子档案</p>
+                    <div class="modal-close cursor-pointer p-2 rounded-full hover:bg-slate-100 transition" onclick="closeModal()">
+                        <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                    </div>
+                </div>
+                
+                <p id="qrStudentName" class="font-black text-2xl text-slate-700 mb-2">学员姓名</p>
+                <p class="text-sm text-slate-500 mb-6 font-mono">成电创客wowcreator社区实验室</p>
+
+                <!-- QRCode container -->
+                <div id="qrcode-container" class="p-4 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner mb-6"></div>
+                
+                <p class="text-xs text-slate-400 text-center">家长可以通过微信扫码直接查看深度的 6 页课程评估图谱和 AI 生成的导师长评。</p>
+                
+                <button class="mt-6 w-full py-4 bg-slate-900 border-2 border-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition" onclick="closeModal()">关闭窗口</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let globalData = [];
+
+        // 实验室高保真本地预览演示数据
+        const mockDashboardData = [
+            {
+                id: "mock-1",
+                student_id: "WOW-LAB-2025-01",
+                student_name: "陈子轩",
+                camp_name: "成电创客wowcreator社区实验室 (2025春季)",
+                created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+                focus_score: 95, dexterity_score: 90, logic_score: 92, resilience_score: 85,
+                self_management_score: 88, social_score: 90, creativity_score: 96, collaboration_score: 94,
+                highlights: "在本学期的传动系统设计中，能够自主调试多级齿轮减速装置，在编写智能循迹逻辑时对条件判断控制非常熟练。",
+                potential_improvements: "在团队协作中过于专注于编写自己的代码，建议以后在分工合作时多与搭档交流硬件连接状况。",
+                ai_overall_report: "陈子轩同学在春季学期的表现极为突出。他不仅展现了出色的机械结构组装天赋，更对基础编程逻辑有深厚的理解。面对复杂的齿轮传动比计算和条件分支判断，能迅速定位并排除电路中的闭环故障。建议长线加入瞪羚俱乐部，深度挑战高级算法与系统级工程。"
+            },
+            {
+                id: "mock-2",
+                student_id: "WOW-LAB-2025-02",
+                student_name: "林梦涵",
+                camp_name: "成电创客wowcreator社区实验室 (2025春季)",
+                created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+                focus_score: 88, dexterity_score: 94, logic_score: 85, resilience_score: 90,
+                self_management_score: 95, social_score: 86, creativity_score: 92, collaboration_score: 89,
+                highlights: "动手组装机械连杆和滑轮组非常精细，工位整理和电子元器件收纳习惯非常优秀，堪称全班表率。",
+                potential_improvements: "在进行循环编程控制时，需要导师引导逻辑跳转，建议进一步强化控制流的推演训练。",
+                ai_overall_report: "林梦涵同学在本学期展现出了顶级的动手工程精细度与极佳的情绪自控力。她的连杆传动机构组装规范且动作流畅。在传感器与电机的基础接线中，极具安全与规范意识。长线培养方面建议加强图形化算法顺序与循环模块的应用，推荐加入瞪羚俱乐部进行长线系统思维磨炼。"
+            }
+        ];
+
+        async function fetchRecords() {
+            try {
+                const res = await fetch('/api/lab_report');
+                if (!res.ok) {
+                    throw new Error("HTTP error " + res.status);
+                }
+                const { success, data } = await res.json();
+                
+                if(success && data && data.length > 0) {
+                    globalData = data;
+                    renderTable(data);
+                } else {
+                    console.log("No data returned or success=false, entering local mock preview mode...");
+                    globalData = mockDashboardData;
+                    renderTable(mockDashboardData);
+                }
+            } catch(e) {
+                console.warn("API Fetch Failed, showing mock preview data for local preview:", e.message);
+                globalData = mockDashboardData;
+                renderTable(mockDashboardData);
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            
+            if(data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-500">暂无录入数据。请先录入评价。</td></tr>`;
+                return;
+            }
+
+            data.forEach(item => {
+                const dateSplit = new Date(item.created_at).toLocaleString().split(' ');
+                const dateStr = `<div class="text-xs">${dateSplit[0]}</div><div class="text-[10px] text-slate-500">${dateSplit[1]||''}</div>`;
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-700/30 transition border-transparent border-l-4 hover:border-indigo-500';
+                
+                tr.innerHTML = `
+                    <td class="p-4 text-slate-400">${dateStr}</td>
+                    <td class="p-4 font-mono text-cyan-300">#${item.student_id}</td>
+                    <td class="p-4 font-bold text-slate-200">${item.student_name}</td>
+                    
+                    <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-900 rounded-md border border-slate-700">${item.focus_score}</span></td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-900 rounded-md border border-slate-700">${item.dexterity_score}</span></td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-900 rounded-md border border-slate-700">${item.logic_score}</span></td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-900 rounded-md border border-slate-700">${item.resilience_score}</span></td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-900 rounded-md border border-slate-700">${item.self_management_score}</span></td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-900 rounded-md border border-slate-700">${item.social_score}</span></td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-900 rounded-md border border-slate-700">${item.creativity_score}</span></td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 bg-slate-900 rounded-md border border-slate-700">${item.collaboration_score}</span></td>
+                    
+                    <td class="p-4 text-right flex items-center justify-end gap-2">
+                        <button onclick="openQrModal('${item.id}', '${item.student_name}')" title="生成二维码" class="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-600 hover:text-white transition cursor-pointer">
+                            <i data-lucide="qr-code" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="goToReport('${item.id}')" title="查看 6 页深度报告" class="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500 hover:text-white transition cursor-pointer">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        // CSV Export
+        document.getElementById('exportCsvBtn').addEventListener('click', () => {
+            if(globalData.length === 0) return alert('没有数据可供导出！');
+            
+            const headers = [
+                '生成时间', '数据ID', '学号', '姓名', '实验室课程', 
+                '专注度', '动手操作精细度', '科学逻辑理解力', '抗挫折恢复力', 
+                '工具收纳情绪管理', '社会化融入表现', '创新发散想象力', '同伴协作沟通力',
+                '高光亮点', '待提升点', 'AI智能总评'
+            ];
+            
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for excel utf-8
+            csvContent += headers.join(',') + "\r\n";
+            
+            globalData.forEach(row => {
+                const arr = [
+                    new Date(row.created_at).toLocaleString(), row.id, row.student_id, row.student_name, row.camp_name,
+                    row.focus_score, row.dexterity_score, row.logic_score, row.resilience_score,
+                    row.self_management_score, row.social_score, row.creativity_score, row.collaboration_score,
+                    `"${(row.highlights||'').replace(/"/g, '""')}"`,
+                    `"${(row.potential_improvements||'').replace(/"/g, '""')}"`,
+                    `"${(row.ai_overall_report||'').replace(/"/g, '""')}"`
+                ];
+                csvContent += arr.join(',') + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `社区实验室课程评价总表_${new Date().getTime()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        function goToReport(id) {
+            console.info('🚀 跳转至 6 页深度评估报告...', id);
+            // 本地与生产兼容跳转
+            const targetUrl = 'lab_report.html?id=' + id;
+            window.location.href = targetUrl;
+        }
+
+        // Modal Logic
+        function openQrModal(id, studentName) {
+            document.getElementById('qrStudentName').innerText = studentName;
+            
+            const url = window.location.origin + window.location.pathname.replace('lab_dashboard.html', 'lab_report.html') + '?id=' + id;
+            
+            // clear old qr code
+            document.getElementById('qrcode-container').innerHTML = '';
+            
+            // generate new qr code
+            QRCode.toCanvas(url, { errorCorrectionLevel: 'H', width: 200, margin: 1, color: { dark:"#1e293b", light:"#ffffff" } }, function (err, canvas) {
+                if (err) throw err;
+                document.getElementById('qrcode-container').appendChild(canvas);
+            });
+
+            const modal = document.getElementById('qrModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('qrModal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            document.body.classList.remove('modal-active');
+        }
+
+        fetchRecords();
+    </script>
+</body>
+</html>

@@ -16,9 +16,21 @@ const SubscriptionManager = {
     init: async function () {
         console.log('SubscriptionManager: Initializing...');
 
-        // 1. Check Config
-        if (typeof SUPABASE_CONFIG === 'undefined') {
-            console.warn('⚠️ Supabase Config Missing');
+        // 1. Fetch Config from Server
+        try {
+            const resp = await fetch('/api/server-providers');
+            const data = await resp.json();
+            if (data.success && data.supabase) {
+                window.SUPABASE_CONFIG = data.supabase;
+                console.log('✅ Supabase Config Fetched from API');
+            }
+        } catch (e) {
+            console.error('Failed to fetch Supabase config:', e);
+        }
+
+        // 2. Check Config
+        if (typeof SUPABASE_CONFIG === 'undefined' || !SUPABASE_CONFIG.url) {
+            console.warn('⚠️ Supabase Config Missing or Empty');
             return;
         }
 

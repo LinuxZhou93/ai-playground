@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 
 const command = '/Users/zhoulin/.gemini/antigravity/node_modules/.bin/feishu-mcp';
-const args = ['--log-level', 'none', '--enabled-modules', 'document', '--use-stdio'];
+const args = ['--log-level', 'none', '--enabled-modules', 'document', '--stdio'];
 
 const child = spawn(command, args, {
   env: process.env,

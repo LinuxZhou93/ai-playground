@@ -246,7 +246,7 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
     let baseUrl = provider.defaultBaseUrl || '';
     
     if (pid === 'google') {
-      apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+      apiKey = '';
       baseUrl = 'https://backgrace.com/v1';
     }
 
@@ -278,11 +278,11 @@ const getDefaultAudioConfig = () => ({
     'glm-tts': { apiKey: '', baseUrl: '', enabled: false },
     'qwen-tts': { apiKey: '', baseUrl: '', enabled: false },
     'elevenlabs-tts': { apiKey: '', baseUrl: '', enabled: false },
-    'volcengine-tts': { apiKey: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', baseUrl: 'https://openspeech.bytedance.com/api/v1', enabled: true },
+    'volcengine-tts': { apiKey: '', baseUrl: 'https://openspeech.bytedance.com/api/v1', enabled: true },
     'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
   } as Record<TTSProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
   asrProvidersConfig: {
-    'openai-whisper': { apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', baseUrl: 'https://backgrace.com/v1', enabled: true },
+    'openai-whisper': { apiKey: '', baseUrl: 'https://backgrace.com/v1', enabled: true },
     'browser-native': { apiKey: '', baseUrl: '', enabled: true },
     'qwen-asr': { apiKey: '', baseUrl: '', enabled: false },
   } as Record<ASRProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
@@ -304,7 +304,7 @@ const getDefaultImageConfig = () => ({
   imageProvidersConfig: {
     seedream: { apiKey: '', baseUrl: '', enabled: false },
     'qwen-image': { apiKey: '', baseUrl: '', enabled: false },
-    'nano-banana': { apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK', baseUrl: 'https://backgrace.com/v1', enabled: true },
+    'nano-banana': { apiKey: '', baseUrl: 'https://backgrace.com/v1', enabled: true },
     'grok-image': { apiKey: '', baseUrl: '', enabled: false },
   } as Record<ImageProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
 });
@@ -523,7 +523,7 @@ export const useSettingsStore = create<SettingsState>()(
       if (defaultAudioConfig.asrProvidersConfig && defaultAudioConfig.asrProvidersConfig['openai-whisper']) {
         defaultAudioConfig.asrProviderId = 'openai-whisper';
         defaultAudioConfig.asrLanguage = 'zh';
-        defaultAudioConfig.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+        defaultAudioConfig.asrProvidersConfig['openai-whisper'].apiKey = '';
         defaultAudioConfig.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
       }
 
@@ -531,7 +531,7 @@ export const useSettingsStore = create<SettingsState>()(
       if (defaultAudioConfig.ttsProvidersConfig && defaultAudioConfig.ttsProvidersConfig['volcengine-tts']) {
         defaultAudioConfig.ttsProviderId = 'volcengine-tts';
         defaultAudioConfig.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
-        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
+        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].apiKey = '';
         defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
         defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].enabled = true;
       }

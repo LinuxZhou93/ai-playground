@@ -7,8 +7,8 @@ import path from 'path'
 // --- 🌐 Chronos Global Indexer ---
 // 这个脚本会自动扫描代码库并生成知识图谱全量数据
 
-const supabaseUrl = "https://znmbkxmnwuurzhevfxtq.supabase.co"
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g"
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://znmbkxmnwuurzhevfxtq.supabase.co"
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const ROOT_DIR = process.cwd()
@@ -33,12 +33,12 @@ async function clearOldData() {
 }
 
 async function indexCodebase() {
-    const nodes: any[] = [];
-    const edges: any[] = [];
-    const fileToId = new Map<string, string>();
+    const nodes = [];
+    const edges = [];
+    const fileToId = new Map();
 
     // 1. 递归扫描文件
-    function scanDir(dir: string, depth = 0) {
+    function scanDir(dir, depth = 0) {
         if (depth > 4) return;
         const files = fs.readdirSync(dir);
         for (const file of files) {
@@ -63,7 +63,7 @@ async function indexCodebase() {
     scanDir(ROOT_DIR);
 
     // 2. 注入 AI 趋势
-    const trendIds: string[] = [];
+    const trendIds = [];
     AI_TRENDS.forEach(trend => {
         const id = uuidv4();
         nodes.push({ id, ...trend });

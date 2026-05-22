@@ -7,7 +7,7 @@ import json
 
 # ================= 配置区 =================
 # 您提供的 API Key
-API_KEY = "sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK"
+API_KEY = os.getenv("AI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 # 您提供的 API Base URL 
 BASE_URL = "https://backgrace.com/v1/chat/completions"
 # 根据您的需求，指定的模型是 Gemini 1.5 Flash (有时简写或映射为 gemini-1.5-flash)

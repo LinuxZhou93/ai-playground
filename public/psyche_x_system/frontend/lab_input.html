@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TITAN 导师评估录入系统 - 社区实验室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Fredoka', 'Noto Sans SC', sans-serif; }
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%;
+            background: #ffffff; box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            cursor: pointer; margin-top: -8px; border: 2px solid #6366f1;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 8px; cursor: pointer; background: #334155;
+            border-radius: 4px; border: none;
+        }
+        .dim-label { width: 100px; }
+        .score-display { width: 30px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 min-h-screen py-8 px-4">
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+                <i data-lucide="edit-3" class="w-6 h-6 text-indigo-400"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-wide">导师评估雷达录入</h1>
+                <p class="text-slate-400 text-sm">成电创客 wowcreator 社区实验室学员反馈</p>
+            </div>
+            <a href="lab_dashboard.html" class="ml-auto px-4 py-2 bg-slate-800 rounded-lg border border-slate-700 text-sm hover:bg-slate-700 transition">
+                返回后台仪表盘
+            </a>
+        </div>
+
+        <!-- Form -->
+        <div class="bg-slate-800/50 backdrop-blur-md rounded-[2rem] border border-slate-700 p-6 sm:p-8 shadow-2xl">
+            <!-- Photo Upload -->
+            <div class="mb-6 flex flex-col items-center">
+                <div id="photoPreview" class="w-full max-w-[200px] aspect-[3/4] bg-slate-900 border-2 border-dashed border-slate-600 rounded-2xl flex flex-col items-center justify-center overflow-hidden relative cursor-pointer hover:border-indigo-500 transition" onclick="document.getElementById('photoInput').click()">
+                    <i data-lucide="camera" class="w-8 h-8 text-slate-500 mb-2"></i>
+                    <span class="text-xs text-slate-400 text-center px-4">点击上传学员巨幅实况照片</span>
+                </div>
+                <input type="file" id="photoInput" accept="image/*" class="hidden">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">科创学号</label>
+                    <input type="text" id="student_id" placeholder="如: WOW-LAB-01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">学员姓名</label>
+                    <input type="text" id="student_name" placeholder="请输入姓名" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h2 class="text-lg font-bold text-indigo-300 border-b border-slate-700 pb-2 mb-4">八维核心能力评估 (百分制)</h2>
+                <div class="space-y-4" id="sliders-container">
+                    <!-- Sliders will be generated here by JS -->
+                </div>
+            </div>
+
+            <div class="space-y-6 mb-8">
+                <div>
+                    <h2 class="text-lg font-bold text-emerald-300 border-b border-slate-700 pb-2 mb-4">专业定性描述</h2>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">本学期高光亮点描述（具体机械组装、编程除错或电路实操写实行为）</label>
+                    <textarea id="highlights" rows="3" placeholder="例如：在搭建双驱动小车时，能独立调试差速齿轮箱结构，并在循环编程中完美使用传感器完成自主闭环调速..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">转化钩子 / 潜力待提升点（结合后续进阶课程建议）</label>
+                    <textarea id="potential_improvements" rows="3" placeholder="例如：在多级齿轮传动比逻辑推理上略显吃力，需要加强系统性算法设计和长线编程挑战..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-rose-500"></textarea>
+                </div>
+            </div>
+
+            <button id="submitBtn" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400 text-white font-bold rounded-2xl shadow-lg border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition text-lg flex items-center justify-center gap-2">
+                <i data-lucide="sparkles" class="w-5 h-5"></i> 极速生成 AI 深度报告
+            </button>
+            <div id="status" class="mt-4 text-center text-sm text-slate-400 hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let currentPhotoData = null; // Store base64 data
+
+        // Photo Upload and Compress Logic
+        document.getElementById('photoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Max width constraint
+                    const MAX_WIDTH = 800;
+                    if (width > MAX_WIDTH) {
+                        height = Math.floor(height * (MAX_WIDTH / width));
+                        width = MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    currentPhotoData = dataUrl;
+
+                    const preview = document.getElementById('photoPreview');
+                    preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        const dimensions = [
+            { id: 'focus_score', name: '专注度', color: 'text-blue-400' },
+            { id: 'dexterity_score', name: '动手精细度', color: 'text-amber-400' },
+            { id: 'logic_score', name: '逻辑理解力', color: 'text-emerald-400' },
+            { id: 'resilience_score', name: '抗挫折恢复', color: 'text-rose-400' },
+            { id: 'self_management_score', name: '情绪与收纳', color: 'text-purple-400' },
+            { id: 'social_score', name: '社会化融入', color: 'text-cyan-400' },
+            { id: 'creativity_score', name: '创新想象力', color: 'text-pink-400' },
+            { id: 'collaboration_score', name: '协作沟通力', color: 'text-orange-400' }
+        ];
+
+        const container = document.getElementById('sliders-container');
+        dimensions.forEach(dim => {
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-700/50';
+            row.innerHTML = `
+                <div class="dim-label text-sm font-medium ${dim.color}">${dim.name}</div>
+                <input type="range" id="${dim.id}" min="0" max="100" step="1" value="85" class="flex-1" oninput="document.getElementById('${dim.id}_val').innerText = this.value">
+                <div id="${dim.id}_val" class="score-display text-white w-8">85</div>
+            `;
+            container.appendChild(row);
+        });
+
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('submitBtn');
+            const statusBox = document.getElementById('status');
+            const std_name = document.getElementById('student_name').value.trim();
+            
+            if(!std_name) {
+                alert('学员姓名不能为空！'); return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 报告生成中...`;
+            lucide.createIcons();
+            statusBox.innerText = '正在智能生成专业反馈报告，请稍候...';
+            statusBox.classList.remove('hidden');
+            statusBox.className = 'mt-4 text-center text-sm text-amber-400';
+
+            const payload = {
+                student_id: document.getElementById('student_id').value,
+                student_name: std_name,
+                camp_name: '成电创客wowcreator社区实验室', // 标识为社区实验室数据
+                highlights: document.getElementById('highlights').value,
+                potential_improvements: document.getElementById('potential_improvements').value,
+                photo_data: currentPhotoData
+            };
+
+            dimensions.forEach(dim => {
+                payload[dim.id] = parseInt(document.getElementById(dim.id).value);
+            });
+
+            try {
+                const res = await fetch('/api/lab_report/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    statusBox.className = 'mt-4 text-center text-sm text-emerald-400';
+                    statusBox.innerText = '✅ 生成并保存成功！正在跳转 6 页深度评估报告...';
+                    setTimeout(() => {
+                        window.location.href = `lab_report.html?id=${data.id}`;
+                    }, 1500);
+                } else {
+                    throw new Error(data.error + ': ' + JSON.stringify(data.details));
+                }
+            } catch (err) {
+                console.error(err);
+                // 即使生成失败，如果是本地预览，我们提供自动跳转 Mock 报告机制
+                statusBox.className = 'mt-4 text-center text-sm text-amber-400';
+                statusBox.innerText = '⚠️ 后端不可用，将为您跳转至本地 Mock 预览模式...';
+                setTimeout(() => {
+                    window.location.href = `lab_report.html?mock=true&student_name=${encodeURIComponent(std_name)}`;
+                }, 2000);
+            }
+        });
+    </script>
+
+</body>
+</html>

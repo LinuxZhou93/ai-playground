@@ -1,19 +1,36 @@
 // Supabase Client Initialization
-const SUPABASE_URL = 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g';
+let SUPABASE_URL = '';
+let SUPABASE_KEY = '';
 
 // Check if Supabase is loaded and keys are configured
 let _supabase;
 
 // Function to initialize Supabase client (Lazy Init)
-function initSupabase() {
+async function initSupabase() {
     if (_supabase) return _supabase;
+
+    // Fetch config from server to avoid hardcoded keys
+    try {
+        const response = await fetch('/api/server-providers');
+        const config = await response.json();
+        if (config && config.supabase) {
+            SUPABASE_URL = config.supabase.url;
+            SUPABASE_KEY = config.supabase.anonKey;
+        }
+    } catch (e) {
+        console.error('❌ Failed to fetch Supabase config from server:', e);
+    }
 
     // Try to get createClient from global window.supabase (CDN)
     if (window.supabase && window.supabase.createClient) {
         try {
+            if (!SUPABASE_URL || !SUPABASE_KEY) {
+                console.warn('⚠️ Supabase credentials not found, initialization might fail.');
+            }
             _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             console.log('✅ Supabase client initialized successfully');
+            window._supabase = _supabase;
+            if (window.SupabaseClient) window.SupabaseClient.client = _supabase;
             return _supabase;
         } catch (e) {
             console.error('❌ Supabase initialization failed:', e);
@@ -25,13 +42,14 @@ function initSupabase() {
     }
 }
 
-// Initialize immediately
+// Initialize
 initSupabase();
 
 
 // --- Auth Helpers ---
 
 async function getCurrentUser() {
+    if (!_supabase) await initSupabase();
     if (!_supabase) return null;
     const { data: { session } } = await _supabase.auth.getSession();
     if (!session) return null;
@@ -58,6 +76,7 @@ async function getCurrentUser() {
 
 // Email & Password Sign Up
 async function signUp(email, password) {
+    if (!_supabase) await initSupabase();
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const { data, error } = await _supabase.auth.signUp({
         email,
@@ -68,6 +87,7 @@ async function signUp(email, password) {
 
 // Email & Password Sign In
 async function signIn(email, password) {
+    if (!_supabase) await initSupabase();
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const { data, error } = await _supabase.auth.signInWithPassword({
         email,
@@ -78,6 +98,7 @@ async function signIn(email, password) {
 
 // OAuth Login (GitHub)
 async function signInWithGitHub() {
+    if (!_supabase) await initSupabase();
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const { data, error } = await _supabase.auth.signInWithOAuth({
         provider: 'github',
@@ -88,6 +109,7 @@ async function signInWithGitHub() {
 
 // OAuth Login (WeChat) - Requires Supabase configured provider
 async function signInWithWeChat() {
+    if (!_supabase) await initSupabase();
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     
     // Explicitly define the redirect URL for WeChat OAuth trust list
@@ -109,6 +131,7 @@ async function signInWithWeChat() {
 
 // Send 6-digit code to phone or email
 async function sendOtp(identifier) {
+    if (!_supabase) await initSupabase();
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const isPhone = /^\d+(?:\+\d+)?$/.test(identifier);
     const options = isPhone ? { phone: identifier } : { email: identifier };
@@ -119,6 +142,7 @@ async function sendOtp(identifier) {
 
 // Verify the code
 async function verifyOtp(identifier, token) {
+    if (!_supabase) await initSupabase();
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const isPhone = /^\d+(?:\+\d+)?$/.test(identifier);
     const type = isPhone ? 'sms' : 'email';
@@ -132,6 +156,7 @@ async function verifyOtp(identifier, token) {
 
 // Sign Out
 async function signOut() {
+    if (!_supabase) await initSupabase();
     if (!_supabase) return { error: { message: "Supabase not initialized" } };
     const { error } = await _supabase.auth.signOut();
     if (!error) {
@@ -143,7 +168,14 @@ async function signOut() {
 
 // Listen for Auth State Changes
 function onAuthStateChange(callback) {
-    if (!_supabase) return;
+    if (!_supabase) {
+        initSupabase().then(() => {
+            if (_supabase) _supabase.auth.onAuthStateChange(async (event, session) => {
+                if (callback) callback(event, session);
+            });
+        });
+        return;
+    }
     return _supabase.auth.onAuthStateChange(async (event, session) => {
         if (callback) callback(event, session);
     });
@@ -152,7 +184,6 @@ function onAuthStateChange(callback) {
 // --- Data Helpers ---
 
 // Export for usage in modules if needed, or stick to window global
-window._supabase = _supabase;
 window.SupabaseClient = {
     client: _supabase,
     init: initSupabase,

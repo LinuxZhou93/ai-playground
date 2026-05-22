@@ -6,6 +6,8 @@ import {
   getServerImageProviders,
   getServerVideoProviders,
   getServerWebSearchProviders,
+  getServerSupabaseConfig,
+  getServerTitanConfig,
 } from '@/lib/server/provider-config';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
@@ -22,6 +24,8 @@ export async function GET() {
       image: getServerImageProviders(),
       video: getServerVideoProviders(),
       webSearch: getServerWebSearchProviders(),
+      supabase: getServerSupabaseConfig(),
+      titan: getServerTitanConfig(),
     });
   } catch (error) {
     log.error('Error fetching server providers:', error);

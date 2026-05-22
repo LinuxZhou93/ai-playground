@@ -7,13 +7,12 @@ async function deepAudit() {
   // 1. LLM 凭证审计
   const llmKey = resolveApiKey('google');
   const llmUrl = resolveBaseUrl('google');
-  const expectedKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
-  
   console.log('\n[1. LLM 凭证审计]');
   console.log(`- 目标供应商: google (Gemini Flash)`);
   console.log(`- 解析 Key: ${llmKey.slice(0, 8)}... (长度: ${llmKey.length})`);
   console.log(`- 解析 URL: ${llmUrl}`);
-  console.log(`- 审计结论: ${llmKey === expectedKey ? '✅ 拦截成功，已锁定 Backgrace 通道' : '❌ 拦截失败，检测到无效环境变量干扰'}`);
+  console.log(`- 审计结论: ${llmKey && llmKey.length > 10 ? '✅ 拦截成功，已锁定有效通道' : '❌ 拦截失败，凭证缺失或被干扰'}`);
+
 
   // 2. TTS 凭证审计
   const ttsKey = resolveTTSApiKey('volcengine-tts');

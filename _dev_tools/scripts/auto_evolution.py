@@ -5,9 +5,15 @@ import requests
 import subprocess
 from datetime import datetime
 
-API_KEY = "sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK"
-BASE_URL = "https://backgrace.com/v1/chat/completions"
-MODEL = "gemini-3-flash"
+API_KEY = os.getenv("AI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+BASE_URL = os.getenv("AI_BASE_URL") or "https://backgrace.com/v1/chat/completions"
+MODEL = os.getenv("AI_MODEL") or "gemini-3-flash"
+
+if not API_KEY:
+    print("❌ 错误: 未找到 API_KEY。请在环境变量中设置 AI_API_KEY 或 GOOGLE_API_KEY。")
+    # 如果在开发环境下且确实需要，可以临时在这里手动设置，但严禁提交代码！
+    # API_KEY = "sk-..." 
+
 
 # Exclude medicine, as we already did it!
 TOPICS = [

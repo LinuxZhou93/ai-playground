@@ -5,8 +5,8 @@ import os from 'os'
 const NODE_ID = process.env.NODE_ID || 'unknown';
 const ROLE = process.env.ROLE || 'unknown';
 
-const supabaseUrl = "https://znmbkxmnwuurzhevfxtq.supabase.co"
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubWJreG1ud3V1cnpoZXZmeHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1Nzk1MDQsImV4cCI6MjA4MDE1NTUwNH0.y0m9rnug3WduVyuKZLL25PBA4C2Ys0_WSgMrzokSh5g"
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://znmbkxmnwuurzhevfxtq.supabase.co"
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 async function getSystemStats() {
@@ -34,7 +34,7 @@ async function sendPulse() {
             }, { onConflict: 'node_id' });
 
         if (error) console.error(`❌ [${NODE_ID}] Pulse Failed:`, error.message);
-    } catch (e: any) {
+    } catch (e) {
         console.error(`💥 [${NODE_ID}] Runtime Error:`, e.message || e);
     }
 }

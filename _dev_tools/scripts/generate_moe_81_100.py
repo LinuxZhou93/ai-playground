@@ -5,7 +5,7 @@ import requests
 import random
 from datetime import datetime
 
-API_KEY = "sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK"
+API_KEY = os.getenv("AI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 BASE_URL = "https://backgrace.com/v1/chat/completions"
 MODEL = "gemini-3-flash"
 LAUNCHPAD_PATH = "/Users/zhoulin/Desktop/github/ai-playground/assets/js/launchpad.js"
