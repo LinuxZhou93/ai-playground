@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const rawKey = process.env.OPENAI_API_KEY;
-const backgraceKey = (rawKey && !rawKey.startsWith('sk-Ob49') && !rawKey.startsWith('sk-4nI8'))
-    ? rawKey
-    : 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+const isStale = (key: string | undefined) => 
+    !key || key.startsWith('sk-Ob49') || key.startsWith('sk-4nI8') || key.startsWith('sk-YU1Cu');
+const backgraceKey = isStale(rawKey) ? '' : rawKey!;
 
 /**
  * 极简网页正文提取器 (V5: 增强型视频与 GitHub 探测)
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
             'Authorization': `Bearer ${backgraceKey}`
         },
         body: JSON.stringify({
-            model: 'gemini-3-flash',
+            model: 'gemini-3.5-flash',
             messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: `内容: ${content}\n链接: ${url}` }],
             response_format: { type: 'json_object' }
         })

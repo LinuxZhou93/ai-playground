@@ -15,7 +15,7 @@ const log = createLogger('ServerProviderConfig');
 // 🚀 [Titan Tech Security Patch] 彻底废弃旧的/失效的 Key，确保不被环境变量覆盖
 const cleanApiKey = (key: string | undefined): string | undefined => {
   if (!key) return undefined;
-  if (key.startsWith('sk-4nI8') || key.startsWith('sk-Ob49') || key.startsWith('sk-yRWW')) {
+  if (key.startsWith('sk-4nI8') || key.startsWith('sk-Ob49') || key.startsWith('sk-yRWW') || key.startsWith('sk-YU1Cu')) {
     return undefined;
   }
   return key;
@@ -219,7 +219,7 @@ export function getServerSupabaseConfig(filename = '') {
 export function getServerTitanConfig() {
   return {
     volcengineAppId: process.env.TTS_VOLCENGINE_BASE_URL || '4780476544',
-    volcengineToken: process.env.TTS_VOLCENGINE_API_KEY || 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z',
+    volcengineToken: process.env.TTS_VOLCENGINE_API_KEY || '',
   };
 }
 
@@ -267,32 +267,23 @@ export function getServerProviders(): Record<string, { models?: string[]; baseUr
   return result;
 }
 
-/** Resolve API key: client key > server key > hardcoded fallback (for prod hardening) > empty string */
+/** Resolve API key: client key > server key > env config fallback > empty string */
 export function resolveApiKey(providerId: string, clientKey?: string): string {
-  // 🚀 [Titan Tech Nuclear Option] 优先检测是否为旧的/无效的 Key
-  const PROD_KEY = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
-
   const cleanClientKey = cleanApiKey(clientKey);
   if (cleanClientKey) {
-    if ((providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') &&
-        !cleanClientKey.startsWith('sk-YU1Cu')) {
-      return PROD_KEY;
-    }
     return cleanClientKey;
   }
   
   const serverKey = cleanApiKey(getConfig().providers[providerId]?.apiKey);
   if (serverKey) {
-    if ((providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') &&
-        !serverKey.startsWith('sk-YU1Cu')) {
-      return PROD_KEY;
-    }
     return serverKey;
   }
   
-  // [Titan Tech Production Hardening] 最后的防线：强制注入 Backgrace 通道
+  // [Titan Tech Production Hardening] 最后的防线：尝试从系统环境变量中动态读取
   if (providerId === 'google' || providerId === 'openai-whisper' || providerId === 'openai') {
-      return PROD_KEY;
+      const rawEnvKey = process.env.OPENAI_API_KEY || process.env.GOOGLE_API_KEY;
+      const cleanEnvKey = cleanApiKey(rawEnvKey);
+      if (cleanEnvKey) return cleanEnvKey;
   }
   
   return '';
@@ -339,13 +330,12 @@ export function resolveTTSApiKey(providerId: string, clientKey?: string): string
   const serverKey = cleanApiKey(getConfig().tts[providerId]?.apiKey);
   if (serverKey) return serverKey;
 
-  // [Titan Tech Production Hardening] TTS 核级硬化
+  // [Titan Tech Production Hardening] TTS 安全化
   if (providerId === 'volcengine-tts') {
-    return 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
+    return cleanApiKey(process.env.TTS_VOLCENGINE_API_KEY) || '';
   }
   if (providerId === 'openai-tts') {
-    const PROD_KEY = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
-    return PROD_KEY;
+    return cleanApiKey(process.env.OPENAI_API_KEY || process.env.TTS_OPENAI_API_KEY) || '';
   }
 
   return '';
@@ -428,7 +418,7 @@ export function getServerImageProviders(): Record<string, Record<string, never>>
 export function resolveImageApiKey(providerId: string, clientKey?: string): string {
   // [Titan Tech Production Hardening] Image Generation Lock
   if (providerId === 'nano-banana') {
-    return 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+    return cleanApiKey(process.env.IMAGE_NANO_BANANA_API_KEY || process.env.OPENAI_API_KEY) || '';
   }
   const cleanClientKey = cleanApiKey(clientKey);
   if (cleanClientKey) return cleanClientKey;

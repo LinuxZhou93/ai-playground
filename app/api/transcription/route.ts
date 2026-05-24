@@ -41,12 +41,12 @@ export async function POST(req: NextRequest) {
       ? clientBaseUrl
       : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined);
 
-    // [Titan Tech Override] Ultimate Fallback
+    // [Titan Tech Override] Ultimate Fallback - 改为仅使用环境变量
     if (!finalApiKey && effectiveProviderId === 'openai-whisper') {
       const rawKey = process.env.OPENAI_API_KEY;
-      finalApiKey = (rawKey && !rawKey.startsWith('sk-Ob49') && !rawKey.startsWith('sk-4nI8'))
-          ? rawKey
-          : 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+      const isStale = (key: string | undefined) => 
+          !key || key.startsWith('sk-Ob49') || key.startsWith('sk-4nI8') || key.startsWith('sk-YU1Cu');
+      finalApiKey = isStale(rawKey) ? '' : rawKey!;
       if (!finalBaseUrl) {
         finalBaseUrl = 'https://backgrace.com/v1';
       }

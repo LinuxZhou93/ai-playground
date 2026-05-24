@@ -67,12 +67,12 @@ ${potential_improvements}
     `;
 
     const rawKey = process.env.OPENAI_API_KEY;
-    let backgraceKey = (rawKey && !rawKey.startsWith('sk-Ob49') && !rawKey.startsWith('sk-4nI8'))
-        ? rawKey
-        : 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+    const isStale = (key: string | undefined) => 
+        !key || key.startsWith('sk-Ob49') || key.startsWith('sk-4nI8') || key.startsWith('sk-YU1Cu');
+    const backgraceKey = isStale(rawKey) ? '' : rawKey!;
 
     const openaiPayload = {
-        model: 'gemini-3-flash',
+        model: 'gemini-3.5-flash',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }

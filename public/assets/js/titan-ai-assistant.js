@@ -3447,7 +3447,9 @@ class TitanAIAssistant {
                     const bytes = new Uint8Array(binaryString.length);
                     for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
                     
-                    const blob = new Blob([bytes], { type: 'audio/' + (result.data.format || 'wav') });
+                    let mimeType = 'audio/' + (result.data.format || 'wav');
+                    if (result.data.format === 'mp3') mimeType = 'audio/mpeg';
+                    const blob = new Blob([bytes], { type: mimeType });
                     const audioUrl = URL.createObjectURL(blob);
                     const audio = new Audio(audioUrl);
                     

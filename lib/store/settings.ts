@@ -539,7 +539,7 @@ export const useSettingsStore = create<SettingsState>()(
       return {
         // [Titan Tech Permanent Override] Initial state LLM credentials
         providerId: 'google',
-        modelId: 'gemini-3.5-flash-low',
+        modelId: 'gemini-3.5-flash',
         providersConfig: migratedData?.providersConfig || getDefaultProvidersConfig(),
         ttsModel: migratedData?.ttsModel || 'openai-tts',
         selectedAgentIds: migratedData?.selectedAgentIds || ['default-1', 'default-2', 'default-3'],
@@ -1223,51 +1223,51 @@ export const useSettingsStore = create<SettingsState>()(
 
         // [Titan Tech Permanent Override] Hardcode Core LLM credentials (via Backgrace Proxy)
         merged.providerId = 'google'; // 使用 OpenAI 兼容协议
-        merged.modelId = 'gemini-3.5-flash-low';
+        merged.modelId = 'gemini-3.5-flash';
         
         // Ensure configs exist and are updated
         if (!merged.providersConfig) merged.providersConfig = {} as any;
         
-        // 强制植入 Backgrace 生产金钥，确保全时段稳定
+        // 强制植入 Backgrace 生产配置，前端不放置 API Key，仅由服务端环境变量获取
         if (!merged.providersConfig['openai']) {
           merged.providersConfig['openai'] = {
             id: 'openai',
-            apiKey: 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4',
+            apiKey: '',
             baseUrl: 'https://backgrace.com/v1',
           } as any;
         } else {
-          merged.providersConfig['openai'].apiKey = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+          merged.providersConfig['openai'].apiKey = '';
           merged.providersConfig['openai'].baseUrl = 'https://backgrace.com/v1';
         }
 
-        // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy)
+        // [Titan Tech Permanent Override] Hardcode ASR (Whisper via Proxy) - 前端不放 key
         merged.asrProviderId = 'openai-whisper';
         merged.asrLanguage = 'zh';
         if (!merged.asrProvidersConfig) merged.asrProvidersConfig = {} as any;
         if (!merged.asrProvidersConfig['openai-whisper']) {
           merged.asrProvidersConfig['openai-whisper'] = {
-            apiKey: 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4',
+            apiKey: '',
             baseUrl: 'https://backgrace.com/v1',
             enabled: true,
           };
         } else {
-          merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+          merged.asrProvidersConfig['openai-whisper'].apiKey = '';
           merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
         }
 
-        // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access)
+        // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access) - 前端不放 key
         merged.ttsProviderId = 'volcengine-tts';
         merged.ttsVoice = 'zh_male_shaonianzixin_uranus_bigtts';
         
         if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {} as any;
         if (!merged.ttsProvidersConfig['volcengine-tts']) {
           merged.ttsProvidersConfig['volcengine-tts'] = {
-            apiKey: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z',
+            apiKey: '',
             baseUrl: 'https://openspeech.bytedance.com/api/v1',
             enabled: true,
           };
         } else {
-          merged.ttsProvidersConfig['volcengine-tts'].apiKey = 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z';
+          merged.ttsProvidersConfig['volcengine-tts'].apiKey = '';
           merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
           merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
         }
@@ -1279,39 +1279,41 @@ export const useSettingsStore = create<SettingsState>()(
 );
 
 // [Titan Tech Nuclear Option] 
-// 物理层面的“核级护航”：确保在页面加载的最早时刻，无视 Zustand 缓存，强行校准生产金钥
+// 物理层面的“核级护航”：确保在页面加载的最早时刻，清除 Zustand 缓存中可能的硬编码 Key 并保持同步
 if (typeof window !== 'undefined') {
   const forceSync = () => {
     try {
       const store = useSettingsStore.getState();
-      const OLD_KEY_PREFIX = 'sk-4nI8'; // 旧的失效 Key 前缀
-      const PROD_KEY = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+      const STALE_KEY_PREFIXES = ['sk-4nI8', 'sk-Ob49', 'sk-yRWW', 'sk-YU1C'];
       
       const currentGoogleKey = store.providersConfig?.google?.apiKey;
       const currentOpenAIKey = store.providersConfig?.openai?.apiKey;
 
+      const isStaleOrNonEmpty = (key: string | undefined) => 
+        key && (key !== '' || STALE_KEY_PREFIXES.some(prefix => key.startsWith(prefix)));
+
       const needsSync = 
-        (currentGoogleKey && currentGoogleKey.startsWith(OLD_KEY_PREFIX)) ||
-        (currentOpenAIKey && currentOpenAIKey.startsWith(OLD_KEY_PREFIX)) ||
+        isStaleOrNonEmpty(currentGoogleKey) ||
+        isStaleOrNonEmpty(currentOpenAIKey) ||
         store.providerId !== 'google' ||
-        store.modelId !== 'gemini-3.5-flash-low';
+        store.modelId !== 'gemini-3.5-flash';
         
       if (needsSync) {
-        console.log('[Titan Tech] 检测到残留旧配置，正在执行核级同步...');
+        console.log('[Titan Tech] 检测到残留硬编码或旧配置，执行安全清理同步...');
         useSettingsStore.setState((state) => {
           const newConfig = { ...state.providersConfig };
           if (!newConfig.google) newConfig.google = {} as any;
-          newConfig.google.apiKey = PROD_KEY;
+          newConfig.google.apiKey = '';
           newConfig.google.baseUrl = 'https://backgrace.com/v1';
           
           if (!newConfig.openai) newConfig.openai = {} as any;
-          newConfig.openai.apiKey = PROD_KEY;
+          newConfig.openai.apiKey = '';
           newConfig.openai.baseUrl = 'https://backgrace.com/v1';
 
           return {
             providersConfig: newConfig,
             providerId: 'google',
-            modelId: 'gemini-3.5-flash-low'
+            modelId: 'gemini-3.5-flash'
           };
         });
       }

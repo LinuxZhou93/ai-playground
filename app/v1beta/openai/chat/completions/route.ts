@@ -5,11 +5,11 @@ const BACKGRACE_URL = 'https://backgrace.com/v1/chat/completions';
 const getCleanApiKey = () => {
   const keys = [process.env.OPENAI_API_KEY, process.env.GEMINI_API_KEY];
   for (const k of keys) {
-    if (k && !k.startsWith('sk-Ob49') && !k.startsWith('sk-4nI8')) {
+    if (k && !k.startsWith('sk-Ob49') && !k.startsWith('sk-4nI8') && !k.startsWith('sk-YU1Cu')) {
       return k;
     }
   }
-  return 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
+  return '';
 };
 const PROD_KEY = getCleanApiKey();
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         'Authorization': `Bearer ${PROD_KEY}`,
       },
       body: JSON.stringify({
-        model: body.model || 'gemini-3-flash',
+        model: body.model || 'gemini-3.5-flash',
         messages: body.messages || [],
         temperature: body.temperature ?? 0.7,
         max_tokens: body.max_tokens ?? 4096,
