@@ -33,10 +33,10 @@ class TitanAIAssistant {
             backupApiKey: '',
             model: 'gemini-3-flash', // 顶配更新：已解锁 3.0 版本
             // 🎙️ 【终极企业架构：豆包发声模块】
-            volcengineAppId: '',
-            volcengineToken: '',
+            volcengineAppId: '4780476544',
+            volcengineToken: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z',
             volcengineCluster: 'volcano_tts',
-            volcengineVoice: 'zh_male_shaonianzixin_moon_bigtts',
+            volcengineVoice: 'zh_male_shaonianzixin_uranus_bigtts',
             memberExpired: 2000000000000 
         };
         
@@ -3375,7 +3375,7 @@ class TitanAIAssistant {
 
         try {
             const isElectron = /electron/i.test(navigator.userAgent) || (window.process && window.process.type);
-            const voice = this.settings.volcengineVoice || "zh_male_shaonianzixin_moon_bigtts";
+            const voice = this.settings.volcengineVoice || "zh_male_shaonianzixin_uranus_bigtts";
             
             if (isElectron && window.require) {
                 const { ipcRenderer } = window.require('electron');
