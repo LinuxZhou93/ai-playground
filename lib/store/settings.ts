@@ -539,7 +539,7 @@ export const useSettingsStore = create<SettingsState>()(
       return {
         // [Titan Tech Permanent Override] Initial state LLM credentials
         providerId: 'google',
-        modelId: 'gemini-3-flash-preview',
+        modelId: 'gemini-3.5-flash-low',
         providersConfig: migratedData?.providersConfig || getDefaultProvidersConfig(),
         ttsModel: migratedData?.ttsModel || 'openai-tts',
         selectedAgentIds: migratedData?.selectedAgentIds || ['default-1', 'default-2', 'default-3'],
@@ -1223,7 +1223,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         // [Titan Tech Permanent Override] Hardcode Core LLM credentials (via Backgrace Proxy)
         merged.providerId = 'google'; // 使用 OpenAI 兼容协议
-        merged.modelId = 'gemini-3-flash-preview';
+        merged.modelId = 'gemini-3.5-flash-low';
         
         // Ensure configs exist and are updated
         if (!merged.providersConfig) merged.providersConfig = {} as any;
@@ -1232,11 +1232,11 @@ export const useSettingsStore = create<SettingsState>()(
         if (!merged.providersConfig['openai']) {
           merged.providersConfig['openai'] = {
             id: 'openai',
-            apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK',
+            apiKey: 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4',
             baseUrl: 'https://backgrace.com/v1',
           } as any;
         } else {
-          merged.providersConfig['openai'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          merged.providersConfig['openai'].apiKey = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
           merged.providersConfig['openai'].baseUrl = 'https://backgrace.com/v1';
         }
 
@@ -1246,12 +1246,12 @@ export const useSettingsStore = create<SettingsState>()(
         if (!merged.asrProvidersConfig) merged.asrProvidersConfig = {} as any;
         if (!merged.asrProvidersConfig['openai-whisper']) {
           merged.asrProvidersConfig['openai-whisper'] = {
-            apiKey: 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK',
+            apiKey: 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4',
             baseUrl: 'https://backgrace.com/v1',
             enabled: true,
           };
         } else {
-          merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+          merged.asrProvidersConfig['openai-whisper'].apiKey = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
           merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
         }
 
@@ -1285,7 +1285,7 @@ if (typeof window !== 'undefined') {
     try {
       const store = useSettingsStore.getState();
       const OLD_KEY_PREFIX = 'sk-4nI8'; // 旧的失效 Key 前缀
-      const PROD_KEY = 'sk-yRWWj3wDJfuUXhddTtdTb59ax9ExqC7DAgbpBt5Oe50yDFjK';
+      const PROD_KEY = 'sk-YU1CuYxkbWCqLpqG6VevPLgSuaUugYlKzwrBXsl1JhSCKJZ4';
       
       const currentGoogleKey = store.providersConfig?.google?.apiKey;
       const currentOpenAIKey = store.providersConfig?.openai?.apiKey;
@@ -1293,7 +1293,8 @@ if (typeof window !== 'undefined') {
       const needsSync = 
         (currentGoogleKey && currentGoogleKey.startsWith(OLD_KEY_PREFIX)) ||
         (currentOpenAIKey && currentOpenAIKey.startsWith(OLD_KEY_PREFIX)) ||
-        store.providerId !== 'google';
+        store.providerId !== 'google' ||
+        store.modelId !== 'gemini-3.5-flash-low';
         
       if (needsSync) {
         console.log('[Titan Tech] 检测到残留旧配置，正在执行核级同步...');
@@ -1310,7 +1311,7 @@ if (typeof window !== 'undefined') {
           return {
             providersConfig: newConfig,
             providerId: 'google',
-            modelId: 'gemini-3-flash-preview'
+            modelId: 'gemini-3.5-flash-low'
           };
         });
       }
