@@ -23,7 +23,7 @@ export const maxDuration = 30;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { text, audioId, ttsProviderId, ttsVoice, ttsSpeed, ttsApiKey, ttsBaseUrl } = body as {
+    const { text, audioId, ttsProviderId, ttsVoice, ttsSpeed, ttsApiKey, ttsBaseUrl, ttsFormat } = body as {
       text: string;
       audioId: string;
       ttsProviderId: TTSProviderId;
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       ttsSpeed?: number;
       ttsApiKey?: string;
       ttsBaseUrl?: string;
+      ttsFormat?: string;
     };
 
     // Validate required fields
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
       speed: ttsSpeed ?? 1.0,
       apiKey,
       baseUrl,
+      format: ttsFormat || 'mp3',
     };
 
     const cleanText = cleanTextForTTS(text);

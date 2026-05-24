@@ -3375,7 +3375,13 @@ class TitanAIAssistant {
 
         try {
             const isElectron = /electron/i.test(navigator.userAgent) || (window.process && window.process.type);
-            const voice = this.settings.volcengineVoice || "zh_male_shaonianzixin_uranus_bigtts";
+            let voice = this.settings.volcengineVoice || "zh_male_shaonianzixin_uranus_bigtts";
+            
+            // 🛡️ 强制防污染拦截：如果音色不符合火山规范，强制重置为少年梓梓音色
+            if (!voice.startsWith('zh_') && !voice.startsWith('BV')) {
+                console.log('[Titan AI] 检测到可能被残留污染的音色: ' + voice + ', 强制修正为火山高保真男声。');
+                voice = "zh_male_shaonianzixin_uranus_bigtts";
+            }
             
             if (isElectron && window.require) {
                 const { ipcRenderer } = window.require('electron');
@@ -3425,7 +3431,8 @@ class TitanAIAssistant {
                         text: cleanText,
                         audioId: 'req-' + Date.now(),
                         ttsProviderId: 'volcengine-tts',
-                        ttsVoice: voice
+                        ttsVoice: voice,
+                        ttsFormat: 'mp3'
                     })
                 });
 
