@@ -3418,23 +3418,18 @@ class TitanAIAssistant {
                     this.fallbackSpeak(cleanText, callback);
                 });
             } else {
-                // 🚀 【Titan AI Web 直接接入火山引擎】
-                // 使用动态获取的生产级配置，实现全平台高保真音色一致性
-                const appId = this.settings.volcengineAppId;
-                const token = this.settings.volcengineToken;
-                const reqid = 'req-' + Date.now();
-
-                const response = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
+                // 🚀 【Titan AI Web 安全代理接入】
+                // 网页端直接请求官方会由于 CORS 跨域限制报错，这里改为请求系统后端代理接口，安全高效
+                const response = await fetch('/api/generate/tts', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer; ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        app: { appid: appId, token: token, cluster: "volcano_tts" },
-                        user: { uid: "titan_web" },
-                        audio: { voice_type: voice, encoding: "mp3" },
-                        request: { reqid: reqid, text: cleanText, operation: "query" }
+                        text: cleanText,
+                        audioId: 'req-' + Date.now(),
+                        ttsProviderId: 'volcengine-tts',
+                        ttsVoice: voice
                     })
                 });
 
@@ -3444,12 +3439,12 @@ class TitanAIAssistant {
                 }
 
                 const result = await response.json();
-                if (result.code === 3000 && result.data) {
-                    const binaryString = atob(result.data);
+                if (result.success && result.data && result.data.base64) {
+                    const binaryString = atob(result.data.base64);
                     const bytes = new Uint8Array(binaryString.length);
                     for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
                     
-                    const blob = new Blob([bytes], { type: 'audio/mp3' });
+                    const blob = new Blob([bytes], { type: 'audio/' + (result.data.format || 'wav') });
                     const audioUrl = URL.createObjectURL(blob);
                     const audio = new Audio(audioUrl);
                     
