@@ -24,6 +24,7 @@ import {
   FileText, // V3: 家校互动档案
   CalendarDays, // V4: 智能排课日历
   Magnet, // V5: 招生线索漏斗
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ const menuItems = [
   { name: "教务看板", icon: LayoutDashboard, path: "/erp/dashboard" },
   { name: "学员管理", icon: Users, path: "/erp/students" },
   { name: "招生线索", icon: Magnet, path: "/erp/leads" },
+  { name: "面谈表单", icon: ClipboardList, path: "/erp/intake" },
   { name: "核心物料", icon: PackageOpen, path: "/erp/inventory" },
   { name: "家校通报告", icon: FileText, path: "/erp/reports" },
   { name: "日常点名", icon: CheckCircle2, path: "/erp/attendance" },
@@ -53,7 +55,7 @@ export function ERPSidebar({ role = "ADMIN" }: { role?: string }) {
     return menuItems.filter(item => {
       if (role === "SALES" && ["/erp/schedules", "/erp/settings", "/erp/courses", "/erp/inventory", "/erp/attendance", "/erp/classes"].includes(item.path)) return false;
       if (role === "ACADEMIC" && ["/erp/finance", "/erp/settings", "/erp/leads"].includes(item.path)) return false; // 教务不看线索和财务
-      if (role === "TEACHER" && ["/erp/finance", "/erp/settings", "/erp/leads", "/erp/inventory", "/erp/courses"].includes(item.path)) return false; // 教师专注于上课与排课
+      if (role === "TEACHER" && ["/erp/finance", "/erp/settings", "/erp/leads", "/erp/intake", "/erp/inventory", "/erp/courses"].includes(item.path)) return false; // 教师专注于上课与排课
       return true;
     });
   }, [role]);
