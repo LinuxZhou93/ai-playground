@@ -1132,6 +1132,15 @@ export function getModel(config: ModelConfig): ModelWithInfo {
   const provider = getProviderConfig(config.providerId);
   const effectiveBaseUrl = config.baseUrl || provider?.defaultBaseUrl || undefined;
 
+  let targetModelId = config.modelId;
+  // 🚀 [Titan Tech Security Patch] 仅对文本/对话模型强制对齐为新 Key 唯一支持的 gemini-3.5-flash
+  // 排除掉生图模型(通常包含 -image)
+  if (targetModelId && 
+      (targetModelId.includes('gemini') || config.providerId === 'google') && 
+      !targetModelId.includes('image')) {
+    targetModelId = 'gemini-3.5-flash';
+  }
+
   let model: LanguageModel;
 
   switch (providerType) {
@@ -1170,7 +1179,7 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       }
 
       const openai = createOpenAI(openaiOptions);
-      model = openai.chat(config.modelId);
+      model = openai.chat(targetModelId);
       break;
     }
 
@@ -1179,7 +1188,7 @@ export function getModel(config: ModelConfig): ModelWithInfo {
         apiKey: effectiveApiKey,
         baseURL: effectiveBaseUrl,
       });
-      model = anthropic.chat(config.modelId);
+      model = anthropic.chat(targetModelId);
       break;
     }
 
@@ -1200,7 +1209,7 @@ export function getModel(config: ModelConfig): ModelWithInfo {
           }).then((r: unknown) => r as Response)) as typeof fetch;
       }
       const google = createGoogleGenerativeAI(googleOptions);
-      model = google.chat(config.modelId);
+      model = google.chat(targetModelId);
       break;
     }
 
@@ -1209,7 +1218,7 @@ export function getModel(config: ModelConfig): ModelWithInfo {
   }
 
   // Look up model info from the provider registry
-  const modelInfo = provider?.models.find((m) => m.id === config.modelId) || null;
+  const modelInfo = provider?.models.find((m) => m.id === targetModelId) || null;
 
   return { model, modelInfo };
 }

@@ -35,7 +35,7 @@ class TitanAIAssistant {
             endpoint: '/v1beta/openai/chat/completions', 
             backupEndpoint: '/v1beta/openai/chat/completions', 
             backupApiKey: '',
-            model: 'gemini-3-flash', // 顶配更新：已解锁 3.0 版本
+            model: 'gemini-3.5-flash', // 顶配更新：已解锁 3.5 版本
             // 🎙️ 【终极企业架构：豆包发声模块】
             volcengineAppId: '4780476544',
             volcengineToken: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z',

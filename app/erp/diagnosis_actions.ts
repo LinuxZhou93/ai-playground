@@ -98,7 +98,7 @@ export async function generateOperationalDirective(data: any) {
   try {
     const { model } = getModel({
       providerId: 'google',
-      modelId: 'gemini-3-flash-preview',
+      modelId: 'gemini-3.5-flash',
       apiKey: process.env.GOOGLE_API_KEY,
     });
 

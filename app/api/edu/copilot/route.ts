@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
     const { model } = getModel({
       providerId: 'google',
-      modelId: 'gemini-3-flash',
+      modelId: 'gemini-3.5-flash',
       apiKey: process.env.GOOGLE_API_KEY,
     });
 
