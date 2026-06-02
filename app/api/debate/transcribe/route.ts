@@ -59,6 +59,29 @@ function extractGeminiText(payload: unknown) {
   return text || String((payload as any)?.text || '').trim();
 }
 
+type DebateMetadata = {
+  format: string;
+  speechType: string;
+  side: string;
+  resolution: string;
+  judgeType: string;
+  grade: string;
+};
+
+function buildMetadataContext(metadata: DebateMetadata, context: string) {
+  return [
+    metadata.format ? `Debate format: ${metadata.format}` : '',
+    metadata.speechType ? `Speech type: ${metadata.speechType}` : '',
+    metadata.side ? `Side: ${metadata.side}` : '',
+    metadata.resolution ? `Resolution/topic: ${metadata.resolution}` : '',
+    metadata.judgeType ? `Judge type: ${metadata.judgeType}` : '',
+    metadata.grade ? `Student grade: ${metadata.grade}` : '',
+    context ? `Additional context: ${context}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 async function createTranscript(audioFile: File, language: string, context: string) {
   const apiKey = resolveDebateApiKey();
   if (!apiKey) {
@@ -132,6 +155,7 @@ async function createDebateNotes(params: {
   transcript: string;
   mode: string;
   context: string;
+  metadata: DebateMetadata;
 }) {
   const apiKey = resolveDebateApiKey();
   if (!apiKey) {
@@ -146,23 +170,53 @@ async function createDebateNotes(params: {
     };
   }
 
+  const metadataContext = buildMetadataContext(params.metadata, params.context);
   const modeInstruction =
-    params.mode === 'debate_brief'
+    params.mode === 'toc_flow_ballot'
       ? [
-          '输出一份中文辩论复盘简报：',
-          '1. 原文忠实摘要',
-          '2. 主要论点',
-          '3. 证据/例子',
-          '4. 反驳点',
-          '5. 表达问题',
-          '6. 下一轮训练建议',
+          '输出一份 TOC-style / national-circuit readiness 复盘，使用中文标签并保留英文辩论术语：',
+          '',
+          '## 1. Clean Transcript',
+          '- 轻度加标点和分段，不改变原意。',
+          '- 对不确定的证据、人名、年份、数字保留 [?] 或 [as spoken]。',
+          '',
+          '## 2. Flow Sheet',
+          '用表格输出：Claim / Evidence / Warrant / Impact / Response or Risk / Status。',
+          '如果这只是单方发言，不要假装有完整对方回应；把可能被攻击处写在 Risk。',
+          '',
+          '## 3. Evidence Table',
+          '用表格输出：Citation heard / Year heard / Supported claim / Verification status。',
+          '不要编造录音里没出现的 evidence；不确定时写“待核实”。',
+          '',
+          '## 4. Weighing Check',
+          '检查 Magnitude / Probability / Timeframe / Scope 是否被说清楚。',
+          '',
+          '## 5. Judge Ballot Draft',
+          '像 flow judge 一样写 RFD-style comments。',
+          '如果只有一方发言，不要判完整胜负；输出“当前发言的 winning path”和“需要补强处”。',
+          '',
+          '## 6. Speaker Comments',
+          '从 structure, clarity, evidence use, weighing, delivery 给反馈。',
+          '',
+          '## 7. Next Drills',
+          '给 3 个下次课可以完成的 micro-drills。',
         ].join('\n')
-      : [
-          '输出三个部分：',
-          'A. Clean English Transcript：轻度加标点、分段，但不要改变原意。',
-          'B. 中文理解稿：用自然中文解释这段发言。',
-          'C. Debate Coach Notes：提取论证结构、不确定位置和训练建议。',
-        ].join('\n');
+      : params.mode === 'debate_brief'
+        ? [
+            '输出一份中文辩论复盘简报：',
+            '1. 原文忠实摘要',
+            '2. 主要论点',
+            '3. 证据/例子',
+            '4. 反驳点',
+            '5. 表达问题',
+            '6. 下一轮训练建议',
+          ].join('\n')
+        : [
+            '输出三个部分：',
+            'A. Clean English Transcript：轻度加标点、分段，但不要改变原意。',
+            'B. 中文理解稿：用自然中文解释这段发言。',
+            'C. Debate Coach Notes：提取论证结构、不确定位置和训练建议。',
+          ].join('\n');
 
   const response = await fetch(`${resolveDebateBaseUrl()}/chat/completions`, {
     method: 'POST',
@@ -177,16 +231,18 @@ async function createDebateNotes(params: {
           role: 'system',
           content: [
             'You are a debate transcription and coaching assistant for international school students.',
+            'You understand TOC-style and US national-circuit debate training, including flow sheets, evidence comparison, weighing, judge adaptation, and ballot feedback.',
             'Never fabricate facts not present in the transcript.',
             'When speech is unclear, preserve uncertainty instead of overcorrecting.',
             'Use concise Chinese labels and keep English debate terms where useful.',
+            'This is not an official TOC program; do not imply tournament qualification, bids, or guaranteed results.',
           ].join('\n'),
         },
         {
           role: 'user',
           content: [
             modeInstruction,
-            params.context ? `\nContext:\n${params.context}` : '',
+            metadataContext ? `\nRound metadata:\n${metadataContext}` : '',
             `\nRaw transcript:\n${params.transcript}`,
           ].join('\n'),
         },
@@ -220,6 +276,14 @@ export async function POST(req: NextRequest) {
     const mode = String(formData.get('mode') || 'clean_bilingual');
     const context = String(formData.get('context') || '');
     const language = String(formData.get('language') || 'en');
+    const metadata: DebateMetadata = {
+      format: String(formData.get('format') || ''),
+      speechType: String(formData.get('speechType') || ''),
+      side: String(formData.get('side') || ''),
+      resolution: String(formData.get('resolution') || ''),
+      judgeType: String(formData.get('judgeType') || ''),
+      grade: String(formData.get('grade') || ''),
+    };
 
     if (!audioFile) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Audio file is required');
@@ -233,7 +297,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const transcript = await createTranscript(audioFile, language, context);
+    const transcript = await createTranscript(
+      audioFile,
+      language,
+      buildMetadataContext(metadata, context),
+    );
     if (!transcript) {
       return apiError(
         'TRANSCRIPTION_FAILED',
@@ -242,10 +310,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const notes = await createDebateNotes({ transcript, mode, context });
+    const notes = await createDebateNotes({ transcript, mode, context, metadata });
 
     return apiSuccess({
       transcript,
+      metadata,
       ...notes,
     });
   } catch (error) {
