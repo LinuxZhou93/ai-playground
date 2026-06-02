@@ -29,6 +29,9 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/index.html') {
       return NextResponse.rewrite(new URL('/', request.url));
     }
+    if (pathname === '/debate-lab') {
+      return NextResponse.rewrite(new URL('/psyche_x_system/frontend/debate_lab.html', request.url));
+    }
     return NextResponse.next();
   }
 
@@ -46,6 +49,7 @@ export async function middleware(request: NextRequest) {
     '/download': '/resources/download.html',
     '/labs': '/resources/labs.html',
     '/ide': '/resources/ide-scratch.html',
+    '/debate-lab': '/psyche_x_system/frontend/debate_lab.html',
   };
 
   if (cleanUrlMaps[pathname]) {
@@ -151,6 +155,7 @@ export const config = {
     '/download',
     '/labs',
     '/ide',
+    '/debate-lab',
     '/swarm/:path*',
     '/erp/:path*',
     '/hub-auto-:path*',

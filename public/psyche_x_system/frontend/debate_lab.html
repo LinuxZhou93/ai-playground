@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jessica AI Debate Lab | 辩论转写与复盘实验室</title>
+  <style>
+    :root {
+      --bg: #f7f5ef;
+      --surface: #fffdf8;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #ddd7ca;
+      --teal: #0f766e;
+      --teal-soft: #e7f4f0;
+      --amber: #b45309;
+      --amber-soft: #fff4e5;
+      --blue: #315a9f;
+      --blue-soft: #edf3ff;
+      --red: #b42318;
+      --radius: 8px;
+      --shadow: 0 18px 50px rgba(23, 32, 51, 0.12);
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
+      line-height: 1.55;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(247, 245, 239, 0.92);
+      border-bottom: 1px solid rgba(221, 215, 202, 0.85);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-inner {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+      height: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      font-weight: 800;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--ink);
+      border-radius: 50%;
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .nav-links a {
+      padding: 8px 0;
+    }
+
+    .nav-cta {
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .hero {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 28px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 26px;
+      align-items: stretch;
+    }
+
+    .hero-copy {
+      min-height: 560px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 28px 0 8px;
+    }
+
+    .eyebrow {
+      color: var(--teal);
+      font-size: 14px;
+      font-weight: 800;
+      margin: 0 0 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(38px, 5.6vw, 72px);
+      line-height: 1.02;
+      letter-spacing: 0;
+      max-width: 760px;
+    }
+
+    .lead {
+      margin: 20px 0 0;
+      max-width: 700px;
+      color: #344054;
+      font-size: 18px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .link-button {
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+      min-height: 42px;
+      padding: 10px 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .link-button.secondary {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .cred-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .cred {
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    .cred strong {
+      display: block;
+      font-size: 18px;
+    }
+
+    .cred span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .tool-panel,
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .tool-panel {
+      min-height: 560px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      overflow: hidden;
+    }
+
+    .tool-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .tool-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .tool-body {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .dropzone {
+      grid-column: 1 / -1;
+      border: 1px dashed #98a2b3;
+      background: #fbfaf6;
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    .dropzone.is-active {
+      border-color: var(--teal);
+      background: var(--teal-soft);
+    }
+
+    .dropzone strong {
+      display: block;
+      font-size: 17px;
+      margin-bottom: 6px;
+    }
+
+    .dropzone p,
+    .field-help {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .file-meta {
+      grid-column: 1 / -1;
+      padding: 11px 12px;
+      background: #f2f4f7;
+      border-radius: var(--radius);
+      color: #344054;
+      font-size: 13px;
+      min-height: 43px;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field.wide {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    select,
+    textarea,
+    button,
+    input[type="text"] {
+      width: 100%;
+      font: inherit;
+    }
+
+    select,
+    textarea,
+    input[type="text"] {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: var(--radius);
+      color: var(--ink);
+      padding: 11px 12px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    select:focus,
+    textarea:focus,
+    input[type="text"]:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    }
+
+    .tool-actions {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      border: 1px solid var(--ink);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      cursor: pointer;
+      background: var(--ink);
+      color: white;
+      font-weight: 800;
+      transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
+    }
+
+    .tool-result {
+      min-height: 235px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .result-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 14px 20px 0;
+    }
+
+    .tab {
+      width: auto;
+      border-color: var(--line);
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .tab.is-selected {
+      border-color: var(--teal);
+      background: var(--teal-soft);
+      color: var(--teal);
+    }
+
+    .result {
+      padding: 16px 20px 20px;
+      white-space: pre-wrap;
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 13px;
+      color: #1d2939;
+      overflow-wrap: anywhere;
+      max-height: 430px;
+      overflow: auto;
+    }
+
+    .placeholder {
+      color: var(--muted);
+      font-family: inherit;
+      display: grid;
+      gap: 10px;
+    }
+
+    .hint-list {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .error {
+      color: var(--red);
+      font-weight: 800;
+    }
+
+    .notice {
+      grid-column: 1 / -1;
+      border-left: 3px solid var(--amber);
+      padding: 10px 12px;
+      background: var(--amber-soft);
+      color: #7c2d12;
+      font-size: 13px;
+    }
+
+    .band {
+      border-top: 1px solid var(--line);
+      padding: 52px 0;
+    }
+
+    .section-inner {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 26px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 520px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .profile-block {
+      background: var(--ink);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 24px;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .profile-kicker {
+      color: #bdd8d5;
+      font-weight: 800;
+      font-size: 14px;
+      margin: 0 0 12px;
+    }
+
+    .profile-block p {
+      color: #e4e7ec;
+      margin: 14px 0 0;
+    }
+
+    .quote {
+      border-top: 1px solid rgba(255, 255, 255, 0.22);
+      padding-top: 18px;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .fact-grid,
+    .method-grid,
+    .faq-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .fact-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .method-grid {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .fact,
+    .method,
+    .faq,
+    .day {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    .fact strong,
+    .method strong,
+    .day strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .fact p,
+    .method p,
+    .faq p,
+    .day p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .method:nth-child(2) {
+      background: var(--blue-soft);
+      border-color: #c8d8f5;
+    }
+
+    .method:nth-child(4) {
+      background: var(--teal-soft);
+      border-color: #b7ddd5;
+    }
+
+    .curriculum {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+    }
+
+    .day-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--ink);
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .cta-band {
+      background: var(--ink);
+      color: #fff;
+      padding: 42px 0;
+    }
+
+    .cta-inner {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .cta-inner p {
+      color: #d0d5dd;
+      margin: 10px 0 0;
+      max-width: 760px;
+    }
+
+    .cta-card {
+      background: #fff;
+      color: var(--ink);
+      border-radius: var(--radius);
+      padding: 16px;
+      min-width: 280px;
+    }
+
+    .cta-card strong {
+      display: block;
+      font-size: 20px;
+    }
+
+    .cta-card span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1080px) {
+      .hero-grid,
+      .split {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy {
+        min-height: auto;
+      }
+
+      .method-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .curriculum {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding-top: 24px;
+      }
+
+      .tool-body,
+      .tool-actions,
+      .cred-strip,
+      .fact-grid,
+      .method-grid,
+      .curriculum,
+      .cta-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .section-head p {
+        margin-top: 10px;
+      }
+
+      .tool-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .cta-card {
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Primary">
+    <div class="nav-inner">
+      <a class="brand" href="#top" aria-label="Jessica AI Debate Lab">
+        <span class="mark">JDL</span>
+        <span>Jessica AI Debate Lab</span>
+      </a>
+      <div class="nav-links">
+        <a href="#tool">转写工具</a>
+        <a href="#jessica">Jessica</a>
+        <a href="#cohort">基础营</a>
+        <a class="nav-cta" href="#diagnostic">预约诊断</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <div>
+          <p class="eyebrow">Zhou Xiaomai FutureClass · AI-native debate coaching</p>
+          <h1>高速英文辩论语音转写与复盘工具</h1>
+          <p class="lead">
+            上传英文辩论录音，AI 先做忠实转写，再整理成可读英文稿、中文理解稿和辩论教练反馈。工具用于复盘训练，不替学生完成辩论。
+          </p>
+          <div class="hero-actions">
+            <a class="link-button" href="#tool">开始云端转写</a>
+            <a class="link-button secondary" href="#cohort">了解 8 月基础营</a>
+          </div>
+        </div>
+
+        <div class="cred-strip" aria-label="Project facts">
+          <div class="cred">
+            <strong>G5-G8</strong>
+            <span>面向低龄国际学校学生</span>
+          </div>
+          <div class="cred">
+            <strong>8-12 人</strong>
+            <span>首期小班控制人数</span>
+          </div>
+          <div class="cred">
+            <strong>AI 复盘</strong>
+            <span>把录音变成训练证据</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="tool-panel" id="tool" aria-label="Debate audio transcription tool">
+        <div class="tool-head">
+          <div>
+            <h2>上传与任务</h2>
+            <p class="field-help">支持 m4a / mp3 / wav / webm。建议先上传 1-5 分钟片段。</p>
+          </div>
+          <div class="tool-status"><span class="status-dot"></span><span>云端 Gemini 音频转写</span></div>
+        </div>
+
+        <div class="tool-body">
+          <label class="dropzone" id="dropzone" for="audioInput">
+            <strong>选择或拖入辩论录音</strong>
+            <p>专有名词、辩题、正反方和赛事格式可以写入上下文。</p>
+          </label>
+          <input id="audioInput" type="file" accept="audio/*,.m4a,.mp3,.wav,.webm,.mp4" />
+          <div class="file-meta" id="fileMeta">尚未选择文件</div>
+
+          <div class="field">
+            <label for="taskMode">输出模式</label>
+            <select id="taskMode">
+              <option value="clean_bilingual">中英清洗 + 教练笔记</option>
+              <option value="transcript_only">只做原始转写</option>
+              <option value="debate_brief">中文辩论复盘简报</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="language">主要语言</label>
+            <select id="language">
+              <option value="en">英文辩论</option>
+              <option value="auto">自动判断</option>
+              <option value="zh">中文为主</option>
+            </select>
+          </div>
+
+          <div class="field wide">
+            <label for="context">辩论上下文，可选</label>
+            <textarea id="context" placeholder="例如：Public Forum debate, Arctic governance, Pro speaker, fast English speech, citations include USIP and UNDP."></textarea>
+          </div>
+
+          <div class="tool-actions">
+            <button id="runBtn">开始云端转写</button>
+            <button class="secondary" id="copyBtn" disabled>复制结果</button>
+            <button class="secondary" id="downloadBtn" disabled>下载 Markdown</button>
+          </div>
+
+          <div class="notice">
+            公开课和学生训练使用前，请先征得录音参与者同意。不要上传含隐私、成绩、申请材料或未授权学生信息的录音。
+          </div>
+        </div>
+
+        <div class="tool-result">
+          <div class="result-tabs">
+            <button class="tab is-selected" data-view="full">完整结果</button>
+            <button class="tab" data-view="transcript">原文</button>
+            <button class="tab" data-view="brief">复盘</button>
+          </div>
+          <div class="result placeholder" id="result">
+            <div>结果会显示在这里。</div>
+            <ul class="hint-list">
+              <li>高速辩论建议先做 60-120 秒测试。</li>
+              <li>AI 会保留 [?] 和 [unclear]，避免把听不清内容强行改成事实。</li>
+              <li>输出结果需要 Jessica 或教练做最终判断。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <section class="band" id="jessica">
+    <div class="section-inner split">
+      <div class="profile-block">
+        <div>
+          <p class="profile-kicker">Student coach · Peer mentor</p>
+          <h2>由 Jessica 带领的学生教练实验室</h2>
+          <p>
+            Jessica 是 BASIS 成都 2026 届毕业生，曾任学生会主席，拥有多年英文辩论与演讲经历，并参与 Stargallery 星画廊 AI 项目。她即将前往 Minerva University，现阶段以学姐教练身份，帮助低龄学生更早建立研究、表达、反驳和复盘能力。
+          </p>
+        </div>
+        <div class="quote">不是把经历包装成结果，而是把成长路径转化成下一批学生可以练习的方法。</div>
+      </div>
+
+      <div class="fact-grid">
+        <div class="fact">
+          <strong>BASIS 成都毕业生</strong>
+          <p>对国际学校学生的表达、竞赛和申请压力有真实体感。</p>
+        </div>
+        <div class="fact">
+          <strong>学生会主席经历</strong>
+          <p>把辩论中的表达、倾听和组织能力带入真实学生领导力。</p>
+        </div>
+        <div class="fact">
+          <strong>英文辩论与演讲</strong>
+          <p>从观点、证据、反驳到临场表达，帮助低龄学生建立基本框架。</p>
+        </div>
+        <div class="fact">
+          <strong>AI 项目实践者</strong>
+          <p>参与 Stargallery 星画廊 AI 项目，理解 AI 不只是工具，而是项目化学习能力。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="section-inner">
+      <div class="section-head">
+        <h2>AI 如何真正改造辩论训练</h2>
+        <p>AI 不是替学生写稿，而是让学生更快看见问题、更系统地训练思考、更清楚地复盘表达。</p>
+      </div>
+      <div class="method-grid">
+        <div class="method">
+          <strong>Topic Explorer</strong>
+          <p>拆解背景、利益相关者、核心概念和争议点。</p>
+        </div>
+        <div class="method">
+          <strong>Argument Map</strong>
+          <p>把 claim、evidence、reasoning 和反驳风险可视化。</p>
+        </div>
+        <div class="method">
+          <strong>Audio Transcript</strong>
+          <p>把高速英文发言转成可复盘文本，标记不确定位置。</p>
+        </div>
+        <div class="method">
+          <strong>Coach Notes</strong>
+          <p>提取逻辑漏洞、表达问题和下一轮训练任务。</p>
+        </div>
+        <div class="method">
+          <strong>Growth Archive</strong>
+          <p>把每次练习沉淀为学生个人成长证据。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="cohort">
+    <div class="section-inner">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">First cohort · August</p>
+          <h2>Jessica AI Debate Lab 首期基础营</h2>
+        </div>
+        <p>面向 G5-G8 国际学校、双语学校、国际部学生。6 天线下密集训练，完成观点表达、AI 研究、论证、反驳和结营 mini debate。</p>
+      </div>
+      <div class="curriculum">
+        <div class="day">
+          <div class="day-number">1</div>
+          <strong>What is Debate</strong>
+          <p>辩论规则、立论结构、基线英文表达录音。</p>
+        </div>
+        <div class="day">
+          <div class="day-number">2</div>
+          <strong>AI Research</strong>
+          <p>用 AI 拆题、理解资料、判断来源可靠性。</p>
+        </div>
+        <div class="day">
+          <div class="day-number">3</div>
+          <strong>Argument Building</strong>
+          <p>Claim-Evidence-Reasoning 和一页 argument brief。</p>
+        </div>
+        <div class="day">
+          <div class="day-number">4</div>
+          <strong>Rebuttal</strong>
+          <p>Flowing、抓漏洞、交叉质询和反驳卡。</p>
+        </div>
+        <div class="day">
+          <div class="day-number">5</div>
+          <strong>Speech Presence</strong>
+          <p>英文演讲结构、节奏、台风和二次录音复盘。</p>
+        </div>
+        <div class="day">
+          <div class="day-number">6</div>
+          <strong>Mini Tournament</strong>
+          <p>小型辩论赛、Jessica 反馈和家长展示。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="section-inner">
+      <div class="section-head">
+        <h2>家长常见问题</h2>
+        <p>首期目标是能力训练和成长证据沉淀，不承诺比赛或升学结果。</p>
+      </div>
+      <div class="faq-grid">
+        <div class="faq">
+          <h3>孩子没有辩论基础可以参加吗？</h3>
+          <p>可以。首期基础营不是成熟辩手训练，而是帮助 G5-G8 学生建立英文观点表达、基础论证、倾听反驳和 AI 辅助复盘能力。</p>
+        </div>
+        <div class="faq">
+          <h3>AI 会不会替孩子写稿？</h3>
+          <p>不会。AI 在这里用于拆解辩题、辅助研究、录音转写和复盘反馈。学生仍然需要自己理解资料、组织观点并完成表达。</p>
+        </div>
+        <div class="faq">
+          <h3>Jessica 是老师还是助教？</h3>
+          <p>Jessica 的定位是学生教练和 peer mentor。她的价值是把刚刚走过的国际学校成长路径，转化为低龄学生能理解的训练示范。</p>
+        </div>
+        <div class="faq">
+          <h3>家长能看到什么结果？</h3>
+          <p>每个学生会完成 argument brief、英文观点表达或 mini debate 记录、AI 辅助转写与复盘，以及家长可读成长总结。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band" id="diagnostic">
+    <div class="cta-inner">
+      <div>
+        <h2>首期小班先诊断，不盲目报名</h2>
+        <p>10 分钟英文表达诊断用于判断孩子是否适合首期班，并设置个人训练目标。首期建议 8-12 人，优先匹配 G5-G8 学生。</p>
+      </div>
+      <div class="cta-card">
+        <strong>预约诊断</strong>
+        <span>可接入表单、企微或微信二维码。发布前请先完成 Jessica 授权确认。</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Jessica 的个人经历仅用于说明学生成长路径。本项目非 BASIS 成都或 Minerva University 官方项目，不构成任何升学、竞赛或录取结果承诺。
+  </footer>
+
+  <script>
+    const input = document.getElementById("audioInput");
+    const dropzone = document.getElementById("dropzone");
+    const fileMeta = document.getElementById("fileMeta");
+    const result = document.getElementById("result");
+    const runBtn = document.getElementById("runBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const taskMode = document.getElementById("taskMode");
+    const language = document.getElementById("language");
+    const contextInput = document.getElementById("context");
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+
+    let lastPayload = null;
+    let activeView = "full";
+
+    function formatBytes(bytes) {
+      if (!bytes) return "0B";
+      const units = ["B", "KB", "MB", "GB"];
+      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / Math.pow(1024, index)).toFixed(index ? 1 : 0)} ${units[index]}`;
+    }
+
+    function setResult(text, isError = false) {
+      result.classList.remove("placeholder");
+      result.classList.toggle("error", isError);
+      result.textContent = text;
+      copyBtn.disabled = !text || isError;
+      downloadBtn.disabled = !text || isError;
+    }
+
+    function markdownForPayload() {
+      if (!lastPayload) return "";
+      return [
+        "# Jessica AI Debate Lab Result",
+        "",
+        "## Transcript",
+        lastPayload.transcript || "",
+        "",
+        "## Output",
+        lastPayload.output || lastPayload.cleaned || "",
+      ].join("\n");
+    }
+
+    function render(view = activeView) {
+      activeView = view;
+      if (!lastPayload) return;
+      if (view === "transcript") {
+        setResult(lastPayload.transcript || "暂无原文转写。");
+        return;
+      }
+      if (view === "brief") {
+        setResult(lastPayload.brief || lastPayload.cleaned || lastPayload.output || "暂无复盘结果。");
+        return;
+      }
+      setResult(lastPayload.output || lastPayload.transcript || "暂无结果。");
+    }
+
+    function handleFile(file) {
+      if (!file) {
+        fileMeta.textContent = "尚未选择文件";
+        return;
+      }
+      fileMeta.textContent = `${file.name} · ${formatBytes(file.size)} · ${file.type || "audio"}`;
+    }
+
+    input.addEventListener("change", () => handleFile(input.files[0]));
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.add("is-active");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("is-active");
+      });
+    });
+
+    dropzone.addEventListener("drop", (event) => {
+      const file = event.dataTransfer.files[0];
+      if (!file) return;
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
+      handleFile(file);
+    });
+
+    runBtn.addEventListener("click", async () => {
+      const file = input.files[0];
+      if (!file) {
+        setResult("请先选择一段音频。", true);
+        return;
+      }
+
+      runBtn.disabled = true;
+      copyBtn.disabled = true;
+      downloadBtn.disabled = true;
+      setResult("正在上传并分析。高速辩论语音可能需要等待几十秒...");
+
+      try {
+        const form = new FormData();
+        form.append("audio", file);
+        form.append("mode", taskMode.value);
+        form.append("language", language.value);
+        form.append("context", contextInput.value.trim());
+
+        const response = await fetch("/api/debate/transcribe", {
+          method: "POST",
+          body: form
+        });
+
+        const payload = await response.json();
+        if (!response.ok || payload.success === false) {
+          throw new Error(payload.details || payload.error || "分析失败");
+        }
+        lastPayload = payload;
+        render("full");
+      } catch (error) {
+        setResult(`分析失败：${error.message}`, true);
+      } finally {
+        runBtn.disabled = false;
+      }
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(result.textContent || "");
+      copyBtn.textContent = "已复制";
+      setTimeout(() => {
+        copyBtn.textContent = "复制结果";
+      }, 1200);
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      const blob = new Blob([markdownForPayload()], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `debate-lab-result-${Date.now()}.md`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((item) => item.classList.remove("is-selected"));
+        tab.classList.add("is-selected");
+        render(tab.dataset.view);
+      });
+    });
+  </script>
+</body>
+</html>
