@@ -588,8 +588,8 @@
       width: min(var(--max), calc(100% - 32px));
       margin: 0 auto;
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 20px;
+      grid-template-columns: 0.78fr 1.22fr;
+      gap: 24px;
       align-items: center;
     }
 
@@ -603,8 +603,8 @@
       background: #fff;
       color: var(--ink);
       border-radius: var(--radius);
-      padding: 16px;
-      min-width: 280px;
+      padding: 18px;
+      min-width: 0;
     }
 
     .cta-card strong {
@@ -615,6 +615,144 @@
     .cta-card span {
       color: var(--muted);
       font-size: 13px;
+    }
+
+    .game-card {
+      display: grid;
+      gap: 14px;
+    }
+
+    .game-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 12px;
+    }
+
+    .game-top h3 {
+      margin-bottom: 4px;
+    }
+
+    .step-pill {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .game-meter {
+      height: 8px;
+      background: #eef2f6;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .game-meter span {
+      display: block;
+      width: 20%;
+      height: 100%;
+      background: var(--teal);
+      transition: width 180ms ease;
+    }
+
+    .game-screen {
+      min-height: 285px;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+    }
+
+    .game-screen h4 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .game-screen p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .choice-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .choice-button {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .choice-button.is-selected {
+      border-color: var(--teal);
+      background: var(--teal-soft);
+      color: var(--teal);
+    }
+
+    .choice-button small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .game-textarea {
+      min-height: 118px;
+    }
+
+    .game-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .score-card {
+      background: var(--teal-soft);
+      border: 1px solid #b7ddd5;
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    .score-card strong {
+      font-size: 30px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .score-item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fff;
+    }
+
+    .score-item b {
+      display: block;
+      font-size: 16px;
     }
 
     .footer {
@@ -659,6 +797,8 @@
       .fact-grid,
       .method-grid,
       .curriculum,
+      .mini-grid,
+      .score-grid,
       .cta-inner {
         grid-template-columns: 1fr;
       }
@@ -996,11 +1136,24 @@
     <div class="cta-inner">
       <div>
         <h2>首期小班先诊断，不盲目报名</h2>
-        <p>10 分钟英文表达诊断用于判断孩子是否适合首期班，并设置个人训练目标。首期建议 8-12 人，优先匹配 G5-G8 学生。</p>
+        <p>先完成一个 5 分钟 Debate Readiness Mini Game，系统会根据孩子的年级、观点表达、反驳意识和英文输出，生成一个初步 readiness level。正式报名仍建议再做 10 分钟真人诊断。</p>
       </div>
       <div class="cta-card">
-        <strong>预约诊断</strong>
-        <span>可接入表单、企微或微信二维码。发布前请先完成 Jessica 授权确认。</span>
+        <div class="game-card" id="readinessGame">
+          <div class="game-top">
+            <div>
+              <h3>Debate Readiness Mini Game</h3>
+              <span>适合 G5-G8 学生的线上初筛小游戏</span>
+            </div>
+            <span class="step-pill" id="gameStepLabel">Step 1 / 5</span>
+          </div>
+          <div class="game-meter" aria-hidden="true"><span id="gameMeter"></span></div>
+          <div class="game-screen" id="gameScreen"></div>
+          <div class="game-controls">
+            <button class="secondary" id="gameBackBtn" type="button">上一步</button>
+            <button id="gameNextBtn" type="button">开始</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1184,6 +1337,256 @@
         render(tab.dataset.view);
       });
     });
+
+    const gameScreen = document.getElementById("gameScreen");
+    const gameStepLabel = document.getElementById("gameStepLabel");
+    const gameMeter = document.getElementById("gameMeter");
+    const gameBackBtn = document.getElementById("gameBackBtn");
+    const gameNextBtn = document.getElementById("gameNextBtn");
+
+    const gameState = {
+      step: 0,
+      grade: "",
+      confidence: "",
+      claim: "",
+      evidence: "",
+      rebuttal: "",
+      speech: ""
+    };
+
+    const gameChoices = {
+      confidence: [
+        { value: "2", label: "刚开始，不太敢说", hint: "适合基础表达训练" },
+        { value: "3", label: "能说，但容易卡住", hint: "适合首期小班重点支持" },
+        { value: "4", label: "比较愿意表达", hint: "适合进入论证和反驳训练" }
+      ],
+      claim: [
+        { value: "weak", label: "AI is good because many people use it.", hint: "观点太泛，缺少可辩论标准", score: 0 },
+        { value: "strong", label: "Schools should allow AI for brainstorming, but require students to explain their own reasoning.", hint: "有边界、有机制、有可辩论性", score: 2 },
+        { value: "off", label: "AI will make all homework unnecessary.", hint: "太绝对，容易被反驳", score: 0 }
+      ],
+      evidence: [
+        { value: "data", label: "A survey comparing learning outcomes before and after AI-assisted drafting.", hint: "能支持学习效果的证据", score: 2 },
+        { value: "story", label: "My friend says AI is fun.", hint: "只是 anecdote，证据强度不足", score: 0 },
+        { value: "slogan", label: "Technology is the future.", hint: "这是口号，不是 evidence", score: 0 }
+      ],
+      rebuttal: [
+        { value: "ignore", label: "I disagree, so your point is wrong.", hint: "没有回应对方 warrant", score: 0 },
+        { value: "turn", label: "Cheating risk is real, but a process rule solves it: students must show prompts, drafts, and final reasoning.", hint: "承认风险并提出机制回应", score: 2 },
+        { value: "repeat", label: "AI is useful because it is useful.", hint: "重复主张，不是 rebuttal", score: 0 }
+      ]
+    };
+
+    function choiceButtons(name, choices) {
+      return `<div class="choice-grid">${choices
+        .map((choice) => {
+          const selected = gameState[name] === choice.value ? " is-selected" : "";
+          return `<button type="button" class="choice-button${selected}" data-game-choice="${name}" data-value="${choice.value}">${choice.label}<small>${choice.hint}</small></button>`;
+        })
+        .join("")}</div>`;
+    }
+
+    function bindChoiceButtons() {
+      gameScreen.querySelectorAll("[data-game-choice]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const name = button.dataset.gameChoice;
+          gameState[name] = button.dataset.value;
+          gameScreen.querySelectorAll(`[data-game-choice="${name}"]`).forEach((item) => {
+            item.classList.toggle("is-selected", item === button);
+          });
+        });
+      });
+    }
+
+    function scoreChoice(name) {
+      const choice = gameChoices[name]?.find((item) => item.value === gameState[name]);
+      return choice?.score || 0;
+    }
+
+    function scoreSpeech(text) {
+      const normalized = text.toLowerCase();
+      const words = normalized.match(/[a-zA-Z]+/g) || [];
+      let score = 0;
+      if (words.length >= 18) score += 1;
+      if (words.length >= 35) score += 1;
+      if (/\bbecause\b|\bsince\b|\btherefore\b|\bso\b/.test(normalized)) score += 1;
+      if (/\bfor example\b|\bdata\b|\bevidence\b|\bstudy\b|\bsurvey\b/.test(normalized)) score += 1;
+      if (/\bhowever\b|\bbut\b|\bopponent\b|\bdisagree\b/.test(normalized)) score += 1;
+      return Math.min(score, 4);
+    }
+
+    function totalGameScore() {
+      const confidenceScore = Number(gameState.confidence || 0) >= 4 ? 1 : 0;
+      return (
+        confidenceScore +
+        scoreChoice("claim") +
+        scoreChoice("evidence") +
+        scoreChoice("rebuttal") +
+        scoreSpeech(gameState.speech)
+      );
+    }
+
+    function gameLevel(score) {
+      if (score >= 9) {
+        return {
+          title: "Strong fit for first cohort",
+          zh: "适合进入首期小班，可以重点训练 flow、weighing 和 judge ballot。",
+          next: "建议预约 10 分钟真人诊断，确认英文表达速度和课堂匹配度。"
+        };
+      }
+      if (score >= 6) {
+        return {
+          title: "Fit with support",
+          zh: "适合参加，但需要 Jessica 在 claim clarity 和 rebuttal 上给更多支持。",
+          next: "建议先提交一段 45 秒英文观点表达，作为入班前基线。"
+        };
+      }
+      return {
+        title: "Foundation starter",
+        zh: "更适合先做基础表达和英文开口训练，再进入 TOC-style flow 训练。",
+        next: "建议先做 2-4 次一对一基础准备，再进入小班。"
+      };
+    }
+
+    function gameReport() {
+      const score = totalGameScore();
+      const level = gameLevel(score);
+      return [
+        "Jessica AI Debate Lab Mini Diagnostic",
+        `Grade: ${gameState.grade || "Not provided"}`,
+        `Confidence: ${gameState.confidence || "Not provided"}/5`,
+        `Score: ${score}/11`,
+        `Level: ${level.title}`,
+        `Recommendation: ${level.zh}`,
+        `Next step: ${level.next}`,
+        "",
+        "Student response:",
+        gameState.speech || "Not provided"
+      ].join("\n");
+    }
+
+    function renderGame() {
+      const isResult = gameState.step >= 5;
+      gameStepLabel.textContent = isResult ? "Result" : `Step ${gameState.step + 1} / 5`;
+      gameMeter.style.width = `${Math.min((gameState.step + 1) * 20, 100)}%`;
+      gameBackBtn.disabled = gameState.step === 0;
+      gameNextBtn.textContent = gameState.step === 4 ? "生成结果" : isResult ? "重新开始" : "下一步";
+
+      if (gameState.step === 0) {
+        gameScreen.innerHTML = `
+          <h4>Round 1 · Quick Setup</h4>
+          <p>先记录孩子年级和英文表达自信度。这个小游戏不是正式录取判断，只做初步匹配。</p>
+          <div class="mini-grid">
+            <div>
+              <label for="gameGrade">年级</label>
+              <input id="gameGrade" type="text" placeholder="例如：G6" value="${gameState.grade}">
+            </div>
+            <div>
+              <label>英文表达自信度</label>
+              ${choiceButtons("confidence", gameChoices.confidence)}
+            </div>
+          </div>
+        `;
+        document.getElementById("gameGrade").addEventListener("input", (event) => {
+          gameState.grade = event.target.value;
+        });
+        bindChoiceButtons();
+        return;
+      }
+
+      if (gameState.step === 1) {
+        gameScreen.innerHTML = `
+          <h4>Round 2 · Pick the strongest claim</h4>
+          <p>辩题：Should students be allowed to use AI tools for homework?</p>
+          ${choiceButtons("claim", gameChoices.claim)}
+        `;
+        bindChoiceButtons();
+        return;
+      }
+
+      if (gameState.step === 2) {
+        gameScreen.innerHTML = `
+          <h4>Round 3 · Evidence check</h4>
+          <p>如果你的 claim 是“AI 可以提升学习过程”，下面哪一种证据最适合支持？</p>
+          ${choiceButtons("evidence", gameChoices.evidence)}
+        `;
+        bindChoiceButtons();
+        return;
+      }
+
+      if (gameState.step === 3) {
+        gameScreen.innerHTML = `
+          <h4>Round 4 · Rebuttal choice</h4>
+          <p>对方说：AI will make cheating easier, so schools should ban it. 你会怎样回应？</p>
+          ${choiceButtons("rebuttal", gameChoices.rebuttal)}
+        `;
+        bindChoiceButtons();
+        return;
+      }
+
+      if (gameState.step === 4) {
+        gameScreen.innerHTML = `
+          <h4>Round 5 · 45-second speaking draft</h4>
+          <p>用英文写下你会说的 45 秒观点。尝试包含 claim, because, example/evidence, and one response to the other side.</p>
+          <textarea id="gameSpeech" class="game-textarea" placeholder="I believe students should / should not use AI for homework because...">${gameState.speech}</textarea>
+          <p id="speechHint">目标：至少 35 个英文单词，并出现 because / evidence / however 等逻辑词。</p>
+        `;
+        document.getElementById("gameSpeech").addEventListener("input", (event) => {
+          gameState.speech = event.target.value;
+          const words = (gameState.speech.match(/[a-zA-Z]+/g) || []).length;
+          document.getElementById("speechHint").textContent = `当前约 ${words} 个英文单词。目标：至少 35 个英文单词。`;
+        });
+        return;
+      }
+
+      const score = totalGameScore();
+      const level = gameLevel(score);
+      gameScreen.innerHTML = `
+        <div class="score-card">
+          <strong>${score}/11</strong>
+          <span>${level.title}</span>
+          <p>${level.zh}</p>
+        </div>
+        <div class="score-grid">
+          <div class="score-item"><b>${scoreChoice("claim")}/2</b><span>Claim</span></div>
+          <div class="score-item"><b>${scoreChoice("evidence")}/2</b><span>Evidence</span></div>
+          <div class="score-item"><b>${scoreChoice("rebuttal")}/2</b><span>Rebuttal</span></div>
+        </div>
+        <p>${level.next}</p>
+        <button type="button" id="copyGameReport" class="secondary">复制初筛报告</button>
+      `;
+      document.getElementById("copyGameReport").addEventListener("click", async () => {
+        await navigator.clipboard.writeText(gameReport());
+        document.getElementById("copyGameReport").textContent = "已复制";
+      });
+    }
+
+    gameBackBtn.addEventListener("click", () => {
+      if (gameState.step > 0) {
+        gameState.step -= 1;
+        renderGame();
+      }
+    });
+
+    gameNextBtn.addEventListener("click", () => {
+      if (gameState.step >= 5) {
+        Object.assign(gameState, {
+          step: 0,
+          grade: "",
+          confidence: "",
+          claim: "",
+          evidence: "",
+          rebuttal: "",
+          speech: ""
+        });
+        renderGame();
+        return;
+      }
+      gameState.step += 1;
+      renderGame();
+    });
+
+    renderGame();
   </script>
 </body>
 </html>
