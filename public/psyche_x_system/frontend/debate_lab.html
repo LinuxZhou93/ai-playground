@@ -769,6 +769,59 @@
       background: var(--ink);
     }
 
+    .generated-report {
+      display: grid;
+      gap: 12px;
+      white-space: normal;
+      font-family: inherit;
+    }
+
+    .generated-report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .generated-report-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      min-height: 160px;
+    }
+
+    .generated-report-card:nth-child(1) {
+      border-top: 4px solid var(--teal);
+    }
+
+    .generated-report-card:nth-child(2) {
+      border-top: 4px solid var(--blue);
+    }
+
+    .generated-report-card:nth-child(3) {
+      border-top: 4px solid var(--amber);
+    }
+
+    .generated-report-card b {
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .generated-report-card pre {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: inherit;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      max-height: 210px;
+      overflow: auto;
+    }
+
     .error {
       color: var(--red);
       font-weight: 800;
@@ -2000,6 +2053,10 @@
         grid-template-columns: repeat(2, 1fr);
       }
 
+      .generated-report-grid {
+        grid-template-columns: 1fr;
+      }
+
       .curriculum {
         grid-template-columns: repeat(3, 1fr);
       }
@@ -2097,6 +2154,7 @@
       .mini-grid,
       .score-grid,
       .report-grid,
+      .generated-report-grid,
       .persona-summary,
       .axis-row,
       .persona-preview,
@@ -3065,8 +3123,56 @@
       result.classList.remove("placeholder");
       result.classList.toggle("error", isError);
       result.textContent = text;
+      result.dataset.copyText = text;
       copyBtn.disabled = !text || isError;
       downloadBtn.disabled = !text || isError;
+    }
+
+    function setResultHtml(html, plainText = "") {
+      result.classList.remove("placeholder");
+      result.classList.remove("error");
+      result.innerHTML = html;
+      result.dataset.copyText = plainText;
+      copyBtn.disabled = !plainText;
+      downloadBtn.disabled = !plainText;
+    }
+
+    function excerpt(value = "", maxLength = 640) {
+      const text = String(value || "").trim();
+      if (!text) return "暂无内容。";
+      return text.length > maxLength ? `${text.slice(0, maxLength).trim()}...` : text;
+    }
+
+    function renderReportCards() {
+      const transcript = lastPayload.transcript || "";
+      const flow = lastPayload.brief || lastPayload.cleaned || lastPayload.output || "";
+      const drill = lastPayload.output || lastPayload.cleaned || lastPayload.brief || "";
+      const html = `
+        <div class="generated-report">
+          <div class="report-preview-head">
+            <div>
+              <strong>训练报告已生成</strong>
+              <span>先看结构化摘要，再切换到“原文”或“Flow / Ballot”查看完整内容。</span>
+            </div>
+            <div class="report-badge">Coach Review</div>
+          </div>
+          <div class="generated-report-grid" aria-label="Generated debate training report">
+            <div class="generated-report-card">
+              <b>Transcript</b>
+              <pre>${escapeHtml(excerpt(transcript))}</pre>
+            </div>
+            <div class="generated-report-card">
+              <b>Flow / Ballot</b>
+              <pre>${escapeHtml(excerpt(flow))}</pre>
+            </div>
+            <div class="generated-report-card">
+              <b>Next Drill</b>
+              <pre>${escapeHtml(excerpt(drill))}</pre>
+            </div>
+          </div>
+        </div>
+      `;
+      setResultHtml(html, markdownForPayload());
     }
 
     function markdownForPayload() {
@@ -3101,7 +3207,7 @@
         setResult(lastPayload.brief || lastPayload.cleaned || lastPayload.output || "暂无复盘结果。");
         return;
       }
-      setResult(lastPayload.output || lastPayload.transcript || "暂无结果。");
+      renderReportCards();
     }
 
     function handleFile(file) {
@@ -3181,7 +3287,7 @@
     });
 
     copyBtn.addEventListener("click", async () => {
-      await navigator.clipboard.writeText(result.textContent || "");
+      await navigator.clipboard.writeText(result.dataset.copyText || result.textContent || "");
       copyBtn.textContent = "已复制";
       setTimeout(() => {
         copyBtn.textContent = "复制结果";
