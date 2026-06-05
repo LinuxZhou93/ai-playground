@@ -630,6 +630,42 @@
     font-weight: 900;
     color: #1f252d;
   }
+  .report-dimensions {
+    display: grid;
+    gap: 10px;
+    border: 2px solid #1f252d;
+    border-radius: 12px;
+    padding: 12px;
+    background: #fffaf1;
+  }
+  .report-dimensions h4 {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+  .report-dimension {
+    display: grid;
+    gap: 6px;
+  }
+  .dimension-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .dimension-track {
+    height: 10px;
+    border: 2px solid #1f252d;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #fffdf8;
+  }
+  .dimension-fill {
+    height: 100%;
+    border-right: 2px solid #1f252d;
+    background: linear-gradient(90deg, #0d776d, #f4ae00);
+  }
   .report-focus-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -1537,6 +1573,33 @@ function archiveDeleteConfirmHtml(item) {
   `;
 }
 
+function scoreDimensionHtml(record) {
+  const dims = [
+    ['content', '内容与论证', 40],
+    ['style', '表达与台风', 40],
+    ['strategy', '策略与回应', 20]
+  ];
+  return `
+    <div class="report-dimensions">
+      <h4>能力维度</h4>
+      ${dims.map(([key, label, max]) => {
+        const raw = Number(record.playerScore?.[key] || 0);
+        const score = Math.max(0, Math.min(max, raw));
+        const width = max ? (score / max) * 100 : 0;
+        return `
+          <div class="report-dimension">
+            <div class="dimension-head">
+              <span>${label}</span>
+              <span>${score} / ${max}</span>
+            </div>
+            <div class="dimension-track"><div class="dimension-fill" style="width:${width}%"></div></div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
 function transcriptText(history = state.history) {
   return history.map((h, index) => {
     const who = h.side === 'player' ? `你（${stanceLabel(state.stance)}）` : `AI（${stanceLabel(oppStance(state.stance))}）`;
@@ -1703,6 +1766,7 @@ function renderReportPreview(record) {
         <div class="report-score-card"><b>AI 对手</b><span>${record.aiTotal}</span></div>
         <div class="report-score-card"><b>训练方向</b><span>${escapeHtml(record.focus)}</span></div>
       </div>
+      ${scoreDimensionHtml(record)}
       <div class="report-focus-grid">
         <div class="report-focus-card">
           <b>下一轮重点</b>
