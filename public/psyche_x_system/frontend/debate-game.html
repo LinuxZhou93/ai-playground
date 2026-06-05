@@ -544,6 +544,50 @@
     display: grid;
     gap: 10px;
   }
+  .archive-insight {
+    display: grid;
+    gap: 10px;
+    border: 2px solid #1f252d;
+    border-radius: 12px;
+    padding: 12px;
+    background: #eef8f5;
+  }
+  .archive-insight-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .archive-insight-head h3 {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+  .archive-insight-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .archive-insight-card {
+    border: 1px solid #0d776d;
+    border-radius: 10px;
+    padding: 10px;
+    background: #fffdf8;
+  }
+  .archive-insight-card b {
+    display: block;
+    margin-bottom: 4px;
+    color: #667085;
+    font-size: 12px;
+  }
+  .archive-insight-card span {
+    color: #1f252d;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .archive-insight-note {
+    color: #344054;
+    font-size: 13px;
+  }
   .report-preview {
     display: grid;
     gap: 12px;
@@ -1244,7 +1288,8 @@
     .report-hero-top { display: grid; }
     .report-summary { grid-template-columns: 1fr; }
     .report-score-grid,
-    .report-focus-grid { grid-template-columns: 1fr; }
+    .report-focus-grid,
+    .archive-insight-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -1361,6 +1406,7 @@
           <button class="mini-btn" id="clear-archive-btn" type="button">清空记录</button>
         </div>
       </div>
+      <div id="archive-insight"></div>
       <div class="archive-list" id="archive-list"></div>
       <div id="report-preview"></div>
     </div>
@@ -1701,6 +1747,38 @@ function archiveMarkdown(items = loadArchive()) {
   ].join('\n');
 }
 
+function archiveInsightHtml(items) {
+  if (items.length < 2) return '';
+  const scores = items.map(item => Number(item.playerTotal || 0)).filter(score => Number.isFinite(score));
+  const average = scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0;
+  const best = scores.length ? Math.max(...scores) : 0;
+  const latest = items[0];
+  const focusCounts = items.reduce((map, item) => {
+    const key = item.focus || '待观察';
+    map[key] = (map[key] || 0) + 1;
+    return map;
+  }, {});
+  const commonFocus = Object.entries(focusCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '待观察';
+  return `
+    <div class="archive-insight">
+      <div class="archive-insight-head">
+        <div>
+          <h3>训练趋势摘要</h3>
+          <p class="hint">基于最近 ${items.length} 次练习自动汇总。</p>
+        </div>
+        <span class="report-badge">Training Trend</span>
+      </div>
+      <div class="archive-insight-grid">
+        <div class="archive-insight-card"><b>练习次数</b><span>${items.length}</span></div>
+        <div class="archive-insight-card"><b>平均分</b><span>${average}</span></div>
+        <div class="archive-insight-card"><b>最高分</b><span>${best}</span></div>
+        <div class="archive-insight-card"><b>常见短板</b><span>${escapeHtml(commonFocus)}</span></div>
+      </div>
+      <p class="archive-insight-note">最近一次重点：${escapeHtml(latest.focus || '待观察')}。建议下一轮优先保持稳定结构，再强化该维度的比较和回应。</p>
+    </div>
+  `;
+}
+
 function downloadText(filename, text, type = 'text/plain') {
   const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
@@ -1717,10 +1795,12 @@ function renderArchive() {
   const list = $('archive-list');
   if (!list) return;
   const preview = $('report-preview');
+  const insight = $('archive-insight');
   const items = loadArchive();
   if (!items.length) {
     list.innerHTML = '<div class="archive-empty">完成一局后，这里会出现训练记录。</div>';
     if (preview) preview.innerHTML = '';
+    if (insight) insight.innerHTML = '';
     selectedArchiveId = '';
     editingArchiveId = '';
     deleteConfirmId = '';
@@ -1732,6 +1812,7 @@ function renderArchive() {
   $('clear-archive-btn').classList.remove('hidden');
   $('export-md-btn').classList.remove('hidden');
   $('export-json-btn').classList.remove('hidden');
+  if (insight) insight.innerHTML = archiveInsightHtml(items);
   if (!selectedArchiveId || !items.some(item => item.id === selectedArchiveId)) {
     selectedArchiveId = items[0].id;
   }
