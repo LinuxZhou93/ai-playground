@@ -425,10 +425,10 @@
 
   /* 结果页 */
   .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
-  .score-col { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .score-col h3 { font-size: 15px; margin-bottom: 10px; }
-  .score-line { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0; }
-  .total { font-size: 28px; font-weight: 700; margin-top: 8px; }
+  .score-col { display: grid; gap: 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .score-col h3 { font-size: 15px; margin-bottom: 0; }
+  .score-line { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 900; }
+  .total { font-size: 28px; font-weight: 900; margin-top: 2px; }
   .winner-banner {
     text-align: center; font-size: 20px; font-weight: 700;
     padding: 16px; border-radius: 12px; margin-bottom: 16px;
@@ -436,6 +436,21 @@
   }
   .bar-track { background: var(--border); height: 8px; border-radius: 6px; overflow: hidden; margin-top: 4px; }
   .bar-fill { height: 100%; border-radius: 6px; }
+  .result-score-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+  }
+  .result-role {
+    border: 2px solid #1f252d;
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: #fffdf8;
+    color: #1f252d;
+    font-size: 11px;
+    font-weight: 900;
+  }
   .recap-panel {
     display: grid;
     gap: 12px;
@@ -979,6 +994,16 @@
     border: 2px solid #1f252d;
     color: #1f252d;
     box-shadow: 0 7px 0 rgba(31,37,45,.12);
+  }
+  .score-col .bar-track {
+    border: 2px solid #1f252d;
+    background: #fffdf8;
+  }
+  .score-col .bar-fill {
+    border-right: 2px solid #1f252d;
+  }
+  .score-col .total span {
+    color: #667085 !important;
   }
   .recap-panel.card {
     background: #fffaf1;
@@ -2289,9 +2314,12 @@ function showResult(j) {
   $('winner-banner').textContent = banner;
 
   const dims = [['content','内容',40],['style','风格',40],['strategy','策略',20]];
-  const col = (title, o, total, color) => `
+  const col = (title, role, o, total, color) => `
     <div class="score-col">
-      <h3>${title}</h3>
+      <div class="result-score-head">
+        <h3>${title}</h3>
+        <span class="result-role">${role}</span>
+      </div>
       ${dims.map(([k,n,max]) => `
         <div class="score-line"><span>${n}</span><span>${o[k]||0} / ${max}</span></div>
         <div class="bar-track"><div class="bar-fill" style="width:${(o[k]||0)/max*100}%;background:${color}"></div></div>
@@ -2299,10 +2327,10 @@ function showResult(j) {
       <div class="total" style="color:${color}">${total} <span style="font-size:14px;color:var(--muted)">/ 100</span></div>
     </div>`;
   $('score-grid').innerHTML =
-    col(`你 · ${stanceLabel(state.stance)}`, j.player, pTotal, 'var(--accent)') +
-    col(`AI · ${stanceLabel(oppStance(state.stance))}`, j.ai, aTotal, 'var(--accent-2)');
+    col('你的赛后评分', stanceLabel(state.stance), j.player, pTotal, 'var(--accent)') +
+    col('AI 对手评分', stanceLabel(oppStance(state.stance)), j.ai, aTotal, 'var(--accent-2)');
 
-  $('judge-comment').innerHTML = `<h3 style="font-size:15px;margin-bottom:8px;">裁判点评</h3><div>${escapeHtml(j.comment || '')}</div>`;
+  $('judge-comment').innerHTML = `<h3 style="font-size:15px;margin-bottom:8px;">赛后评分诊断</h3><div>${escapeHtml(j.comment || '')}</div>`;
   const plan = renderTrainingRecap(j);
   saveCompletedSession(j, plan, banner);
 
