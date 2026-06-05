@@ -542,6 +542,47 @@
     font-size: 16px;
     line-height: 1.25;
   }
+  .report-hero {
+    display: grid;
+    gap: 8px;
+    border: 2px solid #1f252d;
+    border-radius: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, #fffaf1, #eef8f5);
+  }
+  .report-hero-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .report-student {
+    font-size: 18px;
+    font-weight: 900;
+    color: #1f252d;
+  }
+  .report-badge {
+    width: fit-content;
+    border: 2px solid #1f252d;
+    border-radius: 999px;
+    padding: 5px 9px;
+    background: #f4ae00;
+    color: #1f252d;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .report-topic {
+    color: #344054;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
   .report-toolbar {
     display: flex;
     justify-content: space-between;
@@ -565,6 +606,35 @@
     font-size: 12px;
     color: #667085;
   }
+  .report-score-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .report-score-card,
+  .report-focus-card {
+    border: 2px solid #1f252d;
+    border-radius: 12px;
+    padding: 10px;
+    background: #fffaf1;
+  }
+  .report-score-card b,
+  .report-focus-card b {
+    display: block;
+    color: #667085;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .report-score-card span {
+    font-size: 22px;
+    font-weight: 900;
+    color: #1f252d;
+  }
+  .report-focus-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
   .report-section {
     border-top: 1px solid #e3d5c2;
     padding-top: 12px;
@@ -582,6 +652,17 @@
     white-space: pre-wrap;
     font-family: inherit;
     margin: 0;
+  }
+  .report-signature {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: space-between;
+    border-top: 2px solid #1f252d;
+    padding-top: 12px;
+    color: #667085;
+    font-size: 13px;
+    font-weight: 800;
   }
   .archive-empty {
     border: 2px dashed #b7aa99;
@@ -1069,8 +1150,12 @@
     .archive-editor-actions,
     .archive-delete-actions { display: grid; }
     .archive-editor-grid { grid-template-columns: 1fr; }
-    .report-toolbar { display: grid; }
+    .report-toolbar,
+    .report-actions,
+    .report-hero-top { display: grid; }
     .report-summary { grid-template-columns: 1fr; }
+    .report-score-grid,
+    .report-focus-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -1454,6 +1539,19 @@ function sessionRecordText(record) {
   ].filter(line => line !== '').join('\n');
 }
 
+function parentSummaryText(record) {
+  return [
+    `${record.studentName || '同学'}本次完成了一轮 AI 辩论训练。`,
+    `辩题：${record.topic}`,
+    `训练结果：${record.winnerText}，本轮得分 ${record.playerTotal}/100。`,
+    `本轮亮点：能够完成基本立场表达，并围绕辩题持续回应。`,
+    `下一轮重点：${record.focus}。`,
+    `训练目标：${record.target}`,
+    record.coachNote ? `教练备注：${record.coachNote}` : '',
+    '建议下次训练继续强化“回应对方观点之后做影响比较”，让表达更像正式赛场发言。'
+  ].filter(Boolean).join('\n');
+}
+
 function archiveMarkdown(items = loadArchive()) {
   if (!items.length) return '# Debate Training Report\n\n暂无训练记录。\n';
   return [
@@ -1556,19 +1654,39 @@ function renderReportPreview(record) {
           <h3>教练报告预览</h3>
           <p class="hint">基于当前选择的训练记录生成，适合课后复盘和阶段反馈。</p>
         </div>
-        <button class="mini-btn report-copy" type="button">复制报告正文</button>
+        <div class="report-actions">
+          <button class="mini-btn report-parent-copy" type="button">复制家长摘要</button>
+          <button class="mini-btn report-copy" type="button">复制完整报告</button>
+        </div>
       </div>
-      <div class="report-summary">
-        <div><b>学生</b><span>${escapeHtml(record.studentName || '未填写')}</span></div>
-        <div><b>年级</b><span>${escapeHtml(record.studentGrade || '未填写')}</span></div>
-        <div><b>辩题</b><span>${escapeHtml(record.topic)}</span></div>
-        <div><b>结果</b><span>${escapeHtml(record.winnerText)}</span></div>
-        <div><b>分数</b><span>你 ${record.playerTotal} / AI ${record.aiTotal}</span></div>
-        <div><b>下一轮重点</b><span>${escapeHtml(record.focus)}</span></div>
+      <div class="report-hero">
+        <div class="report-hero-top">
+          <div>
+            <div class="report-student">${escapeHtml(record.studentName || '未填写学生')}</div>
+            <div class="hint">${escapeHtml(record.studentGrade || '未填写年级')} · ${escapeHtml(formatDateTime(record.createdAt))}</div>
+          </div>
+          <span class="report-badge">${escapeHtml(record.winnerText)}</span>
+        </div>
+        <div class="report-topic">辩题：${escapeHtml(record.topic)}</div>
+      </div>
+      <div class="report-score-grid">
+        <div class="report-score-card"><b>本轮得分</b><span>${record.playerTotal}</span></div>
+        <div class="report-score-card"><b>AI 对手</b><span>${record.aiTotal}</span></div>
+        <div class="report-score-card"><b>训练方向</b><span>${escapeHtml(record.focus)}</span></div>
+      </div>
+      <div class="report-focus-grid">
+        <div class="report-focus-card">
+          <b>下一轮重点</b>
+          <p>${escapeHtml(record.focus)}</p>
+        </div>
+        <div class="report-focus-card">
+          <b>训练目标</b>
+          <p>${escapeHtml(record.target)}</p>
+        </div>
       </div>
       <div class="report-section">
-        <b>训练目标</b>
-        <p>${escapeHtml(record.target)}</p>
+        <b>下一轮训练计划</b>
+        <pre>${escapeHtml(record.trainingPlan || '')}</pre>
       </div>
       ${record.coachNote ? `
         <div class="report-section">
@@ -1580,9 +1698,9 @@ function renderReportPreview(record) {
         <b>裁判点评</b>
         <p>${escapeHtml(record.comment || '无')}</p>
       </div>
-      <div class="report-section">
-        <b>训练建议</b>
-        <pre>${escapeHtml(record.trainingPlan || '')}</pre>
+      <div class="report-signature">
+        <span>Jessica AI Debate Lab</span>
+        <span>Coach Review</span>
       </div>
     </div>
   `;
@@ -2156,17 +2274,21 @@ if ($('report-preview')) {
   $('report-preview').addEventListener('click', async event => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    const button = target.closest('.report-copy');
+    const parentButton = target.closest('.report-parent-copy');
+    const fullButton = target.closest('.report-copy');
+    const button = parentButton || fullButton;
     if (!button) return;
     const record = selectedArchiveRecord();
     if (!record) return;
+    const originalText = button.textContent || '';
+    const text = parentButton ? parentSummaryText(record) : sessionRecordText(record);
     try {
-      await navigator.clipboard.writeText(sessionRecordText(record));
+      await navigator.clipboard.writeText(text);
       button.textContent = '已复制';
-      setTimeout(() => { button.textContent = '复制报告正文'; }, 1200);
+      setTimeout(() => { button.textContent = originalText; }, 1200);
     } catch {
       button.textContent = '复制失败';
-      setTimeout(() => { button.textContent = '复制报告正文'; }, 1200);
+      setTimeout(() => { button.textContent = originalText; }, 1200);
     }
   });
 }
