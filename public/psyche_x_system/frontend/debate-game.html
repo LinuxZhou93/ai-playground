@@ -1,0 +1,2266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>辩论擂台 · 人机对辩</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1419;
+    --panel: #1a212b;
+    --panel-2: #222c38;
+    --accent: #5b9dff;
+    --accent-2: #ff6b6b;
+    --text: #e6edf3;
+    --muted: #8b98a5;
+    --border: #2d3742;
+    --ok: #3fb950;
+    --warn: #d29922;
+  }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(160deg, #0f1419, #131b24);
+    color: var(--text);
+    min-height: 100vh;
+	    line-height: 1.6;
+	    overflow-x: hidden;
+	  }
+	  .wrap { width: 100%; max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; overflow-x: hidden; }
+  h1 { font-size: 26px; letter-spacing: 1px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  header { text-align: center; margin-bottom: 24px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+	    padding: 20px;
+	    margin-bottom: 16px;
+	  }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  input, select, textarea {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 9px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 90px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 160px; }
+  .btn {
+    background: var(--accent);
+    color: #06101f;
+    border: none;
+    border-radius: 9px;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .05s, opacity .2s;
+  }
+  .btn:hover { opacity: .9; }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+  .hidden { display: none !important; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .mode-note {
+    border: 1px solid rgba(91,157,255,.28);
+    background: rgba(91,157,255,.1);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .mode-note b { color: var(--accent); }
+
+  /* 辩论页 */
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 8px; margin-bottom: 14px;
+  }
+  .topic-box {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; font-size: 14px;
+  }
+  .stance-tag {
+    display: inline-block; font-size: 12px; padding: 2px 10px;
+    border-radius: 20px; font-weight: 600;
+  }
+  .stance-pro { background: rgba(91,157,255,.18); color: var(--accent); }
+  .stance-con { background: rgba(255,107,107,.18); color: var(--accent-2); }
+  .round-pill {
+    font-size: 13px; color: var(--muted);
+    background: var(--panel-2); padding: 6px 12px; border-radius: 20px;
+  }
+  .arena-stage {
+    position: relative;
+    overflow: hidden;
+    min-height: 300px;
+    margin: 14px 0 16px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 50% 20%, rgba(255,255,255,.1), transparent 34%),
+      linear-gradient(180deg, #172233 0%, #111923 56%, #0c1119 100%);
+    box-shadow: 0 20px 50px rgba(0,0,0,.28);
+  }
+  .arena-stage::before {
+    content: "";
+    position: absolute;
+    inset: auto -6% 0;
+    height: 42%;
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    border-top: 1px solid rgba(255,255,255,.08);
+    transform: perspective(420px) rotateX(58deg);
+    transform-origin: bottom;
+  }
+  .stage-light {
+    position: absolute;
+    top: -80px;
+    width: 220px;
+    height: 300px;
+    opacity: .2;
+    background: radial-gradient(ellipse at top, currentColor, transparent 62%);
+    filter: blur(2px);
+    animation: lightSweep 4.8s ease-in-out infinite alternate;
+  }
+  .stage-light.left { left: 8%; color: var(--accent); transform: rotate(12deg); }
+  .stage-light.right { right: 8%; color: var(--accent-2); transform: rotate(-12deg); animation-delay: .8s; }
+  .stage-clock {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    z-index: 3;
+    transform: translateX(-50%);
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    padding: 7px 12px;
+    color: #d0d7e2;
+    background: rgba(10,15,23,.66);
+    backdrop-filter: blur(8px);
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .stage-clock::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 14px var(--ok);
+    animation: livePulse 1.4s ease-in-out infinite;
+  }
+  .debater {
+    position: absolute;
+    bottom: 22px;
+    z-index: 2;
+    width: min(36%, 260px);
+    min-width: 174px;
+    display: grid;
+    justify-items: center;
+    gap: 0;
+  }
+  .debater.player-side { left: 6%; }
+  .debater.ai-side { right: 6%; }
+  .podium {
+    position: relative;
+    z-index: 3;
+    width: 86%;
+    min-height: 82px;
+    margin-top: -8px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 16px 16px 10px 10px;
+    background: linear-gradient(180deg, #2b3444, #161e2a);
+    box-shadow: 0 14px 30px rgba(0,0,0,.28);
+  }
+  .podium::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: rgba(255,255,255,.08);
+    color: #e9eef7;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .mic {
+    position: absolute;
+    top: -26px;
+    left: 50%;
+    width: 8px;
+    height: 34px;
+    border-radius: 999px;
+    background: #0a0f17;
+    transform: translateX(-50%) rotate(-8deg);
+    transform-origin: bottom;
+  }
+  .mic::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    width: 20px;
+    height: 16px;
+    border-radius: 999px;
+    background: #d9e1ee;
+    transform: translateX(-50%);
+  }
+  .raccoon {
+    position: relative;
+    z-index: 4;
+    width: 132px;
+    height: 128px;
+    transform-origin: 50% 100%;
+    animation: idleBob 2.8s ease-in-out infinite;
+  }
+  .raccoon .tail {
+    position: absolute;
+    left: -34px;
+    bottom: 12px;
+    width: 72px;
+    height: 42px;
+    border: 5px solid #16110d;
+    border-radius: 50%;
+    background:
+      repeating-linear-gradient(90deg, #d99132 0 14px, #231914 14px 25px);
+    transform: rotate(-18deg);
+  }
+  .ai-side .raccoon .tail {
+    left: auto;
+    right: -34px;
+    transform: rotate(18deg) scaleX(-1);
+  }
+  .raccoon .ear {
+    position: absolute;
+    top: 10px;
+    width: 32px;
+    height: 32px;
+    border: 4px solid #16110d;
+    border-radius: 9px 22px 8px 22px;
+    background: #f8efe3;
+    transform: rotate(-32deg);
+  }
+  .raccoon .ear.left { left: 20px; }
+  .raccoon .ear.right { right: 20px; transform: rotate(32deg) scaleX(-1); }
+  .raccoon .head {
+    position: absolute;
+    left: 16px;
+    top: 24px;
+    width: 100px;
+    height: 88px;
+    border: 5px solid #16110d;
+    border-radius: 45% 45% 42% 42%;
+    background: #d8852e;
+  }
+  .raccoon .mask {
+    position: absolute;
+    left: 12px;
+    top: 31px;
+    width: 76px;
+    height: 28px;
+    border-radius: 50%;
+    background: #fff3df;
+  }
+  .raccoon .eye {
+    position: absolute;
+    top: 39px;
+    width: 13px;
+    height: 15px;
+    border-radius: 50%;
+    background: #17110d;
+    animation: blink 5s infinite;
+  }
+  .raccoon .eye.left { left: 34px; }
+  .raccoon .eye.right { right: 34px; }
+  .raccoon .snout {
+    position: absolute;
+    left: 36px;
+    top: 56px;
+    width: 30px;
+    height: 23px;
+    border-radius: 50%;
+    background: #fff8ed;
+  }
+  .raccoon .nose {
+    position: absolute;
+    left: 46px;
+    top: 57px;
+    width: 11px;
+    height: 8px;
+    border-radius: 50%;
+    background: #17110d;
+  }
+  .raccoon .mouth {
+    position: absolute;
+    left: 47px;
+    top: 69px;
+    width: 10px;
+    height: 5px;
+    border-radius: 0 0 12px 12px;
+    background: #17110d;
+    transform-origin: 50% 0;
+  }
+  .raccoon .body {
+    position: absolute;
+    left: 27px;
+    bottom: 0;
+    width: 78px;
+    height: 48px;
+    border: 5px solid #16110d;
+    border-radius: 26px 26px 18px 18px;
+    background: #192231;
+  }
+  .raccoon .scarf {
+    position: absolute;
+    left: 42px;
+    bottom: 35px;
+    z-index: 5;
+    width: 48px;
+    height: 14px;
+    border: 3px solid #16110d;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .ai-side .raccoon .scarf { background: var(--accent-2); }
+  .speech-burst {
+    position: absolute;
+    top: 50px;
+    width: 56px;
+    height: 34px;
+    opacity: 0;
+    border: 2px solid currentColor;
+    border-radius: 18px 18px 18px 4px;
+    color: var(--accent);
+    background: rgba(255,255,255,.86);
+    transform: scale(.82);
+  }
+  .player-side .speech-burst { right: -10px; }
+  .ai-side .speech-burst { left: -10px; color: var(--accent-2); transform: scale(.82) scaleX(-1); }
+  .speech-burst::before,
+  .speech-burst::after {
+    content: "";
+    position: absolute;
+    top: 14px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 12px 0 0 currentColor, 24px 0 0 currentColor;
+  }
+  .speech-burst::before { left: 12px; }
+  .speech-burst::after { display: none; }
+  .arena-stage.player-speaking .player-side .raccoon,
+  .arena-stage.ai-speaking .ai-side .raccoon {
+    animation: talkBob .36s ease-in-out infinite;
+  }
+  .arena-stage.player-speaking .player-side .mouth,
+  .arena-stage.ai-speaking .ai-side .mouth {
+    animation: mouthTalk .18s steps(2) infinite;
+  }
+  .arena-stage.player-speaking .player-side .speech-burst,
+  .arena-stage.ai-speaking .ai-side .speech-burst {
+    opacity: 1;
+    animation: bubblePop .48s ease-in-out infinite alternate;
+  }
+  .arena-stage.ai-thinking .ai-side .raccoon {
+    animation: thinkTilt .9s ease-in-out infinite;
+  }
+  .arena-stage.ai-thinking .ai-side .speech-burst {
+    opacity: .72;
+    animation: thinkingDots 1s ease-in-out infinite;
+  }
+  .arena-stage.judge-mode .stage-clock::before { background: var(--warn); box-shadow: 0 0 14px var(--warn); }
+  @keyframes idleBob { 0%,100%{ transform: translateY(0) rotate(0deg); } 50%{ transform: translateY(-5px) rotate(-1deg); } }
+  @keyframes talkBob { 0%,100%{ transform: translateY(0) rotate(-2deg) scale(1.02); } 50%{ transform: translateY(-9px) rotate(2deg) scale(1.04); } }
+  @keyframes thinkTilt { 0%,100%{ transform: translateY(0) rotate(-4deg); } 50%{ transform: translateY(-4px) rotate(5deg); } }
+  @keyframes mouthTalk { 0%{ height: 5px; transform: scaleY(1); } 100%{ height: 14px; transform: scaleY(1.2); } }
+  @keyframes bubblePop { from{ transform: translateY(0) scale(.88); } to{ transform: translateY(-6px) scale(1); } }
+  @keyframes thinkingDots { 0%,100%{ transform: translateY(0) scale(.82) scaleX(-1); } 50%{ transform: translateY(-5px) scale(.95) scaleX(-1); } }
+  @keyframes livePulse { 0%,100%{ transform: scale(.9); opacity:.72; } 50%{ transform: scale(1.25); opacity:1; } }
+  @keyframes lightSweep { from{ opacity:.14; } to{ opacity:.28; } }
+  .chat {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 320px;
+    margin: 18px 0;
+    overflow: auto;
+    padding: 4px 4px 8px;
+    scroll-behavior: smooth;
+  }
+  .msg { display: flex; gap: 10px; max-width: 88%; }
+  .msg .avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+  }
+  .msg .bubble {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 14px; font-size: 14.5px;
+    white-space: pre-wrap;
+  }
+  .msg .name { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .msg.player { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.player .avatar { background: var(--accent); color: #06101f; }
+  .msg.player .bubble { background: rgba(91,157,255,.12); border-color: rgba(91,157,255,.3); }
+  .msg.ai .avatar { background: var(--accent-2); color: #1a0606; }
+  .msg.judge .avatar { background: var(--warn); color: #1a1206; }
+  .msg.judge .bubble { background: rgba(210,153,34,.1); border-color: rgba(210,153,34,.35); }
+  .typing { color: var(--muted); font-size: 13px; font-style: italic; }
+
+  /* 结果页 */
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .score-col { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .score-col h3 { font-size: 15px; margin-bottom: 10px; }
+  .score-line { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0; }
+  .total { font-size: 28px; font-weight: 700; margin-top: 8px; }
+  .winner-banner {
+    text-align: center; font-size: 20px; font-weight: 700;
+    padding: 16px; border-radius: 12px; margin-bottom: 16px;
+    background: linear-gradient(90deg, rgba(91,157,255,.15), rgba(255,107,107,.15));
+  }
+  .bar-track { background: var(--border); height: 8px; border-radius: 6px; overflow: hidden; margin-top: 4px; }
+  .bar-fill { height: 100%; border-radius: 6px; }
+  .recap-panel {
+    display: grid;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .recap-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .recap-head h3 {
+    font-size: 17px;
+    line-height: 1.2;
+  }
+  .recap-badge {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: #eef8f5;
+    border: 1px solid #0d776d;
+    color: #0d776d;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .recap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .recap-item {
+    min-height: 132px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #fffdf8;
+    border: 2px solid #1f252d;
+  }
+  .recap-item b {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .recap-item p {
+    color: #344054;
+    font-size: 14px;
+  }
+  .recap-script {
+    border: 2px dashed #0b6f82;
+    border-radius: 12px;
+    padding: 14px;
+    background: #eff8ff;
+    color: #1f252d;
+  }
+  .recap-script b {
+    display: block;
+    margin-bottom: 6px;
+  }
+  .recap-script code {
+    display: block;
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 14px;
+    color: #1f252d;
+  }
+  .archive-panel {
+    display: grid;
+    gap: 12px;
+  }
+  .profile-panel {
+    display: grid;
+    gap: 12px;
+  }
+  .profile-panel h2 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+  .profile-panel textarea {
+    min-height: 74px;
+  }
+  .archive-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .archive-head h2 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+  .archive-list {
+    display: grid;
+    gap: 10px;
+  }
+  .report-preview {
+    display: grid;
+    gap: 12px;
+    margin-top: 4px;
+    border: 2px solid #1f252d;
+    border-radius: 12px;
+    padding: 14px;
+    background: #fffdf8;
+  }
+  .report-preview h3 {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+  .report-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .report-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .report-summary div {
+    border: 1px solid #d8cab8;
+    border-radius: 10px;
+    padding: 10px;
+    background: #fffaf1;
+  }
+  .report-summary b {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #667085;
+  }
+  .report-section {
+    border-top: 1px solid #e3d5c2;
+    padding-top: 12px;
+  }
+  .report-section b {
+    display: block;
+    margin-bottom: 6px;
+  }
+  .report-section p,
+  .report-section pre {
+    color: #344054;
+    font-size: 14px;
+  }
+  .report-section pre {
+    white-space: pre-wrap;
+    font-family: inherit;
+    margin: 0;
+  }
+  .archive-empty {
+    border: 2px dashed #b7aa99;
+    border-radius: 12px;
+    padding: 14px;
+    color: #667085;
+    background: #fffdf8;
+    font-size: 14px;
+  }
+  .archive-item {
+    display: grid;
+    gap: 8px;
+    border: 2px solid #1f252d;
+    border-radius: 12px;
+    padding: 12px;
+    background: #fffdf8;
+  }
+  .archive-item.is-selected {
+    background: #eef8f5;
+    border-color: #0d776d;
+  }
+  .archive-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .archive-title {
+    font-weight: 900;
+    color: #1f252d;
+  }
+  .archive-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .archive-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .archive-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .archive-focus {
+    border-radius: 999px;
+    padding: 5px 9px;
+    background: #eef8f5;
+    border: 1px solid #0d776d;
+    color: #0d776d;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .archive-editor,
+  .archive-delete-confirm {
+    display: grid;
+    gap: 10px;
+    border: 1px solid #d8cab8;
+    border-radius: 10px;
+    padding: 12px;
+    background: #fffaf1;
+  }
+  .archive-editor h3,
+  .archive-delete-confirm b {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+  .archive-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .archive-editor-grid label:last-child {
+    grid-column: 1 / -1;
+  }
+  .archive-editor-actions,
+  .archive-delete-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .mini-btn {
+    border: 2px solid #1f252d;
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: #fffaf1;
+    color: #1f252d;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .mini-btn.active {
+    background: #0d776d;
+    color: #fffaf1;
+  }
+  .err { color: var(--accent-2); font-size: 13px; margin-top: 8px; }
+  a { color: var(--accent); }
+  /* 表情包原图方向：奶油底、粗描边、卡片擂台、红黄蓝身份标签 */
+  body {
+    background:
+      radial-gradient(circle at 12% 8%, rgba(244, 174, 0, .14), transparent 24%),
+      radial-gradient(circle at 88% 10%, rgba(190, 35, 28, .1), transparent 22%),
+      #f7f1e7;
+    color: #1f252d;
+  }
+  .wrap { max-width: 980px; }
+  h1 { color: #15191f; letter-spacing: 0; }
+  .subtitle, label, .hint, .round-pill { color: #667085; }
+  .card,
+  .topic-box,
+  .score-col,
+  #judge-comment {
+    background: #fffaf1;
+    border: 2px solid #1f252d;
+    box-shadow: 0 8px 0 rgba(31,37,45,.12);
+  }
+  input, select, textarea {
+    background: #fffdf8;
+    border: 2px solid #1f252d;
+    color: #1f252d;
+  }
+  .btn {
+    background: #c51f1a;
+    color: #fffaf1;
+    border: 2px solid #1f252d;
+    box-shadow: 0 5px 0 #1f252d;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #1f252d; }
+  .btn-ghost {
+    background: #fffaf1;
+    color: #1f252d;
+    border: 2px solid #1f252d;
+  }
+	  .mode-note {
+	    background: #eef8f5;
+	    border: 2px solid #0d776d;
+	    color: #1f252d;
+	    overflow-wrap: anywhere;
+	    word-break: break-word;
+	  }
+	  .mode-note b { color: #0d776d; }
+  .round-pill {
+    background: #fffaf1;
+    border: 2px solid #1f252d;
+    font-weight: 900;
+  }
+  .stance-pro { background: #dceefe; color: #0b6f82; border: 1px solid #0b6f82; }
+  .stance-con { background: #ffe5df; color: #c51f1a; border: 1px solid #c51f1a; }
+  .arena-stage {
+    min-height: 332px;
+    border: 2px solid #1f252d;
+    border-radius: 16px;
+    background:
+      linear-gradient(90deg, rgba(197,31,26,.07) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(197,31,26,.07) 1px, transparent 1px),
+      #fff5e4;
+    background-size: 24px 24px;
+    box-shadow: 0 10px 0 rgba(31,37,45,.16);
+  }
+  .arena-stage::before {
+    inset: auto 24px 12px;
+    height: 92px;
+    border: 2px solid #1f252d;
+    border-radius: 50%;
+    background: #f4d58a;
+    transform: none;
+  }
+  .arena-stage::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 68px;
+    width: 2px;
+    height: 170px;
+    background: repeating-linear-gradient(#1f252d 0 10px, transparent 10px 18px);
+    opacity: .24;
+  }
+  .stage-light { display: none; }
+  .stage-clock {
+    top: 14px;
+    color: #1f252d;
+    background: #fffaf1;
+    border: 2px solid #1f252d;
+    box-shadow: 0 4px 0 rgba(31,37,45,.16);
+  }
+  .stage-clock::before { background: #f4ae00; box-shadow: 0 0 0 3px rgba(244,174,0,.22); }
+  .podium {
+    border: 4px solid #1f252d;
+    background: #fffaf1;
+    box-shadow: 0 8px 0 rgba(31,37,45,.18);
+  }
+  .player-side .podium { border-top-color: #0b6f82; }
+  .ai-side .podium { border-top-color: #c51f1a; }
+  .podium::before {
+    top: 11px;
+    background: #1f252d;
+    color: #fffaf1;
+    letter-spacing: .02em;
+  }
+  .player-side .podium::after,
+  .ai-side .podium::after {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 900;
+    color: #1f252d;
+  }
+  .player-side .podium::after { content: "FLOW"; background: #dceefe; }
+  .ai-side .podium::after { content: "CLASH"; background: #ffe5df; }
+  .mic, .mic::before { background: #1f252d; }
+  .raccoon { filter: drop-shadow(0 7px 0 rgba(31,37,45,.16)); }
+  .raccoon .head { background: #e48622; border-width: 5px; }
+  .raccoon .mask, .raccoon .snout { background: #fffaf1; }
+  .raccoon .body { background: #222833; }
+  .raccoon .scarf { background: #0b6f82; }
+  .ai-side .raccoon .scarf { background: #c51f1a; }
+  .speech-burst {
+    border: 3px solid #1f252d;
+    background: #fffaf1;
+    color: #1f252d;
+    box-shadow: 0 4px 0 rgba(31,37,45,.12);
+  }
+  .msg .bubble {
+    background: #fffaf1;
+    border: 2px solid #1f252d;
+    color: #1f252d;
+    box-shadow: 0 4px 0 rgba(31,37,45,.08);
+  }
+  .msg.player .bubble { background: #eff8ff; border-color: #0b6f82; }
+  .msg.ai .bubble { background: #fff1ed; border-color: #c51f1a; }
+  .msg .avatar {
+    border: 2px solid #1f252d;
+    box-shadow: 0 3px 0 rgba(31,37,45,.18);
+  }
+  .winner-banner {
+    background: #fffaf1;
+    border: 2px solid #1f252d;
+    color: #1f252d;
+    box-shadow: 0 7px 0 rgba(31,37,45,.12);
+  }
+  .recap-panel.card {
+    background: #fffaf1;
+    border: 2px solid #1f252d;
+    box-shadow: 0 7px 0 rgba(31,37,45,.12);
+  }
+  /* 角色修正版：贴近原图 Q 版小浣熊，不再使用横向面罩 */
+  .arena-stage { min-height: 360px; }
+  .debater {
+    bottom: 20px;
+    width: min(38%, 278px);
+  }
+  .raccoon {
+    width: 156px;
+    height: 160px;
+  }
+  .raccoon .tail {
+    left: -38px;
+    bottom: 28px;
+    width: 82px;
+    height: 48px;
+    border-width: 5px;
+    background: repeating-linear-gradient(90deg, #e58a22 0 16px, #201914 16px 27px);
+  }
+  .ai-side .raccoon .tail {
+    right: -38px;
+    bottom: 28px;
+  }
+  .raccoon .ear {
+    top: 10px;
+    width: 36px;
+    height: 36px;
+    border-width: 5px;
+    border-radius: 12px 24px 10px 24px;
+    background: #fff7e8;
+    z-index: 1;
+  }
+  .raccoon .ear.left { left: 28px; }
+  .raccoon .ear.right { right: 28px; }
+  .raccoon .head {
+    left: 20px;
+    top: 26px;
+    width: 116px;
+    height: 104px;
+    border-width: 5px;
+    border-radius: 48% 48% 44% 44%;
+    background: #e48622;
+    overflow: hidden;
+    z-index: 3;
+  }
+  .raccoon .head::before {
+    content: "";
+    position: absolute;
+    left: 13px;
+    top: 45px;
+    width: 90px;
+    height: 46px;
+    border-radius: 50% 50% 44% 44%;
+    background: #fff8eb;
+    z-index: 1;
+  }
+  .raccoon .head::after {
+    content: "";
+    position: absolute;
+    left: 29px;
+    top: 35px;
+    width: 25px;
+    height: 26px;
+    border-radius: 50%;
+    background: #17110d;
+    box-shadow: 34px 0 0 #17110d;
+    z-index: 2;
+  }
+  .raccoon .mask {
+    left: 16px;
+    top: 46px;
+    width: 84px;
+    height: 34px;
+    border-radius: 48% 48% 45% 45%;
+    background: #fff8eb;
+    z-index: 2;
+  }
+  .raccoon .eye {
+    top: 43px;
+    width: 10px;
+    height: 12px;
+    background: #fffaf1;
+    z-index: 4;
+  }
+  .raccoon .eye::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 4px;
+    height: 5px;
+    border-radius: 50%;
+    background: #17110d;
+  }
+  .raccoon .eye.left { left: 46px; }
+  .raccoon .eye.right { right: 46px; }
+  .raccoon .snout {
+    left: 52px;
+    top: 64px;
+    width: 28px;
+    height: 24px;
+    background: #fffaf1;
+    z-index: 4;
+  }
+  .raccoon .nose {
+    left: 60px;
+    top: 64px;
+    width: 12px;
+    height: 8px;
+    z-index: 5;
+  }
+  .raccoon .mouth {
+    left: 59px;
+    top: 76px;
+    width: 15px;
+    height: 8px;
+    border: 3px solid #17110d;
+    border-top: 0;
+    background: #c51f1a;
+    z-index: 5;
+  }
+  .raccoon .body {
+    left: 36px;
+    bottom: 2px;
+    width: 84px;
+    height: 52px;
+    border-width: 5px;
+    background: #222833;
+    z-index: 2;
+  }
+  .raccoon .scarf {
+    left: 50px;
+    bottom: 39px;
+    width: 58px;
+    height: 15px;
+    z-index: 6;
+  }
+  .podium {
+    width: 92%;
+    min-height: 74px;
+    margin-top: 2px;
+  }
+  .podium::before { top: 14px; }
+  .player-side .podium::after,
+  .ai-side .podium::after { bottom: 10px; }
+  .mic { top: -22px; }
+  .speech-burst {
+    top: 62px;
+    width: 62px;
+    height: 38px;
+  }
+  .player-side .speech-burst { right: -22px; }
+  .ai-side .speech-burst { left: -22px; }
+  /* image2 IP 规范版：用正式生成图替换 CSS 手画角色 */
+  .arena-image {
+    position: absolute;
+    inset: 44px 14px 14px;
+    z-index: 2;
+    display: block;
+    width: calc(100% - 28px);
+    height: calc(100% - 58px);
+    object-fit: contain;
+    transform-origin: 50% 62%;
+    animation: cardBreath 3.2s ease-in-out infinite;
+  }
+  .speaker-glow {
+    position: absolute;
+    top: 28%;
+    width: 34%;
+    height: 48%;
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    border-radius: 34px;
+    border: 4px solid transparent;
+    transform: scale(.96);
+  }
+  .speaker-glow.left {
+    left: 8%;
+    border-color: rgba(31,167,154,.82);
+    box-shadow: 0 0 0 8px rgba(31,167,154,.12), 0 0 28px rgba(31,167,154,.3);
+  }
+  .speaker-glow.right {
+    right: 8%;
+    border-color: rgba(231,76,60,.82);
+    box-shadow: 0 0 0 8px rgba(231,76,60,.12), 0 0 28px rgba(231,76,60,.3);
+  }
+  .arena-stage.player-speaking .arena-image,
+  .arena-stage.ai-speaking .arena-image {
+    animation: cardTalk .42s ease-in-out infinite;
+  }
+  .arena-stage.player-speaking .speaker-glow.left,
+  .arena-stage.ai-speaking .speaker-glow.right {
+    opacity: 1;
+    animation: speakerPulse .42s ease-in-out infinite alternate;
+  }
+  .arena-stage.ai-thinking .speaker-glow.right {
+    opacity: .78;
+    animation: thinkGlow .9s ease-in-out infinite;
+  }
+  .arena-stage .debater,
+  .arena-stage .stage-light {
+    display: none;
+  }
+  @keyframes cardBreath { 0%,100%{ transform: translateY(0) scale(1); } 50%{ transform: translateY(-4px) scale(1.006); } }
+  @keyframes cardTalk { 0%,100%{ transform: translateY(0) rotate(-.2deg) scale(1.008); } 50%{ transform: translateY(-6px) rotate(.2deg) scale(1.018); } }
+  @keyframes speakerPulse { from{ transform: scale(.96); } to{ transform: scale(1.02); } }
+  @keyframes thinkGlow { 0%,100%{ transform: scale(.96); opacity:.55; } 50%{ transform: scale(1.01); opacity:.9; } }
+	  @media (max-width: 640px) {
+		    .wrap { max-width: 100%; padding: 18px 10px 44px; }
+	    .row { display: grid; grid-template-columns: 1fr; gap: 0; }
+	    .row > div { min-width: 0; }
+	    .arena-stage { min-height: 260px; }
+    .debater { width: 46%; min-width: 136px; }
+    .debater.player-side { left: 0; }
+    .debater.ai-side { right: 0; }
+    .raccoon { transform: scale(.82); }
+    .podium { width: 94%; min-height: 72px; }
+    .stage-clock { top: 10px; }
+    .score-grid { grid-template-columns: 1fr; }
+    .recap-head { display: grid; }
+    .recap-badge { width: fit-content; }
+    .recap-grid { grid-template-columns: 1fr; }
+    .archive-head,
+    .archive-actions,
+    .archive-buttons,
+    .archive-foot,
+    .archive-editor-actions,
+    .archive-delete-actions { display: grid; }
+    .archive-editor-grid { grid-template-columns: 1fr; }
+    .report-toolbar { display: grid; }
+    .report-summary { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>辩论擂台</h1>
+    <div class="subtitle">人机对辩 · AI 裁判打分</div>
+  </header>
+
+  <!-- 设置页 -->
+  <section id="page-setup">
+    <div class="mode-note">
+      <b>练习说明</b>：输入辩题和立场后，完成逐回合对辩；结束时会生成内容、表达和策略三个维度的反馈。
+    </div>
+    <div class="card">
+      <label>辩题</label>
+      <input id="topic" placeholder="例如：人工智能对人类社会利大于弊">
+      <div class="hint">输入一个可以正反交锋的命题。</div>
+
+      <div class="row">
+        <div>
+          <label>你的立场</label>
+          <select id="stance">
+            <option value="pro">正方（支持）</option>
+            <option value="con">反方（反对）</option>
+          </select>
+        </div>
+        <div>
+          <label>回合数（每回合各发言一次）</label>
+          <select id="rounds">
+            <option value="2">2 回合</option>
+            <option value="3" selected>3 回合</option>
+            <option value="4">4 回合</option>
+            <option value="5">5 回合</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>对手强度</label>
+          <select id="difficulty">
+            <option value="温和">温和（鼓励练习）</option>
+            <option value="标准" selected>标准</option>
+            <option value="犀利">犀利（高强度施压）</option>
+          </select>
+        </div>
+        <div>
+          <label>AI 风格</label>
+          <select id="persona">
+            <option value="理性严谨">理性严谨</option>
+            <option value="幽默机智">幽默机智</option>
+            <option value="咄咄逼人">咄咄逼人</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="model-settings">
+      <div style="font-weight:600;font-size:15px;">训练设置</div>
+      <div class="row">
+        <div>
+          <label>运行方式</label>
+            <select id="provider">
+              <option value="server">在线训练</option>
+              <option value="demo">体验训练</option>
+            </select>
+        </div>
+        <div>
+          <label>模型名</label>
+          <input id="model" placeholder="claude-sonnet-4-5-20250929">
+        </div>
+      </div>
+      <label id="baseurl-label" class="hidden">接口地址（Base URL）</label>
+      <input id="baseurl" class="hidden" placeholder="https://api.openai.com/v1">
+      <label>访问凭据</label>
+      <input id="apikey" type="password" placeholder="公开页面不使用个人凭据">
+      <div class="hint">公开页面不会读取或保存个人模型密钥。</div>
+    </div>
+
+    <div class="card profile-panel">
+      <div>
+        <h2>学生信息</h2>
+        <p class="hint">用于生成本地训练报告；不需要填写真实姓名也可以开始练习。</p>
+      </div>
+      <div class="row">
+        <div>
+          <label>学生姓名</label>
+          <input id="student-name" placeholder="例如：Jessica">
+        </div>
+        <div>
+          <label>年级</label>
+          <input id="student-grade" placeholder="例如：G8">
+        </div>
+      </div>
+      <label>教练备注</label>
+      <textarea id="coach-note" placeholder="例如：本轮重点观察开场结构、证据引用和影响比较。"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="start-btn">开始辩论</button>
+    </div>
+    <div id="setup-err" class="err"></div>
+    <div class="card archive-panel" id="training-archive">
+      <div class="archive-head">
+        <div>
+          <h2>训练档案</h2>
+          <p class="hint">自动保存最近完成的练习，方便回看分数、短板和下一轮目标。</p>
+        </div>
+        <div class="archive-actions">
+          <button class="mini-btn" id="export-md-btn" type="button">导出 Markdown</button>
+          <button class="mini-btn" id="export-json-btn" type="button">导出 JSON</button>
+          <button class="mini-btn" id="clear-archive-btn" type="button">清空记录</button>
+        </div>
+      </div>
+      <div class="archive-list" id="archive-list"></div>
+      <div id="report-preview"></div>
+    </div>
+  </section>
+
+  <!-- 辩论页 -->
+  <section id="page-debate" class="hidden">
+    <div class="topbar">
+      <div class="round-pill" id="round-pill">回合 1</div>
+      <button class="btn-ghost btn" id="quit-btn" style="padding:6px 14px;font-size:13px;">退出</button>
+    </div>
+    <div class="topic-box" id="debate-topic"></div>
+    <div class="arena-stage" id="arenaStage" aria-label="小麦浣熊辩论擂台">
+      <div class="stage-light left"></div>
+      <div class="stage-light right"></div>
+      <div class="stage-clock" id="stageStatus">等待发言</div>
+      <img class="arena-image" src="/psyche_x_system/frontend/assets/debate-lab/debate-arena-raccoon-ip-v2.png" alt="小麦浣熊辩论擂台" />
+      <div class="speaker-glow left" aria-hidden="true"></div>
+      <div class="speaker-glow right" aria-hidden="true"></div>
+      <div class="debater player-side">
+        <div class="speech-burst" aria-hidden="true"></div>
+        <div class="raccoon" aria-hidden="true">
+          <div class="tail"></div><div class="ear left"></div><div class="ear right"></div>
+          <div class="body"></div><div class="scarf"></div>
+          <div class="head"><div class="mask"></div><div class="eye left"></div><div class="eye right"></div><div class="snout"></div><div class="nose"></div><div class="mouth"></div></div>
+        </div>
+        <div class="podium" data-label="You"><div class="mic"></div></div>
+      </div>
+      <div class="debater ai-side">
+        <div class="speech-burst" aria-hidden="true"></div>
+        <div class="raccoon" aria-hidden="true">
+          <div class="tail"></div><div class="ear left"></div><div class="ear right"></div>
+          <div class="body"></div><div class="scarf"></div>
+          <div class="head"><div class="mask"></div><div class="eye left"></div><div class="eye right"></div><div class="snout"></div><div class="nose"></div><div class="mouth"></div></div>
+        </div>
+        <div class="podium" data-label="AI"><div class="mic"></div></div>
+      </div>
+    </div>
+    <div class="chat" id="chat"></div>
+    <div class="card" id="input-area">
+      <label>你的发言（<span id="turn-label"></span>）</label>
+      <textarea id="player-input" placeholder="陈述你的论点、论据，或反驳对方……"></textarea>
+      <div class="btn-row">
+        <button class="btn" id="send-btn">发送发言</button>
+      </div>
+      <div id="debate-err" class="err"></div>
+    </div>
+    <div class="btn-row hidden" id="judge-area">
+      <button class="btn" id="judge-btn">辩论结束，请裁判评分</button>
+    </div>
+  </section>
+
+  <!-- 结果页 -->
+  <section id="page-result" class="hidden">
+    <div class="winner-banner" id="winner-banner"></div>
+    <div class="score-grid" id="score-grid"></div>
+    <div class="card" id="judge-comment"></div>
+    <div class="card recap-panel" id="training-recap"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="copy-plan-btn">复制训练建议</button>
+      <button class="btn btn-ghost" id="copy-session-btn">复制本局记录</button>
+      <button class="btn" id="again-btn">再来一局</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const STORE_KEY = 'debate_game_settings';
+const ARCHIVE_KEY = 'debate_game_archive';
+const MAX_ARCHIVE_ITEMS = 8;
+const PUBLIC_PREVIEW_MODE = true;
+const SERVER_PROXY_ENABLED = true;
+
+// 公开页面不预填个人模型密钥。
+const DEFAULTS = {
+  provider: 'server',
+  baseurl: '',
+  model: '',
+  apikey: ''
+};
+
+// ---------- 状态 ----------
+let state = {
+  topic: '', stance: 'pro', rounds: 3, difficulty: '标准', persona: '理性严谨',
+  provider: 'server', model: '', baseurl: '', apikey: '',
+  currentRound: 1, turn: 'player', history: [], busy: false
+};
+let latestTrainingPlan = '';
+let latestSessionText = '';
+let selectedArchiveId = '';
+let editingArchiveId = '';
+let deleteConfirmId = '';
+
+// ---------- 设置持久化 ----------
+function loadSettings() {
+  let s = {};
+  try { s = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch (e) {}
+  if (s.topic) $('topic').value = s.topic;
+  if (s.stance) $('stance').value = s.stance;
+  if (s.rounds) $('rounds').value = s.rounds;
+  if (s.difficulty) $('difficulty').value = s.difficulty;
+  if (s.persona) $('persona').value = s.persona;
+  if (s.studentName) $('student-name').value = s.studentName;
+  if (s.studentGrade) $('student-grade').value = s.studentGrade;
+  if (s.coachNote) $('coach-note').value = s.coachNote;
+  $('provider').value = PUBLIC_PREVIEW_MODE ? DEFAULTS.provider : (s.provider || DEFAULTS.provider);
+  $('model').value = PUBLIC_PREVIEW_MODE ? '' : (s.model || DEFAULTS.model);
+  $('baseurl').value = PUBLIC_PREVIEW_MODE ? '' : (s.baseurl || DEFAULTS.baseurl);
+  $('apikey').value = PUBLIC_PREVIEW_MODE ? '' : (s.apikey || DEFAULTS.apikey);
+  toggleProvider();
+}
+function saveSettings() {
+  const s = {
+    topic: $('topic').value, stance: $('stance').value, rounds: $('rounds').value,
+    difficulty: $('difficulty').value, persona: $('persona').value,
+    studentName: $('student-name').value,
+    studentGrade: $('student-grade').value,
+    coachNote: $('coach-note').value
+  };
+  if (!PUBLIC_PREVIEW_MODE) {
+    s.provider = $('provider').value;
+    s.model = $('model').value;
+    s.baseurl = $('baseurl').value;
+    s.apikey = $('apikey').value;
+  }
+  localStorage.setItem(STORE_KEY, JSON.stringify(s));
+}
+function toggleProvider() {
+  if ($('provider').value === 'demo' || $('provider').value === 'server') {
+    $('baseurl-label').classList.add('hidden');
+    $('baseurl').classList.add('hidden');
+    return;
+  }
+  const isOpenAI = $('provider').value === 'openai';
+  $('baseurl-label').classList.remove('hidden');
+  $('baseurl').classList.remove('hidden');
+  if (!$('model').value) {
+    $('model').placeholder = isOpenAI ? 'gpt-4o' : 'claude-opus-4-8-thinking';
+  }
+  if (isOpenAI) {
+    if (!$('baseurl').value || $('baseurl').value === 'https://api.anthropic.com')
+      $('baseurl').value = 'https://api.openai.com/v1';
+  } else {
+    if (!$('baseurl').value || $('baseurl').value === 'https://api.openai.com/v1')
+      $('baseurl').value = DEFAULTS.baseurl;
+  }
+}
+$('provider').addEventListener('change', toggleProvider);
+
+const stanceLabel = s => s === 'pro' ? '正方（支持）' : '反方（反对）';
+const oppStance = s => s === 'pro' ? 'con' : 'pro';
+const escapeHtml = text => String(text || '').replace(/[&<>"']/g, char => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+}[char]));
+
+function formatDateTime(value) {
+  try {
+    return new Intl.DateTimeFormat('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(new Date(value));
+  } catch {
+    return '';
+  }
+}
+
+function loadArchive() {
+  try {
+    const value = JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveArchive(items) {
+  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(items.slice(0, MAX_ARCHIVE_ITEMS)));
+}
+
+function selectedArchiveRecord() {
+  const items = loadArchive();
+  return items.find(item => item.id === selectedArchiveId) || items[0] || null;
+}
+
+function updateArchiveRecord(id, patch) {
+  const items = loadArchive();
+  const next = items.map(item => item.id === id ? { ...item, ...patch } : item);
+  saveArchive(next);
+  renderArchive();
+}
+
+function archiveEditorHtml(item) {
+  if (item.id !== editingArchiveId) return '';
+  return `
+    <form class="archive-editor" data-id="${escapeHtml(item.id)}">
+      <h3>编辑训练信息</h3>
+      <div class="archive-editor-grid">
+        <label>学生姓名
+          <input name="studentName" value="${escapeHtml(item.studentName || '')}" placeholder="学生姓名">
+        </label>
+        <label>年级
+          <input name="studentGrade" value="${escapeHtml(item.studentGrade || '')}" placeholder="年级">
+        </label>
+        <label>教练备注
+          <textarea name="coachNote" placeholder="本轮观察、家长反馈或下一次训练提醒">${escapeHtml(item.coachNote || '')}</textarea>
+        </label>
+      </div>
+      <div class="archive-editor-actions">
+        <button class="mini-btn archive-cancel-edit" type="button">取消</button>
+        <button class="mini-btn active" type="submit">保存信息</button>
+      </div>
+    </form>
+  `;
+}
+
+function archiveDeleteConfirmHtml(item) {
+  if (item.id !== deleteConfirmId) return '';
+  return `
+    <div class="archive-delete-confirm" data-id="${escapeHtml(item.id)}">
+      <b>确认删除这条训练记录？</b>
+      <p class="hint">删除后不会影响其他训练档案。</p>
+      <div class="archive-delete-actions">
+        <button class="mini-btn archive-cancel-delete" type="button">保留记录</button>
+        <button class="mini-btn archive-confirm-delete active" type="button" data-id="${escapeHtml(item.id)}">确认删除</button>
+      </div>
+    </div>
+  `;
+}
+
+function transcriptText(history = state.history) {
+  return history.map((h, index) => {
+    const who = h.side === 'player' ? `你（${stanceLabel(state.stance)}）` : `AI（${stanceLabel(oppStance(state.stance))}）`;
+    return `${index + 1}. ${who}\n${h.text}`;
+  }).join('\n\n');
+}
+
+function sessionRecordText(record) {
+  return [
+    `学生：${record.studentName || '未填写'}`,
+    `年级：${record.studentGrade || '未填写'}`,
+    `辩题：${record.topic}`,
+    `立场：${record.stance}`,
+    `结果：${record.winnerText}`,
+    `分数：你 ${record.playerTotal} / AI ${record.aiTotal}`,
+    `本轮短板：${record.focus}`,
+    `下一轮目标：${record.target}`,
+    record.coachNote ? `教练备注：${record.coachNote}` : '',
+    '',
+    '训练建议：',
+    record.trainingPlan,
+    '',
+    '裁判点评：',
+    record.comment,
+    '',
+    '完整记录：',
+    record.transcript
+  ].filter(line => line !== '').join('\n');
+}
+
+function archiveMarkdown(items = loadArchive()) {
+  if (!items.length) return '# Debate Training Report\n\n暂无训练记录。\n';
+  return [
+    '# Debate Training Report',
+    '',
+    ...items.map((record, index) => [
+      `## ${index + 1}. ${record.topic}`,
+      '',
+      `- 学生：${record.studentName || '未填写'}`,
+      `- 年级：${record.studentGrade || '未填写'}`,
+      `- 时间：${formatDateTime(record.createdAt)}`,
+      `- 立场：${record.stance}`,
+      `- 结果：${record.winnerText}`,
+      `- 分数：你 ${record.playerTotal} / AI ${record.aiTotal}`,
+      `- 本轮短板：${record.focus}`,
+      `- 下一轮目标：${record.target}`,
+      record.coachNote ? `- 教练备注：${record.coachNote}` : '',
+      '',
+      '### 训练建议',
+      '',
+      record.trainingPlan,
+      '',
+      '### 裁判点评',
+      '',
+      record.comment || '无',
+      '',
+      '### 完整记录',
+      '',
+      record.transcript || '无'
+    ].filter(Boolean).join('\n'))
+  ].join('\n');
+}
+
+function downloadText(filename, text, type = 'text/plain') {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderArchive() {
+  const list = $('archive-list');
+  if (!list) return;
+  const preview = $('report-preview');
+  const items = loadArchive();
+  if (!items.length) {
+    list.innerHTML = '<div class="archive-empty">完成一局后，这里会出现训练记录。</div>';
+    if (preview) preview.innerHTML = '';
+    selectedArchiveId = '';
+    editingArchiveId = '';
+    deleteConfirmId = '';
+    $('clear-archive-btn').classList.add('hidden');
+    $('export-md-btn').classList.add('hidden');
+    $('export-json-btn').classList.add('hidden');
+    return;
+  }
+  $('clear-archive-btn').classList.remove('hidden');
+  $('export-md-btn').classList.remove('hidden');
+  $('export-json-btn').classList.remove('hidden');
+  if (!selectedArchiveId || !items.some(item => item.id === selectedArchiveId)) {
+    selectedArchiveId = items[0].id;
+  }
+  list.innerHTML = items.map((item, index) => `
+    <div class="archive-item ${item.id === selectedArchiveId ? 'is-selected' : ''}">
+      <div class="archive-meta">
+        <span>${escapeHtml(formatDateTime(item.createdAt))}</span>
+        <span>${escapeHtml(item.studentName || '未填写学生')}</span>
+        <span>${escapeHtml(item.stance)}</span>
+        <span>你 ${item.playerTotal} / AI ${item.aiTotal}</span>
+      </div>
+      <div class="archive-title">${escapeHtml(item.topic)}</div>
+      <div class="archive-foot">
+        <span class="archive-focus">下一轮重点：${escapeHtml(item.focus)}</span>
+        <div class="archive-buttons">
+          <button class="mini-btn archive-preview ${item.id === selectedArchiveId ? 'active' : ''}" type="button" data-id="${escapeHtml(item.id)}">查看报告</button>
+          <button class="mini-btn archive-edit" type="button" data-id="${escapeHtml(item.id)}">编辑信息</button>
+          <button class="mini-btn archive-copy" type="button" data-index="${index}">复制记录</button>
+          <button class="mini-btn archive-delete" type="button" data-id="${escapeHtml(item.id)}">删除本条</button>
+        </div>
+      </div>
+      ${archiveEditorHtml(item)}
+      ${archiveDeleteConfirmHtml(item)}
+    </div>
+  `).join('');
+  renderReportPreview(selectedArchiveRecord());
+}
+
+function renderReportPreview(record) {
+  const preview = $('report-preview');
+  if (!preview || !record) return;
+  preview.innerHTML = `
+    <div class="report-preview">
+      <div class="report-toolbar">
+        <div>
+          <h3>教练报告预览</h3>
+          <p class="hint">基于当前选择的训练记录生成，适合课后复盘和阶段反馈。</p>
+        </div>
+        <button class="mini-btn report-copy" type="button">复制报告正文</button>
+      </div>
+      <div class="report-summary">
+        <div><b>学生</b><span>${escapeHtml(record.studentName || '未填写')}</span></div>
+        <div><b>年级</b><span>${escapeHtml(record.studentGrade || '未填写')}</span></div>
+        <div><b>辩题</b><span>${escapeHtml(record.topic)}</span></div>
+        <div><b>结果</b><span>${escapeHtml(record.winnerText)}</span></div>
+        <div><b>分数</b><span>你 ${record.playerTotal} / AI ${record.aiTotal}</span></div>
+        <div><b>下一轮重点</b><span>${escapeHtml(record.focus)}</span></div>
+      </div>
+      <div class="report-section">
+        <b>训练目标</b>
+        <p>${escapeHtml(record.target)}</p>
+      </div>
+      ${record.coachNote ? `
+        <div class="report-section">
+          <b>教练备注</b>
+          <p>${escapeHtml(record.coachNote)}</p>
+        </div>
+      ` : ''}
+      <div class="report-section">
+        <b>裁判点评</b>
+        <p>${escapeHtml(record.comment || '无')}</p>
+      </div>
+      <div class="report-section">
+        <b>训练建议</b>
+        <pre>${escapeHtml(record.trainingPlan || '')}</pre>
+      </div>
+    </div>
+  `;
+}
+
+// ---------- 模型调用 ----------
+async function callModel(systemPrompt, messages) {
+  const provider = state.provider;
+  const isJudge = systemPrompt.includes('"winner"');
+  if (provider === 'server' && SERVER_PROXY_ENABLED) {
+    try {
+      return await callServerProxy(isJudge);
+    } catch (error) {
+      console.warn('Debate training service unavailable, using practice response.');
+      return isJudge ? demoJudgeResult() : demoDebateReply(messages);
+    }
+  }
+  if (provider === 'demo') {
+    await new Promise(resolve => setTimeout(resolve, 520));
+    return isJudge ? demoJudgeResult() : demoDebateReply(messages);
+  }
+  throw new Error('当前训练入口暂时不可用，请稍后重试。');
+}
+
+function proxyHistory() {
+  return state.history.map(item => ({
+    side: item.side === 'ai' ? 'ai' : 'student',
+    text: item.text
+  }));
+}
+
+async function callServerProxy(isJudge) {
+  const endpoint = isJudge ? '/api/debate/game-judge' : '/api/debate/game-turn';
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      topic: state.topic,
+      studentSide: state.stance,
+      round: state.currentRound,
+      rounds: state.rounds,
+      difficulty: state.difficulty,
+      persona: state.persona,
+      history: proxyHistory()
+    })
+  });
+  if (!response.ok) throw new Error('SERVER_PROXY_FAILED');
+  const payload = await response.json();
+  if (!payload || payload.success === false) throw new Error('SERVER_PROXY_FAILED');
+  return isJudge ? JSON.stringify(payload.score || payload) : String(payload.reply || '');
+}
+
+function demoDebateReply(messages) {
+  const last = messages[messages.length - 1]?.content || '';
+  const aiSide = stanceLabel(oppStance(state.stance));
+  const pressure = state.difficulty === '犀利' ? '你的关键漏洞在于' : state.difficulty === '温和' ? '我想先回应一点：' : '我的回应是：';
+  const evidencePush = /数据|研究|evidence|report|source|证据/i.test(last)
+    ? '你提到了证据，但还需要说明来源可信度和它如何直接支持结论。'
+    : '你现在更像是在表达立场，还缺少一个清晰证据或例子来支撑机制。';
+  const impactPush = /影响|impact|结果|therefore|所以/i.test(last)
+    ? '接下来我会比较影响大小：哪一方更直接、更可验证、更难逆转。'
+    : '如果没有影响比较，裁判很难判断这个论点为什么重要。';
+  return `${pressure}${evidencePush}${impactPush} 作为${aiSide}，我认为本轮焦点应回到“机制是否成立”和“影响是否可衡量”。`;
+}
+
+function demoJudgeResult() {
+  const playerTurns = state.history.filter(h => h.side === 'player').map(h => h.text).join(' ');
+  const hasEvidence = /数据|研究|evidence|report|source|证据/i.test(playerTurns);
+  const hasImpact = /影响|impact|therefore|所以|导致|结果/i.test(playerTurns);
+  const player = {
+    content: hasEvidence ? 29 : 25,
+    style: playerTurns.length > 120 ? 30 : 27,
+    strategy: hasImpact ? 15 : 12
+  };
+  const ai = {
+    content: hasEvidence ? 28 : 29,
+    style: 29,
+    strategy: hasImpact ? 14 : 15
+  };
+  const pTotal = player.content + player.style + player.strategy;
+  const aTotal = ai.content + ai.style + ai.strategy;
+  const winner = pTotal > aTotal ? 'player' : aTotal > pTotal ? 'ai' : 'tie';
+  return JSON.stringify({
+    player,
+    ai,
+    winner,
+    comment: '练习反馈：你的表达完成了基本立场和回应。下一步建议补充明确证据来源，并在结尾加入影响比较，让裁判更容易判断论点优先级。'
+  });
+}
+
+// ---------- 提示词 ----------
+function debaterSystem() {
+  const aiStance = oppStance(state.stance);
+  const intensity = {
+    '温和': '语气温和，适当指出对方问题但留有余地，帮助对手成长。',
+    '标准': '据理力争，正常强度地反驳和论证。',
+    '犀利': '高强度施压，精准抓住逻辑漏洞，毫不留情地反击。'
+  }[state.difficulty];
+  const styleDesc = {
+    '理性严谨': '逻辑清晰，引用事实与因果链条。',
+    '幽默机智': '夹带恰当的比喻和俏皮，但不失锋芒。',
+    '咄咄逼人': '气势强，连续追问，逼迫对方回应。'
+  }[state.persona];
+  return `你是一名辩论赛选手，正在就辩题进行人机对辩。
+辩题：「${state.topic}」
+你的立场：${stanceLabel(aiStance)}。你必须坚定地站在这个立场。
+对手（人类玩家）的立场：${stanceLabel(state.stance)}。
+风格要求：${styleDesc}
+强度要求：${intensity}
+规则：
+- 每次发言控制在 150 字以内，观点鲜明，有论点有论据。
+- 针对对方上一轮发言进行反驳，同时推进自己的论证。
+- 只输出你的发言内容本身，不要加“我方认为”之类的标签前缀以外的旁白，不要复述规则。`;
+}
+
+function judgeSystem() {
+  return `你是一名国际辩论赛（World Schools / TOC 标准）的资深裁判。请依据 WSDC 评分体系，根据双方在辩题「${state.topic}」上的完整交锋记录打分。
+玩家立场：${stanceLabel(state.stance)}；AI 立场：${stanceLabel(oppStance(state.stance))}。
+
+评分维度（满分 100，遵循 WSDC 权重）：
+- content（内容，0-40）：论点、论据与逻辑的质量。只看论证本身的严密与说服力，不因裁判个人是否认同立场而加减分。
+- style（风格，0-40）：表达的清晰度、语言感染力、节奏与说服性表现。
+- strategy（策略，0-20）：结构与优先级安排、对交锋焦点的回应、是否抓住了真正重要的争点。
+
+打分基准（WSDC 惯例）：单项围绕中位数给分，整体常见区间约为 60-80，平均约 70；极端高分或极端低分需有充分理由，请勿轻易给出。
+
+请严格只输出一个 JSON 对象（不要任何额外文字、不要代码块标记），结构如下：
+{
+  "player": {"content": 0-40, "style": 0-40, "strategy": 0-20},
+  "ai": {"content": 0-40, "style": 0-40, "strategy": 0-20},
+  "winner": "player" 或 "ai" 或 "tie",
+  "comment": "180字以内的中文点评，指出双方在内容/风格/策略上的亮点与不足，并说明胜负关键"
+}
+请保持客观专业，不要因为对手是人类就放水。`;
+}
+
+// 把历史转成给“辩手AI”看的对话（AI视角：assistant=AI自己，user=玩家）
+function historyForDebater() {
+  return state.history.map(h => ({
+    role: h.side === 'ai' ? 'assistant' : 'user',
+    content: h.text
+  }));
+}
+
+// ---------- 渲染 ----------
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function setStageMode(mode, label) {
+  const stage = $('arenaStage');
+  if (!stage) return;
+  stage.classList.remove('player-speaking', 'ai-thinking', 'ai-speaking', 'judge-mode');
+  if (mode) stage.classList.add(mode);
+  if ($('stageStatus')) $('stageStatus').textContent = label || '等待发言';
+}
+
+function scrollChatToBottom() {
+  const chat = $('chat');
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function addMsg(side, text, name) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + side;
+  const avatarChar = side === 'player' ? '你' : side === 'ai' ? 'AI' : '裁';
+  div.innerHTML = `<div class="avatar">${avatarChar}</div>
+    <div><div class="name">${name}</div><div class="bubble"></div></div>`;
+  div.querySelector('.bubble').textContent = text;
+  $('chat').appendChild(div);
+  scrollChatToBottom();
+  return div;
+}
+function addTyping(name) {
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `<div class="avatar">AI</div>
+    <div><div class="name">${name}</div><div class="bubble typing">思考中…</div></div>`;
+  $('chat').appendChild(div);
+  scrollChatToBottom();
+  return div;
+}
+
+function updateRoundPill() {
+  $('round-pill').textContent = `回合 ${state.currentRound} / ${state.rounds}`;
+}
+
+// ---------- 流程 ----------
+$('start-btn').addEventListener('click', () => {
+  $('setup-err').textContent = '';
+  state.topic = $('topic').value.trim();
+  state.stance = $('stance').value;
+  state.rounds = parseInt($('rounds').value);
+  state.difficulty = $('difficulty').value;
+  state.persona = $('persona').value;
+  state.provider = $('provider').value;
+  state.model = $('model').value.trim();
+  state.baseurl = $('baseurl').value.trim();
+  state.apikey = $('apikey').value.trim();
+
+  if (!state.topic) { $('setup-err').textContent = '请输入辩题。'; return; }
+  if (!['demo', 'server'].includes(state.provider) && !state.apikey) { $('setup-err').textContent = '请填写访问凭据。'; return; }
+  saveSettings();
+
+  state.currentRound = 1;
+  state.turn = 'player';
+  state.history = [];
+  $('chat').innerHTML = '';
+  $('debate-topic').innerHTML =
+    `辩题：<b>${state.topic}</b>　|　你：<span class="stance-tag stance-${state.stance}">${stanceLabel(state.stance)}</span>` +
+    `　对手AI：<span class="stance-tag stance-${oppStance(state.stance)}">${stanceLabel(oppStance(state.stance))}</span>`;
+  updateRoundPill();
+  $('turn-label').textContent = `回合 ${state.currentRound}`;
+  $('input-area').classList.remove('hidden');
+  $('judge-area').classList.add('hidden');
+
+  $('page-setup').classList.add('hidden');
+  $('page-result').classList.add('hidden');
+  $('page-debate').classList.remove('hidden');
+  setStageMode('', '等待你的开场');
+  $('player-input').focus();
+});
+
+$('quit-btn').addEventListener('click', () => {
+  $('page-debate').classList.add('hidden');
+  $('page-setup').classList.remove('hidden');
+});
+
+$('send-btn').addEventListener('click', sendPlayerTurn);
+$('player-input').addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') sendPlayerTurn();
+});
+
+async function sendPlayerTurn() {
+  if (state.busy) return;
+  const text = $('player-input').value.trim();
+  if (!text) { $('debate-err').textContent = '请输入你的发言。'; return; }
+  $('debate-err').textContent = '';
+
+  setStageMode('player-speaking', '你正在发言');
+  addMsg('player', text, `你 · ${stanceLabel(state.stance)}`);
+  state.history.push({ side: 'player', text });
+  $('player-input').value = '';
+  await sleep(420);
+  setStageMode('ai-thinking', 'AI 准备回应');
+
+  state.busy = true;
+  $('send-btn').disabled = true;
+  const typing = addTyping(`AI · ${stanceLabel(oppStance(state.stance))}`);
+
+  try {
+    const reply = await callModel(debaterSystem(), historyForDebater());
+    typing.remove();
+    setStageMode('ai-speaking', 'AI 正在发言');
+    addMsg('ai', reply, `AI · ${stanceLabel(oppStance(state.stance))}`);
+    state.history.push({ side: 'ai', text: reply });
+    await sleep(760);
+
+    // 一回合 = 玩家+AI 各一次，AI 答完推进回合
+    if (state.currentRound >= state.rounds) {
+      $('input-area').classList.add('hidden');
+      $('judge-area').classList.remove('hidden');
+      setStageMode('judge-mode', '等待裁判评分');
+    } else {
+      state.currentRound++;
+      updateRoundPill();
+      $('turn-label').textContent = `回合 ${state.currentRound}`;
+      setStageMode('', '轮到你发言');
+    }
+  } catch (err) {
+    typing.remove();
+    setStageMode('', '等待重试');
+    $('debate-err').textContent = '调用失败：' + err.message;
+    // 回滚玩家发言，允许重试
+    state.history.pop();
+    $('player-input').value = text;
+  } finally {
+    state.busy = false;
+    $('send-btn').disabled = false;
+  }
+}
+
+$('judge-btn').addEventListener('click', runJudge);
+
+async function runJudge() {
+  if (state.busy) return;
+  state.busy = true;
+  $('judge-btn').disabled = true;
+  $('judge-btn').textContent = '裁判评议中…';
+
+  const transcript = state.history.map((h, i) => {
+    const who = h.side === 'player' ? `玩家(${stanceLabel(state.stance)})` : `AI(${stanceLabel(oppStance(state.stance))})`;
+    return `${who}：${h.text}`;
+  }).join('\n\n');
+
+  try {
+    const raw = await callModel(judgeSystem(), [{ role: 'user', content: '以下是完整辩论记录，请评分：\n\n' + transcript }]);
+    const json = parseJudge(raw);
+    showResult(json);
+  } catch (err) {
+    $('judge-area').innerHTML = `<div class="err">裁判评分失败：${err.message}</div>
+      <button class="btn" id="judge-retry" style="margin-top:10px;">重试评分</button>`;
+    const r = document.getElementById('judge-retry');
+    if (r) r.addEventListener('click', runJudge);
+  } finally {
+    state.busy = false;
+    const jb = $('judge-btn');
+    if (jb) { jb.disabled = false; jb.textContent = '辩论结束，请裁判评分'; }
+  }
+}
+
+// 健壮解析裁判输出：先试 JSON，失败则用正则逐字段抽取，彻底绕开格式毛病
+function parseJudge(raw) {
+  let t = (raw || '').replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+  const s = t.indexOf('{'), e = t.lastIndexOf('}');
+  if (s !== -1 && e > s) {
+    let body = t.slice(s, e + 1)
+      .replace(/[\uFF0C]/g, ',').replace(/[\uFF1A]/g, ':')
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/:\s*(\d+)\s*[（(][^)）]*[)）]/g, ': $1')
+      .replace(/,\s*([}\]])/g, '$1');
+    try { return normalize(JSON.parse(body)); } catch (e2) {}
+  }
+  const seg = (who) => {
+    const m = t.match(new RegExp('"?' + who + '"?\\s*[:：]\\s*\\{([\\s\\S]*?)\\}'));
+    if (m) return m[1];
+    // 无花括号时按关键词位置切分文本兜底
+    const i = t.search(new RegExp('"?' + who + '"?', 'i'));
+    if (i === -1) return '';
+    const other = who === 'player' ? 'ai' : 'player';
+    const j = t.search(new RegExp('"?' + other + '"?', 'i'));
+    if (who === 'player') return j > i ? t.slice(i, j) : t.slice(i);
+    return t.slice(i);
+  };
+  const pick = (text, label) => {
+    const m = text.match(new RegExp('"?' + label + '"?\\s*[:：]?\\s*(\\d{1,3})'));
+    return m ? parseInt(m[1]) : 0;
+  };
+  const pSeg = seg('player'), aSeg = seg('ai');
+  const result = {
+    player: { content: pick(pSeg, 'content'), style: pick(pSeg, 'style'), strategy: pick(pSeg, 'strategy') },
+    ai:     { content: pick(aSeg, 'content'), style: pick(aSeg, 'style'), strategy: pick(aSeg, 'strategy') },
+    winner: (t.match(/"?winner"?\s*[:：]\s*"?(player|ai|tie)"?/i) || [])[1] || 'tie',
+    comment: (t.match(/"?comment"?\s*[:：]\s*"([\s\S]*?)"\s*[}\n,]/) || [])[1] || '（未能解析点评）'
+  };
+  const psum = result.player.content + result.player.style + result.player.strategy;
+  const asum = result.ai.content + result.ai.style + result.ai.strategy;
+  if (psum === 0 && asum === 0) {
+    throw new Error('无法解析分数。原始片段：' + raw.slice(0, 200));
+  }
+  return normalize(result);
+}
+
+function normalize(j) {
+  j.player = j.player || {}; j.ai = j.ai || {};
+  ['content','style','strategy'].forEach(k => {
+    j.player[k] = parseInt(j.player[k]) || 0;
+    j.ai[k] = parseInt(j.ai[k]) || 0;
+  });
+  if (!['player','ai','tie'].includes(j.winner)) {
+    const ps = j.player.content+j.player.style+j.player.strategy;
+    const as = j.ai.content+j.ai.style+j.ai.strategy;
+    j.winner = ps > as ? 'player' : as > ps ? 'ai' : 'tie';
+  }
+  j.comment = j.comment || '';
+  return j;
+}
+
+function sumScore(o) { return (o.content||0)+(o.style||0)+(o.strategy||0); }
+
+function weakestDimension(score) {
+  const ratios = [
+    { key: 'content', label: '内容', value: (score.content || 0) / 40 },
+    { key: 'style', label: '表达', value: (score.style || 0) / 40 },
+    { key: 'strategy', label: '策略', value: (score.strategy || 0) / 20 }
+  ];
+  return ratios.sort((a, b) => a.value - b.value)[0];
+}
+
+function buildTrainingPlan(j) {
+  const playerScore = j.player || {};
+  const weak = weakestDimension(playerScore);
+  const playerTurns = state.history.filter(h => h.side === 'player').map(h => h.text);
+  const lastTurn = playerTurns.at(-1) || '';
+  const hasEvidence = /数据|研究|证据|案例|evidence|report|source/i.test(playerTurns.join(' '));
+  const hasImpact = /影响|结果|所以|导致|impact|therefore/i.test(playerTurns.join(' '));
+  const targetMap = {
+    content: hasEvidence ? '把证据和结论之间的因果链说完整。' : '每个主张后补一个可验证的例子或证据来源。',
+    style: '把长句拆成短句，先给结论，再给理由，最后收束到辩题。',
+    strategy: hasImpact ? '把影响比较提前，让裁判更早知道本轮争点。' : '每轮结尾加入影响比较，说明为什么你的论点更重要。'
+  };
+  const drillMap = {
+    content: '主张 → 机制 → 证据 → 回扣辩题',
+    style: '一句结论 → 两句解释 → 一句总结',
+    strategy: '先回应对方最强点 → 再建立我方优先级 → 最后比较影响'
+  };
+  const rewriteTask = lastTurn
+    ? `请把我上一轮发言改写成 45 秒版本，保留立场，补强「${weak.label}」，并在结尾加入清楚的 impact weighing。`
+    : `请围绕「${state.topic}」写一段 45 秒开场，使用「${drillMap[weak.key]}」结构。`;
+  const nextRound = [
+    `辩题：${state.topic}`,
+    `我的立场：${stanceLabel(state.stance)}`,
+    `本轮短板：${weak.label}`,
+    `下一轮目标：${targetMap[weak.key]}`,
+    `训练公式：${drillMap[weak.key]}`,
+    `改写任务：${rewriteTask}`
+  ].join('\n');
+
+  return {
+    weak,
+    target: targetMap[weak.key],
+    drill: drillMap[weak.key],
+    rewriteTask,
+    nextRound,
+    evidenceHint: hasEvidence ? '证据意识已经出现，下一步要说明来源可信度。' : '建议下一轮至少加入一个具体案例、数据或可验证事实。',
+    impactHint: hasImpact ? '已经开始做影响表达，下一步要比较大小、概率和可逆性。' : '建议结尾用一句话说明你的论点会带来什么结果。'
+  };
+}
+
+function renderTrainingRecap(j) {
+  const plan = buildTrainingPlan(j);
+  latestTrainingPlan = plan.nextRound;
+  $('training-recap').innerHTML = `
+    <div class="recap-head">
+      <div>
+        <h3>训练复盘</h3>
+        <p class="hint">把本局分数转化成下一轮可以直接练的任务。</p>
+      </div>
+      <span class="recap-badge">下一轮重点：${escapeHtml(plan.weak.label)}</span>
+    </div>
+    <div class="recap-grid">
+      <div class="recap-item">
+        <b>训练目标</b>
+        <p>${escapeHtml(plan.target)}</p>
+      </div>
+      <div class="recap-item">
+        <b>发言公式</b>
+        <p>${escapeHtml(plan.drill)}</p>
+      </div>
+      <div class="recap-item">
+        <b>复盘提醒</b>
+        <p>${escapeHtml(plan.evidenceHint)} ${escapeHtml(plan.impactHint)}</p>
+      </div>
+    </div>
+    <div class="recap-script">
+      <b>可用于下一轮的改写任务</b>
+      <code>${escapeHtml(plan.rewriteTask)}</code>
+    </div>
+  `;
+  return plan;
+}
+
+function saveCompletedSession(j, plan, winnerText) {
+  const playerTotal = sumScore(j.player);
+  const aiTotal = sumScore(j.ai);
+  const studentName = $('student-name').value.trim();
+  const studentGrade = $('student-grade').value.trim();
+  const coachNote = $('coach-note').value.trim();
+  const record = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    createdAt: new Date().toISOString(),
+    studentName,
+    studentGrade,
+    coachNote,
+    topic: state.topic,
+    stance: stanceLabel(state.stance),
+    rounds: state.rounds,
+    difficulty: state.difficulty,
+    persona: state.persona,
+    winner: j.winner,
+    winnerText,
+    playerScore: j.player,
+    aiScore: j.ai,
+    playerTotal,
+    aiTotal,
+    focus: plan.weak.label,
+    target: plan.target,
+    trainingPlan: plan.nextRound,
+    comment: j.comment || '',
+    transcript: transcriptText()
+  };
+  latestSessionText = sessionRecordText(record);
+  const archive = loadArchive().filter(item => item.topic !== record.topic || item.createdAt !== record.createdAt);
+  saveArchive([record, ...archive]);
+  selectedArchiveId = record.id;
+  renderArchive();
+}
+
+function showResult(j) {
+  const pTotal = sumScore(j.player), aTotal = sumScore(j.ai);
+  let banner;
+  if (j.winner === 'player') banner = `你获胜（${pTotal} : ${aTotal}）`;
+  else if (j.winner === 'ai') banner = `AI 获胜（${aTotal} : ${pTotal}）再接再厉！`;
+  else banner = `平局（${pTotal} : ${aTotal}）`;
+  $('winner-banner').textContent = banner;
+
+  const dims = [['content','内容',40],['style','风格',40],['strategy','策略',20]];
+  const col = (title, o, total, color) => `
+    <div class="score-col">
+      <h3>${title}</h3>
+      ${dims.map(([k,n,max]) => `
+        <div class="score-line"><span>${n}</span><span>${o[k]||0} / ${max}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(o[k]||0)/max*100}%;background:${color}"></div></div>
+      `).join('')}
+      <div class="total" style="color:${color}">${total} <span style="font-size:14px;color:var(--muted)">/ 100</span></div>
+    </div>`;
+  $('score-grid').innerHTML =
+    col(`你 · ${stanceLabel(state.stance)}`, j.player, pTotal, 'var(--accent)') +
+    col(`AI · ${stanceLabel(oppStance(state.stance))}`, j.ai, aTotal, 'var(--accent-2)');
+
+  $('judge-comment').innerHTML = `<h3 style="font-size:15px;margin-bottom:8px;">裁判点评</h3><div>${escapeHtml(j.comment || '')}</div>`;
+  const plan = renderTrainingRecap(j);
+  saveCompletedSession(j, plan, banner);
+
+  $('page-debate').classList.add('hidden');
+  $('page-result').classList.remove('hidden');
+}
+
+$('copy-plan-btn').addEventListener('click', async () => {
+  if (!latestTrainingPlan) return;
+  try {
+    await navigator.clipboard.writeText(latestTrainingPlan);
+    $('copy-plan-btn').textContent = '已复制';
+    setTimeout(() => { $('copy-plan-btn').textContent = '复制训练建议'; }, 1200);
+  } catch {
+    $('copy-plan-btn').textContent = '复制失败';
+    setTimeout(() => { $('copy-plan-btn').textContent = '复制训练建议'; }, 1200);
+  }
+});
+
+$('copy-session-btn').addEventListener('click', async () => {
+  if (!latestSessionText) return;
+  try {
+    await navigator.clipboard.writeText(latestSessionText);
+    $('copy-session-btn').textContent = '已复制';
+    setTimeout(() => { $('copy-session-btn').textContent = '复制本局记录'; }, 1200);
+  } catch {
+    $('copy-session-btn').textContent = '复制失败';
+    setTimeout(() => { $('copy-session-btn').textContent = '复制本局记录'; }, 1200);
+  }
+});
+
+$('again-btn').addEventListener('click', () => {
+  $('page-result').classList.add('hidden');
+  $('page-setup').classList.remove('hidden');
+  renderArchive();
+});
+
+if ($('clear-archive-btn')) {
+  $('clear-archive-btn').addEventListener('click', () => {
+    localStorage.removeItem(ARCHIVE_KEY);
+    renderArchive();
+  });
+}
+
+if ($('export-md-btn')) {
+  $('export-md-btn').addEventListener('click', () => {
+    const items = loadArchive();
+    if (!items.length) return;
+    downloadText('debate-training-report.md', archiveMarkdown(items), 'text/markdown');
+  });
+}
+
+if ($('export-json-btn')) {
+  $('export-json-btn').addEventListener('click', () => {
+    const items = loadArchive();
+    if (!items.length) return;
+    downloadText('debate-training-report.json', JSON.stringify(items, null, 2), 'application/json');
+  });
+}
+
+if ($('report-preview')) {
+  $('report-preview').addEventListener('click', async event => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest('.report-copy');
+    if (!button) return;
+    const record = selectedArchiveRecord();
+    if (!record) return;
+    try {
+      await navigator.clipboard.writeText(sessionRecordText(record));
+      button.textContent = '已复制';
+      setTimeout(() => { button.textContent = '复制报告正文'; }, 1200);
+    } catch {
+      button.textContent = '复制失败';
+      setTimeout(() => { button.textContent = '复制报告正文'; }, 1200);
+    }
+  });
+}
+
+if ($('archive-list')) {
+  $('archive-list').addEventListener('submit', event => {
+    const target = event.target;
+    if (!(target instanceof HTMLFormElement)) return;
+    if (!target.classList.contains('archive-editor')) return;
+    event.preventDefault();
+    const id = target.dataset.id || '';
+    const data = new FormData(target);
+    selectedArchiveId = id;
+    editingArchiveId = '';
+    deleteConfirmId = '';
+    updateArchiveRecord(id, {
+      studentName: String(data.get('studentName') || '').trim(),
+      studentGrade: String(data.get('studentGrade') || '').trim(),
+      coachNote: String(data.get('coachNote') || '').trim()
+    });
+  });
+
+  $('archive-list').addEventListener('click', async event => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const previewButton = target.closest('.archive-preview');
+    if (previewButton) {
+      selectedArchiveId = previewButton.dataset.id || '';
+      editingArchiveId = '';
+      deleteConfirmId = '';
+      renderArchive();
+      return;
+    }
+    const editButton = target.closest('.archive-edit');
+    if (editButton) {
+      const record = loadArchive().find(item => item.id === editButton.dataset.id);
+      if (!record) return;
+      selectedArchiveId = record.id;
+      editingArchiveId = editingArchiveId === record.id ? '' : record.id;
+      deleteConfirmId = '';
+      renderArchive();
+      return;
+    }
+    if (target.closest('.archive-cancel-edit')) {
+      editingArchiveId = '';
+      renderArchive();
+      return;
+    }
+    const deleteButton = target.closest('.archive-delete');
+    if (deleteButton) {
+      const items = loadArchive();
+      const record = items.find(item => item.id === deleteButton.dataset.id);
+      if (!record) return;
+      selectedArchiveId = record.id;
+      deleteConfirmId = deleteConfirmId === record.id ? '' : record.id;
+      editingArchiveId = '';
+      renderArchive();
+      return;
+    }
+    if (target.closest('.archive-cancel-delete')) {
+      deleteConfirmId = '';
+      renderArchive();
+      return;
+    }
+    const confirmDeleteButton = target.closest('.archive-confirm-delete');
+    if (confirmDeleteButton) {
+      const items = loadArchive();
+      const record = items.find(item => item.id === confirmDeleteButton.dataset.id);
+      if (!record) return;
+      const next = items.filter(item => item.id !== record.id);
+      selectedArchiveId = next[0]?.id || '';
+      editingArchiveId = '';
+      deleteConfirmId = '';
+      saveArchive(next);
+      renderArchive();
+      return;
+    }
+    const button = target.closest('.archive-copy');
+    if (!button) return;
+    const record = loadArchive()[Number(button.dataset.index)];
+    if (!record) return;
+    try {
+      await navigator.clipboard.writeText(sessionRecordText(record));
+      button.textContent = '已复制';
+      setTimeout(() => { button.textContent = '复制记录'; }, 1200);
+    } catch {
+      button.textContent = '复制失败';
+      setTimeout(() => { button.textContent = '复制记录'; }, 1200);
+    }
+  });
+}
+
+loadSettings();
+renderArchive();
+</script>
+</body>
+</html>
