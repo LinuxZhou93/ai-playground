@@ -1477,6 +1477,13 @@
     font-size: 14px;
     line-height: 1.2;
   }
+  .lens-value {
+    margin-left: auto;
+    color: var(--lens-color, #0b6f82);
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
   .lens-card p {
     min-height: 52px;
     color: #4a5568;
@@ -1751,33 +1758,37 @@
         <div class="lens-top">
           <span class="lens-code">SPK</span>
           <strong>表达状态卡</strong>
+          <span class="lens-value" id="speechMetric">准备</span>
         </div>
-        <p>发言时关注观点是否完整、表达是否清楚、语速是否稳定。</p>
-        <div class="lens-meter"><span style="--meter: 68%;"></span></div>
+        <p id="speechHint">发言时关注观点是否完整、表达是否清楚、语速是否稳定。</p>
+        <div class="lens-meter"><span id="speechMeter" style="--meter: 34%;"></span></div>
       </div>
       <div class="lens-card" data-lens="flow">
         <div class="lens-top">
           <span class="lens-code">FLW</span>
           <strong>结构听辩卡</strong>
+          <span class="lens-value" id="flowMetric">待听辩</span>
         </div>
-        <p>听对方发言时标记观点、证据、回应和可能被忽略的论点。</p>
-        <div class="lens-meter"><span style="--meter: 58%;"></span></div>
+        <p id="flowHint">听对方发言时标记观点、证据、回应和可能被忽略的论点。</p>
+        <div class="lens-meter"><span id="flowMeter" style="--meter: 24%;"></span></div>
       </div>
       <div class="lens-card" data-lens="evidence">
         <div class="lens-top">
           <span class="lens-code">EVD</span>
           <strong>资料判断卡</strong>
+          <span class="lens-value" id="evidenceMetric">待补充</span>
         </div>
-        <p>练习把事实、例子和解释连起来，避免只堆材料不做论证。</p>
-        <div class="lens-meter"><span style="--meter: 52%;"></span></div>
+        <p id="evidenceHint">练习把事实、例子和解释连起来，避免只堆材料不做论证。</p>
+        <div class="lens-meter"><span id="evidenceMeter" style="--meter: 28%;"></span></div>
       </div>
       <div class="lens-card" data-lens="judge">
         <div class="lens-top">
           <span class="lens-code">JDG</span>
           <strong>裁判反馈卡</strong>
+          <span class="lens-value" id="judgeMetric">0%</span>
         </div>
-        <p>结束后把胜负理由、表达建议和下一轮任务整理成训练记录。</p>
-        <div class="lens-meter"><span style="--meter: 74%;"></span></div>
+        <p id="judgeHint">结束后把胜负理由、表达建议和下一轮任务整理成训练记录。</p>
+        <div class="lens-meter"><span id="judgeMeter" style="--meter: 12%;"></span></div>
       </div>
     </div>
     <div class="chat" id="chat"></div>
@@ -2415,6 +2426,69 @@ function setTrainingLens(mode) {
   });
 }
 
+function percent(value) {
+  return Math.max(8, Math.min(100, Math.round(value)));
+}
+
+function countMatches(text, pattern) {
+  return (String(text || '').match(pattern) || []).length;
+}
+
+function updateLensMetric(key, value, label, hint) {
+  const meter = $(`${key}Meter`);
+  const metric = $(`${key}Metric`);
+  const hintNode = $(`${key}Hint`);
+  if (meter) meter.style.setProperty('--meter', `${percent(value)}%`);
+  if (metric) metric.textContent = label;
+  if (hintNode) hintNode.textContent = hint;
+}
+
+function latestText(side) {
+  const item = [...state.history].reverse().find(entry => entry.side === side);
+  return item ? item.text : '';
+}
+
+function updateTrainingLensMetrics() {
+  const playerTexts = state.history.filter(entry => entry.side === 'player').map(entry => entry.text);
+  const aiTexts = state.history.filter(entry => entry.side === 'ai').map(entry => entry.text);
+  const latestPlayer = latestText('player');
+  const combinedPlayer = playerTexts.join(' ');
+  const playerLength = latestPlayer.length;
+  const evidenceHits = countMatches(combinedPlayer, /数据|研究|案例|证据|来源|报告|统计|evidence|source|study|research/gi);
+  const logicHits = countMatches(combinedPlayer, /因为|所以|因此|导致|如果|那么|机制|证明|解释|therefore|because|mechanism/gi);
+  const impactHits = countMatches(combinedPlayer, /影响|结果|重要|优先|比较|权衡|impact|weigh|outweigh|priority/gi);
+  const speechScore = playerLength ? 34 + Math.min(28, playerLength / 4) + Math.min(18, logicHits * 6) + Math.min(12, impactHits * 4) : 34;
+  const evidenceScore = 28 + Math.min(34, evidenceHits * 12) + Math.min(22, logicHits * 4) + Math.min(12, impactHits * 4);
+  const flowScore = 24 + Math.min(42, aiTexts.length * 16) + Math.min(22, playerTexts.length * 8) + (state.history.length % 2 === 0 && state.history.length ? 10 : 0);
+  const completedPairs = Math.floor(state.history.length / 2);
+  const judgeScore = state.rounds ? 12 + (completedPairs / state.rounds) * 82 : 12;
+
+  updateLensMetric(
+    'speech',
+    speechScore,
+    playerLength ? `${Math.min(playerLength, 999)}字` : '准备',
+    playerLength > 120 ? '本轮发言已经有完整展开，注意结尾压缩成一句清楚的判断。' : '先把立场、理由和一个例子讲完整，再考虑更强的表达。'
+  );
+  updateLensMetric(
+    'flow',
+    flowScore,
+    aiTexts.length ? `${aiTexts.length}次回应` : '待听辩',
+    aiTexts.length ? '对方已经给出回应，下一步要抓住最关键的一处反驳。' : '听对方发言时标记观点、证据、回应和可能被忽略的论点。'
+  );
+  updateLensMetric(
+    'evidence',
+    evidenceScore,
+    evidenceHits ? `${evidenceHits}个线索` : '待补充',
+    evidenceHits ? '已经出现资料线索，继续补清楚来源、解释和它为什么重要。' : '加入一个具体事实、例子或数据，让观点不只停留在态度。'
+  );
+  updateLensMetric(
+    'judge',
+    judgeScore,
+    `${Math.min(completedPairs, state.rounds || 0)} / ${state.rounds || 0}轮`,
+    completedPairs >= state.rounds && state.rounds ? '本局可进入裁判反馈，重点看胜负理由和下一轮任务。' : '完成所有回合后，系统会把本局整理成可复盘的训练记录。'
+  );
+}
+
 function setStageMode(mode, label) {
   const stage = $('arenaStage');
   if (!stage) return;
@@ -2422,6 +2496,7 @@ function setStageMode(mode, label) {
   if (mode) stage.classList.add(mode);
   if ($('stageStatus')) $('stageStatus').textContent = label || '等待发言';
   setTrainingLens(mode);
+  updateTrainingLensMetrics();
 }
 
 function scrollChatToBottom() {
@@ -2523,6 +2598,7 @@ async function sendPlayerTurn() {
     setStageMode('ai-speaking', 'AI 正在发言');
     addMsg('ai', reply, `AI · ${stanceLabel(oppStance(state.stance))}`);
     state.history.push({ side: 'ai', text: reply });
+    updateTrainingLensMetrics();
     await sleep(760);
 
     // 一回合 = 玩家+AI 各一次，AI 答完推进回合
@@ -2542,6 +2618,7 @@ async function sendPlayerTurn() {
     $('debate-err').textContent = '调用失败：' + err.message;
     // 回滚玩家发言，允许重试
     state.history.pop();
+    updateTrainingLensMetrics();
     $('player-input').value = text;
   } finally {
     state.busy = false;
