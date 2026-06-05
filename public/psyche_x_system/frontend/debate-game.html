@@ -588,6 +588,48 @@
     color: #344054;
     font-size: 13px;
   }
+  .archive-trend {
+    display: grid;
+    gap: 8px;
+    border-top: 1px solid rgba(31,37,45,.16);
+    padding-top: 10px;
+  }
+  .archive-trend h4 {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+  .archive-trend-row {
+    display: grid;
+    grid-template-columns: 72px 1fr 42px;
+    gap: 8px;
+    align-items: center;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .archive-trend-track {
+    height: 12px;
+    border: 2px solid #1f252d;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #fffdf8;
+  }
+  .archive-trend-fill {
+    height: 100%;
+    min-width: 8px;
+    border-right: 2px solid #1f252d;
+    background: linear-gradient(90deg, #0d776d, #f4ae00);
+  }
+  .archive-trend-delta {
+    border: 1px solid rgba(13,119,109,.35);
+    border-radius: 999px;
+    padding: 6px 8px;
+    width: fit-content;
+    background: #fffdf8;
+    color: #0d776d;
+    font-size: 12px;
+    font-weight: 900;
+  }
   .report-preview {
     display: grid;
     gap: 12px;
@@ -1290,6 +1332,7 @@
     .report-score-grid,
     .report-focus-grid,
     .archive-insight-grid { grid-template-columns: 1fr; }
+    .archive-trend-row { grid-template-columns: 58px 1fr 36px; }
   }
 </style>
 </head>
@@ -1753,12 +1796,17 @@ function archiveInsightHtml(items) {
   const average = scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0;
   const best = scores.length ? Math.max(...scores) : 0;
   const latest = items[0];
+  const previousScore = Number(items[1]?.playerTotal || 0);
+  const latestScore = Number(latest.playerTotal || 0);
+  const delta = Number.isFinite(latestScore - previousScore) ? latestScore - previousScore : 0;
+  const deltaText = delta > 0 ? `较上次 +${delta}` : delta < 0 ? `较上次 ${delta}` : '较上次持平';
+  const recentTrend = items.slice(0, 3).reverse();
   const focusCounts = items.reduce((map, item) => {
-    const key = item.focus || '待观察';
+    const key = item.focus || '持续观察';
     map[key] = (map[key] || 0) + 1;
     return map;
   }, {});
-  const commonFocus = Object.entries(focusCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '待观察';
+  const commonFocus = Object.entries(focusCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '持续观察';
   return `
     <div class="archive-insight">
       <div class="archive-insight-head">
@@ -1774,7 +1822,22 @@ function archiveInsightHtml(items) {
         <div class="archive-insight-card"><b>最高分</b><span>${best}</span></div>
         <div class="archive-insight-card"><b>常见短板</b><span>${escapeHtml(commonFocus)}</span></div>
       </div>
-      <p class="archive-insight-note">最近一次重点：${escapeHtml(latest.focus || '待观察')}。建议下一轮优先保持稳定结构，再强化该维度的比较和回应。</p>
+      <div class="archive-trend">
+        <h4>最近 3 局表现</h4>
+        ${recentTrend.map((item, index) => {
+          const score = Math.max(0, Math.min(100, Number(item.playerTotal || 0)));
+          const label = recentTrend.length === 1 ? '本局' : `第 ${items.length - recentTrend.length + index + 1} 局`;
+          return `
+            <div class="archive-trend-row">
+              <span>${label}</span>
+              <div class="archive-trend-track"><div class="archive-trend-fill" style="width:${score}%"></div></div>
+              <span>${score}</span>
+            </div>
+          `;
+        }).join('')}
+        <div class="archive-trend-delta">${escapeHtml(deltaText)}</div>
+      </div>
+      <p class="archive-insight-note">最近一次重点：${escapeHtml(latest.focus || '持续观察')}。建议下一轮优先保持稳定结构，再强化该维度的比较和回应。</p>
     </div>
   `;
 }
