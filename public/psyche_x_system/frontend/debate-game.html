@@ -581,6 +581,34 @@
     color: #344054;
     font-size: 14px;
   }
+  .recap-data {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .recap-data-card {
+    padding: 12px;
+    border: 2px solid rgba(31,37,45,.16);
+    border-radius: 12px;
+    background: #fffaf1;
+  }
+  .recap-data-card b {
+    display: block;
+    margin-bottom: 4px;
+    color: #667085;
+    font-size: 12px;
+  }
+  .recap-data-card span {
+    color: #1f252d;
+    font-size: 20px;
+    font-weight: 900;
+  }
+  .recap-data-card p {
+    margin-top: 4px;
+    color: #4a5568;
+    font-size: 12px;
+    line-height: 1.4;
+  }
   .recap-script {
     border: 2px dashed #0b6f82;
     border-radius: 12px;
@@ -796,7 +824,13 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
+  .report-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
   .report-score-card,
+  .report-stat-card,
   .report-focus-card {
     border: 2px solid #1f252d;
     border-radius: 12px;
@@ -804,16 +838,24 @@
     background: #fffaf1;
   }
   .report-score-card b,
+  .report-stat-card b,
   .report-focus-card b {
     display: block;
     color: #667085;
     font-size: 12px;
     margin-bottom: 4px;
   }
-  .report-score-card span {
+  .report-score-card span,
+  .report-stat-card span {
     font-size: 22px;
     font-weight: 900;
     color: #1f252d;
+  }
+  .report-stat-card p {
+    margin-top: 4px;
+    color: #4a5568;
+    font-size: 12px;
+    line-height: 1.4;
   }
   .report-dimensions {
     display: grid;
@@ -1538,7 +1580,8 @@
     .score-grid { grid-template-columns: 1fr; }
     .recap-head { display: grid; }
     .recap-badge { width: fit-content; }
-    .recap-grid { grid-template-columns: 1fr; }
+    .recap-grid,
+    .recap-data { grid-template-columns: 1fr; }
     .archive-head,
     .archive-actions,
     .archive-buttons,
@@ -1551,6 +1594,7 @@
     .report-hero-top { display: grid; }
     .report-summary { grid-template-columns: 1fr; }
     .report-score-grid,
+    .report-stat-grid,
     .report-focus-grid,
     .archive-insight-grid { grid-template-columns: 1fr; }
     .archive-trend-row { grid-template-columns: 58px 1fr 36px; }
@@ -2017,6 +2061,39 @@ function scoreDimensionHtml(record) {
   `;
 }
 
+function recordStatsLine(record) {
+  const stats = record.stats;
+  if (!stats) return '';
+  const totalWords = Number(stats.totalWords || 0);
+  const evidenceHits = Number(stats.evidenceHits || 0);
+  const impactHits = Number(stats.impactHits || 0);
+  const completedPairs = Number(stats.completedPairs || 0);
+  const rounds = Number(record.rounds || state.rounds || 0);
+  return `训练数据：累计表达 ${totalWords} 字；资料线索 ${evidenceHits} 处；影响比较 ${impactHits} 处；完成攻防 ${completedPairs}/${rounds} 轮。`;
+}
+
+function reportTrainingStatsHtml(record) {
+  const stats = record.stats || {};
+  const rounds = Number(record.rounds || state.rounds || 0);
+  const cards = [
+    ['表达长度', Number(stats.totalWords || 0), '本局累计发言字数'],
+    ['资料线索', Number(stats.evidenceHits || 0), '数据、案例、研究或来源'],
+    ['影响比较', Number(stats.impactHits || 0), '结果、优先级或权衡表达'],
+    ['攻防回合', `${Number(stats.completedPairs || 0)} / ${rounds}`, '完成的交锋轮次']
+  ];
+  return `
+    <div class="report-stat-grid">
+      ${cards.map(([label, value, caption]) => `
+        <div class="report-stat-card">
+          <b>${label}</b>
+          <span>${escapeHtml(String(value))}</span>
+          <p>${caption}</p>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function transcriptText(history = state.history) {
   return history.map((h, index) => {
     const who = h.side === 'player' ? `你（${stanceLabel(state.stance)}）` : `AI（${stanceLabel(oppStance(state.stance))}）`;
@@ -2032,6 +2109,7 @@ function sessionRecordText(record) {
     `立场：${record.stance}`,
     `结果：${record.winnerText}`,
     `分数：你 ${record.playerTotal} / AI ${record.aiTotal}`,
+    recordStatsLine(record),
     `本轮短板：${record.focus}`,
     `下一轮目标：${record.target}`,
     record.coachNote ? `教练备注：${record.coachNote}` : '',
@@ -2052,6 +2130,7 @@ function parentSummaryText(record) {
     `${record.studentName || '同学'}本次完成了一轮 AI 辩论训练。`,
     `辩题：${record.topic}`,
     `训练结果：${record.winnerText}，本轮得分 ${record.playerTotal}/100。`,
+    recordStatsLine(record),
     `本轮亮点：能够完成基本立场表达，并围绕辩题持续回应。`,
     `下一轮重点：${record.focus}。`,
     `训练目标：${record.target}`,
@@ -2074,6 +2153,7 @@ function archiveMarkdown(items = loadArchive()) {
       `- 立场：${record.stance}`,
       `- 结果：${record.winnerText}`,
       `- 分数：你 ${record.playerTotal} / AI ${record.aiTotal}`,
+      recordStatsLine(record) ? `- ${recordStatsLine(record)}` : '',
       `- 本轮短板：${record.focus}`,
       `- 下一轮目标：${record.target}`,
       record.coachNote ? `- 教练备注：${record.coachNote}` : '',
@@ -2238,6 +2318,7 @@ function renderReportPreview(record) {
         <div class="report-score-card"><b>AI 对手</b><span>${record.aiTotal}</span></div>
         <div class="report-score-card"><b>训练方向</b><span>${escapeHtml(record.focus)}</span></div>
       </div>
+      ${reportTrainingStatsHtml(record)}
       ${scoreDimensionHtml(record)}
       <div class="report-focus-grid">
         <div class="report-focus-card">
@@ -2448,19 +2529,36 @@ function latestText(side) {
   return item ? item.text : '';
 }
 
-function updateTrainingLensMetrics() {
+function trainingStats() {
   const playerTexts = state.history.filter(entry => entry.side === 'player').map(entry => entry.text);
   const aiTexts = state.history.filter(entry => entry.side === 'ai').map(entry => entry.text);
-  const latestPlayer = latestText('player');
   const combinedPlayer = playerTexts.join(' ');
-  const playerLength = latestPlayer.length;
+  const latestPlayer = playerTexts.at(-1) || '';
   const evidenceHits = countMatches(combinedPlayer, /数据|研究|案例|证据|来源|报告|统计|evidence|source|study|research/gi);
   const logicHits = countMatches(combinedPlayer, /因为|所以|因此|导致|如果|那么|机制|证明|解释|therefore|because|mechanism/gi);
   const impactHits = countMatches(combinedPlayer, /影响|结果|重要|优先|比较|权衡|impact|weigh|outweigh|priority/gi);
+  return {
+    playerTurns: playerTexts.length,
+    aiTurns: aiTexts.length,
+    latestWords: latestPlayer.length,
+    totalWords: combinedPlayer.length,
+    evidenceHits,
+    logicHits,
+    impactHits,
+    completedPairs: Math.floor(state.history.length / 2)
+  };
+}
+
+function updateTrainingLensMetrics() {
+  const stats = trainingStats();
+  const playerLength = latestText('player').length;
+  const evidenceHits = stats.evidenceHits;
+  const logicHits = stats.logicHits;
+  const impactHits = stats.impactHits;
   const speechScore = playerLength ? 34 + Math.min(28, playerLength / 4) + Math.min(18, logicHits * 6) + Math.min(12, impactHits * 4) : 34;
   const evidenceScore = 28 + Math.min(34, evidenceHits * 12) + Math.min(22, logicHits * 4) + Math.min(12, impactHits * 4);
-  const flowScore = 24 + Math.min(42, aiTexts.length * 16) + Math.min(22, playerTexts.length * 8) + (state.history.length % 2 === 0 && state.history.length ? 10 : 0);
-  const completedPairs = Math.floor(state.history.length / 2);
+  const flowScore = 24 + Math.min(42, stats.aiTurns * 16) + Math.min(22, stats.playerTurns * 8) + (state.history.length % 2 === 0 && state.history.length ? 10 : 0);
+  const completedPairs = stats.completedPairs;
   const judgeScore = state.rounds ? 12 + (completedPairs / state.rounds) * 82 : 12;
 
   updateLensMetric(
@@ -2472,8 +2570,8 @@ function updateTrainingLensMetrics() {
   updateLensMetric(
     'flow',
     flowScore,
-    aiTexts.length ? `${aiTexts.length}次回应` : '待听辩',
-    aiTexts.length ? '对方已经给出回应，下一步要抓住最关键的一处反驳。' : '听对方发言时标记观点、证据、回应和可能被忽略的论点。'
+    stats.aiTurns ? `${stats.aiTurns}次回应` : '待听辩',
+    stats.aiTurns ? '对方已经给出回应，下一步要抓住最关键的一处反驳。' : '听对方发言时标记观点、证据、回应和可能被忽略的论点。'
   );
   updateLensMetric(
     'evidence',
@@ -2765,6 +2863,7 @@ function buildTrainingPlan(j) {
 
 function renderTrainingRecap(j) {
   const plan = buildTrainingPlan(j);
+  const stats = trainingStats();
   latestTrainingPlan = plan.nextRound;
   $('training-recap').innerHTML = `
     <div class="recap-head">
@@ -2788,12 +2887,34 @@ function renderTrainingRecap(j) {
         <p>${escapeHtml(plan.evidenceHint)} ${escapeHtml(plan.impactHint)}</p>
       </div>
     </div>
+    <div class="recap-data" aria-label="本局训练数据">
+      <div class="recap-data-card">
+        <b>表达长度</b>
+        <span>${stats.totalWords}</span>
+        <p>本局玩家发言总字数</p>
+      </div>
+      <div class="recap-data-card">
+        <b>资料线索</b>
+        <span>${stats.evidenceHits}</span>
+        <p>数据、案例、研究或来源</p>
+      </div>
+      <div class="recap-data-card">
+        <b>影响比较</b>
+        <span>${stats.impactHits}</span>
+        <p>结果、优先级或权衡表达</p>
+      </div>
+      <div class="recap-data-card">
+        <b>攻防回合</b>
+        <span>${stats.completedPairs} / ${state.rounds}</span>
+        <p>完成的玩家与 AI 交锋</p>
+      </div>
+    </div>
     <div class="recap-script">
       <b>可用于下一轮的改写任务</b>
       <code>${escapeHtml(plan.rewriteTask)}</code>
     </div>
   `;
-  return plan;
+  return { ...plan, stats };
 }
 
 function saveCompletedSession(j, plan, winnerText) {
@@ -2821,6 +2942,7 @@ function saveCompletedSession(j, plan, winnerText) {
     aiTotal,
     focus: plan.weak.label,
     target: plan.target,
+    stats: plan.stats || trainingStats(),
     trainingPlan: plan.nextRound,
     comment: j.comment || '',
     transcript: transcriptText()
