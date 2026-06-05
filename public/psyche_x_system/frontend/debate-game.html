@@ -1418,16 +1418,110 @@
   .arena-stage .stage-light {
     display: none;
   }
+  .arena-lens {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: -2px 0 16px;
+  }
+  .lens-card {
+    position: relative;
+    min-height: 132px;
+    padding: 12px;
+    overflow: hidden;
+    border: 2px solid rgba(31,37,45,.18);
+    border-radius: 14px;
+    background: #fffdf8;
+    box-shadow: 0 6px 0 rgba(31,37,45,.06);
+    transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease, background .22s ease;
+  }
+  .lens-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 5px;
+    background: var(--lens-color, #0b6f82);
+    opacity: .24;
+  }
+  .lens-card.is-active {
+    transform: translateY(-2px);
+    border-color: var(--lens-color, #0b6f82);
+    background: #fffaf1;
+    box-shadow: 0 8px 0 rgba(31,37,45,.13);
+  }
+  .lens-card[data-lens="speech"] { --lens-color: #0b6f82; }
+  .lens-card[data-lens="flow"] { --lens-color: #c51f1a; }
+  .lens-card[data-lens="evidence"] { --lens-color: #1f252d; }
+  .lens-card[data-lens="judge"] { --lens-color: #f4ae00; }
+  .lens-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .lens-code {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--lens-color, #0b6f82);
+    color: #fffdf8;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .02em;
+  }
+  .lens-card strong {
+    color: #1f252d;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+  .lens-card p {
+    min-height: 52px;
+    color: #4a5568;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .lens-meter {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    height: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(31,37,45,.2);
+    border-radius: 999px;
+    background: rgba(31,37,45,.06);
+  }
+  .lens-meter span {
+    display: block;
+    width: var(--meter, 62%);
+    height: 100%;
+    border-radius: inherit;
+    background: var(--lens-color, #0b6f82);
+    opacity: .78;
+    transform-origin: left center;
+    transition: width .25s ease, opacity .25s ease;
+  }
+  .lens-card.is-active .lens-meter span {
+    opacity: 1;
+    animation: meterBreathe 1.2s ease-in-out infinite alternate;
+  }
   @keyframes cardBreath { 0%,100%{ transform: translateY(0) scale(1); } 50%{ transform: translateY(-4px) scale(1.006); } }
   @keyframes cardTalk { 0%,100%{ transform: translateY(0) rotate(-.2deg) scale(1.008); } 50%{ transform: translateY(-6px) rotate(.2deg) scale(1.018); } }
   @keyframes speakerPulse { from{ transform: scale(.96); } to{ transform: scale(1.02); } }
   @keyframes thinkGlow { 0%,100%{ transform: scale(.96); opacity:.55; } 50%{ transform: scale(1.01); opacity:.9; } }
+  @keyframes meterBreathe { from{ transform: scaleX(.94); } to{ transform: scaleX(1); } }
 	  @media (max-width: 640px) {
 		    .wrap { max-width: 100%; padding: 18px 10px 44px; }
     .practice-map { grid-template-columns: 1fr; }
 	    .row { display: grid; grid-template-columns: 1fr; gap: 0; }
 	    .row > div { min-width: 0; }
 	    .arena-stage { min-height: 260px; }
+    .arena-lens { grid-template-columns: 1fr; }
+    .lens-card { min-height: 112px; }
+    .lens-card p { min-height: auto; padding-bottom: 18px; }
     .debater { width: 46%; min-width: 136px; }
     .debater.player-side { left: 0; }
     .debater.ai-side { right: 0; }
@@ -1650,6 +1744,40 @@
           <div class="head"><div class="mask"></div><div class="eye left"></div><div class="eye right"></div><div class="snout"></div><div class="nose"></div><div class="mouth"></div></div>
         </div>
         <div class="podium" data-label="AI"><div class="mic"></div></div>
+      </div>
+    </div>
+    <div class="arena-lens" id="arenaLens" aria-label="本轮训练状态">
+      <div class="lens-card is-active" data-lens="speech">
+        <div class="lens-top">
+          <span class="lens-code">SPK</span>
+          <strong>表达状态卡</strong>
+        </div>
+        <p>发言时关注观点是否完整、表达是否清楚、语速是否稳定。</p>
+        <div class="lens-meter"><span style="--meter: 68%;"></span></div>
+      </div>
+      <div class="lens-card" data-lens="flow">
+        <div class="lens-top">
+          <span class="lens-code">FLW</span>
+          <strong>结构听辩卡</strong>
+        </div>
+        <p>听对方发言时标记观点、证据、回应和可能被忽略的论点。</p>
+        <div class="lens-meter"><span style="--meter: 58%;"></span></div>
+      </div>
+      <div class="lens-card" data-lens="evidence">
+        <div class="lens-top">
+          <span class="lens-code">EVD</span>
+          <strong>资料判断卡</strong>
+        </div>
+        <p>练习把事实、例子和解释连起来，避免只堆材料不做论证。</p>
+        <div class="lens-meter"><span style="--meter: 52%;"></span></div>
+      </div>
+      <div class="lens-card" data-lens="judge">
+        <div class="lens-top">
+          <span class="lens-code">JDG</span>
+          <strong>裁判反馈卡</strong>
+        </div>
+        <p>结束后把胜负理由、表达建议和下一轮任务整理成训练记录。</p>
+        <div class="lens-meter"><span style="--meter: 74%;"></span></div>
       </div>
     </div>
     <div class="chat" id="chat"></div>
@@ -2273,6 +2401,19 @@ function historyForDebater() {
 
 // ---------- 渲染 ----------
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const LENS_BY_STAGE = {
+  'player-speaking': 'speech',
+  'ai-thinking': 'flow',
+  'ai-speaking': 'flow',
+  'judge-mode': 'judge'
+};
+
+function setTrainingLens(mode) {
+  const activeLens = LENS_BY_STAGE[mode] || 'evidence';
+  document.querySelectorAll('[data-lens]').forEach(card => {
+    card.classList.toggle('is-active', card.dataset.lens === activeLens);
+  });
+}
 
 function setStageMode(mode, label) {
   const stage = $('arenaStage');
@@ -2280,6 +2421,7 @@ function setStageMode(mode, label) {
   stage.classList.remove('player-speaking', 'ai-thinking', 'ai-speaking', 'judge-mode');
   if (mode) stage.classList.add(mode);
   if ($('stageStatus')) $('stageStatus').textContent = label || '等待发言';
+  setTrainingLens(mode);
 }
 
 function scrollChatToBottom() {
