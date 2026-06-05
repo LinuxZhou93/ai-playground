@@ -710,6 +710,15 @@
     font-size: 13px;
     line-height: 1.25;
   }
+  .archive-dimension-row {
+    display: grid;
+    grid-template-columns: 88px 1fr 54px;
+    gap: 8px;
+    align-items: center;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 900;
+  }
   .archive-trend-row {
     display: grid;
     grid-template-columns: 72px 1fr 42px;
@@ -731,6 +740,12 @@
     min-width: 8px;
     border-right: 2px solid #1f252d;
     background: linear-gradient(90deg, #0d776d, #f4ae00);
+  }
+  .archive-dimension-row:nth-child(3) .archive-trend-fill {
+    background: linear-gradient(90deg, #c4241b, #f4ae00);
+  }
+  .archive-dimension-row:nth-child(4) .archive-trend-fill {
+    background: linear-gradient(90deg, #172033, #0d776d);
   }
   .archive-trend-delta {
     border: 1px solid rgba(13,119,109,.35);
@@ -1597,6 +1612,7 @@
     .report-stat-grid,
     .report-focus-grid,
     .archive-insight-grid { grid-template-columns: 1fr; }
+    .archive-dimension-row { grid-template-columns: 72px 1fr 48px; }
     .archive-trend-row { grid-template-columns: 58px 1fr 36px; }
   }
 </style>
@@ -2178,6 +2194,23 @@ function archiveInsightHtml(items) {
   const scores = items.map(item => Number(item.playerTotal || 0)).filter(score => Number.isFinite(score));
   const average = scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0;
   const best = scores.length ? Math.max(...scores) : 0;
+  const dimensions = [
+    ['content', '内容与论证', 40],
+    ['style', '表达与台风', 40],
+    ['strategy', '策略与回应', 20]
+  ].map(([key, label, max]) => {
+    const values = items.map(item => Number(item.playerScore?.[key] || 0)).filter(score => Number.isFinite(score));
+    const avg = values.length ? Math.round(values.reduce((sum, score) => sum + score, 0) / values.length) : 0;
+    return { label, max, avg, width: max ? Math.min(100, Math.max(0, (avg / max) * 100)) : 0 };
+  });
+  const statTotals = items.reduce((totals, item) => {
+    const stats = item.stats || {};
+    totals.totalWords += Number(stats.totalWords || 0);
+    totals.evidenceHits += Number(stats.evidenceHits || 0);
+    totals.impactHits += Number(stats.impactHits || 0);
+    totals.completedPairs += Number(stats.completedPairs || 0);
+    return totals;
+  }, { totalWords: 0, evidenceHits: 0, impactHits: 0, completedPairs: 0 });
   const latest = items[0];
   const previousScore = Number(items[1]?.playerTotal || 0);
   const latestScore = Number(latest.playerTotal || 0);
@@ -2204,6 +2237,22 @@ function archiveInsightHtml(items) {
         <div class="archive-insight-card"><b>平均分</b><span>${average}</span></div>
         <div class="archive-insight-card"><b>最高分</b><span>${best}</span></div>
         <div class="archive-insight-card"><b>常见短板</b><span>${escapeHtml(commonFocus)}</span></div>
+      </div>
+      <div class="archive-trend">
+        <h4>能力维度均分</h4>
+        ${dimensions.map(item => `
+          <div class="archive-dimension-row">
+            <span>${escapeHtml(item.label)}</span>
+            <div class="archive-trend-track"><div class="archive-trend-fill" style="width:${item.width}%"></div></div>
+            <span>${item.avg}/${item.max}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="archive-insight-grid">
+        <div class="archive-insight-card"><b>累计表达</b><span>${statTotals.totalWords}</span></div>
+        <div class="archive-insight-card"><b>资料线索</b><span>${statTotals.evidenceHits}</span></div>
+        <div class="archive-insight-card"><b>影响比较</b><span>${statTotals.impactHits}</span></div>
+        <div class="archive-insight-card"><b>完成攻防</b><span>${statTotals.completedPairs}</span></div>
       </div>
       <div class="archive-trend">
         <h4>最近 3 局表现</h4>
