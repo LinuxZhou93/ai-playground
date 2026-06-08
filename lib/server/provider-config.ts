@@ -84,6 +84,7 @@ const IMAGE_ENV_MAP: Record<string, string> = {
   IMAGE_QWEN_IMAGE: 'qwen-image',
   IMAGE_NANO_BANANA: 'nano-banana',
   IMAGE_GROK: 'grok-image',
+  IMAGE_AGNES: 'agnes-image',
 };
 
 const VIDEO_ENV_MAP: Record<string, string> = {
@@ -92,6 +93,7 @@ const VIDEO_ENV_MAP: Record<string, string> = {
   VIDEO_VEO: 'veo',
   VIDEO_SORA: 'sora',
   VIDEO_GROK: 'grok-video',
+  VIDEO_AGNES: 'agnes',
 };
 
 const WEB_SEARCH_ENV_MAP: Record<string, string> = {
@@ -415,6 +417,18 @@ export function getServerImageProviders(): Record<string, Record<string, never>>
   return result;
 }
 
+// 双 Key 轮替列表
+const AGNES_KEYS = [
+  'sk-pFm2lScYYARyjF6uUF4xrWoQlbu7PRdYEnMf4xJFoGIuQD5I',
+  'sk-thJ5xEElR6KKfwA4FJ6P5jHb2KZ3pNw0d0BODd8Q6pqFE8e2'
+];
+let agnesKeyIndex = 0;
+function getNextAgnesKey(): string {
+  const key = AGNES_KEYS[agnesKeyIndex];
+  agnesKeyIndex = (agnesKeyIndex + 1) % AGNES_KEYS.length;
+  return key;
+}
+
 export function resolveImageApiKey(providerId: string, clientKey?: string): string {
   // [Titan Tech Production Hardening] Image Generation Lock
   if (providerId === 'nano-banana') {
@@ -422,7 +436,14 @@ export function resolveImageApiKey(providerId: string, clientKey?: string): stri
   }
   const cleanClientKey = cleanApiKey(clientKey);
   if (cleanClientKey) return cleanClientKey;
-  return cleanApiKey(getConfig().image[providerId]?.apiKey) || '';
+  
+  const serverKey = cleanApiKey(getConfig().image[providerId]?.apiKey);
+  if (serverKey) return serverKey;
+
+  if (providerId === 'agnes-image') {
+    return getNextAgnesKey();
+  }
+  return '';
 }
 
 export function resolveImageBaseUrl(
@@ -434,7 +455,13 @@ export function resolveImageBaseUrl(
     return 'https://backgrace.com/v1';
   }
   if (clientBaseUrl) return clientBaseUrl;
-  return getConfig().image[providerId]?.baseUrl;
+  const serverBaseUrl = getConfig().image[providerId]?.baseUrl;
+  if (serverBaseUrl) return serverBaseUrl;
+
+  if (providerId === 'agnes-image') {
+    return 'https://apihub.agnes-ai.com/v1';
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -451,8 +478,15 @@ export function getServerVideoProviders(): Record<string, Record<string, never>>
 }
 
 export function resolveVideoApiKey(providerId: string, clientKey?: string): string {
-  if (clientKey) return clientKey;
-  return getConfig().video[providerId]?.apiKey || '';
+  const cleanClientKey = cleanApiKey(clientKey);
+  if (cleanClientKey) return cleanClientKey;
+  const serverKey = cleanApiKey(getConfig().video[providerId]?.apiKey);
+  if (serverKey) return serverKey;
+
+  if (providerId === 'agnes') {
+    return getNextAgnesKey();
+  }
+  return '';
 }
 
 export function resolveVideoBaseUrl(
@@ -460,7 +494,13 @@ export function resolveVideoBaseUrl(
   clientBaseUrl?: string,
 ): string | undefined {
   if (clientBaseUrl) return clientBaseUrl;
-  return getConfig().video[providerId]?.baseUrl;
+  const serverBaseUrl = getConfig().video[providerId]?.baseUrl;
+  if (serverBaseUrl) return serverBaseUrl;
+
+  if (providerId === 'agnes') {
+    return 'https://apihub.agnes-ai.com/v1';
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------

@@ -93,6 +93,7 @@
 import type { TTSModelConfig } from './types';
 import { TTS_PROVIDERS } from './constants';
 import { createLogger } from '@/lib/logger';
+import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
 const log = createLogger('TTS-Provider');
 
@@ -139,6 +140,9 @@ export async function generateTTS(
 
     case 'volcengine-tts':
       return await generateVolcengineTTS(config, text);
+
+    case 'edge-tts':
+      return await generateEdgeTTS(config, text);
 
     case 'browser-native-tts':
       throw new Error(
@@ -224,7 +228,7 @@ async function generateOpenAITTS(
 ): Promise<TTSGenerationResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['openai-tts'].defaultBaseUrl;
 
-  // Use gpt-4o-mini-tts for best quality and intelligent realtime applications
+  // Use tts-1 for ultimate compatibility across OpenAI endpoints and proxies
   const response = await fetch(`${baseUrl}/audio/speech`, {
     method: 'POST',
     headers: {
@@ -232,7 +236,7 @@ async function generateOpenAITTS(
       'Content-Type': 'application/json; charset=utf-8',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini-tts',
+      model: 'tts-1',
       input: text,
       voice: config.voice,
       speed: config.speed || 1.0,
@@ -480,4 +484,30 @@ function escapeXml(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+/**
+ * Microsoft Edge TTS implementation (free, no api key required, cloud-based)
+ */
+async function generateEdgeTTS(
+  config: TTSModelConfig,
+  text: string,
+): Promise<TTSGenerationResult> {
+  const tts = new MsEdgeTTS();
+  const voice = config.voice || "zh-CN-XiaoxiaoNeural";
+  
+  // Set output format to 24khz 48kbps mono mp3 (highest quality standard)
+  await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+  
+  const { audioStream } = tts.toStream(text);
+  
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    audioStream.on('data', (chunk) => chunks.push(chunk));
+    audioStream.on('end', () => {
+      const audio = new Uint8Array(Buffer.concat(chunks));
+      resolve({ audio, format: 'mp3' });
+    });
+    audioStream.on('error', (err) => reject(err));
+  });
 }

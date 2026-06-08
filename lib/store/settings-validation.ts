@@ -10,8 +10,9 @@ export type ProviderCfgLike = {
   apiKey?: string;
 };
 
-/** Check whether a provider has a usable path (server config or client key). */
-export function isProviderUsable(cfg: ProviderCfgLike | undefined): boolean {
+/** Check whether a provider has a usable path (server config, client key, or browser-native). */
+export function isProviderUsable(id: string, cfg: ProviderCfgLike | undefined): boolean {
+  if (id === 'browser-native' || id === 'browser-native-tts' || id === 'edge-tts') return true;
   if (!cfg) return false;
   return !!cfg.isServerConfigured || !!cfg.apiKey;
 }
@@ -28,10 +29,10 @@ export function validateProvider<T extends string>(
   defaultId?: T,
 ): T | '' {
   if (!currentId) return currentId;
-  if (isProviderUsable(configMap[currentId])) return currentId;
+  if (isProviderUsable(currentId, configMap[currentId])) return currentId;
 
   for (const id of fallbackOrder) {
-    if (isProviderUsable(configMap[id])) return id;
+    if (isProviderUsable(id, configMap[id])) return id;
   }
   return defaultId ?? '';
 }

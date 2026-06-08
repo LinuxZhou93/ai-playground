@@ -812,6 +812,53 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     supportedFormats: ['browser'], // Browser native audio
     speedRange: { min: 0.1, max: 10.0, default: 1.0 },
   },
+
+  'edge-tts': {
+    id: 'edge-tts',
+    name: '微软 Edge TTS (免密云端)',
+    requiresApiKey: false,
+    icon: '/logos/microsoft.svg',
+    voices: [
+      {
+        id: 'zh-CN-XiaoxiaoNeural',
+        name: '晓晓 (女)',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'zh-CN-YunxiNeural',
+        name: '云希 (男)',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'zh-CN-XiaoyiNeural',
+        name: '晓伊 (女)',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'zh-CN-YunjianNeural',
+        name: '云健 (男)',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'en-US-JennyNeural',
+        name: 'Jenny',
+        language: 'en-US',
+        gender: 'female',
+      },
+      {
+        id: 'en-US-GuyNeural',
+        name: 'Guy',
+        language: 'en-US',
+        gender: 'male',
+      },
+    ],
+    supportedFormats: ['mp3'],
+    speedRange: { min: 0.5, max: 2.0, default: 1.0 },
+  },
 };
 
 /**
@@ -1029,6 +1076,7 @@ export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
   'volcengine-tts': 'zh_child_feifei_moon_bigtts',
   'browser-native-tts': 'default',
+  'edge-tts': 'zh-CN-XiaoxiaoNeural',
 };
 
 /**
