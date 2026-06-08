@@ -104,7 +104,41 @@ export async function POST(req: NextRequest) {
     );
 
     // Generate audio
-    const { audio, format } = await generateTTS(config, cleanText);
+    let audio: Uint8Array;
+    let format: string;
+    try {
+      const result = await generateTTS(config, cleanText);
+      audio = result.audio;
+      format = result.format;
+    } catch (firstError) {
+      // 🚀 终极捕获降级防线：如果第一遍合成失败（无论是因为无效 key 还是其他服务故障），只要不是 edge-tts，立即降级到 edge-tts 重试！
+      if (config.providerId !== 'edge-tts') {
+        log.warn(`[TTS Server Exception Fallback] ${config.providerId} failed:`, firstError, `. Trying ultimate fallback to edge-tts.`);
+        
+        let fallbackVoice = 'zh-CN-XiaoxiaoNeural';
+        const v = config.voice.toLowerCase();
+        if (v.includes('xiaoxiao') || v.includes('nova') || v.includes('shimmer') || v.includes('coral') || v.includes('serena') || v.includes('chelsie') || v.includes('momo') || v.includes('vivian') || v.includes('maia') || v.includes('bella') || v.includes('jennifer') || v.includes('katerina') || v.includes('mia') || v.includes('bellona') || v.includes('bunny') || v.includes('elias') || v.includes('nini') || v.includes('ebona') || v.includes('seren') || v.includes('stella') || v.includes('xiaoyi') || v.includes('jenny')) {
+          fallbackVoice = 'zh-CN-XiaoxiaoNeural';
+        } else if (v.includes('yunxi') || v.includes('echo') || v.includes('onyx') || v.includes('ethan') || v.includes('moon') || v.includes('kai') || v.includes('nofish') || v.includes('ryan') || v.includes('aiden') || v.includes('mochi') || v.includes('vincent') || v.includes('neil') || v.includes('arthur') || v.includes('pip') || v.includes('yunjian') || v.includes('guy')) {
+          fallbackVoice = 'zh-CN-YunxiNeural';
+        }
+
+        const fallbackConfig = {
+          providerId: 'edge-tts' as const,
+          voice: fallbackVoice,
+          speed: config.speed,
+          apiKey: '',
+          baseUrl: undefined,
+          format: 'mp3',
+        };
+
+        const result = await generateTTS(fallbackConfig, cleanText);
+        audio = result.audio;
+        format = result.format;
+      } else {
+        throw firstError;
+      }
+    }
 
     // Convert to base64
     const base64 = Buffer.from(audio).toString('base64');
