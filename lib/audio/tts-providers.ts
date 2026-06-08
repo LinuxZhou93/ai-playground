@@ -197,6 +197,7 @@ async function generateVolcengineTTS(
           operation: "query"
       }
     }),
+    signal: config.signal,
   });
 
   if (!response.ok) {
@@ -241,6 +242,7 @@ async function generateOpenAITTS(
       voice: config.voice,
       speed: config.speed || 1.0,
     }),
+    signal: config.signal,
   });
 
   if (!response.ok) {
@@ -282,6 +284,7 @@ async function generateAzureTTS(
       'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3',
     },
     body: ssml,
+    signal: config.signal,
   });
 
   if (!response.ok) {
@@ -315,6 +318,7 @@ async function generateGLMTTS(config: TTSModelConfig, text: string): Promise<TTS
       volume: 1.0,
       response_format: 'wav',
     }),
+    signal: config.signal,
   });
 
   if (!response.ok) {
@@ -365,6 +369,7 @@ async function generateQwenTTS(config: TTSModelConfig, text: string): Promise<TT
         rate, // Speech rate from -500 to 500
       },
     }),
+    signal: config.signal,
   });
 
   if (!response.ok) {
@@ -381,7 +386,7 @@ async function generateQwenTTS(config: TTSModelConfig, text: string): Promise<TT
 
   // Download audio from URL
   const audioUrl = data.output.audio.url;
-  const audioResponse = await fetch(audioUrl);
+  const audioResponse = await fetch(audioUrl, { signal: config.signal });
 
   if (!audioResponse.ok) {
     throw new Error(`Failed to download audio from URL: ${audioResponse.statusText}`);
@@ -432,6 +437,7 @@ async function generateElevenLabsTTS(
           speed: clampedSpeed,
         },
       }),
+      signal: config.signal,
     },
   );
 
@@ -503,11 +509,31 @@ async function generateEdgeTTS(
   
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
+    
+    const onAbort = () => {
+      reject(new DOMException('The user aborted a request.', 'AbortError'));
+    };
+
+    if (config.signal) {
+      if (config.signal.aborted) {
+        return onAbort();
+      }
+      config.signal.addEventListener('abort', onAbort);
+    }
+
     audioStream.on('data', (chunk) => chunks.push(chunk));
     audioStream.on('end', () => {
+      if (config.signal) {
+        config.signal.removeEventListener('abort', onAbort);
+      }
       const audio = new Uint8Array(Buffer.concat(chunks));
       resolve({ audio, format: 'mp3' });
     });
-    audioStream.on('error', (err) => reject(err));
+    audioStream.on('error', (err) => {
+      if (config.signal) {
+        config.signal.removeEventListener('abort', onAbort);
+      }
+      reject(err);
+    });
   });
 }

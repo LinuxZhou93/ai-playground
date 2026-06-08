@@ -131,6 +131,7 @@ export interface TTSModelConfig {
   voice: string;
   speed?: number;
   format?: string;
+  signal?: AbortSignal;
 }
 
 // ============================================================================

@@ -106,24 +106,35 @@ export async function POST(req: NextRequest) {
     // Generate audio
     let audio: Uint8Array;
     let format: string;
-    let timeoutId: NodeJS.Timeout | undefined;
-    
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error('TTS_TIMEOUT')), 4500);
+
+    // 1. 首发尝试控制器与超时设定 (4.0 秒)
+    const firstController = new AbortController();
+    const firstConfig = {
+      ...config,
+      signal: firstController.signal,
+    };
+    let firstTimeoutId: NodeJS.Timeout | undefined;
+
+    const firstTimeoutPromise = new Promise<never>((_, reject) => {
+      firstTimeoutId = setTimeout(() => {
+        firstController.abort(); // 强行中断第一个 fetch 请求，释放套接字与容器连接
+        reject(new Error('TTS_FIRST_ATTEMPT_TIMEOUT'));
+      }, 4000);
     });
 
     try {
       const result = await Promise.race([
-        generateTTS(config, cleanText),
-        timeoutPromise
+        generateTTS(firstConfig, cleanText),
+        firstTimeoutPromise
       ]);
-      if (timeoutId) clearTimeout(timeoutId);
+      if (firstTimeoutId) clearTimeout(firstTimeoutId);
       audio = result.audio;
       format = result.format;
     } catch (firstError) {
-      if (timeoutId) clearTimeout(timeoutId);
-      
-      // 🚀 终极捕获降级防线：如果第一遍合成失败（无论是因为无效 key 还是其他服务故障，或者超时），只要不是 edge-tts，立即降级到 edge-tts 重试！
+      if (firstTimeoutId) clearTimeout(firstTimeoutId);
+      firstController.abort(); // 确保即便由于非超时报错退出，底层连接也必须中断
+
+      // 2. 降级尝试防线
       if (config.providerId !== 'edge-tts') {
         log.warn(`[TTS Server Exception Fallback] ${config.providerId} failed/timeout:`, firstError, `. Trying ultimate fallback to edge-tts.`);
         
@@ -135,6 +146,7 @@ export async function POST(req: NextRequest) {
           fallbackVoice = 'zh-CN-YunxiNeural';
         }
 
+        const fallbackController = new AbortController();
         const fallbackConfig = {
           providerId: 'edge-tts' as const,
           voice: fallbackVoice,
@@ -142,11 +154,30 @@ export async function POST(req: NextRequest) {
           apiKey: '',
           baseUrl: undefined,
           format: 'mp3',
+          signal: fallbackController.signal,
         };
 
-        const result = await generateTTS(fallbackConfig, cleanText);
-        audio = result.audio;
-        format = result.format;
+        let fallbackTimeoutId: NodeJS.Timeout | undefined;
+        const fallbackTimeoutPromise = new Promise<never>((_, reject) => {
+          fallbackTimeoutId = setTimeout(() => {
+            fallbackController.abort(); // 强行中断降级的 WebSocket 连线，防止容器被耗尽挂起
+            reject(new Error('TTS_FALLBACK_TIMEOUT'));
+          }, 4500);
+        });
+
+        try {
+          const result = await Promise.race([
+            generateTTS(fallbackConfig, cleanText),
+            fallbackTimeoutPromise
+          ]);
+          if (fallbackTimeoutId) clearTimeout(fallbackTimeoutId);
+          audio = result.audio;
+          format = result.format;
+        } catch (fallbackError) {
+          if (fallbackTimeoutId) clearTimeout(fallbackTimeoutId);
+          fallbackController.abort(); // 确保资源释放
+          throw fallbackError;
+        }
       } else {
         throw firstError;
       }
