@@ -106,14 +106,26 @@ export async function POST(req: NextRequest) {
     // Generate audio
     let audio: Uint8Array;
     let format: string;
+    let timeoutId: NodeJS.Timeout | undefined;
+    
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('TTS_TIMEOUT')), 4500);
+    });
+
     try {
-      const result = await generateTTS(config, cleanText);
+      const result = await Promise.race([
+        generateTTS(config, cleanText),
+        timeoutPromise
+      ]);
+      if (timeoutId) clearTimeout(timeoutId);
       audio = result.audio;
       format = result.format;
     } catch (firstError) {
-      // 🚀 终极捕获降级防线：如果第一遍合成失败（无论是因为无效 key 还是其他服务故障），只要不是 edge-tts，立即降级到 edge-tts 重试！
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      // 🚀 终极捕获降级防线：如果第一遍合成失败（无论是因为无效 key 还是其他服务故障，或者超时），只要不是 edge-tts，立即降级到 edge-tts 重试！
       if (config.providerId !== 'edge-tts') {
-        log.warn(`[TTS Server Exception Fallback] ${config.providerId} failed:`, firstError, `. Trying ultimate fallback to edge-tts.`);
+        log.warn(`[TTS Server Exception Fallback] ${config.providerId} failed/timeout:`, firstError, `. Trying ultimate fallback to edge-tts.`);
         
         let fallbackVoice = 'zh-CN-XiaoxiaoNeural';
         const v = config.voice.toLowerCase();
