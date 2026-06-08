@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>✨ 秒懂万物 ｜ FutureClass 全息漫画科普故事机</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* 智能自适应主题颜色 */
+            --primary-rgb: 0, 240, 255; /* 默认科幻冰蓝 */
+            --primary: rgb(var(--primary-rgb));
+            --primary-glow: rgba(var(--primary-rgb), 0.4);
+            
+            --bg-dark: #04060e;
+            --panel-bg: rgba(10, 16, 30, 0.45);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-mute: #94a3b8;
+            
+            /* 预设三种学龄段颜色 */
+            --color-primary-primary: #00f0ff;  /* 初中-科幻蓝 */
+            --color-primary-primary-rgb: 0, 240, 255;
+            
+            --color-primary-green: #00c48c;    /* 小学-极光绿 */
+            --color-primary-green-rgb: 0, 196, 140;
+            
+            --color-primary-orange: #ff8a00;   /* 高中-烈焰橙 */
+            --color-primary-orange-rgb: 255, 138, 0;
+
+            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        /* ═══ 神经网络微粒背景 ═══ */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        /* 扫描线效果 */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.18;
+            mix-blend-mode: overlay;
+        }
+
+        /* ═══ UI 根容器 ═══ */
+        .app-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        /* ═══ 视图一：输入主舱 ═══ */
+        .view-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 820px;
+            padding: 24px;
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .logo-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 36px;
+            text-align: center;
+        }
+
+        .logo-title {
+            font-family: 'Orbitron', 'Noto Sans SC', sans-serif;
+            font-size: 3.2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 40%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(var(--primary-rgb), 0.35);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-symbol {
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--primary);
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px var(--primary-glow);
+            animation: logo-pulse 3s infinite ease-in-out;
+        }
+
+        .logo-symbol-line {
+            width: 30px;
+            height: 4px;
+            background: #fff;
+            transform: rotate(-45deg);
+            box-shadow: 0 0 10px #fff;
+        }
+
+        @keyframes logo-pulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.05); filter: brightness(1.2); }
+        }
+
+        .logo-subtitle {
+            font-size: 14px;
+            letter-spacing: 6px;
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        /* 拟物磨砂玻璃卡片 */
+        .glass-cabin {
+            width: 100%;
+            background: var(--panel-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            padding: 40px;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.65), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        /* 环绕霓虹呼吸光带 */
+        .glass-cabin::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 28px;
+            padding: 1.5px;
+            background: linear-gradient(135deg, var(--primary), transparent 40%, transparent 60%, var(--primary));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.65;
+            transition: var(--transition);
+        }
+
+        /* 顶部装饰全息码 */
+        .hud-corner-code {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-family: 'Orbitron';
+            font-size: 10px;
+            color: rgba(var(--primary-rgb), 0.4);
+            letter-spacing: 1.5px;
+        }
+
+        /* 学龄段选择器 */
+        .grade-selection {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .grade-pill {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            color: var(--text-mute);
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .grade-pill:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        /* 学龄段高亮样式 */
+        .grade-pill[data-grade="primary"].active {
+            background: rgba(0, 196, 140, 0.15);
+            color: var(--color-primary-green);
+            border-color: rgba(0, 196, 140, 0.4);
+            box-shadow: 0 0 15px rgba(0, 196, 140, 0.25);
+        }
+
+        .grade-pill[data-grade="junior"].active {
+            background: rgba(0, 240, 255, 0.15);
+            color: var(--color-primary-primary);
+            border-color: rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+        }
+
+        .grade-pill[data-grade="senior"].active {
+            background: rgba(255, 138, 0, 0.15);
+            color: var(--color-primary-orange);
+            border-color: rgba(255, 138, 0, 0.4);
+            box-shadow: 0 0 15px rgba(255, 138, 0, 0.25);
+        }
+
+        /* 输入框容器 */
+        .input-wrapper {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .cyber-textarea {
+            width: 100%;
+            height: 140px;
+            background: rgba(5, 7, 15, 0.65);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 16px;
+            resize: none;
+            outline: none;
+            transition: var(--transition);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .cyber-textarea:focus {
+            border-color: var(--primary);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5), 
+                        0 0 15px var(--primary-glow);
+        }
+
+        /* 快捷预设标签 */
+        .preset-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 32px;
+            justify-content: center;
+        }
+
+        .preset-tag {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            color: var(--text-mute);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .preset-tag:hover {
+            background: rgba(var(--primary-rgb), 0.08);
+            border-color: rgba(var(--primary-rgb), 0.3);
+            color: var(--primary);
+        }
+
+        /* 开始生成按钮 */
+        .launch-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), rgba(var(--primary-rgb), 0.7));
+            border: none;
+            color: #04060e;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px var(--primary-glow);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .launch-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(var(--primary-rgb), 0.6);
+            filter: brightness(1.1);
+        }
+
+        .launch-btn:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .launch-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* 流光横扫动画 */
+        .launch-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transform: skewX(-25deg);
+            animation: glow-sweep 3s infinite linear;
+        }
+
+        @keyframes glow-sweep {
+            0% { left: -120%; }
+            30% { left: 120%; }
+            100% { left: 120%; }
+        }
+
+        /* ═══ 视图二：加载控制舱 ═══ */
+        .loading-panel {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 32px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* 3D全息旋转球体核心 */
+        .hologram-core {
+            width: 120px;
+            height: 120px;
+            border: 3px dashed var(--primary);
+            border-radius: 50%;
+            position: relative;
+            animation: core-spin 6s linear infinite;
+            box-shadow: 0 0 30px var(--primary-glow);
+        }
+
+        .hologram-core::before, .hologram-core::after {
+            content: '';
+            position: absolute;
+            top: 10px; left: 10px; right: 10px; bottom: 10px;
+            border: 2px solid rgba(var(--primary-rgb), 0.6);
+            border-radius: 50%;
+            animation: core-reverse-spin 3s linear infinite;
+        }
+
+        .hologram-core::after {
+            top: 25px; left: 25px; right: 25px; bottom: 25px;
+            border: 1px dotted #fff;
+            animation: core-spin 1.5s linear infinite;
+        }
+
+        @keyframes core-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes core-reverse-spin {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+
+        .loading-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary-glow);
+            letter-spacing: 2px;
+        }
+
+        .loading-subtext {
+            color: var(--text-mute);
+            font-size: 14px;
+            height: 20px;
+            font-family: monospace;
+        }
+
+        /* ═══ 视图三：左右影院巨幕 ═══ */
+        .cinema-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #03050a;
+            z-index: 999;
+            grid-template-columns: 65fr 35fr;
+            animation: cinema-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cinema-enter {
+            from { opacity: 0; transform: scale(1.02); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 🎬 巨型大屏幕区 (左侧 65%) */
+        .screen-area {
+            position: relative;
+            height: 96%;
+            margin: auto 0 auto 2%;
+            background: linear-gradient(185deg, #070b16 0%, #030408 100%);
+            border: 1px solid rgba(var(--primary-rgb), 0.2);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8), 
+                        0 0 40px rgba(var(--primary-rgb), 0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* 左侧投影屏内部 Canvas */
+        #screen-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* 核心全息舞台 */
+        .holo-stage {
+            position: relative;
+            z-index: 2;
+            width: 90%;
+            height: 85%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+        }
+
+        /* 视觉信道大字流 */
+        .visual-prompt-ticker {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(var(--primary-rgb), 0.15);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 13px;
+            color: var(--primary);
+            text-align: center;
+            backdrop-filter: blur(5px);
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            letter-spacing: 0.5px;
+            animation: text-pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes text-pulse {
+            0%, 100% { border-color: rgba(var(--primary-rgb), 0.15); }
+            50% { border-color: rgba(var(--primary-rgb), 0.35); box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.15); }
+        }
+
+        /* AI 生图状态指示器 */
+        .ai-status-indicator {
+            font-size: 11px;
+            color: rgba(var(--primary-rgb), 0.7);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(var(--primary-rgb), 0.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: var(--transition);
+            opacity: 0;
+            position: absolute;
+            top: 75px;
+            right: 0;
+            z-index: 9;
+        }
+        
+        .ai-status-indicator.show {
+            opacity: 1;
+        }
+
+        /* 生成图片悬浮相框 */
+        .screen-img-box {
+            position: absolute;
+            width: 76%;
+            height: 52%;
+            top: 16%;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid rgba(var(--primary-rgb), 0.35);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.85), 0 0 30px rgba(var(--primary-rgb), 0.25);
+            z-index: 2;
+            animation: stage-float 4.5s ease-in-out infinite;
+            transition: var(--transition);
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+        
+        .screen-img-box.show {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        /* 物理原理 Tech Box */
+        .tech-box-float {
+            background: rgba(10, 20, 35, 0.75);
+            border: 1.5px solid var(--primary);
+            border-radius: 14px;
+            padding: 16px 24px;
+            width: auto;
+            min-width: 260px;
+            max-width: 80%;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 25px rgba(var(--primary-rgb), 0.25);
+            backdrop-filter: blur(10px);
+            z-index: 4;
+            transform: translateZ(0);
+            transition: var(--transition);
+            position: absolute;
+            bottom: 220px;
+            animation: stage-float 4s ease-in-out infinite;
+        }
+        
+        .tech-box-float.with-image {
+            bottom: 30px; /* 当有生图时，Tech Box 自动下移 */
+            background: rgba(10, 20, 35, 0.85);
+            padding: 10px 20px;
+            min-width: 200px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.7);
+        }
+
+        .tech-box-float.with-image .tech-box-formula {
+            font-size: 18px;
+        }
+
+        .tech-box-header {
+            font-family: 'Orbitron';
+            font-size: 11px;
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .tech-box-formula {
+            font-size: 24px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes stage-float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(1deg); }
+        }
+
+        /* 立绘摆放平台 */
+        .character-platform {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 20px;
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+            z-index: 3;
+            transition: var(--transition);
+        }
+
+        /* IP 立绘卡片 */
+        .character-card {
+            width: 170px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: var(--transition);
+            filter: drop-shadow(0 0 8px rgba(var(--primary-rgb), 0.2));
+            opacity: 0.85;
+        }
+
+        .character-card.xiaomai-card {
+            align-items: flex-start;
+            transform-origin: bottom left;
+        }
+
+        .character-card.robot-card {
+            align-items: flex-end;
+            transform-origin: bottom right;
+        }
+
+        .character-img {
+            max-width: 100%;
+            max-height: 230px;
+            object-fit: contain;
+            transition: var(--transition);
+        }
+
+        /* 动作变幻时的高光类 */
+        .character-card.active {
+            opacity: 1;
+            filter: drop-shadow(0 0 20px rgba(var(--primary-rgb), 0.55));
+            transform: scale(1.08) translateY(-5px);
+        }
+
+        /* 3D 旋转效果类 */
+        .character-card.explaining {
+            animation: char-explain 1.8s infinite ease-in-out alternate;
+        }
+
+        .character-card.thinking {
+            animation: char-think 3s infinite ease-in-out alternate;
+        }
+
+        .character-card.shocked {
+            animation: char-shock 0.3s infinite alternate;
+        }
+
+        @keyframes char-explain {
+            0% { transform: rotate(0deg) translateY(0); }
+            100% { transform: rotate(3deg) translateY(-8px); }
+        }
+
+        @keyframes char-think {
+            0% { transform: scale(1) translateY(0); }
+            100% { transform: scale(1.03) translateY(-4px) rotate(-1deg); }
+        }
+
+        @keyframes char-shock {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            100% { transform: translate(-1px, -1px) rotate(1deg); }
+        }
+
+        .character-label {
+            margin-top: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(var(--primary-rgb), 0.3);
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 11px;
+            color: #fff;
+            letter-spacing: 1px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 📖 磨砂玻璃故事面板 (右侧 35%) */
+        .story-area {
+            position: relative;
+            height: 96%;
+            margin: auto 2% auto 0;
+            background: rgba(10, 16, 30, 0.65);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(var(--primary-rgb), 0.2);
+            border-radius: 20px;
+            padding: 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        /* 右侧面板发光霓虹边缘 */
+        .story-area::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 20px;
+            padding: 1.5px;
+            background: linear-gradient(185deg, var(--primary), transparent 45%, transparent 65%, var(--primary));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .story-top {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .step-badge-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-badge {
+            background: rgba(var(--primary-rgb), 0.15);
+            border: 1.5px solid var(--primary);
+            color: var(--primary);
+            font-family: 'Orbitron';
+            font-size: 12px;
+            font-weight: 900;
+            padding: 6px 14px;
+            border-radius: 8px;
+            letter-spacing: 2px;
+            box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.2);
+        }
+
+        .story-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.3;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255,255,255,0.15);
+        }
+
+        .story-content-box {
+            flex-grow: 1;
+            margin: 28px 0;
+            overflow-y: auto;
+            padding-right: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(var(--primary-rgb), 0.2) transparent;
+        }
+
+        .story-content-box::-webkit-scrollbar {
+            width: 4px;
+        }
+        .story-content-box::-webkit-scrollbar-thumb {
+            background: rgba(var(--primary-rgb), 0.25);
+            border-radius: 2px;
+        }
+
+        .story-text {
+            font-size: 15px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.88);
+            white-space: pre-line;
+        }
+
+        /* 胶囊控制底栏 */
+        .control-capsule-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .capsule-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            color: var(--text-mute);
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .capsule-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .capsule-btn.primary-action {
+            background: rgba(var(--primary-rgb), 0.12);
+            border-color: rgba(var(--primary-rgb), 0.35);
+            color: var(--primary);
+            box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.1);
+        }
+
+        .capsule-btn.primary-action:hover {
+            background: var(--primary);
+            color: #04060e;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        /* 🏹 左右悬浮翻页大箭头 */
+        .cinema-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 70px;
+            height: 120px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1.5px solid rgba(var(--primary-rgb), 0.15);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            cursor: pointer;
+            z-index: 100;
+            opacity: 0;
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            transition: var(--transition);
+            pointer-events: auto;
+        }
+
+        .cinema-arrow.prev-arrow {
+            left: 20px;
+        }
+
+        .cinema-arrow.next-arrow {
+            right: 20px;
+        }
+
+        .screen-area:hover .cinema-arrow {
+            opacity: 0.7;
+        }
+
+        .cinema-arrow:hover {
+            opacity: 1 !important;
+            background: rgba(var(--primary-rgb), 0.15);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        /* 退出全屏提示浮窗 */
+        .escape-hint {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 10px;
+            color: var(--text-mute);
+            z-index: 99;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 1024px) {
+            .cinema-view {
+                grid-template-columns: 1fr;
+                grid-template-rows: 50vh 50vh;
+                overflow-y: auto;
+            }
+            .screen-area {
+                height: 94%;
+                margin: 2% 2% 1% 2%;
+            }
+            .story-area {
+                height: 94%;
+                margin: 1% 2% 2% 2%;
+                padding: 24px;
+            }
+            .character-img {
+                max-height: 140px;
+            }
+        }
+
+        /* 🌐 全息生成进度盒子 */
+        .holo-rendering-box {
+            position: absolute;
+            width: 76%;
+            height: 52%;
+            top: 16%;
+            background: rgba(6, 10, 20, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px dashed rgba(var(--primary-rgb), 0.35);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            z-index: 2;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.85), 
+                        0 0 40px rgba(var(--primary-rgb), 0.15),
+                        inset 0 0 20px rgba(var(--primary-rgb), 0.05);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+                        transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* 扫描激光束 */
+        .holo-render-scanner {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(var(--primary-rgb), 0.08) 50%, transparent 100%);
+            background-size: 100% 200px;
+            animation: console-scan 3s infinite linear;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes console-scan {
+            0% { background-position-y: -200px; }
+            100% { background-position-y: 600px; }
+        }
+
+        .holo-render-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+            z-index: 2;
+        }
+
+        .holo-pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
+            animation: dot-pulse 1.2s infinite ease-in-out;
+        }
+
+        @keyframes dot-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
+
+        .holo-render-circle-wrap {
+            position: relative;
+            margin-bottom: 12px;
+            z-index: 2;
+        }
+
+        .holo-render-circle {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring__circle-bg {
+            transition: stroke 0.4s ease;
+        }
+
+        .progress-ring__circle {
+            stroke-dasharray: 351.8; /* 2 * PI * r (r=56) = 351.8 */
+            stroke-dashoffset: 351.8;
+            transition: stroke-dashoffset 0.3s ease, stroke 0.4s ease;
+            stroke-linecap: round;
+        }
+
+        .holo-render-percent {
+            position: absolute;
+            font-family: 'Orbitron', monospace;
+            font-size: 24px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* 宽幅流光进度条 */
+        .wide-progress-container {
+            width: 80%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(var(--primary-rgb), 0.15);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 16px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+
+        .wide-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, rgba(var(--primary-rgb), 0.4), var(--primary));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            position: relative;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* 进度条流光特效 */
+        .wide-progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: progress-sweep 1.8s infinite linear;
+        }
+
+        @keyframes progress-sweep {
+            0 { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* 极客文本控制台 */
+        .geek-log-console {
+            width: 85%;
+            height: 48px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-size: 10px;
+            color: rgba(var(--primary-rgb), 0.65);
+            text-align: left;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+            margin-bottom: 12px;
+            z-index: 2;
+        }
+
+        .geek-log-line {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            animation: console-line-pulse 4s infinite alternate;
+        }
+
+        @keyframes console-line-pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .holo-scene-hint {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-mute);
+            letter-spacing: 1px;
+            max-width: 90%;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="app-container">
+        
+        <!-- ═══ 视图一：输入舱 ═══ -->
+        <div id="input-view" class="view-panel">
+            <div class="logo-area">
+                <div class="logo-title">
+                    <div class="logo-symbol">
+                        <div class="logo-symbol-line"></div>
+                    </div>
+                    <span>FUTURE<span style="color:var(--primary)">AI</span></span>
+                </div>
+                <div class="logo-subtitle">秒懂万物全息故事机 V1.0</div>
+            </div>
+
+            <div class="glass-cabin">
+                <div class="hud-corner-code">SYS.EXE_V1.0</div>
+                
+                <!-- 学龄切换 -->
+                <div class="grade-selection">
+                    <div class="grade-pill active" data-grade="junior">
+                        <span>🧪</span> 实战初中 / 初中组
+                    </div>
+                    <div class="grade-pill" data-grade="primary">
+                        <span>🦄</span> 趣味小学 / 小学组
+                    </div>
+                    <div class="grade-pill" data-grade="senior">
+                        <span>🚀</span> 极客高中 / 高中组
+                    </div>
+                </div>
+
+                <!-- 需求输入 -->
+                <div class="input-wrapper">
+                    <textarea id="concept-input" class="cyber-textarea" placeholder="输入你想推演和学习的任何概念，例如：「汽车扭矩和马力」..."></textarea>
+                </div>
+
+                <!-- 推荐标签 -->
+                <div class="preset-container">
+                    <div class="preset-tag" data-val="汽车扭矩与马力的工作原理">🚗 汽车扭矩</div>
+                    <div class="preset-tag" data-val="量子纠缠与超距作用">🌌 量子纠缠</div>
+                    <div class="preset-tag" data-val="虹吸原理的力学奥秘">🧪 虹吸原理</div>
+                    <div class="preset-tag" data-val="植物光合作用的化学时空">🧬 光合作用</div>
+                    <div class="preset-tag" data-val="计算机并发编程中的死锁">💻 线程死锁</div>
+                </div>
+
+                <!-- 开始推演 -->
+                <button id="submit-btn" class="launch-btn">
+                    <span>🛸</span> 启动全息科普推演
+                </button>
+            </div>
+        </div>
+
+        <!-- ═══ 视图二：加载中 ═══ -->
+        <div id="loading-view" class="loading-panel">
+            <div class="hologram-core"></div>
+            <div class="loading-title">正在链接 Titan 算力中枢</div>
+            <div id="loading-msg" class="loading-subtext">正在建立物理切片信道...</div>
+        </div>
+
+        <!-- ═══ 视图三：巨幕影院 ═══ -->
+        <div id="cinema-view" class="cinema-view">
+            <!-- 🎬 左侧巨幕大投影屏 -->
+            <div class="screen-area">
+                <div class="escape-hint">ESC 退出影院</div>
+                <canvas id="screen-canvas"></canvas>
+                
+                <!-- 浮动箭头翻页 -->
+                <button class="cinema-arrow prev-arrow" onclick="prevStep(event)">‹</button>
+                <button class="cinema-arrow next-arrow" onclick="nextStep(event)">›</button>
+
+                <div class="holo-stage">
+                    <!-- 视觉场景文字描述与生图状态 -->
+                    <div style="display:flex; width:100%; justify-content:space-between; align-items:center; gap:12px; z-index:9;">
+                        <div id="visual-prompt" class="visual-prompt-ticker" style="flex:1;">
+                            正在同步全息信道画面分镜描述...
+                        </div>
+                        <div id="ai-status" class="ai-status-indicator">
+                            <span class="pulse-dot" style="width:6px; height:6px; background:#00f0ff;"></span>
+                            <span id="ai-status-text">AI 正在绘制画面...</span>
+                        </div>
+                    </div>
+
+                    <!-- 3D 悬浮生成图 -->
+                    <div id="screen-img-box" class="screen-img-box">
+                        <img id="screen-img" src="" style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+
+                    <!-- 🌐 全息渲染进度显示器 -->
+                    <div id="holo-rendering-box" class="holo-rendering-box" style="display:none;">
+                        <div class="holo-render-scanner"></div>
+                        
+                        <!-- 核心信息流 -->
+                        <div class="holo-render-header">
+                            <span class="holo-pulse-dot"></span>
+                            <span id="holo-step-indicator">FRAME 01/08 BAKING...</span>
+                        </div>
+                        
+                        <!-- 3D 环形进度圈与大数字 -->
+                        <div class="holo-render-circle-wrap">
+                            <div class="holo-render-circle">
+                                <svg class="progress-ring" width="130" height="130">
+                                    <circle class="progress-ring__circle-bg" stroke="rgba(var(--primary-rgb), 0.08)" stroke-width="5" fill="transparent" r="56" cx="65" cy="65"/>
+                                    <circle id="progress-ring-bar" class="progress-ring__circle" stroke="var(--primary)" stroke-width="6" fill="transparent" r="56" cx="65" cy="65"/>
+                                </svg>
+                                <div id="holo-render-percent" class="holo-render-percent">0%</div>
+                            </div>
+                        </div>
+
+                        <!-- 宽幅流光进度条 -->
+                        <div class="wide-progress-container">
+                            <div id="wide-progress-bar" class="wide-progress-bar"></div>
+                        </div>
+
+                        <!-- 极客文本控制台 -->
+                        <div class="geek-log-console">
+                            <div class="geek-log-line" id="geek-log-line-1">SYS: Initializing neural channel...</div>
+                            <div class="geek-log-line" id="geek-log-line-2">SYS: Ready.</div>
+                        </div>
+                        
+                        <!-- 当前分镜任务提示 -->
+                        <div class="holo-scene-hint" id="holo-scene-hint">
+                            正在拼装物理场景分镜数据...
+                        </div>
+                    </div>
+
+                    <!-- 核心 Tech Box 公式 -->
+                    <div id="tech-box" class="tech-box-float">
+                        <div class="tech-box-header">Tech Principle Box</div>
+                        <div id="tech-formula" class="tech-box-formula">loading...</div>
+                    </div>
+
+                    <!-- IP 立绘卡片摆放平台 -->
+                    <div class="character-platform" id="character-platform">
+                        <!-- 周小麦 -->
+                        <div id="char-xiaomai" class="character-card xiaomai-card">
+                            <img src="/assets/img/xiaomai_normal.png" class="character-img" onerror="this.src='/assets/img/xiaomai_normal.png'">
+                            <div class="character-label">周小麦</div>
+                        </div>
+                        <!-- 小创机器人 -->
+                        <div id="char-robot" class="character-card robot-card">
+                            <img src="/assets/img/robot_normal.png" class="character-img" onerror="this.src='/assets/img/robot_normal.png'">
+                            <div class="character-label">小创老师</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 📖 右侧磨砂玻璃故事面板 -->
+            <div class="story-area">
+                <div class="story-top">
+                    <div class="step-badge-wrap">
+                        <div id="step-num" class="step-badge">STEP 01 / 08</div>
+                        <div style="font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 1px;">SCIENCE COGNITION</div>
+                    </div>
+                    <div id="step-title" class="story-title">量子跃迁与时空</div>
+                </div>
+
+                <div class="story-content-box">
+                    <p id="step-desc" class="story-text">
+                        正在加载故事剧本...
+                    </p>
+                </div>
+
+                <!-- 控制底栏 -->
+                <div class="control-capsule-bar">
+                    <button class="capsule-btn" onclick="exitCinema()">
+                        <span>🚪</span> 退出课堂
+                    </button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="capsule-btn" onclick="prevStep(event)">
+                            <span>◀</span> 上一页
+                        </button>
+                        <button id="next-btn" class="capsule-btn primary-action" onclick="nextStep(event)">
+                            下一页 <span>▶</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══ 系统控制脚本 (Core Logic) ═══ -->
+    <script>
+        // 全局变量定义
+        let currentGrade = 'junior';
+        let comicData = [];
+        let currentStepIndex = 0;
+        let animationFrameId = null;
+        
+        // AI 生图状态记忆数组
+        let imageUrls = Array(8).fill(null);
+        let loadingImages = Array(8).fill(false);
+
+        // AI 生图后台进度模拟数组
+        let progressIntervals = Array(8).fill(null);
+        let progressPercents = Array(8).fill(0);
+
+        // UI 元素
+        const inputView = document.getElementById('input-view');
+        const loadingView = document.getElementById('loading-view');
+        const cinemaView = document.getElementById('cinema-view');
+        const conceptInput = document.getElementById('concept-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const loadingMsg = document.getElementById('loading-msg');
+
+        // 占位词轮播
+        const inputPlaceholders = [
+            "输入你想学习的科学概念，例如：「量子纠缠的原理」",
+            "写下你感兴趣的物理概念，例如：「汽车扭矩和马力」",
+            "推演好玩的工程原理，例如：「虹吸现象是怎样工作的」",
+            "探索神秘的生物切片，例如：「光合作用的光暗反应」",
+            "攻克硬核的技术架构，例如：「计算机死锁是怎样发生的」"
+        ];
+        let placeholderIndex = 0;
+        setInterval(() => {
+            if (document.activeElement !== conceptInput && conceptInput.value.trim() === '') {
+                placeholderIndex = (placeholderIndex + 1) % inputPlaceholders.length;
+                conceptInput.placeholder = inputPlaceholders[placeholderIndex];
+            }
+        }, 4000);
+
+        // 标签点击填入
+        document.querySelectorAll('.preset-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                conceptInput.value = tag.getAttribute('data-val');
+                conceptInput.focus();
+            });
+        });
+
+        // 学龄组别点击切换
+        document.querySelectorAll('.grade-selection .grade-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                document.querySelectorAll('.grade-selection .grade-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                currentGrade = pill.getAttribute('data-grade');
+                
+                // 自适应边缘及按钮霓虹颜色变幻
+                if (currentGrade === 'primary') {
+                    document.documentElement.style.setProperty('--primary-rgb', '0, 196, 140'); // 极光绿
+                } else if (currentGrade === 'junior') {
+                    document.documentElement.style.setProperty('--primary-rgb', '0, 240, 255'); // 科幻蓝
+                } else {
+                    document.documentElement.style.setProperty('--primary-rgb', '255, 138, 0'); // 烈焰橙
+                }
+            });
+        });
+
+        // 页面底座 Canvas 神经网络微粒背景动画
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let particles = [];
+
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeBgCanvas);
+        resizeBgCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * bgCanvas.width;
+                this.y = Math.random() * bgCanvas.height;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.speedX = Math.random() * 0.4 - 0.2;
+                this.speedY = Math.random() * 0.4 - 0.2;
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > bgCanvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > bgCanvas.height) this.speedY *= -1;
+            }
+            draw() {
+                bgCtx.fillStyle = `rgba(${document.documentElement.style.getPropertyValue('--primary-rgb') || '0, 240, 255'}, ${this.alpha})`;
+                bgCtx.beginPath();
+                bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+        }
+
+        for (let i = 0; i < 70; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateBg() {
+            bgCtx.fillStyle = 'rgba(4, 6, 14, 0.08)'; // 渐近拖尾
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            
+            // 绘制连线
+            bgCtx.strokeStyle = `rgba(${document.documentElement.style.getPropertyValue('--primary-rgb') || '0, 240, 255'}, 0.04)`;
+            bgCtx.lineWidth = 0.5;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+                    if (dist < 120) {
+                        bgCtx.beginPath();
+                        bgCtx.moveTo(particles[i].x, particles[i].y);
+                        bgCtx.lineTo(particles[j].x, particles[j].y);
+                        bgCtx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+
+        // 🎬 左侧巨幕大投影屏 Canvas 全息粒子与束光特效
+        const screenCanvas = document.getElementById('screen-canvas');
+        const screenCtx = screenCanvas.getContext('2d');
+        let screenParticles = [];
+
+        function resizeScreenCanvas() {
+            const rect = screenCanvas.parentElement.getBoundingClientRect();
+            screenCanvas.width = rect.width;
+            screenCanvas.height = rect.height;
+        }
+
+        class ScreenParticle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * screenCanvas.width;
+                this.y = screenCanvas.height + Math.random() * 20;
+                this.size = Math.random() * 2 + 0.6;
+                this.speedY = -(Math.random() * 0.8 + 0.4);
+                this.speedX = Math.random() * 0.3 - 0.15;
+                this.alpha = Math.random() * 0.6 + 0.2;
+                this.fade = Math.random() * 0.005 + 0.002;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.alpha -= this.fade;
+                if (this.alpha <= 0 || this.y < 0) {
+                    this.reset();
+                }
+            }
+            draw() {
+                screenCtx.fillStyle = `rgba(${document.documentElement.style.getPropertyValue('--primary-rgb') || '0, 240, 255'}, ${this.alpha})`;
+                screenCtx.shadowBlur = 10;
+                screenCtx.shadowColor = `rgb(${document.documentElement.style.getPropertyValue('--primary-rgb') || '0, 240, 255'})`;
+                screenCtx.beginPath();
+                screenCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                screenCtx.fill();
+                screenCtx.shadowBlur = 0; // 重置
+            }
+        }
+
+        function initScreenParticles() {
+            screenParticles = [];
+            for (let i = 0; i < 40; i++) {
+                screenParticles.push(new ScreenParticle());
+            }
+        }
+
+        function animateScreen() {
+            screenCtx.clearRect(0, 0, screenCanvas.width, screenCanvas.height);
+            const grad = screenCtx.createLinearGradient(0, screenCanvas.height, 0, 0);
+            grad.addColorStop(0, `rgba(${document.documentElement.style.getPropertyValue('--primary-rgb') || '0, 240, 255'}, 0.12)`);
+            grad.addColorStop(0.5, `rgba(${document.documentElement.style.getPropertyValue('--primary-rgb') || '0, 240, 255'}, 0.02)`);
+            grad.addColorStop(1, 'transparent');
+            screenCtx.fillStyle = grad;
+            screenCtx.beginPath();
+            screenCtx.moveTo(0, screenCanvas.height);
+            screenCtx.lineTo(screenCanvas.width * 0.2, screenCanvas.height * 0.4);
+            screenCtx.lineTo(screenCanvas.width * 0.8, screenCanvas.height * 0.4);
+            screenCtx.lineTo(screenCanvas.width, screenCanvas.height);
+            screenCtx.fill();
+
+            screenParticles.forEach(p => { p.update(); p.draw(); });
+
+            screenCtx.strokeStyle = `rgba(${document.documentElement.style.getPropertyValue('--primary-rgb') || '0, 240, 255'}, 0.015)`;
+            screenCtx.lineWidth = 1;
+            for (let y = 0; y < screenCanvas.height; y += 8) {
+                screenCtx.beginPath(); screenCtx.moveTo(0, y); screenCtx.lineTo(screenCanvas.width, y); screenCtx.stroke();
+            }
+            animationFrameId = requestAnimationFrame(animateScreen);
+        }
+
+        submitBtn.addEventListener('click', startHologramPipeline);
+
+        async function startHologramPipeline() {
+            const concept = conceptInput.value.trim();
+            if (!concept) {
+                alert('请先输入想学的科学/技术概念！');
+                return;
+            }
+
+            // 立即进入影院并切换到大纲加载态
+            enterCinema(true);
+            submitBtn.disabled = true;
+
+            // 清理上一轮的数据
+            imageUrls = Array(8).fill(null);
+            loadingImages = Array(8).fill(false);
+
+            // 启动大纲生成的进度条模拟
+            let outlinePercent = 0;
+            if (outlineProgressInterval) clearInterval(outlineProgressInterval);
+            
+            const OUTLINE_LOGS = [
+                "SYS: Constructing brainwave sync channel...",
+                "SYS: Accessing Backgrace LLM clusters...",
+                "SYS: Establishing gemini-3.5-flash context...",
+                "SYS: Setting age cognition parameters...",
+                "SYS: Generating 8 science comic segments...",
+                "SYS: Designing dialogue threads for Xiaomai...",
+                "SYS: Designing pedagogical analogies for robot...",
+                "SYS: Optimizing 3D C4D scene descriptors...",
+                "SYS: Formatting structured JSON frames...",
+                "SYS: Finalizing script compilation..."
+            ];
+
+            // 临时覆盖 updateProgressUI 为大纲加载版本
+            function updateOutlineProgressUI(percent) {
+                const ringBar = document.getElementById('progress-ring-bar');
+                const wideBar = document.getElementById('wide-progress-bar');
+                const percentText = document.getElementById('holo-render-percent');
+                const stepIndicator = document.getElementById('holo-step-indicator');
+                const sceneHint = document.getElementById('holo-scene-hint');
+                const logLine1 = document.getElementById('geek-log-line-1');
+                const logLine2 = document.getElementById('geek-log-line-2');
+                
+                const rounded = Math.min(Math.round(percent), 100);
+                if (percentText) percentText.innerText = `${rounded}%`;
+                // SVG 周长 351.8
+                const offset = 351.8 - (351.8 * rounded) / 100;
+                if (ringBar) ringBar.style.strokeDashoffset = offset;
+                if (wideBar) wideBar.style.width = `${rounded}%`;
+                
+                if (stepIndicator) stepIndicator.innerText = `BRAINWAVE SYNCING...`;
+                if (sceneHint) sceneHint.innerText = `[ 🪐 剧本重构: ${concept} ]`;
+                
+                if (logLine1 && logLine2) {
+                    const logIndex = Math.min(Math.floor(percent / 10), OUTLINE_LOGS.length - 2);
+                    logLine1.innerText = OUTLINE_LOGS[logIndex];
+                    logLine2.innerText = OUTLINE_LOGS[logIndex + 1];
+                }
+            }
+
+            updateOutlineProgressUI(0);
+
+            outlineProgressInterval = setInterval(() => {
+                if (outlinePercent < 35) {
+                    outlinePercent += Math.random() * 4 + 2;
+                } else if (outlinePercent < 80) {
+                    outlinePercent += Math.random() * 1.5 + 0.6;
+                } else if (outlinePercent < 95) {
+                    outlinePercent += Math.random() * 0.4 + 0.15;
+                } else if (outlinePercent < 99) {
+                    outlinePercent += 0.05;
+                }
+                outlinePercent = Math.min(outlinePercent, 99);
+                updateOutlineProgressUI(outlinePercent);
+            }, 100);
+
+            try {
+                // 拼接硬核 System Prompt 与 User Prompt
+                const systemPrompt = `你是一个顶尖的科普漫画编剧与少儿科学教育专家。
+请将用户输入的概念（概念包含学龄背景：primary对应小学、junior对应初中、senior对应高中），实时转换成由正好 8 个逻辑步骤组成的趣味情景交互漫画剧本。
+
+科学科普人设角色：
+1. 周小麦：富有强烈的探索精神、活泼好问的中国学生，代表读者提问。小麦设定为中国卷发男孩，身穿黄T恤蓝短裤。
+2. 小创老师：一个双足人型白壳、发光蓝耳环的智能科研伴读机器人，博古通今，经常使用有趣好玩的比喻、甚至通俗的日常概念（如赛车、打火机等）来深入浅出科普原理。
+
+【极其重要：输出格式规范】
+你的输出必须是纯 JSON 数组，不能包含 \`\`\`json 等 Markdown 包裹，也不要有任何前后多余的闲聊和提示词。直接以 [ 开始，以 ] 结束。
+数组中的每个元素对应一个分镜步骤（共 8 个元素），其键值格式如下：
+{
+  "step": 1,
+  "title": "这一步分镜的名字",
+  "desc": "步骤科普详细台词剧本。要以对话形式推进（例如：小麦：'哇！这个公式长得真奇怪！'机器人：'莫慌！且听我给你用汽车发动机做个比方...'）。文字内容要通俗易懂，符合所选的学龄组别（小学应极简且趣味十足，初中略带硬核原理，高中可融入深度公式与严谨推导）。限制在 200 字内。",
+  "tech": "这步底层的物理或数学核心原理/公式表达式，供全息投影 Tech Box 独立展示。例如：'T = F × r'，如果是一般科学概念可写公式或一句话最底层的科学定义，不能长，不超过 15 个字。",
+  "xiaomai_pose": "thinking | explaining | happy | shocked | normal 其中的一个，指引小麦在此步骤 of 姿势动作",
+  "robot_pose": "thinking | explaining | happy | shocked | normal 其中的一个，指引机器人在此步骤 of 姿势动作",
+  "visual_prompt": "对此步骤的 3D C4D 科技渲染风格画面场景分镜描述，包括小麦和机器人具体在哪里，在操纵或展示什么物理/化学实验设备。要求：每一页的画面场景必须具有明显的独特性与差异化（例如：第1步是启动全息台，第2步是站在高速赛车跑道上观察，第3步进入发动机活塞内部，第4步置身风洞气流中，第5步操控原子模型等。严禁多步使用‘在实验室讨论’等雷同笼统描述！），字数控制在 35 字以内。"
+}`;
+
+                const ageText = currentGrade === 'primary' ? '小学段（侧重趣味化、大白话和生活比喻）' : 
+                                currentGrade === 'junior' ? '初中段（侧重简单公式、硬核力学/物理切片科普）' : 
+                                                            '高中段（侧重专业物理/化学/数学推导、核心公式讲解）';
+
+                const response = await fetch('/v1beta/openai/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'gemini-3.5-flash',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: `请为我推演解释概念：“${concept}”。学龄段匹配要求为：${ageText}。请务必返回8个步骤 of 纯 JSON 数组！` }
+                        ],
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API 响应失败: ${response.status}`);
+                }
+
+                const resData = await response.json();
+                const rawText = resData.choices[0].message.content.trim();
+                
+                // 清理并解析 JSON
+                let cleanJsonStr = rawText;
+                if (cleanJsonStr.startsWith('```')) {
+                    // 去除 markdown 代码块包裹
+                    cleanJsonStr = cleanJsonStr.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '');
+                }
+                
+                comicData = JSON.parse(cleanJsonStr);
+
+                if (!Array.isArray(comicData) || comicData.length === 0) {
+                    throw new Error('解析出的数据结构非有效数组！');
+                }
+
+                // 规范化数据，补足 8 步（防范大模型生成的步骤数误差）
+                while (comicData.length < 8) {
+                    comicData.push({
+                        step: comicData.length + 1,
+                        title: "系统智能演算中",
+                        desc: "小创老师：'小麦，由于算力抖动，这部分的时空碎片还在拼装，我们先看看前后文！' 周小麦：'没问题，小创老师！'",
+                        tech: "E = mc²",
+                        xiaomai_pose: "thinking",
+                        robot_pose: "normal",
+                        visual_prompt: "全息量子屏幕在轻微振荡"
+                    });
+                }
+                // 仅保留 8 步
+                comicData = comicData.slice(0, 8);
+
+                // 大纲加载成功！
+                clearInterval(outlineProgressInterval);
+                outlineProgressInterval = null;
+                updateOutlineProgressUI(100);
+
+                setTimeout(() => {
+                    // 平稳切入正常的影院大屏幕推演
+                    enterCinema(false);
+                }, 400);
+
+            } catch (err) {
+                console.error(err);
+                if (outlineProgressInterval) {
+                    clearInterval(outlineProgressInterval);
+                    outlineProgressInterval = null;
+                }
+                alert(`全息演算失败，原因: ${err.message}\n请检查网络或更换概念重试！`);
+                exitCinema();
+            }
+        }
+
+        // 🚀 后台异步调用中转 API 绘制漫画分镜
+        async function fetchStepImage(index) {
+            if (index < 0 || index >= 8) return;
+            // 如果已存在或正在生成，直接跳过
+            if (imageUrls[index] || loadingImages[index]) {
+                return;
+            }
+
+            const data = comicData[index];
+            if (!data || !data.visual_prompt) return;
+
+            loadingImages[index] = true;
+            progressPercents[index] = 0;
+
+            if (progressIntervals[index]) clearInterval(progressIntervals[index]);
+
+            // 如果是当前步骤，立即拉起全息进度盒子
+            if (index === currentStepIndex) {
+                showProgressBox();
+                updateProgressUI(0, index);
+                updateAiStatus(true, 'AI 正在绘制本页分镜画面...');
+            }
+
+            progressIntervals[index] = setInterval(() => {
+                let current = progressPercents[index];
+                if (current < 30) {
+                    current += Math.random() * 3 + 1.5;
+                } else if (current < 75) {
+                    current += Math.random() * 1.5 + 0.5;
+                } else if (current < 95) {
+                    current += Math.random() * 0.4 + 0.1;
+                } else if (current < 99) {
+                    current += 0.05;
+                }
+                progressPercents[index] = Math.min(current, 99);
+                
+                // 如果用户当前正停留在该分镜，则实时反映到 UI 上
+                if (index === currentStepIndex) {
+                    updateProgressUI(progressPercents[index], index);
+                }
+            }, 100);
+
+            try {
+                // 使用 3D C4D 赛车科技渲染风格 Prompt (融入 IP 核心设定，加入随机种子和物理定义以彻底打碎上游缓存)
+                const charPrompt = `Zhou Xiaomai (a chibi 3.5-head ratio BOY with black fluffy short curly hair, NO glasses, wearing a bright yellow T-shirt with a tiny chest logo, blue shorts, red sneakers) and Dingdang (a chibi bipedal humanoid robot with a glossy white plastic shell, two legs, black screen face showing blue LED smiling eyes, glowing blue LED rings as ears)`;
+                const sceneSeed = (Math.random() * 1000) | 0;
+                const imagePrompt = `3D C4D style cartoon, glossy tech concept render, futuristic educational illustration. In this scene: ${charPrompt} are ${data.visual_prompt}. Dynamic background representing ${data.title} and ${data.tech || ''}. Bright clean studio lighting, vibrant neon colors, clean holographic cyber glow, octane render, masterpiece, rendering engine graphics, step ${index + 1} of 8, seed ${sceneSeed}.`;
+                
+                const response = await fetch('/v1beta/openai/images/generations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'dall-e-3',
+                        prompt: imagePrompt,
+                        n: 1,
+                        size: '1024x1024'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`生图失败: ${response.status}`);
+                }
+
+                const resData = await response.json();
+                const url = resData.data[0].url;
+                
+                if (url) {
+                    imageUrls[index] = url;
+                    if (progressIntervals[index]) {
+                        clearInterval(progressIntervals[index]);
+                        progressIntervals[index] = null;
+                    }
+                    progressPercents[index] = 100;
+
+                    // 如果渲染的是当前步骤，立即展示
+                    if (index === currentStepIndex) {
+                        updateProgressUI(100, index);
+                        setTimeout(() => {
+                            if (index === currentStepIndex) {
+                                displayImage(url);
+                                hideProgressBox();
+                                updateAiStatus(false);
+                            }
+                        }, 400); // 留出400ms用于进度满环动画闭合
+                    }
+                }
+            } catch (err) {
+                console.warn(`第 ${index+1} 步生图出错 (静默降级):`, err);
+                if (progressIntervals[index]) {
+                    clearInterval(progressIntervals[index]);
+                    progressIntervals[index] = null;
+                }
+                progressPercents[index] = 0;
+
+                if (index === currentStepIndex) {
+                    hideProgressBox();
+                    updateAiStatus(true, '⚠️ 画面绘制受阻，已启用全息投影占位');
+                    setTimeout(() => {
+                        if (index === currentStepIndex) updateAiStatus(false);
+                    }, 4000);
+                }
+            } finally {
+                loadingImages[index] = false;
+            }
+        }
+
+        function updateAiStatus(show, text = '') {
+            const aiStatus = document.getElementById('ai-status');
+            const aiStatusText = document.getElementById('ai-status-text');
+            if (show) {
+                aiStatusText.innerText = text;
+                aiStatus.classList.add('show');
+            } else {
+                aiStatus.classList.remove('show');
+            }
+        }
+
+        // 动态日志数据库
+        const GEEK_LOGS = [
+            "SYS: Establishing quantum link...",
+            "SYS: Connecting to Agnes cloud server...",
+            "SYS: Cloud credentials authorized.",
+            "SYS: Model agnes-image-2.0-flash loaded.",
+            "SYS: Downloading model weights...",
+            "SYS: Injecting prompt metadata seed...",
+            "SYS: Constructing C4D 3D space coordinates...",
+            "SYS: Placing Xiaomai and Dingdang C4D meshes...",
+            "SYS: Setting dynamic studio soft lighting...",
+            "SYS: Baking polygons & textures...",
+            "SYS: Computing ray tracing reflections...",
+            "SYS: Computing global illumination bounces...",
+            "SYS: Rendering ambient occlusion map...",
+            "SYS: Denoising frame buffer pixels...",
+            "SYS: Generating final high-res PNG frame...",
+            "SYS: Transferring data stream completed."
+        ];
+
+        // 更新全息进度条 UI
+        function updateProgressUI(percent, stepIndex = 0) {
+            const ringBar = document.getElementById('progress-ring-bar');
+            const wideBar = document.getElementById('wide-progress-bar');
+            const percentText = document.getElementById('holo-render-percent');
+            const stepIndicator = document.getElementById('holo-step-indicator');
+            const sceneHint = document.getElementById('holo-scene-hint');
+            const logLine1 = document.getElementById('geek-log-line-1');
+            const logLine2 = document.getElementById('geek-log-line-2');
+            
+            const rounded = Math.min(Math.round(percent), 100);
+            
+            // 1. 更新百分比文本
+            if (percentText) percentText.innerText = `${rounded}%`;
+            
+            // 2. 更新 SVG 进度环 (周长 351.8)
+            const offset = 351.8 - (351.8 * rounded) / 100;
+            if (ringBar) ringBar.style.strokeDashoffset = offset;
+            
+            // 3. 更新横向流光进度条
+            if (wideBar) wideBar.style.width = `${rounded}%`;
+            
+            // 4. 更新步骤标志
+            if (stepIndicator) stepIndicator.innerText = `FRAME 0${stepIndex + 1}/08 BAKING...`;
+            
+            // 5. 更新分镜任务提示
+            const stepData = comicData[stepIndex];
+            if (stepData && sceneHint) {
+                sceneHint.innerText = `[ 📡 当前场景: ${stepData.visual_prompt || '拼装中...'} ]`;
+            }
+            
+            // 6. 根据进度区间，动态显示极客滚屏调试日志
+            if (logLine1 && logLine2) {
+                const logIndex = Math.min(Math.floor(percent / 12.5), GEEK_LOGS.length - 2);
+                logLine1.innerText = GEEK_LOGS[logIndex];
+                logLine2.innerText = GEEK_LOGS[logIndex + 1];
+            }
+        }
+
+        let hideProgressTimeout = null;
+        let outlineProgressInterval = null;
+
+        function showProgressBox() {
+            if (hideProgressTimeout) {
+                clearTimeout(hideProgressTimeout);
+                hideProgressTimeout = null;
+            }
+            const box = document.getElementById('holo-rendering-box');
+            if (!box) return;
+            box.style.display = 'flex';
+            setTimeout(() => {
+                box.style.opacity = '1';
+                box.style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function hideProgressBox() {
+            const box = document.getElementById('holo-rendering-box');
+            if (!box) return;
+            box.style.opacity = '0';
+            box.style.transform = 'scale(0.95)';
+            if (hideProgressTimeout) clearTimeout(hideProgressTimeout);
+            hideProgressTimeout = setTimeout(() => {
+                box.style.display = 'none';
+            }, 400); // 配合 CSS transition 0.4s
+        }
+
+        function displayImage(url) {
+            const imgBox = document.getElementById('screen-img-box');
+            const img = document.getElementById('screen-img');
+            const techBox = document.getElementById('tech-box');
+            const charXiaomai = document.getElementById('char-xiaomai');
+            const charRobot = document.getElementById('char-robot');
+
+            img.src = url;
+            imgBox.classList.add('show');
+            techBox.classList.add('with-image');
+            
+            // 有图时，小麦和机器人缩小并稍微侧移，防止挡图，且立绘增加亮白边缘
+            charXiaomai.style.transform = 'scale(0.8) translate(-15px, 15px)';
+            charRobot.style.transform = 'scale(0.8) translate(15px, 15px)';
+        }
+
+        function hideImage() {
+            const imgBox = document.getElementById('screen-img-box');
+            const techBox = document.getElementById('tech-box');
+            const charXiaomai = document.getElementById('char-xiaomai');
+            const charRobot = document.getElementById('char-robot');
+
+            imgBox.classList.remove('show');
+            techBox.classList.remove('with-image');
+            
+            // 还原姿势缩放
+            charXiaomai.style.transform = '';
+            charRobot.style.transform = '';
+        }
+
+        // 🎬 影院播放控制
+        function enterCinema(isLoadingOutline = false) {
+            loadingView.style.display = 'none';
+            inputView.style.display = 'none';
+            cinemaView.style.display = 'grid';
+            
+            // 延迟重绘以获取父容器大小
+            setTimeout(() => {
+                resizeScreenCanvas();
+                initScreenParticles();
+                animateScreen();
+            }, 100);
+
+            if (isLoadingOutline) {
+                // 进入大纲加载状态
+                showProgressBox();
+                updateAiStatus(true, '正在链接算力大脑...');
+                
+                // 将右侧面板暂时设为加载态
+                document.getElementById('step-num').innerText = `CONNECTING...`;
+                document.getElementById('step-title').innerText = `同步科普大纲数据中...`;
+                document.getElementById('step-desc').innerText = `Titan大模型正在实时将您输入的概念重构为交互漫画科普大纲。\n这需要进行脑波同频，请耐心等待算力中枢回传数据碎片...\n\n[键盘 ESC 键可中途退出推演]`;
+                document.getElementById('next-btn').innerHTML = `下一页 <span>▶</span>`;
+                document.getElementById('next-btn').disabled = true;
+                
+                // 清空 Tech Box
+                document.getElementById('tech-formula').innerText = `STANDBY`;
+                hideImage();
+            } else {
+                currentStepIndex = 0;
+                document.getElementById('next-btn').disabled = false;
+                renderStep();
+            }
+        }
+
+        function exitCinema() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            // 销毁所有后台进度条定时器
+            for (let i = 0; i < 8; i++) {
+                if (progressIntervals[i]) {
+                    clearInterval(progressIntervals[i]);
+                    progressIntervals[i] = null;
+                }
+                progressPercents[i] = 0;
+            }
+            hideProgressBox();
+            cinemaView.style.display = 'none';
+            inputView.style.display = 'flex';
+            submitBtn.disabled = false;
+        }
+
+        function renderStep() {
+            const data = comicData[currentStepIndex];
+
+            // 渲染右侧文字区
+            document.getElementById('step-num').innerText = `STEP 0${currentStepIndex + 1} / 08`;
+            document.getElementById('step-title').innerText = data.title;
+            document.getElementById('step-desc').innerText = data.desc;
+
+            // 渲染左侧全息大屏
+            document.getElementById('visual-prompt').innerText = `📡 视觉排演分镜 ➔ ${data.visual_prompt || '全息量子实验室场景'}`;
+            document.getElementById('tech-formula').innerText = data.tech || 'F = ma';
+
+            // 角色动作立绘联动样式切换
+            const charXiaomai = document.getElementById('char-xiaomai');
+            const charRobot = document.getElementById('char-robot');
+
+            // 先清除所有 pose 类和 active 高光
+            charXiaomai.className = 'character-card xiaomai-card';
+            charRobot.className = 'character-card robot-card';
+
+            const xPose = data.xiaomai_pose || 'normal';
+            const rPose = data.robot_pose || 'normal';
+
+            // 应用新的动作样式类
+            charXiaomai.classList.add(xPose);
+            charRobot.classList.add(rPose);
+
+            // 动态切换无遮挡的高清透明背景 PNG 动作素材！
+            const imgXiaomai = charXiaomai.querySelector('.character-img');
+            const imgRobot = charRobot.querySelector('.character-img');
+            if (imgXiaomai) {
+                imgXiaomai.src = `/assets/img/xiaomai_${xPose}.png`;
+            }
+            if (imgRobot) {
+                imgRobot.src = `/assets/img/robot_${rPose}.png`;
+            }
+
+            // 根据对话发言分配高光高亮（智能解析谁正在说话）
+            const descLower = data.desc.toLowerCase();
+            const xiaomaiSpeaking = descLower.includes('小麦：') || descLower.includes('小麦说') || descLower.includes('小麦:') || descLower.includes('小麦 :');
+            const robotSpeaking = descLower.includes('机器人：') || descLower.includes('小创老师：') || descLower.includes('小创：') || descLower.includes('小创老师:') || descLower.includes('机器人:') || descLower.includes('小创老师 :') || descLower.includes('小创 :');
+
+            if (xiaomaiSpeaking && !robotSpeaking) {
+                charXiaomai.classList.add('active');
+            } else if (robotSpeaking && !xiaomaiSpeaking) {
+                charRobot.classList.add('active');
+            } else {
+                // 如果都有或都无，则一起发光高亮，形成互动感
+                charXiaomai.classList.add('active');
+                charRobot.classList.add('active');
+            }
+
+            // 处理实时生图显示与降级
+            if (imageUrls[currentStepIndex]) {
+                displayImage(imageUrls[currentStepIndex]);
+                hideProgressBox();
+                updateAiStatus(false);
+            } else {
+                hideImage();
+                if (loadingImages[currentStepIndex]) {
+                    updateAiStatus(true, 'AI 正在绘制本页分镜画面...');
+                    showProgressBox();
+                    updateProgressUI(progressPercents[currentStepIndex], currentStepIndex);
+                } else {
+                    // 触发生图加载，注意这里不要提前调用 hideProgressBox() 以防异步竞态闪烁
+                    updateAiStatus(true, 'AI 正在绘制本页分镜画面...');
+                    fetchStepImage(currentStepIndex);
+                }
+            }
+
+            // 自动开启预加载下一步的图片 (如果小于 7 且还没生成过)
+            if (currentStepIndex < 7 && !imageUrls[currentStepIndex + 1] && !loadingImages[currentStepIndex + 1]) {
+                fetchStepImage(currentStepIndex + 1);
+            }
+
+            // 下一页按钮文案（最后一步变为“完成推演”）
+            const nextBtn = document.getElementById('next-btn');
+            if (currentStepIndex === 7) {
+                nextBtn.innerHTML = `完成推演 <span>✔</span>`;
+            } else {
+                nextBtn.innerHTML = `下一页 <span>▶</span>`;
+            }
+        }
+
+        function nextStep(e) {
+            if (e) e.stopPropagation();
+            if (currentStepIndex < 7) {
+                currentStepIndex++;
+                renderStep();
+            } else {
+                // 已看完，退出
+                exitCinema();
+            }
+        }
+
+        function prevStep(e) {
+            if (e) e.stopPropagation();
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                renderStep();
+            }
+        }
+
+        // 键盘快捷键监听
+        window.addEventListener('keydown', (e) => {
+            if (cinemaView.style.display === 'grid' || cinemaView.style.display === 'flex') {
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    e.preventDefault();
+                    nextStep();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevStep();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    exitCinema();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
