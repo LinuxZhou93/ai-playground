@@ -26,8 +26,8 @@ export async function middleware(request: NextRequest) {
 
   // 2. 原版课件系统 (旧体系)
   if (host.includes('ai.zhouxiaomai.com')) {
-    if (pathname === '/index.html') {
-      return NextResponse.rewrite(new URL('/', request.url));
+    if (pathname === '/' || pathname === '/index.html') {
+      return NextResponse.rewrite(new URL('/edu/generator', request.url));
     }
     if (pathname === '/debate-lab') {
       return NextResponse.rewrite(new URL('/psyche_x_system/frontend/debate_lab.html', request.url));

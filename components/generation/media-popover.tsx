@@ -91,6 +91,7 @@ function getTTSProviderName(providerId: TTSProviderId, t: (key: string) => strin
     'elevenlabs-tts': t('settings.providerElevenLabsTTS'),
     'volcengine-tts': t('settings.providerVolcengineTTS') || '豆包 TTS (火山大模型)',
     'browser-native-tts': t('settings.providerBrowserNativeTTS'),
+    'edge-tts': 'Edge 免费 TTS (云端免密)',
   };
   return names[providerId] || providerId;
 }
