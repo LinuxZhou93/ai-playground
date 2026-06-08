@@ -24,7 +24,8 @@ export function resolveAgentVoice(
       return agent.voiceConfig;
     }
     const list = getServerVoiceList(agent.voiceConfig.providerId);
-    if (list.includes(agent.voiceConfig.voiceId)) {
+    const isAvailable = availableProviders.some((p) => p.providerId === agent.voiceConfig!.providerId);
+    if (list.includes(agent.voiceConfig.voiceId) && isAvailable) {
       return agent.voiceConfig;
     }
   }

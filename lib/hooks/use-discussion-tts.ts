@@ -103,7 +103,17 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       }
       // Teacher: always use global lecture voice (single source of truth with settings)
       if (agent.role === 'teacher') {
-        return { providerId: globalTtsProviderId, voiceId: globalTtsVoice };
+        const isGlobalAvailable = providers.some((p) => p.providerId === globalTtsProviderId);
+        if (isGlobalAvailable) {
+          return { providerId: globalTtsProviderId, voiceId: globalTtsVoice };
+        }
+        if (providers.length > 0) {
+          return {
+            providerId: providers[0].providerId,
+            voiceId: providers[0].voices[0]?.id ?? 'default',
+          };
+        }
+        return { providerId: 'browser-native-tts', voiceId: 'default' };
       }
       const index = agentIndexMap.current.get(agentId) ?? 0;
       return resolveAgentVoice(agent, index, providers);

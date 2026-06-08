@@ -15,6 +15,7 @@ import { cleanTextForTTS } from '@/lib/audio/tts-utils';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import { TTS_PROVIDERS } from '@/lib/audio/constants';
 
 const log = createLogger('TTS API');
 
@@ -56,20 +57,43 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const apiKey = clientBaseUrl
+    const initialApiKey = clientBaseUrl
       ? ttsApiKey || ''
       : resolveTTSApiKey(ttsProviderId, ttsApiKey || undefined);
-    const baseUrl = clientBaseUrl
+    const initialBaseUrl = clientBaseUrl
       ? clientBaseUrl
       : resolveTTSBaseUrl(ttsProviderId, ttsBaseUrl || undefined);
 
+    let resolvedProviderId = ttsProviderId;
+    let resolvedVoice = ttsVoice;
+    let resolvedApiKey = initialApiKey;
+    let resolvedBaseUrl = initialBaseUrl;
+
+    // 🚀 服务端平滑降级双保险：若指定的提供商需要 API Key 但实际没有配置，直接安全降级到免密的 Edge TTS
+    const providerDef = TTS_PROVIDERS[ttsProviderId];
+    if (providerDef?.requiresApiKey && !resolvedApiKey && ttsProviderId !== 'volcengine-tts') {
+      log.info(`[TTS Server Fallback] Provider ${ttsProviderId} requires API key but none provided. Falling back to edge-tts.`);
+      resolvedProviderId = 'edge-tts';
+      resolvedApiKey = '';
+      resolvedBaseUrl = undefined;
+
+      const v = ttsVoice.toLowerCase();
+      if (v.includes('xiaoxiao') || v.includes('nova') || v.includes('shimmer') || v.includes('coral') || v.includes('serena') || v.includes('chelsie') || v.includes('momo') || v.includes('vivian') || v.includes('maia') || v.includes('bella') || v.includes('jennifer') || v.includes('katerina') || v.includes('mia') || v.includes('bellona') || v.includes('bunny') || v.includes('elias') || v.includes('nini') || v.includes('ebona') || v.includes('seren') || v.includes('stella') || v.includes('xiaoyi') || v.includes('jenny')) {
+        resolvedVoice = 'zh-CN-XiaoxiaoNeural';
+      } else if (v.includes('yunxi') || v.includes('echo') || v.includes('onyx') || v.includes('ethan') || v.includes('moon') || v.includes('kai') || v.includes('nofish') || v.includes('ryan') || v.includes('aiden') || v.includes('mochi') || v.includes('vincent') || v.includes('neil') || v.includes('arthur') || v.includes('pip') || v.includes('yunjian') || v.includes('guy')) {
+        resolvedVoice = 'zh-CN-YunxiNeural';
+      } else {
+        resolvedVoice = 'zh-CN-XiaoxiaoNeural';
+      }
+    }
+
     // Build TTS config
     const config = {
-      providerId: ttsProviderId,
-      voice: ttsVoice,
+      providerId: resolvedProviderId,
+      voice: resolvedVoice,
       speed: ttsSpeed ?? 1.0,
-      apiKey,
-      baseUrl,
+      apiKey: resolvedApiKey,
+      baseUrl: resolvedBaseUrl,
       format: ttsFormat || 'mp3',
     };
 
