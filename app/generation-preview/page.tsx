@@ -873,7 +873,7 @@ function GenerationPreviewContent() {
         }
 
         if (ttsFailCount > 0 && speechActions.length > 0) {
-          throw new Error(t("generation.speechFailed") + ` (${errorMessages[0]})`);
+          log.warn(`Some TTS voices failed to generate, we will rely on client Browser Speech fallback during classroom play:`, errorMessages);
         }
       }
 

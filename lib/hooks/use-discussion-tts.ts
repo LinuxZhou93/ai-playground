@@ -203,7 +203,15 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       await audio.play();
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        console.error('[DiscussionTTS] TTS generation failed:', err);
+        console.error('[DiscussionTTS] TTS generation failed, falling back to Browser TTS:', err);
+        try {
+          currentProviderRef.current = 'browser-native-tts';
+          onAudioStateChangeRef.current?.(item.agentId, 'playing');
+          browserSpeakRef.current(item.text, 'default');
+          return; // 🚀 转移到浏览器语音发声，直接返回！不跳过本句朗读！
+        } catch (browserErr) {
+          console.error('[DiscussionTTS] Browser TTS fallback failed:', browserErr);
+        }
       }
       audioRef.current = null;
       isPlayingRef.current = false;

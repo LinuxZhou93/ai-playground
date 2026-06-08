@@ -212,21 +212,14 @@ async function generateTTSForScene(
     try {
       await generateAndStoreTTS(audioId, action.text, signal);
     } catch (error) {
-      failedCount++;
-      lastError = error instanceof Error ? error.message : `TTS failed for action ${action.id}`;
-      log.warn('TTS generation failed:', {
-        providerId,
-        actionId: action.id,
-        textLength: action.text.length,
-        error: lastError,
-      });
+      // 🚀 核心容灾重构：配音生成失败不作为分镜生成的卡点，允许正常生成，播放时在前端做 Browser TTS 降级
+      log.warn(`TTS generation failed for ${audioId}, we will fall back to Browser Speech:`, error);
     }
   }
 
   return {
-    success: failedCount === 0,
-    failedCount,
-    error: lastError,
+    success: true,
+    failedCount: 0,
   };
 }
 
