@@ -41,10 +41,11 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
   const segmentDoneCounterRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const autoplayBlockedRef = useRef(false);
   const onAudioStateChangeRef = useRef(onAudioStateChange);
   onAudioStateChangeRef.current = onAudioStateChange;
   const processQueueRef = useRef<() => void>(() => {});
-
+  
   const {
     speak: browserSpeak,
     pause: browserPause,
@@ -202,6 +203,13 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       onAudioStateChangeRef.current?.(item.agentId, 'playing');
       await audio.play();
     } catch (err) {
+      const isAutoplayError = err instanceof DOMException && err.name === 'NotAllowedError';
+      if (isAutoplayError) {
+        console.warn('[DiscussionTTS] Playback blocked by Autoplay Policy. Waiting for user interaction.');
+        autoplayBlockedRef.current = true;
+        return; // Wait for user gesture, don't fallback to Browser TTS (which will also be blocked)
+      }
+
       if ((err as Error).name !== 'AbortError') {
         console.error('[DiscussionTTS] TTS generation failed, falling back to Browser TTS:', err);
         try {
@@ -296,6 +304,39 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       audioRef.current.volume = ttsMuted ? 0 : ttsVolume;
     }
   }, [ttsVolume, ttsMuted]);
+
+  // 全局 click 监听器：一旦用户点击了页面，如果之前被 Autoplay 拦截了，立刻尝试恢复播放！
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (autoplayBlockedRef.current) {
+        console.log('[DiscussionTTS] User interaction detected, resuming blocked TTS playback...');
+        autoplayBlockedRef.current = false;
+        
+        // 1. 如果有挂起的 HTML5 Audio，直接尝试播放它
+        if (audioRef.current && audioRef.current.paused) {
+          audioRef.current.play().then(() => {
+            console.log('[DiscussionTTS] Successfully resumed HTML5 Audio after user interaction.');
+          }).catch((e) => {
+            console.error('[DiscussionTTS] Failed to resume HTML5 Audio after user interaction:', e);
+          });
+        }
+        
+        // 2. 如果之前是 Browser TTS 挂起，我们尝试 resume
+        if (currentProviderRef.current === 'browser-native-tts') {
+          browserResumeRef.current();
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('click', handleGlobalClick, { capture: true });
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('click', handleGlobalClick, { capture: true });
+      }
+    };
+  }, []);
 
   useEffect(() => cleanup, [cleanup]);
 
