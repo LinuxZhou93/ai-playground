@@ -24,10 +24,10 @@ export async function middleware(request: NextRequest) {
     // 即使主域名直接访问 /edu，也直接放行，Next.js 会匹配 app/edu
   }
 
-  // 2. 原版课件系统 (旧体系)
+  // 2. 原版课件 system (旧体系)
   if (host.includes('ai.zhouxiaomai.com')) {
     if (pathname === '/' || pathname === '/index.html') {
-      return NextResponse.rewrite(new URL('/edu/generator', request.url));
+      return NextResponse.next();
     }
     if (pathname === '/debate-lab') {
       return NextResponse.rewrite(new URL('/psyche_x_system/frontend/debate_lab.html', request.url));
