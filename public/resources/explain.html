@@ -889,6 +889,37 @@
             letter-spacing: 1px;
         }
 
+        /* 角色说话抖动微动画 */
+        .character-card.speaking {
+            animation: char-speak 0.45s infinite alternate ease-in-out;
+            filter: drop-shadow(0 0 25px rgba(var(--primary-rgb), 0.75)) !important;
+            opacity: 1 !important;
+        }
+
+        @keyframes char-speak {
+            0% { transform: translateY(0) scale(1.08) rotate(0deg); }
+            50% { transform: translateY(-3px) scale(1.1) rotate(0.6deg); }
+            100% { transform: translateY(0) scale(1.08) rotate(-0.6deg); }
+        }
+
+        /* 渐变过渡类 */
+        .fade-transition {
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+        .fade-out {
+            opacity: 0 !important;
+            transform: translateY(4px) scale(0.98);
+        }
+
+        /* 音频控制按钮置灰/静音样式 */
+        .cinema-controls .capsule-btn.muted {
+            opacity: 0.55;
+            color: var(--text-mute) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            box-shadow: none !important;
+        }
+
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -1178,6 +1209,19 @@
                 <div class="escape-hint">ESC 退出影院</div>
                 <canvas id="screen-canvas"></canvas>
                 
+                <!-- BGM / TTS 悬浮控制面板 -->
+                <div class="cinema-controls" style="position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; z-index: 999;">
+                    <button id="bgm-toggle-btn" class="capsule-btn" onclick="toggleBgm(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 4px; background: rgba(10, 16, 30, 0.7); border: 1px solid rgba(var(--primary-rgb), 0.3); border-radius: 8px; color: var(--primary); cursor: pointer; backdrop-filter: blur(8px);">
+                        <span class="music-icon">🎵</span>
+                        <span class="music-text">音乐开</span>
+                    </button>
+                    <button id="tts-toggle-btn" class="capsule-btn" onclick="toggleTts(event)" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 4px; background: rgba(10, 16, 30, 0.7); border: 1px solid rgba(var(--primary-rgb), 0.3); border-radius: 8px; color: var(--primary); cursor: pointer; backdrop-filter: blur(8px);">
+                        <span class="tts-icon">🔊</span>
+                        <span class="tts-text">语音开</span>
+                    </button>
+                </div>
+
+                
                 <!-- 浮动箭头翻页 -->
                 <button class="cinema-arrow prev-arrow" onclick="prevStep(event)">‹</button>
                 <button class="cinema-arrow next-arrow" onclick="nextStep(event)">›</button>
@@ -1185,7 +1229,7 @@
                 <div class="holo-stage">
                     <!-- 视觉场景文字描述与生图状态 -->
                     <div style="display:flex; width:100%; justify-content:space-between; align-items:center; gap:12px; z-index:9;">
-                        <div id="visual-prompt" class="visual-prompt-ticker" style="flex:1;">
+                        <div id="visual-prompt" class="visual-prompt-ticker fade-transition" style="flex:1;">
                             正在同步全息信道画面分镜描述...
                         </div>
                         <div id="ai-status" class="ai-status-indicator">
@@ -1238,7 +1282,7 @@
                     </div>
 
                     <!-- 核心 Tech Box 公式 -->
-                    <div id="tech-box" class="tech-box-float">
+                    <div id="tech-box" class="tech-box-float fade-transition">
                         <div class="tech-box-header">Tech Principle Box</div>
                         <div id="tech-formula" class="tech-box-formula">loading...</div>
                     </div>
@@ -1266,7 +1310,7 @@
                         <div id="step-num" class="step-badge">STEP 01 / 08</div>
                         <div style="font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 1px;">SCIENCE COGNITION</div>
                     </div>
-                    <div id="step-title" class="story-title">量子跃迁与时空</div>
+                    <div id="step-title" class="story-title fade-transition">量子跃迁与时空</div>
                 </div>
 
                 <div class="story-content-box">
@@ -2079,8 +2123,34 @@
                     e.preventDefault();
                     exitCinema();
                 }
-            }
         });
+
+        // 📱 移动端/iPad 左右滑动手势翻页
+        let touchStartX = 0;
+        let touchStartTime = 0;
+        const screenArea = document.querySelector('.screen-area');
+        if (screenArea) {
+            screenArea.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartTime = Date.now();
+            }, { passive: true });
+
+            screenArea.addEventListener('touchend', (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                const touchEndTime = Date.now();
+                const diffX = touchEndX - touchStartX;
+                const diffTime = touchEndTime - touchStartTime;
+
+                // 划动判定：滑行水平距离 > 60px 且耗时 < 350ms
+                if (Math.abs(diffX) > 60 && diffTime < 350) {
+                    if (diffX > 0) {
+                        prevStep(); // 向右划，上一页
+                    } else {
+                        nextStep(); // 向左划，下一页
+                    }
+                }
+            }, { passive: true });
+        }
     </script>
 </body>
 </html>
