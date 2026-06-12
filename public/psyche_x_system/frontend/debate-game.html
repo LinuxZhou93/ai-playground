@@ -2796,6 +2796,11 @@
             background: #010206;
             display: block;
         }
+        #laurels-chamber-canvas {
+            background: #010103;
+            display: block;
+        }
+
         #battlefield-canvas {
             background: #010204;
             display: block;
@@ -3911,6 +3916,8 @@
 </style>
 </head>
 <body>
+    <!-- 🏆 第三十四阶段：荣誉殿堂悬浮按钮 -->
+    <div id="laurels-chamber-toggle-btn" onclick="openLaurelsChamber()" title="WSDC 荣誉陈列室">🏆</div>
     <!-- 📡 第三十阶段：全息总控悬浮按钮 -->
     <div id="holographic-map-toggle-btn" onclick="openHolographicTuner()" title="WSDC 全息智能舱总控台">📡</div>
 <div class="wrap">
@@ -11318,6 +11325,33 @@ ${document.getElementById("radar-smart-advice").innerText}
                     <span id="battlefield-tip" style="font-size:9px; color:rgba(255,255,255,0.4); max-width:180px; text-align:left; line-height:1.2;">鼠标拖动可全向3D浏览势能地形网格</span>
                 </div>
                 <button class="btn btn-ghost" onclick="closeArgumentBattlefield()" style="font-size:11px; padding:6px 18px; border-radius:8px; cursor:pointer;">关闭战场舱</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- 🏆 第三十四阶段：WSDC 荣誉陈列室与能力整合雷达 -->
+    <div id="laurels-chamber-modal" class="vocab-modal-overlay hidden" onclick="closeLaurelsChamber(event)" style="z-index:10029; position:fixed; inset:0; background:rgba(2, 2, 5, 0.96); display:flex; justify-content:center; align-items:center; backdrop-filter:blur(10px);">
+        <div class="vocab-modal-card" onclick="event.stopPropagation()" style="max-width:590px; width:94%; padding:22px; background:#070502; border:1px solid rgba(230,185,59,0.35); border-radius:22px; position:relative; box-shadow:0 30px 75px rgba(0,0,0,0.95); box-sizing:border-box;">
+            <h4 style="margin-top:0; color:#E6B93B; font-size:16px; margin-bottom:4px; display:flex; align-items:center; justify-content:center; gap:6px;">🏆 WSDC 荣誉陈列室与宇宙战力雷达 (Trophy & Laurels Chamber)</h4>
+            <div style="font-size:10px; color:var(--muted); margin-bottom:12px; text-align:center;">全息粒子奖杯自转起舞，五角星河雷达评估您当前的系统化思辩战力。</div>
+            
+            <!-- Canvas 容器 -->
+            <div style="position:relative; background:#010103; border-radius:12px; overflow:hidden; border:1px solid rgba(230,185,59,0.15); margin-bottom:12px; box-shadow:0 8px 25px rgba(0,0,0,0.85);">
+                <canvas id="laurels-chamber-canvas" width="546" height="280" style="width:100%; height:280px; display:block; cursor:grab;"></canvas>
+                <!-- 实时战力诊断 -->
+                <div style="position:absolute; top:10px; left:10px; right:10px; background:rgba(10,8,4,0.9); border:1px solid rgba(230,185,59,0.25); border-radius:6px; padding:6px 10px; font-size:9.5px; text-align:left; color:#ffeebf; line-height:1.4; pointer-events:none;">
+                    <strong>🎓 战力诊断:</strong> <span id="laurels-jessica-feedback">加载雷达多维战力数据中... 评估分析您的说服和反驳表现。</span>
+                </div>
+            </div>
+
+            <!-- 下方勋章激活状态与彩带测试 -->
+            <div style="display:flex; justify-content:space-between; align-items:center; box-sizing:border-box;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:9.5px; color:rgba(255,255,255,0.5);">点亮勋章测试礼花:</span>
+                    <button class="btn btn-xs" onclick="triggerLaurelsConfetti()" style="font-size:9.5px; padding:4px 10px; background:rgba(230,185,59,0.15); border:1px solid #E6B93B; color:#E6B93B; border-radius:4px; cursor:pointer;">🎉 激发彩带</button>
+                </div>
+                <button class="btn btn-ghost" onclick="closeLaurelsChamber()" style="font-size:11px; padding:6px 18px; border-radius:8px; cursor:pointer;">关闭陈列室</button>
             </div>
         </div>
     </div>
@@ -19041,6 +19075,311 @@ ${document.getElementById("radar-smart-advice").innerText}
 
         function onBattleMouseUp() {
             isBattleDragging = false;
+        }
+
+
+        // ================== 第三十四阶段：WSDC 全息 3D 荣誉陈列室与能力整合雷达核心引擎 ==================
+        let isLaurelsActive = false;
+        let laurelsCanvas = null;
+        let laurelsCtx = null;
+        let laurelsAnimId = null;
+
+        let laurelsTheta = 0.5;
+        let laurelsPhi = 0.2;
+        let isLaurelsDragging = false;
+        let lastLaurelsX = 0;
+        let lastLaurelsY = 0;
+
+        let trophyParticles = [];
+        let laurelsConfetti = [];
+
+        function openLaurelsChamber() {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            const modal = document.getElementById("laurels-chamber-modal");
+            if (modal) modal.classList.remove("hidden");
+
+            isLaurelsActive = true;
+            laurelsCanvas = document.getElementById("laurels-chamber-canvas");
+            if (!laurelsCanvas) return;
+            laurelsCtx = laurelsCanvas.getContext("2d");
+
+            laurelsCanvas.onmousedown = onLaurelsMouseDown;
+            laurelsCanvas.onmousemove = onLaurelsMouseMove;
+            window.addEventListener('mouseup', onLaurelsMouseUp);
+
+            laurelsConfetti = [];
+            initTrophy3DData();
+            updateLaurelsJessicaFeedback();
+            drawLaurelsFrame();
+        }
+
+        function closeLaurelsChamber() {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            const modal = document.getElementById("laurels-chamber-modal");
+            if (modal) modal.classList.add("hidden");
+            isLaurelsActive = false;
+            
+            if (laurelsCanvas) {
+                laurelsCanvas.onmousedown = null;
+                laurelsCanvas.onmousemove = null;
+            }
+            window.removeEventListener('mouseup', onLaurelsMouseUp);
+            if (laurelsAnimId) {
+                cancelAnimationFrame(laurelsAnimId);
+                laurelsAnimId = null;
+            }
+        }
+
+        function initTrophy3DData() {
+            trophyParticles = [];
+            // 基于圆环叠加生成 3D 双曲粒子金杯
+            // 7层圆圈代表杯身
+            for (let y = -40; y <= 40; y += 10) {
+                let r = 10 + (y - 10) * (y - 10) * 0.025; // 双曲线半径
+                if (y === -40) r = 24; // 顶部杯缘稍微放大
+                if (y === 40) r = 20;  // 底座
+
+                const segments = 12;
+                for (let i = 0; i < segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    trophyParticles.push({
+                        x3d: r * Math.cos(angle),
+                        y3d: y + 15, // 下移一点
+                        z3d: r * Math.sin(angle),
+                        projX: 0,
+                        projY: 0,
+                        projScale: 1
+                    });
+                }
+            }
+        }
+
+        function updateLaurelsJessicaFeedback() {
+            const feedback = document.getElementById("laurels-jessica-feedback");
+            if (!feedback) return;
+
+            const brainBonus = (typeof prefrontalTunerWeight !== "undefined") ? prefrontalTunerWeight : 1.0;
+            const interceptedCount = (typeof interceptedMissilesCount !== "undefined") ? interceptedMissilesCount : 0;
+
+            if (brainBonus > 1.2 && interceptedCount > 0) {
+                feedback.innerHTML = "🏆 <strong>大满贯诊断:</strong> 你的 3D 大脑前额叶逻辑共振已被设为最大增益，且成功拦截逻辑飞弹！理智说服与驳论盾牌战力被评估为【星河辩手】称号！";
+            } else {
+                feedback.innerHTML = "🎓 <strong>思辩评级:</strong> 当前战力整合完成。调大 3D 脑电调节仪振幅并拦截逻辑飞弹，可显著推升雷达战力与称号评定。";
+            }
+        }
+
+        function triggerLaurelsConfetti() {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            // 喷射物理抛物线彩带
+            const colors = ["#ff5e7e", "#3fb950", "#5b9dff", "#E6B93B", "#a371f7", "#00f0ff"];
+            for (let i = 0; i < 50; i++) {
+                const ang = Math.random() * Math.PI * 2;
+                const spd = 2 + Math.random() * 4.5;
+                laurelsConfetti.push({
+                    x: 140, // 金杯顶部
+                    y: 70,
+                    vx: spd * Math.cos(ang),
+                    vy: spd * Math.sin(ang) - 2.5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    r: 2 + Math.random() * 2,
+                    g: 0.09, // 重力
+                    life: 1.0,
+                    decay: 0.015 + Math.random() * 0.01
+                });
+            }
+            updateLaurelsJessicaFeedback();
+        }
+
+        // ================== 3D 金杯与雷达绘制 ==================
+        function drawLaurelsFrame() {
+            if (!isLaurelsActive || !laurelsCtx || !laurelsCanvas) return;
+
+            const W = laurelsCanvas.width;
+            const H = laurelsCanvas.height;
+            const ctx = laurelsCtx;
+            ctx.fillStyle = "#070502";
+            ctx.fillRect(0, 0, W, H);
+
+            // 分割左右视窗 (X = 273 为中线)
+            ctx.strokeStyle = "rgba(230,185,59,0.08)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(273, 0); ctx.lineTo(273, H);
+            ctx.stroke();
+
+            const F = 200;
+            const sinT = Math.sin(laurelsTheta);
+            const cosT = Math.cos(laurelsTheta);
+            const sinP = Math.sin(laurelsPhi);
+            const cosP = Math.cos(laurelsPhi);
+
+            // 左半边 3D 奖杯投影中心 CX = 140, CY = 150
+            const projectLeft = (pt) => {
+                let y1 = pt.y3d * cosP - pt.z3d * sinP;
+                let z1 = pt.y3d * sinP + pt.z3d * cosP;
+                let x2 = pt.x3d * cosT + z1 * sinT;
+                let z2 = -pt.x3d * sinT + z1 * cosT;
+
+                const scale = F / (F + z2);
+                pt.projX = 140 + x2 * scale;
+                pt.projY = 150 + y1 * scale;
+                pt.projScale = scale;
+            };
+
+            // 1. 绘制粒子奖杯
+            trophyParticles.forEach(projectLeft);
+            ctx.fillStyle = "#E6B93B";
+            ctx.strokeStyle = "rgba(230,185,59,0.18)";
+            ctx.lineWidth = 0.5;
+
+            // 绘制粒子
+            trophyParticles.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.projX, pt.projY, 1.2 * pt.projScale, 0, Math.PI*2);
+                ctx.fill();
+            });
+
+            // 环形线条连接
+            const segments = 12;
+            const rings = trophyParticles.length / segments;
+            for (let r = 0; r < rings; r++) {
+                ctx.beginPath();
+                for (let i = 0; i < segments; i++) {
+                    const idx = r * segments + i;
+                    const nextIdx = r * segments + ((i + 1) % segments);
+                    if (i === 0) ctx.moveTo(trophyParticles[idx].projX, trophyParticles[idx].projY);
+                    else ctx.lineTo(trophyParticles[idx].projX, trophyParticles[idx].projY);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            // 2. 更新并绘制彩带物理星爆
+            for (let i = laurelsConfetti.length - 1; i >= 0; i--) {
+                const p = laurelsConfetti[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.g; // 重力下落
+                p.life -= p.decay;
+
+                if (p.life <= 0) {
+                    laurelsConfetti.splice(i, 1);
+                    continue;
+                }
+
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+
+            // 3. 右半边五角能力雷达 (中心 X = 405, Y = 160)
+            const rx = 405;
+            const ry = 160;
+            const maxRadius = 75;
+
+            // 绘制雷达环网
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+            for (let step = 0.25; step <= 1.0; step += 0.25) {
+                ctx.beginPath();
+                for (let k = 0; k < 5; k++) {
+                    const ang = -Math.PI/2 + (k / 5) * Math.PI * 2;
+                    const curR = maxRadius * step;
+                    const px = rx + Math.cos(ang) * curR;
+                    const py = ry + Math.sin(ang) * curR;
+                    if (k === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            // 雷达骨架线
+            ctx.beginPath();
+            for (let k = 0; k < 5; k++) {
+                const ang = -Math.PI/2 + (k / 5) * Math.PI * 2;
+                ctx.moveTo(rx, ry);
+                ctx.lineTo(rx + Math.cos(ang) * maxRadius, ry + Math.sin(ang) * maxRadius);
+            }
+            ctx.stroke();
+
+            // 评估分数读取与绘制
+            const brainBonus = (typeof prefrontalTunerWeight !== "undefined") ? prefrontalTunerWeight : 1.0;
+            const voiceBonus = (typeof temporalTunerWeight !== "undefined") ? temporalTunerWeight : 1.0;
+            const interceptedCount = (typeof interceptedMissilesCount !== "undefined") ? interceptedMissilesCount : 0;
+
+            const scores = {
+                logos: 72 + (brainBonus - 1.0) * 20,
+                pathos: 70 + (voiceBonus - 1.0) * 20,
+                ethos: 78,
+                kairos: 68,
+                defense: Math.min(98, 62 + interceptedCount * 6)
+            };
+
+            const labels = ["Logos 理智", "Pathos 情感", "Ethos 威信", "Kairos 时点", "Defense 防御"];
+            const valKeys = ["logos", "pathos", "ethos", "kairos", "defense"];
+
+            ctx.fillStyle = "rgba(230,185,59,0.25)";
+            ctx.strokeStyle = "#E6B93B";
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+
+            for (let k = 0; k < 5; k++) {
+                const ang = -Math.PI/2 + (k / 5) * Math.PI * 2;
+                const ratio = Math.max(10, Math.min(100, scores[valKeys[k]])) / 100;
+                const curR = maxRadius * ratio;
+                const px = rx + Math.cos(ang) * curR;
+                const py = ry + Math.sin(ang) * curR;
+                if (k === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 绘制雷达各顶点标签
+            ctx.fillStyle = "#fff";
+            ctx.font = "8.5px sans-serif";
+            ctx.textAlign = "center";
+            for (let k = 0; k < 5; k++) {
+                const ang = -Math.PI/2 + (k / 5) * Math.PI * 2;
+                // 将标签略微往外偏置
+                const px = rx + Math.cos(ang) * (maxRadius + 14);
+                const py = ry + Math.sin(ang) * (maxRadius + 14);
+                ctx.fillText(`${labels[k]}: ${Math.round(scores[valKeys[k]])}`, px, py);
+            }
+
+            // 自转
+            if (!isLaurelsDragging) {
+                laurelsTheta += 0.003;
+            }
+
+            laurelsAnimId = requestAnimationFrame(drawLaurelsFrame);
+        }
+
+        // ================== 3D 鼠标拖拽视角 ==================
+        function onLaurelsMouseDown(e) {
+            isLaurelsDragging = true;
+            lastLaurelsX = e.clientX;
+            lastLaurelsY = e.clientY;
+        }
+
+        function onLaurelsMouseMove(e) {
+            if (!isLaurelsActive || !isLaurelsDragging) return;
+            const deltaX = e.clientX - lastLaurelsX;
+            const deltaY = e.clientY - lastLaurelsY;
+
+            laurelsTheta += deltaX * 0.005;
+            laurelsPhi = Math.max(-Math.PI/2, Math.min(Math.PI/2, laurelsPhi + deltaY * 0.005));
+
+            lastLaurelsX = e.clientX;
+            lastLaurelsY = e.clientY;
+        }
+
+        function onLaurelsMouseUp() {
+            isLaurelsDragging = false;
         }
 
 </script>
