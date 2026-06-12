@@ -2744,6 +2744,16 @@
         
         
         
+        
+        /* ================== 第十八阶段：WSDC 五维思维雷达样式 ================== */
+        #radar-analysis-panel {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(91, 157, 255, 0.05);
+            transition: all 0.3s;
+        }
+        #radar-analysis-panel:hover {
+            border-color: rgba(91, 157, 255, 0.28) !important;
+        }
+
         /* ================== 第十七阶段：3v3 团队对抗席位样式 ================== */
         .arena-team-desk {
             width: 75px;
@@ -4699,6 +4709,26 @@
     </div>
 
     
+    
+    <!-- 📊 WSDC 思辩五维雷达与胜负预测面板 -->
+    <div class="card" id="radar-analysis-panel" style="margin-top:14px; background:rgba(15,23,42,0.45); border:1px solid rgba(91,157,255,0.18); box-sizing:border-box;">
+        <div style="font-weight:600; font-size:13px; color:#5b9dff; margin-bottom:4px; display:flex; align-items:center; gap:4px;">
+            📊 WSDC 官方五维思辩雷达与胜负推演
+        </div>
+        <div class="subtitle" style="font-size:11px; color:var(--muted); margin-bottom:12px;">
+            实时评估本轮您在逻辑、证据、风格、策略、驳论等维度的表现，并推演未来的潜在胜率。
+        </div>
+        <div style="display:flex; flex-direction:row; gap:12px; align-items:center; justify-content:center;">
+            <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+                <canvas id="argument-radar-canvas" width="180" height="180" style="width:180px; height:180px; display:block;"></canvas>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+                <div style="font-size:11px; font-weight:bold; color:#fff; margin-bottom:4px;">📈 胜率预测推演：<span id="victory-predict-pct-label" style="color:#E6B93B;">50%</span></div>
+                <canvas id="victory-predict-canvas" width="180" height="90" style="width:180px; height:90px; display:block; background:#070b19; border-radius:6px; border:1px solid rgba(255,255,255,0.05);"></canvas>
+            </div>
+        </div>
+    </div>
+
     <!-- 🏆 WSDC 国际官方三维裁判评分细则面板 -->
     <div class="card" id="wsdc-rubric-panel" style="margin-top:14px; background:rgba(15,23,42,0.45); border-color:rgba(230,185,59,0.18); box-sizing:border-box;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -5627,6 +5657,7 @@ $('start-btn').addEventListener('click', () => {
     initArenaParticles(); startAudienceMindwaveLoop(); startBulletSpawner(); updateAudienceBiasGraph(50, 50);
     startSpectateAutoplay();
     if (typeof initFluidSandbox === 'function') initFluidSandbox();
+    if (typeof initRadarStation === 'function') initRadarStation();
     return;
   }
   
@@ -5649,6 +5680,7 @@ $('start-btn').addEventListener('click', () => {
   $('page-debate').classList.remove('hidden');
   setStageMode('', '等待你的开场');
   if (typeof initFluidSandbox === 'function') initFluidSandbox();
+  if (typeof initRadarStation === 'function') initRadarStation();
   $('player-input').focus();
 });
 
@@ -5985,6 +6017,7 @@ function showResult(j) {
   // WSDC 三维打分明细联动
   if (typeof updateWsdcRubricScores === "function") {
       updateWsdcRubricScores(j.player);
+      if (typeof updateArgumentRadarScores === 'function') updateArgumentRadarScores(j.player);
   }
   
   const plan = renderTrainingRecap(j);
@@ -13300,6 +13333,7 @@ ${document.getElementById("radar-smart-advice").innerText}
             document.getElementById("page-setup").classList.add("hidden");
             document.getElementById("page-debate").classList.remove("hidden");
             if (typeof initFluidSandbox === 'function') initFluidSandbox();
+            if (typeof initRadarStation === 'function') initRadarStation();
 
             playBlitzBgm();
 
@@ -14058,6 +14092,209 @@ ${document.getElementById("radar-smart-advice").innerText}
 
             document.getElementById("page-debate").classList.add("hidden");
             document.getElementById("page-setup").classList.remove("hidden");
+        }
+
+
+        // ================== 第十八阶段：WSDC 五维思维雷达与预测推演逻辑 ==================
+        let radarCanvas = null;
+        let radarCtx = null;
+        let predictCanvas = null;
+        let predictCtx = null;
+
+        let radarDimensions = {
+            logic: 60,
+            evidence: 60,
+            delivery: 60,
+            strategy: 60,
+            rebuttal: 60
+        };
+
+        let winProbabilityHistory = [50];
+
+        function drawArgumentRadar() {
+            radarCanvas = document.getElementById("argument-radar-canvas");
+            if (!radarCanvas) return;
+            radarCtx = radarCanvas.getContext("2d");
+            
+            const W = radarCanvas.width;
+            const H = radarCanvas.height;
+            const cx = W / 2;
+            const cy = H / 2;
+            const radius = Math.min(cx, cy) * 0.72;
+
+            radarCtx.clearRect(0, 0, W, H);
+
+            const labels = ["逻辑 (Logic)", "证据 (Evidence)", "表达 (Delivery)", "策略 (Strategy)", "驳论 (Rebuttal)"];
+            const count = labels.length;
+            const angleStep = (Math.PI * 2) / count;
+
+            for (let level = 1; level <= 3; level++) {
+                const r = radius * (level / 3);
+                radarCtx.beginPath();
+                radarCtx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+                radarCtx.lineWidth = 1;
+                for (let i = 0; i < count; i++) {
+                    const angle = i * angleStep - Math.PI / 2;
+                    const x = cx + r * Math.cos(angle);
+                    const y = cy + r * Math.sin(angle);
+                    if (i === 0) radarCtx.moveTo(x, y);
+                    else radarCtx.lineTo(x, y);
+                }
+                radarCtx.closePath();
+                radarCtx.stroke();
+            }
+
+            radarCtx.beginPath();
+            radarCtx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+            for (let i = 0; i < count; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                radarCtx.moveTo(cx, cy);
+                radarCtx.lineTo(cx + radius * Math.cos(angle), cy + radius * Math.sin(angle));
+            }
+            radarCtx.stroke();
+
+            radarCtx.fillStyle = "rgba(255, 255, 255, 0.55)";
+            radarCtx.font = "9px sans-serif";
+            radarCtx.textAlign = "center";
+            for (let i = 0; i < count; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const offset = 12;
+                const x = cx + (radius + offset) * Math.cos(angle);
+                let y = cy + (radius + offset) * Math.sin(angle);
+                if (i === 2 || i === 3) y += 4;
+                if (i === 0) y -= 4;
+                radarCtx.fillText(labels[i], x, y);
+            }
+
+            const dataKeys = ["logic", "evidence", "delivery", "strategy", "rebuttal"];
+            radarCtx.beginPath();
+            radarCtx.strokeStyle = "rgba(91, 157, 255, 0.85)";
+            radarCtx.fillStyle = "rgba(91, 157, 255, 0.22)";
+            radarCtx.lineWidth = 1.5;
+
+            for (let i = 0; i < count; i++) {
+                const val = radarDimensions[dataKeys[i]] || 60;
+                const r = radius * (val / 100);
+                const angle = i * angleStep - Math.PI / 2;
+                const x = cx + r * Math.cos(angle);
+                const y = cy + r * Math.sin(angle);
+                if (i === 0) radarCtx.moveTo(x, y);
+                else radarCtx.lineTo(x, y);
+            }
+            radarCtx.closePath();
+            radarCtx.fill();
+            radarCtx.stroke();
+            
+            for (let i = 0; i < count; i++) {
+                const val = radarDimensions[dataKeys[i]] || 60;
+                const r = radius * (val / 100);
+                const angle = i * angleStep - Math.PI / 2;
+                const x = cx + r * Math.cos(angle);
+                const y = cy + r * Math.sin(angle);
+                radarCtx.beginPath();
+                radarCtx.fillStyle = "#E6B93B";
+                radarCtx.arc(x, y, 3, 0, Math.PI * 2);
+                radarCtx.fill();
+            }
+        }
+
+        function drawVictoryPredict() {
+            predictCanvas = document.getElementById("victory-predict-canvas");
+            if (!predictCanvas) return;
+            predictCtx = predictCanvas.getContext("2d");
+
+            const W = predictCanvas.width;
+            const H = predictCanvas.height;
+            predictCtx.clearRect(0, 0, W, H);
+
+            predictCtx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+            predictCtx.lineWidth = 1;
+            for (let i = 20; i < W; i += 30) {
+                predictCtx.beginPath();
+                predictCtx.moveTo(i, 0);
+                predictCtx.lineTo(i, H);
+                predictCtx.stroke();
+            }
+            for (let j = 15; j < H; j += 20) {
+                predictCtx.beginPath();
+                predictCtx.moveTo(0, j);
+                predictCtx.lineTo(W, j);
+                predictCtx.stroke();
+            }
+
+            if (winProbabilityHistory.length < 2) {
+                winProbabilityHistory = [50, 52];
+            }
+
+            predictCtx.beginPath();
+            predictCtx.strokeStyle = "#E6B93B";
+            predictCtx.lineWidth = 2;
+            
+            const count = winProbabilityHistory.length;
+            const stepX = W / (count - 1 || 1);
+
+            for (let i = 0; i < count; i++) {
+                const val = winProbabilityHistory[i];
+                const y = H - (val / 100) * (H - 10) - 5;
+                const x = i * stepX;
+                if (i === 0) predictCtx.moveTo(x, y);
+                else predictCtx.lineTo(x, y);
+            }
+            predictCtx.stroke();
+
+            const lastVal = winProbabilityHistory[count - 1];
+            const lastY = H - (lastVal / 100) * (H - 10) - 5;
+            const lastX = W;
+            
+            predictCtx.beginPath();
+            predictCtx.fillStyle = "#E6B93B";
+            predictCtx.shadowColor = "rgba(230,185,59,0.7)";
+            predictCtx.shadowBlur = 6;
+            predictCtx.arc(lastX - 2, lastY, 3.5, 0, Math.PI * 2);
+            predictCtx.fill();
+            predictCtx.shadowBlur = 0;
+            
+            const label = document.getElementById("victory-predict-pct-label");
+            if (label) {
+                label.innerText = `${Math.round(lastVal)}%`;
+            }
+        }
+
+        function updateArgumentRadarScores(jObj) {
+            if (!jObj) return;
+
+            if (typeof jObj.content !== 'undefined') {
+                radarDimensions.logic = Math.round(jObj.content * 2.5);
+                radarDimensions.evidence = Math.round(jObj.content * 2.3 + (state.stats ? state.stats.peelAssembled * 3.5 : 0));
+            }
+            if (typeof jObj.style !== 'undefined') {
+                radarDimensions.delivery = Math.round(jObj.style * 2.5);
+            }
+            if (typeof jObj.strategy !== 'undefined') {
+                radarDimensions.strategy = Math.round(jObj.strategy * 5.0);
+                radarDimensions.rebuttal = Math.round(jObj.strategy * 4.6 + (state.stats ? state.stats.fallaciesFixed * 3.5 : 0));
+            }
+
+            for (let k in radarDimensions) {
+                radarDimensions[k] = Math.max(15, Math.min(98, radarDimensions[k]));
+            }
+
+            const avg = (radarDimensions.logic + radarDimensions.evidence + radarDimensions.delivery + radarDimensions.strategy + radarDimensions.rebuttal) / 5;
+            winProbabilityHistory.push(avg);
+            if (winProbabilityHistory.length > 8) winProbabilityHistory.shift();
+
+            drawArgumentRadar();
+            drawVictoryPredict();
+        }
+
+        function initRadarStation() {
+            winProbabilityHistory = [50];
+            radarDimensions = { logic: 60, evidence: 60, delivery: 60, strategy: 60, rebuttal: 60 };
+            
+            setTimeout(() => {
+                drawArgumentRadar();
+                drawVictoryPredict();
+            }, 150);
         }
 
 </script>
