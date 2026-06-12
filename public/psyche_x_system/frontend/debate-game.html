@@ -2742,6 +2742,16 @@
         
         
         
+        
+        /* ================== 第十六阶段：思辩逻辑流沙沙盘样式 ================== */
+        #debate-fluid-sandbox-panel {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.02);
+            transition: border-color 0.3s;
+        }
+        #debate-fluid-sandbox-panel:hover {
+            border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+
         /* ================== 第十五阶段：黄金三分钟闪击战警报样式 ================== */
         body.blitz-active {
             background: radial-gradient(circle at 50% 50%, #150205 0%, #050102 100%) !important;
@@ -3637,7 +3647,21 @@
         </div>
 
 
-       <!-- 青少年训练勋章成就墙 (Milestone Badges) -->
+       
+        <!-- 🌊 思辩逻辑流沙沙盘 (Fluid Sandbox) -->
+        <div id="debate-fluid-sandbox-panel" style="margin-top:14px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:10px; box-sizing:border-box;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:5px;">
+                <span style="color:#E6B93B; font-weight:600; display:flex; align-items:center; gap:4px;">⚖️ 正方思辩流沙 (金色)</span>
+                <span style="color:#FF5E7E; font-weight:600; display:flex; align-items:center; gap:4px;">反方思辩流沙 (粉红) ⚖️</span>
+            </div>
+            <div style="position:relative; width:100%; height:45px; background:#070b19; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.04);">
+                <canvas id="fluid-sandbox-canvas" width="460" height="45" style="width:100%; height:45px; display:block;"></canvas>
+                <!-- 逻辑能量核心球 -->
+                <div id="logic-energy-orb" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:12px; height:12px; border-radius:50%; background:#fff; box-shadow:0 0 10px #fff; transition: left 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s, box-shadow 0.4s; pointer-events:none;"></div>
+            </div>
+        </div>
+
+        <!-- 青少年训练勋章成就墙 (Milestone Badges) -->
        <div id="student-badges-panel" class="card" style="margin-top:14px;">
            <div style="font-weight:600;font-size:14px;margin-bottom:10px;">🏆 我的辩手荣誉勋章墙 (Milestone Badges)</div>
             <span onclick="openBadgeAlbumModal()" style="font-size:11px; color:var(--accent); cursor:pointer; text-decoration:underline; font-weight:normal; margin-left:10px;">📖 荣誉星级成就册</span>
@@ -5480,6 +5504,7 @@ $('start-btn').addEventListener('click', () => {
     $('page-debate').classList.remove('hidden');
     initArenaParticles(); startAudienceMindwaveLoop(); startBulletSpawner(); updateAudienceBiasGraph(50, 50);
     startSpectateAutoplay();
+    if (typeof initFluidSandbox === 'function') initFluidSandbox();
     return;
   }
   
@@ -5501,6 +5526,7 @@ $('start-btn').addEventListener('click', () => {
   $('page-result').classList.add('hidden');
   $('page-debate').classList.remove('hidden');
   setStageMode('', '等待你的开场');
+  if (typeof initFluidSandbox === 'function') initFluidSandbox();
   $('player-input').focus();
 });
 
@@ -10583,6 +10609,7 @@ ${document.getElementById("radar-smart-advice").innerText}
             const conPct = 100 - proPct;
             
             proBar.style.width = `${proPct}%`;
+            if (typeof updateFluidSandboxDivider === 'function') updateFluidSandboxDivider(proPct);
             conBar.style.width = `${conPct}%`;
             
             biasLabel.innerText = `正方 ${proPct}% | 反方 ${conPct}%`;
@@ -13145,6 +13172,7 @@ ${document.getElementById("radar-smart-advice").innerText}
 
             document.getElementById("page-setup").classList.add("hidden");
             document.getElementById("page-debate").classList.remove("hidden");
+            if (typeof initFluidSandbox === 'function') initFluidSandbox();
 
             playBlitzBgm();
 
@@ -13431,6 +13459,156 @@ ${document.getElementById("radar-smart-advice").innerText}
             
             document.getElementById("page-debate").classList.add("hidden");
             document.getElementById("page-setup").classList.remove("hidden");
+        }
+
+
+        // ================== 第十六阶段：思辩逻辑流沙沙盘逻辑 ==================
+        let fluidCanvas = null;
+        let fluidCtx = null;
+        let fluidParticles = [];
+        let fluidAnimationFrameId = null;
+        let targetDividerX = 0.5;
+        let currentDividerX = 0.5;
+
+        class FluidParticle {
+            constructor(side, canvasWidth, canvasHeight) {
+                this.side = side;
+                this.W = canvasWidth;
+                this.H = canvasHeight;
+                this.reset();
+            }
+
+            reset() {
+                this.y = Math.random() * this.H;
+                if (this.side === 'pro') {
+                    this.x = Math.random() * (this.W * 0.4);
+                    this.vx = 0.4 + Math.random() * 0.7;
+                } else {
+                    this.x = this.W - Math.random() * (this.W * 0.4);
+                    this.vx = -(0.4 + Math.random() * 0.7);
+                }
+                this.vy = (Math.random() - 0.5) * 0.15;
+                this.r = 1 + Math.random() * 1.5;
+                this.alpha = 0.3 + Math.random() * 0.5;
+            }
+
+            update(dividerX) {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.side === 'pro') {
+                    if (this.x > dividerX) {
+                        this.x = dividerX;
+                        this.vx = -Math.abs(this.vx) * 0.4;
+                        this.alpha -= 0.06;
+                    } else {
+                        this.vx += 0.04;
+                        if (this.vx > 1.6) this.vx = 1.6;
+                    }
+                } else {
+                    if (this.x < dividerX) {
+                        this.x = dividerX;
+                        this.vx = Math.abs(this.vx) * 0.4;
+                        this.alpha -= 0.06;
+                    } else {
+                        this.vx -= 0.04;
+                        if (this.vx < -1.6) this.vx = -1.6;
+                    }
+                }
+
+                if (this.y < 0 || this.y > this.H) {
+                    this.vy = -this.vy;
+                }
+
+                if (this.alpha <= 0.08 || this.x < 0 || this.x > this.W) {
+                    this.reset();
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.fillStyle = this.side === 'pro' 
+                    ? `rgba(230, 185, 59, ${this.alpha})` 
+                    : `rgba(255, 94, 126, ${this.alpha})`;
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initFluidSandbox() {
+            fluidCanvas = document.getElementById("fluid-sandbox-canvas");
+            if (!fluidCanvas) return;
+            fluidCtx = fluidCanvas.getContext("2d");
+            
+            const W = fluidCanvas.width;
+            const H = fluidCanvas.height;
+            fluidParticles = [];
+
+            for (let i = 0; i < 20; i++) {
+                fluidParticles.push(new FluidParticle('pro', W, H));
+                fluidParticles.push(new FluidParticle('con', W, H));
+            }
+
+            currentDividerX = W * 0.5;
+            targetDividerX = W * 0.5;
+
+            if (fluidAnimationFrameId) cancelAnimationFrame(fluidAnimationFrameId);
+            animateFluidSandbox();
+        }
+
+        function animateFluidSandbox() {
+            if (!fluidCanvas || !fluidCtx) return;
+            const W = fluidCanvas.width;
+            const H = fluidCanvas.height;
+
+            fluidCtx.clearRect(0, 0, W, H);
+
+            const diff = targetDividerX - currentDividerX;
+            if (Math.abs(diff) > 0.1) {
+                currentDividerX += diff * 0.06;
+            } else {
+                currentDividerX = targetDividerX;
+            }
+
+            const grad = fluidCtx.createLinearGradient(currentDividerX - 12, 0, currentDividerX + 12, 0);
+            grad.addColorStop(0, "rgba(230, 185, 59, 0)");
+            grad.addColorStop(0.5, "rgba(255, 255, 255, 0.2)");
+            grad.addColorStop(1, "rgba(255, 94, 126, 0)");
+            
+            fluidCtx.fillStyle = grad;
+            fluidCtx.fillRect(currentDividerX - 12, 0, 24, H);
+
+            fluidParticles.forEach(p => {
+                p.update(currentDividerX);
+                p.draw(fluidCtx);
+            });
+
+            const orb = document.getElementById("logic-energy-orb");
+            if (orb) {
+                const leftPct = (currentDividerX / W) * 100;
+                orb.style.left = `${leftPct}%`;
+
+                if (leftPct > 52) {
+                    orb.style.backgroundColor = "#E6B93B";
+                    orb.style.boxShadow = "0 0 10px #E6B93B, 0 0 18px rgba(230,185,59,0.5)";
+                } else if (leftPct < 48) {
+                    orb.style.backgroundColor = "#FF5E7E";
+                    orb.style.boxShadow = "0 0 10px #FF5E7E, 0 0 18px rgba(255,94,126,0.5)";
+                } else {
+                    orb.style.backgroundColor = "#fff";
+                    orb.style.boxShadow = "0 0 8px #fff";
+                }
+            }
+
+            fluidAnimationFrameId = requestAnimationFrame(animateFluidSandbox);
+        }
+
+        function updateFluidSandboxDivider(bias) {
+            const canvas = document.getElementById("fluid-sandbox-canvas");
+            if (!canvas) return;
+            const W = canvas.width;
+            const clampBias = Math.max(15, Math.min(85, bias));
+            targetDividerX = W * (clampBias / 100);
         }
 
 </script>
