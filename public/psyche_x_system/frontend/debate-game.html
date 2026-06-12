@@ -2785,6 +2785,12 @@
             box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
 
+        /* ================== 第二十八阶段：AI 辩手多视角模拟评委态度实时大声呐图样式 ================== */
+        #audience-trajectory-canvas {
+            display: block;
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.85);
+        }
+
         /* ================== 第二十五阶段：WSDC 辩论战术影响“天平损益”3D 重力实验室样式 ================== */
         #weighing-gravity-modal {
             transition: opacity 0.4s ease-in-out;
@@ -4009,7 +4015,14 @@
                   <div style="font-size:8px; color:#fff; margin-top:4px;" id="val-genz">态度: 中立 50%</div>
               </div>
           </div>
+      </div>      <!-- 📊 第二十八阶段：AI 辩手多视角模拟评委态度实时大声呐图 -->
+      <div id="audience-trajectory-container" style="margin-top:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:10px; box-sizing:border-box;">
+          <div style="font-size:8px; color:rgba(255,255,255,0.4); margin-bottom:6px; text-align:left;">📈 评委说服力倾角折线图 (Stance Trajectory Radar)</div>
+          <div style="position:relative; width:100%; height:110px; background:#040713; border-radius:6px; overflow:hidden; border:1px solid rgba(255,255,255,0.02); box-sizing:border-box;">
+              <canvas id="audience-trajectory-canvas" width="460" height="110" style="width:100%; height:110px; display:block;"></canvas>
+          </div>
       </div>
+
 
 
       <!-- 青少年训练勋章成就墙 (Milestone Badges) -->
@@ -4929,6 +4942,7 @@ function scrollChatToBottom() {
 
 function addMsg(side, text, name) {
   if (typeof updatePersonaOpinions === "function") updatePersonaOpinions(text, side);
+  if (typeof pushTrajectoryHistory === "function") pushTrajectoryHistory();
   if (side === "ai" || side === "pro" || side === "con") { if (typeof triggerLogicMissileLaunch === "function") triggerLogicMissileLaunch(text); }
   if (side !== 'judge') adjustBiasFromTurnText(text, side);
   const div = document.createElement('div');
@@ -4960,6 +4974,8 @@ function updateRoundPill() {
 $('start-btn').addEventListener('click', () => {
   if (typeof initAndStartPersonaWaves === "function") initAndStartPersonaWaves();
   if (typeof startFocusStreamLoop === "function") startFocusStreamLoop();
+  if (typeof initTrajectoryHistory === "function") initTrajectoryHistory();
+  if (typeof startTrajectoryLoop === "function") startTrajectoryLoop();
   if (typeof isTeamModeActive !== 'undefined' && isTeamModeActive) {
       startTeamDebate();
       return;
@@ -5358,6 +5374,21 @@ function showResult(j) {
 
   $('judge-comment').innerHTML = `<h3 style="font-size:15px;margin-bottom:8px;">赛后评分诊断</h3><div>${escapeHtml(j.comment || '')}</div>`;
   if (typeof getPersonasFinalVerdict === "function") { $("judge-comment").innerHTML += getPersonasFinalVerdict(); }
+        // 评委联合判定解锁金牌合作者勋章
+        if (ethosStance >= 70 && ventureStance >= 70 && genzStance >= 70) {
+            const coopBadge = document.getElementById("badge-grand-collaborator");
+            if (coopBadge && coopBadge.classList.contains("locked")) {
+                coopBadge.classList.remove("locked");
+                coopBadge.classList.add("unlocked");
+                coopBadge.style.opacity = "1";
+                coopBadge.style.filter = "none";
+                if (typeof triggerStellarCelebration === "function") triggerStellarCelebration();
+                if (typeof updateMascotMood === "function") {
+                    updateMascotMood("success", "🏆 卓越的全局战略！你同时说服了所有评委（全部达70%以上支持），解锁【金牌合作者】勋章！");
+                }
+            }
+        }
+        
 
   
   // WSDC 三维打分明细联动
@@ -16839,6 +16870,216 @@ ${document.getElementById("radar-smart-advice").innerText}
             });
 
             focusAnimId = requestAnimationFrame(drawFocusStreamFrame);
+        }
+
+
+        // ================== 第二十八阶段：AI 辩手多视角模拟评委态度实时大声呐图核心引擎 ==================
+        let ethosHistory = [50];
+        let ventureHistory = [50];
+        let genzHistory = [50];
+        let stanceHistoryRounds = [0];
+
+        let trajectoryCanvas = null;
+        let trajectoryCtx = null;
+        let trajectoryAnimId = null;
+        let trajectoryHoveredPoint = null; // { judge, round, value, x, y }
+
+        function initTrajectoryHistory() {
+            ethosHistory = [50];
+            ventureHistory = [50];
+            genzHistory = [50];
+            stanceHistoryRounds = [0];
+            trajectoryHoveredPoint = null;
+            
+            // 重置态度初始分
+            ethosStance = 50;
+            ventureStance = 50;
+            genzStance = 50;
+        }
+
+        function pushTrajectoryHistory() {
+            // 每轮发言判定后，将最新态度点推入历史数组
+            ethosHistory.push(ethosStance);
+            ventureHistory.push(ventureStance);
+            genzHistory.push(genzStance);
+            
+            const curRound = (typeof state !== 'undefined' && state.currentRound) ? state.currentRound : 1;
+            stanceHistoryRounds.push(ethosHistory.length - 1);
+        }
+
+        function startTrajectoryLoop() {
+            trajectoryCanvas = document.getElementById("audience-trajectory-canvas");
+            if (!trajectoryCanvas) return;
+            trajectoryCtx = trajectoryCanvas.getContext("2d");
+
+            // 监听鼠标事件
+            trajectoryCanvas.onmousemove = onTrajectoryMouseMove;
+
+            drawTrajectoryFrame();
+        }
+
+        function drawTrajectoryFrame() {
+            if (!trajectoryCtx || !trajectoryCanvas) return;
+
+            const W = trajectoryCanvas.width;
+            const H = trajectoryCanvas.height;
+            const ctx = trajectoryCtx;
+
+            ctx.fillStyle = "#040713";
+            ctx.fillRect(0, 0, W, H);
+
+            // 1. 绘制态度参考横虚线 (30%, 50%, 70%)
+            ctx.strokeStyle = "rgba(255,255,255,0.04)";
+            ctx.lineWidth = 0.8;
+            ctx.setLineDash([4, 4]);
+            
+            const drawGridLine = (val, color, label) => {
+                const y = H - 15 - (val / 100) * (H - 30);
+                ctx.strokeStyle = color;
+                ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(W - 20, y); ctx.stroke();
+                
+                ctx.fillStyle = color;
+                ctx.font = "6px monospace";
+                ctx.textAlign = "right";
+                ctx.fillText(label, W - 4, y + 2.5);
+            };
+
+            drawGridLine(70, "rgba(63,185,80,0.18)", "支持线 70%");
+            drawGridLine(50, "rgba(255,255,255,0.08)", "中立线 50%");
+            drawGridLine(30, "rgba(255,94,126,0.18)", "质疑线 30%");
+            ctx.setLineDash([]);
+
+            // 2. 绘制 3 条态度时序发光折线
+            const N = ethosHistory.length;
+            const stepX = (W - 40) / Math.max(1, N - 1);
+
+            const drawStanceLine = (arr, color, name) => {
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 3;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.6;
+                ctx.beginPath();
+
+                const points = [];
+                for (let i = 0; i < N; i++) {
+                    const x = 20 + i * stepX;
+                    const y = H - 15 - (arr[i] / 100) * (H - 30);
+                    points.push({ x, y, val: arr[i], round: stanceHistoryRounds[i] });
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // 绘制渐变下方面积填充
+                ctx.save();
+                ctx.lineTo(20 + (N - 1) * stepX, H - 15);
+                ctx.lineTo(20, H - 15);
+                ctx.closePath();
+                const areaGrad = ctx.createLinearGradient(0, 0, 0, H);
+                areaGrad.addColorStop(0, color.replace("1.0", "0.06").replace("0.75", "0.06").replace("#ff5e7e","rgba(255,94,126,0.06)").replace("#5b9dff","rgba(91,157,255,0.06)").replace("#E6B93B","rgba(230,185,59,0.06)").replace("#ff6b6b","rgba(255,107,107,0.06)"));
+                areaGrad.addColorStop(1, "transparent");
+                ctx.fillStyle = areaGrad;
+                ctx.fill();
+                ctx.restore();
+
+                // 绘制折点小圆圈
+                points.forEach((pt, i) => {
+                    ctx.fillStyle = "#fff";
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+                });
+
+                return points;
+            };
+
+            const ethosPts = drawStanceLine(ethosHistory, "#E6B93B", "Dr. Ethos");
+            const venturePts = drawStanceLine(ventureHistory, "#5b9dff", "Ms. Venture");
+            const genzPts = drawStanceLine(genzHistory, "#ff6b6b", "GenZ Justin");
+
+            // 3. 绘制 Hover 最近折点微气泡
+            if (trajectoryHoveredPoint) {
+                const pt = trajectoryHoveredPoint;
+                
+                // 绘制拐点高光大圆圈
+                ctx.strokeStyle = pt.color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 5.5, 0, Math.PI*2);
+                ctx.stroke();
+
+                // 绘制毛玻璃 HUD 小浮框
+                ctx.fillStyle = "rgba(10, 16, 30, 0.94)";
+                ctx.strokeStyle = pt.color;
+                ctx.lineWidth = 1;
+                
+                const hoverText = `第${pt.round}轮 | ${pt.judge}: ${pt.value}%`;
+                const textWidth = ctx.measureText(hoverText).width;
+                const rectW = textWidth + 16;
+                const rectH = 18;
+                
+                // 自适应翻转方向
+                const rectX = Math.max(8, Math.min(W - rectW - 8, pt.x - rectW/2));
+                const rectY = Math.max(8, pt.y - 28);
+
+                ctx.beginPath();
+                ctx.roundRect(rectX, rectY, rectW, rectH, 3);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "9px sans-serif";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle";
+                ctx.fillText(hoverText, rectX + 8, rectY + 9);
+            }
+
+            trajectoryAnimId = requestAnimationFrame(drawTrajectoryFrame);
+        }
+
+        // ================== 态度大盘折线 Hover 碰撞检测 ==================
+        function onTrajectoryMouseMove(e) {
+            if (!trajectoryCanvas) return;
+            const rect = trajectoryCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const W = trajectoryCanvas.width;
+            const H = trajectoryCanvas.height;
+            const N = ethosHistory.length;
+            const stepX = (W - 40) / Math.max(1, N - 1);
+
+            let foundPoint = null;
+            let minDist = 8; // 8px 内锁定
+
+            const checkPts = (arr, color, judgeName) => {
+                for (let i = 0; i < N; i++) {
+                    const x = 20 + i * stepX;
+                    const y = H - 15 - (arr[i] / 100) * (H - 30);
+                    const dist = Math.sqrt((mouseX - x)*(mouseX - x) + (mouseY - y)*(mouseY - y));
+                    if (dist < minDist) {
+                        minDist = dist;
+                        foundPoint = {
+                            judge: judgeName,
+                            round: stanceHistoryRounds[i],
+                            value: arr[i],
+                            x: x,
+                            y: y,
+                            color: color
+                        };
+                    }
+                }
+            };
+
+            checkPts(ethosHistory, "#E6B93B", "Dr. Ethos");
+            checkPts(ventureHistory, "#5b9dff", "Ms. Venture");
+            checkPts(genzHistory, "#ff6b6b", "GenZ Justin");
+
+            trajectoryHoveredPoint = foundPoint;
+            trajectoryCanvas.style.cursor = foundPoint ? "pointer" : "default";
         }
 
 </script>
