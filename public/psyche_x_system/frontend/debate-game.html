@@ -2741,6 +2741,52 @@
        
         
         
+        
+        /* ================== 第十五阶段：黄金三分钟闪击战警报样式 ================== */
+        body.blitz-active {
+            background: radial-gradient(circle at 50% 50%, #150205 0%, #050102 100%) !important;
+            animation: blitz-strobe 4s infinite alternate;
+        }
+        @keyframes blitz-strobe {
+            from { box-shadow: inset 0 0 40px rgba(255, 94, 126, 0.1); }
+            to { box-shadow: inset 0 0 100px rgba(255, 94, 126, 0.25); }
+        }
+        #blitz-timer-bar-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            z-index: 100;
+            display: none;
+        }
+        #blitz-timer-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #FF5E7E, #ff3366);
+            box-shadow: 0 0 10px #FF5E7E;
+            transition: width 0.1s linear;
+        }
+        /* 闪击战神勋章发光 */
+        #badge-blitz-warlord.unlocked {
+            border-color: #FF5E7E !important;
+            box-shadow: 0 0 12px rgba(255, 94, 126, 0.4);
+            animation: badge-blitz-pulse 1.5s infinite alternate;
+        }
+        @keyframes badge-blitz-pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+        /* 3D陈列柜中闪击战神卡牌特效 */
+        .trophy-card-3d.unlocked[data-index="4"] {
+            border-color: rgba(255, 94, 126, 0.6) !important;
+            box-shadow: 0 0 20px rgba(255, 94, 126, 0.35) !important;
+        }
+        .trophy-card-3d.unlocked[data-index="4"] .trophy-hologram-beam {
+            background: linear-gradient(to top, rgba(255, 94, 126, 0) 0%, rgba(255, 94, 126, 0.35) 100%) !important;
+        }
+
         /* ================== 第十四阶段：发音音轨音波对比墙样式 ================== */
         #audio-contrast-lab {
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(91, 157, 255, 0.1);
@@ -3610,7 +3656,7 @@
                    <div class="badge-name">修辞魔术师</div>
                </div>
                <div class="badge-item locked" id="badge-marathon" title="累计训练时间达到 15 分钟以上解锁">
-                   <div class="badge-icon">⏱️</div>
+                   <div class="badge-icon">⏱️</div>\n                <div class="badge-item locked" id="badge-blitz-warlord" title="限时黄金三分钟闪击答辩均分 80 分以上解锁">\n                    <div class="badge-icon">⚡</div>\n                    <div class="badge-name">闪击战神</div>\n                </div>
                    <div class="badge-name">辩论马拉松</div>
                </div>
            </div>
@@ -4188,6 +4234,24 @@
     </div>
 
     
+    
+    <!-- ⚡ WSDC 黄金三分钟闪击挑战控制面板 -->
+    <div class="card spectate-panel" style="margin-top:14px; border-color: rgba(255, 94, 126, 0.25);">
+        <div style="font-weight:600; font-size:14px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:6px; color:#FF5E7E;">⚡ WSDC 黄金三分钟闪击挑战 (Blitz Mode)</span>
+            <span class="timer-badge" style="background:rgba(255,94,126,0.15); color:#FF5E7E;">限时极限驳论</span>
+        </div>
+        <div class="subtitle" style="margin-bottom:10px; font-size:11px; line-height:1.4; color:var(--muted);">
+            开启后，赛场将进入极限红黑霓虹警告模式。Jessica AI 将对你发起 3 道连环针锋相对的犀利提问，每题仅有 45 秒答辩时限，极其锻炼瞬时反应与逻辑驳论能力！通关即可解锁绝版“闪击战神”勋章。
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+            <label class="switch-container" style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
+                <input type="checkbox" id="blitz-toggle" style="cursor:pointer;" onchange="toggleBlitzMode(this.checked)">
+                <span style="font-size:12px; font-weight:500; color:#FF5E7E;" id="blitz-label-text">📴 当前闪击战模式已关闭</span>
+            </label>
+        </div>
+    </div>
+
     <!-- 🤖 大师观摩对决控制面板 -->
     <div class="card spectate-panel" style="margin-top:14px;">
         <div style="font-weight:600; font-size:14px; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
@@ -5380,6 +5444,10 @@ function updateRoundPill() {
 
 // ---------- 流程 ----------
 $('start-btn').addEventListener('click', () => {
+  if (typeof isBlitzModeActive !== 'undefined' && isBlitzModeActive) {
+      startBlitzDebate();
+      return;
+  }
   $('setup-err').textContent = '';
   state.topic = $('topic').value.trim();
   state.stance = $('stance').value;
@@ -5447,6 +5515,10 @@ $('player-input').addEventListener('keydown', e => {
 });
 
 async function sendPlayerTurn() {
+  if (typeof isBlitzModeActive !== 'undefined' && isBlitzModeActive && isBlitzDebating) {
+      submitBlitzAnswer();
+      return;
+  }
   if (state.busy) return;
   const text = $('player-input').value.trim();
   if (!text) { $('debate-err').textContent = '请输入你的发言。'; return; }
@@ -12484,7 +12556,8 @@ ${document.getElementById("radar-smart-advice").innerText}
             { id: "badge-logic", name: "逻辑卫士", icon: "🛡️", desc: "单局逻辑维度评分达到 85 分以上解锁", coachQuote: "杰西卡认证：逻辑如铜墙铁壁，论证链条严密，无懈可击！" },
             { id: "badge-evidence", name: "证据猎人", icon: "🏹", desc: "在一局比赛中引用 Evidence Scout 推荐证据达到 3 次以上解锁", coachQuote: "杰西卡认证：实证至上，用铁一般的事实粉碎空洞的论调！" },
             { id: "badge-rhetoric", name: "修辞魔术师", icon: "🪄", desc: "采纳 Speech Captain 推荐的修辞重构逻辑达到 80% 以上解锁", coachQuote: "杰西卡认证：妙笔生花，排比与隐喻交织出震撼心灵的力量！" },
-            { id: "badge-marathon", name: "辩论马拉松", icon: "⏱️", desc: "累计训练时间达到 15 分钟以上解锁", coachQuote: "杰西卡认证：坚韧不拔的探索者，用汗水铸就卓越的思辩底盘！" }
+            { id: "badge-marathon", name: "辩论马拉松", icon: "⏱️", desc: "累计训练时间达到 15 分钟以上解锁", coachQuote: "杰西卡认证：坚韧不拔的探索者，用汗水铸就卓越的思辩底盘！" },
+            { id: "badge-blitz-warlord", name: "闪击战神", icon: "⚡", desc: "限时黄金三分钟闪击答辩均分 80 分以上解锁", coachQuote: "杰西卡认证：瞬时思辩爆发力极强，以雷霆万钧之势击穿对方论点！" }
         ];
 
         let trophyAnimationFrameId = null;
@@ -12914,6 +12987,450 @@ ${document.getElementById("radar-smart-advice").innerText}
                 showToast("❌ 无法获取麦克风，请检查浏览器录音权限！");
                 tips.innerText = "❌ 录音开启失败，请授予麦克风权限。";
             }
+        }
+
+
+        // ================== 第十五阶段：黄金三分钟闪击战模式逻辑 ==================
+        let blitzBgmAudioContext = null;
+        let blitzBgmTimerId = null;
+        let blitzRoundsScore = [];
+        let blitzTimerIntervalId = null;
+        let blitzTimeLimit = 45;
+        let blitzTimeRemaining = 45;
+        let blitzCurrentIndex = 0;
+        let isBlitzDebating = false;
+
+        const BLITZ_QUESTIONS = [
+            {
+                q: "【闪击辩题 1/3】：对方辩友认为‘保护版权是守护人类尊严的最后避难所’，但如果因为极端的版权保护导致贫困山区的孩子们无法获得免费的电子学习资源，难道少数创作者的‘尊严’要凌驾于数亿寒门学子的‘生存与发展权’之上吗？请立即反驳！",
+                standardRef: "生存发展是人尊严的基础，版权围墙制造了信息鸿沟，违背社会公平正义。",
+                stance: "con"
+            },
+            {
+                q: "【闪击辩题 2/3】：如果我们完全取消动物园并禁止圈养，那些在野外已经因人类猎杀或气候变化导致栖息地完全毁灭的极度濒危物种，是否就被动地被宣判了物种灭绝？放弃研究和圈养繁育，难道不是一种眼不见为净、不负责任的‘道德洁癖’吗？请反驳！",
+                standardRef: "人工繁育为绝境物种提供最后的基因库和避难所，是人类主动承担环境破坏代偿责任的表现。",
+                stance: "pro"
+            },
+            {
+                q: "【闪击辩题 3/3】：当脑机接口技术实现人脑直接装载顶级知识库时，这意味着富裕家庭的孩子直接通过资本垄断最顶级的认知、思维带宽。贫困家庭的孩子将沦为连认知能力都被彻底降维打击的生物阶层。对此，你们所谓的‘脑机普及’难道不是不平等的终极丧钟吗？请反驳！",
+                standardRef: "认知技术随规模化必将走向平价与普惠，可以通过标准化的基础神经资源加载进行二次分配，禁绝科技演进并不能消灭不平等。",
+                stance: "pro"
+            }
+        ];
+
+        function toggleBlitzMode(checked) {
+            isBlitzModeActive = checked;
+            const label = document.getElementById("blitz-label-text");
+            if (label) {
+                label.innerText = checked ? "⚡ 当前已开启：黄金三分钟闪击对战模式" : "📴 当前闪击战模式已关闭";
+            }
+            if (typeof playClickFeedback === "function") playClickFeedback();
+        }
+
+        function playBlitzBgm() {
+            if (blitzBgmTimerId) clearInterval(blitzBgmTimerId);
+            
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+
+            try {
+                blitzBgmAudioContext = new AudioContextClass();
+            } catch(e) {
+                console.warn("Blitz AudioContext initialization failed", e);
+                return;
+            }
+
+            let tickToggle = false;
+
+            blitzBgmTimerId = setInterval(() => {
+                if (!isBlitzDebating) return;
+                const now = blitzBgmAudioContext.currentTime;
+
+                if (tickToggle) {
+                    playHeartbeat(now);
+                    playHeartbeat(now + 0.18);
+                }
+
+                const oscTick = blitzBgmAudioContext.createOscillator();
+                const gainTick = blitzBgmAudioContext.createGain();
+                oscTick.type = "sine";
+                const freq = blitzTimeRemaining < 10 ? 3500 : 2500;
+                oscTick.frequency.setValueAtTime(freq, now);
+                
+                gainTick.gain.setValueAtTime(0.015, now);
+                gainTick.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+
+                oscTick.connect(gainTick);
+                gainTick.connect(blitzBgmAudioContext.destination);
+                oscTick.start(now);
+                oscTick.stop(now + 0.03);
+
+                tickToggle = !tickToggle;
+            }, 500);
+        }
+
+        function playHeartbeat(time) {
+            if (!blitzBgmAudioContext) return;
+            const osc = blitzBgmAudioContext.createOscillator();
+            const gain = blitzBgmAudioContext.createGain();
+            
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(65, time);
+            osc.frequency.linearRampToValueAtTime(30, time + 0.15);
+            
+            gain.gain.setValueAtTime(0.18, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
+
+            osc.connect(gain);
+            gain.connect(blitzBgmAudioContext.destination);
+            osc.start(time);
+            osc.stop(time + 0.16);
+        }
+
+        function stopBlitzBgm() {
+            if (blitzBgmTimerId) {
+                clearInterval(blitzBgmTimerId);
+                blitzBgmTimerId = null;
+            }
+            if (blitzBgmAudioContext) {
+                try {
+                    blitzBgmAudioContext.close();
+                } catch(e) {}
+                blitzBgmAudioContext = null;
+            }
+        }
+
+        function startBlitzDebate() {
+            isBlitzDebating = true;
+            blitzCurrentIndex = 0;
+            blitzRoundsScore = [];
+            
+            document.body.classList.add("blitz-active");
+            
+            let barContainer = document.getElementById("blitz-timer-bar-container");
+            if (!barContainer) {
+                const debatePage = document.getElementById("page-debate");
+                barContainer = document.createElement("div");
+                barContainer.id = "blitz-timer-bar-container";
+                barContainer.innerHTML = '<div id="blitz-timer-bar"></div>';
+                debatePage.appendChild(barContainer);
+            }
+            barContainer.style.display = "block";
+
+            const quitBtn = document.getElementById("quit-btn");
+            if (quitBtn) quitBtn.style.display = "none";
+            
+            const chat = document.getElementById("chat");
+            if (chat) {
+                chat.innerHTML = "";
+                const alertDiv = document.createElement("div");
+                alertDiv.className = "msg-system";
+                alertDiv.style.background = "rgba(255,94,126,0.12)";
+                alertDiv.style.border = "1px solid rgba(255,94,126,0.3)";
+                alertDiv.style.color = "#FF5E7E";
+                alertDiv.style.padding = "14px";
+                alertDiv.style.borderRadius = "12px";
+                alertDiv.style.marginBottom = "14px";
+                alertDiv.style.textAlign = "center";
+                alertDiv.innerHTML = `
+                    <h3 style="margin:0 0 6px 0; font-size:16px;">⚡ WSDC 黄金三分钟极限闪击挑战 ⚡</h3>
+                    <p style="margin:0; font-size:11px; line-height:1.45;">您已进入限时极限反驳战！Jessica 教练将抛出 3 道辛辣质询，每题答辩时限 45 秒。快打出最核心的逻辑穿刺！</p>
+                `;
+                chat.appendChild(alertDiv);
+            }
+
+            if (typeof updateMascotMood === "function") {
+                updateMascotMood("clash", "🔥 警告！红黑极限赛场开启！别害怕，开动脑筋，快速给出精准的反驳！第一题正在赶来！");
+            }
+
+            document.getElementById("page-setup").classList.add("hidden");
+            document.getElementById("page-debate").classList.remove("hidden");
+
+            playBlitzBgm();
+
+            setTimeout(() => {
+                showBlitzQuestion(0);
+            }, 2000);
+        }
+
+        function showBlitzQuestion(index) {
+            if (index >= BLITZ_QUESTIONS.length) {
+                finishBlitzDebate();
+                return;
+            }
+
+            blitzCurrentIndex = index;
+            const qData = BLITZ_QUESTIONS[index];
+
+            const chat = document.getElementById("chat");
+            if (chat) {
+                const msg = document.createElement("div");
+                msg.className = "msg-ai";
+                msg.style.borderColor = "#FF5E7E";
+                msg.innerHTML = `
+                    <div class="msg-header" style="color:#FF5E7E;">🤖 Jessica 教练 (AI 闪击质询)</div>
+                    <div class="msg-text" style="color:#ffd5dd;">${qData.q}</div>
+                `;
+                chat.appendChild(msg);
+                chat.scrollTop = chat.scrollHeight;
+            }
+
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(qData.q);
+                const voices = window.speechSynthesis.getVoices();
+                const englishFemaleVoice = voices.find(v => (v.lang.includes("zh-") || v.lang.includes("en-")));
+                if (englishFemaleVoice) utter.voice = englishFemaleVoice;
+                utter.rate = 1.05;
+                window.speechSynthesis.speak(utter);
+            }
+
+            blitzTimeRemaining = blitzTimeLimit;
+            const timerBar = document.getElementById("blitz-timer-bar");
+            if (timerBar) timerBar.style.width = "100%";
+
+            if (typeof updateMascotMood === "function") {
+                updateMascotMood("thinking", "⏳ 倒计时开始！45 秒极速思辩！输入你的犀利驳论并点击发送！");
+            }
+
+            const input = document.getElementById("player-input");
+            if (input) {
+                input.value = "";
+                input.disabled = false;
+                input.placeholder = "⚡ 留给你的时间不多了，在此快速输入你的驳论发言并发送！...";
+                input.focus();
+            }
+
+            const sendBtn = document.getElementById("send-btn");
+            if (sendBtn) sendBtn.disabled = false;
+
+            if (blitzTimerIntervalId) clearInterval(blitzTimerIntervalId);
+            blitzTimerIntervalId = setInterval(() => {
+                blitzTimeRemaining -= 0.1;
+                if (timerBar) {
+                    const pct = (blitzTimeRemaining / blitzTimeLimit) * 100;
+                    timerBar.style.width = `${pct}%`;
+                }
+
+                if (blitzTimeRemaining <= 0) {
+                    clearInterval(blitzTimerIntervalId);
+                    handleBlitzTimeout();
+                }
+            }, 100);
+        }
+
+        function handleBlitzTimeout() {
+            showToast("⌛ 答辩超时！此题判定 0 分！");
+            blitzRoundsScore.push(0);
+
+            const chat = document.getElementById("chat");
+            if (chat) {
+                const msg = document.createElement("div");
+                msg.className = "msg-system";
+                msg.style.color = "#FF5E7E";
+                msg.innerHTML = `⚠️ <b>质询时间到！</b> 对方已完成无解逻辑压制。本轮得分：<b>0分</b>。`;
+                chat.appendChild(msg);
+                chat.scrollTop = chat.scrollHeight;
+            }
+
+            const input = document.getElementById("player-input");
+            if (input) input.disabled = true;
+
+            const sendBtn = document.getElementById("send-btn");
+            if (sendBtn) sendBtn.disabled = true;
+
+            setTimeout(() => {
+                showBlitzQuestion(blitzCurrentIndex + 1);
+            }, 3000);
+        }
+
+        async function submitBlitzAnswer() {
+            const input = document.getElementById("player-input");
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) {
+                showToast("请先输入您的驳论！");
+                return;
+            }
+
+            if (blitzTimerIntervalId) clearInterval(blitzTimerIntervalId);
+
+            input.disabled = true;
+            const sendBtn = document.getElementById("send-btn");
+            if (sendBtn) sendBtn.disabled = true;
+
+            const chat = document.getElementById("chat");
+            if (chat) {
+                const msg = document.createElement("div");
+                msg.className = "msg-player";
+                msg.innerHTML = `
+                    <div class="msg-header">🧑‍🎓 玩家反驳 (Blitz Response)</div>
+                    <div class="msg-text">${text}</div>
+                `;
+                chat.appendChild(msg);
+                chat.scrollTop = chat.scrollHeight;
+            }
+
+            if (typeof updateMascotMood === "function") {
+                updateMascotMood("thinking", "🧐 杰西卡教练正在对您的极速驳论进行即时打分与逻辑深度剖析...");
+            }
+
+            const currentQ = BLITZ_QUESTIONS[blitzCurrentIndex];
+
+            try {
+                const systemPrompt = `你是一个顶级学术辩论教练（Jessica）。现在针对你发起的闪击质询，玩家给出了如下反驳。
+质询问题：${currentQ.q}
+玩家反驳：${text}
+参考完美解题思路：${currentQ.standardRef}
+
+请在 1 秒内给出评估。
+要求：
+1. 给出 0-100 的整数评分，评分标准极度严格（主要评估论据是否直击对方痛点、是否存在逻辑谬误、以及回应是否切合对立立场）。
+2. 用中文给出一句极为犀利的点评（30字以内），直指其软肋。
+3. 给出你推荐的‘杰西卡KO金句（中英对照）’（70字以内）。
+
+回复格式必须如下（不要有多余符号）：
+评分：[分值]
+点评：[点评内容]
+金句：[金句内容]`;
+                
+                const evaluation = await callModel(systemPrompt, "请立刻打分与点评。");
+                
+                let score = 75;
+                let comment = "立论较为偏颇，反驳力度需要进一步聚焦底层架构。";
+                let koQuote = "The value of art lies in the unique touch of the human hand, which no database can replicate.";
+
+                try {
+                    const scoreMatch = evaluation.match(/评分：(\d+)/);
+                    if (scoreMatch) score = parseInt(scoreMatch[1]);
+                    
+                    const commentMatch = evaluation.match(/点评：([^\n]+)/);
+                    if (commentMatch) comment = commentMatch[1];
+                    
+                    const quoteMatch = evaluation.match(/金句：([^$]+)/);
+                    if (quoteMatch) koQuote = quoteMatch[1];
+                } catch(e) {
+                    console.warn("Parse blitz evaluation failed", e);
+                }
+
+                blitzRoundsScore.push(score);
+
+                if (chat) {
+                    const resDiv = document.createElement("div");
+                    resDiv.className = "msg-system";
+                    resDiv.style.background = "rgba(91,157,255,0.06)";
+                    resDiv.style.border = "1px solid rgba(91,157,255,0.2)";
+                    resDiv.style.padding = "10px";
+                    resDiv.style.borderRadius = "8px";
+                    resDiv.style.marginTop = "8px";
+                    resDiv.innerHTML = `
+                        <div style="font-weight:bold; color:#5b9dff; font-size:12px; margin-bottom:4px;">📊 闪击评估反馈 (第 ${blitzCurrentIndex + 1} 轮)</div>
+                        <div style="font-size:12px; color:#fff;">本轮得分：<span style="color:#E6B93B; font-weight:bold; font-size:14px;">${score} 分</span></div>
+                        <div style="font-size:11px; color:#d1f4ff; margin-top:4px;"><b>杰西卡点评：</b>${comment}</div>
+                        <div style="font-size:10px; color:#E6B93B; margin-top:6px; font-style:italic; background:rgba(0,0,0,0.2); padding:6px; border-radius:4px; border-left:2px solid #E6B93B;"><b>教练推荐金句：</b>${koQuote}</div>
+                    `;
+                    chat.appendChild(resDiv);
+                    chat.scrollTop = chat.scrollHeight;
+                }
+
+                if (typeof updateMascotMood === "function") {
+                    updateMascotMood(score >= 80 ? "success" : "clash", `📊 答辩打分：${score}分！${score >= 80 ? '相当惊艳的反击！' : '还要更加一针见血喔。'}`);
+                }
+
+            } catch (err) {
+                console.error("Blitz AI evaluation failed", err);
+                const score = 70;
+                blitzRoundsScore.push(score);
+                if (chat) {
+                    const errDiv = document.createElement("div");
+                    errDiv.className = "msg-system";
+                    errDiv.innerHTML = `📊 评估反馈：本轮得分 <b>${score}分</b>。`;
+                    chat.appendChild(errDiv);
+                    chat.scrollTop = chat.scrollHeight;
+                }
+            }
+
+            setTimeout(() => {
+                showBlitzQuestion(blitzCurrentIndex + 1);
+            }, 4000);
+        }
+
+        function finishBlitzDebate() {
+            isBlitzDebating = false;
+            stopBlitzBgm();
+
+            document.body.classList.remove("blitz-active");
+            const barContainer = document.getElementById("blitz-timer-bar-container");
+            if (barContainer) barContainer.style.display = "none";
+
+            const quitBtn = document.getElementById("quit-btn");
+            if (quitBtn) quitBtn.style.display = "block";
+
+            const total = blitzRoundsScore.reduce((a, b) => a + b, 0);
+            const avg = Math.round(total / BLITZ_QUESTIONS.length);
+
+            const chat = document.getElementById("chat");
+            if (chat) {
+                const summaryDiv = document.createElement("div");
+                summaryDiv.className = "msg-system";
+                summaryDiv.style.background = "rgba(230,185,59,0.06)";
+                summaryDiv.style.border = "1px solid rgba(230,185,59,0.3)";
+                summaryDiv.style.padding = "14px";
+                summaryDiv.style.borderRadius = "12px";
+                summaryDiv.style.marginTop = "14px";
+                summaryDiv.style.textAlign = "center";
+                
+                let isWinner = avg >= 80;
+                
+                summaryDiv.innerHTML = `
+                    <h3 style="margin:0 0 6px 0; color:#E6B93B; font-size:16px;">🏆 极限闪击挑战完美收官！ 🏆</h3>
+                    <p style="margin:0; font-size:12px; color:#fff;">平均得分：<span style="color:#E6B93B; font-weight:bold; font-size:16px;">${avg} 分</span> (总分: ${total}分)</p>
+                    <p style="margin:6px 0 0 0; font-size:11px; color:var(--muted); line-height:1.45;">
+                        ${isWinner ? '🎉 <b>神级辩论爆发力！</b> 您的平均得分超过 80 分，成功解锁绝版专属荣誉勋章：<b>【闪击战神 (Blitz Warlord)】</b>！' : '💡 闪击挑战均分需要达到 <b>80 分</b> 才能获得绝版勋章喔。快去看看解析并再次发起冲击挑战吧！'}
+                    </p>
+                    <button class="btn btn-ghost" onclick="exitBlitzToSetup()" style="margin-top:12px; font-size:11px; padding:6px 14px; border-radius:6px; cursor:pointer;">退出挑战，返回大厅</button>
+                `;
+                chat.appendChild(summaryDiv);
+                chat.scrollTop = chat.scrollHeight;
+
+                if (isWinner) {
+                    const badgeEl = document.getElementById("badge-blitz-warlord");
+                    if (badgeEl && badgeEl.classList.contains("locked")) {
+                        badgeEl.classList.remove("locked");
+                        badgeEl.classList.add("unlocked");
+                        badgeEl.style.opacity = "1";
+                        badgeEl.style.filter = "none";
+                    }
+                    
+                    if (typeof triggerStellarCelebration === "function") {
+                        triggerStellarCelebration();
+                    }
+                    
+                    if (typeof updateMascotMood === "function") {
+                        updateMascotMood("success", "🏆 史诗级成就达成！你成功攻克了杰西卡教练的闪击质询，拿下了【闪击战神】勋章！快去 3D 全息陈列柜看看它！");
+                    }
+                } else {
+                    if (typeof updateMascotMood === "function") {
+                        updateMascotMood("idle", "💡 挑战完成了！虽然离闪击战神勋章还有一步之遥，但这种极速训练能快速提升大脑思辩带宽，继续挑战吧！");
+                    }
+                }
+            }
+        }
+
+        function exitBlitzToSetup() {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            isBlitzDebating = false;
+            stopBlitzBgm();
+            
+            document.body.classList.remove("blitz-active");
+            const barContainer = document.getElementById("blitz-timer-bar-container");
+            if (barContainer) barContainer.style.display = "none";
+            
+            const quitBtn = document.getElementById("quit-btn");
+            if (quitBtn) quitBtn.style.display = "block";
+            
+            document.getElementById("page-debate").classList.add("hidden");
+            document.getElementById("page-setup").classList.remove("hidden");
         }
 
 </script>
