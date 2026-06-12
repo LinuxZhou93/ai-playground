@@ -2779,6 +2779,12 @@
             transition: transform 0.3s, border-color 0.3s;
         }
 
+        /* ================== 第二十七阶段：辩手实时脑电专注能量流样式 ================== */
+        #concentration-stream-canvas {
+            display: block;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+
         /* ================== 第二十五阶段：WSDC 辩论战术影响“天平损益”3D 重力实验室样式 ================== */
         #weighing-gravity-modal {
             transition: opacity 0.4s ease-in-out;
@@ -3958,7 +3964,17 @@
             </div>
         </div>
 
-              <!-- 👥 第二十三阶段：AI 辩手多视角模拟评委反应舱 -->
+                    <!-- 🧠 第二十七阶段：辩手实时脑电专注能量流 Canvas -->
+      <div id="concentration-stream-container" style="margin-top:14px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:6px; box-sizing:border-box;">
+          <div style="font-size:8px; color:rgba(91,157,255,0.6); margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+              <span>🧠 脑电专注力波谱仪 (Focus Spectra Biofeedback)</span>
+              <span id="concentration-percent-label" style="font-family:monospace; color:#5b9dff;">FOCUS LEVEL: 30% (CALM)</span>
+          </div>
+          <canvas id="concentration-stream-canvas" width="460" height="24" style="width:100%; height:24px; display:block; background:#040713; border-radius:5px; border:1px solid rgba(255,255,255,0.02);"></canvas>
+      </div>
+
+
+      <!-- 👥 第二十三阶段：AI 辩手多视角模拟评委反应舱 -->
       <div id="audience-personas-pod" class="card" style="margin-top:14px; background:rgba(15,23,42,0.5); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:12px; box-sizing:border-box;">
           <div style="font-weight:600; font-size:12px; margin-bottom:8px; color:var(--muted); display:flex; justify-content:space-between; align-items:center;">
               <span style="display:flex; align-items:center; gap:4px;">👥 AI 模拟评委舱 (Audience Personas)</span>
@@ -4943,6 +4959,7 @@ function updateRoundPill() {
 // ---------- 流程 ----------
 $('start-btn').addEventListener('click', () => {
   if (typeof initAndStartPersonaWaves === "function") initAndStartPersonaWaves();
+  if (typeof startFocusStreamLoop === "function") startFocusStreamLoop();
   if (typeof isTeamModeActive !== 'undefined' && isTeamModeActive) {
       startTeamDebate();
       return;
@@ -16700,6 +16717,128 @@ ${document.getElementById("radar-smart-advice").innerText}
 
                 closeEvidenceRadar();
             }
+        }
+
+
+        // ================== 第二十七阶段：辩手实时脑电专注能量流核心引擎 ==================
+        let focusExcitement = 0.3; // 0.1 - 1.0
+        let focusStreamCanvas = null;
+        let focusStreamCtx = null;
+        let focusParticles = [];
+        let focusAnimId = null;
+
+        function triggerFocusBoost() {
+            focusExcitement = 1.0; // 打字或操作时，专注度瞬间爆表
+        }
+
+        function initFocusStreamData() {
+            focusParticles = [];
+            const count = 25;
+            for (let i = 0; i < count; i++) {
+                focusParticles.push({
+                    x: Math.random() * 460,
+                    y: 4 + Math.random() * 16,
+                    speed: 0.8 + Math.random() * 1.2,
+                    length: 12 + Math.random() * 20,
+                    color: i % 2 === 0 ? "rgba(91, 157, 255, 0.45)" : "rgba(230, 185, 59, 0.45)",
+                    waveOffset: Math.random() * 10
+                });
+            }
+        }
+
+        function startFocusStreamLoop() {
+            focusStreamCanvas = document.getElementById("concentration-stream-canvas");
+            if (!focusStreamCanvas) return;
+            focusStreamCtx = focusStreamCanvas.getContext("2d");
+
+            initFocusStreamData();
+
+            // 监听主输入框打字动作
+            const mainInput = document.getElementById("player-input");
+            if (mainInput) {
+                mainInput.addEventListener("input", triggerFocusBoost);
+            }
+
+            // 监听重力天平和备赛墙的鼠标移动（视为专注思考）
+            const scaleCanvas = document.getElementById("weighing-gravity-canvas");
+            if (scaleCanvas) {
+                scaleCanvas.addEventListener("mousemove", triggerFocusBoost);
+            }
+            const prepCanvas = document.getElementById("prep-sandbox-3d-canvas");
+            if (prepCanvas) {
+                prepCanvas.addEventListener("mousemove", triggerFocusBoost);
+            }
+
+            drawFocusStreamFrame();
+        }
+
+        function drawFocusStreamFrame() {
+            if (!focusStreamCtx || !focusStreamCanvas) return;
+
+            const W = focusStreamCanvas.width;
+            const H = focusStreamCanvas.height;
+            const ctx = focusStreamCtx;
+
+            ctx.fillStyle = "#040713";
+            ctx.fillRect(0, 0, W, H);
+
+            // 专注度缓慢自发衰退
+            focusExcitement = Math.max(0.12, focusExcitement - 0.0035);
+
+            // 更新文本百分比标签
+            const percent = Math.round(focusExcitement * 100);
+            const label = document.getElementById("concentration-percent-label");
+            if (label) {
+                if (percent >= 75) {
+                    label.textContent = `FOCUS LEVEL: ${percent}% (HYPER-ACTIVE)`;
+                    label.style.color = "#E6B93B";
+                } else if (percent >= 40) {
+                    label.textContent = `FOCUS LEVEL: ${percent}% (ENGAGED)`;
+                    label.style.color = "#5b9dff";
+                } else {
+                    label.textContent = `FOCUS LEVEL: ${percent}% (CALM)`;
+                    label.style.color = "rgba(91,157,255,0.6)";
+                }
+            }
+
+            // 物理流场粒子绘制
+            const currentSpeedMultiplier = 1.0 + focusExcitement * 3.2; // 最高加速 4.2 倍
+            const waveIntensity = 1.0 + focusExcitement * 4.0; // 波动幅度
+
+            focusParticles.forEach(p => {
+                p.x += p.speed * currentSpeedMultiplier;
+                
+                // 边界重置
+                if (p.x - p.length > W) {
+                    p.x = -p.length;
+                    p.y = 4 + Math.random() * 16;
+                }
+
+                // 物理相干正弦波扰动
+                const dynamicPhase = Date.now() * 0.003;
+                const offset = Math.sin(p.x * 0.045 + p.waveOffset + dynamicPhase) * waveIntensity;
+                const y_drawn = p.y + offset;
+
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = focusExcitement > 0.6 ? 1.5 : 0.8;
+                ctx.beginPath();
+                ctx.moveTo(p.x, y_drawn);
+                ctx.lineTo(p.x - p.length, y_drawn);
+                ctx.stroke();
+
+                // 头亮点
+                if (focusExcitement > 0.4 && Math.random() < 0.2) {
+                    ctx.fillStyle = "#fff";
+                    ctx.shadowColor = "#E6B93B";
+                    ctx.shadowBlur = 4;
+                    ctx.beginPath();
+                    ctx.arc(p.x, y_drawn, 1.2, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+
+            focusAnimId = requestAnimationFrame(drawFocusStreamFrame);
         }
 
 </script>
