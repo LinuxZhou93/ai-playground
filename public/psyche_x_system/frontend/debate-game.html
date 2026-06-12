@@ -2768,6 +2768,62 @@
         #prep-sandbox-modal {
             transition: opacity 0.4s ease-in-out;
         }
+
+        /* ================== 第二十二阶段：WSDC “逻辑盾牌”AI驳论实时反应对抗舱样式 ================== */
+        #rebuttal-shield-pod {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #logic-missile-canvas {
+            background: radial-gradient(circle at center, #0a0f2b 0%, #030514 100%);
+            display: block;
+        }
+        /* 页面抖动类 */
+        .shield-shake {
+            animation: shield-shake-anim 0.25s ease-in-out;
+        }
+        @keyframes shield-shake-anim {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        /* 盾牌卡片样式 */
+        .shield-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--muted);
+            padding: 5px 12px;
+            font-size: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .shield-btn.active[data-shield="fact"] {
+            background: rgba(63, 185, 80, 0.15);
+            border-color: #3fb950;
+            color: #3fb950;
+            box-shadow: 0 0 8px rgba(63,185,80,0.3);
+        }
+        .shield-btn.active[data-shield="cause"] {
+            background: rgba(255, 107, 107, 0.15);
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+            box-shadow: 0 0 8px rgba(255,107,107,0.3);
+        }
+        .shield-btn.active[data-shield="impact"] {
+            background: rgba(163, 113, 247, 0.15);
+            border-color: #a371f7;
+            color: #a371f7;
+            box-shadow: 0 0 8px rgba(163,113,247,0.3);
+        }
+        #badge-rhetoric.unlocked {
+            border-color: #a371f7 !important;
+            box-shadow: 0 0 12px rgba(163, 113, 247, 0.4);
+            animation: badge-rhetoric-glow 2s infinite alternate;
+        }
+        @keyframes badge-rhetoric-glow {
+            from { filter: drop-shadow(0 0 2px #a371f7); }
+            to { filter: drop-shadow(0 0 8px #a371f7); }
+        }
         #prep-sandbox-3d-canvas {
             box-shadow: 0 12px 40px rgba(0,0,0,0.85), 0 0 25px rgba(91,157,255,0.15);
             transition: border-color 0.3s;
@@ -4779,6 +4835,7 @@ function scrollChatToBottom() {
 }
 
 function addMsg(side, text, name) {
+  if (side === "ai" || side === "pro" || side === "con") { if (typeof triggerLogicMissileLaunch === "function") triggerLogicMissileLaunch(text); }
   if (side !== 'judge') adjustBiasFromTurnText(text, side);
   const div = document.createElement('div');
   div.className = 'msg ' + side;
@@ -11722,7 +11779,40 @@ ${document.getElementById("radar-smart-advice").innerText}
           </div>
       </div>
 
-            <!-- 🧭 第二十阶段：AI 辩论战术冲突白板与实时逻辑漏洞“红波声呐诊断仪”面板 -->
+                  <!-- 🛡️ 第二十二阶段：WSDC “逻辑盾牌”AI驳论实时反应对抗舱 -->
+      <div id="rebuttal-shield-pod" class="hidden" style="margin-bottom:12px; background:rgba(15,23,42,0.65); border:1px solid rgba(91,157,255,0.25); border-radius:12px; padding:12px; box-sizing:border-box; backdrop-filter:blur(10px); box-shadow:0 8px 32px rgba(0,0,0,0.5); text-align:center;">
+          <div style="font-size:11px; font-weight:700; color:#5b9dff; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="display:flex; align-items:center; gap:5px;">🛡️ AI 驳论逻辑盾牌防御舱 (Rebuttal Combat Pod)</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:9px; color:#E6B93B; background:rgba(230,185,59,0.12); padding:1px 6px; border-radius:3px; font-family:monospace;" id="shield-defense-success-label">拦截率：100%</span>
+                  <span style="font-weight:normal; font-size:10px; color:var(--muted); cursor:pointer;" onclick="closeShieldPod()">[ 关闭 ]</span>
+              </div>
+          </div>
+          
+          <!-- 飞弹轨道 Canvas -->
+          <div style="position:relative; width:100%; height:110px; background:#040713; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.05); margin-bottom:10px;">
+              <canvas id="logic-missile-canvas" width="460" height="110" style="width:100%; height:110px; display:block;"></canvas>
+              <div id="shield-alert-overlay" style="position:absolute; inset:0; background:rgba(255,94,126,0.18); border:2px solid #ff5e7e; pointer-events:none; opacity:0; transition:opacity 0.15s;"></div>
+              <div style="position:absolute; top:8px; left:8px; font-size:8px; color:rgba(255,255,255,0.3); pointer-events:none;">← 对方AI攻击飞弹轨道 (向右飞行)</div>
+          </div>
+
+          <!-- 控制按钮与输入 -->
+          <div style="display:grid; grid-template-columns: 1fr; gap:8px;">
+              <!-- 盾牌选择 -->
+              <div style="display:flex; justify-content:center; gap:6px;">
+                  <button class="shield-btn active" data-shield="fact" id="btn-shield-fact" onclick="selectRebuttalShield('fact')">🛡️ 事实否定盾 (绿)</button>
+                  <button class="shield-btn" data-shield="cause" id="btn-shield-cause" onclick="selectRebuttalShield('cause')">🛡️ 因果松动盾 (红)</button>
+                  <button class="shield-btn" data-shield="impact" id="btn-shield-impact" onclick="selectRebuttalShield('impact')">🛡️ 损益反转盾 (紫)</button>
+              </div>
+              
+              <div style="display:flex; gap:8px;">
+                  <input type="text" id="shield-rebuttal-input" placeholder="选择上方防御盾牌，输入一句反驳词以锁定飞弹充能..." style="flex:1; height:32px; font-size:11px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:0 8px; color:#fff; outline:none; font-family:inherit;" onkeydown="if(event.key==='Enter') fireShieldLaser()" />
+                  <button class="btn btn-sm" onclick="fireShieldLaser()" style="height:32px; font-size:11px; background:rgba(91,157,255,0.2); border:1px solid #5b9dff; color:#5b9dff; font-weight:bold; border-radius:6px; cursor:pointer; padding:0 12px;">⚡ 发射拦截</button>
+              </div>
+          </div>
+      </div>
+
+      <!-- 🧭 第二十阶段：AI 辩论战术冲突白板与实时逻辑漏洞“红波声呐诊断仪”面板 -->
       <div id="fallacy-radar-panel" class="hidden" style="margin-bottom:12px; background:rgba(15,23,42,0.65); border:1px solid rgba(255,94,126,0.3); border-radius:12px; padding:12px; box-sizing:border-box; backdrop-filter:blur(10px); box-shadow:0 8px 32px rgba(0,0,0,0.5);">
           <div style="font-size:11px; font-weight:700; color:#ff5e7e; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
               <span style="display:flex; align-items:center; gap:5px;">🛡️ AI 逻辑战术冲突与红波诊断仪</span>
@@ -11771,6 +11861,7 @@ ${document.getElementById("radar-smart-advice").innerText}
         
         <button class="btn btn-ghost" id="btn-speech-input" onclick="toggleVoiceScoutRecognition()" style="font-size:12px; padding:8px 12px; cursor:pointer; border-radius:8px; border-color:rgba(91,157,255,0.3); color:#5b9dff;">🎙️ 语音录入评估</button>
         <button class="btn btn-ghost" id="btn-prep-sandbox" onclick="openPrepSandbox()" style="font-size:12px; padding:8px 12px; cursor:pointer; border-radius:8px; border-color:rgba(230,185,59,0.35); color:#E6B93B; margin-left:8px;">🧭 3D全息备赛舱</button>
+        <button class="btn btn-ghost" id="btn-rebuttal-shield-pod" onclick="openPrepRebuttalShieldPod()" style="font-size:12px; padding:8px 12px; cursor:pointer; border-radius:8px; border-color:rgba(255,94,126,0.35); color:#ff5e7e; margin-left:8px;">🛡️ 逻辑盾牌防御舱</button>
 
 
 
@@ -14836,6 +14927,344 @@ ${document.getElementById("radar-smart-advice").innerText}
 
         function onPrepMouseUp() {
             isPrepDragging = false;
+        }
+
+
+        // ================== 第二十二阶段：WSDC “逻辑盾牌”AI驳论实时反应对抗舱核心引擎 ==================
+        let missiles = [];
+        let missileExplosions = [];
+        let shieldLasers = [];
+        let selectedShield = 'fact';
+        let isShieldPodDrawing = false;
+        let shieldCanvasEl = null;
+        let shieldCtx = null;
+        let totalFiredMissilesCount = 0;
+        let interceptedMissilesCount = 0;
+
+        function openPrepRebuttalShieldPod() {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            const panel = document.getElementById("rebuttal-shield-pod");
+            if (panel) panel.classList.remove("hidden");
+
+            isShieldPodDrawing = true;
+            shieldCanvasEl = document.getElementById("logic-missile-canvas");
+            if (!shieldCanvasEl) return;
+            shieldCtx = shieldCanvasEl.getContext("2d");
+
+            // 初始化少量引导飞弹
+            if (missiles.length === 0) {
+                launchLogicMissile("对方辩点：AI剥夺了人类的创作灵气和工作机会", "AI剥夺人类工作");
+            }
+
+            drawShieldPodFrame();
+        }
+
+        function closeShieldPod() {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            const panel = document.getElementById("rebuttal-shield-pod");
+            if (panel) panel.classList.add("hidden");
+            isShieldPodDrawing = false;
+        }
+
+        function selectRebuttalShield(type) {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            selectedShield = type;
+            
+            document.querySelectorAll(".shield-btn").forEach(btn => {
+                btn.classList.remove("active");
+            });
+            const activeBtn = document.getElementById(`btn-shield-${type}`);
+            if (activeBtn) activeBtn.classList.add("active");
+        }
+
+        // 外部钩子，AI 发言时触发
+        function triggerLogicMissileLaunch(fullText) {
+            // 解析出几句短小的核心飞弹
+            const sentences = fullText.split(/[.!?。！？]/).map(s => s.trim()).filter(s => s.length > 8);
+            if (sentences.length === 0) return;
+            
+            // 随机发一颗飞弹
+            const s = sentences[Math.floor(Math.random() * sentences.length)];
+            const label = s.substring(0, 15) + (s.length > 15 ? "..." : "");
+            
+            // 如果防御舱开启着，才进行发射
+            const panel = document.getElementById("rebuttal-shield-pod");
+            if (panel && !panel.classList.contains("hidden")) {
+                launchLogicMissile(s, label);
+            }
+        }
+
+        function launchLogicMissile(fullText, label) {
+            const types = ['fact', 'cause', 'impact'];
+            const randomType = types[Math.floor(Math.random() * types.length)];
+            totalFiredMissilesCount++;
+
+            missiles.push({
+                x: -30,
+                y: 25 + Math.random() * 50,
+                vx: 0.65 + Math.random() * 0.45,
+                text: label,
+                fullText: fullText,
+                shieldType: randomType,
+                w: 100,
+                h: 22,
+                angle: (Math.random() - 0.5) * 0.05
+            });
+        }
+
+        function fireShieldLaser() {
+            const input = document.getElementById("shield-rebuttal-input");
+            if (!input) return;
+            const rebuttalText = input.value.trim();
+            if (!rebuttalText) {
+                alert("请输入针对当前飞弹的一句话反驳充能词！");
+                return;
+            }
+
+            if (missiles.length === 0) {
+                showToast("🛸 轨道上没有飞弹，无需拦截。");
+                return;
+            }
+
+            // 寻找在防线一侧（最右侧）且符合当前盾牌种类的最紧急飞弹
+            let targetIdx = -1;
+            let maxX = -999;
+            for (let i = 0; i < missiles.length; i++) {
+                if (missiles[i].shieldType === selectedShield && missiles[i].x > maxX) {
+                    maxX = missiles[i].x;
+                    targetIdx = i;
+                }
+            }
+
+            if (targetIdx === -1) {
+                showToast("❌ 盾牌防御类型不匹配！飞弹外部带对应颜色护盾保护（绿:事实/红:因果/紫:价值）");
+                if (typeof playClickFeedback === "function") playClickFeedback();
+                return;
+            }
+
+            const targetMissile = missiles[targetIdx];
+            
+            // 发射拦截激光
+            shieldLasers.push({
+                x: 460, // 从防线（右侧）发射
+                y: targetMissile.y,
+                tx: targetMissile.x + 40,
+                ty: targetMissile.y,
+                progress: 0,
+                targetIndex: targetIdx,
+                color: selectedShield === 'fact' ? "#3fb950" : (selectedShield === 'cause' ? "#ff6b6b" : "#a371f7")
+            });
+
+            // 清空输入框
+            input.value = "";
+            showToast("⚡ 逻辑盾牌充能发射！正在拦截...");
+            if (typeof playClickFeedback === "function") playClickFeedback();
+        }
+
+        function triggerShieldAlert() {
+            const overlay = document.getElementById("shield-alert-overlay");
+            const appWrap = document.querySelector(".wrap");
+            
+            if (overlay) {
+                overlay.style.opacity = "1";
+                setTimeout(() => { overlay.style.opacity = "0"; }, 150);
+            }
+
+            if (appWrap) {
+                appWrap.classList.add("shield-shake");
+                setTimeout(() => { appWrap.classList.remove("shield-shake"); }, 260);
+            }
+        }
+
+        function drawShieldPodFrame() {
+            if (!isShieldPodDrawing || !shieldCtx || !shieldCanvasEl) return;
+
+            const W = shieldCanvasEl.width;
+            const H = shieldCanvasEl.height;
+            const ctx = shieldCtx;
+
+            ctx.fillStyle = "rgba(4, 7, 27, 0.4)";
+            ctx.fillRect(0, 0, W, H);
+
+            // 1. 绘制防线边界 (右侧 385px 处)
+            ctx.strokeStyle = "rgba(91, 157, 255, 0.25)";
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(385, 0); ctx.lineTo(385, H);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 绘制防线文字
+            ctx.fillStyle = "rgba(91, 157, 255, 0.4)";
+            ctx.font = "8px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("盾牌防御阵地", 415, 12);
+
+            // 2. 绘制防御激光
+            for (let i = shieldLasers.length - 1; i >= 0; i--) {
+                const laser = shieldLasers[i];
+                laser.progress += 0.12;
+
+                const currX = laser.x + (laser.tx - laser.x) * laser.progress;
+                const currY = laser.y;
+
+                ctx.strokeStyle = laser.color;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = laser.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.moveTo(laser.x, laser.y);
+                ctx.lineTo(currX, currY);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // 击中判断
+                if (laser.progress >= 1) {
+                    const target = missiles[laser.targetIndex];
+                    if (target) {
+                        // 产生粒子碎裂火花
+                        for (let p = 0; p < 24; p++) {
+                            missileExplosions.push({
+                                x: target.x + 30,
+                                y: target.y,
+                                vx: (Math.random() - 0.7) * 4,
+                                vy: (Math.random() - 0.5) * 4,
+                                r: 1.5 + Math.random() * 2,
+                                alpha: 1,
+                                decay: 0.02 + Math.random() * 0.02,
+                                color: laser.color
+                            });
+                        }
+                        
+                        // 移除飞弹
+                        missiles.splice(laser.targetIndex, 1);
+                        interceptedMissilesCount++;
+                        
+                        // 更新防御拦截率
+                        const rate = Math.round((interceptedMissilesCount / totalFiredMissilesCount) * 100);
+                        const label = document.getElementById("shield-defense-success-label");
+                        if (label) label.textContent = `拦截率：${rate}%`;
+                        
+                        // 奖励：首次防御成功，解锁【修辞魔术师】勋章
+                        unlockRhetoricMasterBadge();
+                        
+                        showToast("🎯 击碎 AI 逻辑飞弹！防线稳固。");
+                    }
+                    shieldLasers.splice(i, 1);
+                }
+            }
+
+            // 3. 绘制攻击飞弹
+            for (let i = missiles.length - 1; i >= 0; i--) {
+                const m = missiles[i];
+                m.x += m.vx;
+
+                // 漏防判断 (穿过防线)
+                if (m.x >= 385) {
+                    // 扣分惩罚
+                    if (typeof state.stanceBias !== "undefined") {
+                        state.stanceBias = Math.max(10, state.stanceBias - 8);
+                    }
+                    
+                    // 屏幕剧烈颤抖与红闪
+                    triggerShieldAlert();
+                    showToast("💥 逻辑阵地受损！对方论点长驱直入。");
+                    
+                    if (typeof updateMascotMood === "function") {
+                        updateMascotMood("surprise", "😱 糟糕！没有及时防御住对方的逻辑飞弹，倾向大盘失衡了！");
+                    }
+
+                    // 移除飞弹
+                    missiles.splice(i, 1);
+                    continue;
+                }
+
+                // 绘制飞弹尾迹火花粒子
+                if (Math.random() < 0.35) {
+                    missileExplosions.push({
+                        x: m.x,
+                        y: m.y + (Math.random() - 0.5) * 4,
+                        vx: -m.vx * 0.8,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        r: 1,
+                        alpha: 0.8,
+                        decay: 0.05,
+                        color: "rgba(255, 94, 126, 0.4)"
+                    });
+                }
+
+                // 绘制飞弹本体卡片
+                let shieldColor = "#3fb950"; // fact
+                if (m.shieldType === 'cause') shieldColor = "#ff6b6b";
+                if (m.shieldType === 'impact') shieldColor = "#a371f7";
+
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                ctx.rotate(m.angle);
+
+                // 外发光
+                ctx.shadowColor = shieldColor;
+                ctx.shadowBlur = 4;
+                ctx.strokeStyle = shieldColor;
+                ctx.lineWidth = 1;
+                ctx.fillStyle = "rgba(10, 16, 30, 0.9)";
+                ctx.beginPath();
+                ctx.roundRect(0, -m.h/2, m.w, m.h, 3);
+                ctx.fill();
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // 飞弹类型标识小圆圈
+                ctx.fillStyle = shieldColor;
+                ctx.beginPath();
+                ctx.arc(6, 0, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 文本
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 7.5px sans-serif";
+                ctx.textAlign = "left";
+                ctx.fillText(m.text, 14, 2.5);
+
+                ctx.restore();
+            }
+
+            // 4. 绘制和更新碎裂粒子
+            for (let i = missileExplosions.length - 1; i >= 0; i--) {
+                const p = missileExplosions[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+
+                if (p.alpha <= 0) {
+                    missileExplosions.splice(i, 1);
+                    continue;
+                }
+
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            requestAnimationFrame(drawShieldPodFrame);
+        }
+
+        function unlockRhetoricMasterBadge() {
+            const badge = document.getElementById("badge-rhetoric");
+            if (badge && badge.classList.contains("locked")) {
+                badge.classList.remove("locked");
+                badge.classList.add("unlocked");
+                badge.style.opacity = "1";
+                badge.style.filter = "none";
+                if (typeof triggerStellarCelebration === "function") triggerStellarCelebration();
+                if (typeof updateMascotMood === "function") {
+                    updateMascotMood("success", "🏆 雄辩防御！你完美射中飞弹解锁了【修辞魔术师】勋章！");
+                }
+            }
         }
 
 </script>
