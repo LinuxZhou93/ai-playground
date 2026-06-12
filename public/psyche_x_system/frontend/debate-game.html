@@ -2800,6 +2800,48 @@
             background: #010103;
             display: block;
         }
+        #teamwork-canvas {
+            background: #010206;
+            display: block;
+        }
+        /* ================== 第三十五阶段：团队工作站悬浮按钮样式 ================== */
+        #teamwork-station-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 190px;
+            z-index: 9999;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(5, 25, 20, 0.85);
+            border: 2px solid #2de2c2;
+            color: #2de2c2;
+            box-shadow: 0 0 15px rgba(45, 226, 194, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: pulse-team-glow 2s infinite alternate;
+        }
+        #teamwork-station-toggle-btn:hover {
+            transform: scale(1.1) rotate(15deg);
+            background: #2de2c2;
+            color: #030712;
+            box-shadow: 0 0 25px #2de2c2;
+        }
+        @keyframes pulse-team-glow {
+            0% {
+                box-shadow: 0 0 10px rgba(45, 226, 194, 0.4);
+                border-color: rgba(45, 226, 194, 0.6);
+            }
+            100% {
+                box-shadow: 0 0 22px rgba(45, 226, 194, 0.9);
+                border-color: #2de2c2;
+            }
+        }
+
 
         #battlefield-canvas {
             background: #010204;
@@ -3916,6 +3958,8 @@
 </style>
 </head>
 <body>
+    <!-- 👥 第三十五阶段：团队工作站悬浮按钮 -->
+    <div id="teamwork-station-toggle-btn" onclick="openTeamworkStation()" title="WSDC 团队工作站">👥</div>
     <!-- 🏆 第三十四阶段：荣誉殿堂悬浮按钮 -->
     <div id="laurels-chamber-toggle-btn" onclick="openLaurelsChamber()" title="WSDC 荣誉陈列室">🏆</div>
     <!-- 📡 第三十阶段：全息总控悬浮按钮 -->
@@ -11352,6 +11396,30 @@ ${document.getElementById("radar-smart-advice").innerText}
                     <button class="btn btn-xs" onclick="triggerLaurelsConfetti()" style="font-size:9.5px; padding:4px 10px; background:rgba(230,185,59,0.15); border:1px solid #E6B93B; color:#E6B93B; border-radius:4px; cursor:pointer;">🎉 激发彩带</button>
                 </div>
                 <button class="btn btn-ghost" onclick="closeLaurelsChamber()" style="font-size:11px; padding:6px 18px; border-radius:8px; cursor:pointer;">关闭陈列室</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- 👥 第三十五阶段：WSDC 全息 3v3 团队工作站与战术数据链 -->
+    <div id="teamwork-station-modal" class="vocab-modal-overlay hidden" onclick="closeTeamworkStation(event)" style="z-index:10030; position:fixed; inset:0; background:rgba(2, 4, 12, 0.96); display:flex; justify-content:center; align-items:center; backdrop-filter:blur(10px);">
+        <div class="vocab-modal-card" onclick="event.stopPropagation()" style="max-width:590px; width:94%; padding:22px; background:#02050f; border:1px solid rgba(45,226,194,0.35); border-radius:22px; position:relative; box-shadow:0 30px 75px rgba(0,0,0,0.95); box-sizing:border-box;">
+            <h4 style="margin-top:0; color:#2de2c2; font-size:16px; margin-bottom:4px; display:flex; align-items:center; justify-content:center; gap:6px;">👥 WSDC 3v3 团队协同工作站 (Tactical Teamwork Station)</h4>
+            <div style="font-size:10px; color:var(--muted); margin-bottom:12px; text-align:center;">模拟分布式备赛数据链，向 AI 队友共享立论碎片，协同完成驳论和对比链。</div>
+            
+            <!-- 工作站 Canvas 容器 -->
+            <div style="position:relative; background:#010206; border-radius:12px; overflow:hidden; border:1px solid rgba(45,226,194,0.15); margin-bottom:12px; box-shadow:0 8px 25px rgba(0,0,0,0.85);">
+                <canvas id="teamwork-canvas" width="546" height="280" style="width:100%; height:280px; display:block;"></canvas>
+                <!-- 实时协同反馈 -->
+                <div style="position:absolute; top:10px; left:10px; right:10px; background:rgba(2,10,12,0.9); border:1px solid rgba(45,226,194,0.25); border-radius:6px; padding:6px 10px; font-size:9.5px; text-align:left; color:#e0fcf7; line-height:1.4; pointer-events:none;">
+                    <strong>👥 协同总线:</strong> <span id="teamwork-jessica-feedback">请点击下方发送立论数据链，联通二辩和三辩队友...</span>
+                </div>
+            </div>
+
+            <!-- 控制与选择 -->
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <button class="btn btn-sm" id="btn-transmit-teamwork" onclick="transmitTeamworkData()" style="font-size:11px; padding:6px 14px; background:rgba(45,226,194,0.15); border:1px solid #2de2c2; color:#2de2c2; font-weight:bold; border-radius:8px; cursor:pointer;">📡 发送立论数据链</button>
+                <button class="btn btn-ghost" onclick="closeTeamworkStation()" style="font-size:11px; padding:6px 18px; border-radius:8px; cursor:pointer;">关闭工作站</button>
             </div>
         </div>
     </div>
@@ -19380,6 +19448,362 @@ ${document.getElementById("radar-smart-advice").innerText}
 
         function onLaurelsMouseUp() {
             isLaurelsDragging = false;
+        }
+
+
+        // ================== 第三十五阶段：WSDC 全息 3v3 团队工作站与战术数据链核心引擎 ==================
+        let isTeamworkActive = false;
+        let teamworkCanvas = null;
+        let teamworkCtx = null;
+        let teamworkAnimId = null;
+
+        let teamworkTheta = 0.5;
+        let teamworkPhi = 0.3;
+        let isTeamworkDragging = false;
+        let lastTeamworkX = 0;
+        let lastTeamworkY = 0;
+
+        // 3D 队员座席
+        let teamSpeakers = [
+            { id: "1st", name: "一辩 Player (立论)", x3d: -75, y3d: 20, z3d: 0, color: "#2de2c2", prep: 100, dialog: "", dialogLife: 0 },
+            { id: "2nd", name: "二辩 AI 🧠 Brain (驳论)", x3d: 0, y3d: -30, z3d: -65, color: "#5b9dff", prep: 30, dialog: "", dialogLife: 0 },
+            { id: "3rd", name: "三辩 AI 🎙 Leo (总结)", x3d: 75, y3d: 20, z3d: 0, color: "#a371f7", prep: 15, dialog: "", dialogLife: 0 }
+        ];
+
+        let teamworkParticles = [];
+        let isTeamworkTransmitting = false;
+        let teamworkRipples = [];
+
+        function openTeamworkStation() {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            const modal = document.getElementById("teamwork-station-modal");
+            if (modal) modal.classList.remove("hidden");
+
+            isTeamworkActive = true;
+            teamworkCanvas = document.getElementById("teamwork-canvas");
+            if (!teamworkCanvas) return;
+            teamworkCtx = teamworkCanvas.getContext("2d");
+
+            teamworkCanvas.onmousedown = onTeamworkMouseDown;
+            teamworkCanvas.onmousemove = onTeamworkMouseMove;
+            window.addEventListener('mouseup', onTeamworkMouseUp);
+
+            isTeamworkTransmitting = false;
+            teamworkParticles = [];
+            teamworkRipples = [];
+            
+            // 重设队友准备进度
+            teamSpeakers[1].prep = 30; teamSpeakers[1].dialogLife = 0;
+            teamSpeakers[2].prep = 15; teamSpeakers[2].dialogLife = 0;
+            
+            document.getElementById("teamwork-jessica-feedback").innerHTML = "👥 3v3 战术中控总线连接就绪。请点击‘发送立论数据链’共享立论大纲！";
+
+            drawTeamworkFrame();
+        }
+
+        function closeTeamworkStation() {
+            if (typeof playClickFeedback === "function") playClickFeedback();
+            const modal = document.getElementById("teamwork-station-modal");
+            if (modal) modal.classList.add("hidden");
+            isTeamworkActive = false;
+            
+            if (teamworkCanvas) {
+                teamworkCanvas.onmousedown = null;
+                teamworkCanvas.onmousemove = null;
+            }
+            window.removeEventListener('mouseup', onTeamworkMouseUp);
+            if (teamworkAnimId) {
+                cancelAnimationFrame(teamworkAnimId);
+                teamworkAnimId = null;
+            }
+        }
+
+        function transmitTeamworkData() {
+            if (isTeamworkTransmitting) return;
+            if (typeof playClickFeedback === "function") playClickFeedback();
+
+            isTeamworkTransmitting = true;
+            teamworkParticles = [];
+            document.getElementById("teamwork-jessica-feedback").innerHTML = "📡 <strong>一辩立论大纲正在打包...</strong><br>光纤激光传输链启动！正在向二辩、三辩队友传输结构性思辩卡牌。";
+
+            // 生成 20 个向二辩、20 个向三辩流动的卡牌粒子
+            for (let i = 0; i < 20; i++) {
+                // 向二辩 (AI Brain) 传输
+                teamworkParticles.push({
+                    targetIdx: 1,
+                    progress: -i * 0.05, // 错开时间
+                    speed: 0.03 + Math.random() * 0.01,
+                    color: "#5b9dff"
+                });
+                // 向三辩 (AI Leo) 传输
+                teamworkParticles.push({
+                    targetIdx: 2,
+                    progress: -i * 0.05,
+                    speed: 0.03 + Math.random() * 0.01,
+                    color: "#a371f7"
+                });
+            }
+        }
+
+        // ================== 3D 座席与光纤粒子绘制 ==================
+        function drawTeamworkFrame() {
+            if (!isTeamworkActive || !teamworkCtx || !teamworkCanvas) return;
+
+            const W = teamworkCanvas.width;
+            const H = teamworkCanvas.height;
+            const ctx = teamworkCtx;
+            const cx = W / 2;
+            const cy = H / 2 - 15;
+
+            ctx.fillStyle = "#02050f";
+            ctx.fillRect(0, 0, W, H);
+
+            // 1. 绘制网格背景
+            ctx.strokeStyle = "rgba(45,226,194,0.03)";
+            ctx.lineWidth = 0.5;
+            for (let i = 20; i < W; i += 40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
+            }
+            for (let j = 15; j < H; j += 30) {
+                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke();
+            }
+
+            const F = 200;
+            const sinT = Math.sin(teamworkTheta);
+            const cosT = Math.cos(teamworkTheta);
+            const sinP = Math.sin(teamworkPhi);
+            const cosP = Math.cos(teamworkPhi);
+
+            const project = (x, y, z) => {
+                let y1 = y * cosP - z * sinP;
+                let z1 = y * sinP + z * cosP;
+                let x2 = x * cosT + z1 * sinT;
+                let z2 = -x * sinT + z1 * cosT;
+                const scale = F / (F + z2);
+                return {
+                    x: cx + x2 * scale,
+                    y: cy + y1 * scale,
+                    scale: scale
+                };
+            };
+
+            // 2. 投影计算 3 个队员平台
+            let stations = teamSpeakers.map(sp => {
+                const p = project(sp.x3d, sp.y3d, sp.z3d);
+                return { ...p, ...sp };
+            });
+
+            // 3. 绘制平台间连接光导带
+            ctx.strokeStyle = "rgba(45,226,194,0.08)";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(stations[0].x, stations[0].y);
+            ctx.lineTo(stations[1].x, stations[1].y);
+            ctx.lineTo(stations[2].x, stations[2].y);
+            ctx.closePath();
+            ctx.stroke();
+
+            // 4. 绘制悬浮圆形座席与旋转环
+            stations.forEach((st) => {
+                const sc = st.scale;
+                const r = 24 * sc;
+
+                // 同心环自转绘制
+                const ringAngle = Date.now() * 0.002 + st.x3d * 0.1;
+                ctx.strokeStyle = st.color;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.ellipse(st.x, st.y + 12 * sc, r, r * 0.5, ringAngle, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // 圆环二
+                ctx.strokeStyle = "rgba(255,255,255,0.15)";
+                ctx.beginPath();
+                ctx.ellipse(st.x, st.y + 12 * sc, r * 1.3, r * 0.65, -ringAngle * 0.6, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // 圆盘主体填充
+                ctx.fillStyle = "rgba(2, 5, 15, 0.75)";
+                ctx.beginPath();
+                ctx.arc(st.x, st.y, 8 * sc, 0, Math.PI*2);
+                ctx.fill();
+
+                // 核心亮点
+                ctx.shadowColor = st.color;
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = st.color;
+                ctx.beginPath();
+                ctx.arc(st.x, st.y, 4 * sc, 0, Math.PI*2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // 准备进度条
+                ctx.fillStyle = "rgba(255,255,255,0.15)";
+                ctx.fillRect(st.x - 25 * sc, st.y + 24 * sc, 50 * sc, 4 * sc);
+                ctx.fillStyle = st.color;
+                ctx.fillRect(st.x - 25 * sc, st.y + 24 * sc, 50 * sc * (st.prep / 100), 4 * sc);
+
+                // 文字名字
+                ctx.fillStyle = "#fff";
+                ctx.font = `bold ${Math.round(8.5 * sc)}px sans-serif`;
+                ctx.textAlign = "center";
+                ctx.fillText(st.name.split(" ")[0], st.x, st.y - 12 * sc);
+                ctx.font = `${Math.round(7.5 * sc)}px sans-serif`;
+                ctx.fillText(`PREP: ${st.prep}%`, st.x, st.y + 36 * sc);
+            });
+
+            // 5. 绘制光纤流动粒子
+            let activeParticles = 0;
+            for (let i = teamworkParticles.length - 1; i >= 0; i--) {
+                const p = teamworkParticles[i];
+                if (p.progress < 0) {
+                    p.progress += 0.02; // 等待发射
+                    continue;
+                }
+
+                p.progress += p.speed;
+                activeParticles++;
+
+                const source = stations[0];
+                const target = stations[p.targetIdx];
+
+                const px = source.x + (target.x - source.x) * Math.min(p.progress, 1.0);
+                const py = source.y + (target.y - source.y) * Math.min(p.progress, 1.0);
+                const sc = source.scale + (target.scale - source.scale) * Math.min(p.progress, 1.0);
+
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(px, py, 2.5 * sc, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // 绘制小立论卡片投影图标
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
+                ctx.font = `${Math.round(6.5 * sc)}px monospace`;
+                ctx.fillText("📄 DATA", px, py - 6 * sc);
+
+                // 击中队友座席
+                if (p.progress >= 1.0) {
+                    // 产生涟漪
+                    teamworkRipples.push({
+                        x: target.x,
+                        y: target.y,
+                        r: 5,
+                        maxR: 35,
+                        color: p.color,
+                        alpha: 1.0
+                    });
+
+                    // 进度点亮
+                    const teammate = teamSpeakers[p.targetIdx];
+                    teammate.prep = Math.min(100, teammate.prep + 3.5);
+
+                    teamworkParticles.splice(i, 1);
+                }
+            }
+
+            // 6. 绘制扩散光圈涟漪
+            for (let i = teamworkRipples.length - 1; i >= 0; i--) {
+                const rip = teamworkRipples[i];
+                rip.r += 1.8;
+                rip.alpha -= 0.045;
+
+                if (rip.alpha <= 0) {
+                    teamworkRipples.splice(i, 1);
+                    continue;
+                }
+
+                ctx.strokeStyle = rip.color;
+                ctx.globalAlpha = rip.alpha;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.ellipse(rip.x, rip.y + 10, rip.r, rip.r * 0.5, 0, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            }
+
+            // 7. 传输成功触发队友回复
+            if (isTeamworkTransmitting && activeParticles === 0 && teamworkParticles.length === 0) {
+                isTeamworkTransmitting = false;
+                
+                // 强制进度拉满为 100%
+                teamSpeakers[1].prep = 100;
+                teamSpeakers[2].prep = 100;
+
+                // 二辩队友 Brain 气泡
+                teamSpeakers[1].dialog = "🧠 Brain: 立论片段已收录！我将根据因果链，在二辩中打出致命反驳！";
+                teamSpeakers[1].dialogLife = 200;
+
+                // 三辩队友 Leo 气泡
+                teamSpeakers[2].dialog = "🎙️ Leo: 框架完美！我已将其整合入三辩价值对比天平，锁定胜局！";
+                teamSpeakers[2].dialogLife = 200;
+
+                document.getElementById("teamwork-jessica-feedback").innerHTML = "🎉 <strong>团队协同配对成功！</strong><br>虚拟队友已完成立论卡牌合并。协作系数达 98.4%，团队战力爆表！";
+                showToast("👥 3v3 团队协同立论大纲同步完成！");
+            }
+
+            // 8. 渲染队友的文字气泡
+            stations.forEach((st, idx) => {
+                const sp = teamSpeakers[idx];
+                if (sp.dialogLife > 0) {
+                    sp.dialogLife--;
+                    
+                    const sc = st.scale;
+                    const bx = st.x;
+                    const by = st.y - 30 * sc;
+
+                    // 绘制半透明气泡底框
+                    ctx.fillStyle = "rgba(4, 8, 22, 0.95)";
+                    ctx.strokeStyle = st.color;
+                    ctx.lineWidth = 1;
+
+                    // 气泡圆角矩形
+                    const bw = 170 * sc;
+                    const bh = 30 * sc;
+                    ctx.beginPath();
+                    ctx.roundRect(bx - bw/2, by - bh, bw, bh, 6 * sc);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // 文字
+                    ctx.fillStyle = "#fff";
+                    ctx.font = `500 ${Math.round(7.5 * sc)}px sans-serif`;
+                    ctx.textAlign = "center";
+                    ctx.fillText(sp.dialog, bx, by - bh/2 + 2);
+                }
+            });
+
+            // 自转
+            if (!isTeamworkDragging) {
+                teamworkTheta += 0.002;
+            }
+
+            teamworkAnimId = requestAnimationFrame(drawTeamworkFrame);
+        }
+
+        // ================== 3D 鼠标拖拽视角 ==================
+        function onTeamworkMouseDown(e) {
+            isTeamworkDragging = true;
+            lastTeamworkX = e.clientX;
+            lastTeamworkY = e.clientY;
+        }
+
+        function onTeamworkMouseMove(e) {
+            if (!isTeamworkActive || !isTeamworkDragging) return;
+            const deltaX = e.clientX - lastTeamworkX;
+            const deltaY = e.clientY - lastTeamworkY;
+
+            teamworkTheta += deltaX * 0.005;
+            teamworkPhi = Math.max(-Math.PI/2, Math.min(Math.PI/2, teamworkPhi + deltaY * 0.005));
+
+            lastTeamworkX = e.clientX;
+            lastTeamworkY = e.clientY;
+        }
+
+        function onTeamworkMouseUp() {
+            isTeamworkDragging = false;
         }
 
 </script>
