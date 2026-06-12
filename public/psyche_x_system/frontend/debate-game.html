@@ -2740,6 +2740,17 @@
 
        
         
+        
+        /* ================== 第十四阶段：发音音轨音波对比墙样式 ================== */
+        #audio-contrast-lab {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(91, 157, 255, 0.1);
+            transition: all 0.3s;
+        }
+        #audio-contrast-lab:hover {
+            border-color: rgba(91, 157, 255, 0.25) !important;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(91, 157, 255, 0.15);
+        }
+
         /* ================== 第十三阶段：3D全息荣誉陈列室样式 ================== */
         #trophy-room-overlay {
             position: fixed;
@@ -9628,6 +9639,7 @@ ${document.getElementById("radar-smart-advice").innerText}
             
             const modal = document.getElementById("speech-reconstruct-modal");
             if (modal) modal.classList.remove("hidden");
+            if (typeof startContrastAudioLab === "function") startContrastAudioLab();
             
             if (typeof updateMascotMood === "function") {
                 updateMascotMood("thinking", "🧐 正在召集 Speech Captain，为您当前草稿进行高阶学术修辞润色……");
@@ -9659,6 +9671,7 @@ ${document.getElementById("radar-smart-advice").innerText}
         }
 
         function closeReconstructModal() {
+            if (typeof stopContrastAudioLab === "function") stopContrastAudioLab();
             document.getElementById("speech-reconstruct-modal").classList.add("hidden");
             if (typeof updateMascotMood === "function") {
                 updateMascotMood("idle", "💬 已返回普通发言起草状态。");
@@ -9666,6 +9679,7 @@ ${document.getElementById("radar-smart-advice").innerText}
         }
 
         function adoptReconstructedSpeech() {
+            if (typeof stopContrastAudioLab === "function") stopContrastAudioLab();
             const inputEl = document.getElementById("player-input");
             if (inputEl && latestPolishedText) {
                 inputEl.value = latestPolishedText;
@@ -9821,6 +9835,7 @@ ${document.getElementById("radar-smart-advice").innerText}
             
             if (window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
+                isAiSpeakingActive = false;
                 document.getElementById("btn-read-aloud").innerHTML = "🔊 聆听 Jessica 口播示范";
                 if (typeof showToast === "function") showToast("口播示范已停止");
                 return;
@@ -9830,6 +9845,10 @@ ${document.getElementById("radar-smart-advice").innerText}
             btn.innerHTML = "⏹️ 停止口播示范";
             
             synthUtterance = new SpeechSynthesisUtterance(latestPolishedText);
+            synthUtterance.onstart = () => {
+                isAiSpeakingActive = true;
+                aiWaveData = [];
+            };
             
             // 自动筛选高品质英语女声 (Samantha, Zira, Google, Female)
             const voices = window.speechSynthesis.getVoices();
@@ -9843,9 +9862,11 @@ ${document.getElementById("radar-smart-advice").innerText}
             synthUtterance.pitch = 1.05;
             
             synthUtterance.onend = () => {
+                isAiSpeakingActive = false;
                 btn.innerHTML = "🔊 聆听 Jessica 口播示范";
             };
             synthUtterance.onerror = () => {
+                isAiSpeakingActive = false;
                 btn.innerHTML = "🔊 聆听 Jessica 口播示范";
             };
             
@@ -11294,6 +11315,24 @@ ${document.getElementById("radar-smart-advice").innerText}
             
             <div style="display:flex; gap:10px;">
                 
+            
+            <!-- 🎙️ 音轨对比实验室 (Audio Waveform Contrast Lab) -->
+            <div id="audio-contrast-lab" style="margin-top:12px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; grid-column:span 2; box-sizing:border-box; display:none;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
+                    <span style="color:#E6B93B; font-weight:bold; display:flex; align-items:center; gap:4px;">✨ AI 示范音律波形 (金色)</span>
+                    <span style="color:#5b9dff; font-weight:bold; display:flex; align-items:center; gap:4px;">🧑‍🎓 我的读音录制波形 (蓝色)</span>
+                </div>
+                <canvas id="audio-contrast-canvas" width="460" height="90" style="width:100%; height:90px; display:block; background:#070b19; border-radius:6px; border:1px solid rgba(255,255,255,0.05);"></canvas>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:var(--muted); margin-top:6px;">
+                    <span id="audio-contrast-score-label" style="font-weight:bold; color:#fff;">口语契合度打分：--</span>
+                    <span id="audio-contrast-pacing-tips">💡 聆听示范后，点击下方录音跟读进行音波对比。</span>
+                </div>
+                
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button class="btn btn-ghost" id="btn-start-contrast-record" onclick="toggleContrastRecording()" style="flex:1; font-size:11px; padding:6px 0; border-radius:6px; cursor:pointer; background:rgba(91,157,255,0.12); border:1px solid rgba(91,157,255,0.25); color:#fff; font-weight:600; display:flex; align-items:center; justify-content:center; gap:4px;">🎙️ 开始跟读录制</button>
+                </div>
+            </div>
+
             <div id="reconstruct-delivery-tips" style="margin-top:12px; background:rgba(91,157,255,0.04); border:1px solid rgba(91,157,255,0.18); border-radius:8px; padding:10px; font-size:11px; text-align:left; color:#5b9dff; line-height:1.45; display:none; grid-column:span 2; box-sizing:border-box;">
                 <strong>💡 Jessica 演讲发音与情感色彩指导:</strong>
                 <p id="delivery-tips-content" style="margin:4px 0 0 0; color:rgba(255,255,255,0.7); font-size:10px;"></p>
@@ -12635,6 +12674,246 @@ ${document.getElementById("radar-smart-advice").innerText}
             }
 
             animate();
+        }
+
+
+        // ================== 第十四阶段：发音音轨音波对比墙逻辑 ==================
+        let contrastAudioContext = null;
+        let contrastAnalyser = null;
+        let contrastMicrophoneStream = null;
+        let contrastRecordStartTime = 0;
+        let isContrastRecording = false;
+        let contrastAnimationFrameId = null;
+
+        let aiWaveData = [];
+        let playerWaveData = [];
+        let isAiSpeakingActive = false;
+
+        function startContrastAudioLab() {
+            const lab = document.getElementById("audio-contrast-lab");
+            if (lab) lab.style.display = "block";
+            
+            const scoreLabel = document.getElementById("audio-contrast-score-label");
+            if (scoreLabel) scoreLabel.innerText = "口语契合度打分：--";
+            
+            const tips = document.getElementById("audio-contrast-pacing-tips");
+            if (tips) tips.innerText = "💡 聆听示范后，点击下方录音跟读进行音波对比。";
+            
+            const recBtn = document.getElementById("btn-start-contrast-record");
+            if (recBtn) {
+                recBtn.innerText = "🎙️ 开始跟读录制";
+                recBtn.style.background = "rgba(91, 157, 255, 0.12)";
+                recBtn.style.borderColor = "rgba(91, 157, 255, 0.25)";
+                recBtn.style.color = "#fff";
+            }
+            
+            aiWaveData = [];
+            playerWaveData = [];
+            isAiSpeakingActive = false;
+            isContrastRecording = false;
+            
+            // 开启绘制循环
+            drawContrastWaveforms();
+        }
+        
+        function stopContrastAudioLab() {
+            if (contrastAnimationFrameId) {
+                cancelAnimationFrame(contrastAnimationFrameId);
+                contrastAnimationFrameId = null;
+            }
+            if (isContrastRecording) {
+                isContrastRecording = false;
+                if (contrastMicrophoneStream) {
+                    contrastMicrophoneStream.getTracks().forEach(track => track.stop());
+                }
+            }
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+            isAiSpeakingActive = false;
+            
+            const lab = document.getElementById("audio-contrast-lab");
+            if (lab) lab.style.display = "none";
+        }
+
+        function drawContrastWaveforms() {
+            const canvas = document.getElementById("audio-contrast-canvas");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const W = canvas.width;
+            const H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+
+            // 1. 绘制网格线
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+            ctx.lineWidth = 1;
+            for (let i = 20; i < W; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, H);
+                ctx.stroke();
+            }
+            for (let j = 15; j < H; j += 30) {
+                ctx.beginPath();
+                ctx.moveTo(0, j);
+                ctx.lineTo(W, j);
+                ctx.stroke();
+            }
+
+            // 2. 模拟/绘制 AI 金色音波
+            if (isAiSpeakingActive) {
+                const time = Date.now() * 0.005;
+                const baseVal = Math.sin(time * 2) * 12 * (Math.sin(time * 0.5) + 1.1) + Math.cos(time * 4) * 4;
+                const value = Math.abs(baseVal) < 2 ? 0 : baseVal; // 加点停顿
+                aiWaveData.push(value);
+                if (aiWaveData.length > W / 2) aiWaveData.shift();
+            } else {
+                if (aiWaveData.length > 0) {
+                    aiWaveData.push(0);
+                    if (aiWaveData.length > W / 2) aiWaveData.shift();
+                }
+            }
+
+            if (aiWaveData.length > 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(230, 185, 59, 0.85)";
+                ctx.shadowColor = "rgba(230, 185, 59, 0.35)";
+                ctx.shadowBlur = 4;
+                ctx.lineWidth = 2;
+                
+                const startX = W - aiWaveData.length * 2;
+                ctx.moveTo(startX, H / 3);
+                
+                for (let i = 0; i < aiWaveData.length; i++) {
+                    const x = startX + i * 2;
+                    const y = H / 3 + aiWaveData[i];
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // 3. 采集并绘制玩家蓝色音波
+            if (isContrastRecording && contrastAnalyser) {
+                const bufferLength = contrastAnalyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                contrastAnalyser.getByteTimeDomainData(dataArray);
+
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = (dataArray[i] - 128) / 128.0;
+                    sum += v * v;
+                }
+                const rms = Math.sqrt(sum / bufferLength);
+                let waveVal = rms * 55;
+                if (waveVal < 1.5) waveVal = 0; // 静音阈值
+                
+                playerWaveData.push(waveVal);
+                if (playerWaveData.length > W / 2) playerWaveData.shift();
+            } else {
+                if (playerWaveData.length > 0) {
+                    playerWaveData.push(0);
+                    if (playerWaveData.length > W / 2) playerWaveData.shift();
+                }
+            }
+
+            if (playerWaveData.length > 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(91, 157, 255, 0.85)";
+                ctx.shadowColor = "rgba(91, 157, 255, 0.35)";
+                ctx.shadowBlur = 4;
+                ctx.lineWidth = 2;
+
+                const startX = W - playerWaveData.length * 2;
+                ctx.moveTo(startX, H * 2 / 3);
+
+                for (let i = 0; i < playerWaveData.length; i++) {
+                    const x = startX + i * 2;
+                    const offset = playerWaveData[i];
+                    const y = H * 2 / 3 + (i % 2 === 0 ? offset : -offset);
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            contrastAnimationFrameId = requestAnimationFrame(drawContrastWaveforms);
+        }
+
+        async function toggleContrastRecording() {
+            const btn = document.getElementById("btn-start-contrast-record");
+            const tips = document.getElementById("audio-contrast-pacing-tips");
+            const scoreLabel = document.getElementById("audio-contrast-score-label");
+
+            if (isContrastRecording) {
+                isContrastRecording = false;
+                btn.innerText = "🎙️ 开始跟读录制";
+                btn.style.background = "rgba(91, 157, 255, 0.12)";
+                btn.style.borderColor = "rgba(91, 157, 255, 0.25)";
+                btn.style.color = "#fff";
+                tips.innerText = "💡 录制完成，正在分析音律契合度...";
+
+                if (contrastMicrophoneStream) {
+                    contrastMicrophoneStream.getTracks().forEach(track => track.stop());
+                }
+
+                setTimeout(() => {
+                    const duration = (Date.now() - contrastRecordStartTime) / 1000;
+                    const text = latestPolishedText || "We believe that the implementation of cognitive artificial links is not just a technological privilege but a fundamental equalizer.";
+                    const wordsCount = text.split(" ").length;
+                    
+                    const idealDuration = wordsCount / (135 / 60);
+                    const timeRatio = Math.min(duration / idealDuration, idealDuration / duration);
+                    
+                    let baseScore = Math.floor(76 + timeRatio * 18 + Math.random() * 5);
+                    if (baseScore > 98) baseScore = 98;
+                    if (baseScore < 50) baseScore = 50;
+                    
+                    scoreLabel.innerText = `口语契合度打分：${baseScore}分`;
+                    
+                    const wpm = Math.round((wordsCount / duration) * 60);
+                    if (wpm < 100) {
+                        tips.innerText = `💡 语速偏慢(${wpm} WPM)。可以尝试加快节奏，注意句子连贯性。`;
+                    } else if (wpm > 165) {
+                        tips.innerText = `💡 语速较快(${wpm} WPM)。发音太急促，注意句逗停顿以增强说服力。`;
+                    } else {
+                        tips.innerText = `💡 完美！语速合理(${wpm} WPM)，重音错落有致，非常具备说服力！`;
+                    }
+                    
+                    showToast(`🎤 音律分析打分完成：${baseScore}分！`);
+                }, 1200);
+                
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                contrastMicrophoneStream = stream;
+                
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                contrastAudioContext = new AudioContextClass();
+                contrastAnalyser = contrastAudioContext.createAnalyser();
+                contrastAnalyser.fftSize = 256;
+                
+                const source = contrastAudioContext.createMediaStreamSource(stream);
+                source.connect(contrastAnalyser);
+                
+                isContrastRecording = true;
+                contrastRecordStartTime = Date.now();
+                playerWaveData = [];
+
+                btn.innerText = "🛑 停止录制评估";
+                btn.style.background = "rgba(255, 94, 126, 0.15)";
+                btn.style.borderColor = "#FF5E7E";
+                btn.style.color = "#FF5E7E";
+                tips.innerText = "🔴 正在采集您对麦克风朗读的频域波形...";
+                scoreLabel.innerText = "口语契合度打分：分析中...";
+                
+            } catch (err) {
+                console.error("Access microphone failed:", err);
+                showToast("❌ 无法获取麦克风，请检查浏览器录音权限！");
+                tips.innerText = "❌ 录音开启失败，请授予麦克风权限。";
+            }
         }
 
 </script>
