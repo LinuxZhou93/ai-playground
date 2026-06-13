@@ -82,4 +82,24 @@ describe('Middleware Cache-Control Header Injection Tests', () => {
     expect(res2).toBeDefined();
     expect(res2.headers.get('Cache-Control')).toBeNull();
   });
+
+  it('should inject ETag header for HTML files under /resources/ or clean URLs', async () => {
+    const req = createRequest('http://localhost:3000/explain');
+    const res = await middleware(req);
+    expect(res).toBeDefined();
+    const etag = res.headers.get('ETag');
+    expect(etag).toBe('W/"explain.html-20260613"');
+    expect(res.headers.get('Cache-Control')).toBe('no-cache');
+  });
+
+  it('should return 304 Not Modified when If-None-Match matches the ETag', async () => {
+    const req = createRequest('http://localhost:3000/explain', {
+      'if-none-match': 'W/"explain.html-20260613"',
+    });
+    const res = await middleware(req);
+    expect(res).toBeDefined();
+    expect(res.status).toBe(304);
+    expect(res.headers.get('ETag')).toBe('W/"explain.html-20260613"');
+    expect(res.headers.get('Cache-Control')).toBe('no-cache');
+  });
 });

@@ -132,8 +132,9 @@
       "id": "opt_t17_middleware_cache_headers",
       "title": "优化中间件对静态 H5 资源的智能缓存与路由映射",
       "description": "修改 middleware.ts，针对 public/resources/ 下的静态 H5 页面（如 explain.html, course.html）配置精细化的 Cache-Control 头部（例如对静态资源设置长缓存，对 HTML 设置 no-cache 并配合 ETag）。编写 Vitest 测试模拟 Request 请求，断言 Response Headers 中的缓存策略符合预期。",
-      "status": "pending",
-      "log": ""
+      "status": "completed",
+      "log": "```TASK_DONE\n1. **设计 ETag 生成与条件请求拦截机制**：在 `middleware.ts` 中引入了针对静态 HTML 文件（如 `explain.html`, `course.html` 等以 `.html` 结尾的静态页或对应的 `/explain`, `/course` 干净短路径）的 ETag 生成算法（基于文件名和部署时间戳生成格式为 `W/\"[filename]-20260613\"` 的弱 ETag）。并在重写请求进入前，优先校验请求头中的 `If-None-Match`。若匹配，则直接提早响应返回 `304 Not Modified`，避免无谓的服务器重写和完整 HTML Body 传输。\n2. **智能注入缓存头部**：更新了 `applyCacheControl` 响应头注入方法。若为静态 HTML 页面，在注入 `Cache-Control: no-cache` 头部的同时，也一并写入相匹配 of `ETag` 头部，以支持后续的条件缓存校验。而对静态资源（JS, CSS, 以及各类图片），设置了极高的长缓存头 `Cache-Control: public, max-age=31536000, immutable`，实现完美的动静分离和加速。\n3. **测试套件扩展与跑通**：在 `tests/middleware.test.ts` 中新增了针对 ETag 生成的断言用例，验证在正常访问 `/explain` 时，Response Headers 带有匹配的 `ETag` 且 `Cache-Control` 为 `no-cache`。另外，模拟传入携带匹配的 `If-None-Match` 请求头，断言返回状态码为 `304` 且包含正确的协商首部。6个中间件测试及全部 135 个测试用例全部通过绿标。\n```",
+      "updated_at": "2026-06-13T10:43:00.000Z"
     },
     {
       "id": "opt_t18_course_code_sandbox",

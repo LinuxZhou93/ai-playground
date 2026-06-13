@@ -16,6 +16,7 @@ function applyCacheControl(response: NextResponse, targetPathname: string) {
 
     if (isHtml) {
       response.headers.set('Cache-Control', 'no-cache');
+      response.headers.set('ETag', `W/"${fileName}-20260613"`);
     } else {
       const isJsOrCss = fileName.endsWith('.js') || 
                         fileName.endsWith('.mjs') || 
@@ -88,7 +89,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/index.html', request.url));
   }
 
-    // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
+  // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
   const cleanUrlMaps: Record<string, string> = {
     '/explain': '/resources/explain.html',
     '/course': '/resources/course.html',
@@ -99,6 +100,41 @@ export async function middleware(request: NextRequest) {
     '/ide': '/resources/ide-scratch.html',
     '/debate-lab': '/psyche_x_system/frontend/debate_lab.html',
   };
+
+  // ETag 协商缓存拦截（静态 HTML 页面）
+  let isRequestingHtml = false;
+  let targetFileName = '';
+  
+  if (cleanUrlMaps[pathname]) {
+    const mappedPath = cleanUrlMaps[pathname];
+    if (mappedPath.endsWith('.html')) {
+      isRequestingHtml = true;
+      targetFileName = mappedPath.slice(mappedPath.lastIndexOf('/') + 1);
+    }
+  } else if (pathname.startsWith('/resources/')) {
+    const lastPart = pathname.slice(pathname.lastIndexOf('/') + 1);
+    if (lastPart.endsWith('.html') || lastPart.endsWith('.htm') || !lastPart.includes('.')) {
+      isRequestingHtml = true;
+      targetFileName = lastPart;
+    }
+  } else if (pathname.endsWith('.html') && !pathname.includes('/', 1)) {
+    isRequestingHtml = true;
+    targetFileName = pathname.slice(1);
+  }
+  
+  if (isRequestingHtml && targetFileName) {
+    const etagVal = `W/"${targetFileName}-20260613"`;
+    const ifNoneMatch = request.headers.get('If-None-Match');
+    if (ifNoneMatch === etagVal) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          'ETag': etagVal,
+          'Cache-Control': 'no-cache',
+        }
+      });
+    }
+  }
 
   if (cleanUrlMaps[pathname]) {
     console.log(`🔗 [Clean URL] Mapping ${pathname} -> ${cleanUrlMaps[pathname]}`);
