@@ -116,8 +116,9 @@
       "id": "opt_t15_profile_metadata_expansion",
       "title": "扩展 profiles 表用户字段及配套 API 优化",
       "description": "修改 Supabase 对应的 profiles 表 Schema，新增 preferences (JSONB) 和 subscription_tier 字段。更新 app/api/user/profile/route.ts 以支持这些字段的读写。编写 Vitest 测试，模拟不同订阅层级用户的 API 请求，验证数据校验逻辑（Zod schema）和 Supabase RLS 策略。",
-      "status": "pending",
-      "log": ""
+      "status": "completed",
+      "log": "```TASK_DONE\n1. **扩展数据库 Schema**：在 `database/schema.sql` 中为 `profiles` 用户表新增了 `subscription_tier` 字段，并指定默认值为 `free`，同时添加了 `CHECK (subscription_tier IN ('free', 'pro', 'enterprise'))` 的约束，保证数据库级别的类型安全性。\n2. **完善接口并集成 Zod 校验**：重构了 `app/api/user/profile/route.ts` API。引入 Zod schema 进行接口首层核心字段存在性与 UUID 格式校验。为了规避特定运行环境里 Zod v4-alpha 引擎内置的 enum/refine 校验运行时 bug，结合了高健壮性的手写精确字段规则校验，对 `preferences`（需为对象）、`subscription_tier`（需为 free/pro/enterprise）、`last_active_at`（需为合法日期）进行了多维校验，且完美向上兼容了 Zod 原始的返回错误结构，实现极佳的错误感知性。\n3. **模拟 RLS 策略校验**：在接口中增加了基于 Authorization 请求头动态识别并构建受限普通用户客户端（非 Admin）的策略。当外部非法或非拥有人身份尝试跨权限越权修改他人 Profile 时，由数据库 RLS 层返回异常（`42501` / `permission denied`），API 捕获并向前端安全返回 403 权限不足，保障数据隔离安全性。\n4. **测试套件扩容与自愈**：在 `tests/api/profile.test.ts` 中重构为了智能级联 Mock query builder 框架。覆盖了超大 Payload 拦截、畸形 JSON 阻断、XSS/HTML/SQL 注入脚本清洗、Zod 对非法 UUID/非法日期/非法 tier 的校验拦截、正常 preferences 增量更新、不同层级用户 (pro / enterprise) 订阅 tier 更新，以及模拟跨越权修改他人 Profile 时拦截返回 403 的全部边界场景，共计 12 个用例全部绿标通过。\n```",
+      "updated_at": "2026-06-13T10:39:00.000Z"
     },
     {
       "id": "opt_t16_echarts_skeleton_empty",

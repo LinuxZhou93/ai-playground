@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   bio TEXT,
   github_username TEXT,
   preferences JSONB DEFAULT '{}'::jsonb,
+  subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'pro', 'enterprise')),
   last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

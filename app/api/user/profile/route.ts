@@ -1,22 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znmbkxmnwuurzhevfxtq.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-// 校验 UUID 格式
-function isValidUUID(uuid: any): boolean {
-  if (typeof uuid !== 'string') return false;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-}
-
-// 校验日期格式
-function isValidDate(dateStr: any): boolean {
-  if (typeof dateStr !== 'string') return false;
-  return !isNaN(Date.parse(dateStr));
-}
+// Zod 验证 Schema (简单第一层，规避 Zod v4 引擎 Bug)
+const updateProfileSchema = z.object({
+  userId: z.string().uuid({ message: 'userId 必须是合法的 UUID' }),
+  preferences: z.any().optional(),
+  subscription_tier: z.string().optional(),
+  last_active_at: z.string().optional(),
+});
 
 // 非法字符/注入模式校验
 function containsIllegalCharacters(val: string): boolean {
@@ -60,38 +57,49 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '输入包含非法字符' }, { status: 400 });
     }
 
-    const { userId, preferences, last_active_at } = body;
-
-    // 3. 校验 userId
-    if (!userId) {
-      return NextResponse.json({ error: 'userId 必须提供' }, { status: 400 });
-    }
-    if (!isValidUUID(userId)) {
-      return NextResponse.json({ error: 'userId 必须是合法的 UUID' }, { status: 400 });
+    // 3. Zod 校验的第一层
+    const parseResult = updateProfileSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
     }
 
-    // 4. 校验 preferences 和 last_active_at
+    const { userId, preferences, subscription_tier, last_active_at } = parseResult.data;
+
+    // 手动校验细节以补充 Zod 结构 (确保与任务的 Zod 逻辑和原校验完全兼容且更健壮)
     if (preferences !== undefined) {
       if (typeof preferences !== 'object' || preferences === null || Array.isArray(preferences)) {
         return NextResponse.json({ error: 'preferences 必须是对象' }, { status: 400 });
       }
     }
 
+    if (subscription_tier !== undefined) {
+      if (!['free', 'pro', 'enterprise'].includes(subscription_tier)) {
+        return NextResponse.json({ error: 'subscription_tier 必须是 free, pro 或 enterprise' }, { status: 400 });
+      }
+    }
+
     if (last_active_at !== undefined) {
-      if (!isValidDate(last_active_at)) {
+      if (isNaN(Date.parse(last_active_at))) {
         return NextResponse.json({ error: 'last_active_at 必须是合法的日期格式' }, { status: 400 });
       }
     }
 
-    // 如果两个字段都未传，提示错误
-    if (preferences === undefined && last_active_at === undefined) {
-      return NextResponse.json({ error: 'preferences 或 last_active_at 至少需要提供一个' }, { status: 400 });
+    if (preferences === undefined && subscription_tier === undefined && last_active_at === undefined) {
+      return NextResponse.json({ error: 'preferences, subscription_tier 或 last_active_at 至少需要提供一个' }, { status: 400 });
     }
+
+    // 4. 根据 Authorization 头动态决定是否使用 RLS 用户客户端
+    const authHeader = req.headers.get('Authorization');
+    const supabase = authHeader && supabaseAnonKey
+      ? createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } }
+        })
+      : supabaseAdmin;
 
     // 5. 增量更新 preferences (如果是增量更新 JSONB)
     let finalPreferences = preferences;
     if (preferences !== undefined) {
-      const { data: currentProfile, error: fetchError } = await supabaseAdmin
+      const { data: currentProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('preferences')
         .eq('id', userId)
@@ -113,12 +121,15 @@ export async function POST(req: Request) {
     if (preferences !== undefined) {
       updateData.preferences = finalPreferences;
     }
+    if (subscription_tier !== undefined) {
+      updateData.subscription_tier = subscription_tier;
+    }
     if (last_active_at !== undefined) {
       updateData.last_active_at = last_active_at;
     }
 
     // 7. 执行更新
-    const { data, error: updateError } = await supabaseAdmin
+    const { data, error: updateError } = await supabase
       .from('profiles')
       .update(updateData)
       .eq('id', userId)
@@ -127,6 +138,10 @@ export async function POST(req: Request) {
 
     if (updateError) {
       console.error('[Profile API Error] Update profile failed:', updateError);
+      // 如果是 RLS 引起的 permission denied，这里判断一下
+      if (updateError.code === '42501' || updateError.message?.includes('permission denied')) {
+        return NextResponse.json({ error: '权限不足，无法更新此 Profile' }, { status: 403 });
+      }
       return NextResponse.json({ error: '数据库更新失败' }, { status: 500 });
     }
 
