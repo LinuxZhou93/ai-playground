@@ -157,19 +157,37 @@ export default function HomePage() {
   /* eslint-disable react-hooks/set-state-in-effect -- Hydration from localStorage must happen in effect */
   useEffect(() => {
     try {
-      // 🛡️ [Titan Tech] 官方生产环境硬核身份穿透：解决跨域 Session 丢失导致的“协议拦截”
-      // 生产环境默认授予专业版通行证，确保小学生与老师在任何节点均可无缝进入科研室。
-      if (!localStorage.getItem('current_user_id')) {
-        // 使用一个故定的虚拟 UUID 替代邮箱字符串，确保数据库 insert 不会报 'invalid input syntax for type uuid'
-        localStorage.setItem('current_user_id', '00000000-0000-0000-0000-000000000001');
-        localStorage.setItem('current_user_email', 'titan_authorized_pilot@futureclass.ai');
-        localStorage.setItem('fc_subscription_status', JSON.stringify({ 
-           status: 'active', 
-           level: 'professional',
-           expires_at: 2000000000000 
-        }));
-        console.log("🚀 [Titan Auth] 生产环境身份自动驻扎完成。级别：终身专业版");
-      }
+      // 🛡️ [Titan Tech] 官方生产环境身份状态联锁：
+      // 根据线上的 Supabase Auth 登录会话与 Stripe 数据库进行状态实时对齐，彻底激活商业订阅通道。
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          const user = session.user;
+          localStorage.setItem('current_user_id', user.id);
+          localStorage.setItem('current_user_email', user.email || '');
+          
+          // 请求真实的 Stripe 会员卡级别
+          fetch(`/api/subscription/status?userId=${user.id}`)
+            .then(res => res.json())
+            .then(data => {
+              localStorage.setItem('fc_subscription_status', JSON.stringify({ 
+                 status: data.isVIP ? 'active' : 'expired', 
+                 level: data.isVIP ? 'professional' : 'free',
+                 expires_at: data.currentPeriodEnd ? new Date(data.currentPeriodEnd).getTime() : 0 
+              }));
+              console.log("🚀 [Titan Auth] 线上真实 Stripe 订阅状态同步完成:", data);
+            })
+            .catch(err => console.error("同步线上订阅状态出错:", err));
+        } else {
+          // 未登录访客直接清空特权
+          localStorage.removeItem('current_user_id');
+          localStorage.removeItem('current_user_email');
+          localStorage.setItem('fc_subscription_status', JSON.stringify({ 
+             status: 'expired', 
+             level: 'free',
+             expires_at: 0 
+          }));
+        }
+      });
       
       const saved = localStorage.getItem(RECENT_OPEN_STORAGE_KEY);
       if (saved !== null) setRecentOpen(saved !== 'false');

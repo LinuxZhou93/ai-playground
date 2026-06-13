@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百草乾坤 | 趣味控温炼丹挑战</title>
+    
+    <!-- MediaPipe dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    
+    <link href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@400;700&family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #D4AF37; /* Gold */
+            --primary-rgb: 212, 175, 55;
+            --accent: #50C878; /* Emerald Green */
+            --accent-rgb: 80, 200, 120;
+            --alert: #D32F2F; /* Cinnabar Red */
+            --dark: #0A0A0A;
+            --glass: rgba(255, 255, 255, 0.04);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --text: #F3EFE0;
+            --font-main: 'Outfit', sans-serif;
+            --font-title: 'Noto Serif SC', serif;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            background-color: var(--dark);
+            color: var(--text);
+            font-family: var(--font-main);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Ambient background */
+        .bg-mesh {
+            position: fixed; inset: 0; z-index: -3;
+            background: 
+                radial-gradient(circle at 15% 15%, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(80, 200, 120, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(10, 10, 10, 1) 0%, rgba(5, 5, 5, 1) 100%);
+        }
+
+        .mist-container {
+            position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; opacity: 0.25;
+        }
+        .mist {
+            position: absolute; width: 200%; height: 200%;
+            background: url('https://www.transparenttextures.com/patterns/asfalt-dark.png');
+            filter: invert(1) opacity(0.08);
+            animation: drift 70s linear infinite;
+        }
+        @keyframes drift {
+            from { transform: translate(-15%, -10%); }
+            to { transform: translate(0%, 0%); }
+        }
+
+        /* Layout Grid */
+        #game-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr 380px;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Left Side: Recipe & Ingredients panel */
+        #left-panel {
+            background: rgba(10, 10, 10, 0.7);
+            border-right: 1px solid var(--border-glass);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            z-index: 10;
+        }
+
+        /* Center Column: Alchemy Furnace & Interaction */
+        #center-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 40px 20px 20px 20px;
+            position: relative;
+        }
+
+        /* Right Side: Temperature Gauge & Stream Log */
+        #right-panel {
+            background: rgba(10, 10, 10, 0.7);
+            border-left: 1px solid var(--border-glass);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        /* Header components */
+        .game-title-area {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .game-title {
+            font-family: var(--font-title);
+            font-size: 32px;
+            letter-spacing: 4px;
+            margin: 0;
+            background: linear-gradient(to bottom, #FFF 30%, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(212,175,55,0.2);
+        }
+
+        .game-subtitle {
+            font-size: 11px;
+            opacity: 0.5;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        /* Card panels */
+        .info-panel {
+            background: var(--glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: inset 0 0 15px rgba(255,255,255,0.01);
+        }
+
+        .panel-heading {
+            font-family: var(--font-title);
+            font-size: 16px;
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            padding-bottom: 8px;
+        }
+
+        /* Ingredients Lists */
+        .ingredient-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .ingredient-card:hover {
+            background: rgba(212, 175, 55, 0.08);
+            border-color: rgba(212, 175, 55, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .ingredient-card:active {
+            transform: scale(0.97);
+        }
+
+        .ingred-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ingred-icon {
+            font-size: 24px;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.03);
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .ingred-details h4 {
+            margin: 0;
+            font-size: 14px;
+            font-family: var(--font-title);
+            color: #fff;
+        }
+
+        .ingred-details span {
+            font-size: 11px;
+            opacity: 0.5;
+        }
+
+        .ingred-qty {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: monospace;
+            color: var(--primary);
+            background: rgba(0,0,0,0.3);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Recipe formula */
+        .recipe-tip {
+            font-size: 13px;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.7);
+            margin: 0;
+            font-weight: 300;
+        }
+
+        .recipe-ratio {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .ratio-badge {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            padding: 6px 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .ratio-badge span {
+            display: block;
+            font-size: 10px;
+            opacity: 0.5;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .ratio-badge strong {
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        /* Furnace Area */
+        #furnace-wrapper {
+            position: relative;
+            width: 380px; height: 380px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 20px 0;
+            transition: transform 0.1s ease;
+        }
+
+        /* Shake animation for over-heating */
+        .shaking {
+            animation: shake 0.1s linear infinite;
+        }
+        @keyframes shake {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(0px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(2px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(2px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        /* Canvas Flame */
+        #flame-canvas {
+            position: absolute;
+            bottom: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 160px; height: 160px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* CSS Rendered Furnace */
+        .furnace-body {
+            width: 260px; height: 260px;
+            border: 6px solid #2A2421;
+            background: radial-gradient(circle at center, #1C1715 0%, #100D0C 70%);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 50px rgba(0, 0, 0, 0.8),
+                inset 0 0 40px rgba(212, 175, 55, 0.05),
+                0 0 30px rgba(212, 175, 55, 0.05);
+            position: relative;
+            z-index: 3;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .furnace-lid {
+            position: absolute;
+            top: 25px;
+            width: 140px; height: 35px;
+            background: linear-gradient(to bottom, #3E3530, #201A18);
+            border: 4px solid #1C1715;
+            border-radius: 20px 20px 0 0;
+            z-index: 4;
+            display: flex; justify-content: center;
+        }
+
+        .furnace-lid::after {
+            content: '';
+            width: 30px; height: 15px;
+            background: var(--primary);
+            border-radius: 50% 50% 0 0;
+            position: absolute; top: -15px;
+            border: 3px solid #1C1715;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+        }
+
+        .furnace-ear-l, .furnace-ear-r {
+            position: absolute;
+            width: 40px; height: 60px;
+            border: 6px solid #201A18;
+            border-radius: 50%;
+            top: 50%; transform: translateY(-50%);
+            z-index: 2;
+        }
+        .furnace-ear-l { left: 35px; }
+        .furnace-ear-r { right: 35px; }
+
+        .furnace-leg-l, .furnace-leg-r, .furnace-leg-c {
+            position: absolute;
+            width: 30px; height: 65px;
+            background: linear-gradient(to bottom, #201A18, #0D0A09);
+            border: 4px solid #1C1715;
+            border-radius: 0 0 15px 15px;
+            bottom: 25px;
+            z-index: 2;
+        }
+        .furnace-leg-l { left: 95px; transform: rotate(15deg); }
+        .furnace-leg-r { right: 95px; transform: rotate(-15deg); }
+        .furnace-leg-c { left: 50%; transform: translateX(-50%); height: 50px; bottom: 30px; z-index: 1;}
+
+        .bagua-ring {
+            width: 180px; height: 180px;
+            border: 2px dashed rgba(212, 175, 55, 0.25);
+            border-radius: 50%;
+            position: absolute;
+            animation: spinBagua 40s linear infinite;
+            display: flex; align-items: center; justify-content: center;
+        }
+        @keyframes spinBagua {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .bagua-center {
+            font-size: 80px;
+            color: rgba(255, 255, 255, 0.12);
+            filter: drop-shadow(0 0 20px rgba(212,175,55,0.05));
+            transition: all 0.5s ease;
+        }
+        .bagua-active {
+            color: rgba(212, 175, 55, 0.4);
+            filter: drop-shadow(0 0 25px rgba(212, 175, 55, 0.3));
+        }
+
+        /* Furnace Inner Glow */
+        .furnace-vent {
+            position: absolute;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 100, 0, 0.8) 0%, transparent 80%);
+            box-shadow: inset 0 0 15px rgba(255, 50, 0, 0.5);
+            opacity: 0.1;
+            transition: opacity 0.3s, background 0.3s;
+            z-index: 4;
+            display: flex; align-items: center; justify-content: center;
+            border: 3px solid rgba(0,0,0,0.5);
+        }
+
+        /* Smoke Particles container */
+        #smoke-container {
+            position: absolute;
+            top: 40px; left: 50%;
+            transform: translateX(-50%);
+            width: 10px; height: 10px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .smoke-particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(100,100,100,0.4) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: riseSmoke 2s ease-out forwards;
+        }
+
+        @keyframes riseSmoke {
+            0% { transform: translate(0, 0) scale(1); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translate(var(--dx), -180px) scale(4); opacity: 0; }
+        }
+
+        /* Fan interaction area */
+        #fan-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        #fan-tool {
+            width: 120px; height: 120px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 70%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+        }
+
+        #fan-tool img, #fan-tool i {
+            font-size: 50px;
+            color: var(--primary);
+            transition: transform 0.2s ease;
+            filter: drop-shadow(0 5px 15px rgba(212,175,55,0.3));
+        }
+
+        #fan-tool:hover {
+            border-color: var(--primary);
+            background: rgba(212, 175, 55, 0.1);
+            transform: scale(1.08);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+        }
+
+        #fan-tool:active {
+            transform: scale(0.95);
+        }
+
+        #fan-tool.flapping img, #fan-tool.flapping i {
+            animation: flapFan 0.15s ease-in-out 2;
+        }
+
+        @keyframes flapFan {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(-30deg) scale(1.1); }
+            100% { transform: rotate(0deg) scale(1); }
+        }
+
+        /* Temperature Gauge */
+        #temp-gauge-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            height: 380px;
+        }
+
+        #temp-gauge-bg {
+            width: 24px; height: 350px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column-reverse;
+            padding: 2px;
+        }
+
+        #temp-mercury {
+            width: 100%;
+            height: 20%; /* Dynamic percentage */
+            background: linear-gradient(to top, #4fc3f7, var(--accent) 40%, var(--primary) 70%, var(--alert) 100%);
+            border-radius: 8px;
+            transition: height 0.2s cubic-bezier(0.1, 0.8, 0.2, 1);
+            box-shadow: 0 0 15px rgba(212,175,55,0.4);
+        }
+
+        /* Safe zone highlights on gauge */
+        .gauge-zone {
+            position: absolute;
+            left: 0; width: 100%;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
+        .zone-gold {
+            bottom: 56.25%; /* 180C out of 320C = 56.25% */
+            height: 12.5%; /* 180 to 220 = 40C. 40/320 = 12.5% */
+            background: rgba(80, 200, 120, 0.25);
+            border-top: 1px dashed var(--accent);
+            border-bottom: 1px dashed var(--accent);
+            box-shadow: 0 0 10px rgba(80, 200, 120, 0.3);
+        }
+
+        .zone-red {
+            top: 0;
+            height: 18.75%; /* 260 to 320 = 60C. 60/320 = 18.75% */
+            background: rgba(211, 47, 47, 0.2);
+            border-bottom: 2px solid var(--alert);
+        }
+
+        /* Labels of Temperature */
+        #temp-scale {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 350px;
+            font-family: monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .scale-mark {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .scale-mark::before {
+            content: '';
+            width: 6px; height: 1px;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .scale-mark.gold-mark {
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .scale-mark.gold-mark::before {
+            background: var(--accent);
+            width: 10px;
+        }
+
+        .scale-mark.alert-mark {
+            color: var(--alert);
+            font-weight: 700;
+        }
+        .scale-mark.alert-mark::before {
+            background: var(--alert);
+            width: 10px;
+        }
+
+        /* Stream logs */
+        #log-terminal {
+            height: 160px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: rgba(243, 239, 224, 0.85);
+            overflow-y: auto;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+
+        .log-info { color: #81d4fa; }
+        .log-success { color: var(--accent); }
+        .log-warn { color: var(--primary); }
+        .log-alert { color: var(--alert); }
+
+        /* Top Progress Bar */
+        #top-statusBar {
+            width: 100%;
+            background: rgba(10, 10, 10, 0.8);
+            border-bottom: 1px solid var(--border-glass);
+            padding: 15px 40px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        .back-btn {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 20px;
+            border-radius: 100px;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .back-btn:hover {
+            background: #fff;
+            color: var(--dark);
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(255,255,255,0.25);
+        }
+
+        .progress-container {
+            flex: 1;
+            max-width: 600px;
+            margin: 0 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .progress-bar-bg {
+            width: 100%; height: 10px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 1px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 8px;
+            transition: width 0.3s ease-out;
+            box-shadow: 0 0 10px rgba(80, 200, 120, 0.5);
+        }
+
+        .progress-status {
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Formulate Matching visualizer */
+        .formula-sync-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .formula-percent {
+            color: var(--accent);
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* Settlement modal */
+        #settlement-modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        #settlement-modal.active {
+            opacity: 1; pointer-events: auto;
+        }
+
+        .certificate-card {
+            width: 550px;
+            background: #F4EFE0; /* Light Xuan Paper color */
+            color: #2b2b2b;
+            border-radius: 20px;
+            border: 8px double #A67C52;
+            padding: 40px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background-image: radial-gradient(rgba(166, 124, 82, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+
+        #settlement-modal.active .certificate-card {
+            transform: scale(1);
+        }
+
+        .cert-header {
+            text-align: center;
+            border-bottom: 2px dashed rgba(166, 124, 82, 0.4);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .cert-title {
+            font-family: var(--font-title);
+            font-size: 28px;
+            color: #8C2A22; /* Chinese Lacquer Red */
+            margin: 0;
+            letter-spacing: 5px;
+            font-weight: 700;
+        }
+
+        .cert-subtitle {
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 1px;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .cert-body {
+            font-size: 15px;
+            line-height: 1.8;
+            margin-bottom: 25px;
+            text-align: justify;
+        }
+
+        .cert-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            border-bottom: 1px dotted rgba(0,0,0,0.1);
+            padding-bottom: 4px;
+        }
+
+        .cert-label {
+            font-weight: 700;
+            color: #555;
+            font-family: var(--font-title);
+        }
+
+        .cert-val {
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .cert-grade {
+            font-size: 26px;
+            color: #8C2A22;
+            font-family: var(--font-title);
+            font-weight: 700;
+        }
+
+        .cert-stamp {
+            position: absolute;
+            right: 40px; bottom: 100px;
+            width: 90px; height: 90px;
+            border: 3px solid rgba(140, 42, 34, 0.85);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(140, 42, 34, 0.85);
+            font-family: var(--font-title);
+            font-size: 12px;
+            font-weight: 700;
+            transform: rotate(-15deg);
+            pointer-events: none;
+            letter-spacing: 1px;
+            box-shadow: 0 0 2px rgba(140, 42, 34, 0.2);
+            text-shadow: 0 0 1px rgba(140, 42, 34, 0.2);
+            background: rgba(244, 239, 224, 0.1);
+        }
+        
+        .cert-stamp::after {
+            content: '神农质控';
+            position: absolute;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            top: 50%; transform: translateY(-50%);
+            border-top: 1px dashed rgba(140, 42, 34, 0.8);
+            border-bottom: 1px dashed rgba(140, 42, 34, 0.8);
+            padding: 2px 5px;
+        }
+
+        .cert-stamp-text {
+            position: absolute;
+            font-size: 8px;
+            width: 100%; text-align: center;
+            transform: translateY(28px);
+        }
+
+        .cert-footer {
+            border-top: 1px solid rgba(166, 124, 82, 0.3);
+            padding-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .cert-btn {
+            flex: 1;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: var(--font-title);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .cert-btn-primary {
+            background: #8C2A22;
+            color: #fff;
+        }
+
+        .cert-btn-primary:hover {
+            background: #b23b32;
+            box-shadow: 0 5px 15px rgba(140, 42, 34, 0.4);
+        }
+
+        .cert-btn-sec {
+            background: rgba(0,0,0,0.08);
+            color: #444;
+            border: 1px solid rgba(0,0,0,0.15);
+        }
+
+        .cert-btn-sec:hover {
+            background: rgba(0,0,0,0.15);
+        }
+
+        /* Camera overlay */
+        .input_video {
+            display: none;
+        }
+
+        #hand-cursor {
+            position: fixed;
+            width: 40px; height: 40px;
+            margin-left: -20px; margin-top: -20px;
+            pointer-events: none;
+            z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .cursor-ring { position: absolute; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .cursor-ring circle { fill: none; stroke-width: 3; stroke-linecap: round; }
+        .cursor-ring-bg { stroke: rgba(255, 255, 255, 0.1); }
+        .cursor-ring-progress {
+            stroke: var(--primary); stroke-dasharray: 100; stroke-dashoffset: 100;
+            transition: stroke-dashoffset 0.1s linear; filter: drop-shadow(0 0 5px var(--primary));
+        }
+        .cursor-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; box-shadow: 0 0 10px #fff; }
+
+        #camera-status {
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #888;
+        }
+
+        .status-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Screen flash & smoke overlay on explosion */
+        #screen-fx-overlay {
+            position: fixed; inset: 0;
+            background: transparent;
+            pointer-events: none;
+            z-index: 999;
+            transition: background 0.15s ease;
+        }
+
+        .flash-red {
+            background: rgba(211, 47, 47, 0.4) !important;
+        }
+        .flash-white {
+            background: rgba(255, 255, 255, 1) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="mist-container"><div class="mist"></div></div>
+    
+    <!-- Screen FX overlay (Explosion & Overheat flash) -->
+    <div id="screen-fx-overlay"></div>
+
+    <div id="hand-cursor" style="display:none;">
+        <svg class="cursor-ring" viewBox="0 0 40 40">
+            <circle class="cursor-ring-bg" cx="20" cy="20" r="16"></circle>
+            <circle class="cursor-ring-progress" cx="20" cy="20" r="16"></circle>
+        </svg>
+        <div class="cursor-dot"></div>
+    </div>
+
+    <!-- MediaPipe Camera Element -->
+    <video class="input_video" autoplay playsinline></video>
+
+    <!-- Top Status Bar -->
+    <div id="top-statusBar">
+        <a href="lingzhi-hub.html" class="back-btn interactive-obj" data-action="exit">← 返回元宇宙大厅</a>
+        
+        <div class="progress-container">
+            <div class="progress-meta">
+                <span>膏方炼制进度 / ALCHEMY PROGRESS</span>
+                <span class="progress-status" id="progress-text">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div id="camera-status">
+            <div class="status-dot" id="cam-dot"></div>
+            <span id="cam-text">📷 摄像头初始化中...</span>
+        </div>
+    </div>
+
+    <div id="game-layout">
+        <!-- Left Panel: Raw Materials -->
+        <div id="left-panel">
+            <div class="info-panel">
+                <div class="panel-heading">
+                    <i class="fa-solid fa-leaf"></i> <span>道地草本原料</span>
+                </div>
+                
+                <!-- Ingredient 1 -->
+                <div class="ingredient-card interactive-obj" data-action="add-lingzhi">
+                    <div class="ingred-meta">
+                        <div class="ingred-icon">🍄</div>
+                        <div class="ingred-details">
+                            <h4>黄村坝野生紫灵芝</h4>
+                            <span>扶正固本，益气安神</span>
+                        </div>
+                    </div>
+                    <div class="ingred-qty" id="qty-lingzhi">0</div>
+                </div>
+
+                <!-- Ingredient 2 -->
+                <div class="ingredient-card interactive-obj" data-action="add-renshen">
+                    <div class="ingred-meta">
+                        <div class="ingred-icon">🌱</div>
+                        <div class="ingred-details">
+                            <h4>长白山五年人参</h4>
+                            <span>大补元气，补脾益肺</span>
+                        </div>
+                    </div>
+                    <div class="ingred-qty" id="qty-renshen">0</div>
+                </div>
+
+                <!-- Ingredient 3 -->
+                <div class="ingredient-card interactive-obj" data-action="add-zaoren">
+                    <div class="ingred-meta">
+                        <div class="ingred-icon">🍒</div>
+                        <div class="ingred-details">
+                            <h4>极品安神酸枣仁</h4>
+                            <span>养心益肝，敛汗生津</span>
+                        </div>
+                    </div>
+                    <div class="ingred-qty" id="qty-zaoren">0</div>
+                </div>
+            </div>
+
+            <div class="info-panel" style="flex: 1;">
+                <div class="panel-heading">
+                    <i class="fa-solid fa-scroll"></i> <span>参灵草本舒眠古方</span>
+                </div>
+                <p class="recipe-tip">
+                    根据《神农本草经》经典配比，须精确投料至 **3:2:5**（即灵芝3份、人参2份、枣仁5份，总计10份）方能触发灵力共鸣，药力融合效率提升一倍！
+                </p>
+                <div class="recipe-ratio">
+                    <div class="ratio-badge">
+                        <span>灵芝</span>
+                        <strong>3</strong>
+                    </div>
+                    <div class="ratio-badge">
+                        <span>人参</span>
+                        <strong>2</strong>
+                    </div>
+                    <div class="ratio-badge">
+                        <span>枣仁</span>
+                        <strong>5</strong>
+                    </div>
+                </div>
+                
+                <div class="info-panel" style="margin-top:20px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.03);">
+                    <div class="formula-sync-panel">
+                        <span>古方契合度：</span>
+                        <span class="formula-percent" id="fit-percent">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel: Furnace & Control -->
+        <div id="center-panel">
+            <div class="game-title-area">
+                <h1 class="game-title">百草乾坤 · 趣味炼丹模拟器</h1>
+                <div class="game-subtitle">Zhengzhong Herbal Alchemist / Thermoregulation Challenge</div>
+            </div>
+
+            <!-- Alchemy Furnace -->
+            <div id="furnace-wrapper">
+                <canvas id="flame-canvas" width="160" height="160"></canvas>
+                <div id="smoke-container"></div>
+                
+                <div class="furnace-body">
+                    <div class="furnace-lid"></div>
+                    <div class="furnace-ear-l"></div>
+                    <div class="furnace-ear-r"></div>
+                    
+                    <!-- Spinning Ba Gua Ring -->
+                    <div class="bagua-ring">
+                        <span style="position:absolute; top:8px; font-size:10px; color:var(--primary); opacity:0.6;">乾</span>
+                        <span style="position:absolute; bottom:8px; font-size:10px; color:var(--primary); opacity:0.6;">坤</span>
+                        <span style="position:absolute; left:8px; font-size:10px; color:var(--primary); opacity:0.6;">离</span>
+                        <span style="position:absolute; right:8px; font-size:10px; color:var(--primary); opacity:0.6;">坎</span>
+                    </div>
+                    
+                    <!-- Inner glow window -->
+                    <div class="furnace-vent" id="vent-glow">
+                        <i class="fa-solid fa-yin-yang bagua-center" id="bagua-icon"></i>
+                    </div>
+                </div>
+                
+                <div class="furnace-leg-l"></div>
+                <div class="furnace-leg-r"></div>
+                <div class="furnace-leg-c"></div>
+            </div>
+
+            <!-- Fan Area -->
+            <div id="fan-area">
+                <div id="fan-tool" class="interactive-obj" data-action="flap">
+                    <i class="fa-solid fa-wind"></i>
+                </div>
+                <span style="font-size:12px; opacity:0.6; letter-spacing:1px;"><i class="fa-solid fa-arrows-up-down"></i> 快速上下扇风 / 隔空挥手煽火</span>
+            </div>
+        </div>
+
+        <!-- Right Panel: Thermometer & Terminal -->
+        <div id="right-panel">
+            <!-- Temperature Gauge -->
+            <div class="info-panel" style="flex: 1; margin-bottom: 25px; display: flex; flex-direction: column;">
+                <div class="panel-heading" style="margin-bottom: 20px;">
+                    <i class="fa-solid fa-temperature-high"></i> <span>八卦炉温控制器</span>
+                </div>
+                
+                <div id="temp-gauge-wrapper">
+                    <!-- Gauge column -->
+                    <div id="temp-gauge-bg">
+                        <div class="gauge-zone zone-gold"></div>
+                        <div class="gauge-zone zone-red"></div>
+                        <div id="temp-mercury"></div>
+                    </div>
+                    
+                    <!-- Scale marks -->
+                    <div id="temp-scale">
+                        <div class="scale-mark alert-mark">300°C 炸炉</div>
+                        <div class="scale-mark">260°C 过热</div>
+                        <div class="scale-mark gold-mark">220°C 黄金上限</div>
+                        <div class="scale-mark gold-mark">180°C 黄金下限</div>
+                        <div class="scale-mark">120°C 缓燃</div>
+                        <div class="scale-mark">60°C 温热</div>
+                        <div class="scale-mark">0°C 常温</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center;">
+                    <span style="font-size:13px; opacity:0.6;">实时炉温：</span>
+                    <strong id="temp-text" style="font-size:20px; color:var(--primary); font-family:monospace;">25°C</strong>
+                </div>
+            </div>
+
+            <!-- Terminal logs -->
+            <div class="info-panel" style="height: 220px; display: flex; flex-direction: column;">
+                <div class="panel-heading">
+                    <i class="fa-solid fa-terminal"></i> <span>八卦推流日志</span>
+                </div>
+                <div id="log-terminal">
+                    <div class="log-line log-info">[00:00:00] 炼丹仙童已就位。八卦炉长明火已点燃...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settlement Certificate Modal -->
+    <div id="settlement-modal">
+        <div class="certificate-card">
+            <div class="cert-header">
+                <h2 class="cert-title">中药溯源上链证书</h2>
+                <span class="cert-subtitle">Zhengzhong Herb Traceability Certificate</span>
+            </div>
+            
+            <div class="cert-body">
+                <p style="margin: 0 0 20px 0; text-indent: 2em; font-family: var(--font-title); font-size: 16px;">
+                    兹证明，炼丹仙童通过「臻博园 · 灵芝元宇宙八卦熔炉」，遵循神农道地中草药质控标准，精心控温慢熬，成功炼成臻品膏方一剂。
+                </p>
+                
+                <div class="cert-row">
+                    <span class="cert-label">获得膏方</span>
+                    <span class="cert-val" id="cert-product-name" style="color: #8C2A22; font-family: var(--font-title); font-weight:700;">参灵草本舒眠膏 (未结丹)</span>
+                </div>
+                <div class="cert-row">
+                    <span class="cert-label">丹药品质</span>
+                    <span class="cert-val cert-grade" id="cert-quality">下品</span>
+                </div>
+                <div class="cert-row">
+                    <span class="cert-label">温控优良率</span>
+                    <span class="cert-val" id="cert-temp-ratio">0.0%</span>
+                </div>
+                <div class="cert-row">
+                    <span class="cert-label">药材投料数</span>
+                    <span class="cert-val" id="cert-materials">灵芝0 参0 枣仁0</span>
+                </div>
+                <div class="cert-row">
+                    <span class="cert-label">溯源批号 (Hash)</span>
+                    <span class="cert-val" id="cert-hash" style="font-size:11px; color:#555;">0x000000000000</span>
+                </div>
+                <div class="cert-row" style="border:none;">
+                    <span class="cert-label">质控上链时间</span>
+                    <span class="cert-val" id="cert-time" style="font-size:12px;">2026-06-08 12:00:00</span>
+                </div>
+            </div>
+
+            <!-- Stamp -->
+            <div class="cert-stamp">
+                <div class="cert-stamp-text">正中大健康</div>
+            </div>
+
+            <div class="cert-footer">
+                <button class="cert-btn cert-btn-sec" onclick="window.location.reload();">重新炼制</button>
+                <a href="lingzhi-hub.html" class="cert-btn cert-btn-primary">回元宇宙大厅</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Implementation -->
+    <script>
+        // Web Audio Synthesizer Class
+        class AlchemyAudio {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playFlap() {
+                this.init();
+                if (!this.ctx) return;
+                
+                // Synthesis of fan wind rustle (white noise bandpassed)
+                const bufferSize = this.ctx.sampleRate * 0.15;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noiseNode = this.ctx.createBufferSource(buffer);
+                noiseNode.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(300, this.ctx.currentTime);
+                filter.Q.setValueAtTime(3.0, this.ctx.currentTime);
+                
+                // Frequency sweep downwards to mimic wind
+                filter.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.15);
+
+                const gainNode = this.ctx.createGain();
+                gainNode.gain.setValueAtTime(0.6, this.ctx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+
+                noiseNode.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(this.ctx.destination);
+
+                noiseNode.start();
+            }
+
+            playHerbDrop() {
+                this.init();
+                if (!this.ctx) return;
+
+                // FM synthesis to generate metallic crystal chime
+                const now = this.ctx.currentTime;
+                
+                const carrier = this.ctx.createOscillator();
+                const modulator = this.ctx.createOscillator();
+                const modGain = this.ctx.createGain();
+                const mainGain = this.ctx.createGain();
+
+                carrier.type = 'sine';
+                modulator.type = 'sine';
+
+                // Golden ratio frequency relation for pure sound
+                carrier.frequency.setValueAtTime(1200, now);
+                modulator.frequency.setValueAtTime(1944, now); // 1200 * 1.62
+                
+                modGain.gain.setValueAtTime(300, now);
+                modGain.gain.linearRampToValueAtTime(0, now + 0.25);
+
+                mainGain.gain.setValueAtTime(0.4, now);
+                mainGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                modulator.connect(modGain);
+                modGain.connect(carrier.frequency);
+                carrier.connect(mainGain);
+                mainGain.connect(this.ctx.destination);
+
+                carrier.start(now);
+                modulator.start(now);
+
+                carrier.stop(now + 0.4);
+                modulator.stop(now + 0.4);
+            }
+
+            playWarning() {
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(880, now);
+                
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.setValueAtTime(0, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+
+            playExplosion() {
+                this.init();
+                if (!this.ctx) return;
+
+                // Synthesis of deep explosion rumble using white noise + lowpass filter
+                const bufferSize = this.ctx.sampleRate * 1.5;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource(buffer);
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(200, this.ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 1.2);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.4);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                noise.start();
+            }
+
+            playSuccess() {
+                this.init();
+                if (!this.ctx) return;
+
+                // Play classic Chinese pentatonic chord (C, D, E, G, A) with high reverb/delay
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50]; // C5 to C6 pentatonic
+                
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+                    
+                    gain.gain.setValueAtTime(0.18, now + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.8);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.1);
+                    osc.stop(now + idx * 0.1 + 0.9);
+                });
+            }
+        }
+
+        const sfx = new AlchemyAudio();
+
+        // Game State Variables
+        let temp = 25; // °C
+        let progress = 0; // %
+        let ingredientCounts = { lingzhi: 0, renshen: 0, zaoren: 0 };
+        let formulaFit = 0; // %
+        let timer = null;
+        let gameTime = 0;
+        let inGoldenZoneSeconds = 0;
+        let totalActiveSeconds = 0;
+        let overheatTimer = 0;
+        let isExploded = false;
+        let isFinished = false;
+
+        const maxTemp = 320;
+        const minSafe = 180;
+        const maxSafe = 220;
+
+        // Canvas Flame System
+        const canvas = document.getElementById('flame-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        class FlameParticle {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * canvas.height;
+            }
+
+            reset() {
+                this.x = canvas.width / 2 + (Math.random() - 0.5) * 40;
+                this.y = canvas.height - 20;
+                this.size = Math.random() * 15 + 8;
+                this.speedY = Math.random() * 2 + 1.5;
+                this.speedX = (Math.random() - 0.5) * 1.5;
+                this.life = 1.0; // alpha decay
+                this.decay = Math.random() * 0.03 + 0.015;
+            }
+
+            update(tempRatio) {
+                this.y -= this.speedY * (0.5 + tempRatio * 1.5);
+                this.x += this.speedX;
+                this.size -= this.decay * 10;
+                if(this.size < 0) this.size = 0;
+                this.life -= this.decay;
+                if (this.life <= 0 || this.size <= 0) {
+                    this.reset();
+                }
+            }
+
+            draw(tempRatio) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                
+                // Color mapping: Blue (cool) -> Orange-Red (Normal) -> Yellow (Extreme)
+                let r, g, b;
+                if (tempRatio < 0.25) {
+                    // Small blue flame
+                    r = 40; g = 150; b = 245;
+                } else if (tempRatio < 0.65) {
+                    // Golden/Orange flame
+                    r = 230; g = 110; b = 15;
+                } else {
+                    // High-temperature white/yellow flame
+                    r = 255; g = 210 - (tempRatio - 0.65) * 150; b = 40;
+                }
+                
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${this.life * 0.8})`;
+                ctx.fill();
+            }
+        }
+
+        // Initialize 40 particles
+        for(let i = 0; i < 45; i++) {
+            particles.push(new FlameParticle());
+        }
+
+        function drawFlame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (isExploded) return;
+
+            let tempRatio = temp / maxTemp;
+            
+            // Draw background glow
+            if (temp > 50) {
+                let grad = ctx.createRadialGradient(
+                    canvas.width/2, canvas.height - 20, 5,
+                    canvas.width/2, canvas.height - 20, 60 * tempRatio
+                );
+                let r = temp > 220 ? 255 : 212;
+                let g = temp > 220 ? 80 : 175;
+                let b = temp > 220 ? 40 : 55;
+                
+                grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.25)`);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0,0,canvas.width,canvas.height);
+            }
+
+            particles.forEach(p => {
+                p.update(tempRatio);
+                p.draw(tempRatio);
+            });
+
+            requestAnimationFrame(drawFlame);
+        }
+
+        requestAnimationFrame(drawFlame);
+
+        // Terminal Log pushing logic
+        const term = document.getElementById('log-terminal');
+        function addLog(text, type = 'info') {
+            const timeStr = new Date().toTimeString().split(' ')[0];
+            const div = document.createElement('div');
+            div.className = `log-line log-${type}`;
+            div.innerText = `[${timeStr}] ${text}`;
+            term.appendChild(div);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        // Formula check
+        function updateFormula() {
+            const total = ingredientCounts.lingzhi + ingredientCounts.renshen + ingredientCounts.zaoren;
+            if (total === 0) {
+                formulaFit = 0;
+            } else {
+                // Perfect ratio: L: 30%, R: 20%, Z: 50%
+                const L_r = ingredientCounts.lingzhi / total;
+                const R_r = ingredientCounts.renshen / total;
+                const Z_r = ingredientCounts.zaoren / total;
+
+                // Compute deviation error
+                const diffL = Math.abs(L_r - 0.3);
+                const diffR = Math.abs(R_r - 0.2);
+                const diffZ = Math.abs(Z_r - 0.5);
+
+                const deviation = (diffL + diffR + diffZ) / 2; // max deviation is 1.0 (if entirely wrong)
+                formulaFit = Math.round((1 - deviation) * 100);
+            }
+
+            document.getElementById('fit-percent').innerText = `${formulaFit}%`;
+            
+            const bagua = document.getElementById('bagua-icon');
+            if (formulaFit === 100) {
+                bagua.classList.add('bagua-active');
+            } else {
+                bagua.classList.remove('bagua-active');
+            }
+        }
+
+        // Add ingredients
+        function addIngredient(type) {
+            if (isExploded || isFinished) return;
+            sfx.playHerbDrop();
+            
+            const total = ingredientCounts.lingzhi + ingredientCounts.renshen + ingredientCounts.zaoren;
+            if (total >= 10) {
+                addLog('炉体药量已满(上限10份)，请迅速加热以进行结丹！', 'warn');
+                return;
+            }
+
+            ingredientCounts[type]++;
+            document.getElementById(`qty-${type}`).innerText = ingredientCounts[type];
+            
+            // Drop visual effect
+            createDropSparks(type);
+
+            let typeName = '';
+            if (type === 'lingzhi') typeName = '「黄村坝野生紫灵芝」';
+            if (type === 'renshen') typeName = '「长白山五年人参」';
+            if (type === 'zaoren') typeName = '「极品安神酸枣仁」';
+
+            addLog(`向炼丹炉投入了 1份 ${typeName}。`, 'info');
+            updateFormula();
+        }
+
+        function createDropSparks(type) {
+            const wrapper = document.getElementById('furnace-wrapper');
+            let color = '#D4AF37';
+            if (type === 'renshen') color = '#ffee58';
+            if (type === 'zaoren') color = '#81d4fa';
+
+            for (let i = 0; i < 15; i++) {
+                const spark = document.createElement('div');
+                spark.style.position = 'absolute';
+                spark.style.width = '6px';
+                spark.style.height = '6px';
+                spark.style.borderRadius = '50%';
+                spark.style.background = color;
+                spark.style.boxShadow = `0 0 10px ${color}`;
+                spark.style.pointerEvents = 'none';
+                spark.style.zIndex = '5';
+                
+                // Spawn above lid and fall
+                const startX = 190 + (Math.random() - 0.5) * 80;
+                const startY = 30;
+                spark.style.left = `${startX}px`;
+                spark.style.top = `${startY}px`;
+                
+                const dx = (Math.random() - 0.5) * 150;
+                const dy = 80 + Math.random() * 80;
+                
+                spark.animate([
+                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                    { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+                ], {
+                    duration: 800,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    fill: 'forwards'
+                });
+
+                wrapper.appendChild(spark);
+                setTimeout(() => spark.remove(), 850);
+            }
+        }
+
+        // Fan wind animation & temperature rise
+        function flapFan() {
+            if (isExploded || isFinished) return;
+            sfx.playFlap();
+
+            const fan = document.getElementById('fan-tool');
+            fan.classList.remove('flapping');
+            void fan.offsetWidth; // trigger reflow
+            fan.classList.add('flapping');
+
+            // Temperature increases by 14 to 18°C
+            let inc = 14 + Math.floor(Math.random() * 5);
+            temp = Math.min(temp + inc, maxTemp);
+            
+            // Inner vent glows brighter dynamically
+            const vent = document.getElementById('vent-glow');
+            vent.style.opacity = Math.min(0.2 + (temp/maxTemp)*0.8, 1.0);
+            
+            addLog(`鼓风煽火！注入一股纯阳真风，温度攀升了 +${inc}°C`, 'warn');
+        }
+
+        // Main game Loop: Temperature decay, progress increase, overheating checks
+        function gameLoop() {
+            if (isExploded || isFinished) return;
+            
+            gameTime++;
+            totalActiveSeconds++;
+
+            // 1. Natural Temperature decay
+            // Higher temperature means faster heat dissipation
+            let decay = 4.5 + (temp / 60);
+            if (temp > maxSafe) {
+                decay += 3; // Dissipate faster if dangerously hot
+            }
+            temp = Math.max(temp - decay, 25); // Min is room temperature 25°C
+            
+            // Update UI
+            document.getElementById('temp-text').innerText = `${Math.round(temp)}°C`;
+            const mercury = document.getElementById('temp-mercury');
+            mercury.style.height = `${(temp / maxTemp) * 100}%`;
+            
+            const vent = document.getElementById('vent-glow');
+            vent.style.opacity = Math.min(0.1 + (temp/maxTemp)*0.8, 1.0);
+
+            // 2. Safe zone check
+            const totalIngredients = ingredientCounts.lingzhi + ingredientCounts.renshen + ingredientCounts.zaoren;
+            
+            if (temp >= minSafe && temp <= maxSafe) {
+                // In Golden Zone!
+                inGoldenZoneSeconds++;
+                
+                if (totalIngredients === 0) {
+                    if (gameTime % 4 === 0) {
+                        addLog('火候极佳，但炉内空无一物！请尽快投药！', 'warn');
+                    }
+                } else {
+                    // Progress grows!
+                    let efficiency = 2.0; // Base speed: 2% per second
+                    if (formulaFit === 100) {
+                        efficiency = 4.0; // 100% recipe yields double speed: 4% per second
+                    } else if (formulaFit > 0) {
+                        efficiency = 2.0 + (formulaFit / 100) * 1.5;
+                    }
+                    
+                    progress = Math.min(progress + efficiency, 100);
+                    
+                    document.getElementById('progress-fill').style.width = `${progress}%`;
+                    document.getElementById('progress-text').innerText = `${Math.round(progress)}%`;
+                    
+                    if (gameTime % 3 === 0) {
+                        let msg = `炉温适宜，药性加速熔化中 (融合速率 ${efficiency}%/s)。`;
+                        if (formulaFit === 100) msg += ' 🏮 古方发生神农共鸣！效率翻倍！';
+                        addLog(msg, 'success');
+                    }
+                }
+            } else {
+                // Outside safe zone, progress does not increase
+                if (temp < minSafe && totalIngredients > 0 && gameTime % 4 === 0) {
+                    addLog('温度过低，炉内草本无法熔化，请迅速煽火！', 'info');
+                }
+            }
+
+            // 3. Overheat Alarm
+            const furnace = document.getElementById('furnace-wrapper');
+            const fx = document.getElementById('screen-fx-overlay');
+
+            if (temp >= 260) {
+                overheatTimer++;
+                sfx.playWarning();
+                furnace.classList.add('shaking');
+                fx.classList.add('flash-red');
+                setTimeout(() => fx.classList.remove('flash-red'), 100);
+
+                if (temp >= 300) {
+                    // Critical Alarm: Near explosion!
+                    if (overheatTimer % 2 === 0) {
+                        addLog('⚠️ 危险：温度突破限界，炉体即将炸裂！！！', 'alert');
+                    }
+                    // Generate heavy black smoke
+                    createSmoke();
+
+                    if (overheatTimer >= 10) { // 2.5 seconds at 4Hz loop
+                        explodeFurnace();
+                        return;
+                    }
+                } else {
+                    if (overheatTimer % 3 === 0) {
+                        addLog('⚠️ 警告：温度过载！丹药有烧焦风险，请停止煽火！', 'alert');
+                    }
+                }
+            } else {
+                furnace.classList.remove('shaking');
+                overheatTimer = 0;
+            }
+
+            // 4. Success check
+            if (progress >= 100) {
+                finishAlchemy();
+                return;
+            }
+        }
+
+        // Heavy smoke emitter
+        function createSmoke() {
+            const container = document.getElementById('smoke-container');
+            const particle = document.createElement('div');
+            particle.className = 'smoke-particle';
+            
+            const size = Math.random() * 20 + 15;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            const dx = (Math.random() - 0.5) * 80;
+            particle.style.setProperty('--dx', `${dx}px`);
+            
+            container.appendChild(particle);
+            setTimeout(() => particle.remove(), 2000);
+        }
+
+        // Explode furnace
+        function explodeFurnace() {
+            isExploded = true;
+            clearInterval(timer);
+            sfx.playExplosion();
+
+            const fx = document.getElementById('screen-fx-overlay');
+            fx.classList.add('flash-white');
+            setTimeout(() => {
+                fx.classList.remove('flash-white');
+                fx.style.background = 'rgba(0,0,0,0.85)'; // keep dark
+            }, 180);
+
+            // Shaking and screen flash
+            document.body.style.animation = 'shake 0.4s ease-out';
+            addLog('💥 轰隆隆！！！炉体无法承受极高温度，发生了猛烈的大爆炸！', 'alert');
+            addLog('炼丹失败！只在炉渣里找到了一团漆黑的药焦灰...', 'alert');
+
+            // Open settlement modal with failure state
+            setTimeout(() => {
+                showCertificate(false);
+            }, 1500);
+        }
+
+        // Finish alchemy successfully
+        function finishAlchemy() {
+            isFinished = true;
+            clearInterval(timer);
+            sfx.playSuccess();
+            
+            addLog('🏮 结丹仙乐齐鸣！炉体缓缓开启，丹药莹莹泛出月白清光，大功告成！', 'success');
+            addLog('正在校验352区块链溯源质控报告，准备上链登记中...', 'success');
+
+            setTimeout(() => {
+                showCertificate(true);
+            }, 1500);
+        }
+
+        // Show settlement certificate
+        function showCertificate(success) {
+            const modal = document.getElementById('settlement-modal');
+            modal.classList.add('active');
+
+            const dateStr = new Date().toLocaleString('zh-CN');
+            document.getElementById('cert-time').innerText = dateStr;
+
+            // Generate trace hash
+            const chars = '0123456789abcdef';
+            let hash = '0x';
+            for (let i = 0; i < 32; i++) {
+                hash += chars[Math.floor(Math.random() * 16)];
+            }
+            document.getElementById('cert-hash').innerText = hash;
+
+            // Ingredients text
+            const ingText = `灵芝 x${ingredientCounts.lingzhi} / 人参 x${ingredientCounts.renshen} / 枣仁 x${ingredientCounts.zaoren}`;
+            document.getElementById('cert-materials').innerText = ingText;
+
+            // Temperature ratio
+            const ratio = totalActiveSeconds > 0 ? (inGoldenZoneSeconds / totalActiveSeconds) * 100 : 0;
+            document.getElementById('cert-temp-ratio').innerText = `${ratio.toFixed(1)}%`;
+
+            const nameEl = document.getElementById('cert-product-name');
+            const qualityEl = document.getElementById('cert-quality');
+
+            if (!success) {
+                nameEl.innerText = '焦黑的太极药渣 (炼制失败)';
+                nameEl.style.color = '#555';
+                qualityEl.innerText = '废渣 (0品)';
+                qualityEl.style.color = '#777';
+            } else {
+                // Determine grade based on formula and golden temperature ratio
+                let grade = '';
+                let color = '';
+                
+                if (formulaFit === 100 && ratio >= 80) {
+                    grade = '神品丹药 (特级)';
+                    color = '#D4AF37'; // Golden
+                    nameEl.innerText = '臻博园·参灵草本舒眠仙膏';
+                } else if (ratio >= 70 && formulaFit >= 80) {
+                    grade = '仙品丹药 (甲等)';
+                    color = '#E57373';
+                    nameEl.innerText = '臻博园·参灵草本舒眠膏';
+                } else if (ratio >= 50) {
+                    grade = '上品丹药 (乙等)';
+                    color = '#81C784';
+                    nameEl.innerText = '正中·参灵草本膏';
+                } else {
+                    grade = '中品丹药 (丙等)';
+                    color = '#64B5F6';
+                    nameEl.innerText = '正中·草本膏';
+                }
+
+                qualityEl.innerText = grade;
+                qualityEl.style.color = color;
+            }
+        }
+
+        // Start Game loop (Runs at 4Hz - 250ms interval)
+        timer = setInterval(gameLoop, 250);
+
+        // Interaction bindings (Mouse and Touch)
+        const fanBtn = document.getElementById('fan-tool');
+        fanBtn.addEventListener('click', flapFan);
+
+        // Allow click on ingredient cards
+        document.querySelectorAll('.ingredient-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const action = card.dataset.action;
+                if (action === 'add-lingzhi') addIngredient('lingzhi');
+                if (action === 'add-renshen') addIngredient('renshen');
+                if (action === 'add-zaoren') addIngredient('zaoren');
+            });
+        });
+
+        // Swipe Gesture Detection fallback on fan (Drag mouse up and down to fan)
+        let dragStartY = 0;
+        fanBtn.addEventListener('mousedown', (e) => {
+            dragStartY = e.clientY;
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (dragStartY > 0) {
+                const diff = e.clientY - dragStartY;
+                // If dragged down or up significantly, trigger fan
+                if (Math.abs(diff) > 40) {
+                    flapFan();
+                }
+                dragStartY = 0;
+            }
+        });
+
+        // MediaPipe Camera Hand-tracking for Gesture control
+        const videoElement = document.querySelector('.input_video');
+        const cursor = document.getElementById('hand-cursor');
+        const progressCircle = document.querySelector('.cursor-ring-progress');
+        const camDot = document.getElementById('cam-dot');
+        const camText = document.getElementById('cam-text');
+        
+        let cursorX = window.innerWidth / 2, cursorY = window.innerHeight / 2;
+        let lastHandY = 0.5;
+        let gestureSpeedCounter = 0;
+        let trackingActive = false;
+
+        function updateCursorProgress(percent) {
+            const offset = 100 - (percent * 100);
+            progressCircle.style.strokeDashoffset = offset;
+        }
+
+        function onResults(results) {
+            if (!trackingActive) {
+                trackingActive = true;
+                camDot.classList.add('active');
+                camText.innerText = '🟢 体感姿态已接入';
+                camText.style.color = 'var(--accent)';
+                addLog('系统提示：检测到手势姿态，体感操控系统已初始化完成。', 'success');
+            }
+
+            cursor.style.display = 'flex';
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const pt = results.multiHandLandmarks[0][8]; // index finger tip
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+
+                let targetX = (1 - pt.x) * w;
+                let targetY = pt.y * h;
+
+                cursorX += (targetX - cursorX) * 0.4;
+                cursorY += (targetY - cursorY) * 0.4;
+
+                cursor.style.left = cursorX + 'px';
+                cursor.style.top = cursorY + 'px';
+
+                // Gesture: Detect rapid hand vertical movement to simulate flapping
+                const handY = pt.y; // 0.0 to 1.0
+                const speed = Math.abs(handY - lastHandY);
+                
+                if (speed > 0.12) {
+                    gestureSpeedCounter++;
+                    if (gestureSpeedCounter >= 3) {
+                        flapFan();
+                        gestureSpeedCounter = 0;
+                    }
+                } else {
+                    gestureSpeedCounter = Math.max(0, gestureSpeedCounter - 0.2);
+                }
+                
+                lastHandY = handY;
+
+                // Collide check for button/herb triggers via hovering cursor
+                checkCollision(cursorX, cursorY);
+            } else {
+                updateCursorProgress(0);
+            }
+        }
+
+        let currentHoveredObj = null;
+        let hoverStartTime = 0;
+        let HOVER_TRIGGER_DELAY = 1200; // Hover 1.2s to trigger
+
+        function checkCollision(cx, cy) {
+            let found = null;
+            const interactables = document.querySelectorAll('.interactive-obj');
+            
+            interactables.forEach(obj => {
+                const rect = obj.getBoundingClientRect();
+                if (cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom) {
+                    found = obj;
+                }
+            });
+
+            if (found !== currentHoveredObj) {
+                if(currentHoveredObj) currentHoveredObj.classList.remove('hovered');
+                currentHoveredObj = found;
+                if (found) {
+                    found.classList.add('hovered');
+                    hoverStartTime = Date.now();
+                } else {
+                    updateCursorProgress(0);
+                }
+            } else if (found) {
+                let elapsed = Date.now() - hoverStartTime;
+                let percent = Math.min(elapsed / HOVER_TRIGGER_DELAY, 1);
+                updateCursorProgress(percent);
+
+                if (elapsed >= HOVER_TRIGGER_DELAY) {
+                    hoverStartTime = Date.now() + 5000; // Cool down trigger
+                    updateCursorProgress(0);
+                    found.classList.remove('hovered');
+                    
+                    const action = found.dataset.action;
+                    if (action === 'exit') {
+                        window.location.href = 'lingzhi-hub.html';
+                    } else if (action === 'add-lingzhi') {
+                        addIngredient('lingzhi');
+                    } else if (action === 'add-renshen') {
+                        addIngredient('renshen');
+                    } else if (action === 'add-zaoren') {
+                        addIngredient('zaoren');
+                    } else if (action === 'flap') {
+                        flapFan();
+                    }
+                    currentHoveredObj = null;
+                }
+            }
+        }
+
+        // Initialize hands
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        hands.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+        });
+
+        camera.start().catch(() => {
+            camDot.classList.add('active');
+            camDot.style.background = 'var(--primary)';
+            camText.innerText = '📷 纯鼠标控制模式已就绪';
+            addLog('系统提示：未检测到可用摄像头。已自动切换为高级鼠标控制模式。', 'warn');
+        });
+
+        // Mouse fallback cursor tracker
+        document.addEventListener('mousemove', (e) => {
+            if (!trackingActive) {
+                cursor.style.display = 'flex';
+                cursorX = e.clientX; cursorY = e.clientY;
+                cursor.style.left = cursorX + 'px'; cursor.style.top = cursorY + 'px';
+                checkCollision(cursorX, cursorY);
+            }
+        });
+    </script>
+</body>
+</html>

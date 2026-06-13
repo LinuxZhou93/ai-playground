@@ -40,3 +40,34 @@ export function getSupabase() {
 
   return singletonClient;
 }
+
+let adminClient: ReturnType<typeof createSupabaseClient> | null = null;
+
+export function getSupabaseAdmin() {
+  if (adminClient) return adminClient;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error('Missing Supabase Service Role Key or URL');
+  }
+
+  adminClient = createSupabaseClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      fetch: (url, options) => {
+        return fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(10000),
+        });
+      },
+    },
+  });
+
+  return adminClient;
+}
+

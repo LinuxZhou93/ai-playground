@@ -67,11 +67,9 @@
             }
         }
 
-        /* Glassmorphism Card */
+                /* Glassmorphism Card */
         .glass-card {
             background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -79,9 +77,22 @@
 
         .glass-card:hover {
             background: rgba(255, 255, 255, 0.1);
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
             transform: translateY(-5px);
+        }
+
+        @keyframes border-glow {
+            0%, 100% {
+                border-color: rgba(0, 243, 255, 0.5);
+                box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+            }
+            50% {
+                border-color: rgba(188, 19, 254, 0.6);
+                box-shadow: 0 0 25px rgba(188, 19, 254, 0.5);
+            }
+        }
+
+        .hover\:animate-border-glow:hover {
+            animation: border-glow 2s infinite ease-in-out;
         }
 
         /* Nav Glass Effect */
@@ -646,10 +657,10 @@
                 if (prevBtn) prevBtn.disabled = currentPage === 1;
                 if (nextBtn) nextBtn.disabled = currentPage === totalPages;
 
-                // Render Items
+                                                // Render Items
                 paginatedData.forEach((exp, index) => {
                     const card = document.createElement('div');
-                    card.className = "experiment-card glass-card rounded-xl overflow-hidden hover:shadow-cyan-500/20 transition-all duration-300 group animate-fade-in";
+                    card.className = "experiment-card relative bg-white/10 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden group animate-fade-in";
                     card.style.animationDelay = `${index * 50}ms`;
 
                     // Localization
@@ -661,6 +672,7 @@
                     if (description.length > 80) description = description.substring(0, 80) + '...';
 
                     card.innerHTML = `
+                        <div class="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" style="background: radial-gradient(600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(255,255,255,0.15), transparent 40%);"></div>
                         <div class="relative h-48 overflow-hidden cursor-pointer" onclick="openModal('${exp.url}', '${title.replace(/'/g, "\\'")}', '${exp.category}')">
                             <img src="${exp.thumbnail}" alt="${title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
@@ -681,6 +693,32 @@
                             </button>
                         </div>
                     `;
+
+                    // 3D Tilt and Spotlight effect
+                    card.addEventListener('mouseenter', () => {
+                        card.style.transition = 'none';
+                    });
+
+                    card.addEventListener('mousemove', (e) => {
+                        const rect = card.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const rotateX = ((centerY - y) / centerY) * 10; // max 10 degrees
+                        const rotateY = ((x - centerX) / centerX) * 10; // max 10 degrees
+                        
+                        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                        card.style.setProperty('--mouse-x', `${x}px`);
+                        card.style.setProperty('--mouse-y', `${y}px`);
+                    });
+
+                    card.addEventListener('mouseleave', () => {
+                        card.style.transition = 'transform 0.5s ease, box-shadow 0.5s ease';
+                        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+                    });
+
                     grid.appendChild(card);
                 });
             } catch (e) {

@@ -11,10 +11,21 @@ export type ProviderCfgLike = {
 };
 
 /** Check whether a provider has a usable path (server config, client key, or browser-native). */
-export function isProviderUsable(id: string, cfg: ProviderCfgLike | undefined): boolean {
+export function isProviderUsable(
+  idOrCfg: string | ProviderCfgLike | undefined,
+  cfg?: ProviderCfgLike,
+): boolean {
+  let id = '';
+  let config = cfg;
+  if (typeof idOrCfg === 'string') {
+    id = idOrCfg;
+  } else {
+    config = idOrCfg;
+  }
+
   if (id === 'browser-native' || id === 'browser-native-tts' || id === 'edge-tts') return true;
-  if (!cfg) return false;
-  return !!cfg.isServerConfigured || !!cfg.apiKey;
+  if (!config) return false;
+  return !!config.isServerConfigured || !!config.apiKey;
 }
 
 /**

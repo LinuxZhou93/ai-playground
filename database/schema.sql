@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   avatar_url TEXT,
   bio TEXT,
   github_username TEXT,
+  preferences JSONB DEFAULT '{}'::jsonb,
+  last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

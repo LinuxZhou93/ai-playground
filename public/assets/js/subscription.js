@@ -445,73 +445,29 @@ const SubscriptionManager = {
         if (!code) { alert('请输入卡密'); return; }
         if (!this.user) { alert('请先登录'); return; }
 
-        console.log(`Checking Voucher: ${code}...`);
+        console.log(`Checking Voucher via Server API: ${code}...`);
 
         try {
-            // 1. Fetch Voucher (Case insensitive comparison already handled by .toUpperCase())
-            const { data: list, error: vError } = await this.client
-                .from('vouchers')
-                .select('*')
-                .eq('code', code)
-                .limit(1);
-            
-            const voucher = (list && list.length > 0) ? list[0] : null;
+            // 请求服务端 API 进行核销
+            const response = await fetch('/api/subscription/redeem', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code })
+            });
 
-            if (vError) {
-                console.error('Database query error:', vError);
-                throw new Error('卡密无效（未在数据库中找到）');
-            }
-            if (!voucher) throw new Error('卡密无效');
-            if (voucher.status === 'used') throw new Error('此卡密已被使用');
+            const result = await response.json();
 
-            // 2. Calculate New Expiry (Force to 2026-12-31 as default, or extend)
-            let currentExpiry = new Date();
-            if (this.profile && this.profile.expiry_date) {
-                const existing = new Date(this.profile.expiry_date);
-                if (existing > new Date()) currentExpiry = existing;
+            if (!response.ok) {
+                throw new Error(result.error || '兑换失败');
             }
 
-            // Fix falsy 0 issue: duration_months=0 evaluates to false, causing it to fall back to 12 months.
-            let duration = voucher.duration_months;
-            if (duration === undefined || duration === null) {
-                duration = 12; // default fallback if null
-            }
-            
-            // If duration is 0, it's likely a 7-day trial based on our admin generation logic.
-            // We can also verify by checking the code prefix.
-            if (duration === 0 || (voucher.code && voucher.code.includes('-7D-'))) {
-                currentExpiry.setDate(currentExpiry.getDate() + 7);
-            } else {
-                currentExpiry.setMonth(currentExpiry.getMonth() + duration);
-            }
-
-            // 3. Update User Profile
-            const { error: pError } = await this.client
-                .from('profiles')
-                .upsert({
-                    id: this.user.id,
-                    expiry_date: currentExpiry.toISOString(),
-                    username: this.profile?.username || this.user.email.split('@')[0]
-                });
-
-            if (pError) throw new Error('更新会员期限出错: ' + pError.message);
-
-            // 4. Update Voucher Status
-            const { error: vUpdateError } = await this.client
-                .from('vouchers')
-                .update({ status: 'used', used_by: this.user.id })
-                .eq('id', voucher.id);
-
-            if (vUpdateError) {
-                console.warn('Voucher mark as used failed (probably RLS), but profile updated.');
-                // We keep going if profile updated, but ideally vouchers table should be writeable
-            }
-
-            alert('🎉 充值成功！\n您的会员有效期已延长至: ' + currentExpiry.toLocaleDateString());
+            const expiryDate = new Date(result.newExpiry);
+            alert('🎉 充值成功！\n您的会员有效期已延长至: ' + expiryDate.toLocaleDateString());
             
             // --- TITAN 2.0: ENERGY CORE ACTIVATION VFX ---
             if (window.VFXEngine && window.VFXEngine.playEvolutionSequence) {
-                // 借用演化序列的大闪烁效果，稍后可定制专门的金色版本
                 window.VFXEngine.playEvolutionSequence();
             }
             

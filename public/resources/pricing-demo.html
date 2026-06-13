@@ -550,5 +550,109 @@
 
     </div>
 
+    <!-- Supabase SDK & Config -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/resources/assets/js/supabase-config.js"></script>
+    <script src="/resources/assets/js/subscription.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 初始化订阅管理器
+            if (window.SubscriptionManager) {
+                await window.SubscriptionManager.init();
+            }
+            
+            // 绑定 Stripe 购买按钮动作
+            bindPricingButtons();
+            
+            // 检查 URL 携带的支付状态回执 query 弹出提示
+            checkPaymentStatus();
+        });
+
+        // 绑定套餐购买动作
+        function bindPricingButtons() {
+            const monthlyBtn = document.querySelector('.tier-card.del-2 button');
+            const quarterlyBtn = document.querySelector('.tier-card.featured button');
+            const yearlyBtn = document.querySelector('.tier-card.black-gold button');
+
+            if (monthlyBtn) {
+                monthlyBtn.addEventListener('click', () => handleCheckout('monthly'));
+            }
+            if (quarterlyBtn) {
+                quarterlyBtn.addEventListener('click', () => handleCheckout('quarterly'));
+            }
+            if (yearlyBtn) {
+                yearlyBtn.addEventListener('click', () => handleCheckout('yearly'));
+            }
+        }
+
+        async function handleCheckout(tier) {
+            const mgr = window.SubscriptionManager;
+            if (!mgr || !mgr.client) {
+                alert('系统服务加载中，请稍后重试...');
+                return;
+            }
+
+            // 1. 检查登录态
+            if (!mgr.user) {
+                alert('🔒 订阅特权会员需要登录身份。\n\n系统即将为您呼出身份验证控制台。');
+                mgr.showAuthModal();
+                return;
+            }
+
+            // 按钮置忙状态
+            const btnSelector = tier === 'monthly' ? '.tier-card.del-2 button' : tier === 'quarterly' ? '.tier-card.featured button' : '.tier-card.black-gold button';
+            const activeBtn = document.querySelector(btnSelector);
+            const originalText = activeBtn ? activeBtn.textContent : '';
+            if (activeBtn) {
+                activeBtn.disabled = true;
+                activeBtn.textContent = '正在挂载收银台...';
+            }
+
+            try {
+                // 2. 发起 checkout session 请求
+                const response = await fetch('/api/subscription/checkout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tier: tier,
+                        userId: mgr.user.id,
+                        userEmail: mgr.user.email,
+                    }),
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.url) {
+                    throw new Error(data.error || '创建收银台会话失败');
+                }
+
+                // 3. 重定向跳转至 Stripe
+                window.location.href = data.url;
+            } catch (err) {
+                alert('跳转收银台失败: ' + err.message);
+                if (activeBtn) {
+                    activeBtn.disabled = false;
+                    activeBtn.textContent = originalText;
+                }
+            }
+        }
+
+        // 检查支付结果回执并在前端弹出美观提示
+        function checkPaymentStatus() {
+            const params = new URLSearchParams(window.location.search);
+            const paymentStatus = params.get('payment_status');
+
+            if (paymentStatus === 'success') {
+                alert('🎉 充能成功！\n\n您的特长生算能卡已完成 Stripe 联锁授信！系统正在同步您的账户等级，即将自动刷新控制面板。');
+                setTimeout(() => {
+                    window.location.href = '/pricing';
+                }, 3000);
+            } else if (paymentStatus === 'cancelled') {
+                alert('⚠️ 充能操作已取消。您可以随时再次选择适合您的套餐进行激活。');
+            }
+        }
+    </script>
 </body>
 </html>

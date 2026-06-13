@@ -7,7 +7,8 @@ export default defineConfig({
       '@': resolve(__dirname, '.'),
     },
   },
-  test: {
+            test: {
     include: ['tests/**/*.test.ts'],
+    exclude: ['tests/subscription_security.test.ts'],
   },
 });

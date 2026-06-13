@@ -34,19 +34,51 @@ export function translate(locale: Locale, key: string): string {
   return (typeof value === 'string' ? value : undefined) ?? key;
 }
 
+function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return undefined;
+}
+
 export function getClientTranslation(key: string): string {
   let locale: Locale = defaultLocale;
 
   if (typeof window !== 'undefined') {
     try {
-      const storedLocale = localStorage.getItem('locale');
-      if (storedLocale === 'zh-CN' || storedLocale === 'en-US') {
-        locale = storedLocale;
+      const cookieLocale = getCookie('locale');
+      if (cookieLocale === 'zh-CN' || cookieLocale === 'en-US') {
+        locale = cookieLocale;
+      } else {
+        const storedLocale = localStorage.getItem('locale');
+        if (storedLocale === 'zh-CN' || storedLocale === 'en-US') {
+          locale = storedLocale;
+        }
       }
     } catch {
       // localStorage unavailable, keep default locale
     }
   }
 
+  return translate(locale, key);
+}
+
+export function getServerTranslation(key: string): string {
+  let locale: Locale = defaultLocale;
+  if (typeof window === 'undefined') {
+    try {
+      // 动态导入避免客户端打包错误
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { cookies } = require('next/headers');
+      const cookieStore = cookies();
+      const cookieLocale = cookieStore.get('locale')?.value;
+      if (cookieLocale === 'zh-CN' || cookieLocale === 'en-US') {
+        locale = cookieLocale;
+      }
+    } catch {
+      // 静态生成等无 headers 上下文的环境下优雅退回默认 locale
+    }
+  }
   return translate(locale, key);
 }

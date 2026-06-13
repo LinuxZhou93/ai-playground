@@ -1,6 +1,44 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { decryptSession } from '@/lib/crypto'
+
+/**
+ * 智能注入 Cache-Control 头部
+ */
+function applyCacheControl(response: NextResponse, targetPathname: string) {
+  if (targetPathname.startsWith('/resources/')) {
+    const lowercasePath = targetPathname.toLowerCase();
+    const lastSlashIndex = lowercasePath.lastIndexOf('/');
+    const fileName = lastSlashIndex !== -1 ? lowercasePath.slice(lastSlashIndex + 1) : lowercasePath;
+    
+    const isHtml = fileName.endsWith('.html') || fileName.endsWith('.htm') || !fileName.includes('.');
+
+    if (isHtml) {
+      response.headers.set('Cache-Control', 'no-cache');
+    } else {
+      const isJsOrCss = fileName.endsWith('.js') || 
+                        fileName.endsWith('.mjs') || 
+                        fileName.endsWith('.cjs') || 
+                        fileName.endsWith('.css');
+      
+      const isImage = fileName.endsWith('.png') || 
+                      fileName.endsWith('.jpg') || 
+                      fileName.endsWith('.jpeg') || 
+                      fileName.endsWith('.gif') || 
+                      fileName.endsWith('.svg') || 
+                      fileName.endsWith('.webp') || 
+                      fileName.endsWith('.ico') || 
+                      fileName.endsWith('.bmp') || 
+                      fileName.endsWith('.tiff');
+
+      if (isJsOrCss || isImage) {
+        response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }
+  return response;
+}
 
 /**
  * 墨子实验室 (Mozi Lab) 统一代理网关
@@ -14,6 +52,16 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone()
   const host = request.headers.get('host') || ''
   const pathname = url.pathname
+
+  // 🌐 [i18n Language Detection]
+  let locale = request.cookies.get('locale')?.value
+  const queryLang = request.nextUrl.searchParams.get('lang')
+  if (queryLang === 'zh-CN' || queryLang === 'en-US') {
+    locale = queryLang
+  } else if (!locale) {
+    const acceptLanguage = request.headers.get('accept-language') || ''
+    locale = acceptLanguage.toLowerCase().includes('zh') ? 'zh-CN' : 'en-US'
+  }
 
   // 🛡️ [Domain Routing] 域名分流逻辑 (最高优先级)
   // 1. 科创教研专属系统
@@ -40,7 +88,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/index.html', request.url));
   }
 
-  // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
+    // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
   const cleanUrlMaps: Record<string, string> = {
     '/explain': '/resources/explain.html',
     '/course': '/resources/course.html',
@@ -55,7 +103,7 @@ export async function middleware(request: NextRequest) {
   if (cleanUrlMaps[pathname]) {
     console.log(`🔗 [Clean URL] Mapping ${pathname} -> ${cleanUrlMaps[pathname]}`);
     url.pathname = cleanUrlMaps[pathname];
-    return NextResponse.rewrite(url);
+    return applyCacheControl(NextResponse.rewrite(url), url.pathname);
   }
 
   // 📂 [Resource Logic] 自动将根路径下的 .html 文件映射到 resources/ 目录
@@ -63,7 +111,7 @@ export async function middleware(request: NextRequest) {
     const rootFiles = ['/index.html', '/mozi_lab.html', '/mozi_curriculum_overview.html'];
     if (!rootFiles.includes(pathname)) {
       url.pathname = `/resources${pathname}`;
-      return NextResponse.rewrite(url);
+      return applyCacheControl(NextResponse.rewrite(url), url.pathname);
     }
   }
 
@@ -77,7 +125,7 @@ export async function middleware(request: NextRequest) {
     if (!pathname.startsWith('/resources/')) {
        console.log(`🎨 [Asset Logic] Mapping legacy asset ${pathname} -> /resources${pathname}`);
        url.pathname = `/resources${pathname}`;
-       return NextResponse.rewrite(url);
+       return applyCacheControl(NextResponse.rewrite(url), url.pathname);
     }
   }
 
@@ -85,13 +133,32 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/hub-auto-') && pathname.endsWith('.html')) {
     if (!pathname.startsWith('/resources/')) {
       url.pathname = `/resources${pathname}`;
-      return NextResponse.rewrite(url);
+      return applyCacheControl(NextResponse.rewrite(url), url.pathname);
     }
   }
 
   // 🔒 [RBAC Guard] 教务 ERP 权限拦截
   if (pathname.startsWith('/erp')) {
-    const role = request.cookies.get('X-FC-Role')?.value || 'ADMIN';
+    let role = 'GUEST';
+    const authToken = request.cookies.get('X-FC-Auth-Token')?.value;
+    if (authToken) {
+      const session = await decryptSession(authToken);
+      if (session && session.role) {
+        role = session.role;
+      }
+    } else {
+      // 降级策略（仅在本地开发环境中允许读取明文 Cookie）
+      const isDev = process.env.NODE_ENV === 'development';
+      if (isDev) {
+        role = request.cookies.get('X-FC-Role')?.value || 'ADMIN';
+      }
+    }
+
+    // GUEST (未认证或解密失败) 绝对禁止访问任何 erp 的路由，强制跳转回 login
+    if (role === 'GUEST') {
+      console.warn(`🔒 [RBAC Guard] 未授权访问 ${pathname} 被拦截，重定向回登录页`);
+      return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
     
     // 教师限制
     if (role === 'TEACHER' && ['/erp/finance', '/erp/settings', '/erp/leads', '/erp/inventory', '/erp/courses'].some(route => pathname.startsWith(route))) {
@@ -142,7 +209,10 @@ export async function middleware(request: NextRequest) {
     // await supabase.auth.getUser() 
   }
 
-  return response
+    if (locale) {
+    response.cookies.set('locale', locale, { path: '/', maxAge: 60 * 60 * 24 * 365 })
+  }
+  return applyCacheControl(response, pathname)
 }
 
 // 🎯 配置匹配规则
@@ -160,6 +230,7 @@ export const config = {
     '/swarm/:path*',
     '/erp/:path*',
     '/hub-auto-:path*',
+    '/resources/:path*',
     // 匹配所有非静态资源的 .html 文件请求
     '/((?!api|_next/static|_next/image|favicon.ico|assets|images|avatars|libs|css|js).+\\.html)',
   ],

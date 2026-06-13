@@ -760,6 +760,39 @@
     font-size: 18px;
     font-weight: 900;
   }
+  .archive-persona-strip {
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 8px;
+    border: 1px solid rgba(13,119,109,.32);
+    border-radius: 10px;
+    padding: 10px;
+    background: #fffdf8;
+  }
+  .archive-persona-strip b {
+    display: block;
+    color: #0d776d;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .archive-persona-strip span,
+  .archive-persona-strip p {
+    margin: 0;
+    color: #344054;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .archive-persona-pill {
+    display: inline-flex;
+    width: fit-content;
+    border: 2px solid #1f252d;
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: #eef8f5;
+    color: #1f252d !important;
+    font-size: 12px !important;
+    font-weight: 900;
+  }
   .archive-insight-note {
     color: #344054;
     font-size: 13px;
@@ -2350,6 +2383,26 @@ function archiveInsightHtml(items) {
     return map;
   }, {});
   const commonFocus = Object.entries(focusCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '持续观察';
+  const personaRecords = items.filter(item => item.personaHandoff);
+  const latestPersona = latest.personaHandoff || null;
+  const samePersonaRecords = latestPersona
+    ? items.filter(item => item.personaHandoff?.profile === latestPersona.profile)
+    : [];
+  const firstSamePersonaScore = Number(samePersonaRecords[samePersonaRecords.length - 1]?.playerTotal || 0);
+  const samePersonaDelta = latestPersona && samePersonaRecords.length > 1
+    ? Number(latest.playerTotal || 0) - firstSamePersonaScore
+    : 0;
+  const personaCounts = personaRecords.reduce((map, item) => {
+    const key = item.personaHandoff?.title || item.personaHandoff?.profile || '未命名画像';
+    map[key] = (map[key] || 0) + 1;
+    return map;
+  }, {});
+  const commonPersona = Object.entries(personaCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '暂无画像记录';
+  const personaTrendText = !latestPersona
+    ? '最近记录未带表达力画像；建议从表达力小测试进入擂台以形成完整证据链。'
+    : samePersonaRecords.length > 1
+      ? `同画像练习 ${samePersonaRecords.length} 次，较该画像首次记录 ${samePersonaDelta > 0 ? '+' : ''}${samePersonaDelta} 分。`
+      : '这是该画像下的首条擂台记录，后续可观察同画像连续进步。';
   return `
     <div class="archive-insight">
       <div class="archive-insight-head">
@@ -2364,6 +2417,18 @@ function archiveInsightHtml(items) {
         <div class="archive-insight-card"><b>平均分</b><span>${average}</span></div>
         <div class="archive-insight-card"><b>最高分</b><span>${best}</span></div>
         <div class="archive-insight-card"><b>常见短板</b><span>${escapeHtml(commonFocus)}</span></div>
+      </div>
+      <div class="archive-persona-strip" aria-label="表达力画像趋势">
+        <div>
+          <b>画像证据链</b>
+          <span class="archive-persona-pill">${escapeHtml(latestPersona?.profile || 'NO PROFILE')}</span>
+          <p>${escapeHtml(latestPersona ? `${latestPersona.title} · ${latestPersona.companion}` : '最近一次练习没有关联表达力测试画像')}</p>
+        </div>
+        <div>
+          <b>同画像趋势</b>
+          <p>${escapeHtml(personaTrendText)}</p>
+          <p>最常见画像：${escapeHtml(commonPersona)}；画像记录 ${personaRecords.length}/${items.length} 次。</p>
+        </div>
       </div>
       <div class="archive-trend">
         <h4>能力维度均分</h4>
@@ -2396,7 +2461,7 @@ function archiveInsightHtml(items) {
         }).join('')}
         <div class="archive-trend-delta">${escapeHtml(deltaText)}</div>
       </div>
-      <p class="archive-insight-note">最近一次重点：${escapeHtml(latest.focus || '持续观察')}。建议下一轮优先保持稳定结构，再强化该维度的比较和回应。</p>
+      <p class="archive-insight-note">最近一次重点：${escapeHtml(latest.focus || '持续观察')}。最近一次画像：${escapeHtml(latestPersona?.title || '未关联画像')}。建议下一轮优先保持稳定结构，再强化该维度的比较和回应。</p>
     </div>
   `;
 }

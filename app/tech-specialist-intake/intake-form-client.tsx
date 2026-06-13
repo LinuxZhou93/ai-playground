@@ -104,6 +104,7 @@ export default function IntakeFormClient() {
   const [payload, setPayload] = useState<IntakePayload>(emptyPayload);
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(storageKey);
@@ -117,8 +118,11 @@ export default function IntakeFormClient() {
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(payload));
-  }, [payload]);
+    // 只有当未提交成功时才保存草稿
+    if (!isSuccess) {
+      window.localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+  }, [payload, isSuccess]);
 
   const completion = useMemo(() => {
     const important = [
@@ -176,9 +180,48 @@ export default function IntakeFormClient() {
       setMessage(result.message);
       if (result.ok) {
         window.localStorage.removeItem(storageKey);
+        setIsSuccess(true);
       }
     });
   };
+
+  const handleReset = () => {
+    setPayload(emptyPayload);
+    setIsSuccess(false);
+    setMessage("");
+  };
+
+  if (isSuccess) {
+    return (
+      <main className="min-h-screen bg-[#f5f7fb] flex flex-col justify-center items-center p-5 text-slate-950">
+        <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-xl text-center space-y-6">
+          <div className="mx-auto w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 shadow-inner">
+            <ShieldCheck className="w-12 h-12" />
+          </div>
+          <h1 className="text-3xl font-black text-slate-900">提交成功！</h1>
+          <p className="text-slate-600 leading-relaxed max-w-md mx-auto text-base">
+            感谢家长的配合。周老师已收到您为 <span className="font-bold text-slate-900">“{payload.studentName}”</span> 填写的科技特长生面谈表单，会基于这份信息认真准备面谈提纲。
+          </p>
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-left text-sm space-y-2 text-slate-600">
+            <p className="font-bold text-slate-800">面谈准备提示：</p>
+            <p>1. 如果有孩子的编程作品、证书、获奖证明等，面谈时可以直接携带或提前发送给周老师。</p>
+            <p>2. 周老师会在确认好表单后，与您微信或电话联系沟通具体面谈的会议室/时间安排。</p>
+          </div>
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-4">
+            <button type="button" onClick={copySummary} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition">
+              <ClipboardList className="h-4 w-4" />
+              复制我填写的摘要
+            </button>
+            <button type="button" onClick={handleReset} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 transition">
+              <RefreshCcw className="h-4 w-4" />
+              重新填写新表单
+            </button>
+          </div>
+          {message ? <p className="text-sm font-semibold text-emerald-600">{message}</p> : null}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f5f7fb] text-slate-950">
