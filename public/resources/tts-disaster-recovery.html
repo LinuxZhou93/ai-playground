@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 课堂配音容灾大作战 — 趣味技术漫画与模拟器</title>
+  <!-- 引入 Outfit 与 💻 拼音等高档 Google 字体 -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070913;
+      --card-bg: rgba(15, 22, 42, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      
+      --color-primary: #8b5cf6; /* Try-Catch 紫 */
+      --color-openai: #10b981;  /* OpenAI 绿 */
+      --color-edge: #0078d4;    /* Edge 蓝 */
+      --color-danger: #f43f5e;  /* 警告红 */
+      --color-text: #e2e8f0;
+      --color-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(0, 120, 212, 0.1) 0px, transparent 50%);
+      color: var(--color-text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa 0%, #3b82f6 50%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.05em;
+    }
+
+    header p {
+      color: var(--color-muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 3rem;
+    }
+
+    @media (min-width: 1024px) {
+      .container {
+        grid-template-columns: 1.2fr 1fr;
+        align-items: start;
+      }
+    }
+
+    /* ── 漫画面板 (Comic Grid) ── */
+    .comic-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 1.8rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    .comic-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #a78bfa;
+    }
+
+    .comic-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 640px) {
+      .comic-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .comic-panel {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .comic-panel:hover {
+      transform: translateY(-4px);
+      border-color: rgba(139, 92, 246, 0.3);
+      box-shadow: 0 10px 20px rgba(139, 92, 246, 0.05);
+    }
+
+    .panel-num {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(139, 92, 246, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      z-index: 10;
+    }
+
+    .panel-visual {
+      height: 160px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .panel-desc {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+
+    .panel-speech {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 12px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      position: relative;
+      margin-top: auto;
+      line-height: 1.4;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .panel-speech::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 20px;
+      border-width: 8px 8px 0;
+      border-style: solid;
+      border-color: #ffffff transparent;
+      display: block;
+      width: 0;
+    }
+
+    .tech-box {
+      font-family: monospace;
+      font-size: 0.75rem;
+      background: rgba(0,0,0,0.4);
+      color: #86efac;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border-left: 2px solid var(--color-openai);
+    }
+
+    .tech-box.danger {
+      color: #fca5a5;
+      border-left-color: var(--color-danger);
+    }
+
+    .tech-box.success {
+      color: #93c5fd;
+      border-left-color: var(--color-edge);
+    }
+
+    /* ── 模拟器仪表盘 (Simulator Dashboard) ── */
+    .sim-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 1.8rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .sim-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #3b82f6;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .canvas-container {
+      background: #04060d;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 16px;
+      height: 280px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 640px) {
+      .controls-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .control-group {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      padding: 1.2rem;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .control-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .control-label span.val {
+      color: var(--color-text);
+      font-family: monospace;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      transition: background 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #60a5fa;
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    /* Switch styling */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 26px;
+      shrink-0: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255,255,255,0.1);
+      transition: .4s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--color-openai);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    @media (min-width: 640px) {
+      .btn-group {
+        grid-template-columns: 1.2fr 1fr;
+      }
+    }
+
+    .btn {
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: var(--color-text);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .presets-container {
+      background: rgba(255,255,255,0.01);
+      border: 1px solid rgba(255,255,255,0.03);
+      padding: 1rem;
+      border-radius: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .preset-tag {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-tag:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .preset-tag.active {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+    }
+
+    .console-log {
+      background: #020308;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 1rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 0.5rem;
+      line-height: 1.4;
+    }
+
+    .log-time {
+      color: var(--color-muted);
+    }
+
+    .log-type {
+      font-weight: 700;
+    }
+
+    .log-type.info { color: #60a5fa; }
+    .log-type.warn { color: #f59e0b; }
+    .log-type.error { color: var(--color-danger); }
+    .log-type.success { color: var(--color-openai); }
+
+    /* SVG Character Styling */
+    .character-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .floating {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .spinning {
+      animation: spin 10s linear infinite;
+    }
+
+    .jittering {
+      animation: jitter 0.2s linear infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes jitter {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-2px, 2px); }
+      40% { transform: translate(-2px, -2px); }
+      60% { transform: translate(2px, 2px); }
+      80% { transform: translate(2px, -2px); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>AI 课堂配音容灾大作战</h1>
+    <p>当傲慢的 OpenAI Key 突然暴走过期，Try-Catch 盾卫如何打出完美反弹，让 Edge 兔小力无缝接管救场？</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- 左栏：动态趣味漫画 -->
+    <div class="comic-section">
+      <div class="comic-title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        全景发声剧情网格
+      </div>
+      
+      <div class="comic-grid">
+        
+        <!-- 第一格 -->
+        <div class="comic-panel">
+          <div class="panel-num">1</div>
+          <div class="panel-visual">
+            <!-- 声音总导演 -->
+            <svg class="character-svg floating" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="#1e1b4b" stroke="#818cf8" stroke-width="3"/>
+              <!-- 放映机透镜 -->
+              <rect x="35" y="40" width="30" height="20" rx="4" fill="#312e81"/>
+              <polygon points="65,45 80,35 80,65 65,55" fill="#818cf8"/>
+              <circle cx="50" cy="50" r="6" fill="#a5b4fc"/>
+              <path d="M35,68 Q50,75 65,68" stroke="#818cf8" stroke-width="3" fill="none"/>
+              <!-- 光波 -->
+              <path d="M85,40 Q95,50 85,60" stroke="#c7d2fe" stroke-width="2" fill="none" opacity="0.7"/>
+            </svg>
+          </div>
+          <div class="panel-desc"><b>总导演 Classroom Director</b> 拿到了新课堂的发言大纲。它是整场 AI 课堂讨论的发起者。</div>
+          <div class="panel-speech">“今天新开了一门超级课！各位助教准备发声，把气氛搞起来！”</div>
+          <div class="tech-box">POST /api/generate/tts<br>text = "大家好，我是..."</div>
+        </div>
+
+        <!-- 第二格 -->
+        <div class="comic-panel">
+          <div class="panel-num">2</div>
+          <div class="panel-visual">
+            <!-- 傲慢的 OpenAI Key -->
+            <svg id="panel-openai-svg" class="character-svg" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="#064e3b" stroke="#10b981" stroke-width="3"/>
+              <!-- 绅士礼帽 -->
+              <rect x="30" y="15" width="40" height="15" fill="#022c22"/>
+              <line x1="25" y1="30" x2="75" y2="30" stroke="#10b981" stroke-width="4"/>
+              <!-- 泛黄的过期通行证 -->
+              <rect x="35" y="45" width="30" height="20" rx="3" fill="#fef08a" stroke="#ca8a04" stroke-width="2" class="jittering"/>
+              <text x="38" y="58" font-size="6" font-family="monospace" fill="#854d0e">sk-expired</text>
+              <!-- 傲慢眼单片镜 -->
+              <circle cx="42" cy="38" r="8" fill="none" stroke="#ca8a04" stroke-width="2"/>
+              <line x1="50" y1="38" x2="60" y2="38" stroke="#10b981" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="panel-desc"><b>失效通行证 OpenAI Key</b> 挡在门禁前。虽然它早已过期被封，但由于名字还挂在墙上，它依旧不可一世。</div>
+          <div class="panel-speech">“除了我这高贵纯正的血统，谁配发声？等等，为什么大门把我扣下了？！”</div>
+          <div class="tech-box danger">HTTP 500: Invalid Token<br>OpenAI TTS: Error</div>
+        </div>
+
+        <!-- 第三格 -->
+        <div class="comic-panel">
+          <div class="panel-num">3</div>
+          <div class="panel-visual">
+            <!-- Try-Catch 盾盾 -->
+            <svg class="character-svg" viewBox="0 0 100 100">
+              <!-- 重装盾牌 -->
+              <path d="M25,20 L75,20 L70,60 L50,85 L30,60 Z" fill="#2e1065" stroke="#a78bfa" stroke-width="4"/>
+              <!-- 符文 -->
+              <text x="35" y="45" font-family="monospace" font-weight="bold" font-size="10" fill="#ddd6fe">try {</text>
+              <text x="32" y="60" font-family="monospace" font-weight="bold" font-size="9" fill="#f472b6">} catch {</text>
+              <!-- 防御闪光 -->
+              <circle cx="50" cy="50" r="35" fill="none" stroke="#c084fc" stroke-dasharray="5 5" stroke-width="1.5" class="spinning"/>
+            </svg>
+          </div>
+          <div class="panel-desc">崩溃的 500 火球砸下！<b>Try-Catch 盾卫</b> 瞬间挺身而出，神圣能量盾挡在中央：“别想引发异常报错，给我走降级！”</div>
+          <div class="panel-speech">“拦截超时与无效 Key！触发捕获，自动重定向到 Edge 备用链路！”</div>
+          <div class="tech-box success">Promise.race([generate, timeout])<br>Catch -> Switch To Edge-TTS</div>
+        </div>
+
+        <!-- 第四格 -->
+        <div class="comic-panel">
+          <div class="panel-num">4</div>
+          <div class="panel-visual">
+            <!-- Edge 兔小力 -->
+            <svg class="character-svg floating" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="#0c4a6e" stroke="#0078d4" stroke-width="3"/>
+              <!-- 兔耳朵 -->
+              <path d="M35,20 Q30,-5 42,10" stroke="#0078d4" stroke-width="4" fill="#0c4a6e"/>
+              <path d="M65,20 Q70,-5 58,10" stroke="#0078d4" stroke-width="4" fill="#0c4a6e"/>
+              <!-- 滑板车 -->
+              <rect x="25" y="75" width="50" height="6" rx="3" fill="#0284c7"/>
+              <circle cx="35" cy="84" r="6" fill="#38bdf8"/>
+              <circle cx="65" cy="84" r="6" fill="#38bdf8"/>
+              <!-- 欢快表情与音符 -->
+              <circle cx="40" cy="45" r="4" fill="#38bdf8"/>
+              <circle cx="60" cy="45" r="4" fill="#38bdf8"/>
+              <path d="M45,55 Q50,60 55,55" stroke="#38bdf8" stroke-width="2" fill="none"/>
+              <text x="75" y="35" font-size="14" fill="#38bdf8">🎵</text>
+            </svg>
+          </div>
+          <div class="panel-desc"><b>Edge 兔小力 MsEdge TTS</b> 踩着微软蓝滑板大步流星顶上：“免密且免费，我才是 100% 稳如磐石的备用神犬！”</div>
+          <div class="panel-speech">“听到我的歌声了吗？高保真配音完美送达，AI 课堂全景开车啦！”</div>
+          <div class="tech-box success">200 OK<br>Audio Stream = Edge (MP3)</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 右栏：发声容灾模拟器 -->
+    <div class="sim-section">
+      <div class="sim-title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+        接口时序与降级模拟仪表盘
+      </div>
+
+      <!-- 动画画布 -->
+      <div class="canvas-container">
+        <canvas id="simCanvas"></canvas>
+      </div>
+
+      <!-- 控制面板 -->
+      <div class="controls-grid">
+        <div class="control-group">
+          <div class="control-label">
+            <span>OpenAI 密钥有效性</span>
+            <span class="val" id="key-status-text">失效 (Invalid)</span>
+          </div>
+          <div class="toggle-container">
+            <span style="font-size: 0.85rem;">开关 (Valid / Invalid)</span>
+            <label class="switch">
+              <input type="checkbox" id="key-toggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>API 接口响应延迟 (Timeout 4.5s)</span>
+            <span class="val" id="latency-text">200 ms</span>
+          </div>
+          <input type="range" id="latency-range" min="100" max="6000" step="100" value="200">
+        </div>
+      </div>
+
+      <!-- 场景预设 -->
+      <div class="presets-container">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--color-muted); align-self: center; margin-right: 0.5rem;">预设工况:</span>
+        <button class="preset-tag" data-preset="normal">1. 完美状态 (Key有效,低延时)</button>
+        <button class="preset-tag active" data-preset="expired">2. 密钥暴走 (Key失效,200ms)</button>
+        <button class="preset-tag" data-preset="timeout">3. 接口挂起 (Key有效,5000ms超时)</button>
+      </div>
+
+      <!-- 控制按钮 -->
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btn-trigger">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          运行合成配音
+        </button>
+        <button class="btn btn-secondary" id="btn-reset">重置模拟器</button>
+      </div>
+
+      <!-- 控制台输出 -->
+      <div class="console-log" id="console-output">
+        <div class="log-line">
+          <span class="log-time">[17:56:00]</span>
+          <span class="log-type info">INFO</span>
+          <span>发声容灾模拟器准备完毕。请选择工况并运行。</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // ── 模拟器状态变量 ──
+    let isKeyValid = false; // 默认失效，对应用户遇到的情况
+    let apiLatency = 200;   // 默认 200ms
+    let isAnimating = false;
+    let animProgress = 0;
+    let animStage = 'idle'; // idle, sending, checking, bouncing, success, failed
+    let activeParticles = [];
+
+    // ── DOM 节点 ──
+    const keyToggle = document.getElementById('key-toggle');
+    const keyStatusText = document.getElementById('key-status-text');
+    const latencyRange = document.getElementById('latency-range');
+    const latencyText = document.getElementById('latency-text');
+    const btnTrigger = document.getElementById('btn-trigger');
+    const btnReset = document.getElementById('btn-reset');
+    const consoleOutput = document.getElementById('console-output');
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // ── 初始化 Canvas 尺寸 ──
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // ── 控制台打日志 ──
+    function addLog(type, text) {
+      const timeStr = new Date().toTimeString().split(' ')[0];
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.innerHTML = `
+        <span class="log-time">[${timeStr}]</span>
+        <span class="log-type ${type}">${type.toUpperCase()}</span>
+        <span>${text}</span>
+      `;
+      consoleOutput.appendChild(div);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    // ── 滑块更新事件 ──
+    keyToggle.addEventListener('change', (e) => {
+      isKeyValid = e.target.checked;
+      keyStatusText.textContent = isKeyValid ? '有效 (Valid)' : '失效 (Invalid)';
+      keyStatusText.style.color = isKeyValid ? 'var(--color-openai)' : 'var(--color-danger)';
+      addLog('info', `用户调整 OpenAI Key 状态为: ${isKeyValid ? '有效' : '失效'}`);
+      updatePresetTags();
+    });
+
+    latencyRange.addEventListener('input', (e) => {
+      apiLatency = parseInt(e.target.value);
+      latencyText.textContent = `${apiLatency} ms`;
+      if (apiLatency > 4500) {
+        latencyText.style.color = 'var(--color-danger)';
+      } else {
+        latencyText.style.color = 'var(--color-text)';
+      }
+      updatePresetTags();
+    });
+
+    // ── 预设工况 ──
+    const presetTags = document.querySelectorAll('.preset-tag');
+    presetTags.forEach(tag => {
+      tag.addEventListener('click', () => {
+        presetTags.forEach(t => t.classList.remove('active'));
+        tag.classList.add('active');
+        const mode = tag.dataset.preset;
+        if (mode === 'normal') {
+          keyToggle.checked = true;
+          isKeyValid = true;
+          keyStatusText.textContent = '有效 (Valid)';
+          keyStatusText.style.color = 'var(--color-openai)';
+          latencyRange.value = 200;
+          apiLatency = 200;
+          latencyText.textContent = '200 ms';
+          latencyText.style.color = 'var(--color-text)';
+          addLog('info', '载入预设: 正常模式。系统应极速发声。');
+        } else if (mode === 'expired') {
+          keyToggle.checked = false;
+          isKeyValid = false;
+          keyStatusText.textContent = '失效 (Invalid)';
+          keyStatusText.style.color = 'var(--color-danger)';
+          latencyRange.value = 200;
+          apiLatency = 200;
+          latencyText.textContent = '200 ms';
+          latencyText.style.color = 'var(--color-text)';
+          addLog('info', '载入预设: 密钥暴走。由于假Key报错，系统应当秒级被盾牌反弹，由 Edge 兔小力接管。');
+        } else if (mode === 'timeout') {
+          keyToggle.checked = true;
+          isKeyValid = true;
+          keyStatusText.textContent = '有效 (Valid)';
+          keyStatusText.style.color = 'var(--color-openai)';
+          latencyRange.value = 5000;
+          apiLatency = 5000;
+          latencyText.textContent = '5000 ms';
+          latencyText.style.color = 'var(--color-danger)';
+          addLog('info', '载入预设: 延迟超时。挂起 4.5秒 后超时线触发，由 Edge 兔小力顶上，安全防 504。');
+        }
+      });
+    });
+
+    function updatePresetTags() {
+      presetTags.forEach(t => t.classList.remove('active'));
+      if (isKeyValid && apiLatency === 200) {
+        document.querySelector('[data-preset="normal"]').classList.add('active');
+      } else if (!isKeyValid && apiLatency === 200) {
+        document.querySelector('[data-preset="expired"]').classList.add('active');
+      } else if (isKeyValid && apiLatency === 5000) {
+        document.querySelector('[data-preset="timeout"]').classList.add('active');
+      }
+    }
+
+    // ── 模拟器 Canvas 动画 ──
+    const nodes = {
+      director: { x: 50, y: 140, label: 'Director (总导演)', color: '#818cf8' },
+      shield: { x: 180, y: 140, label: 'Try-Catch 盾', color: '#a78bfa' },
+      openai: { x: 300, y: 80, label: 'OpenAI (有密)', color: '#10b981' },
+      edge: { x: 300, y: 200, label: 'Edge Neural (免密)', color: '#0284c7' }
+    };
+
+    let packet = { x: nodes.director.x, y: nodes.director.y, visible: false };
+
+    function drawNode(name, node, isHighlighted = false) {
+      ctx.save();
+      // 外发光
+      if (isHighlighted) {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = node.color;
+      }
+      
+      // 画圆
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, 25, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = node.color;
+      ctx.lineWidth = isHighlighted ? 3 : 1.5;
+      ctx.fill();
+      ctx.stroke();
+
+      // 特殊图形绘制
+      ctx.fillStyle = node.color;
+      if (name === 'director') {
+        ctx.font = '12px Outfit';
+        ctx.fillText('🎬', node.x - 7, node.y + 4);
+      } else if (name === 'shield') {
+        ctx.font = '12px Outfit';
+        ctx.fillText('🛡️', node.x - 7, node.y + 4);
+      } else if (name === 'openai') {
+        ctx.font = '12px Outfit';
+        ctx.fillText('🔑', node.x - 7, node.y + 4);
+      } else if (name === 'edge') {
+        ctx.font = '12px Outfit';
+        ctx.fillText('🐰', node.x - 7, node.y + 4);
+      }
+
+      // 绘制标签
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText(node.label, node.x, node.y + 38);
+      ctx.restore();
+    }
+
+    function drawConnections() {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 2;
+
+      // Director -> Shield
+      ctx.beginPath();
+      ctx.moveTo(nodes.director.x + 25, nodes.director.y);
+      ctx.lineTo(nodes.shield.x - 25, nodes.shield.y);
+      ctx.stroke();
+
+      // Shield -> OpenAI
+      ctx.beginPath();
+      ctx.moveTo(nodes.shield.x + 20, nodes.shield.y - 15);
+      ctx.lineTo(nodes.openai.x - 20, nodes.openai.y + 15);
+      ctx.stroke();
+
+      // Shield -> Edge
+      ctx.beginPath();
+      ctx.moveTo(nodes.shield.x + 20, nodes.shield.y + 15);
+      ctx.lineTo(nodes.edge.x - 20, nodes.edge.y - 15);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function createExplosion(x, y, color) {
+      for (let i = 0; i < 15; i++) {
+        activeParticles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          radius: Math.random() * 3 + 1,
+          color: color,
+          alpha: 1,
+          life: 30
+        });
+      }
+    }
+
+    function updateParticles() {
+      for (let i = activeParticles.length - 1; i >= 0; i--) {
+        const p = activeParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 1 / p.life;
+        if (p.alpha <= 0) {
+          activeParticles.splice(i, 1);
+        }
+      }
+    }
+
+    function drawParticles() {
+      activeParticles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 绘制连线
+      drawConnections();
+
+      // 绘制粒子
+      updateParticles();
+      drawParticles();
+
+      // 绘制各个节点
+      const isDirectorActive = (animStage === 'sending');
+      const isShieldActive = (animStage === 'checking' || animStage === 'bouncing');
+      const isOpenAIActive = (animStage === 'checking' && isKeyValid && apiLatency <= 4500);
+      const isEdgeActive = (animStage === 'success');
+
+      drawNode('director', nodes.director, isDirectorActive);
+      drawNode('shield', nodes.shield, isShieldActive);
+      drawNode('openai', nodes.openai, isOpenAIActive);
+      drawNode('edge', nodes.edge, isEdgeActive);
+
+      // 绘制运动的数据包
+      if (packet.visible) {
+        ctx.save();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#60a5fa';
+        ctx.beginPath();
+        ctx.arc(packet.x, packet.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#60a5fa';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 状态逻辑步进
+      if (isAnimating) {
+        animProgress += 0.02;
+        if (animProgress >= 1) {
+          animProgress = 0;
+          stepAnimationStage();
+        }
+
+        // 差值运动
+        if (animStage === 'sending') {
+          // Director -> Shield
+          packet.x = nodes.director.x + (nodes.shield.x - nodes.director.x) * animProgress;
+          packet.y = nodes.director.y;
+        } else if (animStage === 'checking') {
+          // Shield -> OpenAI
+          packet.x = nodes.shield.x + (nodes.openai.x - nodes.shield.x) * animProgress;
+          packet.y = nodes.shield.y + (nodes.openai.y - nodes.shield.y) * animProgress;
+        } else if (animStage === 'bouncing') {
+          // Shield -> Edge (Bouncing trajectory)
+          packet.x = nodes.shield.x + (nodes.edge.x - nodes.shield.x) * animProgress;
+          packet.y = nodes.shield.y + (nodes.edge.y - nodes.shield.y) * animProgress;
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function stepAnimationStage() {
+      if (animStage === 'sending') {
+        animStage = 'checking';
+        addLog('info', '大纲数据包到达防守盾，发起首选服务请求...');
+        // 如果延迟较高，需要延迟展示
+        if (apiLatency > 4500) {
+          addLog('warn', `API 请求由于网络阻塞，挂起中...(当前延迟: ${apiLatency}ms)`);
+          setTimeout(() => {
+            if (animStage === 'checking') {
+              addLog('error', `首选请求阻塞已达 4500ms 超时界限！Try-Catch 防御盾牌强行切断！`);
+              createExplosion(nodes.shield.x + 40, nodes.shield.y - 20, 'var(--color-danger)');
+              animStage = 'bouncing';
+              animProgress = 0;
+            }
+          }, 2000); // 缩短模拟时间，方便体验
+        } else if (!isKeyValid) {
+          setTimeout(() => {
+            addLog('error', 'OpenAI 接口报错: Invalid Token! Key已过期！');
+            createExplosion(nodes.openai.x, nodes.openai.y, 'var(--color-danger)');
+            animStage = 'bouncing';
+            animProgress = 0;
+          }, 600);
+        } else {
+          // 正常成功
+          setTimeout(() => {
+            addLog('success', 'OpenAI 语音合成成功！直接返回。');
+            createExplosion(nodes.openai.x, nodes.openai.y, 'var(--color-openai)');
+            animStage = 'success';
+            packet.visible = false;
+            isAnimating = false;
+            speak('合成成功，欢迎来到AI课堂！');
+          }, 800);
+        }
+      } else if (animStage === 'bouncing') {
+        animStage = 'success';
+        addLog('warn', '触发 Catch 分支，由 Edge 兔小力秒级顶包！');
+        createExplosion(nodes.edge.x, nodes.edge.y, 'var(--color-edge)');
+        packet.visible = false;
+        isAnimating = false;
+        speak('语音合成已平滑降级到 Edge 云端');
+      }
+    }
+
+    // ── 真实发声系统 (Web Speech API 动态发声) ──
+    function speak(text) {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        // 先取消当前发声
+        speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        // 查找中文声音，微软 Edge 的声音在 Chrome/Safari 中一般会映射到系统中文 Neural
+        const voices = speechSynthesis.getVoices();
+        const fallbackVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Neural') || v.name.includes('Microsoft'));
+        if (fallbackVoice) {
+          utterance.voice = fallbackVoice;
+        }
+        speechSynthesis.speak(utterance);
+      }
+    }
+
+    // ── 运行按钮 ──
+    btnTrigger.addEventListener('click', () => {
+      if (isAnimating) return;
+      isAnimating = true;
+      animProgress = 0;
+      animStage = 'sending';
+      packet.visible = true;
+      packet.x = nodes.director.x;
+      packet.y = nodes.director.y;
+      addLog('info', '【开始合成】大纲导演发起配音请求，数据流启动！');
+    });
+
+    // ── 重置按钮 ──
+    btnReset.addEventListener('click', () => {
+      isAnimating = false;
+      animProgress = 0;
+      animStage = 'idle';
+      packet.visible = false;
+      activeParticles = [];
+      addLog('info', '模拟器状态重置成功。');
+    });
+
+    // 启动动画渲染环
+    animate();
+  </script>
+</body>
+</html>

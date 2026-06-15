@@ -267,19 +267,20 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 
 // Initialize default audio config
 const getDefaultAudioConfig = () => ({
-  ttsProviderId: 'volcengine-tts' as TTSProviderId,
-  ttsVoice: 'zh_male_shaonianzixin_uranus_bigtts', // 🚀 [Titan AI 全站一致性] 默认锁死为“少年梓梓” (天王星版)音色
+  ttsProviderId: 'edge-tts' as TTSProviderId,
+  ttsVoice: 'zh-CN-XiaoxiaoNeural', // 🚀 默认使用微软 Edge TTS (免密云端) 晓晓音色
   ttsSpeed: 1.0,
   asrProviderId: 'browser-native' as ASRProviderId,
   asrLanguage: 'zh',
   ttsProvidersConfig: {
-    'openai-tts': { apiKey: '', baseUrl: '', enabled: true },
+    'openai-tts': { apiKey: '', baseUrl: 'https://backgrace.com/v1', enabled: true },
     'azure-tts': { apiKey: '', baseUrl: '', enabled: false },
     'glm-tts': { apiKey: '', baseUrl: '', enabled: false },
     'qwen-tts': { apiKey: '', baseUrl: '', enabled: false },
     'elevenlabs-tts': { apiKey: '', baseUrl: '', enabled: false },
-    'volcengine-tts': { apiKey: '', baseUrl: 'https://openspeech.bytedance.com/api/v1', enabled: true },
+    'volcengine-tts': { apiKey: '', baseUrl: 'https://openspeech.bytedance.com/api/v1', enabled: false },
     'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
+    'edge-tts': { apiKey: '', baseUrl: '', enabled: true },
   } as Record<TTSProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
   asrProvidersConfig: {
     'openai-whisper': { apiKey: '', baseUrl: 'https://backgrace.com/v1', enabled: true },
@@ -306,6 +307,7 @@ const getDefaultImageConfig = () => ({
     'qwen-image': { apiKey: '', baseUrl: '', enabled: false },
     'nano-banana': { apiKey: '', baseUrl: 'https://backgrace.com/v1', enabled: true },
     'grok-image': { apiKey: '', baseUrl: '', enabled: false },
+    'agnes-image': { apiKey: '', baseUrl: '', enabled: true },
   } as Record<ImageProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
 });
 
@@ -319,6 +321,7 @@ const getDefaultVideoConfig = () => ({
     veo: { apiKey: '', baseUrl: '', enabled: false },
     sora: { apiKey: '', baseUrl: '', enabled: false },
     'grok-video': { apiKey: '', baseUrl: '', enabled: false },
+    agnes: { apiKey: '', baseUrl: '', enabled: true },
   } as Record<VideoProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
 });
 
@@ -527,13 +530,11 @@ export const useSettingsStore = create<SettingsState>()(
         defaultAudioConfig.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
       }
 
-      // [Titan Tech Override] Apply Direct Volcengine TTS to defaults (Does NOT go through Backgrace)
-      if (defaultAudioConfig.ttsProvidersConfig && defaultAudioConfig.ttsProvidersConfig['volcengine-tts']) {
-        defaultAudioConfig.ttsProviderId = 'volcengine-tts';
-        defaultAudioConfig.ttsVoice = 'zh_male_shaonianzixin_moon_bigtts';
-        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].apiKey = '';
-        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
-        defaultAudioConfig.ttsProvidersConfig['volcengine-tts'].enabled = true;
+      // [Titan Tech Override] Apply Edge TTS to defaults (No API Key Required)
+      if (defaultAudioConfig.ttsProvidersConfig && defaultAudioConfig.ttsProvidersConfig['edge-tts']) {
+        defaultAudioConfig.ttsProviderId = 'edge-tts';
+        defaultAudioConfig.ttsVoice = 'zh-CN-XiaoxiaoNeural';
+        defaultAudioConfig.ttsProvidersConfig['edge-tts'].enabled = true;
       }
 
       return {
@@ -1060,7 +1061,7 @@ export const useSettingsStore = create<SettingsState>()(
                 if (
                   serverTtsIds.length > 0 &&
                   !newTTSConfig[state.ttsProviderId]?.isServerConfigured &&
-                  state.ttsProviderId !== 'volcengine-tts'
+                  state.ttsProviderId !== 'openai-tts'
                 ) {
                   autoTtsProvider = serverTtsIds[0];
                   autoTtsVoice = DEFAULT_TTS_VOICES[autoTtsProvider] || 'default';
@@ -1255,21 +1256,19 @@ export const useSettingsStore = create<SettingsState>()(
           merged.asrProvidersConfig['openai-whisper'].baseUrl = 'https://backgrace.com/v1';
         }
 
-        // [Titan Tech Permanent Override] Hardcode TTS (Doubao Dual-Terminal Direct Access) - 前端不放 key
-        merged.ttsProviderId = 'volcengine-tts';
-        merged.ttsVoice = 'zh_male_shaonianzixin_uranus_bigtts';
+        // [Titan Tech Permanent Override] Hardcode TTS (Microsoft Edge Speech API) - 不需要 API Key
+        merged.ttsProviderId = 'edge-tts';
+        merged.ttsVoice = 'zh-CN-XiaoxiaoNeural';
         
         if (!merged.ttsProvidersConfig) merged.ttsProvidersConfig = {} as any;
-        if (!merged.ttsProvidersConfig['volcengine-tts']) {
-          merged.ttsProvidersConfig['volcengine-tts'] = {
+        if (!merged.ttsProvidersConfig['edge-tts']) {
+          merged.ttsProvidersConfig['edge-tts'] = {
             apiKey: '',
-            baseUrl: 'https://openspeech.bytedance.com/api/v1',
+            baseUrl: '',
             enabled: true,
           };
         } else {
-          merged.ttsProvidersConfig['volcengine-tts'].apiKey = '';
-          merged.ttsProvidersConfig['volcengine-tts'].baseUrl = 'https://openspeech.bytedance.com/api/v1';
-          merged.ttsProvidersConfig['volcengine-tts'].enabled = true;
+          merged.ttsProvidersConfig['edge-tts'].enabled = true;
         }
 
         return merged as SettingsState;

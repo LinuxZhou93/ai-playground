@@ -84,7 +84,8 @@ export type TTSProviderId =
   | 'qwen-tts'
   | 'elevenlabs-tts'
   | 'volcengine-tts'
-  | 'browser-native-tts';
+  | 'browser-native-tts'
+  | 'edge-tts';
 // Add new TTS providers below (uncomment and modify):
 // | 'fish-audio-tts'
 // | 'cartesia-tts'
@@ -130,6 +131,7 @@ export interface TTSModelConfig {
   voice: string;
   speed?: number;
   format?: string;
+  signal?: AbortSignal;
 }
 
 // ============================================================================

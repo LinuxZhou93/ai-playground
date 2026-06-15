@@ -790,7 +790,23 @@ function GenerationPreviewContent() {
 
       // Generate TTS for first scene (part of actions step — blocking)
       if (settings.ttsEnabled && settings.ttsProviderId !== 'browser-native-tts') {
-        const ttsProviderConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
+        const availableProviders = getAvailableProvidersWithVoices(settings.ttsProvidersConfig);
+        const isGlobalAvailable = availableProviders.some((p) => p.providerId === settings.ttsProviderId);
+
+        let resolvedProviderId = settings.ttsProviderId as any;
+        let resolvedVoice = settings.ttsVoice;
+
+        if (!isGlobalAvailable) {
+          if (availableProviders.length > 0) {
+            resolvedProviderId = availableProviders[0].providerId as any;
+            resolvedVoice = availableProviders[0].voices[0]?.id ?? 'default';
+          } else {
+            resolvedProviderId = 'edge-tts';
+            resolvedVoice = 'zh-CN-XiaoxiaoNeural';
+          }
+        }
+
+        const ttsProviderConfig = settings.ttsProvidersConfig?.[resolvedProviderId];
         const speechActions = (data.scene.actions || []).filter(
           (a: { type: string; text?: string }) => {
             if (a.type !== 'speech' || !a.text) return false;
@@ -812,11 +828,11 @@ function GenerationPreviewContent() {
               body: JSON.stringify({
                 text: action.text,
                 audioId,
-                ttsProviderId: settings.ttsProviderId,
-                ttsVoice: settings.ttsVoice,
+                ttsProviderId: resolvedProviderId as any,
+                ttsVoice: resolvedVoice,
                 ttsSpeed: settings.ttsSpeed,
                 ttsApiKey: ttsProviderConfig?.apiKey || undefined,
-                ttsBaseUrl: ttsProviderConfig?.baseUrl || undefined,
+                ttsBaseUrl: ttsProviderConfig?.serverBaseUrl || ttsProviderConfig?.baseUrl || undefined,
               }),
               signal,
             });
@@ -857,7 +873,7 @@ function GenerationPreviewContent() {
         }
 
         if (ttsFailCount > 0 && speechActions.length > 0) {
-          throw new Error(t("generation.speechFailed") + ` (${errorMessages[0]})`);
+          log.warn(`Some TTS voices failed to generate, we will rely on client Browser Speech fallback during classroom play:`, errorMessages);
         }
       }
 

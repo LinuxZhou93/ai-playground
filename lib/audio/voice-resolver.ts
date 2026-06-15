@@ -24,7 +24,8 @@ export function resolveAgentVoice(
       return agent.voiceConfig;
     }
     const list = getServerVoiceList(agent.voiceConfig.providerId);
-    if (list.includes(agent.voiceConfig.voiceId)) {
+    const isAvailable = availableProviders.some((p) => p.providerId === agent.voiceConfig!.providerId);
+    if (list.includes(agent.voiceConfig.voiceId) && isAvailable) {
       return agent.voiceConfig;
     }
   }
@@ -80,8 +81,8 @@ export function getAvailableProvidersWithVoices(
     const hasApiKey = providerConfig?.apiKey && providerConfig.apiKey.trim().length > 0;
     const isServerConfigured = providerConfig?.isServerConfigured === true;
 
-    // 🚀 强解耦逻辑：如果是火山引擎，必定无条件强制渲染在其可用提供商列表中，不再要求用户自行输入配置！
-    if (providerId === 'volcengine-tts' || hasApiKey || isServerConfigured) {
+    // 🚀 强解耦逻辑：如果是 Edge TTS，必定无条件强制渲染在其可用提供商列表中，不再要求用户自行输入配置！
+    if (providerId === 'edge-tts' || hasApiKey || isServerConfigured) {
       result.push({
         providerId,
         providerName: config.name,

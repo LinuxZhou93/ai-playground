@@ -82,6 +82,10 @@ export class AudioPlayer {
       this.audio.playbackRate = this.playbackRate;
       return true;
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'NotAllowedError') {
+        log.warn('AudioPlayer blocked by Autoplay Policy. Silent skip until user interacts.');
+        return false;
+      }
       log.error('Failed to play audio:', error);
       throw error;
     }

@@ -124,6 +124,7 @@ function getTTSProviderName(providerId: TTSProviderId, t: (key: string) => strin
     'elevenlabs-tts': t('settings.providerElevenLabsTTS'),
     'volcengine-tts': t('settings.providerVolcengineTTS') || '豆包 TTS (火山大模型)',
     'browser-native-tts': t('settings.providerBrowserNativeTTS'),
+    'edge-tts': 'Edge 免费 TTS (云端免密)',
   };
   return names[providerId];
 }
@@ -143,6 +144,7 @@ const IMAGE_PROVIDER_NAMES: Record<ImageProviderId, string> = {
   'qwen-image': 'providerQwenImage',
   'nano-banana': 'providerNanoBanana',
   'grok-image': 'providerGrokImage',
+  'agnes-image': 'providerAgnesImage',
 };
 
 const IMAGE_PROVIDER_ICONS: Record<ImageProviderId, string> = {
@@ -150,6 +152,7 @@ const IMAGE_PROVIDER_ICONS: Record<ImageProviderId, string> = {
   'qwen-image': '/logos/bailian.svg',
   'nano-banana': '/logos/gemini.svg',
   'grok-image': '/logos/grok.svg',
+  'agnes-image': '/logos/agnes.svg',
 };
 
 const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {
@@ -158,6 +161,7 @@ const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {
   veo: 'providerVeo',
   sora: 'providerSora',
   'grok-video': 'providerGrokVideo',
+  agnes: 'providerAgnesVideo',
 };
 
 const VIDEO_PROVIDER_ICONS: Record<VideoProviderId, string> = {
@@ -166,6 +170,7 @@ const VIDEO_PROVIDER_ICONS: Record<VideoProviderId, string> = {
   veo: '/logos/gemini.svg',
   sora: '/logos/openai.svg',
   'grok-video': '/logos/grok.svg',
+  agnes: '/logos/agnes.svg',
 };
 
 interface SettingsDialogProps {
@@ -808,7 +813,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                 providers={Object.values(PDF_PROVIDERS)}
                 configs={pdfProvidersConfig}
                 selectedId={selectedPdfProviderId}
-                onSelect={setSelectedPdfProviderId}
+                onSelect={(id) => setSelectedPdfProviderId(id)}
                 width={providerListWidth}
                 t={t}
               />
@@ -827,7 +832,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                 providers={Object.values(WEB_SEARCH_PROVIDERS)}
                 configs={webSearchProvidersConfig}
                 selectedId={selectedWebSearchProviderId}
-                onSelect={setSelectedWebSearchProviderId}
+                onSelect={(id) => setSelectedWebSearchProviderId(id)}
                 width={providerListWidth}
                 t={t}
               />
@@ -850,7 +855,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                 }))}
                 configs={imageProvidersConfig}
                 selectedId={selectedImageProviderId}
-                onSelect={setSelectedImageProviderId}
+                onSelect={(id) => setSelectedImageProviderId(id)}
                 width={providerListWidth}
                 t={t}
               />
@@ -873,7 +878,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                 }))}
                 configs={videoProvidersConfig}
                 selectedId={selectedVideoProviderId}
-                onSelect={setSelectedVideoProviderId}
+                onSelect={(id) => setSelectedVideoProviderId(id)}
                 width={providerListWidth}
                 t={t}
               />

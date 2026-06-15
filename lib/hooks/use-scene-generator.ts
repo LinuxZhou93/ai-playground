@@ -10,6 +10,7 @@ import type { AgentInfo } from '@/lib/generation/generation-pipeline';
 import type { Scene } from '@/lib/types/stage';
 import type { Action, SpeechAction } from '@/lib/types/action';
 import type { TTSProviderId } from '@/lib/audio/types';
+import { getAvailableProvidersWithVoices } from '@/lib/audio/voice-resolver';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import { generateMediaForOutlines } from '@/lib/media/media-orchestrator';
 import { createLogger } from '@/lib/logger';
@@ -129,18 +130,34 @@ export async function generateAndStoreTTS(
   const settings = useSettingsStore.getState();
   if (settings.ttsProviderId === 'browser-native-tts') return;
 
-  const ttsProviderConfig = settings.ttsProvidersConfig?.[settings.ttsProviderId];
+  const availableProviders = getAvailableProvidersWithVoices(settings.ttsProvidersConfig);
+  const isGlobalAvailable = availableProviders.some((p) => p.providerId === settings.ttsProviderId);
+
+  let resolvedProviderId = settings.ttsProviderId as Exclude<TTSProviderId, 'browser-native-tts'>;
+  let resolvedVoice = settings.ttsVoice;
+
+  if (!isGlobalAvailable) {
+    if (availableProviders.length > 0) {
+      resolvedProviderId = availableProviders[0].providerId as Exclude<TTSProviderId, 'browser-native-tts'>;
+      resolvedVoice = availableProviders[0].voices[0]?.id ?? 'default';
+    } else {
+      resolvedProviderId = 'edge-tts';
+      resolvedVoice = 'zh-CN-XiaoxiaoNeural';
+    }
+  }
+
+  const ttsProviderConfig = settings.ttsProvidersConfig?.[resolvedProviderId];
   const response = await fetch('/api/generate/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       text,
       audioId,
-      ttsProviderId: settings.ttsProviderId,
-      ttsVoice: settings.ttsVoice,
+      ttsProviderId: resolvedProviderId as any,
+      ttsVoice: resolvedVoice,
       ttsSpeed: settings.ttsSpeed,
       ttsApiKey: ttsProviderConfig?.apiKey || undefined,
-      ttsBaseUrl: ttsProviderConfig?.baseUrl || undefined,
+      ttsBaseUrl: ttsProviderConfig?.serverBaseUrl || ttsProviderConfig?.baseUrl || undefined,
     }),
     signal,
   });
@@ -195,21 +212,14 @@ async function generateTTSForScene(
     try {
       await generateAndStoreTTS(audioId, action.text, signal);
     } catch (error) {
-      failedCount++;
-      lastError = error instanceof Error ? error.message : `TTS failed for action ${action.id}`;
-      log.warn('TTS generation failed:', {
-        providerId,
-        actionId: action.id,
-        textLength: action.text.length,
-        error: lastError,
-      });
+      // 🚀 核心容灾重构：配音生成失败不作为分镜生成的卡点，允许正常生成，播放时在前端做 Browser TTS 降级
+      log.warn(`TTS generation failed for ${audioId}, we will fall back to Browser Speech:`, error);
     }
   }
 
   return {
-    success: failedCount === 0,
-    failedCount,
-    error: lastError,
+    success: true,
+    failedCount: 0,
   };
 }
 

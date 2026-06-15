@@ -24,15 +24,14 @@ export async function middleware(request: NextRequest) {
     // 即使主域名直接访问 /edu，也直接放行，Next.js 会匹配 app/edu
   }
 
-  // 2. 原版课件系统 (旧体系)
+  // 2. 原版课件 system (旧体系)
   if (host.includes('ai.zhouxiaomai.com')) {
-    if (pathname === '/index.html') {
-      return NextResponse.rewrite(new URL('/', request.url));
+    if (pathname === '/' || pathname === '/index.html') {
+      return NextResponse.next();
     }
     if (pathname === '/debate-lab') {
       return NextResponse.rewrite(new URL('/psyche_x_system/frontend/debate_lab.html', request.url));
     }
-    return NextResponse.next();
   }
 
   // 💡 处理主域名 (zhouxiaomai.com / www.) 的根路径逻辑
@@ -43,6 +42,7 @@ export async function middleware(request: NextRequest) {
 
   // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
   const cleanUrlMaps: Record<string, string> = {
+    '/explain': '/resources/explain.html',
     '/course': '/resources/course.html',
     '/pricing': '/resources/pricing-demo.html',
     '/pengzhou-mall-demo': '/resources/pengzhou-mall-demo.html',
@@ -149,6 +149,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/explain',
     '/course',
     '/pricing',
     '/pengzhou-mall-demo',

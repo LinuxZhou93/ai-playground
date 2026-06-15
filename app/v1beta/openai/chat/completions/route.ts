@@ -1,19 +1,53 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 
 // Server-side hardened key to bypass client-side proxy issues
 const BACKGRACE_URL = 'https://backgrace.com/v1/chat/completions';
+import fs from 'fs';
+import path from 'path';
+
 const getCleanApiKey = () => {
-  const keys = [process.env.OPENAI_API_KEY, process.env.GEMINI_API_KEY];
+  // 1. 优先从项目本地 .env 文件里解析，防止被系统全局过期的环境变量污染
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf-8');
+      const lines = content.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+          const [key, ...valParts] = trimmed.split('=');
+          const val = valParts.join('=').trim();
+          if ((key.trim() === 'OPENAI_API_KEY' || key.trim() === 'GOOGLE_API_KEY') && val) {
+            const cleanVal = val.replace(/^['"]|['"]$/g, '');
+            if (cleanVal && !cleanVal.startsWith('sk-Ob49') && !cleanVal.startsWith('sk-4nI8') && !cleanVal.startsWith('sk-YU1Cu') && !cleanVal.startsWith('sk-yRWW')) {
+              return cleanVal;
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    // 忽略错误并降级
+  }
+
+  // 2. 备用：从系统环境变量中读取
+  const keys = [
+    process.env.OPENAI_API_KEY,
+    process.env.GOOGLE_API_KEY,
+    process.env.GEMINI_API_KEY
+  ];
   for (const k of keys) {
-    if (k && !k.startsWith('sk-Ob49') && !k.startsWith('sk-4nI8') && !k.startsWith('sk-YU1Cu')) {
+    if (k && !k.startsWith('sk-Ob49') && !k.startsWith('sk-4nI8') && !k.startsWith('sk-YU1Cu') && !k.startsWith('sk-yRWW')) {
       return k;
     }
   }
   return '';
 };
-const PROD_KEY = getCleanApiKey();
 
 export async function POST(req: Request) {
+  const PROD_KEY = getCleanApiKey();
   try {
     const body = await req.json();
 
@@ -35,6 +69,7 @@ export async function POST(req: Request) {
         max_tokens: body.max_tokens ?? 4096,
         stream: false
       }),
+      cache: 'no-store'
     });
 
     if (!response.ok) {
