@@ -1,9 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import zh from '@/messages/zh.json';
 import en from '@/messages/en.json';
+import { supabase, getCurrentUser } from '@/lib/supabase';
+import { toast } from 'sonner';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 
 const messages: Record<string, typeof zh> = {
   zh: zh,
@@ -18,8 +21,103 @@ export default function PricingPage() {
   const t = messages[localeStr] || messages['zh'];
   const pricing = t.pricing;
 
+  const [user, setUser] = useState<{ email: string; id: string } | null>(null);
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+    } else {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          setUser({
+            email: session.user.email || '',
+            id: session.user.id,
+          });
+        }
+      });
+    }
+
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('payment_status') === 'success') {
+      setPaymentSuccess(true);
+      toast.success(localeStr === 'zh' || localeStr === 'zh-CN' ? '订阅购买成功！正在为您配给算力。' : 'Subscription purchased successfully! Allocating compute resources for you.');
+    }
+  }, [localeStr]);
+
+  const handleCheckout = async (tier: 'monthly' | 'quarterly' | 'yearly') => {
+    if (!user) {
+      toast.error(localeStr === 'zh' || localeStr === 'zh-CN' ? '请先登录后再进行购买' : 'Please login before making a purchase');
+      return;
+    }
+
+    setLoadingTier(tier);
+
+    try {
+      const res = await fetch('/api/subscription/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier,
+          userId: user.id,
+          userEmail: user.email,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || '创建支付会话失败');
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('未返回支付链接');
+      }
+    } catch (err: any) {
+      toast.error(err.message || '操作失败');
+    } finally {
+      setLoadingTier(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#03050c] text-[#cbd5e1] font-sans overflow-x-hidden relative flex flex-col justify-center py-20 px-6">
+      {paymentSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" data-testid="payment-success-modal">
+          <div className="bg-[#0b1329]/80 backdrop-blur-2xl border border-emerald-500/30 rounded-[24px] p-8 max-w-md w-full text-center shadow-[0_0_50px_rgba(16,185,129,0.15)] transform scale-100 transition-all duration-300">
+            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20">
+              <CheckCircle2 className="w-10 h-10 text-emerald-400 animate-bounce" />
+            </div>
+            <h2 className="text-2xl font-mono font-bold text-white mb-4" data-testid="success-modal-title">
+              {localeStr === 'zh' || localeStr === 'zh-CN' ? '订阅支付成功！' : 'Payment Successful!'}
+            </h2>
+            <p className="text-sm text-slate-400 mb-8 leading-relaxed">
+              {localeStr === 'zh' || localeStr === 'zh-CN' 
+                ? '我们已收到您的款项。您的账户订阅将在几秒内通过 Stripe Webhook 自动同步并激活。您也可以前往卡密核销中心手动校验状态。' 
+                : 'We have received your payment. Your subscription will be synced and activated via Stripe Webhook in a few seconds. You can also manually check status in the redeem center.'}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                id="success-modal-close-btn"
+                onClick={() => {
+                  setPaymentSuccess(false);
+                  window.history.replaceState({}, '', window.location.pathname);
+                }}
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-bold rounded-xl transition-all active:scale-95 shadow-[0_4px_12px_rgba(16,185,129,0.3)]"
+              >
+                {localeStr === 'zh' || localeStr === 'zh-CN' ? '好的，我知道了' : 'Got it'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,#1a1b38_0%,#03050c_60%)]">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-cyan-500/10 blur-[120px] animate-pulse"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-purple-500/10 blur-[120px] animate-pulse duration-[10s]"></div>
@@ -57,8 +155,8 @@ export default function PricingPage() {
                     <svg className={`w-4.5 h-4.5 mr-3 mt-0.5 flex-shrink-0 ${idx >= 3 ? 'text-slate-600' : 'text-cyan-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       {idx >= 3 ? (
                         <>
-                          <line x1="18" y1="6" x2="6" y2="18"></line>
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                           <line x1="18" y1="6" x2="6" y2="18"></line>
+                           <line x1="6" y1="6" x2="18" y2="18"></line>
                         </>
                       ) : (
                         <path d="M20 6L9 17l-5-5" />
@@ -91,8 +189,8 @@ export default function PricingPage() {
                     <svg className={`w-4.5 h-4.5 mr-3 mt-0.5 flex-shrink-0 ${idx >= 4 ? 'text-slate-600' : 'text-cyan-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       {idx >= 4 ? (
                         <>
-                          <line x1="18" y1="6" x2="6" y2="18"></line>
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                           <line x1="18" y1="6" x2="6" y2="18"></line>
+                           <line x1="6" y1="6" x2="18" y2="18"></line>
                         </>
                       ) : (
                         <path d="M20 6L9 17l-5-5" />
@@ -103,8 +201,12 @@ export default function PricingPage() {
                 ))}
               </ul>
             </div>
-            <button className="mt-10 w-full py-4 bg-white/5 border border-white/10 rounded-xl font-mono font-bold text-sm tracking-widest text-white transition-all hover:bg-white/10 hover:border-cyan-400/50 hover:text-cyan-400 active:scale-95">
-              {pricing.btnMonthly}
+            <button 
+              onClick={() => handleCheckout('monthly')}
+              disabled={loadingTier !== null}
+              className="mt-10 w-full py-4 bg-white/5 border border-white/10 rounded-xl font-mono font-bold text-sm tracking-widest text-white transition-all hover:bg-white/10 hover:border-cyan-400/50 hover:text-cyan-400 active:scale-95 flex items-center justify-center gap-2"
+            >
+              {loadingTier === 'monthly' ? <Loader2 className="w-4 h-4 animate-spin" /> : pricing.btnMonthly}
             </button>
           </div>
 
@@ -136,8 +238,12 @@ export default function PricingPage() {
                 ))}
               </ul>
             </div>
-            <button className="mt-10 w-full py-4 bg-cyan-400 hover:bg-white text-black rounded-xl font-mono font-bold text-sm tracking-widest shadow-[0_10px_20px_rgba(0,240,255,0.2)] hover:shadow-[0_15px_30px_rgba(0,240,255,0.4)] transition-all duration-300 active:scale-95">
-              {pricing.btnQuarterly}
+            <button 
+              onClick={() => handleCheckout('quarterly')}
+              disabled={loadingTier !== null}
+              className="mt-10 w-full py-4 bg-cyan-400 hover:bg-white text-black rounded-xl font-mono font-bold text-sm tracking-widest shadow-[0_10px_20px_rgba(0,240,255,0.2)] hover:shadow-[0_15px_30px_rgba(0,240,255,0.4)] transition-all duration-300 active:scale-95 flex items-center justify-center gap-2"
+            >
+              {loadingTier === 'quarterly' ? <Loader2 className="w-4 h-4 animate-spin" /> : pricing.btnQuarterly}
             </button>
           </div>
 
@@ -166,8 +272,12 @@ export default function PricingPage() {
                 ))}
               </ul>
             </div>
-            <button className="mt-10 w-full py-4 bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 text-black rounded-xl font-mono font-bold text-sm tracking-widest shadow-[0_10px_20px_rgba(255,214,0,0.2)] hover:shadow-[0_15px_30px_rgba(255,214,0,0.4)] transition-all duration-300 active:scale-95">
-              {pricing.btnAnnual}
+            <button 
+              onClick={() => handleCheckout('yearly')}
+              disabled={loadingTier !== null}
+              className="mt-10 w-full py-4 bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 text-black rounded-xl font-mono font-bold text-sm tracking-widest shadow-[0_10px_20px_rgba(255,214,0,0.2)] hover:shadow-[0_15px_30px_rgba(255,214,0,0.4)] transition-all duration-300 active:scale-95 flex items-center justify-center gap-2"
+            >
+              {loadingTier === 'yearly' ? <Loader2 className="w-4 h-4 animate-spin" /> : pricing.btnAnnual}
             </button>
           </div>
 

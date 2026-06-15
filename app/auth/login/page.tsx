@@ -4,14 +4,12 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Phone, Lock, ArrowRight, ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,9 +28,19 @@ export default function LoginPage() {
       if (error) throw error
 
       if (session) {
+        const sessionResponse = await fetch('/api/erp-auth-session', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        })
+
+        if (!sessionResponse.ok) {
+          throw new Error('后台会话创建失败，请稍后重试')
+        }
+
         toast.success('您好，欢迎登录教务系统。')
-        router.push('/erp/dashboard')
-        router.refresh()
+        window.location.href = '/erp/dashboard'
       }
     } catch (error: any) {
       toast.error(`登录失败: ${error.message || '请检查凭据'}`)

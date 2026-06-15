@@ -89,6 +89,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/index.html', request.url));
   }
 
+  // 📦 [AI Generated Archive Mapping]
+  // 自动将访问 hub-auto-*.html 或 auto-*.html 的请求重映射到归档目录 resources/archive/
+  const lastSegment = pathname.substring(pathname.lastIndexOf('/') + 1);
+  if ((lastSegment.startsWith('hub-auto-') || lastSegment.startsWith('auto-')) && lastSegment.endsWith('.html')) {
+    const targetArchiveRoute = `/resources/archive/${lastSegment}`;
+    if (pathname !== targetArchiveRoute) {
+      url.pathname = targetArchiveRoute;
+      console.log(`🤖 [AI Archive] Mapping ${pathname} -> ${url.pathname}`);
+      return applyCacheControl(NextResponse.rewrite(url), url.pathname);
+    }
+  }
+
   // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
   const cleanUrlMaps: Record<string, string> = {
     '/explain': '/resources/explain.html',
@@ -165,13 +177,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 🛠️ [Legacy Support] 保持对原有 hub-auto 逻辑的支持
-  if (pathname.startsWith('/hub-auto-') && pathname.endsWith('.html')) {
-    if (!pathname.startsWith('/resources/')) {
-      url.pathname = `/resources${pathname}`;
-      return applyCacheControl(NextResponse.rewrite(url), url.pathname);
-    }
-  }
+  // Note: 以前对 hub-auto 的支持现已通过顶部的 [AI Generated Archive Mapping] 统一管理并映射到 archive 目录
 
   // 🔒 [RBAC Guard] 教务 ERP 权限拦截
   if (pathname.startsWith('/erp')) {
