@@ -38,7 +38,7 @@ const products = [
         cat: "茶饮文创",
         name: "灵芝桂花养生茶",
         price: 128,
-        desc: "把基地灵芝转化为日常茶饮，适合伴手礼、研学门店与直播间销售。",
+        desc: "基地灵芝延展为日常茶饮，适合伴手礼、研学门店与健康生活场景。",
         img: asset("assets/tcm/tea_icon.png"),
         tags: ["伴手礼", "低门槛", "体验装"]
     },
@@ -47,7 +47,7 @@ const products = [
         cat: "基地体验",
         name: "灵芝采收研学套票",
         price: 199,
-        desc: "面向亲子、学校、企业团建的基地研学产品，形成线下到线上转化闭环。",
+        desc: "面向亲子、学校、企业团建的基地研学产品，适合参访预约与健康体验。",
         img: asset("assets/img/zhengzhong_museum.png"),
         tags: ["研学", "团建", "预约制"]
     },
@@ -73,7 +73,7 @@ const researchItems = [
     {
         id: 2,
         title: "正中大健康产品矩阵",
-        summary: "以灵芝孢子粉、孢子油、参灵枣仁膏、茶饮伴手礼和研学套票形成多价格带转化。",
+        summary: "灵芝孢子粉、孢子油、参灵枣仁膏、茶饮伴手礼和研学套票覆盖不同健康生活场景。",
         cover: asset("assets/img/zhengzhong_product_lineup.png"),
         tag: "产品矩阵"
     },
@@ -120,13 +120,13 @@ const banners = [
         img: asset("assets/img/zhengzhong_hero_bg_2.png")
     },
     {
-        title: "智慧基地到产品转化",
+        title: "智慧基地与健康产品",
         sub: "种植、溯源、研学、会员复购一体化",
         img: asset("assets/img/zhengzhong_base_2.jpg")
     },
     {
         title: "可参观 可销售 可运营",
-        sub: "把基地变成可信现场与会员服务入口",
+        sub: "基地现场、产品服务与会员关怀相互连接",
         img: asset("assets/img/zhengzhong_homepage_top_1775481097685.png")
     }
 ];
@@ -311,7 +311,7 @@ window.showResearchDetail = function (id) {
             <p>${item.summary}</p>
             <div class="timeline-list">
                 <div><b>种植端</b><span>林下环境监测、采收批次、基地巡检</span></div>
-                <div><b>转化端</b><span>产品矩阵、研学门票、药膳体验</span></div>
+                <div><b>服务端</b><span>产品系列、研学门票、药膳体验</span></div>
                 <div><b>服务端</b><span>会员档案、订单记录、复购提醒</span></div>
             </div>
         </div>
@@ -402,8 +402,8 @@ function investmentDetail() {
             <div><i class="fas fa-shield-halved"></i><strong>可信溯源</strong><span>批次质检与流通记录</span></div>
         </div>
         <div class="detail-section">
-            <h4>服务承接闭环</h4>
-            <p>首页展示基地实力，商城呈现可选产品，研学提供线下体验入口，预约与会员中心持续承接服务记录和复购需求。</p>
+            <h4>服务体验链路</h4>
+            <p>基地实力、产品选购、研学体验、预约记录和会员关怀相互连接，让健康服务更清晰、更连续。</p>
             <button class="btn-primary" onclick="window.switchTab('mall'); window.closeOverlay('module-detail')">查看产品矩阵</button>
         </div>
     `;
