@@ -36,7 +36,8 @@ export default function LoginPage() {
         })
 
         if (!sessionResponse.ok) {
-          throw new Error('后台会话创建失败，请稍后重试')
+          const result = await sessionResponse.json().catch(() => ({}))
+          throw new Error(result.message || '后台会话创建失败，请稍后重试')
         }
 
         toast.success('您好，欢迎登录教务系统。')

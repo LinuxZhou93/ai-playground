@@ -1353,7 +1353,7 @@ export async function getLeads() {
   const ctx = await getAuthCookies();
   let query = supabase
     .from("erp_leads")
-    .select("*, erp_staff:assigned_staff_id(name)")
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (ctx.role !== "ADMIN" && ctx.campus_id) {
