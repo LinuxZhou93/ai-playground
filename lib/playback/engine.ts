@@ -23,6 +23,7 @@
  *                                 └────────────────────┘
  */
 
+import { db } from '@/lib/utils/database';
 import type { Scene } from '@/lib/types/stage';
 import type { Action, SpeechAction, DiscussionAction } from '@/lib/types/action';
 import type {
@@ -83,6 +84,11 @@ export class PlaybackEngine {
   private browserTTSPausedChunks: string[] = []; // remaining chunks saved on pause (for cancel+re-speak)
   private speechTimerRemaining: number = 0; // remaining ms (set on pause)
 
+  // Autoplay blocked handling
+  private autoplayBlocked: boolean = false;
+  private currentSpeechAction: SpeechAction | null = null;
+  private handleGlobalClickBound: ((e: MouseEvent) => void) | null = null;
+
   constructor(
     scenes: Scene[],
     actionEngine: ActionEngine,
@@ -94,6 +100,11 @@ export class PlaybackEngine {
     this.actionEngine = actionEngine;
     this.audioPlayer = audioPlayer;
     this.callbacks = callbacks;
+
+    if (typeof window !== 'undefined') {
+      this.handleGlobalClickBound = this.handleGlobalClick.bind(this);
+      window.addEventListener('click', this.handleGlobalClickBound, { capture: true });
+    }
   }
 
   // ==================== Public API ====================
@@ -249,6 +260,13 @@ export class PlaybackEngine {
     this.savedActionIndex = null;
     this.currentTopicState = null;
     this.currentTrigger = null;
+
+    if (typeof window !== 'undefined' && this.handleGlobalClickBound) {
+      window.removeEventListener('click', this.handleGlobalClickBound, { capture: true });
+      this.handleGlobalClickBound = null;
+    }
+    this.autoplayBlocked = false;
+    this.currentSpeechAction = null;
   }
 
   /** User clicks "Join" on ProactiveCard → save cursor → live */
@@ -455,10 +473,12 @@ export class PlaybackEngine {
     switch (action.type) {
       case 'speech': {
         const speechAction = action as SpeechAction;
+        this.currentSpeechAction = speechAction;
         this.callbacks.onSpeechStart?.(speechAction.text);
 
         // onEnded → processNext; if paused, resume() will call processNext
         this.audioPlayer.onEnded(() => {
+          this.currentSpeechAction = null;
           this.callbacks.onSpeechEnd?.();
           if (this.mode === 'playing') {
             this.processNext();
@@ -492,16 +512,25 @@ export class PlaybackEngine {
 
         this.audioPlayer
           .play(speechAction.audioId || '', speechAction.audioUrl)
-          .then((audioStarted) => {
+          .then(async (audioStarted) => {
             if (!audioStarted) {
-              // No pre-generated audio — try browser-native TTS if selected
+              // Check if audio source actually exists in cache or url
+              const hasAudioSource = !!speechAction.audioUrl || (speechAction.audioId ? !!(await db.audioFiles.get(speechAction.audioId)) : false);
+              if (hasAudioSource) {
+                log.warn('Audio exists but failed to play. Flagging autoplay blocked.');
+                this.autoplayBlocked = true;
+              }
+
+              // No pre-generated audio — fallback to browser-native TTS if enabled (regardless of configured providerId)
               const settings = useSettingsStore.getState();
               if (
                 settings.ttsEnabled &&
-                settings.ttsProviderId === 'browser-native-tts' &&
                 typeof window !== 'undefined' &&
                 window.speechSynthesis
               ) {
+                if (typeof navigator !== 'undefined' && !navigator.userActivation?.hasBeenActive) {
+                  this.autoplayBlocked = true;
+                }
                 this.playBrowserTTS(speechAction);
               } else {
                 scheduleReadingTimer();
@@ -645,61 +674,6 @@ export class PlaybackEngine {
        return;
     }
 
-    // 🌋【特长生系统斩草除根级升级】：强制注入火山引擎（豆包TTS）高保真中文女声。
-    // 在收到任何文本块时，不再发给本地生涩、容易读错字母的机器播音员。通过大模型实时转储解决所有发音痛点。
-    let retryCount = 2;
-    while (retryCount > 0) {
-      try {
-        const safeText = rawChunk.substring(0, 300); // 必须裁剪到300字以内，否则火山引擎报错阻断
-        const doubaoRes = await fetch('https://openspeech.bytedance.com/api/v1/tts', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer; e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z'
-          },
-          body: JSON.stringify({
-            app: { appid: '4780476544', token: 'e_t1R3UXzl-qvSTrFdEgh0-NFhjN5p7z', cluster: 'volcano_tts' },
-            user: { uid: "titan_student_future" },
-            audio: { voice_type: 'zh_child_feifei_moon_bigtts', encoding: "mp3", speed_ratio: 1.0 },
-            request: { reqid: "vq_" + Date.now() + Math.random().toString().slice(2,6), text: safeText, operation: "query" }
-          })
-        });
-        
-        const doubaoData = await doubaoRes.json();
-        if (doubaoData.code === 3000 && doubaoData.data) {
-          // 创建豆包高保真流媒体播放管线，劫持原有机器音
-          const premiumAudio = new window.Audio("data:audio/mp3;base64," + doubaoData.data);
-          premiumAudio.onended = () => {
-            this.browserTTSChunkIndex++;
-            if (this.mode === 'playing') this.playBrowserTTSChunk();
-          };
-          // 容错处理如果取消或暂停
-          premiumAudio.onerror = () => {
-            this.browserTTSChunkIndex++;
-            if (this.mode === 'playing') this.playBrowserTTSChunk();
-          }
-          await premiumAudio.play();
-          return; // ✅ 豆包大模型已成功发音，直接结束本轮循环。全盘接管！
-        } else {
-           console.warn("🌋 豆包TTS 请求打回，错误码:", doubaoData.code);
-           retryCount--;
-           await new Promise(r => setTimeout(r, 500));
-        }
-      } catch (volcErr) {
-         console.warn("🌋 豆包TTS网络抖动，重试...", volcErr);
-         retryCount--;
-         await new Promise(r => setTimeout(r, 500));
-      }
-    }
-
-    // 若彻底全部失败，宁可静音或快速带过，也绝不放出机械音导致沉浸感撕裂！
-    console.error("🌋 火山引擎连续两次失败，为了避免机械音破功，直接跳过当前切片。");
-    this.browserTTSChunkIndex++;
-    if (this.mode === 'playing') {
-      setTimeout(() => this.playBrowserTTSChunk(), 2000); // 假装念了2秒
-    }
-    return;
-
     const settings = useSettingsStore.getState();
     const chunkText = rawChunk;
     const utterance = new SpeechSynthesisUtterance(chunkText);
@@ -798,6 +772,25 @@ export class PlaybackEngine {
       this.browserTTSChunkIndex = 0;
       this.browserTTSPausedChunks = [];
       window.speechSynthesis?.cancel();
+    }
+  }
+
+  /** Global click listener to resume playbacks blocked by Autoplay policies */
+  private handleGlobalClick(): void {
+    if (this.autoplayBlocked) {
+      log.info('User interaction detected, resuming blocked playback/audio...');
+      this.autoplayBlocked = false;
+
+      // 1. If HTML5 Audio is paused due to interaction block, try to resume
+      if (this.audioPlayer.hasActiveAudio() && !this.audioPlayer.isPlaying()) {
+        this.audioPlayer.resume();
+      }
+
+      // 2. If browser native TTS is active but was blocked, cancel and re-speak current speech action
+      if (this.browserTTSActive && this.currentSpeechAction) {
+        log.info('Re-speaking browser TTS after user interaction...');
+        this.playBrowserTTS(this.currentSpeechAction);
+      }
     }
   }
 }

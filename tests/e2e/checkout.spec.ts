@@ -7,12 +7,8 @@ const validCode = 'VALID-CODE-123456';
 test.describe('Stripe Checkout and Card Redemption Full Flow E2E Tests', () => {
 
   test.beforeEach(async ({ page }) => {
-    // 模拟登录，预置 localStorage
-    await page.goto('/');
-    await page.evaluate(({ email, id }) => {
-      localStorage.setItem('current_user_email', email);
-      localStorage.setItem('current_user_id', id);
-    }, { email: testUserEmail, id: testUserId });
+    // 延长测试超时至 90 秒以适配慢速开发编译环境
+    test.setTimeout(90000);
 
     // 拦截 Stripe Checkout API，并返回 mock 的 checkout 会话 url
     await page.route('**/api/subscription/checkout', async (route) => {
@@ -95,8 +91,15 @@ test.describe('Stripe Checkout and Card Redemption Full Flow E2E Tests', () => {
   });
 
   test('should complete purchase flow and redeem card code successfully', async ({ page }) => {
-    // 1. 访问中文定价页
+    // 1. 访问中文定价页并注入登录状态
     await page.goto('/zh/pricing');
+    await page.evaluate(({ email, id }) => {
+      localStorage.setItem('current_user_email', email);
+      localStorage.setItem('current_user_id', id);
+    }, { email: testUserEmail, id: testUserId });
+    
+    // 刷新页面激活登录状态
+    await page.reload();
     await expect(page.locator('[data-testid="pricing-title"]')).toContainText('加入 FUTURE 计划');
 
     // 2. 点击月度套餐的“挂载引擎”按钮触发 checkout 重定向
