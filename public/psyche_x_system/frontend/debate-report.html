@@ -23,7 +23,44 @@
   </nav>
 
   <main>
-    <section class="hero">
+    <section class="section" id="latest-report-section">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Latest practice</p>
+          <h2>本轮练习记录。</h2>
+        </div>
+        <p>如果刚刚在 AI 对辩页生成过练习记录，这里会自动显示题目、练习类型、观察分数和发言摘录。</p>
+      </div>
+
+      <div class="report-live-card">
+        <article class="report-overview">
+          <span class="report-state-badge" id="report-state-badge">等待本轮记录</span>
+          <h3 id="live-report-title">完成一局对辩后，这里会自动出现报告。</h3>
+          <p id="live-report-summary">先去完成一局短练，点击“生成练习记录”后回来，家长就能看到孩子这一轮说了什么、哪里更清楚、下一局先改哪一点。</p>
+          <div class="tag-row" id="live-report-meta"></div>
+          <div class="actions">
+            <a class="button primary" href="./debate-game.html">去完成一局短练</a>
+            <button class="button ghost" type="button" id="copy-live-report" disabled>复制本轮记录</button>
+          </div>
+        </article>
+
+        <article class="report-scores">
+          <h3>教练观察</h3>
+          <div class="score-list" id="live-report-scores">
+            <p class="report-empty">还没有可展示的观察分数。</p>
+          </div>
+        </article>
+
+        <article class="transcript-preview">
+          <h3>发言摘录</h3>
+          <div class="message-list" id="live-report-transcript">
+            <p class="report-empty">提交发言后，这里会显示孩子原话、AI 追问和教练提醒。</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="hero compact-hero">
       <div class="hero-copy">
         <p class="eyebrow">家长看得懂的练习记录</p>
         <h1>把一次发言变成家长看得懂的练习报告。</h1>
@@ -67,5 +104,133 @@
   </main>
 
   <footer class="footer">练习报告 · 为家长沟通和 Jessica 判断服务</footer>
+  <script>
+    const reportKey = "jessicaDebatePracticeReport";
+    const scoreLabels = {
+      claim: "观点",
+      reason: "理由",
+      example: "例子",
+      response: "回应"
+    };
+    const messageLabels = {
+      user: "孩子发言",
+      ai: "AI 追问",
+      coach: "教练提醒"
+    };
+
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    function clampScore(value) {
+      const score = Number(value);
+      if (Number.isNaN(score)) return 0;
+      return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    function addTag(text) {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = text;
+      $("live-report-meta").appendChild(tag);
+    }
+
+    function renderScores(scores) {
+      const wrap = $("live-report-scores");
+      wrap.innerHTML = "";
+      Object.entries(scoreLabels).forEach(([key, label]) => {
+        const score = clampScore(scores?.[key]);
+        const row = document.createElement("div");
+        row.className = "score-row";
+        row.innerHTML = `
+          <header><span>${label}</span><span>${score}%</span></header>
+          <div class="score-track"><div class="score-fill"></div></div>
+        `;
+        row.querySelector(".score-fill").style.setProperty("--score", `${score}%`);
+        wrap.appendChild(row);
+      });
+    }
+
+    function renderMessages(messages = []) {
+      const wrap = $("live-report-transcript");
+      wrap.innerHTML = "";
+      const usefulMessages = messages.filter((message) => message.text).slice(-6);
+      if (!usefulMessages.length) {
+        const empty = document.createElement("p");
+        empty.className = "report-empty";
+        empty.textContent = "本轮还没有发言摘录。";
+        wrap.appendChild(empty);
+        return;
+      }
+      usefulMessages.forEach((message) => {
+        const item = document.createElement("div");
+        item.className = "message-note";
+        const label = messageLabels[message.type] || "记录";
+        const speaker = document.createElement("b");
+        speaker.textContent = label;
+        const text = document.createElement("span");
+        text.textContent = message.text;
+        item.append(speaker, text);
+        wrap.appendChild(item);
+      });
+    }
+
+    function buildCopyText(report) {
+      const topic = report.topic?.text || "未记录题目";
+      const scoreText = Object.entries(scoreLabels)
+        .map(([key, label]) => `${label}: ${clampScore(report.scores?.[key])}%`)
+        .join(" / ");
+      return [
+        "Jessica AI Debate Lab 练习记录",
+        `题目: ${topic}`,
+        `练习类型: ${report.format || "未记录"}`,
+        `本轮关注: ${report.focus || "未记录"}`,
+        `完成发言: ${report.turns || 0} 次`,
+        `观察: ${scoreText}`,
+        `总结: ${report.summary || "暂无总结"}`
+      ].join("\n");
+    }
+
+    function renderReport(report) {
+      $("report-state-badge").textContent = "已读取本轮记录";
+      $("live-report-title").textContent = report.topic?.text || "本轮练习题目未记录";
+      $("live-report-summary").textContent = report.summary || "本轮记录已生成，可以结合发言摘录继续和孩子复盘。";
+      $("live-report-meta").innerHTML = "";
+      addTag(report.format || "练习类型未记录");
+      addTag(`完成 ${report.turns || 0} 次发言`);
+      addTag(`关注 ${report.focus || "表达"}`);
+      if (report.savedAt) {
+        addTag(new Date(report.savedAt).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }));
+      }
+      renderScores(report.scores);
+      renderMessages(report.messages);
+      const copyButton = $("copy-live-report");
+      copyButton.disabled = false;
+      copyButton.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(buildCopyText(report));
+          copyButton.textContent = "已复制";
+          window.setTimeout(() => {
+            copyButton.textContent = "复制本轮记录";
+          }, 1600);
+        } catch {
+          copyButton.textContent = "复制失败";
+        }
+      });
+    }
+
+    function initLatestReport() {
+      const raw = localStorage.getItem(reportKey);
+      if (!raw) return;
+      try {
+        renderReport(JSON.parse(raw));
+      } catch {
+        $("report-state-badge").textContent = "记录暂时无法读取";
+        $("live-report-summary").textContent = "本地记录格式不完整。可以回到 AI 对辩页重新生成一次练习记录。";
+      }
+    }
+
+    initLatestReport();
+  </script>
 </body>
 </html>
