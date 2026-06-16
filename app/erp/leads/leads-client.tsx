@@ -11,11 +11,12 @@ import {
   PhoneCall,
   CalendarDays,
   Target,
-  MoreHorizontal,
   ChevronRight,
   Loader2,
   Trophy,
-  X
+  X,
+  Download,
+  Table2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,61 @@ const STAGES = [
   { id: "LOST", name: "流失/丢单", color: "bg-zinc-500", icon: UserCheck },
 ];
 
+const PROJECT_NAME = "北航具身智能机器人半日研学";
+
+function extractLine(note: string, label: string) {
+  const match = note.match(new RegExp(`${label}：([^\\n]+)`));
+  return match?.[1]?.trim() || "";
+}
+
+function getProjectStudentRows(leads: any[]) {
+  return leads
+    .filter((lead) => {
+      const source = String(lead.source || "");
+      const interest = String(lead.interest_course || "");
+      return source.includes("EAI619") || interest.includes("北航具身智能机器人半日研学");
+    })
+    .map((lead, index) => {
+      const note = String(lead.follow_up_note || "");
+      let noteData: any = {};
+      let payload: any = {};
+
+      if (note.trim().startsWith("{")) {
+        try {
+          noteData = JSON.parse(note);
+          payload = noteData.payload || {};
+        } catch {
+          noteData = {};
+          payload = {};
+        }
+      }
+
+      return {
+        index: index + 1,
+        id: lead.id,
+        childName: extractLine(note, "孩子姓名") || payload.childName || lead.name || "",
+        gender: extractLine(note, "孩子性别") || payload.childGender || "",
+        age: extractLine(note, "孩子年龄") || payload.childAge || "",
+        idNumber: extractLine(note, "孩子身份证号") || payload.childIdNumber || "",
+        grade: extractLine(note, "当前年级") || payload.grade || "",
+        school: extractLine(note, "就读学校") || payload.school || "",
+        phone: lead.phone || payload.parentPhone || "",
+        payment: note.includes("已点击") || noteData?.payment?.confirmed_by_parent ? "已点击付款确认" : "待核验",
+        createdAt: lead.created_at ? new Date(lead.created_at).toLocaleString("zh-CN", { hour12: false }) : "",
+        status: lead.status || "",
+        note,
+      };
+    });
+}
+
+function escapeExcelCell(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
   const [leads, setLeads] = useState<any[]>(initialLeads);
   const [isAdding, setIsAdding] = useState(false);
@@ -46,6 +102,54 @@ export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
   const totalLeads = leads.length;
   const converted = leads.filter(l => l.status === "CONVERTED").length;
   const conversionRate = totalLeads ? Math.round((converted / totalLeads) * 100) : 0;
+  const projectStudents = getProjectStudentRows(leads);
+
+  const exportProjectExcel = () => {
+    if (projectStudents.length === 0) {
+      toast.error("暂无可导出的报名数据");
+      return;
+    }
+
+    const headers = ["序号", "孩子姓名", "性别", "年龄", "身份证号", "当前年级", "就读学校", "家长手机号", "付款状态", "提交时间", "后台状态", "备注"];
+    const rows = projectStudents.map((row) => [
+      row.index,
+      row.childName,
+      row.gender,
+      row.age,
+      row.idNumber,
+      row.grade,
+      row.school,
+      row.phone,
+      row.payment,
+      row.createdAt,
+      row.status,
+      row.note,
+    ]);
+    const tableHtml = `
+      <html>
+        <head><meta charset="UTF-8" /></head>
+        <body>
+          <table border="1">
+            <caption>${escapeExcelCell(PROJECT_NAME)}报名汇总表</caption>
+            <thead><tr>${headers.map((header) => `<th>${escapeExcelCell(header)}</th>`).join("")}</tr></thead>
+            <tbody>
+              ${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeExcelCell(cell)}</td>`).join("")}</tr>`).join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    const blob = new Blob(["\ufeff", tableHtml], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${PROJECT_NAME}报名汇总表.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Excel 已开始导出");
+  };
 
   const handleAddLead = async () => {
     if (!newLead.name || !newLead.phone) {
@@ -223,6 +327,70 @@ export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
             </Dialog.Root>
           </div>
         </div>
+
+        <section className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="flex flex-col gap-5 border-b border-zinc-200 p-5 dark:border-zinc-800 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-500 ring-1 ring-cyan-500/20">
+                <Table2 className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-500">Project Roster</div>
+                <h3 className="mt-1 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">{PROJECT_NAME}</h3>
+                <p className="mt-1 text-sm font-medium text-zinc-500">共 {projectStudents.length} 名学生，汇总报名信息、保险身份证号与付款核验状态。</p>
+              </div>
+            </div>
+            <Button
+              onClick={exportProjectExcel}
+              className="h-12 rounded-2xl bg-cyan-500 px-5 font-black text-zinc-950 hover:bg-cyan-400"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              导出 Excel
+            </Button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1180px] border-collapse text-left">
+              <thead>
+                <tr className="bg-zinc-50 text-xs font-black uppercase tracking-wide text-zinc-500 dark:bg-zinc-900/70 dark:text-zinc-400">
+                  <th className="px-5 py-4">序号</th>
+                  <th className="px-5 py-4">孩子姓名</th>
+                  <th className="px-5 py-4">性别</th>
+                  <th className="px-5 py-4">年龄</th>
+                  <th className="px-5 py-4">身份证号</th>
+                  <th className="px-5 py-4">年级</th>
+                  <th className="px-5 py-4">学校</th>
+                  <th className="px-5 py-4">家长手机号</th>
+                  <th className="px-5 py-4">付款状态</th>
+                  <th className="px-5 py-4">提交时间</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
+                {projectStudents.map((student) => (
+                  <tr key={student.id} className="text-sm text-zinc-700 transition-colors hover:bg-cyan-50/60 dark:text-zinc-300 dark:hover:bg-cyan-950/20">
+                    <td className="px-5 py-4 font-bold text-zinc-400">{student.index}</td>
+                    <td className="px-5 py-4 font-black text-zinc-950 dark:text-white">{student.childName}</td>
+                    <td className="px-5 py-4">{student.gender || "-"}</td>
+                    <td className="px-5 py-4">{student.age || "-"}</td>
+                    <td className="px-5 py-4 font-mono text-xs">{student.idNumber || "-"}</td>
+                    <td className="px-5 py-4">{student.grade || "-"}</td>
+                    <td className="px-5 py-4">{student.school || "-"}</td>
+                    <td className="px-5 py-4 font-mono text-xs">{student.phone || "-"}</td>
+                    <td className="px-5 py-4">
+                      <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-600 dark:text-amber-300">{student.payment}</span>
+                    </td>
+                    <td className="px-5 py-4 text-xs text-zinc-500">{student.createdAt || "-"}</td>
+                  </tr>
+                ))}
+                {projectStudents.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="px-5 py-12 text-center text-sm font-bold text-zinc-400">暂无 EAI619 报名数据</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         {/* Kanban Board */}
         <div className="flex gap-6 overflow-x-auto pb-8 snap-x">
