@@ -102,7 +102,7 @@ const firstSixWeeks = [
   {
     week: "Week 1",
     title: "工具链启动",
-    desc: "配置 AI 编程工具、GitHub 仓库、Python / Node 环境，完成第一个 VibeCoding 小任务。",
+    desc: "从 AI Foundations 与 Codex 实操启动，完成第一个 VibeCoding 网页作品：SAT 核心词汇 Flashcard 记忆工具。",
     icon: Cpu,
   },
   {

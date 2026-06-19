@@ -74,6 +74,33 @@ const preparationItems = [
   "课程协作资料：每周任务板、实验记录模板、代码提交规范、阶段复盘模板",
 ];
 
+const lessonOneHighlights = [
+  {
+    title: "基础测试与学习方式校准",
+    body: "通过概念问答、工具操作和项目讨论，确认第一阶段先从 AI Foundations 与 VibeCoding 切入，再逐步连接机器人系统与具身智能课题。",
+  },
+  {
+    title: "AI 不是答案机器",
+    body: "课堂重点建立 AI Native Builder 的使用边界：AI 可以解释、追问、检查、辅助编程，但最终判断、表达和复盘必须由学习者完成。",
+  },
+  {
+    title: "完成轻量项目实践",
+    body: "课程最后使用 Codex 完成了人生第一个网页作品：SAT 核心词汇 Flashcard 记忆工具。这个作品把 AI 编程和当前备考目标直接连接起来，也让第一节课留下了可打开、可继续迭代的成果。",
+  },
+  {
+    title: "连接 SAT 备考效率",
+    body: "前半段课程会优先把 AI 工具能力应用到备考场景，例如错题整理、阅读材料管理、写作思路梳理和每日计划生成。",
+  },
+];
+
+const lessonOneOutputs = [
+  "理解 AI、Model、LLM、Prompt、Context、Agent、Embodied AI 等核心双语术语",
+  "建立 AI Learning Log 的记录方法：主题、解释、连接图、7-day mini project、英文总结",
+  "使用 Codex 完成第一个可打开的网页作品：SAT 核心词汇 Flashcard 记忆工具",
+  "明确 Use AI to Learn, Not to Fake 的学习诚信边界",
+  "下一步继续 VibeCoding：把 Flashcard 工具完善为可持续使用的备考辅助项目",
+];
+
 const milestones = [
   {
     tag: "01",
@@ -287,14 +314,70 @@ export default function BurtCoursePlan() {
         </div>
       </section>
 
+      <section className="py-24 px-6 lg:px-8 max-w-6xl mx-auto">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer}>
+          <motion.div variants={fadeIn} className="mb-12 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold uppercase tracking-widest mb-6">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Lesson 01 Completed · 2026.06.18
+              </div>
+              <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white mb-4">第 1 讲学习进度记录</h2>
+              <p className="text-neutral-400 max-w-3xl leading-relaxed">
+                第一堂课先完成基础测试、工具认知和轻量项目实践。课堂最后已经通过 Codex 做出了第一个网页作品：SAT 核心词汇 Flashcard 记忆工具。当前重点不是一次性做很复杂的作品，而是建立正确的 AI 学习方式，并把 AI 能力连接到后续 VibeCoding、SAT 备考效率和机器人课题推进。
+              </p>
+            </div>
+            <div className="rounded-3xl border border-neutral-800 bg-neutral-900 px-6 py-5 min-w-[220px]">
+              <p className="text-xs text-neutral-500 mb-1">current focus</p>
+              <p className="font-mono text-lg text-emerald-300">AI Foundations</p>
+              <p className="text-sm text-neutral-400 mt-1">Builder Loop · Learning Log</p>
+            </div>
+          </motion.div>
+
+          <div className="grid lg:grid-cols-[1.08fr_0.92fr] gap-6 items-start">
+            <motion.div variants={fadeIn} className="grid sm:grid-cols-2 gap-4">
+              {lessonOneHighlights.map((item) => (
+                <div key={item.title} className="rounded-3xl bg-neutral-900 border border-neutral-800 p-6 hover:bg-neutral-800/70 transition-colors">
+                  <h3 className="text-lg font-bold text-white mb-3">{item.title}</h3>
+                  <p className="text-sm leading-relaxed text-neutral-400">{item.body}</p>
+                </div>
+              ))}
+            </motion.div>
+
+            <motion.div variants={fadeIn} className="rounded-[2rem] bg-neutral-950 border border-neutral-800 overflow-hidden">
+              <div className="h-10 bg-neutral-900 border-b border-neutral-800 flex items-center px-4 gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                <div className="ml-4 font-mono text-[10px] text-neutral-500 uppercase">lesson-01-review.md</div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <BookOpen className="w-5 h-5 text-blue-300" />
+                  <h3 className="font-bold text-white">本讲已沉淀的学习证据</h3>
+                </div>
+                <div className="space-y-3">
+                  {lessonOneOutputs.map((item) => (
+                    <div key={item} className="flex gap-3 rounded-2xl bg-neutral-900 border border-neutral-800 px-4 py-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0 mt-0.5" />
+                      <p className="text-sm text-neutral-300 leading-relaxed">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      </section>
+
       <section id="prep" className="py-24 px-6 lg:px-8 max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}>
             <motion.h2 variants={fadeIn} className="text-3xl lg:text-4xl font-bold tracking-tight text-white mb-5">
-              开课前先把首批资源配置好
+              首批资源会随课堂持续配置
             </motion.h2>
             <motion.p variants={fadeIn} className="text-neutral-400 leading-relaxed mb-8">
-              第一节课前，先把 AI 学习工具、代码环境、项目资料、软硬件清单和任务协作方式准备起来。这样 6 月 18 日开课时，可以直接进入实操，而不是把时间花在零散安装和账号整理上。
+              第 1 讲已经完成 AI 学习方式与轻量实践校准。接下来会继续把 AI 学习工具、代码环境、项目资料、软硬件清单和任务协作方式整理起来，让每一次课都能进入可执行任务。
             </motion.p>
             <div className="space-y-3">
               {preparationItems.map((item) => (
@@ -319,10 +402,10 @@ export default function BurtCoursePlan() {
               <p className="pl-4 text-cyan-300">offline: 12 sessions / 36h</p>
               <p className="pl-4 text-emerald-300">online: 15 sessions / 30h</p>
               <p className="text-neutral-500 mt-4">first_week:</p>
-              <p className="pl-4 text-neutral-300">- setup_ai_tools</p>
-              <p className="pl-4 text-neutral-300">- create_github_repo</p>
-              <p className="pl-4 text-neutral-300">- run_first_vibecoding_task</p>
-              <p className="pl-4 text-neutral-300">- prepare_robotics_materials</p>
+              <p className="pl-4 text-emerald-300">- lesson_01_ai_foundations_done</p>
+              <p className="pl-4 text-neutral-300">- build_sat_flashcard_web_app</p>
+              <p className="pl-4 text-neutral-300">- connect_sat_tool_ideas</p>
+              <p className="pl-4 text-neutral-300">- next_vibecoding_project</p>
             </div>
           </motion.div>
         </div>
