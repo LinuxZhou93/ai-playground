@@ -103,6 +103,10 @@ export async function middleware(request: NextRequest) {
 
   // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
   const cleanUrlMaps: Record<string, string> = {
+    '/SNU': '/SNU/index.html',
+    '/SNU/': '/SNU/index.html',
+    '/snu': '/SNU/index.html',
+    '/snu/': '/SNU/index.html',
     '/explain': '/resources/explain.html',
     '/course': '/resources/course.html',
     '/pricing': '/resources/pricing-demo.html',
@@ -261,6 +265,10 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/SNU',
+    '/SNU/',
+    '/snu',
+    '/snu/',
     '/explain',
     '/course',
     '/pricing',

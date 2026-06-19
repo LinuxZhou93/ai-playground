@@ -61,6 +61,22 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: '/SNU',
+        destination: '/SNU/index.html',
+      },
+      {
+        source: '/SNU/',
+        destination: '/SNU/index.html',
+      },
+      {
+        source: '/snu',
+        destination: '/SNU/index.html',
+      },
+      {
+        source: '/snu/',
+        destination: '/SNU/index.html',
+      },
+      {
         source: '/course',
         destination: '/resources/course.html',
       },
