@@ -77,6 +77,14 @@ const nextConfig: NextConfig = {
         destination: '/SNU/index.html',
       },
       {
+        source: '/korea',
+        destination: '/korea/index.html',
+      },
+      {
+        source: '/korea/',
+        destination: '/korea/index.html',
+      },
+      {
         source: '/course',
         destination: '/resources/course.html',
       },
