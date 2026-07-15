@@ -10,9 +10,18 @@ export async function GET(request: Request) {
   try {
     let fetchUrl = `${supabaseUrl}/rest/v1/camp_evaluations`;
     if (id) {
-       fetchUrl += `?id=eq.${id}&select=*`;
+       fetchUrl += `?id=eq.${encodeURIComponent(id)}&select=*`;
     } else {
-       fetchUrl += `?select=*&order=created_at.desc`;
+       // The dashboard never renders the base64 photo. Excluding it keeps the
+       // list response small while preserving every field used by CSV export.
+       const dashboardFields = [
+         'id', 'created_at', 'student_id', 'student_name', 'camp_name',
+         'focus_score', 'dexterity_score', 'logic_score', 'resilience_score',
+         'self_management_score', 'social_score', 'creativity_score',
+         'collaboration_score', 'highlights', 'potential_improvements',
+         'ai_overall_report'
+       ].join(',');
+       fetchUrl += `?select=${dashboardFields}&order=created_at.desc`;
     }
 
     const res = await fetch(fetchUrl, {
@@ -28,11 +37,16 @@ export async function GET(request: Request) {
     }
     const data = await res.json();
 
-    return NextResponse.json({ success: true, data: id && data.length > 0 ? data[0] : data });
+    if (id && data.length === 0) {
+      return NextResponse.json({ success: false, error: '报告不存在' }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      { success: true, data: id ? data[0] : data },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error: any) {
     console.error('Camp Report Fetch Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch data', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: '数据读取失败，请稍后重试' }, { status: 500 });
   }
 }
-
-

@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const {
       student_id,
       student_name,
-      camp_name = '成电创客科创营地',
+      camp_name = '电子科大2026中学生未来科技营·探空火箭跨学科课题研究项目',
       focus_score,
       dexterity_score,
       logic_score,
@@ -24,21 +24,54 @@ export async function POST(req: Request) {
       photo_data
     } = data;
 
+    const scores = {
+      focus_score,
+      dexterity_score,
+      logic_score,
+      resilience_score,
+      self_management_score,
+      social_score,
+      creativity_score,
+      collaboration_score
+    };
+    const invalidScore = Object.values(scores).some(
+      score => !Number.isInteger(score) || score < 0 || score > 100
+    );
+
+    if (typeof student_name !== 'string' || !student_name.trim()) {
+      return NextResponse.json({ error: '请填写学员姓名' }, { status: 400 });
+    }
+    if (invalidScore) {
+      return NextResponse.json({ error: '八维评分必须是 0–100 的整数' }, { status: 400 });
+    }
+    if (photo_data && (typeof photo_data !== 'string' || photo_data.length > 2_500_000)) {
+      return NextResponse.json({ error: '照片过大，请压缩后重新上传' }, { status: 413 });
+    }
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Camp report service is missing Supabase configuration');
+      return NextResponse.json({ error: '报告存储服务暂不可用' }, { status: 503 });
+    }
+
     const systemPrompt = `
-你是一位专业的科创教育专家、青少年心理学专家和资深营地导师。
-本次评测的背景是“成电创客·AI智能台灯实训营”。学员在营地中经历了电子电路搭建、结构组装、程序逻辑编写以及外观美化设计。
-你的任务是根据导师给出的八维量化评分（百分制：90+优秀，80-90良好，70-80一般，70以下欠佳）和两句带主观色彩的观察评价，生成一份给家长看的详尽、专业、富有同理心的【智能台灯营地科技特长生多元能力反馈报告】。
+你是一位熟悉航空航天、电子信息、青少年工程教育与积极心理学的资深项目导师。
+本次评测来自“电子科大2026中学生未来科技营·探空火箭跨学科课题研究项目”。这是一个4天3晚、以工程实践驱动和多学科融合为核心的中学生项目。项目围绕探空火箭从0到1的完整工程闭环展开，包括：火箭结构与3D建模、空气动力学与动力系统认知、电子电控、加速度/温度/GPS等数据采集、无线遥测与地面站、程序控制、飞行仿真与轨迹分析、伞降回收、系统集成、地面调试、外场发射、项目报告与科研表达。
 
-核心目标是：通过客观数据与导师观察，指出孩子的“突出的工程/编程天赋”或“需要系统性加强的短板”，以帮助家长认识到孩子后续长线学习（如秋季常规编程课/科创班）的重要性。
+你的任务是根据导师给出的八维量化评分（百分制：90+优秀，80-89良好，70-79一般，70以下需重点支持）及两段真实观察，生成一份面向家长的【探空火箭课题项目多元能力反馈报告】。
 
-报告语气：真诚、用词专业、具备针对性、科技感，多用积极心理学视角。
+写作原则：
+1. 以导师观察为事实边界，不得虚构学员完成过的任务、发射结果、奖项、教授评价或具体技术成果。
+2. 保持八维观察框架不变，并结合火箭项目中的结构制造、软硬件调试、数据记录、科研表达、团队协作和安全规范解释学员行为。
+3. 使用真诚、专业、有温度的积极心理学语气；既指出优势，也给出可执行的成长路径。
+4. 可以解释火箭项目中的科学与工程价值，但不得提供燃料配方、点火制作或其他危险操作细节；涉及动力与发射只强调专业导师指导和安全规范。
+5. 不要出现“智能台灯营”“瞪羚俱乐部”、齿轮传动、语音芯片等与本项目无关的内容。
+
 输出格式要求必须返回纯合法的 JSON 字符串（不要附带markdown代码块标识），包含以下字段：
 {
-  "ai_overall_report": "一段针对该学员八个维度以及今天硬件组装/逻辑编程表现的综合评价（300-400字内），要显得专业并且对家长有较高的温度感知，结合台灯营地的具体科技元素。",
+  "ai_overall_report": "一段300-450字的综合评价。结合八维评分和导师观察，分析学员在探空火箭跨学科课题中的工程潜质、真实表现、优势维度及下一步突破点。",
   "ai_recommendations": [
-    "建议1（侧重生活和学习习惯）",
-    "建议2（【强制要求】必须丝滑写一段结合后续的长线编程/科创学习进阶建议，并在建议中自然地引出推荐加入『成电创客瞪羚俱乐部』的常态化培养项目，指出加入该俱乐部能为其工程思维带来的长期增益）",
-    "建议3（针对教师提出的短板进行委婉的优化建议）"
+    "建议1：侧重工程笔记、数理基础、数据记录或复盘习惯，必须具体可执行",
+    "建议2：结合机械、电子、通信、自动控制、计算机或人工智能给出后续跨学科进阶路径，并联系科创竞赛、研究性学习、项目报告或专业启蒙",
+    "建议3：针对导师提出的待提升点给出委婉、分步骤、可观察的训练建议"
   ]
 }
 `;
@@ -48,28 +81,33 @@ export async function POST(req: Request) {
 所属营地: ${camp_name}
 
 【八维能力评估】（百分制：90+优秀，80-89良好，70-79一般，70以下欠佳）
-专注度: ${focus_score}/100
-动手操作精细度 (如组装硬件): ${dexterity_score}/100
-科学逻辑理解力 (如理解电路与程序): ${logic_score}/100
-抗挫折恢复力 (如遇到Bug时的心态): ${resilience_score}/100
-工具收纳与情绪管理: ${self_management_score}/100
-同伴协作沟通力: ${collaboration_score}/100
-破冰融入表现(社会化): ${social_score}/100
-创新发散想象力 (如台灯外观美化设计): ${creativity_score}/100
+专注度（参与课题与执行任务时的持续投入）: ${focus_score}/100
+动手精细度（结构装配、线路连接与工具使用）: ${dexterity_score}/100
+逻辑理解力（理解力学、电子、通信、程序与系统关系）: ${logic_score}/100
+抗挫折恢复（面对调试失败或数据异常时的状态）: ${resilience_score}/100
+情绪与收纳（情绪调节、材料工具整理与任务秩序）: ${self_management_score}/100
+社会化融入（与同伴、导师的互动及团队适应）: ${social_score}/100
+创新想象力（结构方案、技术应用与问题解决创意）: ${creativity_score}/100
+协作沟通力（项目分工、信息同步与共同复测）: ${collaboration_score}/100
 
 【导师观察高光亮点】
 ${highlights}
 
-【导师观察到的潜在转化与待提升漏洞】
+【导师观察到的待提升点】
 ${potential_improvements}
 
-请立即按照JSON格式进行深度分析与生成。
+请严格依据上述信息分析；如果某一环节没有导师观察证据，不得写成该学员已经完成。请立即按照JSON格式生成。
     `;
 
     const rawKey = process.env.OPENAI_API_KEY;
     const isStale = (key: string | undefined) => 
         !key || key.startsWith('sk-Ob49') || key.startsWith('sk-4nI8') || key.startsWith('sk-YU1Cu');
     const backgraceKey = isStale(rawKey) ? '' : rawKey!;
+
+    if (!backgraceKey) {
+      console.error('Camp report service is missing a valid AI API key');
+      return NextResponse.json({ error: 'AI 报告服务暂不可用' }, { status: 503 });
+    }
 
     const openaiPayload = {
         model: 'gemini-3.5-flash',
@@ -85,20 +123,23 @@ ${potential_improvements}
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const completionResponse = await fetch('https://backgrace.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${backgraceKey}`
-        },
-        body: JSON.stringify(openaiPayload),
-        signal: controller.signal
-    });
-    clearTimeout(timeoutId);
+    let completionResponse: Response;
+    try {
+      completionResponse = await fetch('https://backgrace.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${backgraceKey}`
+          },
+          body: JSON.stringify(openaiPayload),
+          signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!completionResponse.ok) {
-        const errText = await completionResponse.text();
-        throw new Error(`OpenAI API failed (${completionResponse.status}): ${errText}`);
+        throw new Error(`AI API failed (${completionResponse.status})`);
     }
 
     const openaiData = await completionResponse.json();
@@ -115,6 +156,14 @@ ${potential_improvements}
 
     const parsedOutput = JSON.parse(contentStr);
 
+    if (
+      typeof parsedOutput.ai_overall_report !== 'string' ||
+      !Array.isArray(parsedOutput.ai_recommendations) ||
+      parsedOutput.ai_recommendations.length === 0
+    ) {
+      throw new Error('AI response schema was invalid');
+    }
+
     const supResData = await fetch(`${supabaseUrl}/rest/v1/camp_evaluations`, {
       method: 'POST',
       headers: {
@@ -124,7 +173,7 @@ ${potential_improvements}
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
-          student_id, student_name, camp_name,
+          student_id, student_name: student_name.trim(), camp_name,
           focus_score, dexterity_score, logic_score,
           resilience_score, self_management_score, social_score,
           creativity_score, collaboration_score, highlights,
@@ -150,6 +199,10 @@ ${potential_improvements}
 
   } catch (error: any) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    const isTimeout = error?.name === 'AbortError';
+    return NextResponse.json(
+      { error: isTimeout ? 'AI 生成超时，请重试' : '报告生成失败，请稍后重试' },
+      { status: isTimeout ? 504 : 500 }
+    );
   }
 }
