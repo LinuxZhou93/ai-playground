@@ -7,6 +7,7 @@ import "./family-loop.css";
 import "./edge-fleet.css";
 import "./operations-center.css";
 import "./governance-center.css";
+import "./investor-demo-room.css";
 
 export const metadata: Metadata = {
   title: "XMP 奇妙伙伴 · 幼教 AI 操作系统",
