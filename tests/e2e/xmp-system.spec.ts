@@ -73,6 +73,47 @@ test.describe("XMP local operating system", () => {
     await expect(dialog.getByText("本地演示数据")).toBeVisible();
   });
 
+  test("event API defaults to zero-egress local mode and rejects writes", async ({
+    request,
+  }) => {
+    const statusResponse = await request.get(
+      `${baseUrl}/api/xmp/events?correlationId=CLS-A301-20260728-SEED`,
+    );
+    expect(statusResponse.status()).toBe(200);
+    expect(statusResponse.headers()["x-xmp-privacy"]).toBe(
+      "event-metadata-only",
+    );
+    const status = await statusResponse.json();
+    expect(status).toMatchObject({
+      mode: "local-only",
+      configured: false,
+      authenticated: false,
+      writable: false,
+      reason: "local-mode",
+      events: [],
+    });
+
+    const writeResponse = await request.post(`${baseUrl}/api/xmp/events`, {
+      data: {
+        id: "46c5751a-1119-44d1-89a7-7daf66d631f2",
+        correlationId: "CLS-A301-20260728-SEED",
+        kind: "classroom.started",
+        domain: "classroom",
+        title: "不应写入",
+        detail: "默认模式必须在解析和数据库访问之前拒绝写入。",
+        actor: "验收脚本",
+        entity: "本地浏览器",
+        occurredAt: "2026-07-28T09:20:00+08:00",
+        privacy: "aggregate",
+        source: "local-interaction",
+      },
+    });
+    expect(writeResponse.status()).toBe(503);
+    expect(await writeResponse.json()).toMatchObject({
+      error: { code: "LOCAL_ONLY" },
+    });
+  });
+
   test("classroom and growth actions persist in one correlated local event chain", async ({
     page,
   }) => {
@@ -98,6 +139,11 @@ test.describe("XMP local operating system", () => {
 
     let dialog = page.getByRole("dialog", { name: "教学闭环事件链" });
     await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("region", { name: "事件同步状态" }),
+    ).toContainText("本地优先");
+    await expect(dialog.getByText("关闭 · 零外发")).toBeVisible();
+    await expect(dialog.getByText("幂等 · 仅追加")).toBeVisible();
     await expect(dialog.getByText("教师开始课堂")).toBeVisible();
     await expect(dialog.getByText("教师将匿名事件加入证据候选")).toBeVisible();
     await expect(dialog.getByText("CLS-A301-20260728-SEED")).toBeVisible();

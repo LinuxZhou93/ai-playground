@@ -4,15 +4,18 @@
  * 对 session 进行 AES-GCM (256-bit) 加密与认证防篡改防护。
  */
 
-const SECRET_KEY_STR = (process.env.SUPABASE_SERVICE_ROLE_KEY || 'default-secret-fallback-key-32ch-long-enough').substring(0, 32);
+const SECRET_KEY_STR = (
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  "default-secret-fallback-key-32ch-long-enough"
+).substring(0, 32);
 
 /**
  * 将 base64url 格式字符串还原为 Uint8Array
  */
 function base64ToUint8Array(str: string): Uint8Array {
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
   while (base64.length % 4) {
-    base64 += '=';
+    base64 += "=";
   }
   const binString = atob(base64);
   const arr = new Uint8Array(binString.length);
@@ -26,12 +29,15 @@ function base64ToUint8Array(str: string): Uint8Array {
  * 将 Uint8Array 转化为 base64url 格式字符串
  */
 function uint8ArrayToBase64(arr: Uint8Array): string {
-  let binString = '';
+  let binString = "";
   // 采用分段或常规拼接以提高性能
   for (let i = 0; i < arr.length; i++) {
     binString += String.fromCharCode(arr[i]);
   }
-  return btoa(binString).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(binString)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 /**
@@ -41,11 +47,11 @@ async function getCryptoKey() {
   const enc = new TextEncoder();
   const keyData = enc.encode(SECRET_KEY_STR);
   return await crypto.subtle.importKey(
-    'raw',
+    "raw",
     keyData,
-    { name: 'AES-GCM' },
+    { name: "AES-GCM" },
     false,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"],
   );
 }
 
@@ -59,23 +65,23 @@ export async function encryptSession(payload: any): Promise<string> {
     const key = await getCryptoKey();
     const enc = new TextEncoder();
     const encodedPayload = enc.encode(JSON.stringify(payload));
-    
+
     // 生成 12 字节随机 IV (GCM 的标准 IV 长度)
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    
+
     const ciphertext = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
+      { name: "AES-GCM", iv },
       key,
-      encodedPayload
+      encodedPayload,
     );
-    
+
     const ivBase64 = uint8ArrayToBase64(iv);
     const ciphertextBase64 = uint8ArrayToBase64(new Uint8Array(ciphertext));
-    
+
     return `${ivBase64}.${ciphertextBase64}`;
   } catch (e: any) {
-    console.error('[Crypto SDK] Encrypt session failed:', e.message);
-    return '';
+    console.error("[Crypto SDK] Encrypt session failed:", e.message);
+    return "";
   }
 }
 
@@ -86,25 +92,32 @@ export async function encryptSession(payload: any): Promise<string> {
  */
 export async function decryptSession(token: string): Promise<any> {
   try {
-    if (!token || !token.includes('.')) return null;
-    const [ivBase64, ciphertextBase64] = token.split('.');
-    
-    const iv = base64ToUint8Array(ivBase64);
-    const ciphertext = base64ToUint8Array(ciphertextBase64);
-    
+    if (!token || !token.includes(".")) return null;
+    const [ivBase64, ciphertextBase64] = token.split(".");
+
+    const ivBytes = base64ToUint8Array(ivBase64);
+    const ciphertextBytes = base64ToUint8Array(ciphertextBase64);
+    // Node 22 的 DOM 类型会把解码结果标记为 ArrayBufferLike；复制为标准
+    // ArrayBuffer 后再交给 Web Crypto，浏览器与 Node 运行时行为保持一致。
+    const iv = ivBytes.slice().buffer as ArrayBuffer;
+    const ciphertext = ciphertextBytes.slice().buffer as ArrayBuffer;
+
     const key = await getCryptoKey();
-    
+
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
+      { name: "AES-GCM", iv },
       key,
-      ciphertext
+      ciphertext,
     );
-    
+
     const dec = new TextDecoder();
     return JSON.parse(dec.decode(decrypted));
   } catch (e: any) {
     // 解密或认证标签失败 (如数据遭修改、秘钥不符、数据不完整)，直接拦截
-    console.warn('[Crypto SDK] Decrypt session failed (tampered / malformed):', e.message);
+    console.warn(
+      "[Crypto SDK] Decrypt session failed (tampered / malformed):",
+      e.message,
+    );
     return null;
   }
 }

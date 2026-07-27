@@ -14,6 +14,19 @@ export type XmpEventKind =
   | "device.diagnostic_completed"
   | "device.recovered";
 
+export type XmpEventSyncState =
+  | "local-only"
+  | "pending"
+  | "syncing"
+  | "synced"
+  | "failed";
+
+export type XmpEventSync = {
+  state: XmpEventSyncState;
+  attempts: number;
+  lastError?: string;
+};
+
 export type XmpEvent = {
   id: string;
   correlationId: string;
@@ -25,9 +38,24 @@ export type XmpEvent = {
   entity: string;
   occurredAt: string;
   privacy: "anonymous" | "aggregate" | "teacher-reviewed";
-  source: "demo-seed" | "local-interaction";
+  source: "demo-seed" | "local-interaction" | "server-sync";
+  sync?: XmpEventSync;
 };
 
-export type XmpEventInput = Omit<XmpEvent, "id" | "occurredAt" | "source"> & {
-  occurredAt?: string;
+export type XmpEventInput = Omit<
+  XmpEvent,
+  "id" | "occurredAt" | "source" | "sync"
+> & { occurredAt?: string };
+
+export type XmpEventTransportStatus = {
+  mode: "local-only" | "futureclass-server";
+  configured: boolean;
+  authenticated: boolean;
+  writable: boolean;
+  reason:
+    | "local-mode"
+    | "missing-server-config"
+    | "sign-in-required"
+    | "tenant-mismatch"
+    | "ready";
 };

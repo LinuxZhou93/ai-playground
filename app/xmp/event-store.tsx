@@ -6,9 +6,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import type { XmpEvent, XmpEventInput } from "@/lib/xmp/event-types";
+import type {
+  XmpEvent,
+  XmpEventInput,
+  XmpEventTransportStatus,
+} from "@/lib/xmp/event-types";
 
 const STORAGE_KEY = "xmp-local-event-stream-v1";
 export const XMP_DEMO_CORRELATION_ID = "CLS-A301-20260728-SEED";
@@ -87,12 +92,67 @@ type EventContextValue = {
   events: XmpEvent[];
   emit: (event: XmpEventInput) => void;
   reset: () => void;
+  transport: XmpEventTransportStatus;
+  pendingCount: number;
+  failedCount: number;
+  retrySync: () => void;
 };
 
 const EventContext = createContext<EventContextValue | null>(null);
 
+const localTransport: XmpEventTransportStatus = {
+  mode: "local-only",
+  configured: false,
+  authenticated: false,
+  writable: false,
+  reason: "local-mode",
+};
+
+function normalizeStoredEvent(event: XmpEvent): XmpEvent {
+  if (event.source === "demo-seed") {
+    return { ...event, sync: { state: "local-only", attempts: 0 } };
+  }
+  if (event.source === "server-sync") {
+    return { ...event, sync: { state: "synced", attempts: 0 } };
+  }
+  if (event.sync?.state === "syncing") {
+    return {
+      ...event,
+      sync: { ...event.sync, state: "pending", lastError: undefined },
+    };
+  }
+  return event.sync
+    ? event
+    : { ...event, sync: { state: "local-only", attempts: 0 } };
+}
+
+function eventForServer(event: XmpEvent) {
+  return {
+    id: event.id,
+    correlationId: event.correlationId,
+    kind: event.kind,
+    domain: event.domain,
+    title: event.title,
+    detail: event.detail,
+    actor: event.actor,
+    entity: event.entity,
+    occurredAt: event.occurredAt,
+    privacy: event.privacy,
+    source: "local-interaction" as const,
+  };
+}
+
 export function XmpEventProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = useState<XmpEvent[]>(seedEvents);
+  const [hydrated, setHydrated] = useState(false);
+  const [transport, setTransport] =
+    useState<XmpEventTransportStatus>(localTransport);
+  const eventsRef = useRef(events);
+  const syncInFlight = useRef(false);
+
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
 
   useEffect(() => {
     try {
@@ -100,36 +160,210 @@ export function XmpEventProvider({ children }: { children: React.ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored) as XmpEvent[];
         if (Array.isArray(parsed) && parsed.length)
-          setEvents(parsed.slice(0, 80));
+          setEvents(parsed.slice(0, 80).map(normalizeStoredEvent));
       }
     } catch {
       window.localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      setHydrated(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(events.slice(0, 80)),
     );
-  }, [events]);
+  }, [events, hydrated]);
 
-  const emit = useCallback((input: XmpEventInput) => {
-    const id =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `evt-${Date.now()}`;
-    const nextEvent: XmpEvent = {
-      ...input,
-      id,
-      occurredAt: input.occurredAt ?? new Date().toISOString(),
-      source: "local-interaction",
-    };
-    setEvents((current) => [nextEvent, ...current].slice(0, 80));
-  }, []);
+  useEffect(() => {
+    if (!hydrated) return;
+    const controller = new AbortController();
+
+    void fetch(
+      `/api/xmp/events?correlationId=${encodeURIComponent(XMP_DEMO_CORRELATION_ID)}`,
+      { cache: "no-store", signal: controller.signal },
+    )
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`STATUS_${response.status}`);
+        return (await response.json()) as XmpEventTransportStatus & {
+          events?: XmpEvent[];
+        };
+      })
+      .then((result) => {
+        setTransport({
+          mode: result.mode,
+          configured: result.configured,
+          authenticated: result.authenticated,
+          writable: result.writable,
+          reason: result.reason,
+        });
+
+        if (!result.writable) return;
+        setEvents((current) => {
+          const serverEvents = (result.events ?? []).map(normalizeStoredEvent);
+          const serverIds = new Set(serverEvents.map((event) => event.id));
+          const localEvents = current
+            .filter((event) => !serverIds.has(event.id))
+            .map((event) =>
+              event.source === "local-interaction" &&
+              event.sync?.state === "local-only"
+                ? {
+                    ...event,
+                    sync: {
+                      state: "pending" as const,
+                      attempts: event.sync.attempts,
+                    },
+                  }
+                : event,
+            );
+          return [...serverEvents, ...localEvents]
+            .sort(
+              (left, right) =>
+                new Date(right.occurredAt).getTime() -
+                new Date(left.occurredAt).getTime(),
+            )
+            .slice(0, 80);
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        setTransport(localTransport);
+      });
+
+    return () => controller.abort();
+  }, [hydrated]);
+
+  const flushPending = useCallback(async () => {
+    if (!transport.writable || syncInFlight.current) return;
+    const pending = eventsRef.current.filter(
+      (event) => event.sync?.state === "pending",
+    );
+    if (!pending.length) return;
+
+    syncInFlight.current = true;
+    for (const event of pending) {
+      setEvents((current) =>
+        current.map((candidate) =>
+          candidate.id === event.id
+            ? {
+                ...candidate,
+                sync: {
+                  state: "syncing",
+                  attempts: (candidate.sync?.attempts ?? 0) + 1,
+                },
+              }
+            : candidate,
+        ),
+      );
+
+      try {
+        const response = await fetch("/api/xmp/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(eventForServer(event)),
+        });
+        if (!response.ok) throw new Error(`SYNC_${response.status}`);
+        const result = (await response.json()) as { event?: XmpEvent };
+        setEvents((current) =>
+          current.map((candidate) =>
+            candidate.id === event.id
+              ? {
+                  ...(result.event ?? candidate),
+                  sync: {
+                    state: "synced",
+                    attempts: candidate.sync?.attempts ?? 1,
+                  },
+                }
+              : candidate,
+          ),
+        );
+      } catch (error) {
+        setEvents((current) =>
+          current.map((candidate) =>
+            candidate.id === event.id
+              ? {
+                  ...candidate,
+                  sync: {
+                    state: "failed",
+                    attempts: candidate.sync?.attempts ?? 1,
+                    lastError:
+                      error instanceof Error ? error.message : "SYNC_FAILED",
+                  },
+                }
+              : candidate,
+          ),
+        );
+      }
+    }
+    syncInFlight.current = false;
+  }, [transport.writable]);
+
+  useEffect(() => {
+    if (
+      hydrated &&
+      transport.writable &&
+      events.some((event) => event.sync?.state === "pending")
+    ) {
+      void flushPending();
+    }
+  }, [events, flushPending, hydrated, transport.writable]);
+
+  const emit = useCallback(
+    (input: XmpEventInput) => {
+      const id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `evt-${Date.now()}`;
+      const nextEvent: XmpEvent = {
+        ...input,
+        id,
+        occurredAt: input.occurredAt ?? new Date().toISOString(),
+        source: "local-interaction",
+        sync: {
+          state: transport.writable ? "pending" : "local-only",
+          attempts: 0,
+        },
+      };
+      setEvents((current) => [nextEvent, ...current].slice(0, 80));
+    },
+    [transport.writable],
+  );
 
   const reset = useCallback(() => setEvents(seedEvents), []);
-  const value = useMemo(() => ({ events, emit, reset }), [events, emit, reset]);
+  const retrySync = useCallback(() => {
+    setEvents((current) =>
+      current.map((event) =>
+        event.sync?.state === "failed"
+          ? {
+              ...event,
+              sync: { ...event.sync, state: "pending", lastError: undefined },
+            }
+          : event,
+      ),
+    );
+  }, []);
+  const pendingCount = events.filter(
+    (event) =>
+      event.sync?.state === "pending" || event.sync?.state === "syncing",
+  ).length;
+  const failedCount = events.filter(
+    (event) => event.sync?.state === "failed",
+  ).length;
+  const value = useMemo(
+    () => ({
+      events,
+      emit,
+      reset,
+      transport,
+      pendingCount,
+      failedCount,
+      retrySync,
+    }),
+    [events, emit, reset, transport, pendingCount, failedCount, retrySync],
+  );
 
   return (
     <EventContext.Provider value={value}>{children}</EventContext.Provider>

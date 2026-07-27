@@ -2,8 +2,11 @@
 
 import {
   Activity,
+  AlertTriangle,
   Bot,
   CheckCircle2,
+  Cloud,
+  CloudOff,
   GraduationCap,
   HeartHandshake,
   RotateCcw,
@@ -32,7 +35,8 @@ export function EventChainCenter({
   open: boolean;
   onClose: () => void;
 }) {
-  const { events, reset } = useXmpEvents();
+  const { events, reset, transport, pendingCount, failedCount, retrySync } =
+    useXmpEvents();
   const correlated = useMemo(
     () =>
       events.filter((event) => event.correlationId === XMP_DEMO_CORRELATION_ID),
@@ -62,6 +66,14 @@ export function EventChainCenter({
             </div>
           </div>
           <div>
+            {(pendingCount > 0 || failedCount > 0) && transport.writable ? (
+              <button onClick={retrySync} aria-label="重试事件同步">
+                <Cloud size={13} />
+                {failedCount > 0
+                  ? `重试 ${failedCount}`
+                  : `同步 ${pendingCount}`}
+              </button>
+            ) : null}
             <button onClick={reset}>
               <RotateCcw size={13} /> 重置演示
             </button>
@@ -77,9 +89,41 @@ export function EventChainCenter({
             <b>大一班 ·《会呼吸的种子》</b>
           </div>
           <code>{XMP_DEMO_CORRELATION_ID}</code>
-          <span>
-            <i /> 本地事件流运行中
+          <span className={transport.writable ? "server" : "local"}>
+            {transport.writable ? <Cloud size={12} /> : <CloudOff size={12} />}
+            {transport.writable ? "园所事件服务已连接" : "本地安全存储"}
           </span>
+        </section>
+
+        <section className="xmp-event-sync-status" aria-label="事件同步状态">
+          <div>
+            <small>运行模式</small>
+            <b>{transport.mode === "local-only" ? "本地优先" : "园所双模"}</b>
+          </div>
+          <div>
+            <small>服务端权限</small>
+            <b>
+              {transport.writable
+                ? "已鉴权 · 可追加"
+                : transport.reason === "sign-in-required"
+                  ? "等待园所登录"
+                  : "关闭 · 零外发"}
+            </b>
+          </div>
+          <div>
+            <small>离线 Outbox</small>
+            <b>
+              {failedCount > 0
+                ? `${failedCount} 条待重试`
+                : pendingCount > 0
+                  ? `${pendingCount} 条同步中`
+                  : "队列已清空"}
+            </b>
+          </div>
+          <div>
+            <small>写入规则</small>
+            <b>幂等 · 仅追加</b>
+          </div>
         </section>
 
         <section className="xmp-event-flow" aria-label="闭环阶段">
@@ -134,13 +178,29 @@ export function EventChainCenter({
                       {event.actor} · {event.entity}
                     </small>
                   </div>
-                  <em>
-                    {event.privacy === "anonymous"
-                      ? "匿名"
-                      : event.privacy === "aggregate"
-                        ? "聚合"
-                        : "教师审核"}
-                  </em>
+                  <aside>
+                    <em>
+                      {event.privacy === "anonymous"
+                        ? "匿名"
+                        : event.privacy === "aggregate"
+                          ? "聚合"
+                          : "教师审核"}
+                    </em>
+                    {event.sync?.state === "failed" ? (
+                      <em className="failed">
+                        <AlertTriangle size={9} /> 待重试
+                      </em>
+                    ) : event.sync?.state === "synced" ? (
+                      <em className="synced">
+                        <Cloud size={9} /> 已入库
+                      </em>
+                    ) : event.sync?.state === "pending" ||
+                      event.sync?.state === "syncing" ? (
+                      <em className="pending">同步中</em>
+                    ) : (
+                      <em className="local">仅本地</em>
+                    )}
+                  </aside>
                 </article>
               );
             })}
@@ -152,8 +212,8 @@ export function EventChainCenter({
           <p>
             <b>事件不是儿童画像</b>
             <span>
-              本地演示流只记录业务动作、匿名事实和设备健康；生产接入前仍需事件级
-              RLS、留存与删除策略。
+              只记录业务动作、匿名事实和设备健康；服务端迁移层已具备租户级
+              RLS、幂等追加与 30/90/180 天分级留存策略，当前默认不连接云端。
             </span>
           </p>
           <CheckCircle2 size={15} />
