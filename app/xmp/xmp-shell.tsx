@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { XMP_DEMO_TENANT, XMP_MODULES, XMP_ROLES } from "./demo-data";
 import type { XmpModuleId, XmpRole } from "./model";
 import { OverviewDashboard } from "./overview-dashboard";
+import { CurriculumStudio } from "./curriculum-studio";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
   const [role, setRole] = useState<XmpRole>("operator");
@@ -53,7 +54,7 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
       </header>
       <section className="xmp-content">
         <div className="xmp-demo-notice"><div><ShieldCheck size={15}/><b>本地产品演示</b></div><p>所有数据均为演示数据，不代表真实运营结果；当前不采集、不上传任何儿童信息。</p></div>
-        {current === "overview" ? <OverviewDashboard/> : <><section className="xmp-foundation-card">
+        {current === "overview" ? <OverviewDashboard/> : current === "curriculum" ? <CurriculumStudio/> : <><section className="xmp-foundation-card">
           <div className="xmp-foundation-copy"><span>MODULE {String(activeModule.phase).padStart(2,"0")}</span><h1>{activeModule.name}</h1><p>{activeModule.description}</p><div><b>工程底座已就绪</b><small>模块能力将在对应开发阶段逐步接入，并在本地完成验收。</small></div></div>
           <div className="xmp-tenant-card"><small>当前演示租户</small><h2>{XMP_DEMO_TENANT.name}</h2><p>{XMP_DEMO_TENANT.campus}</p><div><span><b>{XMP_DEMO_TENANT.children}</b><small>幼儿</small></span><span><b>{XMP_DEMO_TENANT.classes}</b><small>班级</small></span><span><b>{XMP_DEMO_TENANT.teachers}</b><small>教师</small></span></div></div>
         </section>
