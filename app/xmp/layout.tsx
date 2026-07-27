@@ -4,6 +4,7 @@ import "./classroom-console.css";
 import "./companion-experience.css";
 import "./growth-intelligence.css";
 import "./family-loop.css";
+import "./edge-fleet.css";
 
 export const metadata: Metadata = {
   title: "XMP 奇妙伙伴 · 幼教 AI 操作系统",
