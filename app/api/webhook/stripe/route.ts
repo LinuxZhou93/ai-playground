@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { buildSafeSupabaseServerKey, buildSafeSupabaseUrl, isSupabaseServerConfigured } from '@/lib/supabase/config';
 
 // 初始化特权 Supabase 客户端 (Service Role Key 可绕过 RLS 策略写入订阅状态)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAdmin = createClient(buildSafeSupabaseUrl, buildSafeSupabaseServerKey);
 
 /**
  * 原生安全签名验证函数
@@ -77,6 +76,9 @@ async function fetchStripeSubscription(subscriptionId: string): Promise<{
 }
 
 export async function POST(req: Request) {
+  if (!isSupabaseServerConfigured) {
+    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 503 });
+  }
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
   const signature = req.headers.get('stripe-signature');
   if (!signature || !webhookSecret) {

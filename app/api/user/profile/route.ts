@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { buildSafeSupabaseAnonKey, buildSafeSupabaseServerKey, buildSafeSupabaseUrl, isSupabaseServerConfigured } from '@/lib/supabase/config';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseUrl = buildSafeSupabaseUrl;
+const supabaseAnonKey = buildSafeSupabaseAnonKey;
+const supabaseAdmin = createClient(buildSafeSupabaseUrl, buildSafeSupabaseServerKey);
 
 // Zod 验证 Schema (简单第一层，规避 Zod v4 引擎 Bug)
 const updateProfileSchema = z.object({
@@ -38,6 +38,9 @@ function checkIllegalCharsRecursive(obj: any): boolean {
 }
 
 export async function POST(req: Request) {
+  if (!isSupabaseServerConfigured) {
+    return NextResponse.json({ error: 'Supabase 未配置，用户资料服务暂不可用' }, { status: 503 });
+  }
   try {
     // 1. 拦截超大 payload，防止超大 JSON 注入
     const rawText = await req.text();

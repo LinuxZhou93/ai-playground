@@ -1,13 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const configuredKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export const isSupabaseConfigured = Boolean(configuredUrl && configuredKey);
 
-if (!supabaseKey) {
-  console.warn('[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY. Client may not function correctly.');
+if (!isSupabaseConfigured) {
+  console.warn('[Supabase] Public URL or anon key is missing. Using an inert local client for build and demo mode.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Keep module evaluation build-safe without contacting an unrelated remote project.
+export const supabase = createClient(
+  isSupabaseConfigured ? configuredUrl! : 'http://127.0.0.1:54321',
+  isSupabaseConfigured ? configuredKey! : 'local-demo-anon-key',
+  {
+    auth: {
+      persistSession: isSupabaseConfigured,
+      autoRefreshToken: isSupabaseConfigured,
+    },
+  },
+);
 
 /**
  * Get the current user from localStorage fallback
