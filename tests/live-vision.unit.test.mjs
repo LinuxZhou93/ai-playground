@@ -190,15 +190,15 @@ test('encodes decoded browser audio as a real mono PCM WAV', async () => {
   assert.equal(header, 'RIFF');
 });
 
-test('derives an OpenAI-compatible transcription route without changing the chat route', () => {
+test('uses the site transcription gateway by default and honors an explicit relay endpoint', () => {
   const instance = createBareInstance();
   assert.equal(
     instance.getTranscriptionEndpoint('https://relay.example/v1/chat/completions'),
-    'https://relay.example/v1/audio/transcriptions'
+    '/api/transcription'
   );
   assert.equal(
     instance.getTranscriptionEndpoint('/v1beta/openai/chat/completions'),
-    '/v1beta/openai/audio/transcriptions'
+    '/api/transcription'
   );
   assert.equal(
     instance.getTranscriptionEndpoint('https://relay.example/v1/chat/completions', 'https://asr.example/transcribe'),

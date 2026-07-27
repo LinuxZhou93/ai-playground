@@ -192,11 +192,11 @@ class LiveVisionCopilot {
             this.statusText.innerText = '状态: 已使用当前模型直接理解音频 (DIRECT_AUDIO)';
             return;
         }
-        const transcriptionModel = window.prompt('填写中转站的语音转写模型名（例如 gpt-4o-transcribe）：', current.transcriptionModel || '');
+        const transcriptionModel = window.prompt('填写语音转写服务标识（内置网关填 openai-whisper 或 qwen-asr；自定义中转站填模型名）：', current.transcriptionModel || 'openai-whisper');
         if (transcriptionModel === null) return;
         const reasoningModel = window.prompt('填写用于思考/看图的高能力模型名（留空=当前全局模型）：', current.reasoningModel || '');
         if (reasoningModel === null) return;
-        const transcriptionEndpoint = window.prompt('转写接口地址（留空=从当前 /chat/completions 自动推导为 /audio/transcriptions）：', current.transcriptionEndpoint || '');
+        const transcriptionEndpoint = window.prompt('转写接口地址（留空=本站安全网关 /api/transcription）：', current.transcriptionEndpoint || '');
         if (transcriptionEndpoint === null) return;
         this.savePipelineConfig({ mode: 'transcribe', transcriptionModel: transcriptionModel.trim(), reasoningModel: reasoningModel.trim(), transcriptionEndpoint: transcriptionEndpoint.trim() });
         this.statusText.innerText = transcriptionModel.trim()
@@ -757,19 +757,25 @@ class LiveVisionCopilot {
 
     getTranscriptionEndpoint(chatEndpoint, configuredEndpoint = '') {
         if (configuredEndpoint) return configuredEndpoint;
-        return String(chatEndpoint || '').replace(/\/chat\/completions(?:\?.*)?$/i, '/audio/transcriptions');
+        return '/api/transcription';
     }
 
     async transcribeAudio(audioBlob, core, signal) {
         const config = this.pipelineConfig || this.loadPipelineConfig();
-        if (!config.transcriptionModel) throw new Error('请在“模型链路设置”中填写中转站的语音转写模型名。');
         const endpoint = this.getTranscriptionEndpoint(core.settings.endpoint, config.transcriptionEndpoint);
-        if (!endpoint || endpoint === core.settings.endpoint) throw new Error('无法从当前聊天地址推导转写地址，请在模型链路设置中填写转写接口。');
         const form = new FormData();
-        form.append('model', config.transcriptionModel);
-        form.append('file', audioBlob, 'live-turn.wav');
-        form.append('language', 'zh');
-        form.append('response_format', 'json');
+        const usesSiteGateway = endpoint === '/api/transcription' || endpoint.endsWith('/api/transcription');
+        if (usesSiteGateway) {
+            form.append('audio', audioBlob, 'live-turn.wav');
+            form.append('providerId', config.transcriptionModel || 'openai-whisper');
+            form.append('language', 'zh');
+        } else {
+            if (!config.transcriptionModel) throw new Error('请在“模型链路设置”中填写中转站的语音转写模型名。');
+            form.append('model', config.transcriptionModel);
+            form.append('file', audioBlob, 'live-turn.wav');
+            form.append('language', 'zh');
+            form.append('response_format', 'json');
+        }
         const headers = {};
         if (core.settings.apiKey) headers.Authorization = `Bearer ${core.settings.apiKey}`;
         const response = await fetch(endpoint, { method: 'POST', headers, body: form, signal });
@@ -778,7 +784,7 @@ class LiveVisionCopilot {
             throw new Error(detail?.error?.message || `转写服务状态异常 ${response.status}`);
         }
         const data = await response.json();
-        const transcript = typeof data?.text === 'string' ? data.text.trim() : '';
+        const transcript = typeof data?.data?.text === 'string' ? data.data.text.trim() : (typeof data?.text === 'string' ? data.text.trim() : '');
         if (!transcript) throw new Error('转写服务没有返回可用文字。');
         return transcript;
     }

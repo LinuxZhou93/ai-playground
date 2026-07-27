@@ -214,7 +214,7 @@ async function transcribeOpenAIWhisper(
 
   try {
     const result = await transcribe({
-      model: openai.transcription('whisper-1'),
+      model: openai.transcription(config.model || 'whisper-1'),
       audio: audioData,
       providerOptions: {
         openai: {

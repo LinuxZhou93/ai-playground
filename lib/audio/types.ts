@@ -169,6 +169,8 @@ export interface ASRProviderConfig {
  */
 export interface ASRModelConfig {
   providerId: ASRProviderId;
+  /** Optional provider-specific model override, e.g. gpt-4o-transcribe. */
+  model?: string;
   apiKey?: string;
   baseUrl?: string;
   language?: string;
