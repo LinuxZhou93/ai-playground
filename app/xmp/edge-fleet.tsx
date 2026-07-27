@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useXmpEvents, XMP_DEMO_CORRELATION_ID } from "./event-store";
+import { useXmpClassroomRuntime } from "./classroom-runtime-store";
 
 type DeviceStatus = "online" | "degraded" | "offline" | "maintenance";
 type FleetPane = "telemetry" | "policy" | "updates";
@@ -141,6 +142,8 @@ const deviceIcon = {
 
 export function EdgeFleet() {
   const { emit } = useXmpEvents();
+  const { runtime, issueOperatorCommand, issueDeviceHeartbeat } =
+    useXmpClassroomRuntime();
   const [devices, setDevices] = useState(deviceSeed);
   const [selectedId, setSelectedId] = useState("C-03");
   const [pane, setPane] = useState<FleetPane>("telemetry");
@@ -156,17 +159,50 @@ export function EdgeFleet() {
   );
   const [filter, setFilter] = useState<"all" | DeviceStatus>("all");
 
+  const effectiveDevices = useMemo(() => {
+    const runtimeDevices = new Map(
+      runtime.devices.map((device) => [device.id, device]),
+    );
+    return devices.map((device) => {
+      const runtimeDevice = runtimeDevices.get(device.id);
+      if (!runtimeDevice) return device;
+      return {
+        ...device,
+        status:
+          runtimeDevice.connection === "offline"
+            ? ("offline" as const)
+            : runtimeDevice.connection === "stale"
+              ? ("degraded" as const)
+              : device.status === "maintenance"
+                ? device.status
+                : ("online" as const),
+        lastSeen:
+          runtimeDevice.connection === "online"
+            ? `心跳 #${runtimeDevice.heartbeatSequence}`
+            : "心跳已丢失",
+        latency:
+          runtimeDevice.latencyMs === null
+            ? "—"
+            : `${runtimeDevice.latencyMs} ms`,
+      };
+    });
+  }, [devices, runtime.devices]);
   const selected =
-    devices.find((device) => device.id === selectedId) ?? devices[0];
+    effectiveDevices.find((device) => device.id === selectedId) ??
+    effectiveDevices[0];
   const counts = useMemo(
     () => ({
-      online: devices.filter((device) => device.status === "online").length,
-      degraded: devices.filter((device) => device.status === "degraded").length,
-      offline: devices.filter((device) => device.status === "offline").length,
+      online: effectiveDevices.filter((device) => device.status === "online")
+        .length,
+      degraded: effectiveDevices.filter(
+        (device) => device.status === "degraded",
+      ).length,
+      offline: effectiveDevices.filter((device) => device.status === "offline")
+        .length,
     }),
-    [devices],
+    [effectiveDevices],
   );
-  const visibleDevices = devices.filter(
+  const visibleDevices = effectiveDevices.filter(
     (device) => filter === "all" || device.status === filter,
   );
   const SelectedDeviceIcon = deviceIcon[selected.type];
@@ -196,6 +232,13 @@ export function EdgeFleet() {
           : item,
       ),
     );
+    if (runtime.devices.some((device) => device.id === selected.id)) {
+      issueOperatorCommand("device.recover", {
+        deviceId: selected.id,
+        latencyMs: 24,
+      });
+      issueDeviceHeartbeat(selected.id, 24);
+    }
     setActionConfirm(null);
     setIncidentState("resolved");
     setDiagnostic("complete");
@@ -215,6 +258,42 @@ export function EdgeFleet() {
     if (rollout === "ready") setRollout("canary");
     else setRollout("complete");
     setActionConfirm(null);
+  };
+  const edgeRuntimeDevice = runtime.devices.find(
+    (device) => device.id === "E-01",
+  );
+
+  const toggleEdgeDrill = () => {
+    if (edgeRuntimeDevice?.connection === "offline") {
+      issueOperatorCommand("device.recover", {
+        deviceId: "E-01",
+        latencyMs: 9,
+      });
+      issueDeviceHeartbeat("E-01", 9);
+      emit({
+        correlationId: XMP_DEMO_CORRELATION_ID,
+        kind: "device.recovered",
+        domain: "fleet",
+        title: "边缘中枢 E-01 完成可信重连",
+        detail: "设备身份与心跳序列重新验证；课堂保持暂停，等待教师明确恢复。",
+        actor: "园所管理者",
+        entity: "E-01",
+        privacy: "aggregate",
+      });
+      return;
+    }
+
+    issueOperatorCommand("device.disconnect", { deviceId: "E-01" });
+    emit({
+      correlationId: XMP_DEMO_CORRELATION_ID,
+      kind: "device.degraded",
+      domain: "fleet",
+      title: "边缘中枢 E-01 心跳丢失",
+      detail: "本地故障演练触发课堂安全暂停与静默模式；未向真实设备发送命令。",
+      actor: "园所管理者",
+      entity: "E-01",
+      privacy: "aggregate",
+    });
   };
 
   return (
@@ -280,6 +359,68 @@ export function EdgeFleet() {
         </article>
       </section>
 
+      <section
+        className={`xmp-fleet-runtime-link ${runtime.health}`}
+        aria-label="课堂运行时联动"
+      >
+        <header>
+          <span>
+            <Activity size={15} /> LIVE CLASSROOM RUNTIME
+          </span>
+          <b>大一班 · {runtime.sessionId}</b>
+        </header>
+        <div>
+          <article>
+            <small>课堂状态</small>
+            <b>
+              {runtime.lifecycle === "preflight"
+                ? "课前检查"
+                : runtime.lifecycle === "live"
+                  ? "进行中"
+                  : runtime.lifecycle === "paused"
+                    ? "安全暂停"
+                    : "已结束"}
+            </b>
+          </article>
+          <article>
+            <small>可信教师</small>
+            <b>{runtime.teacher.sessionFingerprint}</b>
+          </article>
+          <article>
+            <small>设备心跳</small>
+            <b>
+              {
+                runtime.devices.filter(
+                  (device) => device.connection === "online",
+                ).length
+              }
+              /{runtime.devices.length} 在线
+            </b>
+          </article>
+          <article>
+            <small>安全策略</small>
+            <b>
+              {runtime.safetyMode === "normal"
+                ? "教师掌舵"
+                : runtime.safetyMode === "quiet"
+                  ? "静默降级"
+                  : "人工接管"}
+            </b>
+          </article>
+        </div>
+        <button onClick={toggleEdgeDrill}>
+          {edgeRuntimeDevice?.connection === "offline" ? (
+            <>
+              <RefreshCw size={13} /> 恢复 E-01 可信心跳
+            </>
+          ) : (
+            <>
+              <WifiOff size={13} /> 本地模拟 E-01 断线
+            </>
+          )}
+        </button>
+      </section>
+
       <section className="xmp-fleet-workbench">
         <aside className="xmp-fleet-list">
           <header>
@@ -291,15 +432,24 @@ export function EdgeFleet() {
               <ChevronDown size={14} />
             </button>
           </header>
-          <div className="xmp-site-health">
+          <div className={`xmp-site-health ${runtime.health}`}>
             <span>
               <i />
             </span>
             <div>
-              <b>园区边缘网络稳定</b>
-              <small>中枢 E-01 · 双链路在线</small>
+              <b>
+                {runtime.health === "healthy"
+                  ? "园区边缘网络稳定"
+                  : "课堂关键链路已安全降级"}
+              </b>
+              <small>
+                中枢 E-01 ·
+                {edgeRuntimeDevice?.connection === "offline"
+                  ? " 心跳离线"
+                  : " 可信心跳在线"}
+              </small>
             </div>
-            <em>99.96%</em>
+            <em>{runtime.health === "healthy" ? "99.96%" : "SAFE"}</em>
           </div>
           <label>
             <Search size={13} />
@@ -310,7 +460,7 @@ export function EdgeFleet() {
               className={filter === "all" ? "active" : ""}
               onClick={() => setFilter("all")}
             >
-              全部 {devices.length}
+              全部 {effectiveDevices.length}
             </button>
             <button
               className={filter === "degraded" ? "active" : ""}

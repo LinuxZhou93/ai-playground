@@ -28,8 +28,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useXmpEvents, XMP_DEMO_CORRELATION_ID } from "./event-store";
+import { useXmpClassroomRuntime } from "./classroom-runtime-store";
 
-type SessionState = "ready" | "live" | "paused" | "ended";
 type SideTab = "guide" | "evidence" | "devices";
 
 const lessonSteps = [
@@ -107,26 +107,29 @@ const copilotSuggestions = [
   },
 ];
 
-const deviceRows = [
-  {
-    icon: MonitorUp,
-    name: "教室大屏",
-    detail: "1920×1080 · 课件同步",
-    signal: "18 ms",
-  },
-  {
-    icon: Tablet,
-    name: "教师控制端",
-    detail: "本机 · 主控权限",
-    signal: "在线",
-  },
-  {
-    icon: Bot,
-    name: "奇妙宠 × 6",
-    detail: "对话脚本 V3.2",
-    signal: "全部在线",
-  },
-];
+const runtimeDeviceIcon = {
+  "teacher-console": Tablet,
+  display: MonitorUp,
+  "edge-hub": Radio,
+  "companion-group": Bot,
+};
+
+const runtimeCommandLabel = {
+  "session.start": "开始课堂",
+  "session.pause": "暂停课堂",
+  "session.resume": "恢复课堂",
+  "session.end": "结束课堂",
+  "step.select": "选择节拍",
+  "step.next": "下一节拍",
+  "step.previous": "上一节拍",
+  "safety.quiet.enable": "启用静默",
+  "safety.quiet.disable": "恢复教学模式",
+  "safety.takeover": "人工接管",
+  "safety.release": "释放接管",
+  "device.heartbeat": "设备心跳",
+  "device.disconnect": "断线演练",
+  "device.recover": "设备恢复",
+};
 
 function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60)
@@ -138,13 +141,21 @@ function formatTime(seconds: number) {
 
 export function ClassroomConsole() {
   const { emit } = useXmpEvents();
-  const [session, setSession] = useState<SessionState>("ready");
-  const [activeStep, setActiveStep] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
+  const {
+    runtime,
+    issueTeacherCommand,
+    issueDeviceHeartbeat,
+    tick,
+    resetRuntime,
+  } = useXmpClassroomRuntime();
   const [sideTab, setSideTab] = useState<SideTab>("guide");
-  const [quietMode, setQuietMode] = useState(false);
   const [accepted, setAccepted] = useState<string[]>([]);
   const [showSafety, setShowSafety] = useState(false);
+  const session =
+    runtime.lifecycle === "preflight" ? "ready" : runtime.lifecycle;
+  const activeStep = Math.min(runtime.activeStep, lessonSteps.length - 1);
+  const elapsed = runtime.elapsedSeconds;
+  const quietMode = runtime.safetyMode !== "normal";
   const current = lessonSteps[activeStep];
   const plannedMinutes = useMemo(
     () =>
@@ -156,16 +167,16 @@ export function ClassroomConsole() {
 
   useEffect(() => {
     if (session !== "live") return;
-    const timer = window.setInterval(
-      () => setElapsed((value) => value + 1),
-      1000,
-    );
+    const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [session]);
+  }, [session, tick]);
 
   const toggleSession = () => {
     if (session === "ready" || session === "paused") {
-      setSession("live");
+      if (runtime.safetyMode === "teacher-control") return;
+      issueTeacherCommand(
+        session === "paused" ? "session.resume" : "session.start",
+      );
       emit({
         correlationId: XMP_DEMO_CORRELATION_ID,
         kind: "classroom.started",
@@ -177,7 +188,7 @@ export function ClassroomConsole() {
         privacy: "aggregate",
       });
     } else if (session === "live") {
-      setSession("paused");
+      issueTeacherCommand("session.pause");
       emit({
         correlationId: XMP_DEMO_CORRELATION_ID,
         kind: "classroom.paused",
@@ -193,8 +204,8 @@ export function ClassroomConsole() {
 
   const nextStep = () => {
     if (activeStep < lessonSteps.length - 1)
-      setActiveStep((value) => value + 1);
-    else setSession("ended");
+      issueTeacherCommand("step.next", { maxStep: lessonSteps.length - 1 });
+    else issueTeacherCommand("session.end");
   };
 
   const acceptSuggestion = (id: string) => {
@@ -222,7 +233,9 @@ export function ClassroomConsole() {
           <span className={`xmp-live-dot ${session}`} />
           <div>
             <b>大一班 · 会呼吸的种子</b>
-            <small>文老师主控 · 24 名幼儿 · 教室 A-301</small>
+            <small>
+              {runtime.teacher.displayName}主控 · 24 名幼儿 · 教室 A-301
+            </small>
           </div>
         </div>
         <div className="xmp-session-timer">
@@ -231,17 +244,88 @@ export function ClassroomConsole() {
           <span>计划 {plannedMinutes + current.duration}:00</span>
         </div>
         <div className="xmp-session-health">
-          <span>
-            <Wifi size={13} /> 本地链路正常
+          <span className={runtime.health}>
+            <Wifi size={13} />
+            {runtime.health === "healthy"
+              ? "本地链路正常"
+              : runtime.health === "degraded"
+                ? "本地链路降级"
+                : "关键链路离线"}
           </span>
           <span>
-            <ShieldCheck size={13} /> 隐私保护中
+            <ShieldCheck size={13} /> 演示可信主体
           </span>
           <button onClick={() => setShowSafety(true)}>
             <CircleAlert size={14} /> 安全接管
           </button>
         </div>
       </header>
+
+      <section
+        className={`xmp-runtime-trust-strip ${runtime.health}`}
+        aria-label="课堂会话可信状态"
+      >
+        <div>
+          <span>
+            <ShieldCheck size={14} />
+          </span>
+          <p>
+            <small>可信教师会话</small>
+            <b>
+              {runtime.teacher.displayName} ·{" "}
+              {runtime.teacher.sessionFingerprint}
+            </b>
+          </p>
+        </div>
+        <div>
+          <small>会话内核</small>
+          <b>
+            {runtime.sessionId} · R{runtime.revision}
+          </b>
+        </div>
+        <div>
+          <small>设备身份</small>
+          <b>
+            {
+              runtime.devices.filter(
+                (device) => device.trust === "demo-verified",
+              ).length
+            }
+            /{runtime.devices.length} 已验证
+          </b>
+        </div>
+        <div>
+          <small>安全模式</small>
+          <b>
+            {runtime.safetyMode === "normal"
+              ? "教师掌舵 · AI 可建议"
+              : runtime.safetyMode === "quiet"
+                ? "静默 · AI 已停止"
+                : "人工接管 · AI 已隔离"}
+          </b>
+        </div>
+        <span>
+          <i />
+          {runtime.health === "healthy"
+            ? "HEALTHY"
+            : runtime.health === "degraded"
+              ? "DEGRADED"
+              : "OFFLINE"}
+        </span>
+      </section>
+
+      {runtime.safetyMode === "teacher-control" && (
+        <section className="xmp-takeover-banner" role="status">
+          <Hand size={16} />
+          <p>
+            <b>文老师正在人工接管</b>
+            <span>AI 语音、自动回应和证据候选已隔离；课件仍可离线使用。</span>
+          </p>
+          <button onClick={() => issueTeacherCommand("safety.release")}>
+            释放接管，保持暂停
+          </button>
+        </section>
+      )}
 
       <section className="xmp-live-layout">
         <aside className="xmp-runbook">
@@ -255,7 +339,9 @@ export function ClassroomConsole() {
               <button
                 key={step.title}
                 className={`${index === activeStep ? "active" : ""} ${index < activeStep ? "done" : ""}`}
-                onClick={() => setActiveStep(index)}
+                onClick={() =>
+                  issueTeacherCommand("step.select", { step: index })
+                }
               >
                 <span>
                   {index < activeStep ? (
@@ -292,13 +378,13 @@ export function ClassroomConsole() {
             <div>
               <button
                 className={!quietMode ? "active" : ""}
-                onClick={() => setQuietMode(false)}
+                onClick={() => issueTeacherCommand("safety.quiet.disable")}
               >
                 <Volume2 size={13} /> 教学模式
               </button>
               <button
                 className={quietMode ? "active" : ""}
-                onClick={() => setQuietMode(true)}
+                onClick={() => issueTeacherCommand("safety.quiet.enable")}
               >
                 <VolumeX size={13} /> 静默模式
               </button>
@@ -400,9 +486,13 @@ export function ClassroomConsole() {
                 </span>
                 <div>
                   <b>教师 Copilot</b>
-                  <small>观察课堂，只向教师提供建议</small>
+                  <small>
+                    {runtime.aiEnabled
+                      ? "观察课堂，只向教师提供建议"
+                      : "安全暂停，不再生成新建议"}
+                  </small>
                 </div>
-                <i>LIVE</i>
+                <i>{runtime.aiEnabled ? "LIVE" : "PAUSED"}</i>
               </div>
               <div className="xmp-copilot-list">
                 {copilotSuggestions.map((item) => (
@@ -423,10 +513,18 @@ export function ClassroomConsole() {
                         </span>
                       ) : (
                         <>
-                          <button onClick={() => acceptSuggestion(item.id)}>
+                          <button
+                            onClick={() => acceptSuggestion(item.id)}
+                            disabled={!runtime.aiEnabled}
+                          >
                             {item.action}
                           </button>
-                          <button className="ignore">忽略</button>
+                          <button
+                            className="ignore"
+                            disabled={!runtime.aiEnabled}
+                          >
+                            忽略
+                          </button>
                         </>
                       )}
                     </footer>
@@ -479,23 +577,111 @@ export function ClassroomConsole() {
                   <small>园所边缘节点 · 房间 A-301</small>
                 </div>
               </div>
-              {deviceRows.map(({ icon: Icon, name, detail, signal }) => (
-                <article key={name}>
-                  <span>
-                    <Icon size={15} />
-                  </span>
-                  <div>
-                    <b>{name}</b>
-                    <small>{detail}</small>
-                  </div>
-                  <em>
-                    <i /> {signal}
-                  </em>
-                </article>
-              ))}
+              {runtime.devices.map((device) => {
+                const Icon = runtimeDeviceIcon[device.kind];
+                return (
+                  <article key={device.id} className={device.connection}>
+                    <span>
+                      <Icon size={15} />
+                    </span>
+                    <div>
+                      <b>{device.name}</b>
+                      <small>
+                        {device.trust === "demo-verified"
+                          ? "身份已验证"
+                          : "身份待验证"}{" "}
+                        · 心跳 #{device.heartbeatSequence}
+                      </small>
+                    </div>
+                    <em>
+                      <i />
+                      {device.connection === "online"
+                        ? `${device.latencyMs ?? "—"} ms`
+                        : device.connection === "stale"
+                          ? "心跳延迟"
+                          : "已离线"}
+                    </em>
+                  </article>
+                );
+              })}
               <div className="xmp-device-policy">
                 <b>断网策略</b>
                 <p>本地课件和教师控制持续可用，停止云端推理与数据同步。</p>
+              </div>
+              <div className="xmp-runtime-drill">
+                <b>LOCAL FAILURE DRILL</b>
+                <p>只修改本地会话快照，不发送真实设备命令。</p>
+                {runtime.devices.find((device) => device.id === "E-01")
+                  ?.connection === "offline" ? (
+                  <button
+                    onClick={() => {
+                      issueTeacherCommand("device.recover", {
+                        deviceId: "E-01",
+                        latencyMs: 9,
+                      });
+                      issueDeviceHeartbeat("E-01", 9);
+                      emit({
+                        correlationId: XMP_DEMO_CORRELATION_ID,
+                        kind: "device.recovered",
+                        domain: "fleet",
+                        title: "边缘中枢 E-01 完成可信重连",
+                        detail:
+                          "设备身份与心跳序列重新验证；课堂保持暂停，等待教师明确恢复。",
+                        actor: "文老师",
+                        entity: "E-01",
+                        privacy: "aggregate",
+                      });
+                    }}
+                  >
+                    恢复可信心跳
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      issueTeacherCommand("device.disconnect", {
+                        deviceId: "E-01",
+                      });
+                      emit({
+                        correlationId: XMP_DEMO_CORRELATION_ID,
+                        kind: "device.degraded",
+                        domain: "fleet",
+                        title: "边缘中枢 E-01 心跳丢失",
+                        detail:
+                          "本地故障演练触发安全暂停与静默模式；没有向真实设备发送命令。",
+                        actor: "文老师",
+                        entity: "E-01",
+                        privacy: "aggregate",
+                      });
+                    }}
+                  >
+                    模拟 E-01 断线
+                  </button>
+                )}
+              </div>
+              <div className="xmp-runtime-audit-mini">
+                <header>
+                  <b>RUNTIME COMMAND AUDIT</b>
+                  <span>最近 {Math.min(runtime.commandLog.length, 3)} 条</span>
+                </header>
+                {runtime.commandLog.length ? (
+                  runtime.commandLog.slice(0, 3).map((record) => (
+                    <article key={record.id}>
+                      <div>
+                        <b>{runtimeCommandLabel[record.kind]}</b>
+                        <small>{record.actorLabel} · 本地命令</small>
+                      </div>
+                      <em className={record.outcome}>
+                        {record.outcome === "accepted"
+                          ? "已接受"
+                          : record.outcome === "duplicate"
+                            ? "已去重"
+                            : "已拒绝"}
+                      </em>
+                    </article>
+                  ))
+                ) : (
+                  <p>尚无课堂命令，等待教师开始课堂。</p>
+                )}
               </div>
             </div>
           )}
@@ -505,7 +691,7 @@ export function ClassroomConsole() {
       <footer className="xmp-live-controls">
         <div>
           <button
-            onClick={() => setActiveStep((value) => Math.max(0, value - 1))}
+            onClick={() => issueTeacherCommand("step.previous")}
             disabled={activeStep === 0}
           >
             <ArrowLeft size={15} /> 上一步
@@ -517,7 +703,11 @@ export function ClassroomConsole() {
         <button
           className={`xmp-play-control ${session}`}
           onClick={toggleSession}
-          disabled={session === "ended"}
+          disabled={
+            session === "ended" ||
+            runtime.safetyMode === "teacher-control" ||
+            runtime.health === "offline"
+          }
         >
           {session === "live" ? (
             <>
@@ -540,14 +730,16 @@ export function ClassroomConsole() {
         <div>
           <button
             onClick={() => {
-              setSession("ready");
-              setActiveStep(0);
-              setElapsed(0);
+              resetRuntime();
+              setAccepted([]);
             }}
           >
             <RotateCcw size={14} /> 重置演示
           </button>
-          <button className="end" onClick={() => setSession("ended")}>
+          <button
+            className="end"
+            onClick={() => issueTeacherCommand("session.end")}
+          >
             <Square size={13} /> 结束课堂
           </button>
         </div>
@@ -561,7 +753,10 @@ export function ClassroomConsole() {
             </span>
             <p>
               <b>课前检查完成</b>
-              <small>课件、教师端、教室大屏和 6 台奇妙宠已就绪。</small>
+              <small>
+                可信教师会话与 {runtime.devices.length}{" "}
+                组设备身份已完成本地检查。
+              </small>
             </p>
           </div>
           <button onClick={toggleSession}>
@@ -592,8 +787,18 @@ export function ClassroomConsole() {
               <button onClick={() => setShowSafety(false)}>取消</button>
               <button
                 onClick={() => {
-                  setQuietMode(true);
-                  setSession("paused");
+                  issueTeacherCommand("safety.takeover");
+                  emit({
+                    correlationId: XMP_DEMO_CORRELATION_ID,
+                    kind: "classroom.paused",
+                    domain: "classroom",
+                    title: "教师进入课堂安全接管",
+                    detail:
+                      "AI 语音、自动回应与证据候选已隔离；教师端和本地课件保持可用。",
+                    actor: "文老师",
+                    entity: runtime.sessionId,
+                    privacy: "aggregate",
+                  });
                   setShowSafety(false);
                 }}
               >

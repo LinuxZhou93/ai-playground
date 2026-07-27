@@ -120,6 +120,7 @@ test.describe("XMP local operating system", () => {
     await page.addInitScript(() => {
       if (!window.sessionStorage.getItem("xmp-e2e-event-seeded")) {
         window.localStorage.removeItem("xmp-local-event-stream-v1");
+        window.localStorage.removeItem("xmp-classroom-runtime-v1");
         window.sessionStorage.setItem("xmp-e2e-event-seeded", "1");
       }
     });
@@ -163,6 +164,93 @@ test.describe("XMP local operating system", () => {
     dialog = page.getByRole("dialog", { name: "教学闭环事件链" });
     await expect(dialog.getByText("教师确认成长证据")).toBeVisible();
     await expect(dialog.getByText(/条本地记录/)).toBeVisible();
+  });
+
+  test("critical heartbeat loss safely pauses the class and recovers across modules", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      if (!window.sessionStorage.getItem("xmp-runtime-fault-seeded")) {
+        window.localStorage.removeItem("xmp-classroom-runtime-v1");
+        window.sessionStorage.setItem("xmp-runtime-fault-seeded", "1");
+      }
+    });
+
+    await page.goto(`${baseUrl}/xmp/classroom`, {
+      waitUntil: "domcontentloaded",
+    });
+    const trustRegion = page.getByRole("region", {
+      name: "课堂会话可信状态",
+    });
+    await expect(trustRegion).toContainText("4/4 已验证");
+    await expect(trustRegion).toContainText("HEALTHY");
+
+    await page.getByRole("button", { name: "开始课堂" }).last().click();
+    await page.getByRole("button", { name: "多端" }).click();
+    await page.getByRole("button", { name: "模拟 E-01 断线" }).click();
+
+    await expect(trustRegion).toContainText("OFFLINE");
+    await expect(trustRegion).toContainText("静默 · AI 已停止");
+    await expect(page.getByRole("button", { name: "继续课堂" })).toBeDisabled();
+    await expect(page.getByText("断线演练")).toBeVisible();
+
+    await page.goto(`${baseUrl}/xmp/fleet`, {
+      waitUntil: "domcontentloaded",
+    });
+    const runtimeRegion = page.getByRole("region", {
+      name: "课堂运行时联动",
+    });
+    await expect(runtimeRegion).toContainText("安全暂停");
+    await expect(runtimeRegion).toContainText("3/4 在线");
+    await page.getByRole("button", { name: "恢复 E-01 可信心跳" }).click();
+    await expect(runtimeRegion).toContainText("4/4 在线");
+    await expect(runtimeRegion).toContainText("静默降级");
+
+    await page.goto(`${baseUrl}/xmp/classroom`, {
+      waitUntil: "domcontentloaded",
+    });
+    const recoveredTrust = page.getByRole("region", {
+      name: "课堂会话可信状态",
+    });
+    await expect(recoveredTrust).toContainText("HEALTHY");
+    await expect(recoveredTrust).toContainText("静默 · AI 已停止");
+    await page.getByRole("button", { name: "继续课堂" }).click();
+    await expect(page.getByRole("button", { name: "暂停课堂" })).toBeVisible();
+    await page.getByRole("button", { name: "教学模式" }).click();
+    await expect(recoveredTrust).toContainText("教师掌舵 · AI 可建议");
+  });
+
+  test("teacher takeover isolates AI until explicit release", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      if (!window.sessionStorage.getItem("xmp-takeover-seeded")) {
+        window.localStorage.removeItem("xmp-classroom-runtime-v1");
+        window.sessionStorage.setItem("xmp-takeover-seeded", "1");
+      }
+    });
+
+    await page.goto(`${baseUrl}/xmp/classroom`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.getByRole("button", { name: "开始课堂" }).last().click();
+    await page.getByRole("button", { name: "安全接管" }).click();
+    const dialog = page.getByRole("dialog", { name: "课堂安全接管" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "确认接管" }).click();
+
+    await expect(page.getByRole("status")).toContainText("文老师正在人工接管");
+    await expect(
+      page.getByRole("region", { name: "课堂会话可信状态" }),
+    ).toContainText("人工接管 · AI 已隔离");
+    await expect(page.getByRole("button", { name: "继续课堂" })).toBeDisabled();
+
+    await page.getByRole("button", { name: "释放接管，保持暂停" }).click();
+    await expect(page.getByRole("status")).toBeHidden();
+    await expect(page.getByRole("button", { name: "继续课堂" })).toBeEnabled();
+    await expect(
+      page.getByRole("region", { name: "课堂会话可信状态" }),
+    ).toContainText("静默 · AI 已停止");
   });
 
   test("investor demo room walks through all six acts", async ({ page }) => {

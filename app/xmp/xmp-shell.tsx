@@ -29,11 +29,14 @@ import { GovernanceCenter } from "./governance-center";
 import { DataSourceCenter } from "./data-source-center";
 import { EventChainCenter } from "./event-chain-center";
 import { useXmpEvents, XmpEventProvider } from "./event-store";
+import { XmpClassroomRuntimeProvider } from "./classroom-runtime-store";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
   return (
     <XmpEventProvider>
-      <XmpShellInner current={current} />
+      <XmpClassroomRuntimeProvider>
+        <XmpShellInner current={current} />
+      </XmpClassroomRuntimeProvider>
     </XmpEventProvider>
   );
 }
