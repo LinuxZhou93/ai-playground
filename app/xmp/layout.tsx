@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./xmp.css";
 import "./classroom-console.css";
+import "./companion-experience.css";
 
 export const metadata: Metadata = {
   title: "XMP 奇妙伙伴 · 幼教 AI 操作系统",

@@ -56,7 +56,7 @@ export const XMP_MODULES: XmpModule[] = [
     description: "安全、温暖、低认知负担的幼儿多模态体验。",
     href: "/xmp/companion",
     icon: Bot,
-    roles: ["teacher", "family"],
+    roles: ["operator", "research", "teacher", "family"],
     phase: 4,
   },
   {
