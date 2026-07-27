@@ -103,6 +103,11 @@ export async function middleware(request: NextRequest) {
 
   // 🛠️ [Clean URL Logic] 显式处理常用简洁路径映射到 resources/
   const cleanUrlMaps: Record<string, string> = {
+    '/xmp': '/resources/xmp/index.html',
+    '/xmp/': '/resources/xmp/index.html',
+    '/xmp/kid': '/resources/xmp/kid.html',
+    '/xmp/teacher': '/resources/xmp/teacher.html',
+    '/xmp/dashboard': '/resources/xmp/dashboard.html',
     '/SNU': '/SNU/index.html',
     '/SNU/': '/SNU/index.html',
     '/snu': '/SNU/index.html',
