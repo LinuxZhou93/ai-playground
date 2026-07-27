@@ -21,6 +21,7 @@ import { GrowthIntelligence } from "./growth-intelligence";
 import { FamilyLoop } from "./family-loop";
 import { EdgeFleet } from "./edge-fleet";
 import { OperationsCenter } from "./operations-center";
+import { GovernanceCenter } from "./governance-center";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
   const [role, setRole] = useState<XmpRole>("operator");
@@ -146,6 +147,8 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
             <EdgeFleet />
           ) : current === "operations" ? (
             <OperationsCenter />
+          ) : current === "governance" ? (
+            <GovernanceCenter />
           ) : (
             <>
               <section className="xmp-foundation-card">
