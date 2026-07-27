@@ -30,13 +30,16 @@ import { DataSourceCenter } from "./data-source-center";
 import { EventChainCenter } from "./event-chain-center";
 import { useXmpEvents, XmpEventProvider } from "./event-store";
 import { XmpClassroomRuntimeProvider } from "./classroom-runtime-store";
+import { XmpCourseAssetProvider } from "./course-asset-store";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
   return (
     <XmpEventProvider>
-      <XmpClassroomRuntimeProvider>
-        <XmpShellInner current={current} />
-      </XmpClassroomRuntimeProvider>
+      <XmpCourseAssetProvider>
+        <XmpClassroomRuntimeProvider>
+          <XmpShellInner current={current} />
+        </XmpClassroomRuntimeProvider>
+      </XmpCourseAssetProvider>
     </XmpEventProvider>
   );
 }

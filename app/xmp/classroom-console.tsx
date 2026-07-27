@@ -12,6 +12,7 @@ import {
   Clock3,
   Eye,
   Hand,
+  LockKeyhole,
   MonitorUp,
   Pause,
   Play,
@@ -29,6 +30,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useXmpEvents, XMP_DEMO_CORRELATION_ID } from "./event-store";
 import { useXmpClassroomRuntime } from "./classroom-runtime-store";
+import { useXmpCourseAssets } from "./course-asset-store";
 
 type SideTab = "guide" | "evidence" | "devices";
 
@@ -141,6 +143,7 @@ function formatTime(seconds: number) {
 
 export function ClassroomConsole() {
   const { emit } = useXmpEvents();
+  const { catalog } = useXmpCourseAssets();
   const {
     runtime,
     issueTeacherCommand,
@@ -151,18 +154,23 @@ export function ClassroomConsole() {
   const [sideTab, setSideTab] = useState<SideTab>("guide");
   const [accepted, setAccepted] = useState<string[]>([]);
   const [showSafety, setShowSafety] = useState(false);
+  const pinnedCourse =
+    catalog.versions.find(
+      (version) => version.id === catalog.classroomPinnedVersionId,
+    ) ?? catalog.versions[0];
+  const courseSteps = pinnedCourse?.phases ?? lessonSteps;
   const session =
     runtime.lifecycle === "preflight" ? "ready" : runtime.lifecycle;
-  const activeStep = Math.min(runtime.activeStep, lessonSteps.length - 1);
+  const activeStep = Math.min(runtime.activeStep, courseSteps.length - 1);
   const elapsed = runtime.elapsedSeconds;
   const quietMode = runtime.safetyMode !== "normal";
-  const current = lessonSteps[activeStep];
+  const current = courseSteps[activeStep];
   const plannedMinutes = useMemo(
     () =>
-      lessonSteps
+      courseSteps
         .slice(0, activeStep)
         .reduce((sum, step) => sum + step.duration, 0),
-    [activeStep],
+    [activeStep, courseSteps],
   );
 
   useEffect(() => {
@@ -203,8 +211,8 @@ export function ClassroomConsole() {
   };
 
   const nextStep = () => {
-    if (activeStep < lessonSteps.length - 1)
-      issueTeacherCommand("step.next", { maxStep: lessonSteps.length - 1 });
+    if (activeStep < courseSteps.length - 1)
+      issueTeacherCommand("step.next", { maxStep: courseSteps.length - 1 });
     else issueTeacherCommand("session.end");
   };
 
@@ -314,6 +322,20 @@ export function ClassroomConsole() {
         </span>
       </section>
 
+      <section className="xmp-classroom-release-lock" aria-label="课堂课程锁版">
+        <div>
+          <LockKeyhole size={14} />
+          <span>
+            <small>签名课程发布</small>
+            <b>
+              {pinnedCourse.title} · v{pinnedCourse.semanticVersion}
+            </b>
+          </span>
+        </div>
+        <code>{pinnedCourse.signature}</code>
+        <p>本课堂已锁定；新发布版本不会在授课中替换</p>
+      </section>
+
       {runtime.safetyMode === "teacher-control" && (
         <section className="xmp-takeover-banner" role="status">
           <Hand size={16} />
@@ -335,7 +357,7 @@ export function ClassroomConsole() {
             <p>教师可随时调整，不由 AI 自动推进。</p>
           </div>
           <div className="xmp-runbook-list">
-            {lessonSteps.map((step, index) => (
+            {courseSteps.map((step, index) => (
               <button
                 key={step.title}
                 className={`${index === activeStep ? "active" : ""} ${index < activeStep ? "done" : ""}`}
@@ -363,7 +385,7 @@ export function ClassroomConsole() {
           <div className="xmp-runbook-foot">
             <Clock3 size={14} />
             <div>
-              <b>计划总时长 35 分钟</b>
+              <b>计划总时长 {pinnedCourse.durationMinutes} 分钟</b>
               <small>当前节奏较预案慢 1 分 24 秒</small>
             </div>
           </div>

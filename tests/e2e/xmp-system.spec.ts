@@ -6,7 +6,7 @@ test.use({ channel: "chrome" });
 
 const modules = [
   ["/xmp", "让每一次课堂"],
-  ["/xmp/curriculum", "把一个好想法"],
+  ["/xmp/curriculum", "每一次改变"],
   ["/xmp/classroom", "一颗沉睡的种子"],
   ["/xmp/companion", "不是陪孩子盯着屏幕"],
   ["/xmp/growth", "成长结论"],
