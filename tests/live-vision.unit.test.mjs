@@ -190,6 +190,55 @@ test('encodes decoded browser audio as a real mono PCM WAV', async () => {
   assert.equal(header, 'RIFF');
 });
 
+test('derives an OpenAI-compatible transcription route without changing the chat route', () => {
+  const instance = createBareInstance();
+  assert.equal(
+    instance.getTranscriptionEndpoint('https://relay.example/v1/chat/completions'),
+    'https://relay.example/v1/audio/transcriptions'
+  );
+  assert.equal(
+    instance.getTranscriptionEndpoint('/v1beta/openai/chat/completions'),
+    '/v1beta/openai/audio/transcriptions'
+  );
+  assert.equal(
+    instance.getTranscriptionEndpoint('https://relay.example/v1/chat/completions', 'https://asr.example/transcribe'),
+    'https://asr.example/transcribe'
+  );
+});
+
+test('uses a configured reasoning model after transcription rather than forcing the audio model', async () => {
+  const instance = createBareInstance();
+  instance.pipelineConfig = {
+    mode: 'transcribe',
+    transcriptionModel: 'asr-model',
+    reasoningModel: 'strong-reasoning-model',
+    transcriptionEndpoint: '/audio/transcriptions'
+  };
+  instance.prepareAudioForModel = async blob => blob;
+  instance.transcribeAudio = async () => '请继续上一段';
+  instance.rememberTextTurn = () => {};
+  let requestBody;
+  context.window.titanAIAssistant = {
+    settings: { endpoint: '/v1/chat/completions', model: 'legacy-audio-model', apiKey: '' },
+    _buildMultimodalMessage: text => ({ role: 'user', content: text })
+  };
+  context.fetch = async (_url, options) => {
+    requestBody = JSON.parse(options.body);
+    return { ok: true, json: async () => ({ choices: [{ message: { content: '{"reply":"我接着说","ignore":false}' } }] }) };
+  };
+  instance.startSpeech = () => true;
+
+  const started = await instance.processTurn(
+    { audioBlob: new Blob(['voice'], { type: 'audio/wav' }), imageData: null },
+    1,
+    1,
+    new AbortController().signal
+  );
+  assert.equal(started, true);
+  assert.equal(requestBody.model, 'strong-reasoning-model');
+  assert.match(requestBody.messages.at(-1).content, /请继续上一段/);
+});
+
 test('records the candidate from its first frame and discards an unconfirmed short sound', () => {
   const instance = createBareInstance();
   const recorder = {

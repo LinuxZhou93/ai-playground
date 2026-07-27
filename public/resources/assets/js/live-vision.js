@@ -53,6 +53,10 @@ class LiveVisionCopilot {
         this.historyStorageKey = this.getHistoryStorageKey();
         this.liveHistory = this.loadLiveHistory();
         this.liveContextMessages = [...this.liveHistory];
+        // 高能力文本模型通常不接受 input_audio。把转写与推理解耦后，用户可继续沿用
+        // 中转站，同时自由选择转写模型和更强的聊天/视觉模型。
+        this.pipelineStorageKey = 'titan_live_vision_pipeline_v1';
+        this.pipelineConfig = this.loadPipelineConfig();
         
         this.buildUI();
     }
@@ -118,6 +122,9 @@ class LiveVisionCopilot {
                             <button id="live-vision-mic-toggle" style="background: #10b981; color: #000; border: none; padding: 12px 24px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 0 15px rgba(16,185,129,0.4);">
                                 正在聆听 (可点击暂停)
                             </button>
+                            <button id="live-vision-model-settings" style="background:rgba(15,23,42,.78);color:#d1fae5;border:1px solid rgba(16,185,129,.65);padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;">
+                                模型链路设置
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -137,6 +144,7 @@ class LiveVisionCopilot {
         this.subtitle = document.getElementById('live-vision-subtitle');
         this.statusText = document.getElementById('live-vision-status');
         this.micToggleBtn = document.getElementById('live-vision-mic-toggle');
+        this.modelSettingsBtn = document.getElementById('live-vision-model-settings');
         
         document.getElementById('live-vision-close').addEventListener('click', () => this.stop());
         
@@ -152,6 +160,48 @@ class LiveVisionCopilot {
                 this.statusText.innerText = '状态: 等待持续人声 (VAD_READY)';
             }
         });
+        this.modelSettingsBtn.addEventListener('click', () => this.openPipelineSettings());
+    }
+
+    loadPipelineConfig() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('titan_live_vision_pipeline_v1') || '{}');
+            return {
+                mode: saved.mode === 'transcribe' ? 'transcribe' : 'direct',
+                transcriptionModel: typeof saved.transcriptionModel === 'string' ? saved.transcriptionModel.trim() : '',
+                reasoningModel: typeof saved.reasoningModel === 'string' ? saved.reasoningModel.trim() : '',
+                transcriptionEndpoint: typeof saved.transcriptionEndpoint === 'string' ? saved.transcriptionEndpoint.trim() : ''
+            };
+        } catch (_) {
+            return { mode: 'direct', transcriptionModel: '', reasoningModel: '', transcriptionEndpoint: '' };
+        }
+    }
+
+    savePipelineConfig(nextConfig) {
+        this.pipelineConfig = { ...this.pipelineConfig, ...nextConfig };
+        localStorage.setItem(this.pipelineStorageKey, JSON.stringify(this.pipelineConfig));
+    }
+
+    openPipelineSettings() {
+        const current = this.pipelineConfig || this.loadPipelineConfig();
+        const useTranscription = window.confirm(
+            '启用“语音转写 → 高能力推理模型”吗？\n\n确定：适合中转站提供独立转写模型（推荐）。\n取消：继续使用当前模型直接理解音频。'
+        );
+        if (!useTranscription) {
+            this.savePipelineConfig({ mode: 'direct' });
+            this.statusText.innerText = '状态: 已使用当前模型直接理解音频 (DIRECT_AUDIO)';
+            return;
+        }
+        const transcriptionModel = window.prompt('填写中转站的语音转写模型名（例如 gpt-4o-transcribe）：', current.transcriptionModel || '');
+        if (transcriptionModel === null) return;
+        const reasoningModel = window.prompt('填写用于思考/看图的高能力模型名（留空=当前全局模型）：', current.reasoningModel || '');
+        if (reasoningModel === null) return;
+        const transcriptionEndpoint = window.prompt('转写接口地址（留空=从当前 /chat/completions 自动推导为 /audio/transcriptions）：', current.transcriptionEndpoint || '');
+        if (transcriptionEndpoint === null) return;
+        this.savePipelineConfig({ mode: 'transcribe', transcriptionModel: transcriptionModel.trim(), reasoningModel: reasoningModel.trim(), transcriptionEndpoint: transcriptionEndpoint.trim() });
+        this.statusText.innerText = transcriptionModel.trim()
+            ? '状态: 转写 → 高能力模型链路已启用 (PIPELINE_READY)'
+            : '状态: 请补充转写模型名后再启用该链路 (PIPELINE_INCOMPLETE)';
     }
 
     async start() {
@@ -705,6 +755,34 @@ class LiveVisionCopilot {
         });
     }
 
+    getTranscriptionEndpoint(chatEndpoint, configuredEndpoint = '') {
+        if (configuredEndpoint) return configuredEndpoint;
+        return String(chatEndpoint || '').replace(/\/chat\/completions(?:\?.*)?$/i, '/audio/transcriptions');
+    }
+
+    async transcribeAudio(audioBlob, core, signal) {
+        const config = this.pipelineConfig || this.loadPipelineConfig();
+        if (!config.transcriptionModel) throw new Error('请在“模型链路设置”中填写中转站的语音转写模型名。');
+        const endpoint = this.getTranscriptionEndpoint(core.settings.endpoint, config.transcriptionEndpoint);
+        if (!endpoint || endpoint === core.settings.endpoint) throw new Error('无法从当前聊天地址推导转写地址，请在模型链路设置中填写转写接口。');
+        const form = new FormData();
+        form.append('model', config.transcriptionModel);
+        form.append('file', audioBlob, 'live-turn.wav');
+        form.append('language', 'zh');
+        form.append('response_format', 'json');
+        const headers = {};
+        if (core.settings.apiKey) headers.Authorization = `Bearer ${core.settings.apiKey}`;
+        const response = await fetch(endpoint, { method: 'POST', headers, body: form, signal });
+        if (!response.ok) {
+            const detail = await response.json().catch(() => ({}));
+            throw new Error(detail?.error?.message || `转写服务状态异常 ${response.status}`);
+        }
+        const data = await response.json();
+        const transcript = typeof data?.text === 'string' ? data.text.trim() : '';
+        if (!transcript) throw new Error('转写服务没有返回可用文字。');
+        return transcript;
+    }
+
     async drainTurnQueue() {
         if (this.isProcessing || !this.isActive || !this.isListening) return;
         let turn = null;
@@ -772,14 +850,25 @@ class LiveVisionCopilot {
 
         const core = window.titanAIAssistant;
         const modelAudio = await this.prepareAudioForModel(turn.audioBlob);
-        const base64Audio = await this.blobToBase64(modelAudio);
         if (!this.isRequestCurrent(runId, requestId)) return false;
-
-        const currentUserMessage = core._buildMultimodalMessage(
-            '这是用户当前一轮实时语音。请结合当前画面理解它；若只是噪声、电视声或无法辨认的背景声音，请标记为忽略。',
-            turn.imageData ? [turn.imageData] : [],
-            { data: base64Audio, type: modelAudio.type || turn.audioBlob.type || this.recordedMimeType }
-        );
+        const config = this.pipelineConfig || this.loadPipelineConfig();
+        const useTranscriptionPipeline = config.mode === 'transcribe';
+        let currentUserMessage;
+        let sourceTranscript = '';
+        if (useTranscriptionPipeline) {
+            this.subtitle.textContent = '[正在转写语音，并交给高能力模型推理...]';
+            sourceTranscript = await this.transcribeAudio(modelAudio, core, signal);
+            if (!this.isRequestCurrent(runId, requestId)) return false;
+            currentUserMessage = core._buildMultimodalMessage(`这是用户当前一轮实时语音的可靠转写：${sourceTranscript}\n请结合当前画面理解它。`, turn.imageData ? [turn.imageData] : []);
+        } else {
+            const base64Audio = await this.blobToBase64(modelAudio);
+            if (!this.isRequestCurrent(runId, requestId)) return false;
+            currentUserMessage = core._buildMultimodalMessage(
+                '这是用户当前一轮实时语音。请结合当前画面理解它；若只是噪声、电视声或无法辨认的背景声音，请标记为忽略。',
+                turn.imageData ? [turn.imageData] : [],
+                { data: base64Audio, type: modelAudio.type || turn.audioBlob.type || this.recordedMimeType }
+            );
+        }
         const apiMessages = this.buildConversationMessages(currentUserMessage);
         const headers = { 'Content-Type': 'application/json' };
         if (core.settings.apiKey) headers.Authorization = `Bearer ${core.settings.apiKey}`;
@@ -789,7 +878,7 @@ class LiveVisionCopilot {
             headers,
             signal,
             body: JSON.stringify({
-                model: core.settings.model,
+                model: config.reasoningModel || core.settings.model,
                 messages: apiMessages,
                 temperature: 0.6,
                 max_tokens: 1024
@@ -820,6 +909,7 @@ class LiveVisionCopilot {
 
         if (this.suspendedSpeech) this.cancelSpeechPlayback(false);
 
+        if (!payload.transcript && sourceTranscript) payload.transcript = sourceTranscript;
         if (payload.transcript) {
             this.rememberTextTurn(payload.transcript, payload.reply);
         } else {
