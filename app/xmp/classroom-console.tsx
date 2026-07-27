@@ -27,6 +27,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useXmpEvents, XMP_DEMO_CORRELATION_ID } from "./event-store";
 
 type SessionState = "ready" | "live" | "paused" | "ended";
 type SideTab = "guide" | "evidence" | "devices";
@@ -136,6 +137,7 @@ function formatTime(seconds: number) {
 }
 
 export function ClassroomConsole() {
+  const { emit } = useXmpEvents();
   const [session, setSession] = useState<SessionState>("ready");
   const [activeStep, setActiveStep] = useState(0);
   const [elapsed, setElapsed] = useState(0);
@@ -162,8 +164,31 @@ export function ClassroomConsole() {
   }, [session]);
 
   const toggleSession = () => {
-    if (session === "ready" || session === "paused") setSession("live");
-    else if (session === "live") setSession("paused");
+    if (session === "ready" || session === "paused") {
+      setSession("live");
+      emit({
+        correlationId: XMP_DEMO_CORRELATION_ID,
+        kind: "classroom.started",
+        domain: "classroom",
+        title: session === "paused" ? "教师恢复课堂" : "教师开始课堂",
+        detail: `${current.title}节拍由教师主动开始，多端保持本地同步。`,
+        actor: "文老师",
+        entity: "大一班 · A-301",
+        privacy: "aggregate",
+      });
+    } else if (session === "live") {
+      setSession("paused");
+      emit({
+        correlationId: XMP_DEMO_CORRELATION_ID,
+        kind: "classroom.paused",
+        domain: "classroom",
+        title: "教师暂停课堂",
+        detail: "课堂节拍暂停，AI 不再自动建议或采集候选事件。",
+        actor: "文老师",
+        entity: current.title,
+        privacy: "aggregate",
+      });
+    }
   };
 
   const nextStep = () => {
@@ -172,8 +197,23 @@ export function ClassroomConsole() {
     else setSession("ended");
   };
 
-  const acceptSuggestion = (id: string) =>
+  const acceptSuggestion = (id: string) => {
     setAccepted((items) => (items.includes(id) ? items : [...items, id]));
+    const suggestion = copilotSuggestions.find((item) => item.id === id);
+    emit({
+      correlationId: XMP_DEMO_CORRELATION_ID,
+      kind: id === "evidence" ? "evidence.candidate" : "classroom.adjusted",
+      domain: id === "evidence" ? "growth" : "classroom",
+      title:
+        id === "evidence"
+          ? "教师将匿名事件加入证据候选"
+          : "教师采纳课堂调整建议",
+      detail: suggestion?.detail ?? "课堂建议已由教师处理。",
+      actor: "文老师",
+      entity: suggestion?.title ?? current.title,
+      privacy: id === "evidence" ? "anonymous" : "aggregate",
+    });
+  };
 
   return (
     <div className={`xmp-classroom-console ${quietMode ? "quiet" : ""}`}>
@@ -524,7 +564,7 @@ export function ClassroomConsole() {
               <small>课件、教师端、教室大屏和 6 台奇妙宠已就绪。</small>
             </p>
           </div>
-          <button onClick={() => setSession("live")}>
+          <button onClick={toggleSession}>
             <Play size={14} /> 开始课堂
           </button>
         </div>

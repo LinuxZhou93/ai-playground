@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  Activity,
   Check,
   ChevronDown,
   ChevronRight,
@@ -26,11 +27,23 @@ import { EdgeFleet } from "./edge-fleet";
 import { OperationsCenter } from "./operations-center";
 import { GovernanceCenter } from "./governance-center";
 import { DataSourceCenter } from "./data-source-center";
+import { EventChainCenter } from "./event-chain-center";
+import { useXmpEvents, XmpEventProvider } from "./event-store";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
+  return (
+    <XmpEventProvider>
+      <XmpShellInner current={current} />
+    </XmpEventProvider>
+  );
+}
+
+function XmpShellInner({ current }: { current: XmpModuleId }) {
+  const { events } = useXmpEvents();
   const [role, setRole] = useState<XmpRole>("operator");
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
+  const [eventOpen, setEventOpen] = useState(false);
   const [sourceLoading, setSourceLoading] = useState(false);
   const [snapshot, setSnapshot] = useState<XmpSnapshot>(() =>
     createDemoSnapshot(),
@@ -82,6 +95,7 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
         onClose={() => setSourceOpen(false)}
         onRefresh={refreshSnapshot}
       />
+      <EventChainCenter open={eventOpen} onClose={() => setEventOpen(false)} />
       <aside className="xmp-sidebar">
         <Link href="/xmp" className="xmp-brand">
           <span className="xmp-brand-mark">
@@ -132,6 +146,15 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
             <b>{activeModule.name}</b>
           </div>
           <div className="xmp-top-actions">
+            <button
+              className="xmp-event-pill"
+              onClick={() => setEventOpen(true)}
+              aria-label={`打开教学闭环事件链，共 ${events.length} 条事件`}
+            >
+              <Activity size={14} />
+              <span>事件链</span>
+              <b>{events.length}</b>
+            </button>
             <button
               className={`xmp-source-pill ${snapshot.sourceState}`}
               onClick={() => setSourceOpen(true)}

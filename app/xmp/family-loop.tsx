@@ -32,6 +32,7 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useXmpEvents, XMP_DEMO_CORRELATION_ID } from "./event-store";
 
 type FamilyPane = "feed" | "task" | "messages";
 type DispatchStatus = "ready" | "scheduled" | "delivered";
@@ -136,6 +137,7 @@ const statusLabel: Record<DispatchStatus, string> = {
 };
 
 export function FamilyLoop() {
+  const { emit } = useXmpEvents();
   const [contents, setContents] = useState(contentSeed);
   const [selectedContentId, setSelectedContentId] = useState("fc-01");
   const [feedback, setFeedback] = useState(feedbackSeed);
@@ -174,6 +176,18 @@ export function FamilyLoop() {
       ),
     );
     setScheduleOpen(false);
+    if (status === "delivered") {
+      emit({
+        correlationId: XMP_DEMO_CORRELATION_ID,
+        kind: "family.dispatched",
+        domain: "family",
+        title: "教师签名内容已送达家庭",
+        detail: `“${selectedContent.title}”已按授权范围发布，送达与阅读分开记录。`,
+        actor: "文老师",
+        entity: selectedContent.audience,
+        privacy: "teacher-reviewed",
+      });
+    }
   };
 
   const updateFeedbackStatus = (status: FeedbackStatus) => {
@@ -182,6 +196,27 @@ export function FamilyLoop() {
         item.id === selectedFeedback.id ? { ...item, status } : item,
       ),
     );
+    if (status !== "pending") {
+      emit({
+        correlationId: XMP_DEMO_CORRELATION_ID,
+        kind:
+          status === "approved"
+            ? "family.feedback_candidate"
+            : "family.feedback_rejected",
+        domain: "family",
+        title:
+          status === "approved"
+            ? "家庭事实转为二次审核候选"
+            : "家庭反馈未采纳为证据",
+        detail:
+          status === "approved"
+            ? `“${selectedFeedback.title}”仅进入教师候选队列，不直接改变成长画像。`
+            : `“${selectedFeedback.title}”缺少可观察事实或相关性，保留处理轨迹。`,
+        actor: "文老师",
+        entity: selectedFeedback.id.toUpperCase(),
+        privacy: "teacher-reviewed",
+      });
+    }
   };
 
   return (

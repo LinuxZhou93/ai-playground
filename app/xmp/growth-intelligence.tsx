@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useXmpEvents, XMP_DEMO_CORRELATION_ID } from "./event-store";
 
 type EvidenceStatus = "pending" | "approved" | "rejected";
 type GrowthPane = "map" | "report";
@@ -137,6 +138,7 @@ const statusText: Record<EvidenceStatus, string> = {
 };
 
 export function GrowthIntelligence() {
+  const { emit } = useXmpEvents();
   const [evidence, setEvidence] = useState(evidenceSeed);
   const [selectedId, setSelectedId] = useState("ev-02");
   const [queueFilter, setQueueFilter] = useState<"all" | EvidenceStatus>("all");
@@ -175,6 +177,19 @@ export function GrowthIntelligence() {
     );
     setEditing(false);
     setTeacherNote("");
+    emit({
+      correlationId: XMP_DEMO_CORRELATION_ID,
+      kind: status === "approved" ? "evidence.approved" : "evidence.rejected",
+      domain: "growth",
+      title: status === "approved" ? "教师确认成长证据" : "教师驳回证据候选",
+      detail:
+        status === "approved"
+          ? `“${selected.title}”已完成事实与解释复核，可进入报告草稿。`
+          : `“${selected.title}”未进入成长档案，保留本次审核轨迹。`,
+      actor: "文老师",
+      entity: selected.id.toUpperCase(),
+      privacy: "teacher-reviewed",
+    });
   };
 
   return (

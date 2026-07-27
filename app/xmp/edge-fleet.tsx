@@ -38,6 +38,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useXmpEvents, XMP_DEMO_CORRELATION_ID } from "./event-store";
 
 type DeviceStatus = "online" | "degraded" | "offline" | "maintenance";
 type FleetPane = "telemetry" | "policy" | "updates";
@@ -139,6 +140,7 @@ const deviceIcon = {
 };
 
 export function EdgeFleet() {
+  const { emit } = useXmpEvents();
   const [devices, setDevices] = useState(deviceSeed);
   const [selectedId, setSelectedId] = useState("C-03");
   const [pane, setPane] = useState<FleetPane>("telemetry");
@@ -171,7 +173,19 @@ export function EdgeFleet() {
 
   const runDiagnostic = () => {
     setDiagnostic("running");
-    window.setTimeout(() => setDiagnostic("complete"), 700);
+    window.setTimeout(() => {
+      setDiagnostic("complete");
+      emit({
+        correlationId: XMP_DEMO_CORRELATION_ID,
+        kind: "device.diagnostic_completed",
+        domain: "fleet",
+        title: `${selected.name} 安全诊断完成`,
+        detail: "硬件与网络正常，语音推理进程内存偏高；未扩大数据采集。",
+        actor: "园所管理者",
+        entity: selected.id,
+        privacy: "aggregate",
+      });
+    }, 700);
   };
 
   const restartService = () => {
@@ -185,6 +199,16 @@ export function EdgeFleet() {
     setActionConfirm(null);
     setIncidentState("resolved");
     setDiagnostic("complete");
+    emit({
+      correlationId: XMP_DEMO_CORRELATION_ID,
+      kind: "device.recovered",
+      domain: "fleet",
+      title: `${selected.name} 已受控恢复`,
+      detail: "仅重启语音推理服务，物理静音、教师接管与本地安全应答持续有效。",
+      actor: "园所管理者",
+      entity: selected.id,
+      privacy: "aggregate",
+    });
   };
 
   const advanceRollout = () => {

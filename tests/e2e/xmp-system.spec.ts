@@ -73,6 +73,52 @@ test.describe("XMP local operating system", () => {
     await expect(dialog.getByText("本地演示数据")).toBeVisible();
   });
 
+  test("classroom and growth actions persist in one correlated local event chain", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      if (!window.sessionStorage.getItem("xmp-e2e-event-seeded")) {
+        window.localStorage.removeItem("xmp-local-event-stream-v1");
+        window.sessionStorage.setItem("xmp-e2e-event-seeded", "1");
+      }
+    });
+
+    let snapshotReady = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/xmp/snapshot") && response.ok(),
+    );
+    await page.goto(`${baseUrl}/xmp/classroom`, {
+      waitUntil: "domcontentloaded",
+    });
+    await snapshotReady;
+
+    await page.getByRole("button", { name: "开始课堂" }).last().click();
+    await page.getByRole("button", { name: "加入待审核" }).click();
+    await page.getByRole("button", { name: /打开教学闭环事件链/ }).click();
+
+    let dialog = page.getByRole("dialog", { name: "教学闭环事件链" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("教师开始课堂")).toBeVisible();
+    await expect(dialog.getByText("教师将匿名事件加入证据候选")).toBeVisible();
+    await expect(dialog.getByText("CLS-A301-20260728-SEED")).toBeVisible();
+    await dialog.getByRole("button", { name: "关闭事件链" }).click();
+
+    snapshotReady = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/xmp/snapshot") && response.ok(),
+    );
+    await page.goto(`${baseUrl}/xmp/growth`, {
+      waitUntil: "domcontentloaded",
+    });
+    await snapshotReady;
+    await page.getByRole("button", { name: /教师确认并入档/ }).click();
+    await page.getByRole("button", { name: /打开教学闭环事件链/ }).click();
+
+    dialog = page.getByRole("dialog", { name: "教学闭环事件链" });
+    await expect(dialog.getByText("教师确认成长证据")).toBeVisible();
+    await expect(dialog.getByText(/条本地记录/)).toBeVisible();
+  });
+
   test("investor demo room walks through all six acts", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const snapshotReady = page.waitForResponse(
