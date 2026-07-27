@@ -18,6 +18,7 @@ import { CurriculumStudio } from "./curriculum-studio";
 import { ClassroomConsole } from "./classroom-console";
 import { CompanionExperience } from "./companion-experience";
 import { GrowthIntelligence } from "./growth-intelligence";
+import { FamilyLoop } from "./family-loop";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
   const [role, setRole] = useState<XmpRole>("operator");
@@ -137,6 +138,8 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
             <CompanionExperience />
           ) : current === "growth" ? (
             <GrowthIntelligence />
+          ) : current === "family" ? (
+            <FamilyLoop />
           ) : (
             <>
               <section className="xmp-foundation-card">
