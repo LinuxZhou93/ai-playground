@@ -282,7 +282,6 @@ export const config = {
     '/labs',
     '/ide',
     '/debate-lab',
-    '/xmp/:path*',
     '/swarm/:path*',
     '/erp/:path*',
     '/hub-auto-:path*',
