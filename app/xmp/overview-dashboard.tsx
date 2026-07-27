@@ -18,8 +18,9 @@ import {
   Wifi,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { XMP_DEMO_TENANT, XMP_MODULES } from "./demo-data";
+import { XMP_MODULES } from "./demo-data";
 import { InvestorDemoRoom } from "./investor-demo-room";
+import type { XmpSnapshot } from "@/lib/xmp/types";
 
 type ClassroomState = "live" | "ready" | "review";
 
@@ -106,7 +107,7 @@ const stateLabel: Record<ClassroomState, string> = {
   review: "待复盘",
 };
 
-export function OverviewDashboard() {
+export function OverviewDashboard({ snapshot }: { snapshot: XmpSnapshot }) {
   const [classroomFilter, setClassroomFilter] = useState<"today" | "review">(
     "today",
   );
@@ -127,7 +128,10 @@ export function OverviewDashboard() {
       <section className="xmp-overview-hero">
         <div className="xmp-overview-intro">
           <span className="xmp-eyebrow">
-            <span /> MONDAY · LOCAL DEMO
+            <span /> MONDAY ·{" "}
+            {snapshot.mode === "futureclass-readonly"
+              ? "READ-ONLY LIVE"
+              : "LOCAL DEMO"}
           </span>
           <h1>
             让每一次课堂，
@@ -155,7 +159,7 @@ export function OverviewDashboard() {
             <span>
               <i /> 园所运行态势
             </span>
-            <small>刚刚同步</small>
+            <small>{snapshot.freshnessLabel}</small>
           </div>
           <div className="xmp-health-score">
             <strong>92</strong>
@@ -193,10 +197,12 @@ export function OverviewDashboard() {
           <div>
             <small>今日课堂</small>
             <strong>
-              8 <em>/ 10</em>
+              {snapshot.metrics.todaySessions}{" "}
+              <em>/ {snapshot.metrics.todaySessions}</em>
             </strong>
             <p>
-              <b>6</b> 节已完成 · 2 节进行中
+              <b>{snapshot.metrics.completedSessions}</b> 节已完成 ·
+              教师确认后入档
             </p>
           </div>
         </article>
@@ -207,7 +213,8 @@ export function OverviewDashboard() {
           <div>
             <small>课程准备度</small>
             <strong>
-              82<em>%</em>
+              {snapshot.metrics.curriculumReadiness}
+              <em>%</em>
             </strong>
             <p>
               <b>+6%</b> 较上周同日
@@ -220,7 +227,7 @@ export function OverviewDashboard() {
           </span>
           <div>
             <small>待教师确认</small>
-            <strong>17</strong>
+            <strong>{snapshot.metrics.pendingEvidence}</strong>
             <p>
               成长证据 · <b>需要行动</b>
             </p>
@@ -233,7 +240,8 @@ export function OverviewDashboard() {
           <div>
             <small>在线设备</small>
             <strong>
-              42 <em>/ 44</em>
+              {snapshot.metrics.onlineDevices}{" "}
+              <em>/ {snapshot.metrics.totalDevices}</em>
             </strong>
             <p>2 台低电量 · 网络稳定</p>
           </div>
@@ -392,8 +400,12 @@ export function OverviewDashboard() {
         <div className="xmp-local-footnote">
           <CheckCircle2 size={15} />
           <span>
-            <b>{XMP_DEMO_TENANT.name} · 本地演示数据</b>{" "}
-            本页面指标用于验证产品流程与交互，不代表真实园所运营结果。
+            <b>
+              {snapshot.tenant.name} · {snapshot.sourceLabel}
+            </b>{" "}
+            {snapshot.mode === "futureclass-readonly"
+              ? "ERP、课程与成长数据仅展示聚合数量；课堂和设备仍使用清晰标记的演示数据。"
+              : "本页面指标用于验证产品流程与交互，不代表真实园所运营结果。"}
           </span>
         </div>
       </section>

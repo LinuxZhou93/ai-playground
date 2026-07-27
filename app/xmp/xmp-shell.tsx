@@ -6,12 +6,15 @@ import {
   ChevronDown,
   ChevronRight,
   Command,
+  Database,
   Leaf,
   Search,
   ShieldCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { XMP_DEMO_TENANT, XMP_MODULES, XMP_ROLES } from "./demo-data";
+import { createDemoSnapshot } from "@/lib/xmp/demo-snapshot";
+import type { XmpSnapshot } from "@/lib/xmp/types";
+import { XMP_MODULES, XMP_ROLES } from "./demo-data";
 import type { XmpModuleId, XmpRole } from "./model";
 import { OverviewDashboard } from "./overview-dashboard";
 import { CurriculumStudio } from "./curriculum-studio";
@@ -22,14 +25,39 @@ import { FamilyLoop } from "./family-loop";
 import { EdgeFleet } from "./edge-fleet";
 import { OperationsCenter } from "./operations-center";
 import { GovernanceCenter } from "./governance-center";
+import { DataSourceCenter } from "./data-source-center";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
   const [role, setRole] = useState<XmpRole>("operator");
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [snapshot, setSnapshot] = useState<XmpSnapshot>(() =>
+    createDemoSnapshot(),
+  );
+
+  const refreshSnapshot = async () => {
+    setSourceLoading(true);
+    try {
+      const response = await fetch("/api/xmp/snapshot", { cache: "no-store" });
+      if (!response.ok) throw new Error("snapshot unavailable");
+      setSnapshot((await response.json()) as XmpSnapshot);
+    } catch {
+      setSnapshot(
+        createDemoSnapshot("本地快照接口暂不可用，页面继续使用内置演示数据。"),
+      );
+    } finally {
+      setSourceLoading(false);
+    }
+  };
 
   useEffect(() => {
     const stored = window.localStorage.getItem("xmp-role") as XmpRole | null;
     if (stored && XMP_ROLES.some((item) => item.id === stored)) setRole(stored);
+  }, []);
+
+  useEffect(() => {
+    void refreshSnapshot();
   }, []);
 
   const activeRole = XMP_ROLES.find((item) => item.id === role)!;
@@ -47,6 +75,13 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
 
   return (
     <div className="xmp-app">
+      <DataSourceCenter
+        open={sourceOpen}
+        snapshot={snapshot}
+        loading={sourceLoading}
+        onClose={() => setSourceOpen(false)}
+        onRefresh={refreshSnapshot}
+      />
       <aside className="xmp-sidebar">
         <Link href="/xmp" className="xmp-brand">
           <span className="xmp-brand-mark">
@@ -76,13 +111,19 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
             </Link>
           ))}
         </nav>
-        <div className="xmp-sidebar-status">
+        <button
+          className="xmp-sidebar-status"
+          onClick={() => setSourceOpen(true)}
+        >
           <span />
           <div>
-            <b>本地演示环境</b>
-            <small>未连接生产数据 · 未发布云端</small>
+            <b>{snapshot.sourceLabel}</b>
+            <small>
+              {snapshot.privacy.writesAllowed ? "可写" : "只读保护"} ·
+              未发布云端
+            </small>
           </div>
-        </div>
+        </button>
       </aside>
       <main className="xmp-main">
         <header className="xmp-topbar">
@@ -91,6 +132,18 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
             <b>{activeModule.name}</b>
           </div>
           <div className="xmp-top-actions">
+            <button
+              className={`xmp-source-pill ${snapshot.sourceState}`}
+              onClick={() => setSourceOpen(true)}
+            >
+              <Database size={14} />
+              <span>
+                {snapshot.mode === "futureclass-readonly"
+                  ? "READ-ONLY LIVE"
+                  : "DEMO DATA"}
+              </span>
+              <i />
+            </button>
             <button className="xmp-command">
               <Search size={16} />
               <span>搜索幼儿、课程、课堂</span>
@@ -122,17 +175,19 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
           </div>
         </header>
         <section className="xmp-content">
-          <div className="xmp-demo-notice">
+          <div className={`xmp-demo-notice ${snapshot.sourceState}`}>
             <div>
               <ShieldCheck size={15} />
-              <b>本地产品演示</b>
+              <b>{snapshot.sourceLabel}</b>
             </div>
             <p>
-              所有数据均为演示数据，不代表真实运营结果；当前不采集、不上传任何儿童信息。
+              {snapshot.mode === "futureclass-readonly"
+                ? "仅同步园所级聚合数量；不读取儿童身份字段，不允许写入数据库。"
+                : "所有数据均为演示数据，不代表真实运营结果；当前不采集、不上传任何儿童信息。"}
             </p>
           </div>
           {current === "overview" ? (
-            <OverviewDashboard />
+            <OverviewDashboard snapshot={snapshot} />
           ) : current === "curriculum" ? (
             <CurriculumStudio />
           ) : current === "classroom" ? (
@@ -167,19 +222,19 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
                 </div>
                 <div className="xmp-tenant-card">
                   <small>当前演示租户</small>
-                  <h2>{XMP_DEMO_TENANT.name}</h2>
-                  <p>{XMP_DEMO_TENANT.campus}</p>
+                  <h2>{snapshot.tenant.name}</h2>
+                  <p>{snapshot.tenant.campus}</p>
                   <div>
                     <span>
-                      <b>{XMP_DEMO_TENANT.children}</b>
+                      <b>{snapshot.metrics.children}</b>
                       <small>幼儿</small>
                     </span>
                     <span>
-                      <b>{XMP_DEMO_TENANT.classes}</b>
+                      <b>{snapshot.metrics.classes}</b>
                       <small>班级</small>
                     </span>
                     <span>
-                      <b>{XMP_DEMO_TENANT.teachers}</b>
+                      <b>{snapshot.metrics.teachers}</b>
                       <small>教师</small>
                     </span>
                   </div>

@@ -34,7 +34,7 @@ test.describe("XMP local operating system", () => {
         page.getByRole("navigation", { name: "XMP 产品模块" }),
       ).toBeVisible();
       await expect(
-        page.getByText("本地产品演示", { exact: true }),
+        page.getByText("本地演示数据", { exact: true }).first(),
       ).toBeVisible();
       await expect(
         page.getByRole("heading", { level: 1, name: new RegExp(heading) }),
@@ -43,9 +43,44 @@ test.describe("XMP local operating system", () => {
     });
   }
 
+  test("snapshot API is aggregate-only and data source center explains the boundary", async ({
+    page,
+    request,
+  }) => {
+    const response = await request.get(`${baseUrl}/api/xmp/snapshot`);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["x-xmp-privacy"]).toBe("aggregate-only");
+
+    const snapshot = await response.json();
+    expect(snapshot.mode).toBe("demo");
+    expect(snapshot.privacy).toEqual({
+      aggregateOnly: true,
+      writesAllowed: false,
+      containsChildIdentity: false,
+    });
+    expect(JSON.stringify(snapshot)).not.toContain("phone");
+    expect(JSON.stringify(snapshot)).not.toContain("parent_name");
+
+    await page.goto(`${baseUrl}/xmp`, { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: /DEMO DATA/ }).click();
+    const dialog = page.getByRole("dialog", { name: "数据源与安全边界" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("不可跨越的安全边界")).toBeVisible();
+    await expect(
+      dialog.getByText(/不含幼儿姓名\/电话\/原始音视频/),
+    ).toBeVisible();
+    await dialog.getByRole("button", { name: "重新检查" }).click();
+    await expect(dialog.getByText("本地演示数据")).toBeVisible();
+  });
+
   test("investor demo room walks through all six acts", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    const snapshotReady = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/xmp/snapshot") && response.ok(),
+    );
     await page.goto(`${baseUrl}/xmp`, { waitUntil: "domcontentloaded" });
+    await snapshotReady;
     await page.getByRole("button", { name: /启动 12 分钟完整演示/ }).click();
 
     const dialog = page.getByRole("dialog", { name: "XMP 融资级产品演示" });
