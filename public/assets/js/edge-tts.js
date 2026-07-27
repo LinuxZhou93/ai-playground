@@ -3,16 +3,94 @@
  * 高级纯前端发音引擎：彻底抛弃复杂的企业后端验签，直接调用本地最高质量的原生大模型神经语音，或标准 OpenAI 兼容接口。
  */
 class EdgeTTS {
+    static playbackGeneration = 0;
+
+    static _cleanupExternalAudio(resolveCancelled = true) {
+        const audio = window.__titan_external_audio__;
+        if (!audio) return;
+
+        const objectUrl = audio.__titan_object_url__;
+        const cancelledResolver = audio.__titan_cancel_resolve__;
+        audio.onended = null;
+        audio.onerror = null;
+        try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.removeAttribute('src');
+            audio.load();
+        } catch (err) {
+            console.debug('外部 TTS 音频清理时浏览器已释放资源。', err);
+        }
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        window.__titan_external_audio__ = null;
+        if (resolveCancelled && typeof cancelledResolver === 'function') cancelledResolver();
+    }
+
     // 强制打断当前的语音播放
     static cancel() {
+        // 每次取消都让先前尚在等待音色或网络结果的播放任务失效，避免“取消后又突然开口”。
+        this.playbackGeneration++;
+        if (window.__titan_external_tts_abort__) {
+            window.__titan_external_tts_abort__.abort();
+            window.__titan_external_tts_abort__ = null;
+        }
         if (window.speechSynthesis) {
             window.speechSynthesis.cancel();
         }
-        if (window.__titan_external_audio__) {
-            window.__titan_external_audio__.pause();
-            window.__titan_external_audio__.currentTime = 0;
-            window.__titan_external_audio__ = null;
+        window.__titan_utterance_hack__ = null;
+        this._cleanupExternalAudio(true);
+    }
+
+    // 候选插话阶段只暂停，等语义确认后再决定继续还是取消。
+    static pause() {
+        const externalAudio = window.__titan_external_audio__;
+        if (externalAudio && !externalAudio.ended) {
+            try {
+                externalAudio.pause();
+                return externalAudio.paused === true;
+            } catch (error) {
+                console.debug('外部 TTS 暂停失败，将改为安全取消。', error);
+                return false;
+            }
         }
+        if (
+            window.speechSynthesis &&
+            (window.speechSynthesis.speaking || window.speechSynthesis.pending || window.speechSynthesis.paused)
+        ) {
+            try {
+                window.speechSynthesis.pause();
+                return window.speechSynthesis.paused === true;
+            } catch (error) {
+                console.debug('浏览器 TTS 暂停失败，将改为安全取消。', error);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    static resume() {
+        const externalAudio = window.__titan_external_audio__;
+        if (externalAudio && externalAudio.paused && !externalAudio.ended) {
+            try {
+                Promise.resolve(externalAudio.play()).catch(error => {
+                    if (typeof externalAudio.onerror === 'function') externalAudio.onerror(error);
+                });
+                return true;
+            } catch (error) {
+                if (typeof externalAudio.onerror === 'function') externalAudio.onerror(error);
+                return false;
+            }
+        }
+        if (window.speechSynthesis?.paused) {
+            try {
+                window.speechSynthesis.resume();
+                return true;
+            } catch (error) {
+                console.debug('浏览器 TTS 恢复失败，将从头重播。', error);
+                return false;
+            }
+        }
+        return false;
     }
 
     static async speak(text, fallbackVoice = '', onEndParams = {}) {
@@ -82,6 +160,7 @@ class EdgeTTS {
         }
 
         this.cancel(); // 说话前清空队列
+        const playbackGeneration = this.playbackGeneration;
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'zh-CN';
@@ -90,17 +169,26 @@ class EdgeTTS {
 
         // 🧠 核心黑科技：通过内存级别缓存避免暴击 Chrome 主线程，杜绝页面卡顿！
         const bestVoice = await this._getBestNativeVoice();
+        if (playbackGeneration !== this.playbackGeneration) return resolve();
         if (bestVoice) {
             utterance.voice = bestVoice;
         }
 
         // 绑定事件
         utterance.onend = () => {
-            if (onEndParams.callback) onEndParams.callback();
+            if (window.__titan_utterance_hack__ === utterance) {
+                window.__titan_utterance_hack__ = null;
+            }
+            if (playbackGeneration === this.playbackGeneration && onEndParams.callback) {
+                onEndParams.callback();
+            }
             resolve();
         };
 
         utterance.onerror = (e) => {
+            if (window.__titan_utterance_hack__ === utterance) {
+                window.__titan_utterance_hack__ = null;
+            }
             if (e.error === 'interrupted' || e.error === 'canceled') {
                 return resolve(); // 这是因用户打断或发音取消而触发的，属于正常现象，静默放行不报错！
             }
@@ -115,9 +203,16 @@ class EdgeTTS {
     }
 
     static async speakViaOpenAICompatible(text, apiUrl, apiKey, onEndParams, resolve, reject) {
+        let requestController = null;
+        let audio = null;
+        let url = null;
+        let playbackGeneration = null;
         try {
             console.log("🌊 正在调用外部基于 OpenAI 协议的优质 TTS 代理...");
             this.cancel();
+            playbackGeneration = this.playbackGeneration;
+            requestController = new AbortController();
+            window.__titan_external_tts_abort__ = requestController;
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -125,6 +220,7 @@ class EdgeTTS {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
+                signal: requestController.signal,
                 body: JSON.stringify({
                     model: 'tts-1',
                     input: text,
@@ -132,29 +228,68 @@ class EdgeTTS {
                 })
             });
 
+            if (playbackGeneration !== this.playbackGeneration) return resolve();
+
             if (!response.ok) {
                 const err = await response.text();
                 throw new Error(`TTS API 错误: ${response.status} - ${err}`);
             }
 
             const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            window.__titan_external_audio__ = new Audio(url);
+            if (playbackGeneration !== this.playbackGeneration) return resolve();
+            url = URL.createObjectURL(blob);
+            audio = new Audio(url);
+            if (window.__titan_external_tts_abort__ === requestController) {
+                window.__titan_external_tts_abort__ = null;
+            }
+            audio.__titan_object_url__ = url;
+            audio.__titan_cancel_resolve__ = resolve;
+            window.__titan_external_audio__ = audio;
+
+            const cleanup = () => {
+                if (window.__titan_external_audio__ === audio) {
+                    this._cleanupExternalAudio(false);
+                } else if (audio.__titan_object_url__) {
+                    URL.revokeObjectURL(audio.__titan_object_url__);
+                    audio.__titan_object_url__ = null;
+                }
+            };
             
-            window.__titan_external_audio__.onended = () => {
-                URL.revokeObjectURL(url);
+            audio.onended = () => {
+                cleanup();
                 if (onEndParams.callback) onEndParams.callback();
                 resolve();
             };
 
-            window.__titan_external_audio__.onerror = (e) => {
+            audio.onerror = (e) => {
+                cleanup();
                 console.error("外部声音播放失败:", e);
                 reject(e);
             };
 
-            window.__titan_external_audio__.play();
+            if (playbackGeneration !== this.playbackGeneration) {
+                cleanup();
+                return resolve();
+            }
+            await audio.play();
 
         } catch (e) {
+            if (e.name === 'AbortError') {
+                return resolve();
+            }
+            if (audio && window.__titan_external_audio__ === audio) {
+                this._cleanupExternalAudio(false);
+            } else if (url) {
+                URL.revokeObjectURL(url);
+            }
+            if (window.__titan_external_tts_abort__ === requestController) {
+                window.__titan_external_tts_abort__ = null;
+            }
+            // 用户已经取消或开始了更新的播报时，不允许旧任务降级后“幽灵开口”。
+            if (
+                requestController?.signal.aborted ||
+                playbackGeneration !== this.playbackGeneration
+            ) return resolve();
             console.error("第三方 OpenAI TTS 代理崩了，正在毫秒级切回本地高保真免密引擎！", e);
             // 外部 API 崩了也不要紧，立刻光速切回本地原版念出来！
             this.speakViaBrowserNative(text, onEndParams, resolve, reject);
