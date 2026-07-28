@@ -48,7 +48,7 @@ create table if not exists public.xmp_access_requests (
   requester_id uuid not null references auth.users(id) on delete cascade,
   campus_id text not null check (char_length(campus_id) between 1 and 96),
   module text not null check (module in (
-    'overview', 'curriculum', 'scheduling', 'classroom', 'companion',
+    'overview', 'curriculum', 'scheduling', 'teaching', 'classroom', 'companion',
     'growth', 'family', 'fleet', 'operations', 'governance', 'access'
   )),
   actions text[] not null check (cardinality(actions) between 1 and 6),

@@ -61,6 +61,23 @@ describe("XMP event contract", () => {
     ).toBe(false);
   });
 
+  it("accepts teacher-workbench decisions only in the teaching domain", () => {
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "teaching.evidence_confirmed",
+        domain: "teaching",
+      }).success,
+    ).toBe(true);
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "teaching.evidence_confirmed",
+        domain: "growth",
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects an event kind mapped to the wrong business domain", () => {
     expect(
       xmpEventSchema.safeParse({ ...validEvent, domain: "family" }).success,

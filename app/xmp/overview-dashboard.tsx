@@ -80,9 +80,9 @@ const actionSignals = [
   },
   {
     level: "warning",
-    title: "大一班课堂节奏偏离预案 4 分钟",
-    meta: "AI 建议延长探索环节，教师拥有最终决定权",
-    href: "/xmp/classroom",
+    title: "大一班出现 2 条课堂教学建议",
+    meta: "来自匿名小组脉冲与教学节拍，等待文老师决定",
+    href: "/xmp/teaching",
   },
   {
     level: "normal",
@@ -95,7 +95,7 @@ const actionSignals = [
 const loopSteps = [
   { icon: Sparkles, label: "教研意图", detail: "目标与边界" },
   { icon: BookOpenCheck, label: "课程生成", detail: "可编辑教案" },
-  { icon: Radio, label: "实时课堂", detail: "教师掌舵" },
+  { icon: Radio, label: "AI 教学", detail: "多设备协作" },
   { icon: Activity, label: "证据沉淀", detail: "可溯源片段" },
   { icon: ShieldCheck, label: "人工审核", detail: "确认后入档" },
   { icon: UsersRound, label: "家园延伸", detail: "可执行任务" },
@@ -134,13 +134,13 @@ export function OverviewDashboard({ snapshot }: { snapshot: XmpSnapshot }) {
               : "LOCAL DEMO"}
           </span>
           <h1>
-            让每一次课堂，
+            让老师教得更轻松，
             <br />
-            都成为可持续的成长。
+            让每一次课堂更有依据。
           </h1>
           <p>
-            从教研设计、现场协作到成长证据与家园延伸，XMP
-            把分散的幼教工作连接成一个由教师掌舵的 AI 闭环。
+            从 AI 备课、智慧课堂、多设备协作到匿名学情与课后复盘，XMP
+            把老师的一节课连接成由教师掌舵的数字化教学闭环。
           </p>
           <div className="xmp-hero-actions">
             <button
@@ -149,8 +149,8 @@ export function OverviewDashboard({ snapshot }: { snapshot: XmpSnapshot }) {
             >
               <Play size={14} /> 启动 12 分钟完整演示 <ArrowUpRight size={14} />
             </button>
-            <Link href="/xmp/classroom" className="xmp-secondary-action">
-              <Radio size={14} /> 进入实时课堂 <ChevronRight size={14} />
+            <Link href="/xmp/teaching" className="xmp-secondary-action">
+              <Radio size={14} /> 打开 AI 教学驾驶舱 <ChevronRight size={14} />
             </Link>
           </div>
         </div>

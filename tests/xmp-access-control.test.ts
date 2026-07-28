@@ -36,6 +36,7 @@ describe("XMP tenant identity and access protocol", () => {
   it("centralizes module visibility for XMP product roles", () => {
     expect(canXmpRoleViewModule("operator", "access")).toBe(true);
     expect(canXmpRoleViewModule("teacher", "classroom")).toBe(true);
+    expect(canXmpRoleViewModule("teacher", "teaching")).toBe(true);
     expect(canXmpRoleViewModule("teacher", "fleet")).toBe(false);
     expect(canXmpRoleViewModule("family", "growth")).toBe(true);
     expect(canXmpRoleViewModule("family", "operations")).toBe(false);

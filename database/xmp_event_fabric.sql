@@ -13,12 +13,13 @@ create table if not exists public.xmp_events (
   kind text not null check (kind in (
     'classroom.started', 'classroom.paused', 'classroom.adjusted',
     'schedule.adjusted', 'schedule.validated', 'schedule.published', 'schedule.rolled_back',
+    'teaching.prepared', 'teaching.started', 'teaching.cue_decided', 'teaching.evidence_confirmed', 'teaching.reflection_signed',
     'evidence.candidate', 'evidence.approved', 'evidence.rejected',
     'family.dispatched', 'family.feedback_candidate', 'family.feedback_rejected',
     'device.degraded', 'device.diagnostic_completed', 'device.recovered',
     'access.requested', 'access.approved', 'access.granted', 'access.revoked', 'access.session_revoked'
   )),
-  domain text not null check (domain in ('classroom', 'scheduling', 'growth', 'family', 'fleet', 'access')),
+  domain text not null check (domain in ('classroom', 'scheduling', 'teaching', 'growth', 'family', 'fleet', 'access')),
   title text not null check (char_length(title) between 1 and 120),
   detail text not null check (char_length(detail) between 1 and 600),
   actor_label text not null check (char_length(actor_label) between 1 and 80),
@@ -43,6 +44,7 @@ create table if not exists public.xmp_events (
   constraint xmp_events_kind_domain_consistent check (
     (kind like 'classroom.%' and domain = 'classroom')
     or (kind like 'schedule.%' and domain = 'scheduling')
+    or (kind like 'teaching.%' and domain = 'teaching')
     or (kind like 'evidence.%' and domain = 'growth')
     or (kind like 'family.%' and domain = 'family')
     or (kind like 'device.%' and domain = 'fleet')
@@ -70,8 +72,8 @@ create policy xmp_events_tenant_read
   to authenticated
   using (
     tenant_id = coalesce(
-      auth.jwt() -> 'app_metadata' ->> 'campus_id',
-      auth.jwt() -> 'user_metadata' ->> 'campus_id'
+      auth.jwt() -> 'app_metadata' ->> 'tenant_id',
+      auth.jwt() -> 'user_metadata' ->> 'tenant_id'
     )
   );
 

@@ -15,6 +15,7 @@ const modules = [
   ["/xmp", "让每一次课堂"],
   ["/xmp/curriculum", "每一次改变"],
   ["/xmp/scheduling", "把一周的每一堂课"],
+  ["/xmp/teaching", "把老师的一节课"],
   ["/xmp/classroom", "一颗沉睡的种子"],
   ["/xmp/companion", "不是陪孩子盯着屏幕"],
   ["/xmp/growth", "成长结论"],
@@ -204,6 +205,44 @@ test.describe("XMP local operating system", () => {
       page.getByRole("region", { name: "访问被拒绝" }),
     ).toBeVisible();
     await expect(page.getByText(/DENY · 家长体验/)).toBeVisible();
+  });
+
+  test("AI teaching cockpit connects preparation, smart classroom and teacher-signed reflection", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      if (!window.sessionStorage.getItem("xmp-teaching-seeded")) {
+        window.localStorage.removeItem("xmp-teaching-workbench-v1");
+        window.sessionStorage.setItem("xmp-teaching-seeded", "1");
+      }
+    });
+    await page.goto(`${baseUrl}/xmp/teaching`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+
+    const stage = page.getByTestId("teaching-stage");
+    await expect(stage).toContainText("课前准备");
+    await page.getByTestId("generate-teaching-prep").click();
+    await expect(stage).toContainText("教学包已生成");
+    await expect(page.getByText("36", { exact: true })).toBeVisible();
+
+    await page.getByTestId("verify-teaching-readiness").click();
+    await expect(stage).toContainText("课堂已就绪");
+    await page.getByTestId("start-teaching-session").click();
+    await expect(stage).toContainText("课堂进行中");
+
+    await page.getByTestId("accept-teaching-cue").click();
+    await expect(page.getByText("教师已采用", { exact: true })).toBeVisible();
+    await page.getByTestId("capture-teaching-evidence").click();
+    await page.getByTestId("end-teaching-session").click();
+    await expect(stage).toContainText("课后复盘");
+
+    const sign = page.getByTestId("sign-teaching-reflection");
+    await expect(sign).toBeEnabled();
+    await sign.click();
+    await expect(stage).toContainText("教师已签发");
+    await expect(page.getByText("教学复盘已由文老师签发")).toBeVisible();
   });
 
   test("classroom and growth actions persist in one correlated local event chain", async ({

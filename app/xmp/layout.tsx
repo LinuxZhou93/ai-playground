@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./xmp.css";
 import "./curriculum-release.css";
 import "./teaching-scheduler.css";
+import "./ai-teaching-workbench.css";
 import "./access-control-center.css";
 import "./classroom-console.css";
 import "./companion-experience.css";

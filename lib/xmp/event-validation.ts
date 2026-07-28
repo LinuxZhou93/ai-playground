@@ -21,6 +21,11 @@ export const xmpEventSchema = z
       "schedule.validated",
       "schedule.published",
       "schedule.rolled_back",
+      "teaching.prepared",
+      "teaching.started",
+      "teaching.cue_decided",
+      "teaching.evidence_confirmed",
+      "teaching.reflection_signed",
       "evidence.candidate",
       "evidence.approved",
       "evidence.rejected",
@@ -39,6 +44,7 @@ export const xmpEventSchema = z
     domain: z.enum([
       "classroom",
       "scheduling",
+      "teaching",
       "growth",
       "family",
       "fleet",
@@ -58,13 +64,15 @@ export const xmpEventSchema = z
       ? "classroom"
       : event.kind.startsWith("schedule.")
         ? "scheduling"
-        : event.kind.startsWith("evidence.")
-          ? "growth"
-          : event.kind.startsWith("family.")
-            ? "family"
-            : event.kind.startsWith("device.")
-              ? "fleet"
-              : "access";
+        : event.kind.startsWith("teaching.")
+          ? "teaching"
+          : event.kind.startsWith("evidence.")
+            ? "growth"
+            : event.kind.startsWith("family.")
+              ? "family"
+              : event.kind.startsWith("device.")
+                ? "fleet"
+                : "access";
     if (event.domain !== expectedDomain) {
       context.addIssue({
         code: "custom",

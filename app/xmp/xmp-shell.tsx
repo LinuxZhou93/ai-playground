@@ -34,6 +34,8 @@ import { XmpClassroomRuntimeProvider } from "./classroom-runtime-store";
 import { XmpCourseAssetProvider } from "./course-asset-store";
 import { XmpTeachingScheduleProvider } from "./teaching-schedule-store";
 import { TeachingScheduler } from "./teaching-scheduler";
+import { AiTeachingWorkbench } from "./ai-teaching-workbench";
+import { XmpTeachingWorkbenchProvider } from "./teaching-workbench-store";
 import { AccessControlCenter } from "./access-control-center";
 import { XmpAccessControlProvider } from "./access-control-store";
 import { canXmpRoleViewModule } from "@/lib/xmp/access-control";
@@ -44,9 +46,11 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
       <XmpEventProvider>
         <XmpCourseAssetProvider>
           <XmpTeachingScheduleProvider>
-            <XmpClassroomRuntimeProvider>
-              <XmpShellInner current={current} />
-            </XmpClassroomRuntimeProvider>
+            <XmpTeachingWorkbenchProvider>
+              <XmpClassroomRuntimeProvider>
+                <XmpShellInner current={current} />
+              </XmpClassroomRuntimeProvider>
+            </XmpTeachingWorkbenchProvider>
           </XmpTeachingScheduleProvider>
         </XmpCourseAssetProvider>
       </XmpEventProvider>
@@ -250,6 +254,8 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
             <CurriculumStudio />
           ) : current === "scheduling" ? (
             <TeachingScheduler />
+          ) : current === "teaching" ? (
+            <AiTeachingWorkbench />
           ) : current === "classroom" ? (
             <ClassroomConsole />
           ) : current === "companion" ? (
@@ -314,7 +320,7 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
                   <span>02</span>
                   <h3>统一模块注册</h3>
                   <p>
-                    十一大模块拥有独立路由、权限范围和开发阶段，可持续扩展而不互相污染。
+                    十二大模块拥有独立路由、权限范围和开发阶段，以教学数字化为主轴持续扩展。
                   </p>
                 </article>
                 <article>

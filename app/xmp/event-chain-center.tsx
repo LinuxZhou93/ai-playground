@@ -4,6 +4,7 @@ import {
   Activity,
   AlertTriangle,
   Bot,
+  BrainCircuit,
   CalendarRange,
   CheckCircle2,
   Cloud,
@@ -24,12 +25,13 @@ const domainMeta: Record<
   XmpEventDomain,
   { label: string; icon: typeof Activity; step: string }
 > = {
-  classroom: { label: "课堂现场", icon: GraduationCap, step: "01" },
-  scheduling: { label: "教学调度", icon: CalendarRange, step: "02" },
-  growth: { label: "成长审核", icon: Sprout, step: "03" },
-  family: { label: "家园回路", icon: HeartHandshake, step: "04" },
-  fleet: { label: "设备保障", icon: Bot, step: "05" },
-  access: { label: "身份权限", icon: KeyRound, step: "06" },
+  scheduling: { label: "教学调度", icon: CalendarRange, step: "01" },
+  teaching: { label: "AI 教学", icon: BrainCircuit, step: "02" },
+  classroom: { label: "课堂现场", icon: GraduationCap, step: "03" },
+  growth: { label: "成长审核", icon: Sprout, step: "04" },
+  family: { label: "家园回路", icon: HeartHandshake, step: "05" },
+  fleet: { label: "设备保障", icon: Bot, step: "06" },
+  access: { label: "身份权限", icon: KeyRound, step: "07" },
 };
 
 export function EventChainCenter({
