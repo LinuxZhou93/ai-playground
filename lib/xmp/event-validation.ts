@@ -26,6 +26,9 @@ export const xmpEventSchema = z
       "teaching.cue_decided",
       "teaching.evidence_confirmed",
       "teaching.reflection_signed",
+      "insight.generated",
+      "insight.reviewed",
+      "insight.applied",
       "evidence.candidate",
       "evidence.approved",
       "evidence.rejected",
@@ -45,6 +48,7 @@ export const xmpEventSchema = z
       "classroom",
       "scheduling",
       "teaching",
+      "insights",
       "growth",
       "family",
       "fleet",
@@ -66,13 +70,15 @@ export const xmpEventSchema = z
         ? "scheduling"
         : event.kind.startsWith("teaching.")
           ? "teaching"
-          : event.kind.startsWith("evidence.")
-            ? "growth"
-            : event.kind.startsWith("family.")
-              ? "family"
-              : event.kind.startsWith("device.")
-                ? "fleet"
-                : "access";
+          : event.kind.startsWith("insight.")
+            ? "insights"
+            : event.kind.startsWith("evidence.")
+              ? "growth"
+              : event.kind.startsWith("family.")
+                ? "family"
+                : event.kind.startsWith("device.")
+                  ? "fleet"
+                  : "access";
     if (event.domain !== expectedDomain) {
       context.addIssue({
         code: "custom",

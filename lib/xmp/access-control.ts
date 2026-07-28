@@ -5,6 +5,7 @@ export type XmpAccessModule =
   | "curriculum"
   | "scheduling"
   | "teaching"
+  | "insights"
   | "classroom"
   | "companion"
   | "growth"
@@ -176,6 +177,7 @@ const rolePermissions: Record<
     curriculum: ["view", "operate", "approve", "publish"],
     scheduling: ["view", "operate", "approve", "publish"],
     teaching: ["view", "operate"],
+    insights: ["view", "operate", "approve"],
     classroom: ["view", "operate"],
     companion: ["view", "operate"],
     growth: ["view", "operate", "approve", "export"],
@@ -190,6 +192,7 @@ const rolePermissions: Record<
     curriculum: ["view", "operate", "approve", "publish"],
     scheduling: ["view", "operate", "approve"],
     teaching: ["view"],
+    insights: ["view", "operate", "approve"],
     classroom: ["view"],
     companion: ["view"],
     growth: ["view", "operate", "approve", "export"],
@@ -202,6 +205,7 @@ const rolePermissions: Record<
     curriculum: ["view"],
     scheduling: ["view"],
     teaching: ["view", "operate"],
+    insights: ["view", "operate"],
     classroom: ["view", "operate"],
     companion: ["view", "operate"],
     growth: ["view", "operate", "approve"],
@@ -241,6 +245,7 @@ export const XMP_ACCESS_MODULE_LABELS: Record<XmpAccessModule, string> = {
   curriculum: "课程工厂",
   scheduling: "教学调度",
   teaching: "AI 教学",
+  insights: "智慧学情",
   classroom: "实时课堂",
   companion: "奇妙宠",
   growth: "成长智能",

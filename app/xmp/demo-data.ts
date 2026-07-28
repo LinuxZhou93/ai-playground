@@ -1,6 +1,7 @@
 import {
   Bot,
   BrainCircuit,
+  ChartNoAxesCombined,
   Building2,
   CalendarRange,
   GraduationCap,
@@ -64,6 +65,16 @@ export const XMP_MODULES: XmpModule[] = [
     phase: 4,
   },
   {
+    id: "insights",
+    name: "智慧学情",
+    englishName: "Learning Insight",
+    description: "以匿名课堂证据帮助教师验证策略并改进下一节课。",
+    href: "/xmp/insights",
+    icon: ChartNoAxesCombined,
+    roles: ["operator", "research", "teacher"],
+    phase: 5,
+  },
+  {
     id: "classroom",
     name: "实时课堂",
     englishName: "Live Classroom",
@@ -71,7 +82,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/classroom",
     icon: GraduationCap,
     roles: ["operator", "research", "teacher"],
-    phase: 5,
+    phase: 6,
   },
   {
     id: "companion",
@@ -81,7 +92,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/companion",
     icon: Bot,
     roles: ["operator", "research", "teacher", "family"],
-    phase: 6,
+    phase: 7,
   },
   {
     id: "growth",
@@ -91,7 +102,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/growth",
     icon: Sprout,
     roles: ["operator", "research", "teacher", "family"],
-    phase: 7,
+    phase: 8,
   },
   {
     id: "family",
@@ -101,7 +112,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/family",
     icon: HeartHandshake,
     roles: ["operator", "teacher", "family"],
-    phase: 8,
+    phase: 9,
   },
   {
     id: "fleet",
@@ -111,7 +122,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/fleet",
     icon: Network,
     roles: ["operator"],
-    phase: 9,
+    phase: 10,
   },
   {
     id: "operations",
@@ -121,7 +132,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/operations",
     icon: Building2,
     roles: ["operator", "research"],
-    phase: 10,
+    phase: 11,
   },
   {
     id: "access",
@@ -131,7 +142,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/access",
     icon: KeyRound,
     roles: ["operator", "research"],
-    phase: 11,
+    phase: 12,
   },
   {
     id: "governance",
@@ -141,7 +152,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/governance",
     icon: ShieldCheck,
     roles: ["operator", "research"],
-    phase: 12,
+    phase: 13,
   },
 ];
 

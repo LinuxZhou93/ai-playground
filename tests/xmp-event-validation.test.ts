@@ -78,6 +78,23 @@ describe("XMP event contract", () => {
     ).toBe(false);
   });
 
+  it("accepts learning insights only in the insights domain", () => {
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "insight.reviewed",
+        domain: "insights",
+      }).success,
+    ).toBe(true);
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "insight.reviewed",
+        domain: "growth",
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects an event kind mapped to the wrong business domain", () => {
     expect(
       xmpEventSchema.safeParse({ ...validEvent, domain: "family" }).success,

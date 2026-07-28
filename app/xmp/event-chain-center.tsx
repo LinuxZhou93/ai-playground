@@ -27,11 +27,12 @@ const domainMeta: Record<
 > = {
   scheduling: { label: "教学调度", icon: CalendarRange, step: "01" },
   teaching: { label: "AI 教学", icon: BrainCircuit, step: "02" },
-  classroom: { label: "课堂现场", icon: GraduationCap, step: "03" },
-  growth: { label: "成长审核", icon: Sprout, step: "04" },
-  family: { label: "家园回路", icon: HeartHandshake, step: "05" },
-  fleet: { label: "设备保障", icon: Bot, step: "06" },
-  access: { label: "身份权限", icon: KeyRound, step: "07" },
+  insights: { label: "智慧学情", icon: BrainCircuit, step: "03" },
+  classroom: { label: "课堂现场", icon: GraduationCap, step: "04" },
+  growth: { label: "成长审核", icon: Sprout, step: "05" },
+  family: { label: "家园回路", icon: HeartHandshake, step: "06" },
+  fleet: { label: "设备保障", icon: Bot, step: "07" },
+  access: { label: "身份权限", icon: KeyRound, step: "08" },
 };
 
 export function EventChainCenter({

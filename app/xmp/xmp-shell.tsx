@@ -36,6 +36,8 @@ import { XmpTeachingScheduleProvider } from "./teaching-schedule-store";
 import { TeachingScheduler } from "./teaching-scheduler";
 import { AiTeachingWorkbench } from "./ai-teaching-workbench";
 import { XmpTeachingWorkbenchProvider } from "./teaching-workbench-store";
+import { XmpLearningInsightsProvider } from "./learning-insights-store";
+import { LearningInsightsCenter } from "./learning-insights-center";
 import { AccessControlCenter } from "./access-control-center";
 import { XmpAccessControlProvider } from "./access-control-store";
 import { canXmpRoleViewModule } from "@/lib/xmp/access-control";
@@ -47,9 +49,11 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
         <XmpCourseAssetProvider>
           <XmpTeachingScheduleProvider>
             <XmpTeachingWorkbenchProvider>
-              <XmpClassroomRuntimeProvider>
-                <XmpShellInner current={current} />
-              </XmpClassroomRuntimeProvider>
+              <XmpLearningInsightsProvider>
+                <XmpClassroomRuntimeProvider>
+                  <XmpShellInner current={current} />
+                </XmpClassroomRuntimeProvider>
+              </XmpLearningInsightsProvider>
             </XmpTeachingWorkbenchProvider>
           </XmpTeachingScheduleProvider>
         </XmpCourseAssetProvider>
@@ -256,6 +260,8 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
             <TeachingScheduler />
           ) : current === "teaching" ? (
             <AiTeachingWorkbench />
+          ) : current === "insights" ? (
+            <LearningInsightsCenter />
           ) : current === "classroom" ? (
             <ClassroomConsole />
           ) : current === "companion" ? (
@@ -320,7 +326,7 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
                   <span>02</span>
                   <h3>统一模块注册</h3>
                   <p>
-                    十二大模块拥有独立路由、权限范围和开发阶段，以教学数字化为主轴持续扩展。
+                    十三大模块拥有独立路由、权限范围和开发阶段，以教学数字化为主轴持续扩展。
                   </p>
                 </article>
                 <article>

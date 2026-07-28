@@ -16,6 +16,7 @@ const modules = [
   ["/xmp/curriculum", "每一次改变"],
   ["/xmp/scheduling", "把一周的每一堂课"],
   ["/xmp/teaching", "把老师的一节课"],
+  ["/xmp/insights", "让多节课的数据"],
   ["/xmp/classroom", "一颗沉睡的种子"],
   ["/xmp/companion", "不是陪孩子盯着屏幕"],
   ["/xmp/growth", "成长结论"],
@@ -243,6 +244,38 @@ test.describe("XMP local operating system", () => {
     await sign.click();
     await expect(stage).toContainText("教师已签发");
     await expect(page.getByText("教学复盘已由文老师签发")).toBeVisible();
+  });
+
+  test("learning insights turn anonymous evidence into a teacher-approved next lesson adjustment", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("xmp-learning-insights-v1");
+    });
+    await page.goto(`${baseUrl}/xmp/insights`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+
+    const stage = page.getByTestId("insight-stage");
+    await expect(stage).toHaveText("证据已汇集");
+    await page.getByTestId("generate-insights").click();
+    await expect(stage).toHaveText("等待教师研判");
+    await expect(page.getByText("证据不足 · 已拦截")).toBeVisible();
+    await page.getByTestId("accept-insight").click();
+    await expect(stage).toHaveText("教师已研判");
+    await page
+      .getByLabel("下一课教学调整")
+      .fill(
+        "分享前安排三分钟同伴追问，每组先说一条观察事实，再向另一组提出证据问题，教师记录主动引用是否出现。",
+      );
+    await page.getByTestId("save-adjustment").click();
+    await page.getByTestId("apply-adjustment").click();
+    await expect(stage).toHaveText("已进入下一课");
+    await expect(page.getByTestId("insight-applied")).toContainText("第 32 周");
+    await expect(page.getByTestId("insight-applied")).toContainText(
+      "未自动发布",
+    );
   });
 
   test("classroom and growth actions persist in one correlated local event chain", async ({

@@ -3,6 +3,7 @@ import "./xmp.css";
 import "./curriculum-release.css";
 import "./teaching-scheduler.css";
 import "./ai-teaching-workbench.css";
+import "./learning-insights-center.css";
 import "./access-control-center.css";
 import "./classroom-console.css";
 import "./companion-experience.css";
