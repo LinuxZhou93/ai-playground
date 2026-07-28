@@ -8,6 +8,7 @@ export type XmpModuleId =
   | "scheduling"
   | "teaching"
   | "insights"
+  | "strategies"
   | "classroom"
   | "companion"
   | "growth"

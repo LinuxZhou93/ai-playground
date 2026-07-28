@@ -30,7 +30,7 @@ const demoSteps = [
     answer:
       "XMP 以老师的一节课为中心，把 AI 备课、智慧课堂、匿名学情、多设备协作和教师复盘连成一条教学数字化链路；园所管理能力只负责支撑规模化交付。",
     proof: [
-      "十三个模块围绕教师教学主流程协同",
+      "十四个模块围绕教师教学主流程协同",
       "AI 输出必须由教师决定、确认或签发",
       "摄像头、拾音、大屏、边缘中枢与奇妙宠进入同一节课",
     ],
@@ -190,7 +190,7 @@ export function InvestorDemoRoom({
           </div>
           <div className="xmp-demo-room-meta">
             <span>
-              <i /> 十三大模块已就绪
+              <i /> 十四大模块已就绪
             </span>
             <span>演示数据 · 非经营承诺</span>
           </div>

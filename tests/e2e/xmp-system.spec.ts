@@ -17,6 +17,7 @@ const modules = [
   ["/xmp/scheduling", "把一周的每一堂课"],
   ["/xmp/teaching", "把老师的一节课"],
   ["/xmp/insights", "让多节课的数据"],
+  ["/xmp/strategies", "让一位老师验证过的方法"],
   ["/xmp/classroom", "一颗沉睡的种子"],
   ["/xmp/companion", "不是陪孩子盯着屏幕"],
   ["/xmp/growth", "成长结论"],
@@ -276,6 +277,60 @@ test.describe("XMP local operating system", () => {
     await expect(page.getByTestId("insight-applied")).toContainText(
       "未自动发布",
     );
+  });
+
+  test("teacher insight becomes an independently reviewed strategy and unpublished course variant", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("xmp-learning-insights-v1");
+      window.localStorage.removeItem("xmp-teaching-strategies-v1");
+      window.localStorage.removeItem("xmp-course-assets-v1");
+    });
+    await page.goto(`${baseUrl}/xmp/insights`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+    await page.getByTestId("generate-insights").click();
+    await page.getByTestId("accept-insight").click();
+    await page
+      .getByLabel("下一课教学调整")
+      .fill(
+        "分享前安排三分钟同伴追问，每组先说一条观察事实，再向另一组提出证据问题，教师记录主动引用是否出现。",
+      );
+    await page.getByTestId("save-adjustment").click();
+    await page.getByTestId("apply-adjustment").click();
+
+    await page.goto(`${baseUrl}/xmp/strategies`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+    await page.getByTestId("import-strategy-candidate").click();
+    await expect(
+      page.getByText("同伴追问促进证据表达", { exact: true }).first(),
+    ).toBeVisible();
+    await page.getByTestId("submit-strategy-review").click();
+    await page.getByTestId("approve-strategy").click();
+    await expect(
+      page.getByText("可进入课程适配", { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByLabel("教师策略适配动作")
+      .fill(
+        "分享前安排三分钟同伴追问，每组先说一条观察事实，教师记录匿名小组是否主动引用。",
+      );
+    await page.getByTestId("create-strategy-course-draft").click();
+    await expect(page.getByTestId("strategy-course-draft")).toContainText(
+      "未送审 · 未发布",
+    );
+    const courseCatalog = await page.evaluate(() =>
+      JSON.parse(window.localStorage.getItem("xmp-course-assets-v1") || "{}"),
+    );
+    expect(courseCatalog.activePublishedVersionId).toBe("seed-v3.2.0");
+    expect(courseCatalog.versions[0]).toMatchObject({
+      status: "draft",
+      signature: null,
+    });
   });
 
   test("classroom and growth actions persist in one correlated local event chain", async ({

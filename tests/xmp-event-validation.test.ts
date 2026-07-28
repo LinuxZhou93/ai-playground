@@ -95,6 +95,23 @@ describe("XMP event contract", () => {
     ).toBe(false);
   });
 
+  it("accepts strategy lifecycle events only in the strategies domain", () => {
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "strategy.approved",
+        domain: "strategies",
+      }).success,
+    ).toBe(true);
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "strategy.approved",
+        domain: "insights",
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects an event kind mapped to the wrong business domain", () => {
     expect(
       xmpEventSchema.safeParse({ ...validEvent, domain: "family" }).success,

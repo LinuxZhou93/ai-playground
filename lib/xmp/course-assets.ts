@@ -60,6 +60,7 @@ export type XmpCourseVersion = {
   reviewedAt: string | null;
   publishedAt: string | null;
   signature: string | null;
+  sourceStrategyId?: string;
 };
 
 export type XmpCourseCommandKind =
@@ -68,7 +69,8 @@ export type XmpCourseCommandKind =
   | "review.request-changes"
   | "release.publish"
   | "release.rollback"
-  | "classroom.pin";
+  | "classroom.pin"
+  | "strategy.apply";
 
 export type XmpCourseCommand = {
   id: string;
@@ -76,7 +78,13 @@ export type XmpCourseCommand = {
   issuedAt: string;
   actor: XmpCourseActor;
   versionId: string;
-  payload?: { classroomLifecycle?: "preflight" | "live" | "paused" | "ended" };
+  payload?: {
+    classroomLifecycle?: "preflight" | "live" | "paused" | "ended";
+    strategyId?: string;
+    targetPhaseId?: string;
+    adaptationText?: string;
+    ageBand?: string;
+  };
 };
 
 export type XmpCourseCommandRecord = {
@@ -356,6 +364,92 @@ export function applyCourseCommand(
   const allSafe = version.safetyChecks.every(
     (check) => check.status === "pass",
   );
+
+  if (command.kind === "strategy.apply") {
+    if (command.actor.role !== "author")
+      return finish(
+        catalog,
+        command,
+        "rejected",
+        "只有课程教师可以创建策略适配草稿",
+      );
+    if (
+      version.id !== catalog.activePublishedVersionId ||
+      version.status !== "published" ||
+      !version.signature
+    )
+      return finish(
+        catalog,
+        command,
+        "rejected",
+        "策略只能基于当前签名发布版本创建草稿",
+      );
+    const strategyId = command.payload?.strategyId?.trim() ?? "";
+    const targetPhaseId = command.payload?.targetPhaseId?.trim() ?? "";
+    const adaptationText = command.payload?.adaptationText?.trim() ?? "";
+    if (
+      !strategyId ||
+      catalog.versions.some((item) => item.sourceStrategyId === strategyId)
+    )
+      return finish(
+        catalog,
+        command,
+        "rejected",
+        "策略来源缺失或已经创建课程草稿",
+      );
+    if (!version.phases.some((item) => item.id === targetPhaseId))
+      return finish(catalog, command, "rejected", "目标教学节拍不存在");
+    if (adaptationText.length < 18)
+      return finish(
+        catalog,
+        command,
+        "rejected",
+        "策略适配必须包含明确教学动作与观察方法",
+      );
+    if (/姓名|电话|人脸|诊断|排名|优生|差生|能力分数/.test(adaptationText))
+      return finish(
+        catalog,
+        command,
+        "rejected",
+        "课程适配不得包含身份、诊断、排名或儿童标签",
+      );
+    const nextVersion: XmpCourseVersion = {
+      ...version,
+      id: `strategy-draft-${strategyId}`,
+      semanticVersion: `${version.semanticVersion}-strategy.1`,
+      basedOnVersionId: version.id,
+      status: "draft",
+      ageBand: command.payload?.ageBand?.trim() || version.ageBand,
+      durationMinutes: version.durationMinutes + 3,
+      phases: version.phases.map((phase) =>
+        phase.id === targetPhaseId
+          ? {
+              ...phase,
+              duration: phase.duration + 3,
+              detail: adaptationText,
+              intent: `${phase.intent}；验证迁移后的教学策略是否适用`,
+            }
+          : { ...phase },
+      ),
+      assets: version.assets.map((asset) => ({ ...asset })),
+      safetyChecks: version.safetyChecks.map((check) => ({ ...check })),
+      changeSummary: [
+        `复用审核策略 ${strategyId}`,
+        `调整“${version.phases.find((item) => item.id === targetPhaseId)?.title}”节拍并增加 3 分钟`,
+        "保留再次验证标记，尚未提交审核或发布",
+      ],
+      author: command.actor,
+      reviewer: null,
+      createdAt: command.issuedAt,
+      reviewedAt: null,
+      publishedAt: null,
+      signature: null,
+      sourceStrategyId: strategyId,
+    };
+    return finish(catalog, command, "accepted", undefined, () =>
+      update([nextVersion, ...catalog.versions]),
+    );
+  }
 
   if (command.kind === "review.submit") {
     if (

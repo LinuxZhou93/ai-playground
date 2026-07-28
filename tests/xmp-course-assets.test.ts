@@ -194,4 +194,53 @@ describe("XMP governed course releases", () => {
       expect.arrayContaining(["课堂时长", "分享与追问", "教师引导脚本"]),
     );
   });
+
+  it("creates a new unpublished course version from an approved teaching strategy", () => {
+    const catalog = createInitialCourseCatalog();
+    const result = applyCourseCommand(catalog, {
+      id: "strategy-course-1",
+      kind: "strategy.apply",
+      actor: XMP_COURSE_AUTHOR,
+      versionId: catalog.activePublishedVersionId,
+      issuedAt: "2026-07-28T14:00:00+08:00",
+      payload: {
+        strategyId: "strategy-peer-question",
+        targetPhaseId: "share",
+        ageBand: "5–6 岁",
+        adaptationText:
+          "分享前安排三分钟同伴追问，每组先说一条观察事实，教师记录主动引用是否出现。",
+      },
+    });
+    expect(result.record.outcome).toBe("accepted");
+    expect(result.catalog.activePublishedVersionId).toBe("seed-v3.2.0");
+    expect(result.catalog.versions[0]).toMatchObject({
+      status: "draft",
+      signature: null,
+      sourceStrategyId: "strategy-peer-question",
+      basedOnVersionId: "seed-v3.2.0",
+    });
+    expect(
+      result.catalog.versions[0].phases.find((item) => item.id === "share")
+        ?.duration,
+    ).toBe(10);
+  });
+
+  it("blocks child labels from a strategy-based course variant", () => {
+    const catalog = createInitialCourseCatalog();
+    const result = applyCourseCommand(catalog, {
+      id: "strategy-course-unsafe",
+      kind: "strategy.apply",
+      actor: XMP_COURSE_AUTHOR,
+      versionId: catalog.activePublishedVersionId,
+      issuedAt: "2026-07-28T14:00:00+08:00",
+      payload: {
+        strategyId: "strategy-unsafe",
+        targetPhaseId: "share",
+        adaptationText: "记录差生排名和能力分数，再自动修改当前发布课程内容。",
+      },
+    });
+    expect(result.record.outcome).toBe("rejected");
+    expect(result.catalog.versions).toHaveLength(2);
+    expect(result.catalog.activePublishedVersionId).toBe("seed-v3.2.0");
+  });
 });

@@ -32,6 +32,12 @@ type CourseAssetContextValue = {
     classroomLifecycle?: "preflight" | "live" | "paused" | "ended",
   ) => void;
   resetCatalog: () => void;
+  applyStrategy: (input: {
+    strategyId: string;
+    targetPhaseId: string;
+    adaptationText: string;
+    ageBand: string;
+  }) => void;
 };
 
 const CourseAssetContext = createContext<CourseAssetContextValue | null>(null);
@@ -105,14 +111,37 @@ export function XmpCourseAssetProvider({
     [],
   );
 
+  const applyStrategy = useCallback(
+    (input: {
+      strategyId: string;
+      targetPhaseId: string;
+      adaptationText: string;
+      ageBand: string;
+    }) => {
+      setCatalog(
+        (current) =>
+          applyCourseCommand(current, {
+            id: commandId(),
+            kind: "strategy.apply",
+            versionId: current.activePublishedVersionId,
+            actor: XMP_COURSE_AUTHOR,
+            issuedAt: new Date().toISOString(),
+            payload: input,
+          }).catalog,
+      );
+    },
+    [],
+  );
+
   const value = useMemo(
     () => ({
       catalog,
       hydrated,
       issueCommand,
+      applyStrategy,
       resetCatalog: () => setCatalog(createInitialCourseCatalog()),
     }),
-    [catalog, hydrated, issueCommand],
+    [applyStrategy, catalog, hydrated, issueCommand],
   );
   return (
     <CourseAssetContext.Provider value={value}>
