@@ -31,14 +31,18 @@ import { EventChainCenter } from "./event-chain-center";
 import { useXmpEvents, XmpEventProvider } from "./event-store";
 import { XmpClassroomRuntimeProvider } from "./classroom-runtime-store";
 import { XmpCourseAssetProvider } from "./course-asset-store";
+import { XmpTeachingScheduleProvider } from "./teaching-schedule-store";
+import { TeachingScheduler } from "./teaching-scheduler";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
   return (
     <XmpEventProvider>
       <XmpCourseAssetProvider>
-        <XmpClassroomRuntimeProvider>
-          <XmpShellInner current={current} />
-        </XmpClassroomRuntimeProvider>
+        <XmpTeachingScheduleProvider>
+          <XmpClassroomRuntimeProvider>
+            <XmpShellInner current={current} />
+          </XmpClassroomRuntimeProvider>
+        </XmpTeachingScheduleProvider>
       </XmpCourseAssetProvider>
     </XmpEventProvider>
   );
@@ -51,6 +55,7 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
   const [sourceOpen, setSourceOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
   const [sourceLoading, setSourceLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [snapshot, setSnapshot] = useState<XmpSnapshot>(() =>
     createDemoSnapshot(),
   );
@@ -71,6 +76,7 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
   };
 
   useEffect(() => {
+    setHydrated(true);
     const stored = window.localStorage.getItem("xmp-role") as XmpRole | null;
     if (stored && XMP_ROLES.some((item) => item.id === stored)) setRole(stored);
   }, []);
@@ -93,7 +99,7 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
   };
 
   return (
-    <div className="xmp-app">
+    <div className="xmp-app" data-xmp-hydrated={hydrated ? "true" : "false"}>
       <DataSourceCenter
         open={sourceOpen}
         snapshot={snapshot}
@@ -219,6 +225,8 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
             <OverviewDashboard snapshot={snapshot} />
           ) : current === "curriculum" ? (
             <CurriculumStudio />
+          ) : current === "scheduling" ? (
+            <TeachingScheduler />
           ) : current === "classroom" ? (
             <ClassroomConsole />
           ) : current === "companion" ? (
@@ -281,7 +289,7 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
                   <span>02</span>
                   <h3>统一模块注册</h3>
                   <p>
-                    九大模块拥有独立路由、权限范围和开发阶段，可持续扩展而不互相污染。
+                    十大模块拥有独立路由、权限范围和开发阶段，可持续扩展而不互相污染。
                   </p>
                 </article>
                 <article>

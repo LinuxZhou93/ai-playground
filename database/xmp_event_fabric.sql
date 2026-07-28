@@ -12,11 +12,12 @@ create table if not exists public.xmp_events (
   idempotency_key text not null check (char_length(idempotency_key) between 8 and 128),
   kind text not null check (kind in (
     'classroom.started', 'classroom.paused', 'classroom.adjusted',
+    'schedule.adjusted', 'schedule.validated', 'schedule.published', 'schedule.rolled_back',
     'evidence.candidate', 'evidence.approved', 'evidence.rejected',
     'family.dispatched', 'family.feedback_candidate', 'family.feedback_rejected',
     'device.degraded', 'device.diagnostic_completed', 'device.recovered'
   )),
-  domain text not null check (domain in ('classroom', 'growth', 'family', 'fleet')),
+  domain text not null check (domain in ('classroom', 'scheduling', 'growth', 'family', 'fleet')),
   title text not null check (char_length(title) between 1 and 120),
   detail text not null check (char_length(detail) between 1 and 600),
   actor_label text not null check (char_length(actor_label) between 1 and 80),
@@ -40,6 +41,7 @@ create table if not exists public.xmp_events (
   constraint xmp_events_tenant_idempotency_unique unique (tenant_id, idempotency_key),
   constraint xmp_events_kind_domain_consistent check (
     (kind like 'classroom.%' and domain = 'classroom')
+    or (kind like 'schedule.%' and domain = 'scheduling')
     or (kind like 'evidence.%' and domain = 'growth')
     or (kind like 'family.%' and domain = 'family')
     or (kind like 'device.%' and domain = 'fleet')

@@ -4,9 +4,17 @@ const baseUrl = process.env.XMP_BASE_URL ?? "http://127.0.0.1:3000";
 
 test.use({ channel: "chrome" });
 
+async function waitForXmpHydration(page: import("@playwright/test").Page) {
+  await expect(page.locator(".xmp-app")).toHaveAttribute(
+    "data-xmp-hydrated",
+    "true",
+  );
+}
+
 const modules = [
   ["/xmp", "让每一次课堂"],
   ["/xmp/curriculum", "每一次改变"],
+  ["/xmp/scheduling", "把一周的每一堂课"],
   ["/xmp/classroom", "一颗沉睡的种子"],
   ["/xmp/companion", "不是陪孩子盯着屏幕"],
   ["/xmp/growth", "成长结论"],
@@ -62,6 +70,7 @@ test.describe("XMP local operating system", () => {
     expect(JSON.stringify(snapshot)).not.toContain("parent_name");
 
     await page.goto(`${baseUrl}/xmp`, { waitUntil: "domcontentloaded" });
+    await waitForXmpHydration(page);
     await page.getByRole("button", { name: /DEMO DATA/ }).click();
     const dialog = page.getByRole("dialog", { name: "数据源与安全边界" });
     await expect(dialog).toBeVisible();
@@ -114,6 +123,42 @@ test.describe("XMP local operating system", () => {
     });
   });
 
+  test("schedule publishing resolves resource conflicts before classroom delivery", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("xmp-teaching-schedule-v1");
+      window.localStorage.removeItem("xmp-course-assets-v1");
+    });
+    await page.goto(`${baseUrl}/xmp/scheduling`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+
+    await expect(
+      page.locator(".xmp-scheduler-kpis article.warning b"),
+    ).toHaveText("3");
+    await expect(page.getByTestId("validate-schedule")).toBeDisabled();
+    await page.getByTestId("resolve-schedule-conflicts").click();
+    await expect(page.getByText("资源无碰撞")).toBeVisible();
+    await page.getByTestId("mark-materials-ready").click();
+    await expect(page.getByText("6/6", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("validate-schedule")).toBeEnabled();
+    await page.getByTestId("validate-schedule").click();
+    await expect(page.getByTestId("publish-schedule")).toBeVisible();
+    await page.getByTestId("publish-schedule").click();
+    await expect(page.getByText("当前执行计划", { exact: true })).toBeVisible();
+    await expect(page.getByText(/LOCAL-SCHED-/).first()).toBeVisible();
+
+    await page.goto(`${baseUrl}/xmp/classroom`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+    const releaseLock = page.getByRole("region", { name: "课堂课程锁版" });
+    await expect(releaseLock).toContainText("第 31 周");
+    await expect(releaseLock).toContainText("探究教室 A-301");
+  });
+
   test("classroom and growth actions persist in one correlated local event chain", async ({
     page,
   }) => {
@@ -133,6 +178,7 @@ test.describe("XMP local operating system", () => {
       waitUntil: "domcontentloaded",
     });
     await snapshotReady;
+    await waitForXmpHydration(page);
 
     await page.getByRole("button", { name: "开始课堂" }).last().click();
     await page.getByRole("button", { name: "加入待审核" }).click();
@@ -158,6 +204,7 @@ test.describe("XMP local operating system", () => {
       waitUntil: "domcontentloaded",
     });
     await snapshotReady;
+    await waitForXmpHydration(page);
     await page.getByRole("button", { name: /教师确认并入档/ }).click();
     await page.getByRole("button", { name: /打开教学闭环事件链/ }).click();
 
@@ -179,6 +226,7 @@ test.describe("XMP local operating system", () => {
     await page.goto(`${baseUrl}/xmp/classroom`, {
       waitUntil: "domcontentloaded",
     });
+    await waitForXmpHydration(page);
     const trustRegion = page.getByRole("region", {
       name: "课堂会话可信状态",
     });
@@ -197,6 +245,7 @@ test.describe("XMP local operating system", () => {
     await page.goto(`${baseUrl}/xmp/fleet`, {
       waitUntil: "domcontentloaded",
     });
+    await waitForXmpHydration(page);
     const runtimeRegion = page.getByRole("region", {
       name: "课堂运行时联动",
     });
@@ -209,6 +258,7 @@ test.describe("XMP local operating system", () => {
     await page.goto(`${baseUrl}/xmp/classroom`, {
       waitUntil: "domcontentloaded",
     });
+    await waitForXmpHydration(page);
     const recoveredTrust = page.getByRole("region", {
       name: "课堂会话可信状态",
     });
@@ -233,6 +283,7 @@ test.describe("XMP local operating system", () => {
     await page.goto(`${baseUrl}/xmp/classroom`, {
       waitUntil: "domcontentloaded",
     });
+    await waitForXmpHydration(page);
     await page.getByRole("button", { name: "开始课堂" }).last().click();
     await page.getByRole("button", { name: "安全接管" }).click();
     const dialog = page.getByRole("dialog", { name: "课堂安全接管" });

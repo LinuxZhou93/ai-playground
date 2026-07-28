@@ -4,6 +4,7 @@ import {
   Activity,
   AlertTriangle,
   Bot,
+  CalendarRange,
   CheckCircle2,
   Cloud,
   CloudOff,
@@ -23,9 +24,10 @@ const domainMeta: Record<
   { label: string; icon: typeof Activity; step: string }
 > = {
   classroom: { label: "课堂现场", icon: GraduationCap, step: "01" },
-  growth: { label: "成长审核", icon: Sprout, step: "02" },
-  family: { label: "家园回路", icon: HeartHandshake, step: "03" },
-  fleet: { label: "设备保障", icon: Bot, step: "04" },
+  scheduling: { label: "教学调度", icon: CalendarRange, step: "02" },
+  growth: { label: "成长审核", icon: Sprout, step: "03" },
+  family: { label: "家园回路", icon: HeartHandshake, step: "04" },
+  fleet: { label: "设备保障", icon: Bot, step: "05" },
 };
 
 export function EventChainCenter({

@@ -27,6 +27,23 @@ describe("XMP event contract", () => {
     ).toBe(false);
   });
 
+  it("accepts a scheduling event only in the scheduling domain", () => {
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "schedule.published",
+        domain: "scheduling",
+      }).success,
+    ).toBe(true);
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "schedule.published",
+        domain: "classroom",
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects an event kind mapped to the wrong business domain", () => {
     expect(
       xmpEventSchema.safeParse({ ...validEvent, domain: "family" }).success,

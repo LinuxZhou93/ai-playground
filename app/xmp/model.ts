@@ -5,6 +5,7 @@ export type XmpRole = "operator" | "research" | "teacher" | "family";
 export type XmpModuleId =
   | "overview"
   | "curriculum"
+  | "scheduling"
   | "classroom"
   | "companion"
   | "growth"

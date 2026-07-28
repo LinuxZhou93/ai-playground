@@ -31,6 +31,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useXmpEvents, XMP_DEMO_CORRELATION_ID } from "./event-store";
 import { useXmpClassroomRuntime } from "./classroom-runtime-store";
 import { useXmpCourseAssets } from "./course-asset-store";
+import { useXmpTeachingSchedule } from "./teaching-schedule-store";
 
 type SideTab = "guide" | "evidence" | "devices";
 
@@ -144,6 +145,7 @@ function formatTime(seconds: number) {
 export function ClassroomConsole() {
   const { emit } = useXmpEvents();
   const { catalog } = useXmpCourseAssets();
+  const { catalog: scheduleCatalog } = useXmpTeachingSchedule();
   const {
     runtime,
     issueTeacherCommand,
@@ -159,6 +161,14 @@ export function ClassroomConsole() {
       (version) => version.id === catalog.classroomPinnedVersionId,
     ) ?? catalog.versions[0];
   const courseSteps = pinnedCourse?.phases ?? lessonSteps;
+  const activeScheduleBatch =
+    scheduleCatalog.batches.find(
+      (batch) => batch.id === scheduleCatalog.activePublishedBatchId,
+    ) ?? scheduleCatalog.batches[0];
+  const scheduledSession =
+    activeScheduleBatch.slots.find(
+      (slot) => slot.classId === "class-big-1" && slot.date === "2026-07-27",
+    ) ?? activeScheduleBatch.slots[0];
   const session =
     runtime.lifecycle === "preflight" ? "ready" : runtime.lifecycle;
   const activeStep = Math.min(runtime.activeStep, courseSteps.length - 1);
@@ -326,14 +336,20 @@ export function ClassroomConsole() {
         <div>
           <LockKeyhole size={14} />
           <span>
-            <small>签名课程发布</small>
+            <small>签名课程与教学计划</small>
             <b>
               {pinnedCourse.title} · v{pinnedCourse.semanticVersion}
             </b>
           </span>
         </div>
-        <code>{pinnedCourse.signature}</code>
-        <p>本课堂已锁定；新发布版本不会在授课中替换</p>
+        <code>
+          {pinnedCourse.signature} · {activeScheduleBatch.signature}
+        </code>
+        <p>
+          {activeScheduleBatch.label} · {scheduledSession.dayLabel}{" "}
+          {scheduledSession.startTime} · {scheduledSession.roomName} ·
+          本课堂已锁定
+        </p>
       </section>
 
       {runtime.safetyMode === "teacher-control" && (

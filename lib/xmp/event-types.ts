@@ -1,9 +1,18 @@
-export type XmpEventDomain = "classroom" | "growth" | "family" | "fleet";
+export type XmpEventDomain =
+  | "classroom"
+  | "scheduling"
+  | "growth"
+  | "family"
+  | "fleet";
 
 export type XmpEventKind =
   | "classroom.started"
   | "classroom.paused"
   | "classroom.adjusted"
+  | "schedule.adjusted"
+  | "schedule.validated"
+  | "schedule.published"
+  | "schedule.rolled_back"
   | "evidence.candidate"
   | "evidence.approved"
   | "evidence.rejected"

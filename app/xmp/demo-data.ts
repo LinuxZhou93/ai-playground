@@ -1,6 +1,7 @@
 import {
   Bot,
   Building2,
+  CalendarRange,
   GraduationCap,
   HeartHandshake,
   LayoutDashboard,
@@ -40,6 +41,16 @@ export const XMP_MODULES: XmpModule[] = [
     phase: 2,
   },
   {
+    id: "scheduling",
+    name: "教学调度",
+    englishName: "Teaching Schedule",
+    description: "班级、教师、空间、设备与签名课程版本的园所级编排。",
+    href: "/xmp/scheduling",
+    icon: CalendarRange,
+    roles: ["operator", "research", "teacher"],
+    phase: 3,
+  },
+  {
     id: "classroom",
     name: "实时课堂",
     englishName: "Live Classroom",
@@ -47,7 +58,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/classroom",
     icon: GraduationCap,
     roles: ["operator", "research", "teacher"],
-    phase: 3,
+    phase: 4,
   },
   {
     id: "companion",
@@ -57,7 +68,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/companion",
     icon: Bot,
     roles: ["operator", "research", "teacher", "family"],
-    phase: 4,
+    phase: 5,
   },
   {
     id: "growth",
@@ -67,7 +78,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/growth",
     icon: Sprout,
     roles: ["operator", "research", "teacher", "family"],
-    phase: 5,
+    phase: 6,
   },
   {
     id: "family",
@@ -77,7 +88,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/family",
     icon: HeartHandshake,
     roles: ["operator", "teacher", "family"],
-    phase: 6,
+    phase: 7,
   },
   {
     id: "fleet",
@@ -87,7 +98,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/fleet",
     icon: Network,
     roles: ["operator"],
-    phase: 7,
+    phase: 8,
   },
   {
     id: "operations",
@@ -97,7 +108,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/operations",
     icon: Building2,
     roles: ["operator", "research"],
-    phase: 8,
+    phase: 9,
   },
   {
     id: "governance",
@@ -107,7 +118,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/governance",
     icon: ShieldCheck,
     roles: ["operator", "research"],
-    phase: 9,
+    phase: 10,
   },
 ];
 

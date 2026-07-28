@@ -17,6 +17,10 @@ export const xmpEventSchema = z
       "classroom.started",
       "classroom.paused",
       "classroom.adjusted",
+      "schedule.adjusted",
+      "schedule.validated",
+      "schedule.published",
+      "schedule.rolled_back",
       "evidence.candidate",
       "evidence.approved",
       "evidence.rejected",
@@ -27,7 +31,7 @@ export const xmpEventSchema = z
       "device.diagnostic_completed",
       "device.recovered",
     ]),
-    domain: z.enum(["classroom", "growth", "family", "fleet"]),
+    domain: z.enum(["classroom", "scheduling", "growth", "family", "fleet"]),
     title: z.string().trim().min(1).max(120),
     detail: z.string().trim().min(1).max(600),
     actor: z.string().trim().min(1).max(80),
@@ -40,11 +44,13 @@ export const xmpEventSchema = z
   .superRefine((event, context) => {
     const expectedDomain = event.kind.startsWith("classroom.")
       ? "classroom"
-      : event.kind.startsWith("evidence.")
-        ? "growth"
-        : event.kind.startsWith("family.")
-          ? "family"
-          : "fleet";
+      : event.kind.startsWith("schedule.")
+        ? "scheduling"
+        : event.kind.startsWith("evidence.")
+          ? "growth"
+          : event.kind.startsWith("family.")
+            ? "family"
+            : "fleet";
     if (event.domain !== expectedDomain) {
       context.addIssue({
         code: "custom",
