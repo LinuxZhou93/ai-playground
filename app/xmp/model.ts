@@ -12,6 +12,7 @@ export type XmpModuleId =
   | "family"
   | "fleet"
   | "operations"
+  | "access"
   | "governance";
 
 export type XmpModule = {

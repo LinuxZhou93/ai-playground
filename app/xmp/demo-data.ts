@@ -5,6 +5,7 @@ import {
   GraduationCap,
   HeartHandshake,
   LayoutDashboard,
+  KeyRound,
   Network,
   ShieldCheck,
   Sparkles,
@@ -111,6 +112,16 @@ export const XMP_MODULES: XmpModule[] = [
     phase: 9,
   },
   {
+    id: "access",
+    name: "身份与权限",
+    englishName: "Access Control",
+    description: "园所身份、租户作用域、最小权限、限时授权与会话审计。",
+    href: "/xmp/access",
+    icon: KeyRound,
+    roles: ["operator", "research"],
+    phase: 10,
+  },
+  {
     id: "governance",
     name: "数据治理",
     englishName: "Trust Center",
@@ -118,7 +129,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/governance",
     icon: ShieldCheck,
     roles: ["operator", "research"],
-    phase: 10,
+    phase: 11,
   },
 ];
 

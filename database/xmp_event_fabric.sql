@@ -15,9 +15,10 @@ create table if not exists public.xmp_events (
     'schedule.adjusted', 'schedule.validated', 'schedule.published', 'schedule.rolled_back',
     'evidence.candidate', 'evidence.approved', 'evidence.rejected',
     'family.dispatched', 'family.feedback_candidate', 'family.feedback_rejected',
-    'device.degraded', 'device.diagnostic_completed', 'device.recovered'
+    'device.degraded', 'device.diagnostic_completed', 'device.recovered',
+    'access.requested', 'access.approved', 'access.granted', 'access.revoked', 'access.session_revoked'
   )),
-  domain text not null check (domain in ('classroom', 'scheduling', 'growth', 'family', 'fleet')),
+  domain text not null check (domain in ('classroom', 'scheduling', 'growth', 'family', 'fleet', 'access')),
   title text not null check (char_length(title) between 1 and 120),
   detail text not null check (char_length(detail) between 1 and 600),
   actor_label text not null check (char_length(actor_label) between 1 and 80),
@@ -45,6 +46,7 @@ create table if not exists public.xmp_events (
     or (kind like 'evidence.%' and domain = 'growth')
     or (kind like 'family.%' and domain = 'family')
     or (kind like 'device.%' and domain = 'fleet')
+    or (kind like 'access.%' and domain = 'access')
   )
 );
 

@@ -44,6 +44,23 @@ describe("XMP event contract", () => {
     ).toBe(false);
   });
 
+  it("accepts access decisions only in the access domain", () => {
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "access.granted",
+        domain: "access",
+      }).success,
+    ).toBe(true);
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "access.granted",
+        domain: "governance",
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects an event kind mapped to the wrong business domain", () => {
     expect(
       xmpEventSchema.safeParse({ ...validEvent, domain: "family" }).success,

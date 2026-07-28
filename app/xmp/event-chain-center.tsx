@@ -10,6 +10,7 @@ import {
   CloudOff,
   GraduationCap,
   HeartHandshake,
+  KeyRound,
   RotateCcw,
   ShieldCheck,
   Sprout,
@@ -28,6 +29,7 @@ const domainMeta: Record<
   growth: { label: "成长审核", icon: Sprout, step: "03" },
   family: { label: "家园回路", icon: HeartHandshake, step: "04" },
   fleet: { label: "设备保障", icon: Bot, step: "05" },
+  access: { label: "身份权限", icon: KeyRound, step: "06" },
 };
 
 export function EventChainCenter({

@@ -3,7 +3,8 @@ export type XmpEventDomain =
   | "scheduling"
   | "growth"
   | "family"
-  | "fleet";
+  | "fleet"
+  | "access";
 
 export type XmpEventKind =
   | "classroom.started"
@@ -21,7 +22,12 @@ export type XmpEventKind =
   | "family.feedback_rejected"
   | "device.degraded"
   | "device.diagnostic_completed"
-  | "device.recovered";
+  | "device.recovered"
+  | "access.requested"
+  | "access.approved"
+  | "access.granted"
+  | "access.revoked"
+  | "access.session_revoked";
 
 export type XmpEventSyncState =
   | "local-only"

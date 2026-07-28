@@ -30,8 +30,20 @@ export const xmpEventSchema = z
       "device.degraded",
       "device.diagnostic_completed",
       "device.recovered",
+      "access.requested",
+      "access.approved",
+      "access.granted",
+      "access.revoked",
+      "access.session_revoked",
     ]),
-    domain: z.enum(["classroom", "scheduling", "growth", "family", "fleet"]),
+    domain: z.enum([
+      "classroom",
+      "scheduling",
+      "growth",
+      "family",
+      "fleet",
+      "access",
+    ]),
     title: z.string().trim().min(1).max(120),
     detail: z.string().trim().min(1).max(600),
     actor: z.string().trim().min(1).max(80),
@@ -50,7 +62,9 @@ export const xmpEventSchema = z
           ? "growth"
           : event.kind.startsWith("family.")
             ? "family"
-            : "fleet";
+            : event.kind.startsWith("device.")
+              ? "fleet"
+              : "access";
     if (event.domain !== expectedDomain) {
       context.addIssue({
         code: "custom",

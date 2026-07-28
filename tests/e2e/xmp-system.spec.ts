@@ -21,6 +21,7 @@ const modules = [
   ["/xmp/family", "把课堂带回家"],
   ["/xmp/fleet", "每一台设备都可见"],
   ["/xmp/operations", "让每一次交付"],
+  ["/xmp/access", "每一次访问"],
   ["/xmp/governance", "儿童数据不是资产池"],
 ] as const;
 
@@ -157,6 +158,52 @@ test.describe("XMP local operating system", () => {
     const releaseLock = page.getByRole("region", { name: "课堂课程锁版" });
     await expect(releaseLock).toContainText("第 31 周");
     await expect(releaseLock).toContainText("探究教室 A-301");
+  });
+
+  test("high-risk access requires two approvers and remains instantly revocable", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      if (!window.sessionStorage.getItem("xmp-access-seeded")) {
+        window.localStorage.removeItem("xmp-access-control-v1");
+        window.localStorage.removeItem("xmp-role");
+        window.sessionStorage.setItem("xmp-access-seeded", "1");
+      }
+    });
+    await page.goto(`${baseUrl}/xmp/access`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+
+    const decision = page.getByTestId("access-decision");
+    const requestStatus = page.getByTestId("access-request-status");
+    await expect(decision).toContainText("DENY");
+    await expect(requestStatus).toHaveText("待首审");
+
+    await page.getByTestId("approve-access-manager").click();
+    await expect(requestStatus).toHaveText("待安全复核");
+    await expect(decision).toContainText("DENY");
+
+    await page.getByTestId("approve-access-security").click();
+    await expect(requestStatus).toHaveText("限时生效");
+    await expect(decision).toContainText("ALLOW");
+    await expect(page.getByText(/限时授权至/)).toBeVisible();
+
+    await page.getByTestId("revoke-temporary-grant").click();
+    await expect(requestStatus).toHaveText("已撤销");
+    await expect(decision).toContainText("DENY");
+
+    await page.evaluate(() =>
+      window.localStorage.setItem("xmp-role", "family"),
+    );
+    await page.goto(`${baseUrl}/xmp/operations`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+    await expect(
+      page.getByRole("region", { name: "访问被拒绝" }),
+    ).toBeVisible();
+    await expect(page.getByText(/DENY · 家长体验/)).toBeVisible();
   });
 
   test("classroom and growth actions persist in one correlated local event chain", async ({

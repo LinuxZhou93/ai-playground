@@ -10,6 +10,7 @@ import {
   Database,
   Leaf,
   Search,
+  ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -33,18 +34,23 @@ import { XmpClassroomRuntimeProvider } from "./classroom-runtime-store";
 import { XmpCourseAssetProvider } from "./course-asset-store";
 import { XmpTeachingScheduleProvider } from "./teaching-schedule-store";
 import { TeachingScheduler } from "./teaching-scheduler";
+import { AccessControlCenter } from "./access-control-center";
+import { XmpAccessControlProvider } from "./access-control-store";
+import { canXmpRoleViewModule } from "@/lib/xmp/access-control";
 
 export function XmpShell({ current }: { current: XmpModuleId }) {
   return (
-    <XmpEventProvider>
-      <XmpCourseAssetProvider>
-        <XmpTeachingScheduleProvider>
-          <XmpClassroomRuntimeProvider>
-            <XmpShellInner current={current} />
-          </XmpClassroomRuntimeProvider>
-        </XmpTeachingScheduleProvider>
-      </XmpCourseAssetProvider>
-    </XmpEventProvider>
+    <XmpAccessControlProvider>
+      <XmpEventProvider>
+        <XmpCourseAssetProvider>
+          <XmpTeachingScheduleProvider>
+            <XmpClassroomRuntimeProvider>
+              <XmpShellInner current={current} />
+            </XmpClassroomRuntimeProvider>
+          </XmpTeachingScheduleProvider>
+        </XmpCourseAssetProvider>
+      </XmpEventProvider>
+    </XmpAccessControlProvider>
   );
 }
 
@@ -88,9 +94,10 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
   const activeRole = XMP_ROLES.find((item) => item.id === role)!;
   const activeModule = XMP_MODULES.find((item) => item.id === current)!;
   const visibleModules = useMemo(
-    () => XMP_MODULES.filter((module) => module.roles.includes(role)),
+    () => XMP_MODULES.filter((module) => canXmpRoleViewModule(role, module.id)),
     [role],
   );
+  const hasModuleAccess = canXmpRoleViewModule(role, current);
 
   const selectRole = (nextRole: XmpRole) => {
     setRole(nextRole);
@@ -221,7 +228,23 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
                 : "所有数据均为演示数据，不代表真实运营结果；当前不采集、不上传任何儿童信息。"}
             </p>
           </div>
-          {current === "overview" ? (
+          {!hasModuleAccess ? (
+            <section className="xmp-access-denied" aria-label="访问被拒绝">
+              <div>
+                <span>
+                  <ShieldAlert size={28} />
+                </span>
+                <h1>这个角色没有进入该模块的权限。</h1>
+                <p>
+                  XMP
+                  采用默认拒绝策略。请切换到具备授权的园所主体，或在“身份与权限”中发起限时访问申请。
+                </p>
+                <code>
+                  DENY · {activeRole.name} · {activeModule.englishName}
+                </code>
+              </div>
+            </section>
+          ) : current === "overview" ? (
             <OverviewDashboard snapshot={snapshot} />
           ) : current === "curriculum" ? (
             <CurriculumStudio />
@@ -239,6 +262,8 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
             <EdgeFleet />
           ) : current === "operations" ? (
             <OperationsCenter />
+          ) : current === "access" ? (
+            <AccessControlCenter />
           ) : current === "governance" ? (
             <GovernanceCenter />
           ) : (
@@ -289,7 +314,7 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
                   <span>02</span>
                   <h3>统一模块注册</h3>
                   <p>
-                    十大模块拥有独立路由、权限范围和开发阶段，可持续扩展而不互相污染。
+                    十一大模块拥有独立路由、权限范围和开发阶段，可持续扩展而不互相污染。
                   </p>
                 </article>
                 <article>
