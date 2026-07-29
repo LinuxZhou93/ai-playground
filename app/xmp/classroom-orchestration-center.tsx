@@ -365,7 +365,7 @@ export function ClassroomOrchestrationCenter() {
     <div className="xmp-orchestration">
       <header className="xmp-orchestration-hero">
         <div>
-          <span>SMART CLASSROOM ORCHESTRATION</span>
+          <span>西幼 · SMART CLASSROOM ORCHESTRATION</span>
           <h1>智慧课堂感知中枢</h1>
           <p>
             桌宠、教室摄像头与教师 Rokid 眼镜共同理解课堂：AI
@@ -404,6 +404,23 @@ export function ClassroomOrchestrationCenter() {
           </button>
         </div>
       </header>
+
+      <section className="xmp-xiyou-context">
+        <div className="xmp-xiyou-seal">
+          <img
+            src="/api/xmp/ximapeng-media?asset=logo"
+            alt="西马棚幼儿园园徽"
+          />
+        </div>
+        <div>
+          <small>XIYOU TEACHING CONTEXT · 1943</small>
+          <b>从“关注儿童发展”出发，让技术回到真实游戏与生活</b>
+          <p>
+            当前原型把西幼长期积累的儿童观察、教师指导与游戏回顾方法，转译为可由教师掌舵的数智教学闭环。
+          </p>
+        </div>
+        <span>官网素材 · 本地设计参考</span>
+      </section>
 
       <section className="xmp-orchestration-boundary">
         <div>

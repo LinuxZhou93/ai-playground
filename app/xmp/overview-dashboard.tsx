@@ -154,37 +154,19 @@ export function OverviewDashboard({ snapshot }: { snapshot: XmpSnapshot }) {
             </Link>
           </div>
         </div>
-        <div className="xmp-hero-status">
-          <div className="xmp-hero-status-head">
-            <span>
-              <i /> 园所运行态势
-            </span>
-            <small>{snapshot.freshnessLabel}</small>
+        <div className="xmp-campus-window">
+          <img
+            src="/api/xmp/ximapeng-media?asset=campus"
+            alt="西马棚幼儿园官方园所影像"
+          />
+          <div className="xmp-campus-shade" />
+          <div className="xmp-campus-caption">
+            <small>四川省直属机关西马棚幼儿园</small>
+            <b>绿草葱茏，樱红燕飞</b>
+            <span>官网园所影像 · 本地设计参考</span>
           </div>
-          <div className="xmp-health-score">
-            <strong>92</strong>
-            <span>/ 100</span>
-            <div>
-              <b>运行健康</b>
-              <small>关键链路均正常</small>
-            </div>
-          </div>
-          <div className="xmp-health-bars">
-            <span>
-              <i style={{ width: "96%" }} />
-              <small>教学交付</small>
-              <b>96%</b>
-            </span>
-            <span>
-              <i style={{ width: "88%" }} />
-              <small>审核及时</small>
-              <b>88%</b>
-            </span>
-            <span>
-              <i style={{ width: "95%" }} />
-              <small>设备在线</small>
-              <b>95%</b>
-            </span>
+          <div className="xmp-campus-live">
+            <i /> 今日教学系统运行中
           </div>
         </div>
       </section>

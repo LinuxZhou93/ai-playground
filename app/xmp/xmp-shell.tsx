@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Command,
   Database,
-  Leaf,
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -134,15 +133,18 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
       <aside className="xmp-sidebar">
         <Link href="/xmp" className="xmp-brand">
           <span className="xmp-brand-mark">
-            <Leaf size={20} />
+            <img
+              src="/api/xmp/ximapeng-media?asset=logo"
+              alt="四川省直属机关西马棚幼儿园园徽"
+            />
           </span>
           <span>
-            <b>XMP</b>
-            <small>奇妙伙伴</small>
+            <b>奇妙伙伴</b>
+            <small>XMP · 西幼数智教学</small>
           </span>
         </Link>
         <div className="xmp-local-label">
-          幼教 AI 操作系统 <span>LOCAL</span>
+          1943 · 宽窄巷子文化圈 <span>LOCAL</span>
         </div>
         <nav aria-label="XMP 产品模块">
           {visibleModules.map(({ id, name, englishName, href, icon: Icon }) => (
