@@ -206,6 +206,19 @@ test('uses the site transcription gateway by default and honors an explicit rela
   );
 });
 
+test('discovers configured server ASR providers without reading client secrets', async () => {
+  const instance = createBareInstance();
+  let requestedUrl = '';
+  context.fetch = async url => {
+    requestedUrl = url;
+    return { ok: true, json: async () => ({ success: true, data: { asr: { 'openai-whisper': {} } } }) };
+  };
+
+  const providers = await instance.probeServerAsr();
+  assert.equal(requestedUrl, '/api/server-providers');
+  assert.deepEqual({ ...providers }, { 'openai-whisper': {} });
+});
+
 test('uses a configured reasoning model after transcription rather than forcing the audio model', async () => {
   const instance = createBareInstance();
   instance.pipelineConfig = {

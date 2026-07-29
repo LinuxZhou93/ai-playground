@@ -57,6 +57,9 @@ class LiveVisionCopilot {
         // 中转站，同时自由选择转写模型和更强的聊天/视觉模型。
         this.pipelineStorageKey = 'titan_live_vision_pipeline_v1';
         this.pipelineConfig = this.loadPipelineConfig();
+        // 只读取安全元数据，不读取或保存任何密钥。用于避免把语音发往一个未配置的 ASR。
+        this.asrCapabilities = null;
+        this.asrCapabilitiesPromise = null;
         
         this.buildUI();
     }
@@ -204,6 +207,21 @@ class LiveVisionCopilot {
             : '状态: 请补充转写模型名后再启用该链路 (PIPELINE_INCOMPLETE)';
     }
 
+    async probeServerAsr() {
+        if (this.asrCapabilities) return this.asrCapabilities;
+        if (this.asrCapabilitiesPromise) return this.asrCapabilitiesPromise;
+        this.asrCapabilitiesPromise = fetch('/api/server-providers')
+            .then(response => response.ok ? response.json() : null)
+            .then(payload => {
+                const providers = payload?.data?.asr || payload?.asr || {};
+                this.asrCapabilities = providers && typeof providers === 'object' ? providers : {};
+                return this.asrCapabilities;
+            })
+            .catch(() => { this.asrCapabilities = {}; return this.asrCapabilities; })
+            .finally(() => { this.asrCapabilitiesPromise = null; });
+        return this.asrCapabilitiesPromise;
+    }
+
     async start() {
         if (this.isActive && (this.videoStream || this.phase === 'CONNECTING')) {
             this.hud.style.display = 'block';
@@ -221,6 +239,7 @@ class LiveVisionCopilot {
         this.currentSpeechText = '';
         this.isDiscardingNextAudio = false;
         this.refreshHistoryForCurrentUser();
+        void this.probeServerAsr();
         this.subtitle.innerText = "“正在建立与底层硬件摄像引擎及麦克风列阵的连接...”";
 
         try {
@@ -766,8 +785,13 @@ class LiveVisionCopilot {
         const form = new FormData();
         const usesSiteGateway = endpoint === '/api/transcription' || endpoint.endsWith('/api/transcription');
         if (usesSiteGateway) {
+            const providerId = config.transcriptionModel || 'openai-whisper';
+            const capabilities = await this.probeServerAsr();
+            if (!capabilities[providerId]) {
+                throw new Error(`服务器尚未配置可用的语音转写服务（${providerId}）。已自动保留直接音频理解作为备用通道。`);
+            }
             form.append('audio', audioBlob, 'live-turn.wav');
-            form.append('providerId', config.transcriptionModel || 'openai-whisper');
+            form.append('providerId', providerId);
             form.append('language', 'zh');
         } else {
             if (!config.transcriptionModel) throw new Error('请在“模型链路设置”中填写中转站的语音转写模型名。');
