@@ -494,6 +494,16 @@ test.describe("XMP local operating system", () => {
     await expect(
       page.getByRole("heading", { name: "智慧课堂感知中枢" }),
     ).toBeVisible();
+    const backendStatus = await page.request.get(
+      `${baseUrl}/api/xmp/orchestration?sessionId=XMP-CLS-A301-20260728`,
+    );
+    expect(backendStatus.ok()).toBeTruthy();
+    expect(await backendStatus.json()).toMatchObject({
+      mode: "local-only",
+      writable: false,
+      state: null,
+    });
+    await expect(page.getByText("本地安全副本", { exact: true })).toBeVisible();
     await expect(
       page.getByText("三端不是三套设备，而是一条完整教学数据链"),
     ).toBeVisible();

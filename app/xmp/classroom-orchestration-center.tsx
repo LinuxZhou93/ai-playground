@@ -108,6 +108,7 @@ export function ClassroomOrchestrationCenter() {
     orchestration,
     classroomContext,
     lastResult,
+    backend,
     ingestSignal,
     acceptIntervention,
     editIntervention,
@@ -372,6 +373,18 @@ export function ClassroomOrchestrationCenter() {
           </p>
         </div>
         <div className="xmp-orchestration-hero-actions">
+          <span className={backend.state === "synced" ? "live" : "waiting"}>
+            <Network size={13} />
+            {backend.state === "synced"
+              ? "Supabase 已同步"
+              : backend.state === "pending"
+                ? "Supabase 待同步"
+                : backend.state === "conflict"
+                  ? "数据冲突待处理"
+                  : backend.state === "checking"
+                    ? "检查后端连接"
+                    : "本地安全副本"}
+          </span>
           <span className={liveReady ? "live" : "waiting"}>
             <Radio size={13} /> {statusCopy}
           </span>

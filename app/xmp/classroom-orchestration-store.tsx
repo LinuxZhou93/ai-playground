@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -28,6 +29,12 @@ type ClassroomOrchestrationContextValue = {
   classroomContext: XmpClassroomContext;
   hydrated: boolean;
   lastResult: { outcome: string; reason: string } | null;
+  backend: {
+    mode: "local-only" | "supabase";
+    state: "checking" | "local" | "synced" | "pending" | "conflict" | "error";
+    reason: string;
+    lastSyncedAt: string | null;
+  };
   ingestSignal: (window: XmpTeachingSignalWindow) => void;
   acceptIntervention: (interventionId: string) => void;
   editIntervention: (interventionId: string, teacherAction: string) => void;
@@ -66,6 +73,17 @@ export function XmpClassroomOrchestrationProvider({
     outcome: string;
     reason: string;
   } | null>(null);
+  const [backend, setBackend] = useState<
+    ClassroomOrchestrationContextValue["backend"]
+  >({
+    mode: "local-only",
+    state: "checking",
+    reason: "正在检查 Supabase 后端",
+    lastSyncedAt: null,
+  });
+  const remoteRevision = useRef<number | null>(null);
+  const remoteReady = useRef(false);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pinnedCourse =
     catalog.versions.find(
@@ -112,6 +130,128 @@ export function XmpClassroomOrchestrationProvider({
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(orchestration));
   }, [hydrated, orchestration]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const controller = new AbortController();
+    void fetch(
+      `/api/xmp/orchestration?sessionId=${encodeURIComponent(orchestration.sessionId)}`,
+      { cache: "no-store", signal: controller.signal },
+    )
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`STATUS_${response.status}`);
+        return (await response.json()) as {
+          mode: "local-only" | "supabase";
+          writable: boolean;
+          reason: string;
+          remote?: {
+            state: XmpClassroomOrchestration;
+            revision: number;
+            updatedAt: string;
+          } | null;
+        };
+      })
+      .then((result) => {
+        if (!result.writable) {
+          setBackend({
+            mode: result.mode,
+            state: "local",
+            reason:
+              result.reason === "sign-in-required"
+                ? "登录园所账号后启用 Supabase 同步"
+                : result.reason === "missing-server-config"
+                  ? "Supabase 环境变量尚未配置"
+                  : "本地离线模式",
+            lastSyncedAt: null,
+          });
+          return;
+        }
+        remoteRevision.current = result.remote?.revision ?? null;
+        if (
+          result.remote?.state &&
+          result.remote.state.revision > orchestration.revision
+        )
+          setOrchestration(result.remote.state);
+        remoteReady.current = true;
+        setBackend({
+          mode: "supabase",
+          state: result.remote ? "synced" : "pending",
+          reason: result.remote ? "已连接 Supabase" : "等待首次写入 Supabase",
+          lastSyncedAt: result.remote?.updatedAt ?? null,
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        setBackend({
+          mode: "local-only",
+          state: "error",
+          reason: "Supabase 暂不可用，改为本地安全保存",
+          lastSyncedAt: null,
+        });
+      });
+    return () => controller.abort();
+    // Each classroom provider owns one stable session during its lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated || !remoteReady.current || backend.mode !== "supabase")
+      return;
+    if (
+      remoteRevision.current !== null &&
+      orchestration.revision <= remoteRevision.current
+    )
+      return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    setBackend((current) => ({
+      ...current,
+      state: "pending",
+      reason: "课堂变更等待同步",
+    }));
+    syncTimer.current = setTimeout(() => {
+      const expectedRevision = remoteRevision.current;
+      void fetch("/api/xmp/orchestration", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: orchestration, expectedRevision }),
+      })
+        .then(async (response) => {
+          const value = (await response.json()) as {
+            revision?: number;
+            updatedAt?: string;
+            error?: { code?: string; message?: string };
+          };
+          if (response.status === 409) {
+            setBackend((current) => ({
+              ...current,
+              state: "conflict",
+              reason: value.error?.message ?? "服务端状态冲突",
+            }));
+            return;
+          }
+          if (!response.ok)
+            throw new Error(value.error?.message ?? "SYNC_FAILED");
+          remoteRevision.current = value.revision ?? orchestration.revision;
+          setBackend({
+            mode: "supabase",
+            state: "synced",
+            reason: "课堂数据已安全写入 Supabase",
+            lastSyncedAt: value.updatedAt ?? new Date().toISOString(),
+          });
+        })
+        .catch(() =>
+          setBackend((current) => ({
+            ...current,
+            state: "error",
+            reason: "同步失败，本地副本仍然保留",
+          })),
+        );
+    }, 650);
+    return () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+    };
+  }, [backend.mode, hydrated, orchestration]);
 
   const issue = useCallback(
     (command: XmpOrchestrationCommand) => {
@@ -208,6 +348,7 @@ export function XmpClassroomOrchestrationProvider({
       classroomContext,
       hydrated,
       lastResult,
+      backend,
       ingestSignal,
       acceptIntervention: (id) => teacherCommand("intervention.accept", id),
       editIntervention: (id, action) =>
@@ -226,6 +367,7 @@ export function XmpClassroomOrchestrationProvider({
       classroomContext,
       hydrated,
       lastResult,
+      backend,
       ingestSignal,
       teacherCommand,
       selectScene,

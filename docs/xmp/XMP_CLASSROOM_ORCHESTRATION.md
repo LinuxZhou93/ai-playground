@@ -1,6 +1,27 @@
 # XMP 三端数智课堂感知与教学闭环
 
-状态：本地交互原型。未接入真实 Rokid、摄像头、桌宠硬件或儿童数据，未部署云端。
+状态：已完成 Supabase 服务端数据层与本地离线降级。未接入真实 Rokid、摄像头、桌宠硬件或儿童数据，未部署云端。
+
+## Supabase 后端
+
+浏览器不直接访问儿童教学数据表。`/api/xmp/orchestration` 先验证 `X-FC-Auth-Token` 园所会话和租户，再由服务端 Service Role 调用 Supabase：
+
+- `xmp_classroom_orchestration_states` 保存每个课堂会话的最新完整状态。
+- `xmp_classroom_orchestration_audit` 以修订号和哈希保留不可重复的写入审计。
+- `xmp_save_orchestration_state` 在数据库事务内执行乐观锁，阻止多个教师端覆盖彼此的新数据。
+- 前端保留 localStorage 离线副本；连接可用后 650ms 合并写入，冲突时停止覆盖并明确提示。
+- 标准化信号、证据候选、干预和执行动作表继续用于后续分析与报表投影。
+
+启用本地连接前，先在目标 Supabase SQL Editor 执行 `database/xmp_classroom_orchestration.sql`，再配置：
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+XMP_TENANT_ID=...
+XMP_ORCHESTRATION_MODE=supabase
+```
+
+Service Role 只能存在于服务器环境，不能使用 `NEXT_PUBLIC_` 前缀。未配置时页面会明确显示“本地安全副本”，不会伪装成已经入库。
 
 ## 产品定义
 
