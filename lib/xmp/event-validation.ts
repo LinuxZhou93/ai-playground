@@ -32,6 +32,10 @@ export const xmpEventSchema = z
       "strategy.candidate_imported",
       "strategy.approved",
       "strategy.adapted",
+      "orchestration.session_aligned",
+      "orchestration.signal_formed",
+      "orchestration.intervention_decided",
+      "orchestration.intervention_applied",
       "evidence.candidate",
       "evidence.approved",
       "evidence.rejected",
@@ -53,6 +57,7 @@ export const xmpEventSchema = z
       "teaching",
       "insights",
       "strategies",
+      "orchestration",
       "growth",
       "family",
       "fleet",
@@ -78,13 +83,15 @@ export const xmpEventSchema = z
             ? "insights"
             : event.kind.startsWith("strategy.")
               ? "strategies"
-              : event.kind.startsWith("evidence.")
-                ? "growth"
-                : event.kind.startsWith("family.")
-                  ? "family"
-                  : event.kind.startsWith("device.")
-                    ? "fleet"
-                    : "access";
+              : event.kind.startsWith("orchestration.")
+                ? "orchestration"
+                : event.kind.startsWith("evidence.")
+                  ? "growth"
+                  : event.kind.startsWith("family.")
+                    ? "family"
+                    : event.kind.startsWith("device.")
+                      ? "fleet"
+                      : "access";
     if (event.domain !== expectedDomain) {
       context.addIssue({
         code: "custom",

@@ -18,6 +18,7 @@ const modules = [
   ["/xmp/teaching", "把老师的一节课"],
   ["/xmp/insights", "让多节课的数据"],
   ["/xmp/strategies", "让一位老师验证过的方法"],
+  ["/xmp/orchestration", "智慧课堂感知中枢"],
   ["/xmp/classroom", "一颗沉睡的种子"],
   ["/xmp/companion", "不是陪孩子盯着屏幕"],
   ["/xmp/growth", "成长结论"],
@@ -476,6 +477,55 @@ test.describe("XMP local operating system", () => {
     await expect(
       page.getByRole("region", { name: "课堂会话可信状态" }),
     ).toContainText("静默 · AI 已停止");
+  });
+
+  test("three-end classroom fusion lets only the teacher act and confirm student evidence", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.removeItem("xmp-classroom-runtime-v1");
+      window.localStorage.removeItem("xmp-classroom-orchestration-v1");
+    });
+    await page.goto(`${baseUrl}/xmp/orchestration`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForXmpHydration(page);
+
+    await expect(
+      page.getByRole("heading", { name: "智慧课堂感知中枢" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("三端不是三套设备，而是一条完整教学数据链"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "教师眼镜即时提示" }),
+    ).toBeVisible();
+    await page.getByTestId("prepare-orchestration-session").click();
+    await expect(
+      page.getByText("问题建构", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(page.getByTestId("ingest-classroom-signal")).toBeEnabled();
+
+    await page.getByTestId("accept-classroom-intervention").click();
+    await expect(
+      page.getByText("教师已采纳", { exact: true }).first(),
+    ).toBeVisible();
+    await page.getByTestId("apply-classroom-intervention").click();
+    await expect(
+      page.getByTestId("classroom-intervention-applied"),
+    ).toContainText("已由文老师应用");
+    await expect(page.getByText("待学情复证").first()).toBeVisible();
+    const evidenceInput = page.getByLabel("A07教师观察");
+    await evidenceInput.fill("现场观察确认其能够说出叶片分类的具体依据。");
+    await page.getByRole("button", { name: "确认入档" }).first().click();
+    await expect(page.getByText(/教师已确认：现场观察确认/)).toBeVisible();
+
+    const stored = await page.evaluate(() =>
+      window.localStorage.getItem("xmp-classroom-orchestration-v1"),
+    );
+    expect(stored).toContain('"rawMediaRetained":false');
+    expect(stored).toContain('"status":"teacher-confirmed"');
+    expect(stored).not.toMatch(/childId|studentId|face|voiceprint/);
   });
 
   test("investor demo room walks through all six acts", async ({ page }) => {

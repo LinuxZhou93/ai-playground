@@ -31,6 +31,8 @@ import { DataSourceCenter } from "./data-source-center";
 import { EventChainCenter } from "./event-chain-center";
 import { useXmpEvents, XmpEventProvider } from "./event-store";
 import { XmpClassroomRuntimeProvider } from "./classroom-runtime-store";
+import { XmpClassroomOrchestrationProvider } from "./classroom-orchestration-store";
+import { ClassroomOrchestrationCenter } from "./classroom-orchestration-center";
 import { XmpCourseAssetProvider } from "./course-asset-store";
 import { XmpTeachingScheduleProvider } from "./teaching-schedule-store";
 import { TeachingScheduler } from "./teaching-scheduler";
@@ -54,7 +56,9 @@ export function XmpShell({ current }: { current: XmpModuleId }) {
               <XmpLearningInsightsProvider>
                 <XmpTeachingStrategyProvider>
                   <XmpClassroomRuntimeProvider>
-                    <XmpShellInner current={current} />
+                    <XmpClassroomOrchestrationProvider>
+                      <XmpShellInner current={current} />
+                    </XmpClassroomOrchestrationProvider>
                   </XmpClassroomRuntimeProvider>
                 </XmpTeachingStrategyProvider>
               </XmpLearningInsightsProvider>
@@ -268,6 +272,8 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
             <LearningInsightsCenter />
           ) : current === "strategies" ? (
             <TeachingStrategyLibrary />
+          ) : current === "orchestration" ? (
+            <ClassroomOrchestrationCenter />
           ) : current === "classroom" ? (
             <ClassroomConsole />
           ) : current === "companion" ? (
@@ -332,7 +338,7 @@ function XmpShellInner({ current }: { current: XmpModuleId }) {
                   <span>02</span>
                   <h3>统一模块注册</h3>
                   <p>
-                    十四大模块拥有独立路由、权限范围和开发阶段，以教学数字化为主轴持续扩展。
+                    十五大模块拥有独立路由、权限范围和开发阶段，以教学数字化为主轴持续扩展。
                   </p>
                 </article>
                 <article>

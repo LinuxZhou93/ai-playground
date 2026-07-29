@@ -112,6 +112,24 @@ describe("XMP event contract", () => {
     ).toBe(false);
   });
 
+  it("accepts teacher-decided classroom orchestration events only in the orchestration domain", () => {
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "orchestration.intervention_applied",
+        domain: "orchestration",
+        privacy: "teacher-reviewed",
+      }).success,
+    ).toBe(true);
+    expect(
+      xmpEventSchema.safeParse({
+        ...validEvent,
+        kind: "orchestration.intervention_applied",
+        domain: "fleet",
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects an event kind mapped to the wrong business domain", () => {
     expect(
       xmpEventSchema.safeParse({ ...validEvent, domain: "family" }).success,

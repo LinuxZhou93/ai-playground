@@ -10,6 +10,7 @@ import {
   LibraryBig,
   KeyRound,
   Network,
+  Radar,
   ShieldCheck,
   Sparkles,
   Sprout,
@@ -87,6 +88,16 @@ export const XMP_MODULES: XmpModule[] = [
     phase: 6,
   },
   {
+    id: "orchestration",
+    name: "智慧课堂感知",
+    englishName: "Classroom Orchestration",
+    description: "桌宠、教室摄像头与 Rokid 三端感知，边缘融合、教师决策与成长证据闭环。",
+    href: "/xmp/orchestration",
+    icon: Radar,
+    roles: ["operator", "research", "teacher"],
+    phase: 7,
+  },
+  {
     id: "classroom",
     name: "实时课堂",
     englishName: "Live Classroom",
@@ -94,7 +105,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/classroom",
     icon: GraduationCap,
     roles: ["operator", "research", "teacher"],
-    phase: 7,
+    phase: 8,
   },
   {
     id: "companion",
@@ -104,7 +115,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/companion",
     icon: Bot,
     roles: ["operator", "research", "teacher", "family"],
-    phase: 8,
+    phase: 9,
   },
   {
     id: "growth",
@@ -114,7 +125,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/growth",
     icon: Sprout,
     roles: ["operator", "research", "teacher", "family"],
-    phase: 9,
+    phase: 10,
   },
   {
     id: "family",
@@ -124,7 +135,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/family",
     icon: HeartHandshake,
     roles: ["operator", "teacher", "family"],
-    phase: 10,
+    phase: 11,
   },
   {
     id: "fleet",
@@ -134,7 +145,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/fleet",
     icon: Network,
     roles: ["operator"],
-    phase: 11,
+    phase: 12,
   },
   {
     id: "operations",
@@ -144,7 +155,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/operations",
     icon: Building2,
     roles: ["operator", "research"],
-    phase: 12,
+    phase: 13,
   },
   {
     id: "access",
@@ -154,7 +165,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/access",
     icon: KeyRound,
     roles: ["operator", "research"],
-    phase: 13,
+    phase: 14,
   },
   {
     id: "governance",
@@ -164,7 +175,7 @@ export const XMP_MODULES: XmpModule[] = [
     href: "/xmp/governance",
     icon: ShieldCheck,
     roles: ["operator", "research"],
-    phase: 14,
+    phase: 15,
   },
 ];
 

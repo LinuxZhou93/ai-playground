@@ -12,6 +12,7 @@ import {
   GraduationCap,
   HeartHandshake,
   KeyRound,
+  Radar,
   RotateCcw,
   ShieldCheck,
   Sprout,
@@ -29,11 +30,12 @@ const domainMeta: Record<
   teaching: { label: "AI 教学", icon: BrainCircuit, step: "02" },
   insights: { label: "智慧学情", icon: BrainCircuit, step: "03" },
   strategies: { label: "教学策略", icon: BrainCircuit, step: "04" },
-  classroom: { label: "课堂现场", icon: GraduationCap, step: "05" },
-  growth: { label: "成长审核", icon: Sprout, step: "06" },
-  family: { label: "家园回路", icon: HeartHandshake, step: "07" },
-  fleet: { label: "设备保障", icon: Bot, step: "08" },
-  access: { label: "身份权限", icon: KeyRound, step: "09" },
+  orchestration: { label: "课堂感知", icon: Radar, step: "05" },
+  classroom: { label: "课堂现场", icon: GraduationCap, step: "06" },
+  growth: { label: "成长审核", icon: Sprout, step: "07" },
+  family: { label: "家园回路", icon: HeartHandshake, step: "08" },
+  fleet: { label: "设备保障", icon: Bot, step: "09" },
+  access: { label: "身份权限", icon: KeyRound, step: "10" },
 };
 
 export function EventChainCenter({

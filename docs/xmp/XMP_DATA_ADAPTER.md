@@ -55,4 +55,4 @@ pnpm dev
 pnpm test:xmp:e2e
 ```
 
-浏览器测试会检查快照响应头 `X-XMP-Privacy: aggregate-only`、隐私声明、敏感字段缺失以及十四大模块回归。
+浏览器测试会检查快照响应头 `X-XMP-Privacy: aggregate-only`、隐私声明、敏感字段缺失以及十五大模块回归。

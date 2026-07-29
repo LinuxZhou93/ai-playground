@@ -5,6 +5,7 @@ import "./teaching-scheduler.css";
 import "./ai-teaching-workbench.css";
 import "./learning-insights-center.css";
 import "./teaching-strategy-library.css";
+import "./classroom-orchestration-center.css";
 import "./access-control-center.css";
 import "./classroom-console.css";
 import "./companion-experience.css";

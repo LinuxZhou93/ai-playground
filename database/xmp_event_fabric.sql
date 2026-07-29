@@ -16,12 +16,13 @@ create table if not exists public.xmp_events (
     'teaching.prepared', 'teaching.started', 'teaching.cue_decided', 'teaching.evidence_confirmed', 'teaching.reflection_signed',
     'insight.generated', 'insight.reviewed', 'insight.applied',
     'strategy.candidate_imported', 'strategy.approved', 'strategy.adapted',
+    'orchestration.session_aligned', 'orchestration.signal_formed', 'orchestration.intervention_decided', 'orchestration.intervention_applied',
     'evidence.candidate', 'evidence.approved', 'evidence.rejected',
     'family.dispatched', 'family.feedback_candidate', 'family.feedback_rejected',
     'device.degraded', 'device.diagnostic_completed', 'device.recovered',
     'access.requested', 'access.approved', 'access.granted', 'access.revoked', 'access.session_revoked'
   )),
-  domain text not null check (domain in ('classroom', 'scheduling', 'teaching', 'insights', 'strategies', 'growth', 'family', 'fleet', 'access')),
+  domain text not null check (domain in ('classroom', 'scheduling', 'teaching', 'insights', 'strategies', 'orchestration', 'growth', 'family', 'fleet', 'access')),
   title text not null check (char_length(title) between 1 and 120),
   detail text not null check (char_length(detail) between 1 and 600),
   actor_label text not null check (char_length(actor_label) between 1 and 80),
@@ -49,6 +50,7 @@ create table if not exists public.xmp_events (
     or (kind like 'teaching.%' and domain = 'teaching')
     or (kind like 'insight.%' and domain = 'insights')
     or (kind like 'strategy.%' and domain = 'strategies')
+    or (kind like 'orchestration.%' and domain = 'orchestration')
     or (kind like 'evidence.%' and domain = 'growth')
     or (kind like 'family.%' and domain = 'family')
     or (kind like 'device.%' and domain = 'fleet')
