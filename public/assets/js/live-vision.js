@@ -13,6 +13,12 @@ class LiveVisionCopilot {
         this.analyser = null;
         this.vadReqId = null;
         this.mediaRecorder = null;
+        this.audioProcessor = null;
+        this.realtimeAsr = null;
+        this.realtimeTurn = null;
+        this.realtimeFinals = new Map();
+        this.realtimeCompletedTranscripts = new Map();
+        this.realtimeTurnSequence = 0;
         this.recorderPendingStop = false;
         this.recordedMimeType = 'audio/webm';
         this.audioChunks = [];
@@ -323,6 +329,7 @@ class LiveVisionCopilot {
 
             // 监听并渲染音频频谱的同时执行静音侦测 (VAD)
             this.setupAudioVisualizerAndVAD(stream);
+            this.connectRealtimeAsr(activeRunId);
 
             this.isListening = true;
             this.phase = 'LISTENING';
@@ -351,11 +358,157 @@ class LiveVisionCopilot {
         }
     }
 
+    connectRealtimeAsr(runId) {
+        this.closeRealtimeAsr();
+        if (!window.WebSocket) return;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socket = new WebSocket(`${protocol}//${window.location.host}/api/live-asr`);
+        this.realtimeAsr = { socket, ready: false, runId };
+        socket.onopen = () => {
+            if (this.realtimeAsr?.socket !== socket || this.runId !== runId) return;
+            socket.send(JSON.stringify({ type: 'start', language: 'zh' }));
+        };
+        socket.onmessage = event => {
+            if (this.realtimeAsr?.socket !== socket || this.runId !== runId) return;
+            let message;
+            try { message = JSON.parse(event.data); } catch { return; }
+            if (message.type === 'ready') {
+                this.realtimeAsr.ready = true;
+                return;
+            }
+            if (message.type === 'partial' && this.realtimeTurn && this.isSpeaking) {
+                this.realtimeTurn.partial = String(message.text || '').trim();
+                if (this.realtimeTurn.partial) {
+                    this.subtitle.textContent = `> ${this.realtimeTurn.partial}`;
+                    this.statusText.innerText = '状态: 实时转写中 (LIVE_ASR)';
+                }
+                return;
+            }
+            if (message.type === 'final') {
+                const turnId = String(message.turnId || '');
+                const text = String(message.text || '').trim();
+                const waiter = this.realtimeFinals.get(turnId);
+                if (waiter) {
+                    this.realtimeFinals.delete(turnId);
+                    waiter.resolve(text);
+                } else if (turnId) {
+                    this.realtimeCompletedTranscripts.set(turnId, text);
+                }
+                return;
+            }
+            if (message.type === 'error') {
+                console.warn('实时 ASR 不可用，将回退到普通转写。', message.code);
+                this.realtimeAsr.ready = false;
+            }
+        };
+        socket.onerror = () => {
+            if (this.realtimeAsr?.socket === socket) this.realtimeAsr.ready = false;
+        };
+        socket.onclose = () => {
+            if (this.realtimeAsr?.socket === socket) this.realtimeAsr.ready = false;
+        };
+    }
+
+    closeRealtimeAsr() {
+        if (this.realtimeAsr?.socket && this.realtimeAsr.socket.readyState < 2) {
+            try { this.realtimeAsr.socket.send(JSON.stringify({ type: 'close' })); } catch (_) {}
+            this.realtimeAsr.socket.close();
+        }
+        this.realtimeAsr = null;
+        this.realtimeTurn = null;
+        for (const waiter of this.realtimeFinals.values()) waiter.resolve('');
+        this.realtimeFinals.clear();
+        this.realtimeCompletedTranscripts.clear();
+    }
+
+    beginRealtimeTurn() {
+        if (!this.realtimeAsr?.ready) return null;
+        const turn = { id: `turn_${++this.realtimeTurnSequence}_${Date.now()}`, partial: '' };
+        this.realtimeTurn = turn;
+        return turn;
+    }
+
+    sendRealtimePcm(pcm) {
+        const turn = this.realtimeTurn;
+        const socket = this.realtimeAsr?.socket;
+        if (!turn || !socket || socket.readyState !== 1 || !this.realtimeAsr.ready) return;
+        const bytes = new Uint8Array(pcm);
+        let binary = '';
+        for (let offset = 0; offset < bytes.length; offset += 8192) {
+            binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+        }
+        socket.send(JSON.stringify({ type: 'audio', audio: btoa(binary) }));
+    }
+
+    downsamplePcm(floatSamples, sourceRate, targetRate = 16000) {
+        if (!floatSamples?.length) return new ArrayBuffer(0);
+        const outputLength = Math.max(1, Math.round(floatSamples.length * targetRate / sourceRate));
+        const output = new Int16Array(outputLength);
+        const ratio = sourceRate / targetRate;
+        for (let index = 0; index < outputLength; index++) {
+            const position = index * ratio;
+            const left = Math.min(floatSamples.length - 1, Math.floor(position));
+            const right = Math.min(floatSamples.length - 1, left + 1);
+            const sample = floatSamples[left] + (floatSamples[right] - floatSamples[left]) * (position - left);
+            output[index] = Math.round(Math.max(-1, Math.min(1, sample)) * 0x7fff);
+        }
+        return output.buffer;
+    }
+
+    commitRealtimeTurn(turn) {
+        const socket = this.realtimeAsr?.socket;
+        if (!turn || !socket || socket.readyState !== 1 || !this.realtimeAsr.ready) return;
+        socket.send(JSON.stringify({ type: 'commit', turnId: turn.id }));
+    }
+
+    discardRealtimeTurn() {
+        const socket = this.realtimeAsr?.socket;
+        if (socket?.readyState === 1 && this.realtimeAsr.ready) {
+            socket.send(JSON.stringify({ type: 'discard' }));
+        }
+        this.realtimeTurn = null;
+    }
+
+    waitForRealtimeFinal(turn, timeoutMs = 1100) {
+        if (!turn) return Promise.resolve('');
+        if (this.realtimeCompletedTranscripts.has(turn.id)) {
+            const text = this.realtimeCompletedTranscripts.get(turn.id);
+            this.realtimeCompletedTranscripts.delete(turn.id);
+            return Promise.resolve(text);
+        }
+        return new Promise(resolve => {
+            const timeout = setTimeout(() => {
+                this.realtimeFinals.delete(turn.id);
+                resolve('');
+            }, timeoutMs);
+            this.realtimeFinals.set(turn.id, {
+                resolve: text => {
+                    clearTimeout(timeout);
+                    resolve(text);
+                }
+            });
+        });
+    }
+
     setupAudioVisualizerAndVAD(stream) {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.analyser = this.audioContext.createAnalyser();
         const source = this.audioContext.createMediaStreamSource(stream);
         source.connect(this.analyser);
+        // MediaRecorder 用于兼容性回退；此支路持续把同一支麦克风转为 16 kHz PCM 小帧。
+        // 静音和候选背景声不会发给模型，避免“为了快”牺牲抗噪能力。
+        if (typeof this.audioContext.createScriptProcessor === 'function') {
+            this.audioProcessor = this.audioContext.createScriptProcessor(2048, 1, 1);
+            const silentGain = this.audioContext.createGain();
+            silentGain.gain.value = 0;
+            source.connect(this.audioProcessor);
+            this.audioProcessor.connect(silentGain);
+            silentGain.connect(this.audioContext.destination);
+            this.audioProcessor.onaudioprocess = event => {
+                if (!this.isActive || !this.realtimeTurn || (!this.isCandidateRecording && !this.isSpeaking)) return;
+                this.sendRealtimePcm(this.downsamplePcm(event.inputBuffer.getChannelData(0), this.audioContext.sampleRate));
+            };
+        }
         this.analyser.fftSize = 512;
         this.analyser.smoothingTimeConstant = 0.72;
         const bufferLength = this.analyser.frequencyBinCount;
@@ -367,7 +520,9 @@ class LiveVisionCopilot {
         this.isProcessing = false;
         this.voiceCandidateSince = null;
 
-        const SILENCE_MS = 1250;
+        // 实时 ASR 已在持续接收音频；0.5 秒停顿即可提交，避免旧链路的 1.25 秒等待感。
+        // 仍通过候选确认和最短录音时长过滤碰撞、键盘声等短噪声。
+        const SILENCE_MS = 500;
         const NORMAL_CONFIRM_MS = 300;
         const BUSY_CONFIRM_MS = 650;
         const CANDIDATE_HANGOVER_MS = 160;
@@ -558,6 +713,7 @@ class LiveVisionCopilot {
         this.candidateLastVoiceAt = now;
         this.candidateConfirmMs = confirmMs;
         this.isCandidateRecording = true;
+        this.beginRealtimeTurn();
         this.audioChunks = [];
         this.recordingStartedAt = Date.now();
         this.phase = 'BARGE_CANDIDATE';
@@ -602,6 +758,7 @@ class LiveVisionCopilot {
         if (this.voiceCandidateSince === null && !this.isCandidateRecording) return;
         this.voiceCandidateSince = null;
         this.candidateLastVoiceAt = 0;
+        this.discardRealtimeTurn();
         if (this.isCandidateRecording && this.mediaRecorder?.state === 'recording') {
             this.isDiscardingNextAudio = true;
             this.recorderPendingStop = true;
@@ -654,6 +811,8 @@ class LiveVisionCopilot {
         if (!this.isSpeaking) return;
         this.isSpeaking = false;
         this.voiceCandidateSince = null;
+        const realtimeTurn = this.realtimeTurn;
+        this.commitRealtimeTurn(realtimeTurn);
         if (this.mediaRecorder?.state === 'recording') {
             this.recorderPendingStop = true;
             this.mediaRecorder.stop();
@@ -663,13 +822,14 @@ class LiveVisionCopilot {
             : '状态: 正在提交本轮语音 (COMMITTING)';
     }
 
-    processAudioAndVision() {
+    async processAudioAndVision() {
         const chunks = this.audioChunks.splice(0);
         const durationMs = Math.max(0, Date.now() - this.recordingStartedAt);
         this.recordingStartedAt = 0;
 
         if (this.isDiscardingNextAudio) {
             this.isDiscardingNextAudio = false;
+            this.discardRealtimeTurn();
             this.playPendingSpeechIfReady();
             if (!this.pendingSpeech) this.resumeSuspendedSpeech();
             return;
@@ -682,12 +842,16 @@ class LiveVisionCopilot {
 
         const byteLength = chunks.reduce((sum, chunk) => sum + (chunk.size || 0), 0);
         if (durationMs < 450 || byteLength < 800) {
+            this.discardRealtimeTurn();
             this.phase = this.isProcessing ? this.phase : 'LISTENING';
             this.statusText.innerText = '状态: 已过滤短促背景声 (NOISE_FILTERED)';
             this.resumeSuspendedSpeech();
             return;
         }
 
+        const realtimeTurn = this.realtimeTurn;
+        const transcript = await this.waitForRealtimeFinal(realtimeTurn);
+        this.realtimeTurn = null;
         const audioBlob = new Blob(chunks, { type: this.recordedMimeType || 'audio/webm' });
         if (this.turnQueue.length >= this.maxQueuedTurns) {
             this.statusText.innerText = '状态: 语音补充过快，请稍候再说 (QUEUE_FULL)';
@@ -696,6 +860,7 @@ class LiveVisionCopilot {
         this.turnQueue.push({
             audioBlob,
             imageData: this.captureCurrentFrame(),
+            transcript,
             capturedAt: Date.now(),
             runId: this.runId
         });
@@ -893,21 +1058,27 @@ class LiveVisionCopilot {
         }
 
         const core = window.titanAIAssistant;
-        const modelAudio = await this.prepareAudioForModel(turn.audioBlob);
-        if (!this.isRequestCurrent(runId, requestId)) return false;
         const config = this.pipelineConfig || this.loadPipelineConfig();
         const useTranscriptionPipeline = config.mode === 'transcribe';
         let currentUserMessage;
-        let sourceTranscript = '';
-        if (useTranscriptionPipeline) {
-            this.subtitle.textContent = '[正在转写语音，并交给高能力模型推理...]';
-            sourceTranscript = await this.transcribeAudio(modelAudio, core, signal);
+        let sourceTranscript = typeof turn.transcript === 'string' ? turn.transcript.trim() : '';
+        if (sourceTranscript || useTranscriptionPipeline) {
+            if (!sourceTranscript) {
+                this.subtitle.textContent = '[实时转写未及时返回，正在使用兼容转写...]';
+                const modelAudio = await this.prepareAudioForModel(turn.audioBlob);
+                if (!this.isRequestCurrent(runId, requestId)) return false;
+                sourceTranscript = await this.transcribeAudio(modelAudio, core, signal);
+            } else {
+                this.subtitle.textContent = '[已获得实时转写，正在生成回复...]';
+            }
             if (!this.isRequestCurrent(runId, requestId)) return false;
             currentUserMessage = core._buildMultimodalMessage(
                 `这是用户当前一轮实时语音的可靠转写：${sourceTranscript}\n请结合当前画面理解它。`,
                 turn.imageData ? [turn.imageData] : []
             );
         } else {
+            const modelAudio = await this.prepareAudioForModel(turn.audioBlob);
+            if (!this.isRequestCurrent(runId, requestId)) return false;
             const base64Audio = await this.blobToBase64(modelAudio);
             if (!this.isRequestCurrent(runId, requestId)) return false;
             currentUserMessage = core._buildMultimodalMessage(
@@ -1304,6 +1475,8 @@ class LiveVisionCopilot {
             Promise.resolve(this.audioContext.close()).catch(() => {});
             this.audioContext = null;
         }
+        this.closeRealtimeAsr();
+        this.audioProcessor = null;
         this.mediaRecorder = null;
         this.video.srcObject = null;
     }
