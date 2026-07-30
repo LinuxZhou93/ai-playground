@@ -53,6 +53,9 @@ function createBareInstance() {
   instance.historyStorageKey = 'titan_live_vision_history_v2:unit-user';
   instance.liveHistory = [];
   instance.liveContextMessages = [];
+  // These behavior tests exercise the legacy direct-audio branch explicitly.
+  // Production defaults to the server-owned transcription pipeline.
+  instance.pipelineConfig = { mode: 'direct', transcriptionModel: '', reasoningModel: '', transcriptionEndpoint: '' };
   instance.turnQueue = [];
   instance.pendingSpeech = null;
   instance.suspendedSpeech = null;

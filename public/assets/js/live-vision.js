@@ -169,15 +169,16 @@ class LiveVisionCopilot {
     loadPipelineConfig() {
         try {
             const saved = JSON.parse(localStorage.getItem('titan_live_vision_pipeline_v1') || '{}');
+            const hasExplicitPipeline = saved.mode === 'direct' || saved.mode === 'transcribe';
             return {
                 // direct：沿用旧的音频多模态聊天；transcribe：兼容任意高能力文本/视觉模型。
-                mode: saved.mode === 'transcribe' ? 'transcribe' : 'direct',
-                transcriptionModel: typeof saved.transcriptionModel === 'string' ? saved.transcriptionModel.trim() : '',
-                reasoningModel: typeof saved.reasoningModel === 'string' ? saved.reasoningModel.trim() : '',
+                mode: hasExplicitPipeline ? saved.mode : 'transcribe',
+                transcriptionModel: typeof saved.transcriptionModel === 'string' ? saved.transcriptionModel.trim() : 'qwen-asr',
+                reasoningModel: typeof saved.reasoningModel === 'string' ? saved.reasoningModel.trim() : 'qwen-plus',
                 transcriptionEndpoint: typeof saved.transcriptionEndpoint === 'string' ? saved.transcriptionEndpoint.trim() : ''
             };
         } catch (_) {
-            return { mode: 'direct', transcriptionModel: '', reasoningModel: '', transcriptionEndpoint: '' };
+            return { mode: 'transcribe', transcriptionModel: 'qwen-asr', reasoningModel: 'qwen-plus', transcriptionEndpoint: '' };
         }
     }
 
