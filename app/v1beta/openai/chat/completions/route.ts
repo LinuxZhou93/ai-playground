@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 
 // Server-side hardened key to bypass client-side proxy issues
 const BACKGRACE_URL = 'https://backgrace.com/v1/chat/completions';
+const DEFAULT_QWEN_COMPATIBLE_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 import fs from 'fs';
 import path from 'path';
 
@@ -47,20 +48,30 @@ const getCleanApiKey = () => {
 };
 
 export async function POST(req: Request) {
-  const PROD_KEY = getCleanApiKey();
+  const fallbackApiKey = getCleanApiKey();
   try {
     const body = await req.json();
 
-    let targetModel = body.model || 'gemini-3.5-flash';
-    if (targetModel.includes('gemini')) {
+    // Prefer the server-owned Qwen connection when configured.  The Live Vision
+    // client may still hold an old relay token in localStorage, but credentials
+    // must never determine which server-side provider handles the request.
+    const qwenApiKey = process.env.QWEN_API_KEY;
+    const useQwen = Boolean(qwenApiKey);
+    const qwenBaseUrl = (process.env.QWEN_BASE_URL || DEFAULT_QWEN_COMPATIBLE_BASE_URL).replace(/\/$/, '');
+    const upstreamUrl = useQwen ? `${qwenBaseUrl}/chat/completions` : BACKGRACE_URL;
+
+    let targetModel = body.model || (useQwen ? 'qwen-plus' : 'gemini-3.5-flash');
+    if (useQwen && !String(targetModel).startsWith('qwen')) {
+      targetModel = 'qwen-plus';
+    } else if (!useQwen && String(targetModel).includes('gemini')) {
       targetModel = 'gemini-3.5-flash';
     }
 
-    const response = await fetch(BACKGRACE_URL, {
+    const response = await fetch(upstreamUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${PROD_KEY}`,
+        'Authorization': `Bearer ${useQwen ? qwenApiKey : fallbackApiKey}`,
       },
       body: JSON.stringify({
         model: targetModel,
