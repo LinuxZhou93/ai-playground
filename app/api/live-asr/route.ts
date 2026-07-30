@@ -1,5 +1,8 @@
 import { experimental_upgradeWebSocket, type WebSocketData } from '@vercel/functions';
-import WebSocket from 'ws';
+import type { WebSocket as NodeWebSocket } from 'ws';
+
+// Next.js 会尝试打包可选的原生 bufferutil；Vercel 的 WebSocket 适配层需要纯 JS 路径。
+process.env.WS_NO_BUFFER_UTIL = '1';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -34,8 +37,8 @@ function parseClientEvent(raw: WebSocketData): ClientEvent | null {
   }
 }
 
-function send(socket: WebSocket, event: Record<string, unknown>) {
-  if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(event));
+function send(socket: NodeWebSocket, event: Record<string, unknown>) {
+  if (socket.readyState === 1) socket.send(JSON.stringify(event));
 }
 
 export async function GET(request: Request) {
@@ -46,7 +49,7 @@ export async function GET(request: Request) {
   }
 
   return experimental_upgradeWebSocket(async (client) => {
-    let upstream: WebSocket | null = null;
+    let upstream: NodeWebSocket | null = null;
     let started = false;
     let upstreamReady = false;
     let language = 'zh';
@@ -54,20 +57,20 @@ export async function GET(request: Request) {
     const committedTurnIds: string[] = [];
 
     const closeUpstream = () => {
-      if (upstream && upstream.readyState < WebSocket.CLOSING) upstream.close(1000, 'client closed');
+      if (upstream && upstream.readyState < 2) upstream.close(1000, 'client closed');
       upstream = null;
       upstreamReady = false;
     };
 
     const appendAudio = (audio: string) => {
-      if (!upstreamReady || !upstream || upstream.readyState !== WebSocket.OPEN) {
+      if (!upstreamReady || !upstream || upstream.readyState !== 1) {
         queuedAudio.push(audio);
         return;
       }
       upstream.send(JSON.stringify({ type: 'input_audio_buffer.append', audio }));
     };
 
-    const connectUpstream = () => {
+    const connectUpstream = async () => {
       const apiKey = process.env.ASR_QWEN_API_KEY?.trim();
       if (!apiKey) {
         send(client, { type: 'error', code: 'ASR_NOT_CONFIGURED', message: '实时语音服务尚未配置。' });
@@ -83,6 +86,7 @@ export async function GET(request: Request) {
         return;
       }
 
+      const { default: WebSocket } = await import('ws');
       upstream = new WebSocket(url, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -149,7 +153,7 @@ export async function GET(request: Request) {
         if (started) return;
         started = true;
         language = /^[a-z-]{2,12}$/i.test(event.language || '') ? String(event.language) : 'zh';
-        connectUpstream();
+        void connectUpstream();
         return;
       }
       if (event.type === 'audio') {
@@ -160,12 +164,12 @@ export async function GET(request: Request) {
       }
       if (event.type === 'commit' && event.turnId) {
         committedTurnIds.push(event.turnId);
-        if (upstreamReady && upstream?.readyState === WebSocket.OPEN) upstream.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+        if (upstreamReady && upstream?.readyState === 1) upstream.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
         return;
       }
       if (event.type === 'discard') {
         queuedAudio.splice(0);
-        if (upstreamReady && upstream?.readyState === WebSocket.OPEN) upstream.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
+        if (upstreamReady && upstream?.readyState === 1) upstream.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
         return;
       }
       if (event.type === 'close') closeUpstream();
