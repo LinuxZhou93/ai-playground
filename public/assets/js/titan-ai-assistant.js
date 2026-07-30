@@ -972,6 +972,7 @@ class TitanAIAssistant {
         if (wasOpen === 'true' && !this.isChatOpen) {
             this.isChatOpen = true;
             this.panel.classList.add('open');
+            setTimeout(() => window.titanLiveVision?.prewarmRealtimeAsr?.(), 0);
             setTimeout(() => this.scrollToBottom(), 100);
         }
 
@@ -2722,6 +2723,8 @@ class TitanAIAssistant {
             if (this.isChatOpen) {
                 this.panel.classList.add('open');
                 this.input.focus();
+                // 展开聊天面板时先建立实时 ASR，把冷启动隐藏在点击 Live Vision 前。
+                window.titanLiveVision?.prewarmRealtimeAsr?.();
                 
                 if (!this.hasScanned) {
                     this.hasScanned = true;
@@ -2731,6 +2734,7 @@ class TitanAIAssistant {
                 }
             } else {
                 this.panel.classList.remove('open');
+                window.titanLiveVision?.cancelRealtimeAsrPrewarm?.();
                 // 🔐 关闭面板时自动静默存档，防止对话丢失
                 this.silentAutoArchive();
             }
@@ -5160,4 +5164,3 @@ setTimeout(() => {
         window.titanUI = new TitanAdaptiveUI();
     }
 }, 2000);
-

@@ -743,6 +743,43 @@ test('start prewarms realtime ASR before camera permission resolves', async () =
   await starting;
 });
 
+test('opening Live Vision reuses an already prewarmed realtime ASR session', async () => {
+  const instance = createBareInstance();
+  instance.isActive = false;
+  instance.phase = 'STOPPED';
+  instance.videoStream = null;
+  instance.hud = { style: { display: 'none' } };
+  instance.subtitle = { innerText: '', innerHTML: '', textContent: '' };
+  instance.statusText = { innerText: '' };
+  instance.refreshHistoryForCurrentUser = () => {};
+  instance.runId = 7;
+  instance.realtimeAsr = {
+    runId: 7,
+    ready: true,
+    prewarmed: true,
+    socket: { readyState: 1 }
+  };
+
+  let resolvePermission;
+  context.navigator = {
+    mediaDevices: {
+      getUserMedia: () => new Promise(resolve => { resolvePermission = resolve; })
+    }
+  };
+  let reconnectCalls = 0;
+  instance.connectRealtimeAsr = () => { reconnectCalls++; };
+
+  const starting = instance.start();
+  assert.equal(instance.runId, 7);
+  assert.equal(instance.realtimeAsr.prewarmed, false);
+  assert.equal(reconnectCalls, 0);
+
+  instance.runId++;
+  instance.isActive = false;
+  resolvePermission({ getTracks: () => [] });
+  await starting;
+});
+
 test('a stale getUserMedia rejection cannot tear down a newer live session', async () => {
   const instance = createBareInstance();
   instance.isActive = false;

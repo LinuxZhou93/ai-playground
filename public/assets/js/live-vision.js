@@ -245,7 +245,12 @@ class LiveVisionCopilot {
             return;
         }
 
-        const activeRunId = ++this.runId;
+        const hasPrewarmedAsr = Boolean(
+            this.realtimeAsr?.prewarmed &&
+            this.realtimeAsr.runId === this.runId &&
+            this.realtimeAsr.socket?.readyState < 2
+        );
+        const activeRunId = hasPrewarmedAsr ? this.runId : ++this.runId;
         this.hud.style.display = 'block';
         this.isActive = true;
         this.isListening = false;
@@ -259,7 +264,11 @@ class LiveVisionCopilot {
         void this.probeServerAsr();
         // WebSocket 到千问的会话初始化通常比摄像头/麦克风授权更慢。提前并行预热，
         // 用户看到画面开始说话时连接大概率已经 ready；即使未完成也会缓存首句音频。
-        this.connectRealtimeAsr(activeRunId);
+        if (hasPrewarmedAsr) {
+            this.realtimeAsr.prewarmed = false;
+        } else {
+            this.connectRealtimeAsr(activeRunId);
+        }
         this.subtitle.innerText = "“正在建立与底层硬件摄像引擎及麦克风列阵的连接...”";
         this.statusText.innerText = '状态: 正在预热实时转写 (ASR_CONNECTING)';
 
@@ -413,6 +422,17 @@ class LiveVisionCopilot {
         socket.onclose = () => {
             if (this.realtimeAsr?.socket === socket) this.realtimeAsr.ready = false;
         };
+    }
+
+    prewarmRealtimeAsr() {
+        if (this.isActive || this.realtimeAsr?.socket?.readyState < 2 || !window.WebSocket) return;
+        const prewarmRunId = ++this.runId;
+        this.connectRealtimeAsr(prewarmRunId);
+        if (this.realtimeAsr) this.realtimeAsr.prewarmed = true;
+    }
+
+    cancelRealtimeAsrPrewarm() {
+        if (!this.isActive && this.realtimeAsr?.prewarmed) this.closeRealtimeAsr();
     }
 
     closeRealtimeAsr() {
