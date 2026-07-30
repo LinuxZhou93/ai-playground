@@ -363,10 +363,13 @@ class LiveVisionCopilot {
         if (!window.WebSocket) return;
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const socket = new WebSocket(`${protocol}//${window.location.host}/api/live-asr`);
-        this.realtimeAsr = { socket, ready: false, runId };
+        this.realtimeAsr = { socket, ready: false, runId, pendingEvents: [] };
         socket.onopen = () => {
             if (this.realtimeAsr?.socket !== socket || this.runId !== runId) return;
             socket.send(JSON.stringify({ type: 'start', language: 'zh' }));
+            for (const pending of this.realtimeAsr.pendingEvents.splice(0)) {
+                socket.send(JSON.stringify(pending));
+            }
         };
         socket.onmessage = event => {
             if (this.realtimeAsr?.socket !== socket || this.runId !== runId) return;
@@ -376,9 +379,9 @@ class LiveVisionCopilot {
                 this.realtimeAsr.ready = true;
                 return;
             }
-            if (message.type === 'partial' && this.realtimeTurn && this.isSpeaking) {
+            if (message.type === 'partial' && this.realtimeTurn) {
                 this.realtimeTurn.partial = String(message.text || '').trim();
-                if (this.realtimeTurn.partial) {
+                if (this.realtimeTurn.partial && this.isSpeaking) {
                     this.subtitle.textContent = `> ${this.realtimeTurn.partial}`;
                     this.statusText.innerText = '状态: 实时转写中 (LIVE_ASR)';
                 }
@@ -422,22 +425,34 @@ class LiveVisionCopilot {
     }
 
     beginRealtimeTurn() {
-        if (!this.realtimeAsr?.ready) return null;
+        if (!this.realtimeAsr?.socket || this.realtimeAsr.socket.readyState >= 2) return null;
         const turn = { id: `turn_${++this.realtimeTurnSequence}_${Date.now()}`, partial: '' };
         this.realtimeTurn = turn;
         return turn;
     }
 
+    sendRealtimeEvent(event) {
+        const realtime = this.realtimeAsr;
+        if (!realtime?.socket || realtime.socket.readyState >= 2) return false;
+        if (realtime.socket.readyState === 1) {
+            realtime.socket.send(JSON.stringify(event));
+            return true;
+        }
+        // 用户可能在 WebSocket/千问会话初始化完成前就开始说话。短暂缓存这些
+        // PCM 帧与 commit，连接打开后保持原顺序补发，确保第一句话也走实时链路。
+        if (realtime.pendingEvents.length < 600) realtime.pendingEvents.push(event);
+        return true;
+    }
+
     sendRealtimePcm(pcm) {
         const turn = this.realtimeTurn;
-        const socket = this.realtimeAsr?.socket;
-        if (!turn || !socket || socket.readyState !== 1 || !this.realtimeAsr.ready) return;
+        if (!turn) return;
         const bytes = new Uint8Array(pcm);
         let binary = '';
         for (let offset = 0; offset < bytes.length; offset += 8192) {
             binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
         }
-        socket.send(JSON.stringify({ type: 'audio', audio: btoa(binary) }));
+        this.sendRealtimeEvent({ type: 'audio', audio: btoa(binary) });
     }
 
     downsamplePcm(floatSamples, sourceRate, targetRate = 16000) {
@@ -456,20 +471,16 @@ class LiveVisionCopilot {
     }
 
     commitRealtimeTurn(turn) {
-        const socket = this.realtimeAsr?.socket;
-        if (!turn || !socket || socket.readyState !== 1 || !this.realtimeAsr.ready) return;
-        socket.send(JSON.stringify({ type: 'commit', turnId: turn.id }));
+        if (!turn) return;
+        this.sendRealtimeEvent({ type: 'commit', turnId: turn.id });
     }
 
     discardRealtimeTurn() {
-        const socket = this.realtimeAsr?.socket;
-        if (socket?.readyState === 1 && this.realtimeAsr.ready) {
-            socket.send(JSON.stringify({ type: 'discard' }));
-        }
+        this.sendRealtimeEvent({ type: 'discard' });
         this.realtimeTurn = null;
     }
 
-    waitForRealtimeFinal(turn, timeoutMs = 1100) {
+    waitForRealtimeFinal(turn, timeoutMs = 2200) {
         if (!turn) return Promise.resolve('');
         if (this.realtimeCompletedTranscripts.has(turn.id)) {
             const text = this.realtimeCompletedTranscripts.get(turn.id);
@@ -479,8 +490,8 @@ class LiveVisionCopilot {
         return new Promise(resolve => {
             const timeout = setTimeout(() => {
                 this.realtimeFinals.delete(turn.id);
-                resolve('');
-            }, timeoutMs);
+                resolve(String(turn.partial || '').trim());
+            }, this.realtimeAsr?.ready ? timeoutMs : Math.max(timeoutMs, 7000));
             this.realtimeFinals.set(turn.id, {
                 resolve: text => {
                     clearTimeout(timeout);

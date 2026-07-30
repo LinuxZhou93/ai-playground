@@ -80,6 +80,11 @@ function createBareInstance() {
   instance.noiseFloor = 18;
   instance.ttsNoiseFloor = 18;
   instance.audioChunks = [];
+  instance.realtimeAsr = null;
+  instance.realtimeTurn = null;
+  instance.realtimeFinals = new Map();
+  instance.realtimeCompletedTranscripts = new Map();
+  instance.realtimeTurnSequence = 0;
   instance.statusText = { innerText: '' };
   instance.subtitle = { textContent: '' };
   return instance;
@@ -271,6 +276,56 @@ test('records the candidate from its first frame and discards an unconfirmed sho
   assert.equal(instance.isDiscardingNextAudio, true);
   assert.equal(instance.recorderPendingStop, true);
   assert.equal(recorder.state, 'inactive');
+});
+
+test('queues the first realtime turn while the websocket is still connecting', () => {
+  const instance = createBareInstance();
+  const socket = { readyState: 0, send() {} };
+  instance.realtimeAsr = { socket, ready: false, runId: 1, pendingEvents: [] };
+
+  const turn = instance.beginRealtimeTurn();
+  assert.ok(turn?.id);
+  assert.equal(instance.sendRealtimeEvent({ type: 'audio', audio: 'PCM' }), true);
+  instance.commitRealtimeTurn(turn);
+  assert.deepEqual(
+    instance.realtimeAsr.pendingEvents.map(event => event.type),
+    ['audio', 'commit']
+  );
+});
+
+test('flushes cached audio and commit after the realtime websocket opens', () => {
+  const instance = createBareInstance();
+  const sent = [];
+  class FakeWebSocket {
+    constructor() { this.readyState = 0; }
+    send(payload) { sent.push(JSON.parse(payload)); }
+    close() { this.readyState = 3; }
+  }
+  const originalWebSocket = context.WebSocket;
+  const originalWindowWebSocket = context.window.WebSocket;
+  const originalWindowLocation = context.window.location;
+  context.WebSocket = FakeWebSocket;
+  context.window.WebSocket = FakeWebSocket;
+  context.window.location = { protocol: 'https:', host: 'preview.example' };
+
+  instance.connectRealtimeAsr(1);
+  const turn = instance.beginRealtimeTurn();
+  instance.sendRealtimeEvent({ type: 'audio', audio: 'PCM' });
+  instance.commitRealtimeTurn(turn);
+  instance.realtimeAsr.socket.readyState = 1;
+  instance.realtimeAsr.socket.onopen();
+
+  assert.deepEqual(sent.map(event => event.type), ['start', 'audio', 'commit']);
+  context.WebSocket = originalWebSocket;
+  context.window.WebSocket = originalWindowWebSocket;
+  context.window.location = originalWindowLocation;
+});
+
+test('uses the latest realtime partial when the final event is slightly late', async () => {
+  const instance = createBareInstance();
+  instance.realtimeAsr = { ready: true };
+  const transcript = await instance.waitForRealtimeFinal({ id: 'turn-partial', partial: '第一句话' }, 1);
+  assert.equal(transcript, '第一句话');
 });
 
 test('freezes the adaptive noise floor while a real voice candidate is being confirmed', () => {

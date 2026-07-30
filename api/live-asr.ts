@@ -60,6 +60,7 @@ sockets.on('connection', (client) => {
   let language = 'zh';
   const queuedAudio: string[] = [];
   const committedTurnIds: string[] = [];
+  let queuedCommits = 0;
 
   const closeUpstream = () => {
     if (upstream && upstream.readyState < WebSocket.CLOSING) upstream.close(1000, 'client closed');
@@ -127,6 +128,10 @@ sockets.on('connection', (client) => {
       if (type === 'session.updated') {
         upstreamReady = true;
         for (const audio of queuedAudio.splice(0)) appendAudio(audio);
+        while (queuedCommits > 0 && upstream?.readyState === WebSocket.OPEN) {
+          upstream.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+          queuedCommits--;
+        }
         send(client, { type: 'ready' });
       } else if (type === 'conversation.item.input_audio_transcription.text') {
         send(client, { type: 'partial', text: `${event.text || ''}${event.stash || ''}`.trim() });
@@ -168,9 +173,12 @@ sockets.on('connection', (client) => {
       committedTurnIds.push(event.turnId);
       if (upstreamReady && upstream?.readyState === WebSocket.OPEN) {
         upstream.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+      } else {
+        queuedCommits++;
       }
     } else if (event.type === 'discard') {
       queuedAudio.splice(0);
+      queuedCommits = 0;
       if (upstreamReady && upstream?.readyState === WebSocket.OPEN) {
         upstream.send(JSON.stringify({ type: 'input_audio_buffer.clear' }));
       }
