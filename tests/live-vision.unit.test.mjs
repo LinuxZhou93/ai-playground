@@ -714,6 +714,35 @@ test('start creates MediaRecorder from the audio track only', async () => {
   assert.equal(recorderStream.tracks.includes(videoTrack), false);
 });
 
+test('start prewarms realtime ASR before camera permission resolves', async () => {
+  const instance = createBareInstance();
+  instance.isActive = false;
+  instance.phase = 'STOPPED';
+  instance.videoStream = null;
+  instance.hud = { style: { display: 'none' } };
+  instance.subtitle = { innerText: '', innerHTML: '', textContent: '' };
+  instance.statusText = { innerText: '' };
+  instance.refreshHistoryForCurrentUser = () => {};
+
+  let resolvePermission;
+  context.navigator = {
+    mediaDevices: {
+      getUserMedia: () => new Promise(resolve => { resolvePermission = resolve; })
+    }
+  };
+  let connectedRunId = null;
+  instance.connectRealtimeAsr = runId => { connectedRunId = runId; };
+
+  const starting = instance.start();
+  assert.equal(connectedRunId, instance.runId);
+  assert.equal(instance.statusText.innerText, '状态: 正在预热实时转写 (ASR_CONNECTING)');
+
+  instance.runId++;
+  instance.isActive = false;
+  resolvePermission({ getTracks: () => [] });
+  await starting;
+});
+
 test('a stale getUserMedia rejection cannot tear down a newer live session', async () => {
   const instance = createBareInstance();
   instance.isActive = false;

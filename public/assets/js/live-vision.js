@@ -257,7 +257,11 @@ class LiveVisionCopilot {
         this.isDiscardingNextAudio = false;
         this.refreshHistoryForCurrentUser();
         void this.probeServerAsr();
+        // WebSocket 到千问的会话初始化通常比摄像头/麦克风授权更慢。提前并行预热，
+        // 用户看到画面开始说话时连接大概率已经 ready；即使未完成也会缓存首句音频。
+        this.connectRealtimeAsr(activeRunId);
         this.subtitle.innerText = "“正在建立与底层硬件摄像引擎及麦克风列阵的连接...”";
+        this.statusText.innerText = '状态: 正在预热实时转写 (ASR_CONNECTING)';
 
         try {
             // 通过设定高帧率强制抗击相机降帧暗光策略，同时去除 environment 限制（防止苹果生态下幽灵般地去连手机热点摄像头导致严重无线掉帧）
@@ -329,7 +333,6 @@ class LiveVisionCopilot {
 
             // 监听并渲染音频频谱的同时执行静音侦测 (VAD)
             this.setupAudioVisualizerAndVAD(stream);
-            this.connectRealtimeAsr(activeRunId);
 
             this.isListening = true;
             this.phase = 'LISTENING';
