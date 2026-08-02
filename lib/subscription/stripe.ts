@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { buildSafeSupabaseServerKey, buildSafeSupabaseUrl, isSupabaseServerConfigured } from '@/lib/supabase/config';
 
 /**
  * Stripe REST API Client (Edge Compatible)
@@ -9,9 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAdmin = createClient(buildSafeSupabaseUrl, buildSafeSupabaseServerKey);
 
 /**
  * 创建 Stripe 订阅收银台 Session
@@ -103,6 +102,9 @@ export async function checkUserSubscription(userId: string): Promise<{
   status: string;
   currentPeriodEnd: string | null;
 }> {
+  if (!isSupabaseServerConfigured) {
+    return { isSubscribed: false, status: 'unconfigured', currentPeriodEnd: null };
+  }
   try {
     const { data, error } = await supabaseAdmin
       .from('user_subscriptions')

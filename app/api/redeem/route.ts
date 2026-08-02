@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { buildSafeSupabaseServerKey, buildSafeSupabaseUrl, isSupabaseServerConfigured } from '@/lib/supabase/config';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znmbkxmnwuurzhevfxtq.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAdmin = createClient(buildSafeSupabaseUrl, buildSafeSupabaseServerKey);
 
 export async function POST(req: Request) {
+  if (!isSupabaseServerConfigured) {
+    return NextResponse.json({ error: 'Supabase 未配置，卡密服务在本地演示模式下不可用' }, { status: 503 });
+  }
   try {
     const body = await req.json();
     const { code, userId } = body;
