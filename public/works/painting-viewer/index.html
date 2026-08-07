@@ -1,0 +1,2415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>看画的小朋友</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  body {
+    background: radial-gradient(circle at 50% 30%, #fff6e0 0%, #ffe7c2 45%, #ffd6a8 100%);
+    cursor: none;
+  }
+  #scene { width: 100vw; height: 100vh; display: block; }
+
+  /* 自定义鼠标（小爱心） */
+  #cursor {
+    position: fixed; left: 0; top: 0; width: 26px; height: 26px;
+    transform: translate(-50%, -50%); pointer-events: none; z-index: 50;
+    transition: transform .08s ease-out;
+  }
+
+  /* 提示文字 */
+  #hint {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    background: rgba(255,255,255,.78); color: #6b4a2b; padding: 10px 18px;
+    border-radius: 999px; font-size: 14px; letter-spacing: .5px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.12); z-index: 40; user-select: none;
+    backdrop-filter: blur(4px); white-space: nowrap;
+  }
+
+  /* 操作按钮（举起 / 换画） */
+  .actionBtn {
+    position: fixed; z-index: 41; border: none; cursor: pointer;
+    padding: 12px 20px; border-radius: 999px; color: #fff;
+    font-size: 15px; font-weight: 700; transition: transform .15s ease, background .2s;
+  }
+  .actionBtn:hover { transform: translateY(-2px); }
+  .actionBtn:active { transform: translateY(1px); }
+  #liftBtn {
+    right: 22px; bottom: 22px; background: #ff8a5b;
+    box-shadow: 0 6px 18px rgba(255,138,91,.45);
+  }
+  #liftBtn:hover { background: #ff7a47; }
+  #changeBtn {
+    right: 22px; bottom: 78px; background: #7aa7ff;
+    box-shadow: 0 6px 18px rgba(122,167,255,.45);
+  }
+  #changeBtn:hover { background: #5f90ff; }
+  #sceneBtn {
+    right: 22px; bottom: 134px; background: #57c08a;
+    box-shadow: 0 6px 18px rgba(87,192,138,.45);
+  }
+  #sceneBtn:hover { background: #45ad78; }
+  #gestureBtn {
+    right: 22px; bottom: 190px; background: #b388ff;
+    box-shadow: 0 6px 18px rgba(179,136,255,.45);
+  }
+  #gestureBtn:hover { background: #9f6ff0; }
+  #gestureBtn.on { background: #ff5b7f; box-shadow: 0 6px 18px rgba(255,91,127,.45); }
+
+  /* 手势控制预览面板 */
+  #gesturePanel {
+    position: fixed; top: 16px; right: 16px; z-index: 62;
+    width: 244px; background: rgba(20,12,4,.72); color: #fff;
+    border-radius: 16px; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    display: none; backdrop-filter: blur(4px);
+  }
+  #gesturePanel.show { display: block; }
+  #gesturePanel video {
+    width: 100%; height: 168px; object-fit: cover; border-radius: 10px;
+    background: #000; transform: scaleX(-1); /* 镜像，和照镜子一样 */
+  }
+  #gestClose {
+    position: absolute; top: 6px; right: 6px; z-index: 2;
+    width: 26px; height: 26px; border: none; border-radius: 50%;
+    background: rgba(0,0,0,.45); color: #fff; font-size: 15px; line-height: 1;
+    cursor: pointer;
+  }
+  #gestClose:hover { background: rgba(0,0,0,.7); }
+  #gestStopBtn {
+    display: block; width: 100%; margin-top: 10px; padding: 10px 8px;
+    border: none; border-radius: 10px; cursor: pointer;
+    background: #e0432f; color: #fff; font-size: 15px; font-weight: 800;
+    letter-spacing: 1px;
+  }
+  #gestStopBtn:hover { background: #c5351f; }
+  #gestGes {
+    margin-top: 8px; text-align: center; font-size: 18px; font-weight: 800;
+    letter-spacing: .5px; min-height: 24px; color: #ffd54a;
+  }
+  #gestStatus { margin-top: 4px; font-size: 12px; line-height: 1.5; color: #e9dcc8; text-align: center; }
+  #gestMap { margin-top: 6px; font-size: 11px; line-height: 1.7; color: #cbb89c; }
+  #gestMap b { color: #fff; }
+
+  /* 雪天飘雪 */
+  .snowflake { animation: snowfall linear infinite; }
+  @keyframes snowfall { from { transform: translateY(-30px); } to { transform: translateY(760px); } }
+
+  /* 气泡 */
+  #bubble {
+    position: fixed; left: 50%; top: 8%; transform: translateX(-50%) scale(0);
+    background: #fff; color: #5a3d22; padding: 12px 20px; border-radius: 18px;
+    font-size: 18px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.15);
+    z-index: 45; transition: transform .35s cubic-bezier(.34,1.56,.64,1); white-space: nowrap;
+  }
+  #bubble::after {
+    content: ""; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
+    border: 10px solid transparent; border-top-color: #fff;
+  }
+  #bubble.show { transform: translateX(-50%) scale(1); }
+
+  /* 看大画作的遮罩 */
+  #lightbox {
+    position: fixed; inset: 0; background: rgba(40,25,10,.55); z-index: 60;
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    opacity: 0; pointer-events: none; transition: opacity .4s ease; backdrop-filter: blur(3px);
+  }
+  #lightbox.show { opacity: 1; pointer-events: auto; }
+  #bigArt {
+    width: min(70vw, 70vh); height: min(70vw, 70vh);
+    background: #fff; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    transform: scale(.6); transition: transform .45s cubic-bezier(.34,1.56,.64,1);
+  }
+  #lightbox.show #bigArt { transform: scale(1); }
+  #lbClose {
+    margin-top: 22px; background: #fff; color: #5a3d22; border: none; cursor: pointer;
+    padding: 10px 26px; border-radius: 999px; font-size: 16px; font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,.2);
+  }
+  #lbTitle { color:#fff; font-size: 20px; margin-top: 14px; letter-spacing: 1px; }
+
+  /* 麦田随风轻摆（绕麦秆底部旋转） */
+  .sway { transform-box: fill-box; transform-origin: 50% 100%; animation: wheatSway ease-in-out infinite alternate; }
+  @keyframes wheatSway { from { transform: rotate(-3.5deg); } to { transform: rotate(3.5deg); } }
+
+  /* 呼吸起伏：让小朋友持续“活着”（作用于身体整体，不影响头/手的 JS 转向） */
+  @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+  #breathe { transform-box: fill-box; transform-origin: 50% 100%; animation: breathe 3.4s ease-in-out infinite; }
+
+  /* 语音字幕（朗读时同步显示的文字） */
+  #subtitle {
+    position: fixed; left: 50%; bottom: 118px; transform: translateX(-50%) translateY(12px);
+    max-width: 82vw; background: rgba(22,20,34,.84); color: #fff;
+    padding: 14px 24px; border-radius: 16px; font-size: 20px; line-height: 1.55;
+    text-align: center; z-index: 46; opacity: 0; pointer-events: none;
+    transition: opacity .3s ease, transform .3s ease; box-shadow: 0 8px 26px rgba(0,0,0,.32);
+  }
+  #subtitle.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 可拖动的“问话圆”：小董的头 */
+  #askFab {
+    position: fixed; left: 22px; bottom: 22px; z-index: 44;
+    width: 74px; height: 74px; border-radius: 50%; cursor: grab;
+    background: #fff; box-shadow: 0 8px 22px rgba(0,0,0,.22);
+    border: 3px solid #ffd54a; padding: 0; overflow: hidden;
+    transition: box-shadow .15s ease; touch-action: none; user-select: none;
+  }
+  #askFab:active { cursor: grabbing; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
+  #askFab svg { display: block; }
+  #askBadge {
+    position: absolute; right: -2px; top: -2px; background: #ff5b7f; color: #fff;
+    font-size: 15px; font-weight: 800; width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+  /* 问答对话框 */
+  #askDialog {
+    position: fixed; left: 22px; bottom: 110px; z-index: 45;
+    width: 340px; max-width: calc(100vw - 44px);
+    background: rgba(255,255,255,.97); border-radius: 18px; padding: 14px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.28); backdrop-filter: blur(6px);
+  }
+  #askDialog[hidden] { display: none; }
+  #askDialogHead {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 16px; font-weight: 800; color: #6b4a2b; margin-bottom: 10px;
+  }
+  #askClose {
+    border: none; background: #f0e4d4; color: #6b4a2b; cursor: pointer;
+    width: 28px; height: 28px; border-radius: 50%; font-size: 18px; line-height: 1;
+  }
+  #askClose:hover { background: #e6d6c0; }
+  #qa {
+    display: flex; gap: 6px; align-items: center; background: #f6efe4;
+    padding: 6px; border-radius: 999px;
+  }
+  #qa input {
+    flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+    font-size: 15px; padding: 8px 10px; color: #5a3d22;
+  }
+  #micBtn {
+    border: none; cursor: pointer; background: #eaf3ff; color: #2f6fd0;
+    width: 40px; height: 40px; border-radius: 50%; font-size: 18px; flex: none;
+  }
+  #micBtn.rec { background: #ff5b7f; color: #fff; animation: micPulse .9s ease-in-out infinite; }
+  @keyframes micPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+  #qa button[type=submit] {
+    border: none; cursor: pointer; background: #ff8a5b; color: #fff;
+    padding: 9px 14px; border-radius: 999px; font-size: 14px; font-weight: 700; flex: none;
+  }
+  #askTools {
+    display: flex; gap: 8px; margin-top: 10px; align-items: center; justify-content: flex-start; flex-wrap: wrap;
+  }
+  #voiceSel {
+    flex: 1; min-width: 0; border: 1px solid #ead9c2; border-radius: 999px;
+    padding: 8px 12px; font-size: 12px; background: #fff; color: #5a3d22; cursor: pointer;
+  }
+  #introBtn {
+    border: none; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+    background: #b388ff; color: #fff; font-size: 13px; font-weight: 700; flex: none;
+  }
+  #introBtn:hover { background: #a06ff0; }
+  #previewBtn {
+    border: none; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+    background: #ffb74d; color: #5a3d22; font-size: 13px; font-weight: 700; flex: none;
+  }
+  #previewBtn:hover { background: #ffa726; }
+  #langSel {
+    flex: none; min-width: 118px; border: 1px solid #ead9c2; border-radius: 999px;
+    padding: 8px 12px; font-size: 12px; background: #fff; color: #5a3d22; cursor: pointer;
+  }
+  #autoBtn {
+    border: none; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+    background: #a5d6a7; color: #1b5e20; font-size: 13px; font-weight: 700; flex: none;
+  }
+  #autoBtn:hover { background: #95c99a; }
+  #autoBtn.off { background: #eee; color: #999; }
+  #askHint { margin-top: 10px; font-size: 12px; color: #9a7b58; line-height: 1.5; }
+  /* 聊天记录区：多轮对话可滚动 */
+  #chatLog {
+    max-height: 200px; overflow-y: auto; margin: 10px 0 0;
+    padding: 4px 2px; display: flex; flex-direction: column; gap: 8px;
+    scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+  }
+  #chatLog::-webkit-scrollbar { width: 6px; }
+  #chatLog::-webkit-scrollbar-thumb { background: #d8c4a8; border-radius: 3px; }
+  #chatLog .msg { display: flex; }
+  #chatLog .msg.user { justify-content: flex-end; }
+  #chatLog .msg.xiao { justify-content: flex-start; }
+  #chatLog .msg.sys { justify-content: center; }
+  #chatLog .bub {
+    max-width: 82%; padding: 8px 11px; border-radius: 14px;
+    font-size: 13px; line-height: 1.45; word-break: break-word; white-space: pre-wrap;
+  }
+  #chatLog .msg.user .bub { background: #ffd54a; color: #5a3d22; border-bottom-right-radius: 4px; }
+  #chatLog .msg.xiao .bub { background: #ede7f6; color: #4a3b6b; border-bottom-left-radius: 4px; }
+  #chatLog .msg.sys .bub { background: transparent; color: #9a7b58; font-size: 12px; }
+  #outfitBtn {
+    border: none; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+    background: #ff8fab; color: #fff; font-size: 13px; font-weight: 700; flex: none;
+  }
+  #outfitBtn:hover { background: #ff6f91; }
+  #outfitPanel { margin-top: 10px; padding: 10px; border: 2px dashed #ffc2d1; border-radius: 12px; background: #fff4f7; display: none; }
+  #outfitPanel.show { display: block; }
+  #outfitPanel .otitle { font-size: 12px; color: #b5587a; margin-bottom: 8px; font-weight: 700; }
+  #outfitGrid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .otChip {
+    cursor: pointer; width: 40px; height: 40px; border-radius: 10px; border: 3px solid transparent;
+    display: flex; align-items: flex-end; justify-content: center; position: relative; overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  }
+  .otChip:hover { transform: translateY(-2px); }
+  .otChip.sel { border-color: #ff4f81; }
+  .otChip .otPant { position: absolute; bottom: 0; left: 0; right: 0; height: 40%; }
+  .otChip .otName { position: absolute; top: -1px; left: 0; right: 0; font-size: 9px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+  #exprBtn {
+    border: none; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+    background: #ffb74d; color: #fff; font-size: 13px; font-weight: 700; flex: none;
+  }
+  #exprBtn:hover { background: #ffa726; }
+  #hairBtn {
+    border: none; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+    background: #ba68c8; color: #fff; font-size: 13px; font-weight: 700; flex: none;
+  }
+  #hairBtn:hover { background: #ab47bc; }
+  #exprPanel, #hairPanel { margin-top: 10px; padding: 10px; border: 2px dashed #ffd180; border-radius: 12px; background: #fffaf0; display: none; }
+  #exprPanel.show, #hairPanel.show { display: block; }
+  #exprPanel .otitle, #hairPanel .otitle { font-size: 12px; color: #a9762e; margin-bottom: 8px; font-weight: 700; }
+  .otChip .otEmoji { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  #camBtn {
+    border: none; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+    background: #4fc3f7; color: #fff; font-size: 13px; font-weight: 700; flex: none;
+  }
+  #camBtn:hover { background: #29b6f6; }
+  #cameraModal { position: fixed; inset: 0; background: rgba(20,12,4,.62); display: none; align-items: center; justify-content: center; z-index: 60; }
+  #cameraModal.show { display: flex; }
+  #cameraBox { background: #fff8ef; border-radius: 18px; padding: 16px; width: min(420px, 92vw); box-shadow: 0 18px 50px rgba(0,0,0,.35); text-align: center; }
+  #cameraBox h3 { margin: 0 0 10px; font-size: 16px; color: #5a3d22; }
+  #camVideo, #camCanvas { width: 100%; border-radius: 12px; background: #000; display: block; max-height: 56vh; }
+  #camCanvas { display: none; }
+  #camActions { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  #camActions button { border: none; cursor: pointer; padding: 9px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff; }
+  #camSnap { background: #ff7043; } #camSnap:hover { background: #f4511e; }
+  #camRetake { background: #8d6e63; } #camRetake:hover { background: #6d4c41; }
+  #camSave { background: #43a047; } #camSave:hover { background: #2e7d32; }
+  #camSend { background: #7e57c2; } #camSend:hover { background: #5e35b1; }
+  #camClose { background: #bdbdbd; } #camClose:hover { background: #9e9e9e; }
+  #camStatus { margin-top: 10px; font-size: 12px; color: #9a7b58; min-height: 16px; }
+  #shotBtn {
+    border: none; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+    background: #26a69a; color: #fff; font-size: 13px; font-weight: 700; flex: none;
+  }
+  #shotBtn:hover { background: #00897b; }
+  #shotArea { margin-top: 10px; border: 2px dashed #b2dfdb; border-radius: 12px; padding: 10px; background: #f1faf8; display: none; text-align: center; }
+  #shotArea.show { display: block; }
+  #shotImg { max-width: 100%; max-height: 180px; border-radius: 8px; display: block; margin: 0 auto 8px; }
+  #shotMsg { font-size: 12px; color: #5a3d22; margin-bottom: 8px; line-height: 1.5; }
+  #shotBtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  #shotBtns button { border: none; cursor: pointer; padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff; }
+  #shotSend { background: #7e57c2; } #shotSend:hover { background: #5e35b1; }
+  #shotCancel { background: #bdbdbd; } #shotCancel:hover { background: #9e9e9e; }
+  #shotCrop { background: #00897b; } #shotCrop:hover { background: #00695c; }
+  /* 框选区块裁剪遮罩 */
+  #cropOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.82); display: none; align-items: center; justify-content: center; z-index: 80; }
+  #cropOverlay.show { display: flex; }
+  #cropStage { position: relative; max-width: 94vw; max-height: 84vh; line-height: 0; }
+  #cropImg { max-width: 94vw; max-height: 84vh; display: block; user-select: none; -webkit-user-drag: none; }
+  #cropSel { position: absolute; border: 2px dashed #ffeb3b; background: rgba(255,235,59,.18); box-sizing: border-box; display: none; cursor: move; }
+  #cropSel::before { content: ''; position: absolute; inset: 0; cursor: move; }
+  #cropHint { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 14px; background: rgba(0,0,0,.5); padding: 8px 16px; border-radius: 999px; z-index: 81; }
+  #cropBar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 81; }
+  #cropBar button { border: none; cursor: pointer; padding: 11px 22px; border-radius: 999px; font-size: 14px; font-weight: 700; color: #fff; }
+  #cropConfirm { background: #7e57c2; } #cropConfirm:hover { background: #5e35b1; }
+  #cropRedo { background: #00897b; } #cropRedo:hover { background: #00695c; }
+  #cropClose { background: #bdbdbd; } #cropClose:hover { background: #9e9e9e; }
+</style>
+</head>
+<body>
+<!-- 自定义鼠标 -->
+<svg id="cursor" viewBox="0 0 32 32"><path d="M16 28C16 28 4 19 4 11.5C4 6.8 7.8 3 12.5 3C15 3 16 5 16 5C16 5 17 3 19.5 3C24.2 3 28 6.8 28 11.5C28 19 16 28 16 28Z" fill="#ff5b7f" stroke="#fff" stroke-width="2"/></svg>
+
+<div id="bubble">你好呀！欢迎来找我玩～</div>
+<div id="hint">移动鼠标 → 小董一直看着你 ｜ 点一下 → 开心展示画作 ｜ 点画作 → 放大 ｜ 移出窗口 → 挥手拜拜 ｜ 点左下小董的头 → 问他问题（可语音） ｜ 右下 → 举画 / 换画 / 8个场景 / 🤖手势（点头换发型·比大拇指换衣·张手换画·握拳换场景·你动他跟着动）</div>
+<button id="liftBtn" class="actionBtn">🙌 举起画作</button>
+<button id="changeBtn" class="actionBtn">🎨 换一张画</button>
+<button id="sceneBtn" class="actionBtn">🌍 场景：麦田</button>
+<button id="gestureBtn" class="actionBtn">🤖 手势控制</button>
+
+<!-- 可拖动的“问话圆”：小董的头，点开弹出对话框 -->
+<div id="askFab" title="点我，问问小董">
+  <svg viewBox="0 0 100 100" width="100%" height="100%">
+    <circle cx="50" cy="50" r="48" fill="#cdeaff"/>
+    <circle cx="50" cy="46" r="40" fill="#4a3326"/>
+    <ellipse cx="50" cy="53" rx="33" ry="34" fill="#ffd9b8"/>
+    <path d="M14 46 C12 20 34 8 50 8 C66 8 88 20 86 46 C82 31 72 25 50 25 C28 25 18 31 14 46 Z" fill="#4a3326"/>
+    <circle cx="39" cy="51" r="5.2" fill="#3a2c2c"/>
+    <circle cx="61" cy="51" r="5.2" fill="#3a2c2c"/>
+    <path d="M40 66 Q50 75 60 66" stroke="#b5543f" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <circle cx="33" cy="60" r="3.4" fill="#ff9a9a" opacity=".8"/>
+    <circle cx="67" cy="60" r="3.4" fill="#ff9a9a" opacity=".8"/>
+  </svg>
+  <span id="askBadge">?</span>
+</div>
+
+<!-- 问答对话框 -->
+<div id="askDialog" hidden>
+  <div id="askDialogHead">
+    <span>🗣️ 问问小董</span>
+    <button id="askClose" type="button" aria-label="关闭">×</button>
+  </div>
+  <form id="qa" autocomplete="off">
+    <input id="qaInput" type="text" placeholder="问我点什么吧…（也可点🎤说话）" maxlength="60"/>
+    <button id="micBtn" type="button" title="语音输入">🎤</button>
+    <button type="submit">问问他</button>
+  </form>
+  <div id="chatLog">
+    <div class="msg sys"><div class="bub">和小董聊聊天吧～</div></div>
+  </div>
+  <div id="askTools">
+    <select id="langSel" title="聊天语言">
+      <option value="zh">🇨🇳 中文</option>
+      <option value="en">🇬🇧 English</option>
+      <option value="ja">🇯🇵 日本語</option>
+      <option value="ko">🇰🇷 한국어</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="es">🇪🇸 Español</option>
+    </select>
+    <button id="autoBtn" type="button" title="小董主动找你聊天">💬 主动聊天：开</button>
+    <select id="voiceSel" title="朗读声音"><option>加载声音中…</option></select>
+    <button id="previewBtn" type="button" title="试听当前声音">🔊 试听</button>
+    <button id="introBtn" type="button">👦 自我介绍</button>
+    <button id="camBtn" type="button" title="拍照">📷 拍照</button>
+    <button id="shotBtn" type="button" title="截图">🖼️ 截图</button>
+    <button id="outfitBtn" type="button" title="换衣服">👕 换衣服</button>
+    <button id="exprBtn" type="button" title="换表情">😊 换表情</button>
+    <button id="hairBtn" type="button" title="换发型">💇 换发型</button>
+  </div>
+  <div id="outfitPanel" hidden>
+    <div class="otitle">👕 给小董换件衣服（点一下就穿上）</div>
+    <div id="outfitGrid"></div>
+  </div>
+  <div id="exprPanel" hidden>
+    <div class="otitle">😊 给小董换个表情（点一下就变）</div>
+    <div id="exprGrid"></div>
+  </div>
+  <div id="hairPanel" hidden>
+    <div class="otitle">💇 给小董换个发型（点一下就换）</div>
+    <div id="hairGrid"></div>
+  </div>
+  <div id="askHint">🌐 先选<b>聊天语言</b>，小董会用那种语言回复和朗读；💬 <b>主动聊天</b>开着时，小董会每隔一会主动找你搭话（点一下可关）。想控制小董就说指令，比如：<b>举起 / 放下来 / 换画 / 换衣服 / 换表情 / 换发型 / 拜拜 / 跳一下 / 去麦田 / 指一指</b>。<br>💡 想让声音最像真人，用 Edge 浏览器打开，再点「🔊 试听」挑一个 Online 神经音。</div>
+  <div id="shotArea" hidden>
+    <img id="shotImg" alt="截图预览"/>
+    <div id="shotMsg">截图已放到这里啦～可以写句话再发给小董，或直接点「📨 发送给小董」。</div>
+    <div id="shotBtns">
+      <button id="shotCrop" type="button" hidden>✂️ 框选区块</button>
+      <button id="shotSend" type="button">📨 发送给小董</button>
+      <button id="shotCancel" type="button">✕ 不要了</button>
+    </div>
+  </div>
+</div>
+
+<!-- 拍照弹窗 -->
+<div id="cameraModal" hidden>
+  <div id="cameraBox">
+    <h3>📷 拍张照片</h3>
+    <video id="camVideo" autoplay playsinline muted></video>
+    <canvas id="camCanvas"></canvas>
+    <div id="camActions">
+      <button id="camSnap" type="button">📸 拍照</button>
+      <button id="camRetake" type="button" hidden>↺ 重拍</button>
+      <button id="camSave" type="button" hidden>💾 保存照片</button>
+      <button id="camSend" type="button" hidden>📨 发给小董</button>
+      <button id="camClose" type="button">✕ 关闭</button>
+    </div>
+    <div id="camStatus"></div>
+  </div>
+</div>
+
+<!-- 摄像头手势控制预览面板 -->
+<div id="gesturePanel" hidden>
+  <button id="gestClose" type="button" title="关闭手势控制">✕</button>
+  <video id="gestVideo" autoplay playsinline muted></video>
+  <div id="gestGes">🤔 等待画面…</div>
+  <div id="gestStatus">把脸/手对准摄像头</div>
+  <div id="gestMap">
+    <b>点头</b> → 换发型 ｜ <b>👍 比大拇指</b> → 换衣服<br>
+    <b>✋ 张开手掌</b> → 换一幅画 ｜ <b>✊ 握拳</b> → 换场景<br>
+    你动 → 小董也跟着动
+  </div>
+  <button id="gestStopBtn" type="button">🔴 关闭手势控制</button>
+</div>
+
+<!-- 框选区块裁剪遮罩 -->
+<div id="cropOverlay" hidden>
+  <div id="cropHint">在图片上按住鼠标拖一个框，框住你想保留的区块～</div>
+  <div id="cropStage">
+    <img id="cropImg" alt="待裁剪"/>
+    <div id="cropSel"></div>
+  </div>
+  <div id="cropBar">
+    <button id="cropConfirm" type="button">✅ 就用这块</button>
+    <button id="cropRedo" type="button">↺ 重新框选</button>
+    <button id="cropClose" type="button">✕ 取消</button>
+  </div>
+</div>
+
+<div id="subtitle"></div>
+
+<svg id="scene" viewBox="0 0 1000 720" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="floor" cx="50%" cy="20%" r="80%">
+      <stop offset="0%" stop-color="#ffe9c6"/><stop offset="100%" stop-color="#f6c98c"/>
+    </radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe0c2"/><stop offset="100%" stop-color="#ffcb9e"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="0" y1="0" x2="0" y2="1">
+      <stop id="shirtStop0" offset="0%" stop-color="#6ec6ff"/><stop id="shirtStop1" offset="100%" stop-color="#3aa0e8"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c98a4b"/><stop offset="100%" stop-color="#9c5f2c"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.18"/>
+    </filter>
+    <clipPath id="frameClip"><rect x="404" y="376" width="192" height="148" rx="8"/></clipPath>
+
+    <!-- 天空 / 麦田地面 渐变 -->
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8fd0ff"/>
+      <stop offset="55%" stop-color="#cdeeff"/>
+      <stop offset="100%" stop-color="#fdf3c9"/>
+    </linearGradient>
+    <linearGradient id="field" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f6dd83"/>
+      <stop offset="100%" stop-color="#e1b347"/>
+    </linearGradient>
+
+    <!-- 一株麦子（基准在脚底 (0,0)，向上生长） -->
+    <g id="wheat">
+      <path d="M0 0 C -4 -55 -2 -100 0 -140" fill="none" stroke="#c7a83a" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M0 -42 q -24 -10 -38 -30 q 24 6 38 30 z" fill="#a7c24a"/>
+      <path d="M0 -74 q 22 -10 36 -28 q -22 8 -36 28 z" fill="#9bb83e"/>
+      <g fill="#e8b94a">
+        <ellipse cx="0" cy="-142" rx="4.5" ry="10"/>
+        <ellipse cx="-5.5" cy="-133" rx="4" ry="9" transform="rotate(-20 -5.5 -133)"/>
+        <ellipse cx="5.5" cy="-133" rx="4" ry="9" transform="rotate(20 5.5 -133)"/>
+        <ellipse cx="-6" cy="-120" rx="4" ry="8.5" transform="rotate(-20 -6 -120)"/>
+        <ellipse cx="6" cy="-120" rx="4" ry="8.5" transform="rotate(20 6 -120)"/>
+        <ellipse cx="-5.5" cy="-107" rx="3.6" ry="8" transform="rotate(-20 -5.5 -107)"/>
+        <ellipse cx="5.5" cy="-107" rx="3.6" ry="8" transform="rotate(20 5.5 -107)"/>
+        <ellipse cx="-4.5" cy="-95" rx="3" ry="6.5" transform="rotate(-18 -4.5 -95)"/>
+        <ellipse cx="4.5" cy="-95" rx="3" ry="6.5" transform="rotate(18 4.5 -95)"/>
+      </g>
+      <g stroke="#dcae4a" stroke-width="1.2" stroke-linecap="round">
+        <line x1="0" y1="-150" x2="0" y2="-164"/>
+        <line x1="-5.5" y1="-142" x2="-10" y2="-158"/>
+        <line x1="5.5" y1="-142" x2="10" y2="-158"/>
+      </g>
+    </g>
+
+    <!-- ===== 各场景渐变 ===== -->
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0e2a"/><stop offset="60%" stop-color="#1a2150"/><stop offset="100%" stop-color="#2b2f66"/>
+    </linearGradient>
+    <linearGradient id="beachSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a9e4ff"/><stop offset="100%" stop-color="#e8faff"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#37b4e6"/><stop offset="100%" stop-color="#1b78b0"/>
+    </linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5e6b8"/><stop offset="100%" stop-color="#e9d49a"/>
+    </linearGradient>
+    <linearGradient id="snowSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#cfe8ff"/><stop offset="100%" stop-color="#f2f9ff"/>
+    </linearGradient>
+    <linearGradient id="snowGround" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#e6f0fb"/>
+    </linearGradient>
+    <linearGradient id="forestSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bfe9c8"/><stop offset="100%" stop-color="#eaf7ee"/>
+    </linearGradient>
+    <linearGradient id="forestGround" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6fb551"/><stop offset="100%" stop-color="#3f7a3a"/>
+    </linearGradient>
+    <linearGradient id="citySky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c4cedb"/><stop offset="100%" stop-color="#eef3f8"/>
+    </linearGradient>
+    <linearGradient id="cityGround" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#aab2bd"/><stop offset="100%" stop-color="#7e8893"/>
+    </linearGradient>
+    <linearGradient id="gardenSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bfeaff"/><stop offset="100%" stop-color="#ecfbff"/>
+    </linearGradient>
+    <linearGradient id="gardenGround" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8fd16a"/><stop offset="100%" stop-color="#5fae45"/>
+    </linearGradient>
+    <linearGradient id="space" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#04050d"/><stop offset="100%" stop-color="#0b1230"/>
+    </linearGradient>
+
+    <!-- ===== 12 幅画（100×80 坐标系，小图与大图共用） ===== -->
+    <g id="p1"> <!-- 我的家 -->
+      <rect width="100" height="80" fill="#d9f3ff"/>
+      <circle cx="86" cy="12" r="8" fill="#ffd54a"/>
+      <path d="M0 52 Q15 44 30 52 T60 52 T100 52 V80 H0 Z" fill="#9be29b"/>
+      <path d="M26 40 L50 20 L74 40 Z" fill="#e07b3a"/>
+      <rect x="32" y="40" width="36" height="26" fill="#ff9a76"/>
+      <rect x="45" y="50" width="12" height="16" fill="#8a5a2b"/>
+      <rect x="36" y="48" width="6" height="6" fill="#fff" stroke="#8a5a2b" stroke-width="1"/>
+      <rect x="58" y="48" width="6" height="6" fill="#fff" stroke="#8a5a2b" stroke-width="1"/>
+      <g fill="#ff7aa2"><circle cx="12" cy="68" r="4"/><circle cx="20" cy="60" r="3.5"/><circle cx="86" cy="70" r="4"/><circle cx="93" cy="60" r="3"/></g>
+    </g>
+    <g id="p2"> <!-- 彩虹 -->
+      <rect width="100" height="80" fill="#dff3ff"/>
+      <g fill="none" stroke-width="4">
+        <path d="M18 58 A32 32 0 0 1 82 58" stroke="#ff6b6b"/>
+        <path d="M22 58 A28 28 0 0 1 78 58" stroke="#ffa94d"/>
+        <path d="M26 58 A24 24 0 0 1 74 58" stroke="#ffd43b"/>
+        <path d="M30 58 A20 20 0 0 1 70 58" stroke="#69db7c"/>
+        <path d="M34 58 A16 16 0 0 1 66 58" stroke="#4dabf7"/>
+      </g>
+      <ellipse cx="22" cy="22" rx="9" ry="5" fill="#fff"/>
+      <ellipse cx="30" cy="17" rx="7" ry="4" fill="#fff"/>
+      <circle cx="90" cy="10" r="7" fill="#ffd54a"/>
+    </g>
+    <g id="p3"> <!-- 大海帆船 -->
+      <rect width="100" height="80" fill="#bfe9ff"/>
+      <rect y="42" width="100" height="38" fill="#3aa0e8"/>
+      <circle cx="88" cy="12" r="8" fill="#ffd54a"/>
+      <path d="M22 60 L78 60 L66 68 L34 68 Z" fill="#8a5a2b"/>
+      <line x1="50" y1="28" x2="50" y2="62" stroke="#6b4226" stroke-width="2"/>
+      <path d="M50 30 L50 60 L72 60 Z" fill="#fff"/>
+      <path d="M50 30 L50 60 L32 60 Z" fill="#ffe8d6"/>
+      <g stroke="#fff" stroke-width="2" opacity=".7" fill="none">
+        <path d="M10 52 q6 -4 12 0"/>
+        <path d="M78 56 q6 -4 12 0"/>
+      </g>
+    </g>
+    <g id="p4"> <!-- 花园 -->
+      <rect width="100" height="80" fill="#e8f7d9"/>
+      <rect y="58" width="100" height="22" fill="#9be29b"/>
+      <g stroke="#69a84f" stroke-width="2">
+        <line x1="16" y1="62" x2="16" y2="46"/><line x1="40" y1="60" x2="40" y2="44"/>
+        <line x1="64" y1="62" x2="64" y2="46"/><line x1="88" y1="60" x2="88" y2="44"/>
+      </g>
+      <circle cx="16" cy="42" r="6" fill="#ff7aa2"/><circle cx="40" cy="40" r="6" fill="#ffd43b"/>
+      <circle cx="64" cy="42" r="6" fill="#69db7c"/><circle cx="88" cy="40" r="6" fill="#b388ff"/>
+      <g fill="#fff" opacity=".8"><circle cx="14" cy="40" r="2"/><circle cx="38" cy="38" r="2"/><circle cx="62" cy="40" r="2"/><circle cx="86" cy="38" r="2"/></g>
+      <path d="M70 20 q-6 -8 -2 -14 q8 4 2 14" fill="#ffb3c1"/>
+      <circle cx="72" cy="12" r="2.5" fill="#6b4226"/>
+    </g>
+    <g id="p5"> <!-- 宇宙火箭 -->
+      <rect width="100" height="80" fill="#2b2d5e"/>
+      <g fill="#fff"><circle cx="10" cy="14" r="2"/><circle cx="24" cy="8" r="1.5"/><circle cx="16" cy="30" r="1.5"/><circle cx="88" cy="24" r="2"/><circle cx="94" cy="44" r="1.5"/><circle cx="6" cy="52" r="1.5"/><circle cx="30" cy="60" r="2"/></g>
+      <circle cx="84" cy="14" r="9" fill="#ffa94d"/>
+      <ellipse cx="84" cy="14" rx="13" ry="4" fill="none" stroke="#ffd43b" stroke-width="2" transform="rotate(-20 84 14)"/>
+      <path d="M45 30 L50 18 L55 30 Z" fill="#ff6b6b"/>
+      <rect x="42" y="30" width="16" height="26" rx="6" fill="#fff"/>
+      <circle cx="50" cy="40" r="5" fill="#4dabf7"/>
+      <path d="M44 56 q6 10 12 0 l-4 10 q-4 -2 -4 -10 z" fill="#ffa94d"/>
+    </g>
+    <g id="p6"> <!-- 小动物 -->
+      <rect width="100" height="80" fill="#e8f7d9"/>
+      <rect y="62" width="100" height="18" fill="#9be29b"/>
+      <path d="M20 36 L26 26 L32 36 Z" fill="#ffb07a"/><path d="M14 34 L12 22 L20 30 Z" fill="#ffb07a"/>
+      <circle cx="24" cy="42" r="11" fill="#ffb07a"/>
+      <ellipse cx="20" cy="41" rx="2.5" ry="3.5" fill="#fff"/><circle cx="20" cy="42" r="1.6" fill="#333"/>
+      <ellipse cx="28" cy="41" rx="2.5" ry="3.5" fill="#fff"/><circle cx="28" cy="42" r="1.6" fill="#333"/>
+      <path d="M24 45 L26 47 L24 49" fill="none" stroke="#6b4226" stroke-width="1.5"/>
+      <ellipse cx="58" cy="32" rx="3" ry="8" fill="#fff"/><ellipse cx="68" cy="32" rx="3" ry="8" fill="#fff"/>
+      <circle cx="63" cy="46" r="11" fill="#fff"/>
+      <circle cx="59" cy="45" r="2" fill="#333"/><circle cx="67" cy="45" r="2" fill="#333"/>
+      <path d="M61 50 L63 52 L65 50" fill="none" stroke="#ff9a9a" stroke-width="1.5"/>
+      <ellipse cx="86" cy="34" rx="5" ry="4" fill="#b08968"/>
+      <circle cx="86" cy="48" r="11" fill="#b08968"/>
+      <circle cx="82" cy="47" r="2" fill="#333"/><circle cx="90" cy="47" r="2" fill="#333"/>
+      <path d="M84 53 L86 55 L88 53" fill="none" stroke="#6b4226" stroke-width="1.5"/>
+    </g>
+    <g id="p7"> <!-- 水果派对 -->
+      <rect width="100" height="80" fill="#fff6e0"/>
+      <ellipse cx="30" cy="55" rx="20" ry="10" fill="#e8d9c0"/>
+      <circle cx="26" cy="44" r="12" fill="#ff6b6b"/>
+      <path d="M26 33 q4 -6 10 -6 q-2 8 -10 6" fill="#69db7c"/>
+      <line x1="28" y1="34" x2="30" y2="28" stroke="#8a5a2b" stroke-width="2"/>
+      <path d="M56 30 q10 6 8 20 q-6 -4 -8 -20" fill="#ffd43b"/>
+      <circle cx="78" cy="48" r="11" fill="#ffa94d"/>
+      <path d="M14 66 q4 -8 10 -6 q0 8 -10 6" fill="#69db7c"/>
+      <path d="M20 68 q8 2 12 -6" fill="none" stroke="#69db7c" stroke-width="3"/>
+    </g>
+    <g id="p8"> <!-- 生日蛋糕 -->
+      <rect width="100" height="80" fill="#fff0f5"/>
+      <rect x="26" y="48" width="48" height="24" rx="4" fill="#ffb3c1"/>
+      <rect x="22" y="42" width="56" height="8" rx="3" fill="#ff8fab"/>
+      <g stroke="#ff8fab" stroke-width="2">
+        <line x1="34" y1="42" x2="34" y2="30"/><line x1="50" y1="42" x2="50" y2="26"/><line x1="66" y1="42" x2="66" y2="30"/>
+      </g>
+      <g fill="#ffd43b"><circle cx="34" cy="27" r="3"/><circle cx="50" cy="23" r="3"/><circle cx="66" cy="27" r="3"/></g>
+      <g fill="#ff7aa2"><circle cx="34" cy="56" r="2.5"/><circle cx="44" cy="62" r="2.5"/><circle cx="56" cy="56" r="2.5"/><circle cx="66" cy="62" r="2.5"/></g>
+      <path d="M10 16 q-5 -8 2 -10 q8 4 -2 10" fill="#b388ff"/>
+      <path d="M90 14 q-5 -8 2 -10 q8 4 -2 10" fill="#b388ff"/>
+    </g>
+    <g id="p9"> <!-- 冬日雪人 -->
+      <rect width="100" height="80" fill="#dbe9ff"/>
+      <rect y="62" width="100" height="18" fill="#fff"/>
+      <circle cx="50" cy="60" r="15" fill="#fff" stroke="#d9d9d9" stroke-width="1"/>
+      <circle cx="50" cy="42" r="11" fill="#fff" stroke="#d9d9d9" stroke-width="1"/>
+      <rect x="40" y="28" width="20" height="6" rx="3" fill="#333"/>
+      <path d="M46 34 h8 v4 h-8 z" fill="#ff6b6b"/>
+      <circle cx="46" cy="41" r="1.8" fill="#333"/><circle cx="54" cy="41" r="1.8" fill="#333"/>
+      <path d="M50 44 L56 46 L50 48 Z" fill="#ffa94d"/>
+      <g fill="#ff8fab"><circle cx="46" cy="52" r="1.8"/><circle cx="50" cy="54" r="1.8"/><circle cx="54" cy="52" r="1.8"/></g>
+      <path d="M56 34 q8 0 12 6" fill="none" stroke="#7a5c3e" stroke-width="2.5"/>
+      <g fill="#fff" opacity=".9"><circle cx="14" cy="20" r="2"/><circle cx="26" cy="14" r="1.8"/><circle cx="82" cy="22" r="2"/><circle cx="90" cy="12" r="1.5"/></g>
+    </g>
+    <g id="p10"> <!-- 森林 -->
+      <rect width="100" height="80" fill="#dff3ff"/>
+      <circle cx="88" cy="12" r="8" fill="#ffd54a"/>
+      <rect y="58" width="100" height="22" fill="#9be29b"/>
+      <rect x="22" y="42" width="8" height="20" fill="#8a5a2b"/>
+      <path d="M26 18 L44 44 L8 44 Z" fill="#69a84f"/>
+      <rect x="48" y="36" width="8" height="24" fill="#8a5a2b"/>
+      <path d="M52 12 L70 38 L34 38 Z" fill="#4dab7c"/>
+      <rect x="74" y="46" width="7" height="16" fill="#8a5a2b"/>
+      <path d="M77.5 24 L94 48 L61 48 Z" fill="#69a84f"/>
+      <path d="M12 66 q3 -5 6 0 l-1 3 h-4 z" fill="#ff6b6b"/>
+      <path d="M88 62 q3 -5 6 0 l-1 3 h-4 z" fill="#ff6b6b"/>
+      <g fill="#fff"><circle cx="14" cy="65.5" r="1.2"/><circle cx="90" cy="61.5" r="1.2"/></g>
+    </g>
+    <g id="p11"> <!-- 小猫 -->
+      <rect width="100" height="80" fill="#ffe9e9"/>
+      <path d="M28 24 L36 8 L44 22 Z" fill="#ffb07a"/>
+      <path d="M56 22 L64 8 L72 24 Z" fill="#ffb07a"/>
+      <circle cx="50" cy="40" r="28" fill="#ffb07a"/>
+      <ellipse cx="40" cy="38" rx="6" ry="8" fill="#fff"/><circle cx="41" cy="40" r="3.2" fill="#333"/>
+      <ellipse cx="60" cy="38" rx="6" ry="8" fill="#fff"/><circle cx="59" cy="40" r="3.2" fill="#333"/>
+      <path d="M50 46 L52 48 L50 50 L48 48 Z" fill="#ff9a9a"/>
+      <path d="M34 52 q4 3 6 2 M66 52 q-4 3 -6 2" fill="none" stroke="#b08968" stroke-width="1.8"/>
+      <path d="M38 56 h-10 M36 60 h-8 M62 56 h10 M64 60 h8" stroke="#b08968" stroke-width="1.8" stroke-linecap="round"/>
+      <g fill="#ff8fab" opacity=".6"><ellipse cx="32" cy="52" rx="4" ry="2.5"/><ellipse cx="68" cy="52" rx="4" ry="2.5"/></g>
+    </g>
+    <g id="p12"> <!-- 大恐龙 -->
+      <rect width="100" height="80" fill="#e8f7d9"/>
+      <rect y="62" width="100" height="18" fill="#9be29b"/>
+      <path d="M78 30 L92 16 L100 32 L92 40 Z" fill="#8a5a2b"/>
+      <path d="M94 20 q3 -4 2 -7 q6 2 4 9" fill="#ff6b6b"/>
+      <path d="M18 62 L14 50 L22 54 L28 46 L30 60 Z" fill="#69db7c"/>
+      <path d="M30 58 L62 58 L58 34 L40 34 Z" fill="#69db7c"/>
+      <circle cx="64" cy="38" r="12" fill="#69db7c"/>
+      <circle cx="68" cy="36" r="2.2" fill="#fff"/><circle cx="69" cy="36.5" r="1.2" fill="#333"/>
+      <path d="M72 42 q4 2 2 5" fill="none" stroke="#4dab7c" stroke-width="1.5"/>
+      <path d="M36 34 l-2 -6 4 3 3 -5 3 5 3 -4 3 5 3 -4 2 6 z" fill="#4dab7c"/>
+      <rect x="36" y="58" width="6" height="8" rx="2" fill="#4dab7c"/>
+      <rect x="52" y="58" width="6" height="8" rx="2" fill="#4dab7c"/>
+    </g>
+  </defs>
+
+  <!-- ================= 背景场景（8 个可切换） ================= -->
+  <g id="bgScenes">
+    <!-- 0 麦田 -->
+    <g class="sceneBg" data-i="0">
+      <rect x="0" y="0" width="1000" height="720" fill="url(#sky)"/>
+      <g opacity=".92"><circle cx="165" cy="120" r="56" fill="#fff2b0"/><circle cx="165" cy="120" r="40" fill="#ffd84a"/></g>
+      <g fill="#ffffff" opacity=".92">
+        <g transform="translate(640 95)"><ellipse cx="0" cy="0" rx="46" ry="26"/><ellipse cx="40" cy="8" rx="34" ry="20"/><ellipse cx="-36" cy="10" rx="30" ry="18"/></g>
+        <g transform="translate(370 52) scale(.82)"><ellipse cx="0" cy="0" rx="46" ry="26"/><ellipse cx="42" cy="8" rx="32" ry="18"/><ellipse cx="-38" cy="10" rx="28" ry="16"/></g>
+        <g transform="translate(860 160) scale(.7)"><ellipse cx="0" cy="0" rx="46" ry="26"/><ellipse cx="36" cy="8" rx="30" ry="18"/></g>
+      </g>
+      <g id="wheatBack"></g>
+      <rect x="0" y="540" width="1000" height="180" fill="url(#field)"/>
+      <path d="M0 540 Q250 520 500 540 T1000 540 V720 H0 Z" fill="#e9c45a" opacity=".5"/>
+      <ellipse class="kidShadow" cx="500" cy="650" rx="200" ry="34" fill="#000" opacity="0.10"/>
+    </g>
+    <!-- 1 星空 -->
+    <g class="sceneBg" data-i="1" style="display:none">
+      <rect x="0" y="0" width="1000" height="720" fill="url(#night)"/>
+      <circle cx="800" cy="130" r="46" fill="#fdf6d8"/>
+      <circle cx="784" cy="118" r="46" fill="url(#night)"/>
+      <g id="stars"></g>
+      <path d="M0 560 Q200 500 420 560 T1000 560 V720 H0 Z" fill="#11163a"/>
+      <path d="M0 600 Q300 560 560 600 T1000 600 V720 H0 Z" fill="#0b1030"/>
+      <ellipse class="kidShadow" cx="500" cy="650" rx="200" ry="34" fill="#ffffff" opacity="0.06"/>
+    </g>
+    <!-- 2 海边 -->
+    <g class="sceneBg" data-i="2" style="display:none">
+      <rect x="0" y="0" width="1000" height="720" fill="url(#beachSky)"/>
+      <g opacity=".9"><circle cx="820" cy="120" r="50" fill="#fff2b0"/><circle cx="820" cy="120" r="36" fill="#ffd84a"/></g>
+      <rect x="0" y="470" width="1000" height="92" fill="url(#sea)"/>
+      <path d="M0 470 Q250 458 500 470 T1000 470 V562 H0 Z" fill="#3ab0e0" opacity=".5"/>
+      <rect x="0" y="558" width="1000" height="162" fill="url(#sand)"/>
+      <ellipse class="kidShadow" cx="500" cy="650" rx="200" ry="34" fill="#000" opacity="0.10"/>
+    </g>
+    <!-- 3 雪地 -->
+    <g class="sceneBg" data-i="3" style="display:none">
+      <rect x="0" y="0" width="1000" height="720" fill="url(#snowSky)"/>
+      <g id="snow"></g>
+      <rect x="0" y="520" width="1000" height="200" fill="url(#snowGround)"/>
+      <path d="M0 520 Q250 500 500 520 T1000 520 V720 H0 Z" fill="#ffffff" opacity=".6"/>
+      <ellipse class="kidShadow" cx="500" cy="650" rx="200" ry="34" fill="#000" opacity="0.06"/>
+    </g>
+    <!-- 4 森林 -->
+    <g class="sceneBg" data-i="4" style="display:none">
+      <rect x="0" y="0" width="1000" height="720" fill="url(#forestSky)"/>
+      <g id="trees"></g>
+      <rect x="0" y="540" width="1000" height="180" fill="url(#forestGround)"/>
+      <ellipse class="kidShadow" cx="500" cy="650" rx="200" ry="34" fill="#000" opacity="0.12"/>
+    </g>
+    <!-- 5 城市 -->
+    <g class="sceneBg" data-i="5" style="display:none">
+      <rect x="0" y="0" width="1000" height="720" fill="url(#citySky)"/>
+      <g id="buildings"></g>
+      <rect x="0" y="620" width="1000" height="100" fill="url(#cityGround)"/>
+      <ellipse class="kidShadow" cx="500" cy="650" rx="200" ry="34" fill="#000" opacity="0.14"/>
+    </g>
+    <!-- 6 花园 -->
+    <g class="sceneBg" data-i="6" style="display:none">
+      <rect x="0" y="0" width="1000" height="720" fill="url(#gardenSky)"/>
+      <g opacity=".9"><circle cx="160" cy="110" r="50" fill="#fff2b0"/><circle cx="160" cy="110" r="36" fill="#ffd84a"/></g>
+      <g fill="#ffffff" opacity=".9"><g transform="translate(700 90)"><ellipse cx="0" cy="0" rx="40" ry="22"/><ellipse cx="34" cy="6" rx="30" ry="18"/><ellipse cx="-32" cy="8" rx="26" ry="15"/></g></g>
+      <rect x="0" y="540" width="1000" height="180" fill="url(#gardenGround)"/>
+      <g id="flowers"></g>
+      <ellipse class="kidShadow" cx="500" cy="650" rx="200" ry="34" fill="#000" opacity="0.10"/>
+    </g>
+    <!-- 7 太空 -->
+    <g class="sceneBg" data-i="7" style="display:none">
+      <rect x="0" y="0" width="1000" height="720" fill="url(#space)"/>
+      <g id="spaceStars"></g>
+      <circle cx="200" cy="180" r="60" fill="#ff9bd0" opacity=".9"/>
+      <circle cx="770" cy="250" r="38" fill="#7ad0ff" opacity=".9"/>
+      <ellipse cx="770" cy="250" rx="66" ry="15" fill="none" stroke="#9fe0ff" stroke-width="6" opacity=".7"/>
+      <ellipse class="kidShadow" cx="500" cy="650" rx="200" ry="34" fill="#ffffff" opacity="0.05"/>
+    </g>
+  </g>
+
+  <!-- 角色整体（可整体倾斜/移动） -->
+  <g id="character" filter="url(#soft)">
+    <g id="breathe">
+      <!-- 身体（衣服用蓝色） -->
+      <path id="shirtPath" d="M500 300 C420 300 392 360 392 470 C392 560 430 600 500 600 C570 600 608 560 608 470 C608 360 580 300 500 300 Z" fill="url(#shirt)"/>
+      <!-- 裤子/腿 -->
+      <rect id="pantL" x="448" y="585" width="34" height="60" rx="14" fill="#3a2c5a"/>
+      <rect id="pantR" x="518" y="585" width="34" height="60" rx="14" fill="#3a2c5a"/>
+      <ellipse cx="462" cy="650" rx="26" ry="12" fill="#ff8a5b"/>
+      <ellipse cx="538" cy="650" rx="26" ry="12" fill="#ff8a5b"/>
+
+      <!-- 后臂（在画框后面） -->
+      <path id="armL" d="M430 340 C360 360 350 430 410 470" fill="none" stroke="url(#skin)" stroke-width="30" stroke-linecap="round"/>
+      <path id="armR" d="M570 340 C640 360 650 430 590 470" fill="none" stroke="url(#skin)" stroke-width="30" stroke-linecap="round"/>
+
+      <!-- 画框（双手举着，内含 12 幅可换的画） -->
+      <g id="artGroup">
+        <rect x="388" y="360" width="224" height="180" rx="14" fill="url(#frame)"/>
+        <g clip-path="url(#frameClip)">
+          <g id="slotWrap">
+            <g id="slot0" transform="translate(404 376) scale(1.92 1.85)"><use href="#p1"/></g>
+            <g id="slot1" transform="translate(404 376) scale(1.92 1.85)"><use href="#p2"/></g>
+            <g id="slot2" transform="translate(404 376) scale(1.92 1.85)"><use href="#p3"/></g>
+            <g id="slot3" transform="translate(404 376) scale(1.92 1.85)"><use href="#p4"/></g>
+            <g id="slot4" transform="translate(404 376) scale(1.92 1.85)"><use href="#p5"/></g>
+            <g id="slot5" transform="translate(404 376) scale(1.92 1.85)"><use href="#p6"/></g>
+            <g id="slot6" transform="translate(404 376) scale(1.92 1.85)"><use href="#p7"/></g>
+            <g id="slot7" transform="translate(404 376) scale(1.92 1.85)"><use href="#p8"/></g>
+            <g id="slot8" transform="translate(404 376) scale(1.92 1.85)"><use href="#p9"/></g>
+            <g id="slot9" transform="translate(404 376) scale(1.92 1.85)"><use href="#p10"/></g>
+            <g id="slot10" transform="translate(404 376) scale(1.92 1.85)"><use href="#p11"/></g>
+            <g id="slot11" transform="translate(404 376) scale(1.92 1.85)"><use href="#p12"/></g>
+          </g>
+        </g>
+        <!-- 画框高光 -->
+        <rect x="388" y="360" width="224" height="180" rx="14" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="3"/>
+      </g>
+
+      <!-- 小手（抓在画框下角，可单独离开） -->
+      <g id="hands">
+        <g id="handL">
+          <circle cx="402" cy="470" r="22" fill="url(#skin)"/>
+          <g stroke="#e0a173" stroke-width="3" stroke-linecap="round">
+            <line x1="392" y1="462" x2="388" y2="454"/><line x1="400" y1="460" x2="398" y2="450"/>
+            <line x1="408" y1="460" x2="408" y2="450"/>
+          </g>
+        </g>
+        <g id="handR">
+          <circle cx="598" cy="470" r="22" fill="url(#skin)"/>
+          <g stroke="#e0a173" stroke-width="3" stroke-linecap="round">
+            <line x1="588" y1="462" x2="584" y2="454"/><line x1="596" y1="460" x2="594" y2="450"/>
+            <line x1="604" y1="460" x2="604" y2="450"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- 脖子 -->
+      <rect x="478" y="270" width="44" height="40" rx="14" fill="url(#skin)"/>
+      <!-- 衣领（小男孩） -->
+      <path id="collar" d="M478 300 L500 318 L522 300 L514 304 L500 312 L486 304 Z" fill="#2f86d6"/>
+
+      <!-- 头（可转动） -->
+      <g id="head">
+        <!-- 头发后层：整个头轮廓（深棕），保证头与头发连成一体、不露背景 -->
+        <circle id="hairBack" cx="500" cy="212" r="84" fill="#4a3326"/>
+        <!-- 脸（圆脸） -->
+        <circle cx="500" cy="224" r="78" fill="url(#skin)"/>
+        <!-- 耳朵（画在头发之上，露出来） -->
+        <circle cx="426" cy="226" r="13" fill="url(#skin)"/>
+        <circle cx="574" cy="226" r="13" fill="url(#skin)"/>
+        <!-- 头发前层（发型可切换） -->
+        <g id="hairFront">
+          <path d="M424 198 C410 150 450 116 500 116 C550 116 590 150 576 198 C573 184 559 176 542 174 C516 171 484 171 458 174 C441 176 427 184 424 198 Z" fill="#4a3326"/>
+          <path d="M500 116 q9 -16 18 -18 q-4 12 -14 21 z" fill="#4a3326"/>
+        </g>
+        <!-- 腮红 -->
+        <ellipse id="blushL" cx="452" cy="236" rx="16" ry="10" fill="#ff9a9a" opacity="0"/>
+        <ellipse id="blushR" cx="548" cy="236" rx="16" ry="10" fill="#ff9a9a" opacity="0"/>
+
+        <!-- 眼睛（眼白 + 瞳孔随鼠标移动） -->
+        <g id="eyeL">
+          <ellipse cx="470" cy="206" rx="20" ry="24" fill="#fff"/>
+          <circle id="pupilL" cx="470" cy="210" r="10" fill="#3a2c2c"/>
+          <circle cx="474" cy="206" r="3.5" fill="#fff"/>
+        </g>
+        <g id="eyeR">
+          <ellipse cx="530" cy="206" rx="20" ry="24" fill="#fff"/>
+          <circle id="pupilR" cx="530" cy="210" r="10" fill="#3a2c2c"/>
+          <circle cx="534" cy="206" r="3.5" fill="#fff"/>
+        </g>
+
+        <!-- 嘴巴（随心情变化） -->
+        <path id="mouth" d="M480 248 Q500 266 520 248" fill="none" stroke="#b5543f" stroke-width="4" stroke-linecap="round"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ================= 前景层（8 个可切换，部分为空） ================= -->
+  <g id="fgScenes">
+    <g class="sceneFg" data-i="0"><g id="wheatFront"></g></g>
+    <g class="sceneFg" data-i="1" style="display:none"></g>
+    <g class="sceneFg" data-i="2" style="display:none"></g>
+    <g class="sceneFg" data-i="3" style="display:none"></g>
+    <g class="sceneFg" data-i="4" style="display:none"></g>
+    <g class="sceneFg" data-i="5" style="display:none"></g>
+    <g class="sceneFg" data-i="6" style="display:none"><g id="flowersFront"></g></g>
+    <g class="sceneFg" data-i="7" style="display:none"></g>
+  </g>
+
+  <!-- 彩屑层 -->
+  <g id="confetti"></g>
+</svg>
+
+<!-- 看大画作 -->
+<div id="lightbox">
+  <svg id="bigArt" viewBox="0 0 600 480">
+    <rect width="600" height="480" rx="14" fill="#fff"/>
+    <g id="bigSlots">
+      <g id="big0" transform="scale(6)"><use href="#p1"/></g>
+      <g id="big1" transform="scale(6)"><use href="#p2"/></g>
+      <g id="big2" transform="scale(6)"><use href="#p3"/></g>
+      <g id="big3" transform="scale(6)"><use href="#p4"/></g>
+      <g id="big4" transform="scale(6)"><use href="#p5"/></g>
+      <g id="big5" transform="scale(6)"><use href="#p6"/></g>
+      <g id="big6" transform="scale(6)"><use href="#p7"/></g>
+      <g id="big7" transform="scale(6)"><use href="#p8"/></g>
+      <g id="big8" transform="scale(6)"><use href="#p9"/></g>
+      <g id="big9" transform="scale(6)"><use href="#p10"/></g>
+      <g id="big10" transform="scale(6)"><use href="#p11"/></g>
+      <g id="big11" transform="scale(6)"><use href="#p12"/></g>
+    </g>
+  </svg>
+  <div id="lbTitle">我的家</div>
+  <button id="lbClose">收起来</button>
+</div>
+
+<script>
+(function () {
+  const scene = document.getElementById('scene');
+  const cursor = document.getElementById('cursor');
+  const character = document.getElementById('character');
+  const head = document.getElementById('head');
+  const pupilL = document.getElementById('pupilL');
+  const pupilR = document.getElementById('pupilR');
+  const mouth = document.getElementById('mouth');
+  const blushL = document.getElementById('blushL');
+  const blushR = document.getElementById('blushR');
+  const bubble = document.getElementById('bubble');
+  const confetti = document.getElementById('confetti');
+  const breathing = document.getElementById('breathe');
+  const artGroup = document.getElementById('artGroup');
+  const armL = document.getElementById('armL');
+  const armR = document.getElementById('armR');
+  const hands = document.getElementById('hands');
+  const handL = document.getElementById('handL');
+  const handR = document.getElementById('handR');
+
+  const lightbox = document.getElementById('lightbox');
+  const lbClose = document.getElementById('lbClose');
+  const liftBtn = document.getElementById('liftBtn');
+  const changeBtn = document.getElementById('changeBtn');
+  const sceneBtn = document.getElementById('sceneBtn');
+  const lbTitle = document.getElementById('lbTitle');
+  const slots = Array.from(document.querySelectorAll('#slotWrap > g'));
+  const bigSlots = Array.from(document.querySelectorAll('#bigSlots > g'));
+
+  // 12 幅画的名字
+  const PAINT_NAMES = ['我的家','彩虹','大海帆船','花园','宇宙火箭','小动物','水果派对','生日蛋糕','冬日雪人','森林','小猫','大恐龙'];
+  let current = 0;
+
+  // 视口中心（角色大致位置）
+  const target = { x: window.innerWidth / 2, y: window.innerHeight * 0.45 };
+  const mouse = { x: target.x, y: target.y };
+  const eye = { x: 0, y: 0 };          // 平滑后的眼睛偏移
+  const lean = { x: 0, y: 0, r: 0 };   // 平滑后的身体倾斜
+  let lastMove = 0, speed = 0, pointing = false, waving = false, lifted = false, changing = false;
+  // 语音相关状态
+  let isSpeaking = false, introPlaying = false, talkTimer = null, speakToken = 0;
+
+  // 手臂路径：静止（垂在肚子前）、举起（举过头顶）、换画时（右手藏画/左手休息）
+  const REST_ARM_L = 'M430 340 C360 360 350 430 410 470';
+  const REST_ARM_R = 'M570 340 C640 360 650 430 590 470';
+  const LIFT_ARM_L = 'M430 340 C418 280 407 200 402 130';
+  const LIFT_ARM_R = 'M570 340 C582 280 593 200 598 130';
+  const WAVE_ARM_L = 'M430 340 C400 300 385 260 375 225';
+  const CHG_ARM_R = 'M570 340 C610 380 615 460 598 560';   // 右手把画藏到背后
+  const CHG_ARM_L = 'M430 340 C418 410 408 470 402 515';   // 左手放下来休息
+
+  // 自定义鼠标移动
+  window.addEventListener('mousemove', (e) => {
+    mouse.x = e.clientX; mouse.y = e.clientY;
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+    const now = performance.now();
+    const dt = now - lastMove || 16;
+    speed = Math.min(1, Math.hypot(mouse.x - target.x, mouse.y - target.y) / 600);
+    lastMove = now;
+    if (waving) stopWave();
+  });
+
+  // 鼠标进入画框区域 → 小朋友指给你看 + 画微微转动
+  function overArt() {
+    if (lifted || changing) return; // 举起/换画时不做指画动作
+    if (!pointing) {
+      pointing = true;
+      mouth.setAttribute('d', 'M478 244 Q500 270 522 244'); // 惊喜张嘴
+      armL.setAttribute('d', 'M430 340 C360 330 330 300 360 270'); // 抬起一只手去指
+      handL.setAttribute('transform', 'translate(-42 -200)'); // 左手离开画作去指
+      showBubble('看！仔细看这里哦～');
+    }
+    artGroup.style.transformOrigin = '500px 450px';
+    artGroup.style.transform = 'rotate(' + (-6 + (mouse.x - target.x) / 40) + 'deg)';
+  }
+  function leaveArt() {
+    if (lifted || changing) return;
+    pointing = false;
+    armL.setAttribute('d', REST_ARM_L);
+    handL.removeAttribute('transform'); // 左手回到画作
+    artGroup.style.transform = ''; // 清除倾斜，让属性位移（举起/换画）生效
+    resetMouth(); // 指画结束，恢复所选表情（而非停在惊喜张嘴）
+  }
+
+  // 点击 → 开心蹦跳 + 撒彩屑 + 笑开花
+  function happyJump() {
+    breathing.animate(
+      [{ transform: 'translateY(0)' }, { transform: 'translateY(-40px)' }, { transform: 'translateY(0)' }],
+      { duration: 600, easing: 'cubic-bezier(.34,1.56,.64,1)' }
+    );
+    mouth.setAttribute('d', 'M474 240 Q500 280 526 240 Z'); // 大笑
+    blushL.setAttribute('opacity', '1'); blushR.setAttribute('opacity', '1');
+    showBubble('耶！你喜不喜欢呀？');
+    burstConfetti();
+    setTimeout(() => {
+      blushL.setAttribute('opacity', '0'); blushR.setAttribute('opacity', '0');
+      if (!pointing) resetMouth();
+    }, 1500);
+  }
+
+  // 鼠标移出窗口 → 左手离开画作、自然摆动挥手（右手继续举画）
+  function startWave() {
+    if (lifted || changing) return; // 举起/换画时不挥手
+    if (waving) return; waving = true;
+    leaveArt(); // 先取消指画，让右手继续举画，左手去挥
+    armL.setAttribute('d', WAVE_ARM_L); // 左手抬到肩旁挥手位
+    handL.setAttribute('transform', 'translate(-27 -245)'); // 手掌贴到手臂末端 (375,225)
+    showBubble('拜拜～下次再来玩呀！');
+  }
+  function stopWave() {
+    waving = false;
+    armL.removeAttribute('transform');
+    armL.setAttribute('d', REST_ARM_L);
+    handL.removeAttribute('transform'); // 左手回到画作
+  }
+
+  // 举起 / 放下画作：举过头顶，画与两只手一起抬高，手掌始终贴在手臂末端
+  function toggleLift() {
+    if (changing) return;
+    if (pointing) leaveArt();
+    if (waving) stopWave();
+    lifted = !lifted;
+    if (lifted) {
+      artGroup.setAttribute('transform', 'translate(0 -340)'); // 画举过头顶
+      handL.setAttribute('transform', 'translate(0 -340)');
+      handR.setAttribute('transform', 'translate(0 -340)');
+      armL.setAttribute('d', LIFT_ARM_L);
+      armR.setAttribute('d', LIFT_ARM_R);
+      mouth.setAttribute('d', 'M474 240 Q500 280 526 240 Z'); // 开心大笑
+      blushL.setAttribute('opacity', '1'); blushR.setAttribute('opacity', '1');
+      showBubble('看！我举过头顶啦！🙌');
+      liftBtn.textContent = '⬇️ 放下来';
+    } else {
+      artGroup.removeAttribute('transform');
+      handL.removeAttribute('transform');
+      handR.removeAttribute('transform');
+      armL.setAttribute('d', REST_ARM_L);
+      armR.setAttribute('d', REST_ARM_R);
+      blushL.setAttribute('opacity', '0'); blushR.setAttribute('opacity', '0');
+      showBubble('放下来啦～');
+      liftBtn.textContent = '🙌 举起画作';
+      if (!pointing && !waving) resetMouth();
+    }
+  }
+  liftBtn.addEventListener('click', toggleLift);
+
+  // 换画：右手把画藏到背后，趁看不见时换一幅，再拿回来
+  function changePainting() {
+    if (changing) return;
+    // 先恢复所有占用左右手的动作
+    if (waving) stopWave();
+    if (pointing) leaveArt();
+    if (lifted) toggleLift(); // changing 还是 false，能正常放下来
+    changing = true;
+    // 第1步：右手把画收到背后（画面下移），左手放下来休息
+    artGroup.setAttribute('transform', 'translate(0 90) rotate(6 500 450)');
+    artGroup.style.opacity = 1;
+    handR.setAttribute('transform', 'translate(0 90)');
+    handR.style.opacity = 1;
+    armR.setAttribute('d', CHG_ARM_R);
+    armR.style.opacity = 1;
+    handL.setAttribute('transform', 'translate(0 45)');
+    armL.setAttribute('d', CHG_ARM_L);
+    // 第2步：画彻底藏到背后，趁看不见换画
+    setTimeout(() => {
+      artGroup.style.opacity = 0;
+      handR.style.opacity = 0;
+      armR.style.opacity = 0;
+      showPainting((current + 1) % 12);
+      showBubble('我变！换一个啦～');
+    }, 480);
+    // 第3步：把新画拿出来展示
+    setTimeout(() => {
+      artGroup.style.opacity = 1;
+      handR.style.opacity = 1;
+      armR.style.opacity = 1;
+      artGroup.setAttribute('transform', 'translate(0 -16)');
+      handR.setAttribute('transform', 'translate(0 -16)');
+      armR.setAttribute('d', REST_ARM_R);
+      armL.setAttribute('d', REST_ARM_L);
+      handL.removeAttribute('transform');
+      setTimeout(() => {
+        artGroup.removeAttribute('transform');
+        handR.removeAttribute('transform');
+        showBubble('换好啦！这个好看吗？');
+        changing = false;
+      }, 240);
+    }, 1050);
+  }
+  changeBtn.addEventListener('click', changePainting);
+
+  // 显示指定编号的画（小图 + 大图）
+  function showPainting(i) {
+    current = i;
+    slots.forEach((s, k) => { s.style.display = k === i ? '' : 'none'; });
+    bigSlots.forEach((s, k) => { s.style.display = k === i ? '' : 'none'; });
+    lbTitle.textContent = PAINT_NAMES[i];
+  }
+  showPainting(0);
+
+  // 生成麦田（前后两层，让小朋友真正"站在麦田里"）
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function plantWheat(group, n, yBase, yVar, sMin, sMax) {
+    for (let i = 0; i < n; i++) {
+      const x = Math.random() * 1000;
+      const y = yBase + (Math.random() - 0.5) * yVar;
+      const s = sMin + Math.random() * (sMax - sMin);
+      const r = (Math.random() - 0.5) * 12;
+      const outer = document.createElementNS(SVGNS, 'g');
+      outer.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s.toFixed(2)}) rotate(${r.toFixed(1)})`);
+      const sway = document.createElementNS(SVGNS, 'g');
+      sway.setAttribute('class', 'sway');
+      sway.style.animationDuration = (3 + Math.random() * 2.5).toFixed(2) + 's';
+      sway.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's';
+      const u = document.createElementNS(SVGNS, 'use');
+      u.setAttribute('href', '#wheat');
+      sway.appendChild(u);
+      outer.appendChild(sway);
+      group.appendChild(outer);
+    }
+  }
+  plantWheat(document.getElementById('wheatBack'), 175, 595, 70, 0.9, 1.3);  // 后层：更密、高一些、分布广
+  plantWheat(document.getElementById('wheatFront'), 95, 700, 45, 0.95, 1.15); // 前层：更大更靠前，挡住小腿，顶端不挡画
+
+  // ===== 其它场景的装饰生成 =====
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function mk(tag, attrs) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+  // 星星（星空 / 太空）
+  function genStars(group, n) {
+    for (let i = 0; i < n; i++) {
+      const s = mk('circle', { cx: rnd(0, 1000).toFixed(1), cy: rnd(0, 520).toFixed(1), r: rnd(0.8, 2.4).toFixed(1), fill: '#fff' });
+      s.style.opacity = rnd(0.4, 1).toFixed(2);
+      group.appendChild(s);
+    }
+  }
+  genStars(document.getElementById('stars'), 120);
+  genStars(document.getElementById('spaceStars'), 170);
+
+  // 飘雪
+  function genSnow(group, n) {
+    for (let i = 0; i < n; i++) {
+      const f = mk('circle', { cx: rnd(0, 1000).toFixed(1), cy: rnd(0, 720).toFixed(1), r: rnd(1.5, 4).toFixed(1), fill: '#fff' });
+      f.setAttribute('class', 'snowflake');
+      f.style.opacity = rnd(0.5, 0.95).toFixed(2);
+      f.style.animationDuration = rnd(6, 12).toFixed(1) + 's';
+      f.style.animationDelay = (-rnd(0, 12)).toFixed(1) + 's';
+      group.appendChild(f);
+    }
+  }
+  genSnow(document.getElementById('snow'), 90);
+
+  // 松树（森林）
+  function genTrees(group, n) {
+    for (let i = 0; i < n; i++) {
+      const x = rnd(40, 960), y = rnd(560, 640), s = rnd(0.7, 1.4);
+      const g = mk('g', { transform: `translate(${x.toFixed(0)} ${y.toFixed(0)}) scale(${s.toFixed(2)})` });
+      g.appendChild(mk('rect', { x: -6, y: -10, width: 12, height: 40, fill: '#6b4a2b' }));
+      g.appendChild(mk('path', { d: 'M0 -110 L34 -30 L-34 -30 Z', fill: '#2f7d4f' }));
+      g.appendChild(mk('path', { d: 'M0 -80 L40 0 L-40 0 Z', fill: '#3f9a63' }));
+      g.appendChild(mk('path', { d: 'M0 -50 L46 30 L-46 30 Z', fill: '#54b377' }));
+      group.appendChild(g);
+    }
+  }
+  genTrees(document.getElementById('trees'), 26);
+
+  // 楼房（城市）
+  function genBuildings(group) {
+    let x = -20;
+    while (x < 1000) {
+      const w = rnd(60, 110), h = rnd(160, 360), y = 620 - h;
+      const g = mk('g', { transform: `translate(${x.toFixed(0)} ${y.toFixed(0)})` });
+      g.appendChild(mk('rect', { x: 0, y: 0, width: w.toFixed(0), height: h.toFixed(0), fill: '#7c8794' }));
+      g.appendChild(mk('rect', { x: 0, y: 0, width: w.toFixed(0), height: h.toFixed(0), fill: 'none', stroke: '#5f6a76', 'stroke-width': 2 }));
+      for (let wy = 14; wy < h - 20; wy += 26)
+        for (let wx = 10; wx < w - 14; wx += 22)
+          g.appendChild(mk('rect', { x: wx.toFixed(0), y: wy.toFixed(0), width: 10, height: 12, fill: Math.random() < 0.6 ? '#ffe9a8' : '#aeb8c4' }));
+      group.appendChild(g);
+      x += w + rnd(6, 18);
+    }
+  }
+  genBuildings(document.getElementById('buildings'));
+
+  // 花朵（花园，背景 + 前景）
+  function genFlowers(group, n, yBase, yVar) {
+    const colors = ['#ff6b9d', '#ffd54a', '#ff8a5b', '#b388ff', '#ffffff', '#ff5b7f'];
+    for (let i = 0; i < n; i++) {
+      const x = rnd(0, 1000), y = yBase + rnd(-yVar, yVar), s = rnd(0.7, 1.3);
+      const g = mk('g', { transform: `translate(${x.toFixed(0)} ${y.toFixed(0)}) scale(${s.toFixed(2)})` });
+      g.appendChild(mk('path', { d: 'M0 0 Q-4 -22 0 -40', stroke: '#3f8f4f', 'stroke-width': 3, fill: 'none' }));
+      const c = colors[(Math.random() * colors.length) | 0];
+      const head = mk('g', {});
+      for (let p = 0; p < 5; p++) {
+        const a = p / 5 * Math.PI * 2;
+        head.appendChild(mk('circle', { cx: (Math.cos(a) * 7).toFixed(1), cy: (-44 + Math.sin(a) * 7).toFixed(1), r: 5, fill: c }));
+      }
+      head.appendChild(mk('circle', { cx: 0, cy: -44, r: 4.5, fill: '#ffe066' }));
+      g.appendChild(head);
+      group.appendChild(g);
+    }
+  }
+  genFlowers(document.getElementById('flowers'), 70, 600, 60);
+  genFlowers(document.getElementById('flowersFront'), 30, 695, 35);
+
+  // ===== 场景切换 =====
+  const SCENES = ['麦田', '星空', '海边', '雪地', '森林', '城市', '花园', '太空'];
+  let sceneIdx = 0;
+  let bubbleTimer; // 提前声明，避免 setScene(0) 调用 showBubble 时进入暂时性死区
+  function setScene(i) {
+    sceneIdx = ((i % SCENES.length) + SCENES.length) % SCENES.length;
+    document.querySelectorAll('.sceneBg').forEach(g => { g.style.display = (+g.dataset.i === sceneIdx) ? '' : 'none'; });
+    document.querySelectorAll('.sceneFg').forEach(g => { g.style.display = (+g.dataset.i === sceneIdx) ? '' : 'none'; });
+    sceneBtn.textContent = '🌍 场景：' + SCENES[sceneIdx];
+    showBubble('我们来到了「' + SCENES[sceneIdx] + '」！');
+  }
+  sceneBtn.addEventListener('click', () => setScene(sceneIdx + 1));
+  setScene(0);
+
+  // 气泡
+  function showBubble(text) {
+    bubble.textContent = text;
+    bubble.classList.add('show');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), 2200);
+  }
+
+  // ================= 语音系统（SpeechSynthesis） =================
+  const synth = window.speechSynthesis || null;
+  const subtitle = document.getElementById('subtitle');
+  const voiceSel = document.getElementById('voiceSel');
+  const introBtn = document.getElementById('introBtn');
+  const qaForm = document.getElementById('qa');
+  const qaInput = document.getElementById('qaInput');
+  let voices = [];
+  let currentVoice = null;
+
+  // 聊天语言（影响回复语言 + 朗读语种）
+  let currentLang = 'zh';
+  const LANG_BCP = { zh: 'zh-CN', en: 'en-US', ja: 'ja-JP', ko: 'ko-KR', fr: 'fr-FR', es: 'es-ES' };
+  const LANG_PREFIX = { zh: 'zh', en: 'en', ja: 'ja', ko: 'ko', fr: 'fr', es: 'es' };
+  // 主动聊天开关与定时器（默认开启，小董会定时主动搭话）
+  let autoChatOn = true;
+  let proactiveTimer = null;
+
+  // 加载可选声音，默认挑一个最像真人的中文语音
+  // 神经/在线(Neural/Online)音色自然度远高于传统 SAPI 语音，优先；
+  // 角色是男孩，优先挑年轻男声(yunxi)或自然女声(xiaoxiao / yaoyao)。
+  function pickBestVoice(list) {
+    if (!list || !list.length) return null;
+    const lc = v => ((v.name || '') + ' ' + (v.lang || '')).toLowerCase();
+    const zh = list.filter(v => /zh[-_]?cn|chinese|中文|普通话|国语/i.test(lc(v)));
+    const pool = zh.length ? zh : list;
+    // 小男孩人设的偏好顺序（含空格也能匹配，如 "yunxi online"）
+    const order = ['yunxi', 'yaoyao', 'xiaoxiao', 'yunyang', 'huixuan',
+                   'tingting', 'kangkang', 'huihui', 'xiaoyi', 'sin-ji', 'zhiwei', 'mei-jia'];
+    // 1) 优先挑带 Online/Neural 的神经语音（最像真人）
+    const neural = pool.filter(v => /online|neural/i.test(lc(v)))
+      .sort((a, b) => {
+        const ia = order.findIndex(k => lc(a).includes(k));
+        const ib = order.findIndex(k => lc(b).includes(k));
+        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+      });
+    if (neural.length) return neural[0];
+    // 2) 无神经音时，按偏好顺序挑最自然的传统音
+    for (const k of order) {
+      const hit = pool.find(v => lc(v).includes(k));
+      if (hit) return hit;
+    }
+    return pool[0];
+  }
+  function loadVoices() {
+    if (!synth) return;
+    voices = synth.getVoices() || [];
+    const keep = voiceSel.dataset.user ? +voiceSel.dataset.user : null;
+    voiceSel.innerHTML = '';
+    voices.forEach((v, idx) => {
+      const o = document.createElement('option');
+      o.value = idx;
+      o.textContent = (v.lang || '?') + ' · ' + (v.name || 'voice');
+      voiceSel.appendChild(o);
+    });
+    if (keep != null && voices[keep]) {
+      currentVoice = voices[keep];
+      voiceSel.value = keep;
+    } else {
+      const best = pickBestVoice(voices);
+      if (best) { currentVoice = best; voiceSel.value = voices.indexOf(best); }
+    }
+  }
+  if (synth) {
+    loadVoices();
+    synth.onvoiceschanged = loadVoices;
+  } else {
+    voiceSel.innerHTML = '<option>本浏览器不支持语音朗读</option>';
+    voiceSel.disabled = true;
+  }
+  voiceSel.addEventListener('change', () => {
+    const v = voices[+voiceSel.value];
+    if (v) { currentVoice = v; voiceSel.dataset.user = voiceSel.value; }
+  });
+
+  // 按当前聊天语言挑一个最合适的朗读声音（用户切语言时自动跟随）
+  function pickVoiceForLang(lang) {
+    const p = LANG_PREFIX[lang] || 'zh';
+    const cand = voices.filter(v => (v.lang || '').toLowerCase().startsWith(p));
+    return pickBestVoice(cand.length ? cand : voices);
+  }
+  const langSel = document.getElementById('langSel');
+  const autoBtn = document.getElementById('autoBtn');
+  if (langSel) {
+    langSel.addEventListener('change', () => {
+      currentLang = langSel.value;
+      const v = pickVoiceForLang(currentLang);
+      if (v) { currentVoice = v; voiceSel.value = voices.indexOf(v); }
+    });
+  }
+  if (autoBtn) {
+    autoBtn.addEventListener('click', () => {
+      autoChatOn = !autoChatOn;
+      autoBtn.textContent = autoChatOn ? '💬 主动聊天：开' : '💬 主动聊天：关';
+      autoBtn.classList.toggle('off', !autoChatOn);
+      if (autoChatOn) scheduleProactive(); // 重新打开就立刻排下一次
+    });
+  }
+
+  // 试听当前选中的声音（一句话样例，方便挑最像真人的音色）
+  const previewBtn = document.getElementById('previewBtn');
+  if (previewBtn) {
+    if (!synth) { previewBtn.disabled = true; previewBtn.title = '本浏览器不支持语音'; }
+    previewBtn.addEventListener('click', () => {
+      if (!synth) return;
+      const v = voices[+voiceSel.value];
+      if (v) currentVoice = v;
+      say('你好呀，我是小董！我最喜欢画画啦，你呢？');
+    });
+  }
+
+  // 说话时嘴巴一张一合
+  function startTalking() {
+    let open = false;
+    if (talkTimer) clearInterval(talkTimer);
+    talkTimer = setInterval(() => {
+      open = !open;
+      mouth.setAttribute('d', open ? 'M476 240 Q500 288 524 240 Z' : 'M480 246 Q500 258 520 246');
+    }, 170);
+  }
+  function stopTalking() {
+    if (talkTimer) { clearInterval(talkTimer); talkTimer = null; }
+    if (!pointing && !waving && !lifted) resetMouth();
+    else if (lifted) mouth.setAttribute('d', 'M474 240 Q500 280 526 240 Z');
+  }
+
+  // 去掉 emoji / 符号表情，避免 TTS 把 🌈✨ 念成“rainbow/sparkles”
+  // （字幕仍保留原 emoji，只滤掉送去朗读的文本）
+  function stripEmoji(s) {
+    return (s || '')
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2300}-\u{23FF}\u{FE0F}\u{200D}\u{20E3}\u{2100}-\u{214F}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // 朗读一句：显示字幕 + 嘴部动画 + 真人语音；支持被打断
+  function say(text, onDone) {
+    if (!text) { if (onDone) onDone(); return; }
+    const myToken = ++speakToken;
+    subtitle.textContent = text;
+    subtitle.classList.add('show');
+    const finish = () => {
+      if (myToken !== speakToken) return; // 已被新的朗读打断
+      stopTalking();
+      subtitle.classList.remove('show');
+      isSpeaking = false;
+      if (onDone) onDone();
+    };
+    if (!synth) {
+      // 不支持语音合成：仅显示文字，定时消失
+      isSpeaking = true;
+      setTimeout(finish, Math.max(1400, text.length * 230));
+      return;
+    }
+    isSpeaking = true;
+    startTalking();
+    // 朗读用“去 emoji 后的文本”，避免把表情包念出来
+    const speechText = stripEmoji(text) || text;
+    const u = new SpeechSynthesisUtterance(speechText);
+    u.lang = (LANG_BCP[currentLang] || 'zh-CN');
+    if (currentVoice) u.voice = currentVoice;
+    // 神经/在线语音在 rate≈1、pitch≈1 时最自然；略微调高 pitch 保留小孩感
+    u.rate = 1.0; u.pitch = 1.04; u.volume = 1;
+    u.onend = finish;
+    u.onerror = finish;
+    synth.cancel();
+    synth.speak(u);
+  }
+
+  // 自我介绍（逐句朗读 + 同步字幕）
+  const INTRO = [
+    '嗨！我叫小董！我是一个爱跑爱笑的小男孩！',
+    '我呀，最喜欢到处去探险啦，看好多好多好玩的东西！',
+    '我能去好多个地方呢，有金灿灿的麦田、亮闪闪的星星，还有太空！',
+    '你动一动鼠标，我就会一直盯着你看哦，真的！',
+    '今天你想听我讲点什么，就尽管来问我呀！'
+  ];
+  function selfIntro() {
+    if (introPlaying) { if (synth) synth.cancel(); introPlaying = false; return; }
+    introPlaying = true;
+    let i = 0;
+    (function next() {
+      if (!introPlaying || i >= INTRO.length) { introPlaying = false; return; }
+      say(INTRO[i++], () => setTimeout(next, 320));
+    })();
+  }
+  introBtn.addEventListener('click', selfIntro);
+
+  // ============ AI 实时对话（经本地后端代理，避免 CORS 与密钥暴露） ============
+  const chatHistory = [];          // 最近对话，最多保留 48 条
+  const MAX_HISTORY = 48;
+  let isThinking = false;
+
+  // API 地址：只有真正由本地后端托管（localhost:3000）才走相对路径；
+  // 其余情况（预览面板、file:// 等）一律指向本地后端，避免请求打到无关服务器
+  const API_BASE = (location.hostname === 'localhost' && location.port === '3000')
+    ? '/api/chat'
+    : 'http://localhost:3000/api/chat';
+
+  function currentContext() {
+    return '[当前场景：' + SCENES[sceneIdx] + '，当前画作：' + PAINT_NAMES[current] + ']';
+  }
+
+  const chatLog = document.getElementById('chatLog');
+  // 往聊天记录区追加一条气泡（role: user / xiao / sys），并返回该气泡包装元素
+  function appendMsg(role, text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + role;
+    const bub = document.createElement('div');
+    bub.className = 'bub';
+    bub.textContent = text;
+    wrap.appendChild(bub);
+    if (chatLog) { chatLog.appendChild(wrap); chatLog.scrollTop = chatLog.scrollHeight; }
+    return wrap;
+  }
+  // 统一的对话调用：把一句话发给小董，拿到回复后朗读 + 写入聊天记录
+  // opts: { displayText, image, proactive }
+  async function chatCore(historyText, opts) {
+    opts = opts || {};
+    const displayText = opts.displayText, image = opts.image, proactive = !!opts.proactive;
+    if (isThinking) return;
+    if (synth && isSpeaking) synth.cancel();
+    // 把用户的话（或主动开口的占位）和当前状态一起放进历史
+    chatHistory.push({ role: 'user', content: historyText });
+    while (chatHistory.length > MAX_HISTORY) chatHistory.shift();
+    if (displayText) appendMsg('user', displayText);
+    const thinkingText = proactive ? '嗯～让我想想跟你说点啥～' : '唔…我想想～';
+    const thinking = appendMsg('xiao', thinkingText);
+
+    isThinking = true;
+    showBubble(thinkingText);
+    subtitle.textContent = '小董：' + thinkingText;
+    subtitle.classList.add('show');
+    try {
+      const body = { messages: chatHistory, lang: currentLang };
+      if (image) body.image = image;            // 多模态：把刚拍的照片一起发给小董
+      if (proactive) body.proactive = true;     // 告诉后端：这次是小董主动开口
+      const resp = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      let data = {};
+      try { data = await resp.json(); } catch (e) { data = {}; }
+      if (!resp.ok) throw new Error((data && data.error) ? data.error : ('HTTP ' + resp.status));
+      let reply = (data && data.reply) ? String(data.reply).trim() : '';
+      if (!reply) reply = '这个我不太清楚耶，不能乱说哦。';
+      chatHistory.push({ role: 'assistant', content: reply });
+      while (chatHistory.length > MAX_HISTORY) chatHistory.shift();
+      const bub = thinking.querySelector('.bub'); if (bub) bub.textContent = reply;
+      say(reply);
+    } catch (err) {
+      chatHistory.pop(); // 失败不污染历史
+      const msg = (err && err.message) ? err.message : '连接失败';
+      showBubble('诶？我的小脑子出问题了～');
+      subtitle.textContent = '小董：' + msg;
+      subtitle.classList.add('show');
+      setTimeout(() => subtitle.classList.remove('show'), 6000);
+      const bub = thinking.querySelector('.bub'); if (bub) bub.textContent = '诶？我的小脑子出问题了～';
+    } finally {
+      isThinking = false;
+    }
+  }
+
+  // 对外保留原接口（语音输入 / 拍照都走这里）
+  function answerQuestion(raw, imageDataUrl) {
+    const q = (raw || '').trim();
+    if (!q || isThinking) return;
+    const hist = currentContext() + ' ' + q;
+    const show = imageDataUrl ? '📷 给你看一张照片' : q;
+    return chatCore(hist, { displayText: show, image: imageDataUrl });
+  }
+
+  // ===== 主动聊天：小董定时主动找你搭话（不打断你正在说的话/正在输入） =====
+  function scheduleProactive() {
+    if (proactiveTimer) clearTimeout(proactiveTimer);
+    const delay = 9000 + Math.random() * 9000; // 9~18 秒随机（更频繁）
+    proactiveTimer = setTimeout(proactiveChat, delay);
+  }
+  function proactiveChat() {
+    if (!autoChatOn) return;                 // 开关关了就不主动
+    if (isThinking || isSpeaking) { scheduleProactive(); return; } // 不打断当前对话/朗读
+    if (document.activeElement === qaInput && qaInput.value.trim()) { scheduleProactive(); return; } // 你在打字就先不打扰
+    const placeholder = (currentLang === 'zh')
+      ? '（小董主动开口，主动对小朋友说一句有趣的话）'
+      : '(Xiaodong starts talking on his own — say one fun thing to the child.)';
+    chatCore(currentContext() + ' ' + placeholder, { proactive: true });
+    scheduleProactive();
+  }
+  scheduleProactive(); // 页面打开后默认开启主动聊天
+  function askFromInput() {
+    const v = qaInput.value.trim();
+    qaInput.value = '';
+    if (v) answerQuestion(v);
+  }
+  qaForm.addEventListener('submit', (e) => { e.preventDefault(); askFromInput(); });
+
+  // ===== 拍照功能（打开摄像头 → 拍照 → 保存 / 发给小董） =====
+  const camBtn = document.getElementById('camBtn');
+  const cameraModal = document.getElementById('cameraModal');
+  const camVideo = document.getElementById('camVideo');
+  const camCanvas = document.getElementById('camCanvas');
+  const camSnap = document.getElementById('camSnap');
+  const camRetake = document.getElementById('camRetake');
+  const camSave = document.getElementById('camSave');
+  const camSend = document.getElementById('camSend');
+  const camClose = document.getElementById('camClose');
+  const camStatus = document.getElementById('camStatus');
+  let camStream = null;
+  let capturedDataUrl = null;
+
+  async function openCamera() {
+    cameraModal.hidden = false;
+    cameraModal.classList.add('show');
+    camStatus.textContent = '正在打开摄像头…';
+    camVideo.style.display = 'block';
+    camCanvas.style.display = 'none';
+    camSnap.hidden = false; camRetake.hidden = true; camSave.hidden = true; camSend.hidden = true;
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('当前环境不支持摄像头（需用 localhost 或 https 打开）');
+      }
+      camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      camVideo.srcObject = camStream;
+      camStatus.textContent = '看镜头，点「拍照」～';
+    } catch (e) {
+      camStatus.textContent = '打不开摄像头：' + (e && e.message ? e.message : e);
+    }
+  }
+  function closeCamera() {
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+    cameraModal.classList.remove('show');
+    setTimeout(() => { cameraModal.hidden = true; }, 120);
+  }
+  function snapPhoto() {
+    if (!camStream) { camStatus.textContent = '摄像头还没准备好哦'; return; }
+    const v = camVideo;
+    const w = v.videoWidth || 640, h = v.videoHeight || 480;
+    camCanvas.width = w; camCanvas.height = h;
+    camCanvas.getContext('2d').drawImage(v, 0, 0, w, h);
+    capturedDataUrl = camCanvas.toDataURL('image/png');
+    camVideo.style.display = 'none';
+    camCanvas.style.display = 'block';
+    camSnap.hidden = true; camRetake.hidden = false; camSave.hidden = false; camSend.hidden = false;
+    camStatus.textContent = '拍好啦！可保存，也可发给小董让他看～';
+  }
+  function retake() {
+    capturedDataUrl = null;
+    camVideo.style.display = 'block';
+    camCanvas.style.display = 'none';
+    camSnap.hidden = false; camRetake.hidden = true; camSave.hidden = true; camSend.hidden = true;
+    camStatus.textContent = '看镜头，再拍一张～';
+  }
+  function savePhoto() {
+    if (!capturedDataUrl) return;
+    const a = document.createElement('a');
+    a.href = capturedDataUrl;
+    a.download = '小董拍摄_' + Date.now() + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    camStatus.textContent = '已保存到你的电脑啦～💾';
+  }
+  async function sendPhotoToXiaodong() {
+    if (!capturedDataUrl) return;
+    closeCamera();
+    const promptText = qaInput.value.trim() || '你看这是什么呀？';
+    await answerQuestion(promptText, capturedDataUrl);
+  }
+  camBtn.addEventListener('click', openCamera);
+  camClose.addEventListener('click', closeCamera);
+  camSnap.addEventListener('click', snapPhoto);
+  camRetake.addEventListener('click', retake);
+  camSave.addEventListener('click', savePhoto);
+  camSend.addEventListener('click', sendPhotoToXiaodong);
+
+  // ===== 摄像头手势控制（MediaPipe Tasks Vision：一次出人脸+手势，免跨域隔离） =====
+  const gestureBtn = document.getElementById('gestureBtn');
+  const gesturePanel = document.getElementById('gesturePanel');
+  const gestVideo = document.getElementById('gestVideo');
+  const gestGes = document.getElementById('gestGes');
+  const gestStatus = document.getElementById('gestStatus');
+  const gestClose = document.getElementById('gestClose');
+
+  let gestStream = null, handLandmarker = null, faceLandmarker = null, starting = false;
+  let gestureActive = false;
+  let followX = 0, followY = 0, lastTrack = null; // 让小董跟着你动的偏移
+  let gCooldown = 0;          // 动作触发冷却（时间戳）
+  let stableGes = null, stableCount = 0; // 手势稳定计数，防抖
+  let noseBase = null, nodDown = false;  // 点头检测基线
+
+  async function initDetectors() {
+    if (handLandmarker && faceLandmarker) return;
+    gestStatus.textContent = '正在联网加载识别模型…（首次较慢）';
+    // Tasks Vision 是官方现行 API，不要求跨域隔离，普通 http://localhost 即可跑
+    const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs');
+    const fileset = await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');
+    const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+    const FACE_MODEL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+    const build = async (delegate) => {
+      handLandmarker = await vision.HandLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: HAND_MODEL, delegate }, runningMode: 'VIDEO', numHands: 2
+      });
+      faceLandmarker = await vision.FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: FACE_MODEL, delegate }, runningMode: 'VIDEO', numFaces: 1
+      });
+    };
+    try { await build('GPU'); }
+    catch (e) { await build('CPU'); } // 没有可用显卡/WebGL 时退回 CPU
+  }
+
+  function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+  // 根据一只手的 21 个关键点判断手势
+  function handGesture(lm) {
+    const wrist = lm[0];
+    const fingers = [[8, 6], [12, 10], [16, 14], [20, 18]]; // 食/中/无名/小指 的 (指尖, 第二关节)
+    let ext = 0;
+    for (const [tip, pip] of fingers) {
+      if (dist(lm[tip], wrist) > dist(lm[pip], wrist) * 1.08) ext++; // 指尖比关节离手腕更远 = 伸开
+    }
+    const thumbExt = dist(lm[4], wrist) > dist(lm[3], wrist) * 1.18;
+    if (thumbExt && ext === 0) return 'thumbs_up';
+    if (!thumbExt && ext === 0) return 'fist';
+    if (ext >= 4) return 'open_palm';
+    return null;
+  }
+
+  function centroid(lm) {
+    let x = 0, y = 0; for (const p of lm) { x += p.x; y += p.y; }
+    return { x: x / lm.length, y: y / lm.length };
+  }
+
+  // 点头：鼻尖 y 先明显下探（低头）再回升到基线（抬头）→ 记一次点头
+  function detectNod(noseY) {
+    if (noseBase === null) { noseBase = noseY; return false; }
+    noseBase += (noseY - noseBase) * 0.05; // 缓慢跟随的基线
+    const dy = noseY - noseBase;
+    if (dy > 0.035) nodDown = true;
+    if (nodDown && dy < -0.02) { nodDown = false; return true; }
+    return false;
+  }
+
+  const GES_LABEL = {
+    thumbs_up: '👍 比大拇指',
+    open_palm: '✋ 张开手掌',
+    fist: '✊ 握紧拳头',
+    nod: '🙆 点头'
+  };
+
+  function onHolistic(res) {
+    const now = performance.now();
+    // 跟踪点：手的中心优先，没有手就用鼻尖
+    if (res.leftHandLandmarks) lastTrack = centroid(res.leftHandLandmarks);
+    else if (res.rightHandLandmarks) lastTrack = centroid(res.rightHandLandmarks);
+    else if (res.faceLandmarks) lastTrack = res.faceLandmarks[1];
+    else lastTrack = null;
+
+    // 手势能识别吗
+    let g = null;
+    if (res.leftHandLandmarks) g = handGesture(res.leftHandLandmarks);
+    else if (res.rightHandLandmarks) g = handGesture(res.rightHandLandmarks);
+
+    // 稳定计数：连续 4 帧同一手势才触发，避免一帧抖动误判
+    if (g && g === stableGes) stableCount++;
+    else { stableGes = g; stableCount = g ? 1 : 0; }
+
+    if (stableCount >= 4 && now - gCooldown > 700) {
+      triggerGesture(g);
+      gCooldown = now; stableCount = 0; stableGes = null;
+    }
+
+    // 点头（独立于手，但同样有冷却）
+    if (res.faceLandmarks && now - gCooldown > 700) {
+      if (detectNod(res.faceLandmarks[1].y)) {
+        triggerGesture('nod');
+        gCooldown = now;
+      }
+    }
+
+    // 面板文字
+    if (g) gestGes.textContent = GES_LABEL[g];
+    else if (res.faceLandmarks) gestGes.textContent = '🙂 看到你的脸啦';
+    else gestGes.textContent = '🤔 没看到手或脸';
+  }
+
+  function triggerGesture(g) {
+    if (g === 'thumbs_up') { applyOutfit(outfitIdx + 1); say('我换件衣服！'); }
+    else if (g === 'open_palm') { changePainting(); }
+    else if (g === 'fist') { setScene(sceneIdx + 1); say('换个场景玩！'); }
+    else if (g === 'nod') { setHairstyle(hairIdx + 1); say('我换个发型！'); }
+  }
+
+  // 一帧一帧把摄像头画面喂给模型
+  async function pump() {
+    if (!gestureActive) return;
+    const now = performance.now();
+    try {
+      if (gestVideo.readyState >= 2) {
+        let hl = [], fl = [];
+        if (handLandmarker) { const r = handLandmarker.detectForVideo(gestVideo, now); if (r && r.landmarks) hl = r.landmarks; }
+        if (faceLandmarker) { const r = faceLandmarker.detectForVideo(gestVideo, now); if (r && r.faceLandmarks) fl = r.faceLandmarks; }
+        onHolistic({
+          leftHandLandmarks: hl[0] || null,
+          rightHandLandmarks: hl[1] || null,
+          faceLandmarks: fl[0] || null
+        });
+      }
+    } catch (e) { /* 偶尔丢帧忽略 */ }
+    if (gestureActive) requestAnimationFrame(pump);
+  }
+
+  async function startGesture() {
+    if (gestureActive || starting) return; // 已开或正在开 → 忽略，避免重复开摄像头
+    starting = true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('当前环境不支持摄像头，请用 http://localhost:3000/ 打开本页面');
+      starting = false;
+      return;
+    }
+    try {
+      gestStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 }, audio: false });
+    } catch (e) {
+      alert('打不开摄像头：' + (e && e.message ? e.message : e));
+      starting = false;
+      return;
+    }
+    gestVideo.srcObject = gestStream;
+    gestVideo.play().catch(() => {});
+    gesturePanel.hidden = false; gesturePanel.classList.add('show');
+    gestureBtn.textContent = '🛑 关闭手势'; gestureBtn.classList.add('on');
+    noseBase = null; nodDown = false; stableGes = null; stableCount = 0; gCooldown = 0; lastTrack = null;
+    try {
+      await initDetectors();
+    } catch (e) {
+      // 模型加载失败：不再闪退关闭，留在面板里提示，可点 🤖 重新开启
+      gestStatus.textContent = '识别模型加载失败（需要联网）：' + (e && e.message ? e.message : e) + ' ｜ 点 🤖 重新开启';
+      if (gestStream) { gestStream.getTracks().forEach(t => t.stop()); gestStream = null; }
+      gestureBtn.textContent = '🤖 手势控制'; gestureBtn.classList.remove('on');
+      starting = false;
+      return; // 面板保持打开，显示错误
+    }
+    gestureActive = true;
+    starting = false;
+    gestStatus.textContent = '识别中… 做动作试试：点头 / 比大拇指 / 张开手掌 / 握拳';
+    pump();
+  }
+
+  function stopGesture() {
+    gestureActive = false;
+    if (gestStream) { gestStream.getTracks().forEach(t => t.stop()); gestStream = null; }
+    gesturePanel.classList.remove('show');
+    setTimeout(() => { gesturePanel.hidden = true; }, 200);
+    gestureBtn.textContent = '🤖 手势控制'; gestureBtn.classList.remove('on');
+    lastTrack = null;
+  }
+
+  gestureBtn.addEventListener('click', () => { if (!gestureActive && !starting) startGesture(); /* 只负责开，关闭只走关闭按钮 */ });
+  const gestStopBtn = document.getElementById('gestStopBtn');
+  if (gestClose) gestClose.addEventListener('click', stopGesture);
+  if (gestStopBtn) gestStopBtn.addEventListener('click', stopGesture);
+
+  // 兜底：识别过程里若抛出未捕获错误，显示在面板里而不是静默闪退
+  window.addEventListener('unhandledrejection', (ev) => {
+    if (gesturePanel && !gesturePanel.hidden) {
+      gestStatus.textContent = '识别出错：' + (ev.reason && ev.reason.message ? ev.reason.message : ev.reason) + ' ｜ 点 🤖 重新开启';
+    }
+  });
+
+  // ===== 截图功能（屏幕捕捉 → 放进对话框 → 发送给小董） =====
+  const shotBtn = document.getElementById('shotBtn');
+  const shotArea = document.getElementById('shotArea');
+  const shotImg = document.getElementById('shotImg');
+  const shotMsg = document.getElementById('shotMsg');
+  const shotSend = document.getElementById('shotSend');
+  const shotCancel = document.getElementById('shotCancel');
+  let shotDataUrl = null;
+
+  function showShotArea() {
+    shotArea.hidden = false;
+    shotArea.classList.add('show');
+  }
+  function hideShotArea() {
+    shotArea.classList.remove('show');
+    setTimeout(() => { shotArea.hidden = true; }, 120);
+  }
+  async function startScreenshot() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error('当前环境不支持截图（需用 localhost 或 https 打开）');
+      }
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+      const v = document.createElement('video');
+      v.srcObject = stream; v.muted = true;
+      await v.play();
+      await new Promise(r => setTimeout(r, 200)); // 等一帧
+      const w = v.videoWidth || 800, h = v.videoHeight || 600;
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(v, 0, 0, w, h);
+      stream.getTracks().forEach(t => t.stop());
+      shotDataUrl = c.toDataURL('image/png');
+      shotImg.src = shotDataUrl;
+      shotImg.style.display = 'block';
+      shotSend.hidden = false;
+      shotCrop.hidden = false;
+      shotMsg.textContent = '截图已放到这里啦～可以写句话再发给小董，或直接点「📨 发送给小董」。想只发其中一块？点「✂️ 框选区块」。';
+      showShotArea();
+    } catch (e) {
+      shotImg.style.display = 'none';
+      shotSend.hidden = true;
+      shotMsg.textContent = '截图没成功：' + (e && e.message ? e.message : e) + '（可能是你取消了，或需要用 localhost/https 打开）';
+      showShotArea();
+    }
+  }
+  function cancelShot() {
+    shotDataUrl = null;
+    shotCrop.hidden = true;
+    hideShotArea();
+  }
+  async function sendShot() {
+    if (!shotDataUrl) return;
+    const text = qaInput.value.trim() || '你看这是什么呀？';
+    hideShotArea();
+    await answerQuestion(text, shotDataUrl);
+  }
+  // 支持把剪贴板里的截图直接粘贴进对话框（系统截图 Win+Shift+S → Ctrl+V）
+  window.addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const it of items) {
+      if (it.type && it.type.indexOf('image/') === 0) {
+        const file = it.getAsFile();
+        if (!file) continue;
+        const reader = new FileReader();
+        reader.onload = () => {
+          shotDataUrl = reader.result;
+          shotImg.src = shotDataUrl;
+          shotImg.style.display = 'block';
+          shotSend.hidden = false;
+          shotCrop.hidden = false;
+          shotMsg.textContent = '粘贴的图片已放到这里啦～可以写句话再发给小董，或直接点「📨 发送给小董」。想只发其中一块？点「✂️ 框选区块」。';
+          if (askDialog.hasAttribute('hidden')) askDialog.removeAttribute('hidden');
+          showShotArea();
+        };
+        reader.readAsDataURL(file);
+        e.preventDefault();
+        break;
+      }
+    }
+  });
+  shotBtn.addEventListener('click', startScreenshot);
+  shotCancel.addEventListener('click', cancelShot);
+  shotSend.addEventListener('click', sendShot);
+
+  // ===== 框选区块裁剪 =====
+  const shotCrop = document.getElementById('shotCrop');
+  const cropOverlay = document.getElementById('cropOverlay');
+  const cropStage = document.getElementById('cropStage');
+  const cropImg = document.getElementById('cropImg');
+  const cropSel = document.getElementById('cropSel');
+  const cropHint = document.getElementById('cropHint');
+  const cropConfirm = document.getElementById('cropConfirm');
+  const cropRedo = document.getElementById('cropRedo');
+  const cropClose = document.getElementById('cropClose');
+  let cropDragging = false, cropSX = 0, cropSY = 0;
+
+  function openCrop() {
+    if (!shotDataUrl) { shotMsg.textContent = '先截一张图或粘贴图片，再框选区块哦'; return; }
+    cropImg.src = shotDataUrl;
+    cropSel.style.display = 'none';
+    cropHint.textContent = '在图片上按住鼠标拖一个框，框住你想保留的区块～';
+    cropOverlay.hidden = false;
+    cropOverlay.classList.add('show');
+  }
+  function closeCrop() {
+    cropOverlay.classList.remove('show');
+    setTimeout(() => { cropOverlay.hidden = true; }, 120);
+  }
+  cropStage.addEventListener('mousedown', (e) => {
+    const r = cropImg.getBoundingClientRect();
+    let x = e.clientX - r.left, y = e.clientY - r.top;
+    if (x < 0) x = 0; if (y < 0) y = 0; if (x > r.width) x = r.width; if (y > r.height) y = r.height;
+    cropSX = x; cropSY = y;
+    cropDragging = true;
+    cropSel.style.display = 'block';
+    cropSel.style.left = x + 'px';
+    cropSel.style.top = y + 'px';
+    cropSel.style.width = '0px';
+    cropSel.style.height = '0px';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!cropDragging) return;
+    const r = cropImg.getBoundingClientRect();
+    let x = e.clientX - r.left, y = e.clientY - r.top;
+    if (x < 0) x = 0; if (y < 0) y = 0; if (x > r.width) x = r.width; if (y > r.height) y = r.height;
+    const left = Math.min(cropSX, x), top = Math.min(cropSY, y);
+    cropSel.style.left = left + 'px';
+    cropSel.style.top = top + 'px';
+    cropSel.style.width = Math.abs(x - cropSX) + 'px';
+    cropSel.style.height = Math.abs(y - cropSY) + 'px';
+  });
+  window.addEventListener('mouseup', () => { cropDragging = false; });
+  cropConfirm.addEventListener('click', () => {
+    const r = cropImg.getBoundingClientRect();
+    const selW = parseFloat(cropSel.style.width), selH = parseFloat(cropSel.style.height);
+    if (selW < 8 || selH < 8) { cropHint.textContent = '框太小啦，再拖大一点～'; return; }
+    const sxr = parseFloat(cropSel.style.left) / r.width;
+    const syr = parseFloat(cropSel.style.top) / r.height;
+    const swr = selW / r.width;
+    const shr = selH / r.height;
+    const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+    const cw = Math.max(1, Math.round(swr * iw));
+    const ch = Math.max(1, Math.round(shr * ih));
+    const cx0 = Math.round(sxr * iw), cy0 = Math.round(syr * ih);
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    c.getContext('2d').drawImage(cropImg, cx0, cy0, cw, ch, 0, 0, cw, ch);
+    shotDataUrl = c.toDataURL('image/png');
+    shotImg.src = shotDataUrl;
+    shotImg.style.display = 'block';
+    shotSend.hidden = false;
+    shotCrop.hidden = false;
+    shotMsg.textContent = '区块已裁剪好啦～可以写句话再发给小董，或直接发送。';
+    closeCrop();
+  });
+  cropRedo.addEventListener('click', () => {
+    cropSel.style.display = 'none';
+    cropHint.textContent = '再拖一个框框住你想保留的区块吧～';
+  });
+  cropClose.addEventListener('click', closeCrop);
+  shotCrop.addEventListener('click', openCrop);
+
+  // ===== 问话圆（可拖动的小董头）+ 对话框 =====
+  const askFab = document.getElementById('askFab');
+  const askDialog = document.getElementById('askDialog');
+  const askClose = document.getElementById('askClose');
+  const micBtn = document.getElementById('micBtn');
+  const askBadge = document.getElementById('askBadge');
+
+  function toggleAskDialog() {
+    if (askDialog.hasAttribute('hidden')) {
+      askDialog.removeAttribute('hidden');
+      askBadge.style.display = 'none';
+      setTimeout(() => qaInput.focus(), 50);
+    } else {
+      askDialog.setAttribute('hidden', '');
+    }
+  }
+  // 拖动（移动超过阈值算拖动，否则算点击）
+  let fabDrag = false, fabMoved = false, fabOffX = 0, fabOffY = 0;
+  askFab.addEventListener('pointerdown', (e) => {
+    fabDrag = true; fabMoved = false;
+    const r = askFab.getBoundingClientRect();
+    fabOffX = e.clientX - r.left; fabOffY = e.clientY - r.top;
+    askFab.setPointerCapture(e.pointerId);
+  });
+  askFab.addEventListener('pointermove', (e) => {
+    if (!fabDrag) return;
+    if (Math.abs(e.movementX) > 2 || Math.abs(e.movementY) > 2) fabMoved = true;
+    const w = askFab.offsetWidth, h = askFab.offsetHeight;
+    let x = e.clientX - fabOffX, y = e.clientY - fabOffY;
+    x = Math.max(4, Math.min(window.innerWidth - w - 4, x));
+    y = Math.max(4, Math.min(window.innerHeight - h - 4, y));
+    askFab.style.left = x + 'px';
+    askFab.style.top = y + 'px';
+    askFab.style.bottom = 'auto';
+  });
+  askFab.addEventListener('pointerup', () => {
+    fabDrag = false;
+    if (!fabMoved) toggleAskDialog();
+  });
+  askClose.addEventListener('click', () => askDialog.setAttribute('hidden', ''));
+
+  // ===== 语音控制：把说出来的话解析成动作指令，命中就执行，否则当聊天 =====
+  function voicePoint() {
+    if (lifted || changing) { showBubble('我正举着画呢，等下再指哦'); return; }
+    if (pointing) leaveArt();
+    pointing = true;
+    mouth.setAttribute('d', 'M478 244 Q500 270 522 244');
+    armL.setAttribute('d', 'M430 340 C360 330 330 300 360 270');
+    handL.setAttribute('transform', 'translate(-42 -200)');
+    showBubble('看！仔细看这里哦～');
+    setTimeout(() => { if (pointing) leaveArt(); }, 2600);
+  }
+  // ===== 换衣服（预设服装配色：上衣渐变 + 裤子 + 衣领） =====
+  const OUTFITS = [
+    { name:'经典蓝', sayName:'蓝色的衣服', shirtTop:'#6ec6ff', shirtBottom:'#3aa0e8', pant:'#3a2c5a', collar:'#2f86d6', keywords:['蓝'] },
+    { name:'草莓红', sayName:'红红的衣服', shirtTop:'#ff9aa2', shirtBottom:'#ef5350', pant:'#5a2c3a', collar:'#d32f2f', keywords:['红'] },
+    { name:'青草绿', sayName:'绿绿衣服', shirtTop:'#a5e08a', shirtBottom:'#4caf50', pant:'#2c4a3a', collar:'#388e3c', keywords:['绿'] },
+    { name:'柠檬黄', sayName:'黄黄的衣服', shirtTop:'#ffe680', shirtBottom:'#fbc02d', pant:'#4a3a2c', collar:'#f9a825', keywords:['黄'] },
+    { name:'葡萄紫', sayName:'紫色的衣服', shirtTop:'#c8a8ff', shirtBottom:'#8e5bd6', pant:'#2c2c4a', collar:'#7e3ff2', keywords:['紫'] },
+    { name:'蜜桃粉', sayName:'粉粉的衣服', shirtTop:'#ffc2dd', shirtBottom:'#ff7eb3', pant:'#4a2c3a', collar:'#f06292', keywords:['粉'] },
+    { name:'橘子橙', sayName:'橙色的衣服', shirtTop:'#ffd0a0', shirtBottom:'#fb8c00', pant:'#4a3020', collar:'#ef6c00', keywords:['橙'] },
+    { name:'酷酷黑', sayName:'黑黑的衣服', shirtTop:'#b0b6bc', shirtBottom:'#4a4f55', pant:'#2c2c2c', collar:'#333333', keywords:['黑'] },
+    { name:'小白球', sayName:'白白的衣服', shirtTop:'#ffffff', shirtBottom:'#e3e8ee', pant:'#4a4f55', collar:'#cfd8dc', keywords:['白'] }
+  ];
+  let outfitIdx = 0;
+  const shirtStop0 = document.getElementById('shirtStop0');
+  const shirtStop1 = document.getElementById('shirtStop1');
+  const pantL = document.getElementById('pantL');
+  const pantR = document.getElementById('pantR');
+  const collar = document.getElementById('collar');
+  const outfitGrid = document.getElementById('outfitGrid');
+  function applyOutfit(i) {
+    i = ((i % OUTFITS.length) + OUTFITS.length) % OUTFITS.length;
+    const o = OUTFITS[i];
+    if (shirtStop0) shirtStop0.setAttribute('stop-color', o.shirtTop);
+    if (shirtStop1) shirtStop1.setAttribute('stop-color', o.shirtBottom);
+    if (pantL) pantL.setAttribute('fill', o.pant);
+    if (pantR) pantR.setAttribute('fill', o.pant);
+    if (collar) collar.setAttribute('fill', o.collar);
+    outfitIdx = i;
+    if (outfitGrid) {
+      const chips = outfitGrid.querySelectorAll('.otChip');
+      chips.forEach((c, idx) => c.classList.toggle('sel', idx === i));
+    }
+  }
+  if (outfitGrid) {
+    OUTFITS.forEach((o, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'otChip' + (i === outfitIdx ? ' sel' : '');
+      chip.title = o.name;
+      chip.style.background = 'linear-gradient(180deg, ' + o.shirtTop + ' 0%, ' + o.shirtBottom + ' 58%, ' + o.shirtBottom + ' 100%)';
+      chip.innerHTML = '<div class="otName">' + o.name + '</div><div class="otPant" style="background:' + o.pant + '"></div>';
+      chip.addEventListener('click', () => { applyOutfit(i); say('我换上' + o.sayName + '啦！'); });
+      outfitGrid.appendChild(chip);
+    });
+  }
+  const outfitBtn = document.getElementById('outfitBtn');
+  const outfitPanel = document.getElementById('outfitPanel');
+  if (outfitBtn && outfitPanel) {
+    outfitBtn.addEventListener('click', () => {
+      const show = !outfitPanel.classList.contains('show');
+      outfitPanel.classList.toggle('show', show);
+      outfitPanel.hidden = !show;
+    });
+  }
+
+  // ===== 换表情（嘴形 + 腮红） =====
+  const EXPRESSIONS = [
+    { name:'微笑', emoji:'😊', mouth:'M480 248 Q500 266 520 248', fill:'none', blush:0, sayName:'微笑' },
+    { name:'大笑', emoji:'😆', mouth:'M476 246 Q500 284 524 246 Z', fill:'#b5543f', blush:0.85, sayName:'哈哈大笑' },
+    { name:'难过', emoji:'😢', mouth:'M480 256 Q500 240 520 256', fill:'none', blush:0, sayName:'难过' },
+    { name:'生气', emoji:'😠', mouth:'M482 254 Q500 246 518 254', fill:'none', blush:0, sayName:'生气' },
+    { name:'惊讶', emoji:'😲', mouth:'M492 246 Q500 266 508 246 Z', fill:'#b5543f', blush:0.3, sayName:'惊讶' },
+    { name:'害羞', emoji:'😳', mouth:'M488 250 Q500 258 512 250', fill:'none', blush:0.9, sayName:'害羞' },
+    { name:'酷', emoji:'😎', mouth:'M484 252 L516 252', fill:'none', blush:0, sayName:'酷酷的' }
+  ];
+  let exprIdx = 0;
+  const exprGrid = document.getElementById('exprGrid');
+  function setExpression(i) {
+    i = ((i % EXPRESSIONS.length) + EXPRESSIONS.length) % EXPRESSIONS.length;
+    const e = EXPRESSIONS[i];
+    const m = document.getElementById('mouth');
+    if (m) { m.setAttribute('d', e.mouth); m.setAttribute('fill', e.fill || 'none'); }
+    ['blushL', 'blushR'].forEach(id => { const b = document.getElementById(id); if (b) b.setAttribute('opacity', e.blush); });
+    exprIdx = i;
+    if (exprGrid) exprGrid.querySelectorAll('.otChip').forEach((c, idx) => c.classList.toggle('sel', idx === i));
+  }
+  // 把所有“动作结束/说话结束”的嘴巴恢复点统一成当前所选表情，
+  // 这样换表情后能持久保留，不会被指画/挥手/举画/说话覆盖回默认微笑。
+  function resetMouth() {
+    const e = EXPRESSIONS[exprIdx];
+    const m = document.getElementById('mouth');
+    if (m) { m.setAttribute('d', e.mouth); m.setAttribute('fill', e.fill || 'none'); }
+    ['blushL', 'blushR'].forEach(id => { const b = document.getElementById(id); if (b) b.setAttribute('opacity', e.blush); });
+  }
+  if (exprGrid) {
+    EXPRESSIONS.forEach((e, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'otChip' + (i === exprIdx ? ' sel' : '');
+      chip.title = e.name;
+      chip.style.background = '#fff3e0';
+      chip.innerHTML = '<div class="otEmoji">' + e.emoji + '</div>';
+      chip.addEventListener('click', () => { setExpression(i); say('我做个' + e.sayName + '的表情～'); });
+      exprGrid.appendChild(chip);
+    });
+  }
+  const exprBtn = document.getElementById('exprBtn');
+  const exprPanel = document.getElementById('exprPanel');
+  if (exprBtn && exprPanel) {
+    exprBtn.addEventListener('click', () => {
+      const show = !exprPanel.classList.contains('show');
+      exprPanel.classList.toggle('show', show); exprPanel.hidden = !show;
+    });
+  }
+
+  // ===== 换发型（前层形状 + 后层底色） =====
+  const HAIRSTYLES = [
+    { name:'短发', back:'#4a3326', html:'<path d="M424 198 C410 150 450 116 500 116 C550 116 590 150 576 198 C573 184 559 176 542 174 C516 171 484 171 458 174 C441 176 427 184 424 198 Z" fill="#4a3326"/><path d="M500 116 q9 -16 18 -18 q-4 12 -14 21 z" fill="#4a3326"/>' },
+    { name:'锅盖头', back:'#2e2118', html:'<path d="M420 206 C405 144 452 106 500 106 C548 106 595 144 580 206 C540 174 460 174 420 206 Z" fill="#2e2118"/>' },
+    { name:'冲天炮', back:'#4a3326', html:'<path d="M424 198 C410 150 450 116 500 116 C550 116 590 150 576 198 C573 184 559 176 542 174 C516 171 484 171 458 174 C441 176 427 184 424 198 Z" fill="#4a3326"/><path d="M500 116 q6 -30 14 -42 q-8 26 -14 50 z" fill="#4a3326"/>' },
+    { name:'小揪揪', back:'#4a3326', html:'<path d="M424 198 C410 150 450 116 500 116 C550 116 590 150 576 198 C573 184 559 176 542 174 C516 171 484 171 458 174 C441 176 427 184 424 198 Z" fill="#4a3326"/><circle cx="500" cy="102" r="14" fill="#4a3326"/>' },
+    { name:'卷卷毛', back:'#5a3a22', html:'<g fill="#5a3a22"><circle cx="446" cy="150" r="22"/><circle cx="478" cy="132" r="24"/><circle cx="500" cy="124" r="25"/><circle cx="522" cy="132" r="24"/><circle cx="554" cy="150" r="22"/><rect x="446" y="148" width="108" height="34"/></g>' },
+    { name:'金发', back:'#e8b04b', html:'<path d="M424 198 C410 150 450 116 500 116 C550 116 590 150 576 198 C573 184 559 176 542 174 C516 171 484 171 458 174 C441 176 427 184 424 198 Z" fill="#e8b04b"/><path d="M500 116 q9 -16 18 -18 q-4 12 -14 21 z" fill="#e8b04b"/>' },
+    { name:'光头', back:'#ffcb9e', html:'' }
+  ];
+  let hairIdx = 0;
+  const hairFront = document.getElementById('hairFront');
+  const hairBack = document.getElementById('hairBack');
+  const hairGrid = document.getElementById('hairGrid');
+  function setHairstyle(i) {
+    i = ((i % HAIRSTYLES.length) + HAIRSTYLES.length) % HAIRSTYLES.length;
+    const h = HAIRSTYLES[i];
+    if (hairFront) hairFront.innerHTML = h.html;
+    if (hairBack) hairBack.setAttribute('fill', h.back);
+    hairIdx = i;
+    if (hairGrid) hairGrid.querySelectorAll('.otChip').forEach((c, idx) => c.classList.toggle('sel', idx === i));
+  }
+  if (hairGrid) {
+    HAIRSTYLES.forEach((h, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'otChip' + (i === hairIdx ? ' sel' : '');
+      chip.title = h.name;
+      chip.style.background = h.back;
+      chip.innerHTML = '<div class="otName">' + h.name + '</div>';
+      chip.addEventListener('click', () => { setHairstyle(i); say('我换成' + h.name + '啦！'); });
+      hairGrid.appendChild(chip);
+    });
+  }
+  const hairBtn = document.getElementById('hairBtn');
+  const hairPanel = document.getElementById('hairPanel');
+  if (hairBtn && hairPanel) {
+    hairBtn.addEventListener('click', () => {
+      const show = !hairPanel.classList.contains('show');
+      hairPanel.classList.toggle('show', show); hairPanel.hidden = !show;
+    });
+  }
+
+  function parseVoiceCommand(text) {    const t = (text || '').toLowerCase();
+    if (!t) return false;
+    // 1) 场景：说出了某个场景的名字
+    for (let i = 0; i < SCENES.length; i++) {
+      if (t.indexOf(SCENES[i].toLowerCase()) !== -1) {
+        setScene(i);
+        say('好呀，我们去' + SCENES[i] + '玩啦！');
+        return true;
+      }
+    }
+    if (/(下一个?场景|换场景|切场景|去别的地方|换个地方|去别处)/.test(t)) {
+      setScene(sceneIdx + 1);
+      say('那我们去' + SCENES[sceneIdx] + '吧！');
+      return true;
+    }
+    // 0) 换衣服（说“换衣服/换一身/穿件红的”等）
+    if (/(换衣服|换一身|换套衣服|换装|换身衣服|穿衣|穿上|换件|穿件|换套)/.test(t)) {
+      const colorMatch = {
+        '红': /(红|草莓)/, '蓝': /(蓝)/, '绿': /(绿|青草)/, '黄': /(黄|柠檬)/,
+        '紫': /(紫|葡萄)/, '粉': /(粉|蜜桃|桃)/, '橙': /(橙|橘子)/, '黑': /(黑|酷)/, '白': /(白|衬衫)/
+      };
+      let found = -1;
+      for (const c in colorMatch) {
+        if (colorMatch[c].test(t)) {
+          const idx = OUTFITS.findIndex(o => (o.keywords || []).indexOf(c) !== -1);
+          if (idx >= 0) { found = idx; break; }
+        }
+      }
+      if (found >= 0) { applyOutfit(found); say('好呀，我穿上' + OUTFITS[found].sayName + '啦！'); return true; }
+      applyOutfit(outfitIdx + 1);
+      say('我换了一件' + OUTFITS[outfitIdx].sayName + '！'); return true;
+    }
+    // 0.5) 换表情
+    if (/(换表情|变表情|做个表情|表情|笑一个|笑一下|不开心|难过|生气|发火|愤怒|惊讶|吃惊|害羞|酷一点|酷)/.test(t)) {
+      let found = -1;
+      if (/(笑|开心|高兴|哈哈|乐)/.test(t)) found = 1;
+      else if (/(难过|不开心|哭|委屈)/.test(t)) found = 2;
+      else if (/(生气|发火|愤怒|恼火)/.test(t)) found = 3;
+      else if (/(惊讶|吃惊|吓一跳)/.test(t)) found = 4;
+      else if (/(害羞|不好意思)/.test(t)) found = 5;
+      else if (/(酷)/.test(t)) found = 6;
+      if (found >= 0) { setExpression(found); say('我做个' + EXPRESSIONS[found].sayName + '的表情～'); return true; }
+      setExpression(exprIdx + 1); say('我换个' + EXPRESSIONS[exprIdx].sayName + '的表情！'); return true;
+    }
+    // 0.6) 换发型
+    if (/(换发型|换头发|发型|理个发|换个发型|剪发|烫发|剪头|烫头)/.test(t)) {
+      let found = -1;
+      if (/(光头)/.test(t)) found = 6;
+      else if (/(金|黄头发|金色)/.test(t)) found = 5;
+      else if (/(锅盖)/.test(t)) found = 1;
+      else if (/(冲天|炮)/.test(t)) found = 2;
+      else if (/(揪揪|小辫|辫子|髻)/.test(t)) found = 3;
+      else if (/(卷|卷毛|羊毛)/.test(t)) found = 4;
+      else if (/(短发|平头)/.test(t)) found = 0;
+      if (found >= 0) { setHairstyle(found); say('好呀，我换成' + HAIRSTYLES[found].name + '啦！'); return true; }
+      setHairstyle(hairIdx + 1); say('我换个' + HAIRSTYLES[hairIdx].name + '！'); return true;
+    }
+    // 2) 举起 / 放下
+    if (/(举起|举起来|举高|顶在头上|举到头顶|高高举|抬起来|举上去|举着)/.test(t)) {
+      if (!lifted) toggleLift();
+      say('好嘞，我举起来啦！🙌');
+      return true;
+    }
+    if (/(放下来|放下|拿好|降下来|放下去|低一点)/.test(t)) {
+      if (lifted) toggleLift();
+      say('好，我放下来啦～');
+      return true;
+    }
+    // 3) 换画
+    if (/(换一张|换一幅|换画|再来一张|下一幅|下一张|变一个|换一个|换一幅画)/.test(t)) {
+      changePainting();
+      say('我换一张给你看哦！');
+      return true;
+    }
+    // 4) 挥手 / 拜拜
+    if (/(拜拜|再见|挥手|摆手|招手|说拜拜|道别)/.test(t)) {
+      startWave();
+      say('拜拜～下次再来玩呀！');
+      setTimeout(() => { if (waving) stopWave(); }, 2600);
+      return true;
+    }
+    // 5) 蹦跳 / 开心
+    if (/(跳一下|蹦一下|蹦跳|开心|高兴|欢呼|庆祝|乐一)/.test(t)) {
+      happyJump();
+      say('耶！好开心呀！');
+      return true;
+    }
+    // 6) 指一指
+    if (/(指一指|指一下|看看这个|看这里|指给我|指出来|指给我看)/.test(t)) {
+      voicePoint();
+      say('看！仔细看这里哦～');
+      return true;
+    }
+    return false;
+  }
+
+  // ===== 语音输入（Web Speech Recognition） =====
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recog = null, listening = false;
+  if (SR) {
+    recog = new SR();
+    recog.lang = 'zh-CN';
+    recog.interimResults = true;
+    recog.onresult = (e) => {
+      let txt = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+      qaInput.value = txt;
+    };
+    recog.onend = () => {
+      listening = false; micBtn.classList.remove('rec');
+      const raw = (qaInput.value || '').trim();
+      if (raw && parseVoiceCommand(raw)) { qaInput.value = ''; return; }
+      askFromInput();
+    };
+    recog.onerror = () => { listening = false; micBtn.classList.remove('rec'); };
+  }
+  micBtn.addEventListener('click', () => {
+    if (!recog) { alert('当前浏览器不支持语音输入，请用 Chrome 或 Edge 浏览器试试～'); return; }
+    if (listening) { recog.stop(); return; }
+    try {
+      if (askDialog.hasAttribute('hidden')) toggleAskDialog();
+      qaInput.value = '';
+      recog.start();
+      listening = true;
+      micBtn.classList.add('rec');
+    } catch (err) { /* 可能已在识别中 */ }
+  });
+
+  // 彩屑
+  function burstConfetti() {
+    const colors = ['#ff5b7f', '#ffd54a', '#6ec6ff', '#9be29b', '#b388ff'];
+    for (let i = 0; i < 40; i++) {
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      const x = 500 + (Math.random() - 0.5) * 120;
+      const y = 360;
+      c.setAttribute('x', x); c.setAttribute('y', y);
+      c.setAttribute('width', 8); c.setAttribute('height', 12);
+      c.setAttribute('fill', colors[i % colors.length]);
+      c.setAttribute('rx', 2);
+      confetti.appendChild(c);
+      const dx = (Math.random() - 0.5) * 400;
+      const dy = -Math.random() * 350 - 80;
+      const rot = Math.random() * 720;
+      c.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx}px,${dy}px) rotate(${rot}deg)`, opacity: 0 }
+      ], { duration: 1200 + Math.random() * 600, easing: 'cubic-bezier(.2,.6,.4,1)' })
+        .onfinish = () => c.remove();
+    }
+  }
+
+  // 主循环：平滑跟随
+  function loop() {
+    try {
+    const cx = target.x, cy = target.y;
+    const dx = mouse.x - cx, dy = mouse.y - cy;
+    const ang = Math.atan2(dy, dx);
+    const dist = Math.min(22, Math.hypot(dx, dy) / 12); // 瞳孔偏移上限
+
+    // 瞳孔目标
+    const tx = Math.cos(ang) * dist, ty = Math.sin(ang) * dist;
+    eye.x += (tx - eye.x) * 0.15; eye.y += (ty - eye.y) * 0.15;
+    const k = 0.7;
+    pupilL.setAttribute('cx', 470 + eye.x * k);
+    pupilL.setAttribute('cy', 204 + eye.y * k);
+    pupilR.setAttribute('cx', 530 + eye.x * k);
+    pupilR.setAttribute('cy', 204 + eye.y * k);
+
+    // 头部转动 + 身体倾斜（朝鼠标）
+    lean.r += (Math.max(-12, Math.min(12, dx / 30)) - lean.r) * 0.08;
+    lean.x += (Math.max(-16, Math.min(16, dx / 25)) - lean.x) * 0.08;
+    lean.y += (Math.max(-8, Math.min(8, dy / 40)) - lean.y) * 0.08;
+    // 摄像头手势：小董跟着你的手/脸移动（你动 → 他跟着动）
+    if (gestureActive && lastTrack) {
+      const mx = 1 - lastTrack.x; // 镜像，和预览画面左右一致
+      const tgtX = (mx - 0.5) * 90;
+      const tgtY = (lastTrack.y - 0.5) * 38;
+      followX += (tgtX - followX) * 0.08;
+      followY += (tgtY - followY) * 0.08;
+    } else {
+      followX += (0 - followX) * 0.08;
+      followY += (0 - followY) * 0.08;
+    }
+
+    head.setAttribute('transform', `rotate(${lean.r} 500 210)`);
+    character.setAttribute('transform', `translate(${lean.x + followX} ${lean.y + followY})`);
+
+    // 兴奋时眼睛睁大（说话/举画时不要抢嘴巴；非默认表情时保留用户选的表情，不覆盖）
+    if (speed > 0.6 && !pointing && !isSpeaking && !lifted && exprIdx === 0) {
+      mouth.setAttribute('d', 'M482 244 Q500 258 518 244');
+    }
+
+    // 挥手：左手绕肩膀自然摆动，手掌贴在手臂末端，绕同一肩膀同步旋转
+    if (waving) {
+      const a = Math.sin(performance.now() / 320) * 16;
+      armL.setAttribute('transform', `rotate(${a} 430 340)`);
+      // 先把手掌平移到手臂末端 (375,225)，再绕肩膀 (430,340) 旋转 → 与手臂完全同步
+      handL.setAttribute('transform', `rotate(${a} 430 340) translate(-27 -245)`);
+    }
+
+    } catch (err) { console.error('loop error:', err); }
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  // 画作当前在屏幕上的实际位置（包含举起/换画位移）
+  function inArt(e) {
+    const r = artGroup.getBoundingClientRect();
+    return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  }
+
+  // 事件绑定
+  scene.addEventListener('click', (e) => {
+    if (inArt(e)) openLightbox();
+    else happyJump();
+  });
+
+  // 悬停画作
+  scene.addEventListener('mousemove', (e) => {
+    if (inArt(e)) overArt();
+    else leaveArt();
+  });
+
+  document.addEventListener('mouseleave', startWave);
+
+  function openLightbox() {
+    lightbox.classList.add('show');
+    showBubble('送给你看看～');
+  }
+  lbClose.addEventListener('click', () => lightbox.classList.remove('show'));
+
+  // 入场气泡
+  setTimeout(() => showBubble('你好呀！欢迎来找我玩～'), 600);
+})();
+</script>
+</body>
+</html>
