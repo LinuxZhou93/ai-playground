@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#071426" />
+    <title>科技成长八维观察报告</title>
+    <style>
+      :root {
+        --navy: #071426;
+        --blue: #168fe5;
+        --gold: #f4bd4b;
+        --ink: #14243a;
+        --muted: #66788d;
+        --line: #d8e4ee;
+        --paper: #fff;
+        --soft: #f2f7fb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #dfe8f0;
+        color: var(--ink);
+        font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+      button {
+        font: inherit;
+      }
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px max(18px, calc((100vw - 980px) / 2));
+        color: #fff;
+        background: rgba(7, 20, 38, 0.94);
+        backdrop-filter: blur(12px);
+      }
+      .toolbar-title {
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .toolbar-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .toolbar button {
+        min-height: 42px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 10px;
+        padding: 0 16px;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+      }
+      .toolbar button.primary {
+        border-color: var(--gold);
+        color: #071426;
+        background: var(--gold);
+        font-weight: 900;
+      }
+      .report {
+        width: min(210mm, calc(100% - 24px));
+        margin: 24px auto 50px;
+      }
+      .report-page {
+        position: relative;
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto 22px;
+        overflow: hidden;
+        background: var(--paper);
+        box-shadow: 0 16px 55px rgba(27, 49, 70, 0.18);
+        page-break-after: always;
+      }
+      .report-page:last-child {
+        page-break-after: auto;
+      }
+      .page-inner {
+        position: relative;
+        z-index: 1;
+        min-height: 297mm;
+        padding: 16mm 17mm 14mm;
+      }
+      .page-one::before {
+        content: '';
+        position: absolute;
+        width: 150mm;
+        height: 150mm;
+        right: -72mm;
+        top: -80mm;
+        border: 28mm solid rgba(22, 143, 229, 0.07);
+        border-radius: 50%;
+      }
+      .page-two::after {
+        content: '';
+        position: absolute;
+        width: 80mm;
+        height: 80mm;
+        left: -50mm;
+        bottom: -48mm;
+        border: 18mm solid rgba(244, 189, 75, 0.12);
+        border-radius: 50%;
+      }
+      .masthead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        padding-bottom: 9mm;
+        border-bottom: 1px solid var(--line);
+      }
+      .kicker {
+        color: var(--blue);
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+      }
+      h1 {
+        margin: 4px 0 0;
+        color: var(--navy);
+        font-size: 27px;
+        line-height: 1.22;
+        letter-spacing: -0.04em;
+      }
+      .brand {
+        text-align: right;
+        color: var(--muted);
+        font-size: 9px;
+        line-height: 1.65;
+      }
+      .brand strong {
+        display: block;
+        color: var(--navy);
+        font-size: 12px;
+      }
+      .student-strip {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr 1fr;
+        margin: 7mm 0;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        overflow: hidden;
+        background: #fbfdff;
+      }
+      .student-item {
+        min-width: 0;
+        padding: 4mm;
+        border-right: 1px solid var(--line);
+      }
+      .student-item:last-child {
+        border-right: 0;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 8px;
+        letter-spacing: 0.08em;
+      }
+      .value {
+        margin-top: 1.5mm;
+        overflow: hidden;
+        color: var(--navy);
+        font-size: 12px;
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .overview {
+        display: grid;
+        grid-template-columns: 74mm 1fr;
+        gap: 9mm;
+        align-items: center;
+      }
+      .radar-card {
+        position: relative;
+        height: 77mm;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #0b2a4d, #071426);
+      }
+      #radar {
+        width: 100%;
+        height: 100%;
+      }
+      .score-summary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4mm;
+      }
+      .metric {
+        min-height: 29mm;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 4mm;
+        background: var(--soft);
+      }
+      .metric.accent {
+        color: #fff;
+        border-color: var(--blue);
+        background: var(--blue);
+      }
+      .metric-number {
+        margin-top: 2mm;
+        font-family: 'Arial Rounded MT Bold', sans-serif;
+        font-size: 27px;
+        font-weight: 900;
+        line-height: 1;
+      }
+      .metric-number small {
+        font-size: 10px;
+      }
+      .metric-text {
+        margin-top: 3mm;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1.4;
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 3mm;
+        margin: 8mm 0 4mm;
+        color: var(--navy);
+        font-size: 14px;
+        font-weight: 900;
+      }
+      .section-title::before {
+        content: '';
+        width: 5mm;
+        height: 2px;
+        background: var(--gold);
+      }
+      .bars {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3mm 7mm;
+      }
+      .bar-head {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1.5mm;
+        font-size: 9px;
+        font-weight: 800;
+      }
+      .bar-track {
+        height: 4px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #e4edf4;
+      }
+      .bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--blue), #61c6ff);
+      }
+      .conclusion {
+        margin-top: 6mm;
+        border-left: 3px solid var(--gold);
+        border-radius: 0 10px 10px 0;
+        padding: 4mm 5mm;
+        background: #fff8e9;
+        color: #34455a;
+        font-size: 10px;
+        line-height: 1.85;
+      }
+      .page-number {
+        position: absolute;
+        right: 17mm;
+        bottom: 8mm;
+        color: #9aabba;
+        font-size: 8px;
+      }
+      .page-two-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        padding-bottom: 6mm;
+        border-bottom: 1px solid var(--line);
+      }
+      .page-two-head h2 {
+        margin: 3px 0 0;
+        font-size: 23px;
+        letter-spacing: -0.04em;
+      }
+      .profile-code {
+        color: var(--muted);
+        font-size: 8px;
+        text-align: right;
+      }
+      .dual {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5mm;
+        margin-top: 6mm;
+      }
+      .insight-card {
+        min-height: 39mm;
+        border-radius: 13px;
+        padding: 5mm;
+        color: #fff;
+        background: linear-gradient(145deg, #0d3159, #071426);
+      }
+      .insight-card.growth {
+        color: var(--ink);
+        background: linear-gradient(145deg, #fff5db, #fffaf0);
+        border: 1px solid #f3d891;
+      }
+      .insight-label {
+        color: #7cc9ff;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.13em;
+      }
+      .growth .insight-label {
+        color: #a66b00;
+      }
+      .insight-card h3 {
+        margin: 3mm 0 2mm;
+        font-size: 15px;
+      }
+      .insight-card p {
+        margin: 0;
+        color: #bdd0e2;
+        font-size: 9px;
+        line-height: 1.75;
+      }
+      .growth p {
+        color: #70572e;
+      }
+      .dimension-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5mm 5mm;
+      }
+      .dimension-row {
+        display: grid;
+        grid-template-columns: 20mm 10mm 1fr;
+        align-items: start;
+        gap: 2mm;
+        padding: 2.4mm 0;
+        border-bottom: 1px solid #e6edf3;
+      }
+      .dimension-name {
+        font-size: 9px;
+        font-weight: 900;
+      }
+      .dimension-score {
+        color: var(--blue);
+        font-size: 10px;
+        font-weight: 900;
+      }
+      .dimension-copy {
+        color: #5b6d80;
+        font-size: 8px;
+        line-height: 1.55;
+      }
+      .recommendations {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3mm;
+      }
+      .recommendation {
+        min-height: 34mm;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        padding: 4mm;
+        background: #fbfdff;
+      }
+      .recommendation-index {
+        display: grid;
+        place-items: center;
+        width: 7mm;
+        height: 7mm;
+        border-radius: 50%;
+        color: #fff;
+        background: var(--blue);
+        font-size: 8px;
+        font-weight: 900;
+      }
+      .recommendation p {
+        margin: 3mm 0 0;
+        color: #4f6175;
+        font-size: 8.5px;
+        line-height: 1.65;
+      }
+      .closing {
+        display: grid;
+        grid-template-columns: 1fr 43mm;
+        gap: 5mm;
+        margin-top: 5mm;
+        border-radius: 12px;
+        padding: 4mm 5mm;
+        color: #fff;
+        background: var(--navy);
+      }
+      .closing strong {
+        display: block;
+        margin-bottom: 1.5mm;
+        color: var(--gold);
+        font-size: 10px;
+      }
+      .closing p {
+        margin: 0;
+        color: #bfd0e1;
+        font-size: 8px;
+        line-height: 1.65;
+      }
+      .stamp {
+        display: grid;
+        place-items: center;
+        border-left: 1px solid rgba(255, 255, 255, 0.15);
+        color: #fff;
+        font-size: 9px;
+        text-align: center;
+        line-height: 1.6;
+      }
+      .loading {
+        width: min(680px, calc(100% - 30px));
+        margin: 80px auto;
+        border-radius: 18px;
+        padding: 40px;
+        color: #fff;
+        background: var(--navy);
+        text-align: center;
+      }
+      .loading p {
+        color: #b9ccdf;
+        line-height: 1.7;
+      }
+      @media screen and (max-width: 820px) {
+        .report {
+          width: 100%;
+          margin-top: 12px;
+          overflow: auto;
+        }
+        .report-page {
+          transform-origin: top left;
+        }
+      }
+      @media print {
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+        body {
+          background: #fff;
+        }
+        .toolbar {
+          display: none;
+        }
+        .report {
+          width: 210mm;
+          margin: 0;
+        }
+        .report-page {
+          margin: 0;
+          zoom: 1 !important;
+          transform: none !important;
+          box-shadow: none;
+          break-after: page;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div class="toolbar-title">科技成长八维观察报告</div>
+      <div class="toolbar-actions">
+        <button type="button" onclick="history.back()">返回测评</button
+        ><button class="primary" type="button" onclick="window.print()">打印 / 保存PDF</button>
+      </div>
+    </div>
+    <div id="loading" class="loading">
+      <strong>正在生成成长画像</strong>
+      <p>正在整理八维评分与现场观察，请稍候。</p>
+    </div>
+    <main id="report" class="report" hidden></main>
+
+    <script>
+      const dimensions = [
+        ['focus_score', '专注度', '观察孩子持续投入、过滤干扰和完成当前任务的稳定程度。'],
+        ['dexterity_score', '动手精细度', '观察工具操作、部件控制、动作准确性与手眼配合。'],
+        ['logic_score', '逻辑理解力', '观察理解规则、拆解问题、判断因果和形成步骤的表现。'],
+        ['resilience_score', '抗挫折恢复', '观察受挫后的情绪恢复、策略调整与再次尝试。'],
+        ['self_management_score', '情绪与收纳', '观察对情绪、材料、时间和任务秩序的管理。'],
+        ['social_score', '社会化融入', '观察进入集体、遵守约定、回应他人和建立连接。'],
+        ['creativity_score', '创新想象力', '观察提出新想法、进行联想和尝试不同路径的意愿。'],
+        ['collaboration_score', '协作沟通力', '观察表达、倾听、协商分工和共同完成任务。'],
+      ];
+
+      function decodeMetadata(studentId) {
+        if (!studentId || !studentId.startsWith('EXP64:')) return {};
+        try {
+          const value = studentId.slice(6).replace(/-/g, '+').replace(/_/g, '/');
+          const bytes = Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+          return JSON.parse(new TextDecoder().decode(bytes));
+        } catch {
+          return {};
+        }
+      }
+
+      function demoData() {
+        const input = JSON.parse(sessionStorage.getItem('experience-report-demo') || 'null') || {
+          student_name: '陈小创',
+          age: 10,
+          grade: '四年级',
+          evaluator_name: '课程导师',
+          focus_score: 88,
+          dexterity_score: 92,
+          logic_score: 86,
+          resilience_score: 78,
+          self_management_score: 76,
+          social_score: 84,
+          creativity_score: 94,
+          collaboration_score: 82,
+          highlights: '能够主动提出两种解决思路，并在操作中持续验证。',
+          potential_improvements: '遇到复杂任务时先规划步骤，并在结束后主动整理材料',
+        };
+        const ranked = dimensions
+          .map(([key, name]) => ({ key, name, score: Number(input[key]) }))
+          .sort((a, b) => b.score - a.score);
+        const average = Math.round(ranked.reduce((sum, item) => sum + item.score, 0) / 8);
+        return {
+          id: 'PREVIEW-20260808',
+          student_id: '',
+          student_name: input.student_name,
+          camp_name: '成电创客基地×川大MBA校友会·2026亲子公益研学体验活动',
+          ...input,
+          ai_overall_report: `${input.student_name}本次体验活动八维综合得分为${average}分。相对优势集中在${ranked
+            .slice(0, 3)
+            .map((item) => `${item.name}（${item.score}分）`)
+            .join(
+              '、',
+            )}。结合现场记录，孩子在活动中呈现出“${input.highlights || '积极参与并完成课程任务'}”等可观察表现。建议后续继续观察${ranked
+            .slice(-2)
+            .map((item) => item.name)
+            .join(
+              '与',
+            )}的稳定性。本报告反映的是单次活动中的行为观察，不等同于心理诊断、能力定型或升学结论。`,
+          ai_recommendations: [
+            `围绕${ranked
+              .slice(0, 2)
+              .map((item) => item.name)
+              .join('和')}设计每周一次的科技实践任务，让优势在持续作品中沉淀。`,
+            `针对${ranked
+              .slice(-2)
+              .map((item) => item.name)
+              .join('和')}，采用“任务拆小—即时反馈—复盘改进”的训练节奏。`,
+            `连续4周记录任务选择、坚持时间、求助方式与复盘表达，再据此调整课程难度。`,
+          ],
+          _metadata: {
+            age: input.age,
+            grade: input.grade,
+            evaluator_name: input.evaluator_name,
+            ref: 'EXP-PREVIEW',
+          },
+        };
+      }
+
+      function qualitative(score) {
+        if (score >= 90) return '突出';
+        if (score >= 80) return '良好';
+        if (score >= 70) return '基础';
+        return '观察';
+      }
+      function escapeHtml(value) {
+        return String(value ?? '').replace(
+          /[&<>'"]/g,
+          (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char],
+        );
+      }
+      function dateText() {
+        return new Intl.DateTimeFormat('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date());
+      }
+
+      let activeItems = [];
+
+      function render(data) {
+        const metadata = data._metadata || decodeMetadata(data.student_id);
+        const scored = dimensions.map(([key, name, copy]) => ({
+          key,
+          name,
+          copy,
+          score: Number(data[key]) || 0,
+        }));
+        activeItems = scored;
+        const ranked = [...scored].sort((a, b) => b.score - a.score);
+        const average = Math.round(
+          scored.reduce((sum, item) => sum + item.score, 0) / scored.length,
+        );
+        const strengths = ranked.slice(0, 3);
+        const growth = ranked.slice(-2).reverse();
+        const recommendations = Array.isArray(data.ai_recommendations)
+          ? data.ai_recommendations
+          : [];
+        document.getElementById('report').innerHTML = `
+          <section class="report-page page-one"><div class="page-inner">
+            <header class="masthead"><div><div class="kicker">TECH GROWTH PROFILE · 2026</div><h1>科技成长八维<br>现场观察报告</h1></div><div class="brand"><strong>成电创客基地 × 川大MBA校友会</strong>亲子公益研学体验活动<br>${dateText()}</div></header>
+            <div class="student-strip">
+              <div class="student-item"><div class="label">学生姓名</div><div class="value">${escapeHtml(data.student_name)}</div></div>
+              <div class="student-item"><div class="label">年龄 / 年级</div><div class="value">${escapeHtml(metadata.age || data.age || '—')}岁 · ${escapeHtml(metadata.grade || data.grade || '—')}</div></div>
+              <div class="student-item"><div class="label">观察人</div><div class="value">${escapeHtml(metadata.evaluator_name || data.evaluator_name || '活动导师')}</div></div>
+            </div>
+            <div class="overview">
+              <div class="radar-card"><canvas id="radar"></canvas></div>
+              <div class="score-summary">
+                <div class="metric accent"><div class="label" style="color:#d9efff">八维综合均分</div><div class="metric-number">${average}<small> / 100</small></div></div>
+                <div class="metric"><div class="label">综合表现</div><div class="metric-text">${qualitative(average)}发展区</div></div>
+                <div class="metric"><div class="label">首要优势</div><div class="metric-text">${strengths[0].name} · ${strengths[0].score}分</div></div>
+                <div class="metric"><div class="label">建议观察</div><div class="metric-text">${growth.map((item) => item.name).join(' / ')}</div></div>
+              </div>
+            </div>
+            <div class="section-title">八维能力分布</div>
+            <div class="bars">${scored.map((item) => `<div><div class="bar-head"><span>${item.name}</span><span>${item.score} · ${qualitative(item.score)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${item.score}%"></div></div></div>`).join('')}</div>
+            <div class="section-title">核心观察结论</div>
+            <div class="conclusion">${escapeHtml(data.ai_overall_report || '本报告基于本次活动现场评分生成。')}</div>
+            <div class="page-number">01 / 02</div>
+          </div></section>
+          <section class="report-page page-two"><div class="page-inner">
+            <header class="page-two-head"><div><div class="kicker">PROFESSIONAL INTERPRETATION</div><h2>专业解读与成长建议</h2></div><div class="profile-code">档案编号<br>${escapeHtml(metadata.ref || data.id || '—')}</div></header>
+            <div class="dual">
+              <article class="insight-card"><div class="insight-label">RELATIVE STRENGTHS</div><h3>相对优势画像</h3><p>${strengths.map((item) => `${item.name}${item.score}分`).join('、')}。建议把这些优势迁移到持续性项目中，通过作品和复盘验证其稳定性。</p></article>
+              <article class="insight-card growth"><div class="insight-label">GROWTH FOCUS</div><h3>下一步观察重点</h3><p>${growth.map((item) => `${item.name}${item.score}分`).join('、')}。较低分不代表能力不足，而是本次情境下更值得通过多次任务继续观察的方向。</p></article>
+            </div>
+            <div class="section-title">八维逐项解读</div>
+            <div class="dimension-grid">${scored.map((item) => `<div class="dimension-row"><div class="dimension-name">${item.name}</div><div class="dimension-score">${item.score}</div><div class="dimension-copy">${item.copy}</div></div>`).join('')}</div>
+            <div class="section-title">家庭可执行建议</div>
+            <div class="recommendations">${[0, 1, 2].map((index) => `<article class="recommendation"><div class="recommendation-index">${index + 1}</div><p>${escapeHtml(recommendations[index] || '结合孩子兴趣选择一个短周期任务，完成后用事实复盘过程与收获。')}</p></article>`).join('')}</div>
+            <div class="closing"><div><strong>如何使用这份报告</strong><p>建议家长把本报告作为一次“起点记录”：连续观察4周，再结合孩子在家庭、学校和课程中的表现共同判断。不要用单次分数给孩子贴标签，也不建议直接据此作出升学决策。</p></div><div class="stamp">单次活动<br>行为观察报告</div></div>
+            <div class="page-number">02 / 02</div>
+          </div></section>`;
+        document.getElementById('loading').hidden = true;
+        document.getElementById('report').hidden = false;
+        requestAnimationFrame(() => {
+          drawRadar(scored);
+          fitPages();
+        });
+      }
+
+      function drawRadar(items) {
+        const canvas = document.getElementById('radar');
+        const rect = canvas.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.round(rect.width * ratio);
+        canvas.height = Math.round(rect.height * ratio);
+        const ctx = canvas.getContext('2d');
+        ctx.scale(ratio, ratio);
+        const cx = rect.width / 2,
+          cy = rect.height / 2,
+          radius = Math.min(rect.width, rect.height) * 0.23,
+          count = items.length;
+        function point(index, value) {
+          const angle = -Math.PI / 2 + (Math.PI * 2 * index) / count;
+          return [cx + Math.cos(angle) * radius * value, cy + Math.sin(angle) * radius * value];
+        }
+        ctx.lineWidth = 1;
+        for (let ring = 1; ring <= 4; ring++) {
+          ctx.beginPath();
+          items.forEach((_, i) => {
+            const [x, y] = point(i, ring / 4);
+            i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+          });
+          ctx.closePath();
+          ctx.strokeStyle = 'rgba(255,255,255,.16)';
+          ctx.stroke();
+        }
+        items.forEach((_, i) => {
+          const [x, y] = point(i, 1);
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(x, y);
+          ctx.strokeStyle = 'rgba(255,255,255,.12)';
+          ctx.stroke();
+        });
+        ctx.beginPath();
+        items.forEach((item, i) => {
+          const [x, y] = point(i, item.score / 100);
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(54,168,255,.34)';
+        ctx.strokeStyle = '#66c7ff';
+        ctx.lineWidth = 2;
+        ctx.fill();
+        ctx.stroke();
+        items.forEach((item, i) => {
+          const [x, y] = point(i, 1.25);
+          ctx.fillStyle = '#dbeeff';
+          ctx.font = '600 10px "PingFang SC"';
+          ctx.textAlign = x < cx - 6 ? 'right' : x > cx + 6 ? 'left' : 'center';
+          ctx.textBaseline = y < cy ? 'bottom' : 'top';
+          ctx.fillText(item.name, x, y);
+        });
+      }
+
+      function fitPages() {
+        const pages = document.querySelectorAll('.report-page');
+        pages.forEach((page) => {
+          page.style.zoom = '';
+          page.style.transform = '';
+          page.style.marginBottom = '';
+        });
+        if (innerWidth > 820 || !pages.length) return;
+        const pageWidth = pages[0].offsetWidth;
+        const scale = (innerWidth - 12) / pageWidth;
+        pages.forEach((page) => {
+          page.style.zoom = String(scale);
+          page.style.marginBottom = '14px';
+        });
+      }
+
+      async function load() {
+        const params = new URLSearchParams(location.search);
+        if (params.get('demo') === '1') {
+          render(demoData());
+          return;
+        }
+        const id = params.get('id');
+        if (!id) {
+          document.getElementById('loading').innerHTML =
+            '<strong>缺少报告编号</strong><p>请从测评入口提交后查看报告。</p>';
+          return;
+        }
+        try {
+          const response = await fetch(`/api/experience_report?id=${encodeURIComponent(id)}`);
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || '报告读取失败');
+          render(result.data || result);
+        } catch (error) {
+          document.getElementById('loading').innerHTML =
+            `<strong>暂时无法读取报告</strong><p>${escapeHtml(error.message)}，请稍后刷新页面。</p>`;
+        }
+      }
+      let resizeTimer;
+      addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          if (activeItems.length) drawRadar(activeItems);
+          fitPages();
+        }, 120);
+      });
+      load();
+    </script>
+  </body>
+</html>
