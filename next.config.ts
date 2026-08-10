@@ -61,6 +61,26 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: '/xmpgame/v1/status',
+        destination: '/api/xmpgame?route=status',
+      },
+      {
+        source: '/xmpgame/v1/tasks',
+        destination: '/api/xmpgame?route=tasks',
+      },
+      {
+        source: '/xmpgame',
+        destination: '/xmpgame/index.html',
+      },
+      {
+        source: '/xmpgame/',
+        destination: '/xmpgame/index.html',
+      },
+      {
+        source: '/xmpgame/station/:path*',
+        destination: '/xmpgame/index.html',
+      },
+      {
         source: '/SNU',
         destination: '/SNU/index.html',
       },
