@@ -5,6 +5,9 @@ const VIDEO_MODEL = "wan2.7-i2v-2026-04-25";
 const VISION_MODEL = "qwen3-vl-plus";
 const TEXT_MODELS = ["qwen3.7-max", "qwen-plus", "qwen-turbo"];
 const DASHSCOPE_BASE = "https://dashscope.aliyuncs.com/api/v1";
+const OPENAI_BASE = "https://api.openai.com/v1";
+const OPENAI_VISION_MODEL = "gpt-5.6-terra";
+const OPENAI_IMAGE_MODEL = "gpt-image-2";
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 const JOB_TTL_MS = 30 * 60 * 1000;
 
@@ -420,10 +423,104 @@ class DashScopeProvider {
   }
 }
 
+class OpenAIProvider {
+  constructor(env) {
+    this.apiKey = env.OPENAI_API_KEY || "";
+    this.base = String(env.OPENAI_BASE_URL || OPENAI_BASE).replace(/\/$/, "");
+    this.visionModel = env.OPENAI_VISION_MODEL || OPENAI_VISION_MODEL;
+    this.imageModel = env.OPENAI_IMAGE_MODEL || OPENAI_IMAGE_MODEL;
+  }
+
+  get configured() {
+    return Boolean(this.apiKey);
+  }
+
+  headers() {
+    return { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" };
+  }
+
+  async vision(payload) {
+    if (!this.configured) throw new ModelServiceError("OPENAI_NOT_CONFIGURED", "OpenAI 模型密钥未配置", 503);
+    const images = [payload.sourceImage, payload.interactionImage].filter(Boolean);
+    if (!images.length) throw new ModelServiceError("VISION_INPUT_REQUIRED", "视觉理解至少需要一张输入图片", 400);
+    images.forEach((image) => dataUrlToBuffer(image));
+    const content = [
+      { type: "input_text", text: buildInteractionPrompt(payload) },
+      ...images.map((imageUrl) => ({ type: "input_image", image_url: imageUrl, detail: "high" }))
+    ];
+    const response = await fetch(`${this.base}/responses`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({
+        model: this.visionModel,
+        input: [{ role: "user", content }],
+        reasoning: { effort: "low" },
+        max_output_tokens: 1200
+      })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = responseError(body, "OPENAI_VISION_FAILED");
+      throw new ModelServiceError(error.code, error.message, response.status >= 400 && response.status < 500 ? response.status : 502);
+    }
+    const text = body.output_text || (body.output || [])
+      .filter((item) => item?.type === "message")
+      .flatMap((item) => item.content || [])
+      .filter((item) => item?.type === "output_text")
+      .map((item) => item.text || "")
+      .join(" ");
+    if (!text) throw new ModelServiceError("OPENAI_VISION_RESULT_MISSING", "OpenAI 视觉模型未返回结果");
+    return {
+      provider: "openai",
+      model: this.visionModel,
+      requestId: body.id,
+      text: safeText(text, 1400),
+      vision: parseInteractionVision(text, payload)
+    };
+  }
+
+  async image(payload) {
+    if (!this.configured) throw new ModelServiceError("OPENAI_NOT_CONFIGURED", "OpenAI 模型密钥未配置", 503);
+    const images = [payload.artworkImage, payload.participantImage, payload.sourceImage, payload.interactionImage]
+      .filter(Boolean)
+      .map((image) => dataUrlToBuffer(image));
+    if (!images.length) throw new ModelServiceError("IMAGE_INPUT_REQUIRED", "至少需要一张输入图片", 400);
+    const form = new FormData();
+    form.append("model", this.imageModel);
+    form.append("prompt", buildImagePrompt(payload));
+    form.append("size", "1536x1024");
+    form.append("quality", "medium");
+    images.forEach((image, index) => {
+      form.append("image[]", new Blob([image.buffer], { type: image.mimeType }), `reference-${index + 1}.${image.extension}`);
+    });
+    const response = await fetch(`${this.base}/images/edits`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.apiKey}` },
+      body: form
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = responseError(body, "OPENAI_IMAGE_FAILED");
+      throw new ModelServiceError(error.code, error.message, response.status >= 400 && response.status < 500 ? response.status : 502);
+    }
+    const base64 = body.data?.[0]?.b64_json;
+    if (!base64) throw new ModelServiceError("OPENAI_IMAGE_RESULT_MISSING", "GPT Image 2 未返回图片");
+    const buffer = Buffer.from(base64, "base64");
+    return {
+      provider: "openai",
+      model: this.imageModel,
+      requestId: body.id || response.headers.get("x-request-id"),
+      imageDataUrl: `data:image/png;base64,${base64}`,
+      bytes: buffer.length
+    };
+  }
+}
+
 export class ModelService {
   constructor(env = process.env) {
     this.store = new OssTemporaryStore(env);
     this.provider = new DashScopeProvider(env, this.store);
+    this.openai = new OpenAIProvider(env);
     this.jobs = new Map();
     this.cleanupTimer = setInterval(() => this.cleanupExpired(), 60_000);
     this.cleanupTimer.unref?.();
@@ -431,32 +528,48 @@ export class ModelService {
 
   getStatus() {
     const text = this.provider.configured;
-    const media = this.provider.configured && this.store.configured;
+    const aliyunMedia = this.provider.configured && this.store.configured;
+    const artworkMedia = this.openai.configured;
+    const media = aliyunMedia || artworkMedia;
     return {
-      status: text ? "ready" : "not_configured",
-      provider: text ? "aliyun-model-studio" : null,
-      capabilities: { text, vision: media, image: media, video: media },
+      status: text || artworkMedia ? "ready" : "not_configured",
+      provider: text && artworkMedia ? "openai+aliyun-model-studio" : artworkMedia ? "openai" : text ? "aliyun-model-studio" : null,
+      capabilities: { text, vision: media, image: media, video: aliyunMedia },
       models: {
         text: text ? this.provider.textModels[0] : null,
-        vision: media ? this.provider.visionModel : null,
-        image: media ? this.provider.imageModel : null,
-        video: media ? this.provider.videoModel : null
+        vision: artworkMedia ? this.openai.visionModel : aliyunMedia ? this.provider.visionModel : null,
+        image: artworkMedia ? this.openai.imageModel : aliyunMedia ? this.provider.imageModel : null,
+        video: aliyunMedia ? this.provider.videoModel : null
       },
+      routes: artworkMedia ? { "star-canvas": { vision: this.openai.visionModel, image: this.openai.imageModel } } : {},
       privacy: {
         browserKey: false,
-        temporaryPrivateObject: media,
+        temporaryPrivateObject: aliyunMedia,
         inputObjectDeletedAfterTask: true,
         generatedMediaMemoryTtlMinutes: 30
       }
     };
   }
 
+  async runVisualTask(type, payload) {
+    const isArtwork = payload.experience === "star-canvas";
+    if (isArtwork && this.openai.configured) {
+      try {
+        return await this.openai[type](payload);
+      } catch (error) {
+        if (!(error instanceof ModelServiceError) || error.httpStatus < 500) throw error;
+      }
+    }
+    const result = await this.provider[type](payload);
+    return { ...result, provider: "aliyun-model-studio" };
+  }
+
   async create(kind, payload = {}) {
     const started = Date.now();
     if (kind === "image.generate" || kind === "image.edit") {
-      const result = await this.provider.image(payload);
+      const result = await this.runVisualTask("image", payload);
       return {
-        id: crypto.randomUUID(), status: "succeeded", provider: "aliyun-model-studio", model: result.model,
+        id: crypto.randomUUID(), status: "succeeded", provider: result.provider, model: result.model,
         kind, aiGenerated: true, durationMs: Date.now() - started,
         result: { imageDataUrl: result.imageDataUrl, bytes: result.bytes }, requestId: result.requestId
       };
@@ -470,9 +583,9 @@ export class ModelService {
       };
     }
     if (kind === "interaction.interpret") {
-      const result = await this.provider.vision(payload);
+      const result = await this.runVisualTask("vision", payload);
       return {
-        id: crypto.randomUUID(), status: "succeeded", provider: "aliyun-model-studio", model: result.model,
+        id: crypto.randomUUID(), status: "succeeded", provider: result.provider, model: result.model,
         kind, aiGenerated: true, durationMs: Date.now() - started,
         result: { text: result.text, vision: result.vision }, requestId: result.requestId
       };
