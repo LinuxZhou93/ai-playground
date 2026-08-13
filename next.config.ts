@@ -61,6 +61,14 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: '/xmpvr',
+        destination: '/xmpvr/index.html',
+      },
+      {
+        source: '/xmpvr/',
+        destination: '/xmpvr/index.html',
+      },
+      {
         source: '/xmpgame/v1/status',
         destination: '/api/xmpgame?route=status',
       },
