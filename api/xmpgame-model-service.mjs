@@ -8,6 +8,9 @@ const DASHSCOPE_BASE = "https://dashscope.aliyuncs.com/api/v1";
 const OPENAI_BASE = "https://api.openai.com/v1";
 const OPENAI_VISION_MODEL = "gpt-5.6-terra";
 const OPENAI_IMAGE_MODEL = "gpt-image-2";
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_VISION_MODEL = "gemini-3.1-pro-preview";
+const GEMINI_IMAGE_MODEL = "gemini-3-pro-image-preview";
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 const JOB_TTL_MS = 30 * 60 * 1000;
 
@@ -490,6 +493,8 @@ class OpenAIProvider {
     form.append("prompt", buildImagePrompt(payload));
     form.append("size", "1536x1024");
     form.append("quality", "medium");
+    form.append("output_format", "webp");
+    form.append("output_compression", "88");
     images.forEach((image, index) => {
       form.append("image[]", new Blob([image.buffer], { type: image.mimeType }), `reference-${index + 1}.${image.extension}`);
     });
@@ -510,10 +515,93 @@ class OpenAIProvider {
       provider: "openai",
       model: this.imageModel,
       requestId: body.id || response.headers.get("x-request-id"),
-      imageDataUrl: `data:image/png;base64,${base64}`,
+      imageDataUrl: `data:image/webp;base64,${base64}`,
       bytes: buffer.length
     };
   }
+}
+
+class GeminiProvider {
+  constructor(env) {
+    this.apiKey = env.GOOGLE_API_KEY || env.GEMINI_API_KEY || "";
+    this.base = String(env.GEMINI_BASE_URL || GEMINI_BASE).replace(/\/$/, "");
+    this.visionModel = env.GEMINI_VISION_MODEL || GEMINI_VISION_MODEL;
+    this.imageModel = env.GEMINI_IMAGE_MODEL || GEMINI_IMAGE_MODEL;
+  }
+
+  get configured() {
+    return Boolean(this.apiKey);
+  }
+
+  imageParts(payload, fields) {
+    return fields
+      .map((field) => payload[field])
+      .filter(Boolean)
+      .map((value) => dataUrlToBuffer(value))
+      .map((image) => ({ inline_data: { mime_type: image.mimeType, data: image.buffer.toString("base64") } }));
+  }
+
+  async generate(model, parts, generationConfig) {
+    const response = await fetch(`${this.base}/models/${encodeURIComponent(model)}:generateContent`, {
+      method: "POST",
+      headers: { "x-goog-api-key": this.apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = responseError(body, "GEMINI_MODEL_FAILED");
+      throw new ModelServiceError(String(error.code), error.message, response.status >= 400 && response.status < 500 ? response.status : 502);
+    }
+    return { body, requestId: response.headers.get("x-request-id") };
+  }
+
+  async vision(payload) {
+    if (!this.configured) throw new ModelServiceError("GEMINI_NOT_CONFIGURED", "Gemini 模型密钥未配置", 503);
+    const images = this.imageParts(payload, ["sourceImage", "interactionImage"]);
+    if (!images.length) throw new ModelServiceError("VISION_INPUT_REQUIRED", "视觉理解至少需要一张输入图片", 400);
+    const { body, requestId } = await this.generate(
+      this.visionModel,
+      [...images, { text: buildInteractionPrompt(payload) }],
+      { responseMimeType: "application/json", maxOutputTokens: 1200 }
+    );
+    const text = body.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join(" ").trim();
+    if (!text) throw new ModelServiceError("GEMINI_VISION_RESULT_MISSING", "Gemini 视觉模型未返回结果");
+    return {
+      provider: "google-gemini",
+      model: this.visionModel,
+      requestId,
+      text: safeText(text, 1400),
+      vision: parseInteractionVision(text, payload)
+    };
+  }
+
+  async image(payload) {
+    if (!this.configured) throw new ModelServiceError("GEMINI_NOT_CONFIGURED", "Gemini 模型密钥未配置", 503);
+    const images = this.imageParts(payload, ["artworkImage", "participantImage", "sourceImage", "interactionImage"]);
+    if (!images.length) throw new ModelServiceError("IMAGE_INPUT_REQUIRED", "至少需要一张输入图片", 400);
+    const { body, requestId } = await this.generate(
+      this.imageModel,
+      [...images, { text: buildImagePrompt(payload) }],
+      { responseModalities: ["IMAGE"], imageConfig: { aspectRatio: "16:9", imageSize: "1K" } }
+    );
+    const parts = body.candidates?.[0]?.content?.parts || [];
+    const image = parts.map((part) => part.inlineData || part.inline_data).find((item) => item?.data);
+    if (!image?.data) throw new ModelServiceError("GEMINI_IMAGE_RESULT_MISSING", "Gemini 图像模型未返回图片");
+    const mimeType = image.mimeType || image.mime_type || "image/png";
+    const buffer = Buffer.from(image.data, "base64");
+    return {
+      provider: "google-gemini",
+      model: this.imageModel,
+      requestId,
+      imageDataUrl: `data:${mimeType};base64,${image.data}`,
+      bytes: buffer.length
+    };
+  }
+}
+
+function canFailoverVisualTask(error) {
+  if (!(error instanceof ModelServiceError)) return false;
+  return !["INVALID_IMAGE_DATA", "IMAGE_SIZE_LIMIT", "IMAGE_INPUT_REQUIRED", "VISION_INPUT_REQUIRED"].includes(String(error.code));
 }
 
 export class ModelService {
@@ -521,6 +609,7 @@ export class ModelService {
     this.store = new OssTemporaryStore(env);
     this.provider = new DashScopeProvider(env, this.store);
     this.openai = new OpenAIProvider(env);
+    this.gemini = new GeminiProvider(env);
     this.jobs = new Map();
     this.cleanupTimer = setInterval(() => this.cleanupExpired(), 60_000);
     this.cleanupTimer.unref?.();
@@ -529,19 +618,22 @@ export class ModelService {
   getStatus() {
     const text = this.provider.configured;
     const aliyunMedia = this.provider.configured && this.store.configured;
-    const artworkMedia = this.openai.configured;
+    const artworkMedia = this.openai.configured || this.gemini.configured;
     const media = aliyunMedia || artworkMedia;
     return {
       status: text || artworkMedia ? "ready" : "not_configured",
-      provider: text && artworkMedia ? "openai+aliyun-model-studio" : artworkMedia ? "openai" : text ? "aliyun-model-studio" : null,
+      provider: artworkMedia && text ? "multi-provider" : artworkMedia ? "openai-or-gemini" : text ? "aliyun-model-studio" : null,
       capabilities: { text, vision: media, image: media, video: aliyunMedia },
       models: {
         text: text ? this.provider.textModels[0] : null,
-        vision: artworkMedia ? this.openai.visionModel : aliyunMedia ? this.provider.visionModel : null,
-        image: artworkMedia ? this.openai.imageModel : aliyunMedia ? this.provider.imageModel : null,
+        vision: this.openai.configured ? this.openai.visionModel : this.gemini.configured ? this.gemini.visionModel : aliyunMedia ? this.provider.visionModel : null,
+        image: this.openai.configured ? this.openai.imageModel : this.gemini.configured ? this.gemini.imageModel : aliyunMedia ? this.provider.imageModel : null,
         video: aliyunMedia ? this.provider.videoModel : null
       },
-      routes: artworkMedia ? { "star-canvas": { vision: this.openai.visionModel, image: this.openai.imageModel } } : {},
+      routes: artworkMedia ? { "star-canvas": {
+        vision: unique([this.openai.configured && this.openai.visionModel, this.gemini.configured && this.gemini.visionModel, aliyunMedia && this.provider.visionModel]),
+        image: unique([this.openai.configured && this.openai.imageModel, this.gemini.configured && this.gemini.imageModel, aliyunMedia && this.provider.imageModel])
+      } } : {},
       privacy: {
         browserKey: false,
         temporaryPrivateObject: aliyunMedia,
@@ -553,11 +645,14 @@ export class ModelService {
 
   async runVisualTask(type, payload) {
     const isArtwork = payload.experience === "star-canvas";
-    if (isArtwork && this.openai.configured) {
-      try {
-        return await this.openai[type](payload);
-      } catch (error) {
-        if (!(error instanceof ModelServiceError) || error.httpStatus < 500) throw error;
+    if (isArtwork) {
+      for (const candidate of [this.openai, this.gemini]) {
+        if (!candidate.configured) continue;
+        try {
+          return await candidate[type](payload);
+        } catch (error) {
+          if (!canFailoverVisualTask(error)) throw error;
+        }
       }
     }
     const result = await this.provider[type](payload);
