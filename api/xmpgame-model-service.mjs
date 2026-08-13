@@ -43,8 +43,24 @@ function responseError(body, fallback = "MODEL_REQUEST_FAILED") {
 }
 
 function buildImagePrompt(payload) {
+  if (payload.experience === "star-canvas") {
+    const hasWorld = Boolean(payload.sourceImage);
+    const hasInteraction = Boolean(payload.interactionImage);
+    const worldRule = hasWorld
+      ? "图像2是当前数字世界，只把它作为空间、景深、光线和环境材质参考；"
+      : "请为它建立一个具有真实空间纵深的数字自然世界；";
+    const interactionRule = hasInteraction
+      ? `图像${hasWorld ? 3 : 2}是孩子在一体机上引导原画移动时留下的透明触摸水流图。根据它的位置、方向和疏密安排水流、气泡、植物摆动和环境回应。匿名互动统计：${safeText(JSON.stringify(payload.interactionSummary || {}), 220)}。`
+      : "";
+    const visionRule = payload.modelVision
+      ? `视觉模型对原画的理解是：${safeText(JSON.stringify(payload.modelVision), 520)}。用这份理解决定角色的动作、栖息地和环境反馈，但不能替孩子纠正或重画角色。`
+      : "";
+    const remixRule = payload.remixDirection
+      ? `这是同一幅原画的连续二次创作，保持角色、世界构图与原画笔触，只沿这个方向继续生长：${safeText(payload.remixDirection, 360)}。`
+      : "";
+    return `图像1是孩子放在俯拍台上的真实 A4 原画，不是人物照片。找出画面中最主要的一个角色，让它在输出中自然离开纸张并且只出现一次。必须忠实保持这个角色原来的不规则轮廓、线条粗细、儿童水彩或蜡笔笔触、颜色、比例、朝向和可爱的不完美；不要美术校正，不要改成统一卡通角色，不要把 A4 白纸、桌面、阴影或扫描框带进成品。${worldRule}${interactionRule}${visionRule}${remixRule}让角色真正生活在完整环境里：有前景遮挡、中景互动、远景层次、同方向的环境光、材质反光、体积光与空气或水体颗粒；环境可以达到世界级沉浸式数字艺术展览质感，但必须由原画角色的色彩和想象自然长出来，不能喧宾夺主。画面中不出现真实儿童肖像，不出现头像、贴纸、相框、纸张边框、廉价游戏 UI、额外文字、品牌或恐怖危险元素。3-6岁儿童友好，喜悦、惊奇，16:9 横向构图，允许平台保留规范 AI 水印。`;
+  }
   const installationDirections = {
-    "star-canvas": "把多人触摸形成的星尘轨迹扩展成可穿行的发光道路、粒子鲸鱼、透明光蝶与远处的晶体生命城。",
     "body-alchemy": "把双手拉伸、合拢与转动的能量扩展成围绕孩子生长的巨型光生命与对称极光，不遮挡孩子的脸与身体动作。",
     "voice-forest": `把点按、长按和滑动的节奏扩展成会歌唱的生物荧光森林、声音花、光河与细小生命粒子。${payload.soundNarration ? `森林回应的含义是：${safeText(payload.soundNarration, 160)}。` : ""}`,
     "living-cinema": "把孩子融入可继续拍成电影的奇幻星夜舞台：漂浮鲸鱼岛、发光森林、晶体河流和具有空间纵深的远景。"
@@ -81,8 +97,13 @@ function buildImagePrompt(payload) {
 }
 
 function buildInteractionPrompt(payload) {
+  if (payload.experience === "star-canvas") {
+    const interactionGuide = payload.interactionImage
+      ? "图像1是俯拍得到的 A4 儿童原画，图像2是孩子在触屏上引导它移动时留下的透明水流轨迹。"
+      : "图像1是俯拍得到的 A4 儿童原画。";
+    return `你是西马棚幼儿园“画醒万物”的多模态原画导演。${interactionGuide}请观察而不是猜测：找出最主要的一个角色或物体，描述它的朝向、真实颜色、笔触和适合它的安全自然动作；如果是鱼可游动和摆尾，如果是鸟可飞翔，如果是花草可生长或轻轻摆动，如果无法确定则使用轻柔漂浮。不要识别人脸、作者身份、情绪、健康或能力，不评价画得好不好，不纠正儿童画。请输出严格 JSON，不要 Markdown：{"title":"不超过18个汉字的儿童友好发现","subject":"不超过20字的主要角色描述","movement":"不超过32字的自然动作与触摸回应","elements":["三个不超过16字、能在环境中真正生成的视觉要素"],"transformation":"不超过50字，说明原画如何在保留笔触的前提下进入完整世界","palette":["三个来自原画的颜色或光感词"]}。elements 必须恰好3项。`;
+  }
   const stationLabels = {
-    "star-canvas": "星尘画室：多人画出的光路会长成道路、鲸群和晶体远景",
     "body-alchemy": "光影变形场：双手展开、合拢和转动会塑造巨型光生命",
     "voice-forest": "声音生命林：点按、长按、滑动和声音能量会长成花、光河与森林生命",
     "living-cinema": "第一部电影：四个共同选择会组成一个连续、安全的儿童电影镜头"
@@ -95,7 +116,7 @@ function buildInteractionPrompt(payload) {
 
 function parseInteractionVision(text, payload = {}) {
   const fallbacks = {
-    "star-canvas": ["光路向远方延伸", "交汇处长出鲸群", "留白变成晶体天空"],
+    "star-canvas": ["原画角色保持真实笔触", "触摸方向变成环境水流", "远景长出适合它的家园"],
     "body-alchemy": ["双手撑开光之翼", "交汇处汇成生命核心", "动作方向形成星门"],
     "voice-forest": ["点按位置长出声音花", "滑动轨迹汇成光河", "能量唤醒天空生命"],
     "living-cinema": ["主角保持连续位置", "选择推动镜头向前", "结局展开完整世界"]
@@ -116,9 +137,11 @@ function parseInteractionVision(text, payload = {}) {
     ? parsed.palette.map((item) => safeText(item, 20)).filter(Boolean).slice(0, 3)
     : [];
   return {
-    title: safeText(parsed.title, 36) || "AI 看见了这一轮光的方向",
+    title: safeText(parsed.title, 36) || (payload.experience === "star-canvas" ? "AI 看见了纸上的小生命" : "AI 看见了这一轮光的方向"),
+    subject: safeText(parsed.subject, 42) || (payload.experience === "star-canvas" ? "一位保留原画笔触的小生命" : ""),
+    movement: safeText(parsed.movement, 72) || (payload.experience === "star-canvas" ? "跟随手指方向自然移动，并让环境轻轻回应。" : ""),
     elements,
-    transformation: safeText(parsed.transformation, 110) || "把真实输入的方向、交汇和节奏变成同一空间里的道路、生命与远景。",
+    transformation: safeText(parsed.transformation, 110) || (payload.experience === "star-canvas" ? "保留原画笔触，让主要角色进入有纵深的完整世界。" : "把真实输入的方向、交汇和节奏变成同一空间里的道路、生命与远景。"),
     palette,
   };
 }
@@ -265,6 +288,7 @@ class DashScopeProvider {
   async image(payload) {
     if (!this.configured || !this.store.configured) throw new ModelServiceError("IMAGE_MODEL_NOT_CONFIGURED", "图像模型或临时存储未配置", 503);
     const inputs = [];
+    if (payload.artworkImage) inputs.push(dataUrlToBuffer(payload.artworkImage));
     if (payload.participantImage) inputs.push(dataUrlToBuffer(payload.participantImage));
     if (payload.sourceImage) inputs.push(dataUrlToBuffer(payload.sourceImage));
     if (payload.interactionImage) inputs.push(dataUrlToBuffer(payload.interactionImage));
