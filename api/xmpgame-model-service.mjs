@@ -263,6 +263,24 @@ class DashScopeProvider {
     return Boolean(this.apiKey);
   }
 
+  async available() {
+    if (!this.configured) return false;
+    try {
+      const response = await fetch(`${this.base}/services/aigc/text-generation/generation`, {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify({
+          model: this.textModels.at(-1),
+          input: { messages: [{ role: "user", content: "只回答：好" }] },
+          parameters: { result_format: "message", max_tokens: 1 }
+        })
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
   headers(extra = {}) {
     return { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json", ...extra };
   }
@@ -438,6 +456,16 @@ class OpenAIProvider {
     return Boolean(this.apiKey);
   }
 
+  async available() {
+    if (!this.configured) return false;
+    try {
+      const response = await fetch(`${this.base}/models`, { headers: this.headers() });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
   headers() {
     return { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" };
   }
@@ -533,6 +561,16 @@ class GeminiProvider {
     return Boolean(this.apiKey);
   }
 
+  async available() {
+    if (!this.configured) return false;
+    try {
+      const response = await fetch(`${this.base}/models`, { headers: { "x-goog-api-key": this.apiKey } });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
   imageParts(payload, fields) {
     return fields
       .map((field) => payload[field])
@@ -610,30 +648,49 @@ export class ModelService {
     this.provider = new DashScopeProvider(env, this.store);
     this.openai = new OpenAIProvider(env);
     this.gemini = new GeminiProvider(env);
+    this.statusCache = null;
     this.jobs = new Map();
     this.cleanupTimer = setInterval(() => this.cleanupExpired(), 60_000);
     this.cleanupTimer.unref?.();
   }
 
-  getStatus() {
-    const text = this.provider.configured;
-    const aliyunMedia = this.provider.configured && this.store.configured;
-    const artworkMedia = this.openai.configured || this.gemini.configured;
+  async getAccessStatus() {
+    if (this.statusCache?.expiresAt > Date.now()) return this.statusCache;
+    const [aliyun, openai, gemini] = await Promise.all([
+      this.provider.available(),
+      this.openai.available(),
+      this.gemini.available()
+    ]);
+    this.statusCache = { aliyun, openai, gemini, expiresAt: Date.now() + 5 * 60_000 };
+    return this.statusCache;
+  }
+
+  async getStatus() {
+    const access = await this.getAccessStatus();
+    const text = access.aliyun;
+    const aliyunMedia = access.aliyun && this.store.configured;
+    const artworkMedia = access.openai || access.gemini || aliyunMedia;
+    const configured = this.provider.configured || this.openai.configured || this.gemini.configured;
     const media = aliyunMedia || artworkMedia;
     return {
-      status: text || artworkMedia ? "ready" : "not_configured",
-      provider: artworkMedia && text ? "multi-provider" : artworkMedia ? "openai-or-gemini" : text ? "aliyun-model-studio" : null,
+      status: artworkMedia ? "ready" : configured ? "credential_blocked" : "not_configured",
+      provider: artworkMedia && text ? "multi-provider" : access.openai ? "openai" : access.gemini ? "google-gemini" : text ? "aliyun-model-studio" : null,
       capabilities: { text, vision: media, image: media, video: aliyunMedia },
       models: {
         text: text ? this.provider.textModels[0] : null,
-        vision: this.openai.configured ? this.openai.visionModel : this.gemini.configured ? this.gemini.visionModel : aliyunMedia ? this.provider.visionModel : null,
-        image: this.openai.configured ? this.openai.imageModel : this.gemini.configured ? this.gemini.imageModel : aliyunMedia ? this.provider.imageModel : null,
+        vision: access.openai ? this.openai.visionModel : access.gemini ? this.gemini.visionModel : aliyunMedia ? this.provider.visionModel : null,
+        image: access.openai ? this.openai.imageModel : access.gemini ? this.gemini.imageModel : aliyunMedia ? this.provider.imageModel : null,
         video: aliyunMedia ? this.provider.videoModel : null
       },
       routes: artworkMedia ? { "star-canvas": {
-        vision: unique([this.openai.configured && this.openai.visionModel, this.gemini.configured && this.gemini.visionModel, aliyunMedia && this.provider.visionModel]),
-        image: unique([this.openai.configured && this.openai.imageModel, this.gemini.configured && this.gemini.imageModel, aliyunMedia && this.provider.imageModel])
+        vision: unique([access.openai && this.openai.visionModel, access.gemini && this.gemini.visionModel, aliyunMedia && this.provider.visionModel]),
+        image: unique([access.openai && this.openai.imageModel, access.gemini && this.gemini.imageModel, aliyunMedia && this.provider.imageModel])
       } } : {},
+      configuredProviders: unique([
+        this.openai.configured && "openai",
+        this.gemini.configured && "google-gemini",
+        this.provider.configured && "aliyun-model-studio"
+      ]),
       privacy: {
         browserKey: false,
         temporaryPrivateObject: aliyunMedia,

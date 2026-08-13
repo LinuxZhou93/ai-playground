@@ -95,7 +95,7 @@ export default async function handler(request, response) {
   try {
     const route = String(request.query?.route || "");
     if (request.method === "GET" && route === "status") {
-      json(response, 200, service.getStatus());
+      json(response, 200, await service.getStatus());
       return;
     }
     if (request.method === "POST" && route === "tasks") {
