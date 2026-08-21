@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { ModelService, __test } from "../api/model-service.mjs";
 
 const recipes = [
-  ["artwork-awakening", "生命苏醒", "让主要角色离开白纸并进入与它匹配的自然栖息地"],
-  ["artwork-sculpture", "立体奇物", "把原画中的物体变成具有真实材质和尺度的实体造物"],
-  ["artwork-world", "奇境生长", "沿原画空间关系向纸张边缘之外连续扩展完整世界"],
-  ["artwork-cinema", "电影画面", "把原画事件重构成具有戏剧光影和清晰叙事焦点的电影关键帧"],
+  ["artwork-awakening", "生命苏醒", "让主要角色离开白纸并进入与它匹配的卡通动画栖息地"],
+  ["artwork-sculpture", "立体奇物", "把原画中的物体变成具有卡通软陶质感和清晰尺度的动画造物"],
+  ["artwork-world", "奇境生长", "沿原画空间关系向纸张边缘之外连续扩展童话绘本世界"],
+  ["artwork-cinema", "电影画面", "把原画事件重构成具有柔和戏剧光影和清晰叙事焦点的动画电影关键帧"],
 ];
 
 test("all four image prompts treat the input as artwork, preserve strokes and forbid portrait generation", () => {
@@ -22,6 +22,9 @@ test("all four image prompts treat the input as artwork, preserve strokes and fo
     assert.match(prompt, /不规则轮廓/);
     assert.match(prompt, /不要替孩子纠正/);
     assert.match(prompt, /不得出现真实儿童或成人肖像/);
+    assert.match(prompt, /高品质儿童动画或现代童书绘本/);
+    assert.match(prompt, /禁止照片级写实/);
+    assert.match(prompt, /toon shading/);
     assert.match(prompt, /16:9/);
   });
 });
@@ -32,10 +35,10 @@ test("the four fixed generation recipes produce materially distinct prompts", ()
     recipe: { label, direction },
   }));
   assert.equal(new Set(prompts).size, 4);
-  assert.match(prompts[0], /自然栖息地/);
-  assert.match(prompts[1], /真实材质/);
-  assert.match(prompts[2], /连续扩展完整世界/);
-  assert.match(prompts[3], /电影关键帧/);
+  assert.match(prompts[0], /卡通动画栖息地/);
+  assert.match(prompts[1], /卡通软陶/);
+  assert.match(prompts[2], /童话绘本世界/);
+  assert.match(prompts[3], /动画电影关键帧/);
 });
 
 test("vision contract reads one A4 artwork and never asks for voice, portrait or choices", () => {

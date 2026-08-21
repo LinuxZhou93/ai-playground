@@ -59,11 +59,13 @@ function buildImagePrompt(payload) {
     ? `多模态视觉模型已经观察到：${safeText(JSON.stringify(payload.modelVision), 620)}。把这些观察落实到主体、构图、材质、动作与光线中，不要只做文字联想。`
     : "";
   const recipeRule = safeText(recipe.direction, 520) || "保留原画，建立完整的沉浸式世界。";
-  return `图像1是孩子放在俯拍台下的真实 A4 原画，不是人物照片。当前固定生成配方是“${safeText(recipe.label, 40)}”：${recipeRule}${visionRule}
+  return `图像1是孩子放在俯拍台下的真实 A4 原画，不是人物照片。当前固定生成配方是“${safeText(recipe.label, 40)}”。请在下方统一卡通美术总则内执行这个配方：${recipeRule}${visionRule}
 
 绝对保真规则：忠实保持原画中关键主体的不规则轮廓、线条粗细、儿童水彩/蜡笔/马克笔笔触、颜色关系、比例、朝向和可爱的不完美；不要替孩子纠正透视、改造角色、磨平笔触或套用统一卡通模板。去除白纸、桌面、灯光反射、阴影、扫描框和相机背景。不要凭空复制主要角色，主要角色只出现一次。
 
-成品质感：16:9 横向、电影级空间调度、真实前中后景、同方向环境光、体积光、材质反光、空气或水体颗粒和细致遮挡；达到世界级沉浸式数字艺术展览与高端动画概念设计水准，但环境必须从这幅原画的颜色、构图与想象自然生长。禁止简笔画风、纸艺拼贴、扁平插画、廉价游戏 UI、圆形头像、贴纸、相框、文字和品牌。画面不得出现真实儿童或成人肖像，不做人脸生成。3-6岁儿童友好，喜悦、惊奇、无恐怖和危险元素，允许平台保留规范 AI 水印。`;
+统一卡通美术总则：最终成品必须明显属于高品质儿童动画或现代童书绘本，而不是照片。让孩子原画的真实笔触继续留在主角表面，同时把主角放进圆润、明亮、柔和、富有故事感的卡通世界。优先使用清晰色块、柔和描边、toon shading、卡通体积光、可爱的动作、温暖景深和适度夸张的造型；可采用“高级 3D 动画 + 水彩绘本纹理”的融合方式，但不要把原画主角重画成标准商业 IP。
+
+成品质感：16:9 横向、高品质动画电影构图、清晰的卡通前中后景、同方向柔和环境光、童话感空气或水体颗粒和细致遮挡；达到世界级儿童动画、绘本与沉浸式数字艺术展览水准，但环境必须从这幅原画的颜色、构图与想象自然生长。禁止照片级写实、超写实摄影、真人电影剧照、真实皮肤毛孔、真实人类面孔、写实动物皮毛、写实商品渲染、阴暗恐怖、成人审美的冷峻质感。也禁止把成品退化成单薄简笔画、廉价扁平图标、纸艺拼贴、游戏 UI、圆形头像、贴纸、相框、文字或品牌。画面不得出现真实儿童或成人肖像，不做人脸生成。3-6岁儿童友好，喜悦、惊奇、安全、无恐怖和危险元素，允许平台保留规范 AI 水印。`;
 }
 
 function buildInteractionPrompt(payload) {
@@ -81,9 +83,9 @@ function buildInteractionPrompt(payload) {
 function parseInteractionVision(text, payload = {}) {
   const fallbacks = {
     "artwork-awakening": ["原画角色保持真实笔触", "动作符合角色类型", "环境长出适合它的家园"],
-    "artwork-sculpture": ["完整保留奇物轮廓", "原画配色转成真实材质", "灯光呈现立体尺度"],
+    "artwork-sculpture": ["完整保留奇物轮廓", "原画配色变成卡通玩具材质", "柔和动画光呈现立体尺度"],
     "artwork-world": ["原画空间关系保持不变", "道路和边缘连续生长", "远景形成完整地形天气"],
-    "artwork-cinema": ["主要角色与道具保持一致", "事件形成清晰叙事焦点", "镜头光影具有电影张力"],
+    "artwork-cinema": ["主要角色与道具保持一致", "事件形成清晰叙事焦点", "动画镜头具有电影张力"],
     "star-canvas": ["原画角色保持真实笔触", "动作符合角色类型", "环境长出适合它的家园"],
   };
   let parsed = {};
@@ -106,7 +108,7 @@ function parseInteractionVision(text, payload = {}) {
     subject: safeText(parsed.subject, 48) || "保留真实儿童笔触的关键画面",
     movement: safeText(parsed.movement, 72) || "沿原画正在发生的事件自然展开。",
     elements,
-    transformation: safeText(parsed.transformation, 130) || safeText(payload.recipe?.direction, 130) || "保留原画笔触，让画面进入有纵深的完整世界。",
+    transformation: safeText(parsed.transformation, 130) || safeText(payload.recipe?.direction, 130) || "保留原画笔触，让画面进入有纵深的卡通动画或绘本世界。",
     palette,
   };
 }

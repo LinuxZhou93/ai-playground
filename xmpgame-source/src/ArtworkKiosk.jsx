@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, ImagePlus, RefreshCw, ScanLine, Sparkles, WifiOff } from "lucide-react";
+import { Camera, CircleCheckBig, ImagePlus, Pointer, RefreshCw, Sparkles, WandSparkles, WifiOff } from "lucide-react";
 import { assetPath } from "./stations.js";
 import { assetToDataUrl, createModelTask, fileToDataUrl, getModelStatus } from "./model-client.js";
 
@@ -33,6 +33,7 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const startedRef = useRef(false);
+  const previewMode = new URLSearchParams(window.location.search).get("preview") === "1";
   const [cameraState, setCameraState] = useState("starting");
   const [notice, setNotice] = useState("");
 
@@ -46,6 +47,10 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
     setNotice("");
     setCameraState("starting");
     try {
+      if (previewMode) {
+        setCameraState("live");
+        return;
+      }
       if (!navigator.mediaDevices?.getUserMedia) throw new Error("CAMERA_UNSUPPORTED");
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -65,7 +70,7 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
       setCameraState("blocked");
       setNotice("俯拍摄像头没有连接，请老师检查摄像头权限后重试。 ");
     }
-  }, [stopCamera]);
+  }, [previewMode, stopCamera]);
 
   useEffect(() => {
     if (startedRef.current) return undefined;
@@ -74,7 +79,11 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
     return stopCamera;
   }, [startCamera, stopCamera]);
 
-  const capture = () => {
+  const capture = async () => {
+    if (previewMode) {
+      onArtwork(await assetToDataUrl(assetPath("assets/stations/demo-a4-fish-artwork.png")));
+      return;
+    }
     const artwork = captureA4Frame(videoRef.current);
     if (!artwork) return;
     stopCamera();
@@ -94,65 +103,70 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
   };
 
   return (
-    <main className="paper-kiosk paper-kiosk--camera" data-testid={`station-${station.id}-camera`}>
-      <div className="paper-kiosk__ambient" style={{ backgroundImage: `url("${station.background}")` }} aria-hidden="true" />
-      <header className="paper-kiosk__brand">
+    <main className="kid-kiosk kid-kiosk--camera" data-testid={`station-${station.id}-camera`}>
+      <div className="kid-kiosk__background" style={{ backgroundImage: `url("${assetPath("assets/cartoon/cartoon-ocean-background.webp")}")` }} aria-hidden="true" />
+      <header className="kid-kiosk__brand">
         <span>西马棚幼儿园</span>
-        <i />
         <strong>{station.machine}</strong>
       </header>
 
-      <section className="paper-camera">
-        <div className="paper-camera__topline">
-          <span><Camera aria-hidden="true" />俯拍画作</span>
-          <em className={cameraState === "live" ? "is-ready" : ""}>{cameraState === "live" ? "画面已就绪" : "正在连接"}</em>
+      <section className="kid-camera">
+        <div className="kid-camera__topline">
+          <span><Camera aria-hidden="true" />画纸照相机</span>
+          <em className={cameraState === "live" ? "is-ready" : ""}>
+            {cameraState === "live" && <CircleCheckBig aria-hidden="true" />}
+            {cameraState === "live" ? "准备好啦" : "正在连接"}
+          </em>
         </div>
-        <div className="paper-camera__viewport">
-          <video ref={videoRef} muted playsInline aria-label="A4 画纸俯拍画面" />
-          <div className="paper-camera__a4" aria-hidden="true"><span>A4</span></div>
-          <div className="paper-camera__beam" aria-hidden="true" />
+        <div className="kid-camera__frame">
+          {previewMode
+            ? <img src={assetPath("assets/stations/demo-a4-fish-artwork.png")} alt="A4 水彩鱼测试画作" />
+            : <video ref={videoRef} muted playsInline aria-label="A4 画纸俯拍画面" />}
+          <div className="kid-camera__guide" aria-hidden="true"><span>把画纸放这里</span></div>
           {cameraState !== "live" && (
-            <div className="paper-camera__waiting">
-              {cameraState === "blocked" ? <WifiOff aria-hidden="true" /> : <ScanLine aria-hidden="true" />}
+            <div className="kid-camera__waiting">
+              {cameraState === "blocked" ? <WifiOff aria-hidden="true" /> : <Camera aria-hidden="true" />}
               <span>{cameraState === "blocked" ? "镜头未连接" : "正在打开俯拍镜头"}</span>
             </div>
           )}
         </div>
-        <p>把整张画纸平放在发光框内</p>
+        <p>把整张画纸放进彩虹框</p>
       </section>
 
-      <section className="paper-kiosk__copy">
-        <p className="paper-kiosk__recipe"><Sparkles aria-hidden="true" />固定 AI 配方 · {station.recipe.label}</p>
-        <h1>{station.title}</h1>
-        <p>{station.subtitle}</p>
-        <div className="paper-kiosk__steps" aria-label="操作说明">
-          <span><b>1</b>放好画纸</span>
-          <i aria-hidden="true" />
-          <span><b>2</b>轻触一次</span>
+      <section className="kid-kiosk__copy">
+        <img className="kid-kiosk__mascot" src={station.mascot} alt="" aria-hidden="true" />
+        <p className="kid-kiosk__recipe"><WandSparkles aria-hidden="true" />{station.shortName} · {station.recipe.label}</p>
+        <h1 aria-label={station.kidTitle}>
+          <span>{station.kidTitleLead}</span>
+          <strong>{station.kidTitleAccent}</strong>
+        </h1>
+        <div className={`kid-kiosk__ready${cameraState === "live" ? " is-ready" : ""}`}>
+          <CircleCheckBig aria-hidden="true" />
+          <span>{cameraState === "live" ? "画纸放好，就可以开始啦" : "等镜头醒来一下"}</span>
         </div>
 
-        {notice && <div className="paper-kiosk__notice" role="status">{notice}</div>}
+        {notice && <div className="kid-kiosk__notice" role="status">{notice}</div>}
 
         {cameraState === "live" ? (
-          <button className="paper-primary" type="button" onClick={capture} data-kiosk-primary data-testid="generate-artwork">
-            <ScanLine aria-hidden="true" />
-            <span><b>{station.action}</b><small>自动拍摄并生成，不需要再选择</small></span>
+          <button className="kid-primary" type="button" onClick={capture} data-kiosk-primary data-testid="generate-artwork">
+            <Pointer aria-hidden="true" />
+            <span><b>{station.kidAction}</b><small>按一下就好，剩下的交给魔法</small></span>
           </button>
         ) : (
-          <button className="paper-primary" type="button" onClick={startCamera} data-kiosk-primary>
+          <button className="kid-primary" type="button" onClick={startCamera} data-kiosk-primary>
             <RefreshCw aria-hidden="true" />
-            <span><b>重新连接俯拍镜头</b><small>请确认摄像头没有被其他程序占用</small></span>
+            <span><b>请老师帮我连接镜头</b><small>轻触这里，再试一次</small></span>
           </button>
         )}
 
         {!deviceMode && (
-          <div className="paper-kiosk__test-tools" aria-label="教师测试工具">
+          <div className="kid-kiosk__test-tools" aria-label="教师测试工具">
             <label><ImagePlus aria-hidden="true" />选择测试画作<input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseFile} /></label>
             <button type="button" onClick={useDemo}><Sparkles aria-hidden="true" />使用水彩鱼示例</button>
           </div>
         )}
 
-        <p className="paper-kiosk__privacy">镜头固定朝下，只拍画纸，不拍孩子；不使用麦克风。</p>
+        <p className="kid-kiosk__privacy">只拍画纸，不拍小朋友</p>
       </section>
     </main>
   );
@@ -160,23 +174,23 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
 
 function CreatingScreen({ station, artwork, stage, vision }) {
   const stageText = stage === "vision"
-    ? "正在读懂这幅画"
+    ? "我在认真看你的画…"
     : stage === "image"
-      ? `正在执行“${station.recipe.label}”`
-      : "正在连接 AI 创作引擎";
+      ? "魔法正在发生…"
+      : "叫醒魔法伙伴…";
   return (
-    <main className="paper-kiosk paper-kiosk--creating" data-testid={`station-${station.id}-creating`}>
-      <div className="paper-kiosk__ambient" style={{ backgroundImage: `url("${station.background}")` }} aria-hidden="true" />
-      <div className="creating-artwork" aria-hidden="true">
-        <span className="creating-artwork__halo" />
+    <main className="kid-kiosk kid-kiosk--creating" data-testid={`station-${station.id}-creating`}>
+      <div className="kid-kiosk__background" style={{ backgroundImage: `url("${assetPath("assets/cartoon/cartoon-ocean-background.webp")}")` }} aria-hidden="true" />
+      <header className="kid-kiosk__brand"><span>西马棚幼儿园</span><strong>{station.machine}</strong></header>
+      <div className="kid-creating__artwork" aria-hidden="true">
         <img src={artwork} alt="" />
-        <span className="creating-artwork__beam" />
       </div>
-      <section className="creating-message" aria-live="polite">
-        <p>{station.machine} · {station.recipe.label}</p>
+      <img className="kid-creating__mascot" src={station.mascot} alt="" aria-hidden="true" />
+      <section className="kid-creating__message" aria-live="polite">
+        <p><WandSparkles aria-hidden="true" />{station.recipe.label}</p>
         <h1>{stageText}</h1>
-        <div className="creating-message__progress"><i /><i /><i /></div>
-        <span>{vision?.title || station.recipe.summary}</span>
+        <span>{vision?.title || "每一根线条都很重要，我会好好保留它"}</span>
+        <div className="kid-creating__progress" aria-hidden="true"><i /></div>
       </section>
     </main>
   );
@@ -186,19 +200,22 @@ function ResultScreen({ station, result, artwork, onNext, onRetry }) {
   const image = result?.result?.imageDataUrl || artwork;
   const failed = result?.aiGenerated === false;
   return (
-    <main className={`paper-result${failed ? " is-fallback" : ""}`} data-testid={`station-${station.id}-result`}>
-      <img className="paper-result__image" src={image} alt={failed ? "等待重新生成的儿童原画" : "由儿童原画生成的 AI 作品"} />
-      <div className="paper-result__wash" aria-hidden="true" />
-      <header className="paper-result__brand"><span>西马棚幼儿园</span><i />{station.machine}</header>
-      <section className="paper-result__copy">
-        <p>{failed ? "AI 创作暂未完成" : `AI 作品 · ${station.recipe.label}`}</p>
-        <h1>{failed ? "网络恢复后，再试一次" : station.resultTitle}</h1>
-        <span>{failed ? "原画没有丢失，可以直接重新生成。" : `基于原画生成 · ${result?.model || "图像模型"}`}</span>
+    <main className={`kid-result${failed ? " is-fallback" : ""}`} data-testid={`station-${station.id}-result`}>
+      <div className="kid-kiosk__background" style={{ backgroundImage: `url("${assetPath("assets/cartoon/cartoon-ocean-background.webp")}")` }} aria-hidden="true" />
+      <header className="kid-kiosk__brand"><span>西马棚幼儿园</span><strong>{station.machine}</strong></header>
+      <section className="kid-result__stage">
+        <img className="kid-result__image" src={image} alt={failed ? "等待重新生成的儿童原画" : "由儿童原画生成的 AI 作品"} />
       </section>
-      <div className="paper-result__actions">
-        {failed && <button type="button" className="paper-result__retry" onClick={onRetry}><RefreshCw aria-hidden="true" />重新生成</button>}
-        <button type="button" className="paper-result__next" onClick={onNext} data-kiosk-primary>
-          <Camera aria-hidden="true" />下一幅画
+      <img className="kid-result__mascot" src={station.mascot} alt="" aria-hidden="true" />
+      <section className="kid-result__copy">
+        <p><Sparkles aria-hidden="true" />{failed ? "魔法打了个小喷嚏" : `魔法成功 · ${station.recipe.label}`}</p>
+        <h1>{failed ? "我们再试一次吧！" : station.resultTitle}</h1>
+        <span>{failed ? "你的原画好好地在这里，没有丢。" : "这是从你的原画里长出来的新世界！"}</span>
+      </section>
+      <div className="kid-result__actions">
+        {failed && <button type="button" className="kid-result__retry" onClick={onRetry} data-testid="retry-generation"><RefreshCw aria-hidden="true" />再试一次</button>}
+        <button type="button" className="kid-result__next" onClick={onNext} data-kiosk-primary data-testid="next-artwork">
+          <Camera aria-hidden="true" />下一张小画
         </button>
       </div>
     </main>
