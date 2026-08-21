@@ -42,6 +42,22 @@ test("onsite kiosk launcher accepts any of the four fixed station routes", () =>
   assert.match(installer, /station\/\$Station\?kiosk=1/);
 });
 
+test("the USB Python installer creates a guarded Windows logon kiosk for all four machines", () => {
+  const launcher = readFileSync(new URL("../public/setup/xmpgame_kiosk.py", import.meta.url), "utf8");
+  const guide = readFileSync(new URL("../public/setup/现场部署说明.txt", import.meta.url), "utf8");
+  assert.match(launcher, /TASK_NAME = "XMPGame Kindergarten Kiosk"/);
+  assert.match(launcher, /"\/SC", "ONLOGON"/);
+  assert.match(launcher, /"\/DELAY", "0000:15"/);
+  assert.match(launcher, /"--kiosk"/);
+  assert.match(launcher, /"--edge-kiosk-type=fullscreen"/);
+  assert.match(launcher, /"--use-fake-ui-for-media-stream"/);
+  assert.doesNotMatch(launcher, /--use-fake-device-for-media-stream/);
+  assert.match(launcher, /process\.wait\(\)/);
+  assert.match(guide, /install-station-1\.cmd/);
+  assert.match(guide, /install-station-4\.cmd/);
+  assert.match(guide, /重启电脑/);
+});
+
 test("station routes resolve by number, path, query-like token and new slug", () => {
   assert.equal(resolveStation("2").id, 2);
   assert.equal(resolveStation("station/3").id, 3);
