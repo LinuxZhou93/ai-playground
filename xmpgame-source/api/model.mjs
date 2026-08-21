@@ -1,4 +1,4 @@
-import { ModelService, ModelServiceError } from "./xmpgame-model-service.mjs";
+import { ModelService, ModelServiceError } from "./model-service.mjs";
 
 const service = new ModelService(process.env);
 const windows = new Map();
