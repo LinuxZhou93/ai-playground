@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArtworkKiosk } from "./ArtworkKiosk.jsx";
+import { FullscreenButton } from "./FullscreenButton.jsx";
 import { PortalScreen } from "./PortalScreen.jsx";
 import { resolveExperienceRoute } from "./stations.js";
 import { getModelStatus } from "./model-client.js";
@@ -104,9 +105,12 @@ function StationExperience({ station }) {
     <div
       className={`app-shell station-shell station-shell--${station.id}${deviceMode ? " is-device-mode" : ""}`}
       style={{ "--station-accent": station.accent, "--station-accent-rgb": station.accentRgb }}
-      onPointerDownCapture={requestFullscreen}
+      onPointerDownCapture={(event) => {
+        if (!event.target.closest?.("[data-fullscreen-control]")) requestFullscreen();
+      }}
       data-device-mode={deviceMode ? "true" : "false"}
     >
+      <FullscreenButton className="fullscreen-button--station" />
       <ArtworkKiosk station={station} health={health} deviceMode={deviceMode} />
     </div>
   );

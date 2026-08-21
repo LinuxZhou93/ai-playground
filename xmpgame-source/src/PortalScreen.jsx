@@ -1,63 +1,54 @@
-import { ArrowUpRight, Box, Clapperboard, Hand, Sparkles, Trees } from "lucide-react";
-import { appBase, stations } from "./stations.js";
-
-const worldIcons = {
-  1: Sparkles,
-  2: Box,
-  3: Trees,
-  4: Clapperboard,
-};
+import { ArrowUpRight, Hand, WandSparkles } from "lucide-react";
+import { FullscreenButton } from "./FullscreenButton.jsx";
+import { appBase, assetPath, stations } from "./stations.js";
 
 export function PortalScreen() {
   return (
-    <main className="world-portal" data-testid="world-portal">
-      <div className="world-portal__atmosphere" aria-hidden="true" />
-      <header className="world-portal__header">
-        <div className="world-portal__brand">
+    <main className="kid-portal" data-testid="world-portal">
+      <div
+        className="kid-portal__background"
+        style={{ backgroundImage: `url("${assetPath("assets/cartoon/cartoon-ocean-background.webp")}")` }}
+        aria-hidden="true"
+      />
+
+      <header className="kid-portal__topbar">
+        <div className="kid-portal__brand">
           <span>西马棚幼儿园</span>
-          <i aria-hidden="true" />
-          <span>AI 沉浸式互动世界</span>
+          <strong>AI 绘画创作站</strong>
         </div>
-        <div className="world-portal__title">
-          <p>四台俯拍一体机 · 四种固定 AI 配方 · 四个独立项目</p>
-          <h1>放下一幅画，<em>看见四种可能</em></h1>
-        </div>
-        <div className="world-portal__touch-note">
-          <Hand aria-hidden="true" />
-          <span>轻触任意世界<br /><small>立即进入</small></span>
-        </div>
+        <FullscreenButton className="fullscreen-button--portal" />
       </header>
 
-      <nav className="portal-worlds" aria-label="四个互动项目入口">
-        {stations.map((station) => {
-          const Icon = worldIcons[station.id];
-          return (
+      <section className="kid-portal__hero">
+        <p><WandSparkles aria-hidden="true" />四台触屏一体机 · 四种画画魔法</p>
+        <h1><span>选一个魔法，</span><strong>让你的画活起来！</strong></h1>
+        <div className="kid-portal__touch-note"><Hand aria-hidden="true" />轻轻点一下，就能进去玩</div>
+      </section>
+
+      <nav className="kid-portal__worlds" aria-label="四个互动项目入口">
+        {stations.map((station) => (
             <a
               key={station.id}
-              className={`portal-world portal-world--${station.id}`}
+              className={`kid-world-card kid-world-card--${station.id}`}
               href={`${appBase}station/${station.id}`}
+              style={{ "--card-accent": station.accent, "--card-accent-rgb": station.accentRgb }}
               data-testid={`portal-station-${station.id}`}
             >
-              <span className="portal-world__image" style={{ backgroundImage: `url("${station.background}")` }} aria-hidden="true" />
-              <span className="portal-world__shade" aria-hidden="true" />
-              <span className="portal-world__index">{String(station.id).padStart(2, "0")}</span>
-              <span className="portal-world__content">
-                <Icon aria-hidden="true" />
-                <span>
-                  <small>俯拍画作 × {station.recipe.label}</small>
-                  <strong>{station.shortName}</strong>
-                  <b>{station.recipe.summary}</b>
-                </span>
+              <span className="kid-world-card__number">{String(station.id).padStart(2, "0")}</span>
+              <img className="kid-world-card__mascot" src={station.mascot} alt="" aria-hidden="true" />
+              <span className="kid-world-card__copy">
+                <small>{station.recipe.label}</small>
+                <strong>{station.shortName}</strong>
+                <b>{station.kidTitle}</b>
               </span>
-              <span className="portal-world__enter">进入世界 <ArrowUpRight aria-hidden="true" /></span>
+              <span className="kid-world-card__enter">进去玩 <ArrowUpRight aria-hidden="true" /></span>
             </a>
-          );
-        })}
+        ))}
       </nav>
 
-      <footer className="world-portal__footer">
-        <span>万物有灵</span>
-        <span>四台设备操作完全相同：放好画纸，轻触一次，直接生成</span>
+      <footer className="kid-portal__footer">
+        <span>只拍画纸，不拍小朋友</span>
+        <b>放好画纸 · 轻触一次 · 直接生成</b>
       </footer>
     </main>
   );
