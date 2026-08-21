@@ -48,84 +48,45 @@ function responseError(body, fallback = "MODEL_REQUEST_FAILED") {
   };
 }
 
+function isArtworkExperience(experience) {
+  return String(experience || "").startsWith("artwork-") || experience === "star-canvas";
+}
+
 function buildImagePrompt(payload) {
-  if (payload.experience === "star-canvas") {
-    const hasWorld = Boolean(payload.sourceImage);
-    const hasInteraction = Boolean(payload.interactionImage);
-    const worldRule = hasWorld
-      ? "图像2是当前数字世界，只把它作为空间、景深、光线和环境材质参考；"
-      : "请为它建立一个具有真实空间纵深的数字自然世界；";
-    const interactionRule = hasInteraction
-      ? `图像${hasWorld ? 3 : 2}是孩子在一体机上引导原画移动时留下的透明触摸水流图。根据它的位置、方向和疏密安排水流、气泡、植物摆动和环境回应。匿名互动统计：${safeText(JSON.stringify(payload.interactionSummary || {}), 220)}。`
-      : "";
-    const visionRule = payload.modelVision
-      ? `视觉模型对原画的理解是：${safeText(JSON.stringify(payload.modelVision), 520)}。用这份理解决定角色的动作、栖息地和环境反馈，但不能替孩子纠正或重画角色。`
-      : "";
-    const remixRule = payload.remixDirection
-      ? `这是同一幅原画的连续二次创作，保持角色、世界构图与原画笔触，只沿这个方向继续生长：${safeText(payload.remixDirection, 360)}。`
-      : "";
-    return `图像1是孩子放在俯拍台上的真实 A4 原画，不是人物照片。找出画面中最主要的一个角色，让它在输出中自然离开纸张并且只出现一次。必须忠实保持这个角色原来的不规则轮廓、线条粗细、儿童水彩或蜡笔笔触、颜色、比例、朝向和可爱的不完美；不要美术校正，不要改成统一卡通角色，不要把 A4 白纸、桌面、阴影或扫描框带进成品。${worldRule}${interactionRule}${visionRule}${remixRule}让角色真正生活在完整环境里：有前景遮挡、中景互动、远景层次、同方向的环境光、材质反光、体积光与空气或水体颗粒；环境可以达到世界级沉浸式数字艺术展览质感，但必须由原画角色的色彩和想象自然长出来，不能喧宾夺主。画面中不出现真实儿童肖像，不出现头像、贴纸、相框、纸张边框、廉价游戏 UI、额外文字、品牌或恐怖危险元素。3-6岁儿童友好，喜悦、惊奇，16:9 横向构图，允许平台保留规范 AI 水印。`;
+  if (!isArtworkExperience(payload.experience)) {
+    throw new ModelServiceError("ARTWORK_EXPERIENCE_REQUIRED", "当前装置只接受俯拍儿童画作", 400);
   }
-  const installationDirections = {
-    "body-alchemy": "把双手拉伸、合拢与转动的能量扩展成围绕孩子生长的巨型光生命与对称极光，不遮挡孩子的脸与身体动作。",
-    "voice-forest": `把点按、长按和滑动的节奏扩展成会歌唱的生物荧光森林、声音花、光河与细小生命粒子。${payload.soundNarration ? `森林回应的含义是：${safeText(payload.soundNarration, 160)}。` : ""}`,
-    "living-cinema": "把孩子融入可继续拍成电影的奇幻星夜舞台：漂浮鲸鱼岛、发光森林、晶体河流和具有空间纵深的远景。"
-  };
-  if (installationDirections[payload.experience]) {
-    const hasParticipant = Boolean(payload.participantImage);
-    const identity = hasParticipant
-      ? "图像1是家长已授权的本轮小主角照片。必须保持同一个孩子的身份、年龄、五官、肤色、发型和服装准确可辨，保留自然儿童比例；"
-      : "主角使用非写实、不可识别身份的儿童形象；";
-    const worldIndex = hasParticipant ? 2 : 1;
-    const interactionIndex = hasParticipant ? 3 : 2;
-    const interactionRule = payload.interactionImage
-      ? `图像${interactionIndex}是儿童本轮真实触屏轨迹，透明区域不是内容；必须读取轨迹的位置、方向、交汇和密度，把这些具体特征转译成道路、生命轮廓、声音花或光河，而不是生成一张与轨迹无关的通用画面。匿名手势统计：${safeText(JSON.stringify(payload.interactionSummary || {}), 220)}。`
-      : "";
-    const visionRule = payload.modelVision
-      ? `多模态视觉模型已经结合当前世界和真实轨迹得到本轮创作理解：${safeText(JSON.stringify(payload.modelVision), 420)}。请把这份理解落实到可见构图、尺度、材质和光线中，不要只做文字层面的联想。`
-      : "";
-    const remixRule = payload.remixDirection
-      ? `这是基于上一版完整作品的 image-to-image 二次创作。必须保留同一个孩子、上一版的世界构图和真实触摸轨迹，只沿这个新方向继续生长：${safeText(payload.remixDirection, 320)}。不要退回通用初始画面。`
-      : "";
-    return `${identity}图像${worldIndex}是装置当前的完整世界，请保持其主构图、视角和蓝紫色光感。${interactionRule}${visionRule}${remixRule}${installationDirections[payload.experience]}孩子必须以完整身体自然存在于空间里，与地面接触并受到同一方向的环境光、反光、景深与粒子遮挡；绝不能把脸做成圆形头像、贴纸、相框或悬浮照片。世界级沉浸式自然幻想剧场，电影级真实光影，深海军蓝、晶蓝、少量紫金，体积光，细密粒子，丰富景深，高级博物馆数字艺术质感，画面精致而克制，不使用简笔画、纸艺、卡通描边、扁平插画或廉价游戏 UI。3-6岁儿童友好，喜悦、惊奇、无恐怖元素、无危险动作、无品牌、无额外文字，允许平台保留规范 AI 水印。16:9 横向构图。`;
-  }
-  const themeLabels = { forest: "晨光森林", ocean: "温柔海洋", sky: "云朵天空", night: "星夜博物馆" };
-  const theme = themeLabels[payload.theme] || "成都青羊区的魔法自然课堂";
-  const hasParticipant = Boolean(payload.participantImage);
-  const participantRule = hasParticipant
-    ? "图像1是已获授权的本轮小主角照片，请保持人物身份、年龄、五官、发型和服装可辨识且自然；"
-    : "不要生成可识别的真实儿童肖像；";
-  const common = `${participantRule}最后一张图是孩子们的本地互动作品，保留其主要构图与色彩节奏。输出一张世界级幼儿绘本纪念画：温暖立体纸艺、手工纤维纹理、柔和晨光、清晰主体、丰富但不杂乱、儿童安全、快乐、无恐怖元素、无品牌、无额外文字。右下角允许平台加入规范的 AI 生成标识。`;
-  if (payload.experience === "shadow") {
-    return `${common} 把匿名身体剪影化作“影子精灵岛”的守护者，加入发光萤火虫、友谊树和纸雕岛屿；背景主题为${theme}。真实照片只作为主角身份参考，不要复原输入中的摄像头背景。`;
-  }
-  return `${common} 把绿色线条、叶片与种子扩展成${theme}中的完整故事场景，让小主角从大家共同画出的道路中走进画面，加入熊猫、银杏叶和发光种子。`;
+  const recipe = payload.recipe || {};
+  const visionRule = payload.modelVision
+    ? `多模态视觉模型已经观察到：${safeText(JSON.stringify(payload.modelVision), 620)}。把这些观察落实到主体、构图、材质、动作与光线中，不要只做文字联想。`
+    : "";
+  const recipeRule = safeText(recipe.direction, 520) || "保留原画，建立完整的沉浸式世界。";
+  return `图像1是孩子放在俯拍台下的真实 A4 原画，不是人物照片。当前固定生成配方是“${safeText(recipe.label, 40)}”：${recipeRule}${visionRule}
+
+绝对保真规则：忠实保持原画中关键主体的不规则轮廓、线条粗细、儿童水彩/蜡笔/马克笔笔触、颜色关系、比例、朝向和可爱的不完美；不要替孩子纠正透视、改造角色、磨平笔触或套用统一卡通模板。去除白纸、桌面、灯光反射、阴影、扫描框和相机背景。不要凭空复制主要角色，主要角色只出现一次。
+
+成品质感：16:9 横向、电影级空间调度、真实前中后景、同方向环境光、体积光、材质反光、空气或水体颗粒和细致遮挡；达到世界级沉浸式数字艺术展览与高端动画概念设计水准，但环境必须从这幅原画的颜色、构图与想象自然生长。禁止简笔画风、纸艺拼贴、扁平插画、廉价游戏 UI、圆形头像、贴纸、相框、文字和品牌。画面不得出现真实儿童或成人肖像，不做人脸生成。3-6岁儿童友好，喜悦、惊奇、无恐怖和危险元素，允许平台保留规范 AI 水印。`;
 }
 
 function buildInteractionPrompt(payload) {
-  if (payload.experience === "star-canvas") {
-    const interactionGuide = payload.interactionImage
-      ? "图像1是俯拍得到的 A4 儿童原画，图像2是孩子在触屏上引导它移动时留下的透明水流轨迹。"
-      : "图像1是俯拍得到的 A4 儿童原画。";
-    return `你是西马棚幼儿园“画醒万物”的多模态原画导演。${interactionGuide}请观察而不是猜测：找出最主要的一个角色或物体，描述它的朝向、真实颜色、笔触和适合它的安全自然动作；如果是鱼可游动和摆尾，如果是鸟可飞翔，如果是花草可生长或轻轻摆动，如果无法确定则使用轻柔漂浮。不要识别人脸、作者身份、情绪、健康或能力，不评价画得好不好，不纠正儿童画。请输出严格 JSON，不要 Markdown：{"title":"不超过18个汉字的儿童友好发现","subject":"不超过20字的主要角色描述","movement":"不超过32字的自然动作与触摸回应","elements":["三个不超过16字、能在环境中真正生成的视觉要素"],"transformation":"不超过50字，说明原画如何在保留笔触的前提下进入完整世界","palette":["三个来自原画的颜色或光感词"]}。elements 必须恰好3项。`;
+  if (!isArtworkExperience(payload.experience)) {
+    throw new ModelServiceError("ARTWORK_EXPERIENCE_REQUIRED", "当前视觉理解只接受俯拍儿童画作", 400);
   }
-  const stationLabels = {
-    "body-alchemy": "光影变形场：双手展开、合拢和转动会塑造巨型光生命",
-    "voice-forest": "声音生命林：点按、长按、滑动和声音能量会长成花、光河与森林生命",
-    "living-cinema": "第一部电影：四个共同选择会组成一个连续、安全的儿童电影镜头"
-  };
-  const imageGuide = payload.interactionImage
-    ? "图像1是当前完整世界，图像2是透明背景上的本轮真实触屏轨迹。请真正观察轨迹在画面中的位置、方向、曲率、交汇、疏密与留白。"
-    : "图像1是当前完整世界；本轮没有单独轨迹图，请结合共同选择与匿名互动统计理解创作意图。";
-  return `你是西马棚幼儿园“万物有灵”的多模态世界导演。${imageGuide}装置是：${stationLabels[payload.experience] || safeText(payload.experience, 80)}。匿名互动统计：${safeText(JSON.stringify(payload.interactionSummary || {}), 260)}；生命光：${Number(payload.activity || 0).toFixed(0)}；声音或动作能量：${Number(payload.energy || 0).toFixed(2)}；共同选择：${safeText(JSON.stringify(payload.choices || {}), 360)}。不要识别人脸、身份、情绪、健康或能力，不评分。请输出严格 JSON，不要 Markdown：{"title":"不超过18个汉字的儿童友好发现","elements":["三个不超过16字、能在画面中真正生成的视觉要素"],"transformation":"不超过50个汉字，说明这些真实输入会怎样长成完整世界","palette":["三个颜色或光感词"]}。elements 必须恰好3项，描述要具体，不能写“梦幻、好看、丰富”等空泛词。`;
+  const recipe = payload.recipe || {};
+  return `你是西马棚幼儿园的多模态原画导演。图像1是俯拍得到的 A4 儿童原画，不是人像。当前固定生成配方是“${safeText(recipe.label, 40)}”：${safeText(recipe.direction, 520)}
+
+请真正观察原画，不要猜测：找出关键主体或完整场景，描述真实轮廓、朝向、颜色、笔触、空间关系和正在发生的事件；为这个固定配方挑出三个能在最终图像中明确呈现的视觉要素。不要识别人脸、作者身份、情绪、健康或能力，不评价画得好不好，不纠正儿童画，不要求任何额外选择。
+
+请输出严格 JSON，不要 Markdown：{"title":"不超过18个汉字的儿童友好发现","subject":"不超过24字的关键主体或场景","movement":"不超过32字的自然动作或事件","elements":["三个不超过18字且能实际生成的视觉要素"],"transformation":"不超过60字，说明如何忠实保留原画并执行固定配方","palette":["三个来自原画的颜色或光感词"]}。elements 必须恰好3项。`;
 }
 
 function parseInteractionVision(text, payload = {}) {
   const fallbacks = {
-    "star-canvas": ["原画角色保持真实笔触", "触摸方向变成环境水流", "远景长出适合它的家园"],
-    "body-alchemy": ["双手撑开光之翼", "交汇处汇成生命核心", "动作方向形成星门"],
-    "voice-forest": ["点按位置长出声音花", "滑动轨迹汇成光河", "能量唤醒天空生命"],
-    "living-cinema": ["主角保持连续位置", "选择推动镜头向前", "结局展开完整世界"]
+    "artwork-awakening": ["原画角色保持真实笔触", "动作符合角色类型", "环境长出适合它的家园"],
+    "artwork-sculpture": ["完整保留奇物轮廓", "原画配色转成真实材质", "灯光呈现立体尺度"],
+    "artwork-world": ["原画空间关系保持不变", "道路和边缘连续生长", "远景形成完整地形天气"],
+    "artwork-cinema": ["主要角色与道具保持一致", "事件形成清晰叙事焦点", "镜头光影具有电影张力"],
+    "star-canvas": ["原画角色保持真实笔触", "动作符合角色类型", "环境长出适合它的家园"],
   };
   let parsed = {};
   try {
@@ -143,11 +104,11 @@ function parseInteractionVision(text, payload = {}) {
     ? parsed.palette.map((item) => safeText(item, 20)).filter(Boolean).slice(0, 3)
     : [];
   return {
-    title: safeText(parsed.title, 36) || (payload.experience === "star-canvas" ? "AI 看见了纸上的小生命" : "AI 看见了这一轮光的方向"),
-    subject: safeText(parsed.subject, 42) || (payload.experience === "star-canvas" ? "一位保留原画笔触的小生命" : ""),
-    movement: safeText(parsed.movement, 72) || (payload.experience === "star-canvas" ? "跟随手指方向自然移动，并让环境轻轻回应。" : ""),
+    title: safeText(parsed.title, 36) || "AI 看见了纸上的想象",
+    subject: safeText(parsed.subject, 48) || "保留真实儿童笔触的关键画面",
+    movement: safeText(parsed.movement, 72) || "沿原画正在发生的事件自然展开。",
     elements,
-    transformation: safeText(parsed.transformation, 110) || (payload.experience === "star-canvas" ? "保留原画笔触，让主要角色进入有纵深的完整世界。" : "把真实输入的方向、交汇和节奏变成同一空间里的道路、生命与远景。"),
+    transformation: safeText(parsed.transformation, 130) || safeText(payload.recipe?.direction, 130) || "保留原画笔触，让画面进入有纵深的完整世界。",
     palette,
   };
 }
@@ -682,10 +643,17 @@ export class ModelService {
         image: access.openai ? this.openai.imageModel : access.gemini ? this.gemini.imageModel : aliyunMedia ? this.provider.imageModel : null,
         video: aliyunMedia ? this.provider.videoModel : null
       },
-      routes: artworkMedia ? { "star-canvas": {
+      routes: artworkMedia ? Object.fromEntries([
+        "artwork-awakening",
+        "artwork-sculpture",
+        "artwork-world",
+        "artwork-cinema",
+      ].map((experience) => [experience, {
+        input: "overhead-a4-artwork",
+        output: "single-generated-image",
         vision: unique([access.openai && this.openai.visionModel, access.gemini && this.gemini.visionModel, aliyunMedia && this.provider.visionModel]),
         image: unique([access.openai && this.openai.imageModel, access.gemini && this.gemini.imageModel, aliyunMedia && this.provider.imageModel])
-      } } : {},
+      }])) : {},
       configuredProviders: unique([
         this.openai.configured && "openai",
         this.gemini.configured && "google-gemini",
@@ -701,7 +669,7 @@ export class ModelService {
   }
 
   async runVisualTask(type, payload) {
-    const isArtwork = payload.experience === "star-canvas";
+    const isArtwork = isArtworkExperience(payload.experience);
     if (isArtwork) {
       for (const candidate of [this.openai, this.gemini]) {
         if (!candidate.configured) continue;
