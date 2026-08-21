@@ -289,7 +289,9 @@ class DashScopeProvider {
         body: JSON.stringify({
           model: this.imageModel,
           input: { messages: [{ role: "user", content }] },
-          parameters: { size: "1K", n: 1, watermark: true }
+          // The kiosk display is 16:9. Wan image editing otherwise inherits the
+          // A4 camera frame ratio, which causes the generated world to be cropped.
+          parameters: { size: "1696*960", n: 1, watermark: true }
         })
       });
       const body = await response.json().catch(() => ({}));
