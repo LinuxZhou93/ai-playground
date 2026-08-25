@@ -11,6 +11,7 @@ const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_VISION_MODEL = "gemini-3.1-pro-preview";
 const GEMINI_IMAGE_MODEL = "gemini-3-pro-image-preview";
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_INLINE_GENERATED_IMAGE_BYTES = 2 * 1024 * 1024;
 
 export class ModelServiceError extends Error {
   constructor(code, message, httpStatus = 502) {
@@ -37,6 +38,38 @@ function dataUrlToBuffer(value) {
     throw new ModelServiceError("IMAGE_SIZE_LIMIT", "单张图片需小于 20MB", 413);
   }
   return { buffer, mimeType: match[1], extension: match[1].split("/")[1].replace("jpeg", "jpg") };
+}
+
+async function optimizeGeneratedImageDataUrl(value, options = {}) {
+  const image = dataUrlToBuffer(value);
+  const maxBytes = Number(options.maxBytes || MAX_INLINE_GENERATED_IMAGE_BYTES);
+  if (image.buffer.length <= maxBytes) {
+    return { imageDataUrl: value, bytes: image.buffer.length, optimized: false };
+  }
+
+  const loadSharp = options.loadSharp || (() => import("sharp"));
+  try {
+    const sharpModule = await loadSharp();
+    const sharp = sharpModule.default || sharpModule;
+    const render = (width, height, quality) => sharp(image.buffer)
+      .rotate()
+      .resize({ width, height, fit: "inside", withoutEnlargement: true })
+      .webp({ quality, effort: 4 })
+      .toBuffer();
+    let buffer = await render(1600, 900, 82);
+    if (buffer.length > maxBytes) buffer = await render(1366, 768, 72);
+    if (buffer.length > maxBytes) {
+      throw new ModelServiceError("GENERATED_IMAGE_TOO_LARGE", "生成图片过大，请再试一次", 502);
+    }
+    return {
+      imageDataUrl: `data:image/webp;base64,${buffer.toString("base64")}`,
+      bytes: buffer.length,
+      optimized: true,
+    };
+  } catch (error) {
+    if (error instanceof ModelServiceError) throw error;
+    throw new ModelServiceError("IMAGE_OPTIMIZATION_FAILED", "生成图片优化失败，请再试一次", 502);
+  }
 }
 
 function responseError(body, fallback = "MODEL_REQUEST_FAILED") {
@@ -586,10 +619,11 @@ export class ModelService {
     const started = Date.now();
     if (kind === "image.edit") {
       const result = await this.runVisualTask("image", payload);
+      const output = await optimizeGeneratedImageDataUrl(result.imageDataUrl);
       return {
         id: crypto.randomUUID(), status: "succeeded", provider: result.provider, model: result.model,
         kind, aiGenerated: true, durationMs: Date.now() - started,
-        result: { imageDataUrl: result.imageDataUrl, bytes: result.bytes }, requestId: result.requestId
+        result: { imageDataUrl: output.imageDataUrl, bytes: output.bytes, optimized: output.optimized }, requestId: result.requestId
       };
     }
     if (kind === "interaction.interpret") {
@@ -606,6 +640,7 @@ export class ModelService {
 
 export const __test = {
   dataUrlToBuffer,
+  optimizeGeneratedImageDataUrl,
   safeText,
   buildImagePrompt,
   buildInteractionPrompt,

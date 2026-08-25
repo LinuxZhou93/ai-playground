@@ -82,6 +82,26 @@ test("an optional spoken wish guides both model stages without overriding the ar
   }
 });
 
+test("large generated images are converted to a cloud-safe WebP response", async () => {
+  const largeImage = `data:image/png;base64,${Buffer.alloc(2200, 7).toString("base64")}`;
+  const fakeSharp = () => {
+    const pipeline = {
+      rotate: () => pipeline,
+      resize: () => pipeline,
+      webp: () => pipeline,
+      toBuffer: async () => Buffer.alloc(480, 9),
+    };
+    return pipeline;
+  };
+  const output = await __test.optimizeGeneratedImageDataUrl(largeImage, {
+    maxBytes: 1000,
+    loadSharp: async () => ({ default: fakeSharp }),
+  });
+  assert.equal(output.optimized, true);
+  assert.equal(output.bytes, 480);
+  assert.match(output.imageDataUrl, /^data:image\/webp;base64,/);
+});
+
 test("non-artwork image or vision tasks are rejected at the prompt boundary", () => {
   assert.throws(() => __test.buildImagePrompt({ experience: "body-alchemy" }), /当前装置只接受俯拍儿童画作/);
   assert.throws(() => __test.buildInteractionPrompt({ experience: "voice-forest" }), /当前视觉理解只接受俯拍儿童画作/);
