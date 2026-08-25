@@ -75,11 +75,12 @@ test("the site root remains a four-project portal while device URLs stay indepen
   assert.equal(resolveExperienceRoute("/xmpgame", "?station=3").station.id, 3);
 });
 
-test("the portal and every station expose the same explicit fullscreen control", () => {
+test("the portal keeps fullscreen while stations use one clear return control", () => {
   const app = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
   const portal = readFileSync(new URL("../src/PortalScreen.jsx", import.meta.url), "utf8");
   const control = readFileSync(new URL("../src/FullscreenButton.jsx", import.meta.url), "utf8");
-  assert.match(app, /<FullscreenButton className="fullscreen-button--station"/);
+  assert.doesNotMatch(app, /FullscreenButton/);
+  assert.equal((app.match(/station-back-to-portal/g) || []).length, 1);
   assert.match(portal, /<FullscreenButton className="fullscreen-button--portal"/);
   assert.match(control, /data-testid="fullscreen-toggle"/);
   assert.match(control, /全屏体验/);

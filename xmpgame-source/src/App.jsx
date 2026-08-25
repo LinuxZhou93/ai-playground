@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { ArtworkKiosk } from "./ArtworkKiosk.jsx";
-import { FullscreenButton } from "./FullscreenButton.jsx";
 import { PortalScreen } from "./PortalScreen.jsx";
 import { appBase, resolveExperienceRoute } from "./stations.js";
 import { getModelStatus } from "./model-client.js";
@@ -115,7 +114,6 @@ function StationExperience({ station }) {
         <ArrowLeft aria-hidden="true" />
         <span>返回四个项目</span>
       </a>
-      <FullscreenButton className="fullscreen-button--station" />
       <ArtworkKiosk station={station} health={health} deviceMode={deviceMode} />
     </div>
   );
