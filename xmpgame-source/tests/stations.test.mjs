@@ -84,9 +84,21 @@ test("the portal and every station expose the same explicit fullscreen control",
   assert.match(control, /data-testid="fullscreen-toggle"/);
   assert.match(control, /全屏体验/);
   assert.match(control, /document\.exitFullscreen/);
+  assert.match(control, /fullscreenerror/);
+  assert.match(control, /display-mode: fullscreen/);
+  assert.match(control, /请老师按 F11/);
 });
 
-test("reachable station UI contains no portrait or microphone workflow", () => {
+test("every station can return to the four-project portal", () => {
+  const app = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+  const portal = readFileSync(new URL("../src/PortalScreen.jsx", import.meta.url), "utf8");
+  assert.match(app, /data-testid="station-back-to-portal"/);
+  assert.match(app, /deviceMode \? "\?kiosk=1"/);
+  assert.match(app, /返回四个项目/);
+  assert.match(portal, /station\/\$\{station\.id\}\$\{kioskQuery\}/);
+});
+
+test("reachable station UI keeps portrait capture out and adds optional text-only voice magic", () => {
   const app = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
   const kiosk = readFileSync(new URL("../src/ArtworkKiosk.jsx", import.meta.url), "utf8");
   const config = readFileSync(new URL("../src/stations.js", import.meta.url), "utf8");
@@ -95,5 +107,9 @@ test("reachable station UI contains no portrait or microphone workflow", () => {
   assert.doesNotMatch(reachable, /getUserMedia\(\{\s*audio:\s*true/);
   assert.doesNotMatch(reachable, /PhotoForge|beginMic|participantImage|storyChoices/);
   assert.match(reachable, /audio:\s*false/);
+  assert.match(reachable, /SpeechRecognition/);
+  assert.match(reachable, /recognition\.lang = "zh-CN"/);
+  assert.match(reachable, /voicePrompt/);
+  assert.doesNotMatch(reachable, /audioBlob|MediaRecorder|voiceRecording/);
   assert.match(reachable, /overhead-a4-artwork/);
 });

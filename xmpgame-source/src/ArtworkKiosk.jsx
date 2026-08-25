@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, CircleCheckBig, ImagePlus, Pointer, RefreshCw, Sparkles, WandSparkles, WifiOff } from "lucide-react";
+import { Camera, CircleCheckBig, ImagePlus, Mic, MicOff, Pointer, RefreshCw, Sparkles, WandSparkles, WifiOff } from "lucide-react";
 import { assetPath } from "./stations.js";
 import { assetToDataUrl, createModelTask, fileToDataUrl, getModelStatus } from "./model-client.js";
 
@@ -32,9 +32,14 @@ function captureA4Frame(video) {
 function CameraScreen({ station, deviceMode, onArtwork }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const voiceResultRef = useRef(false);
   const startedRef = useRef(false);
   const previewMode = new URLSearchParams(window.location.search).get("preview") === "1";
+  const SpeechRecognitionApi = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const voiceSupported = Boolean(SpeechRecognitionApi);
   const [cameraState, setCameraState] = useState("starting");
+  const [voiceState, setVoiceState] = useState("idle");
   const [notice, setNotice] = useState("");
 
   const stopCamera = useCallback(() => {
@@ -76,18 +81,80 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
     if (startedRef.current) return undefined;
     startedRef.current = true;
     startCamera();
-    return stopCamera;
+    return () => {
+      recognitionRef.current?.abort?.();
+      recognitionRef.current = null;
+      stopCamera();
+    };
   }, [startCamera, stopCamera]);
 
-  const capture = async () => {
+  const readArtwork = async () => {
     if (previewMode) {
-      onArtwork(await assetToDataUrl(assetPath("assets/stations/demo-a4-fish-artwork.png")));
-      return;
+      return assetToDataUrl(assetPath("assets/stations/demo-a4-fish-artwork.png"));
     }
-    const artwork = captureA4Frame(videoRef.current);
+    return captureA4Frame(videoRef.current);
+  };
+
+  const capture = async () => {
+    const artwork = await readArtwork();
     if (!artwork) return;
     stopCamera();
     onArtwork(artwork);
+  };
+
+  const startVoiceMagic = () => {
+    if (!voiceSupported || cameraState !== "live" || voiceState !== "idle") return;
+    recognitionRef.current?.abort?.();
+    voiceResultRef.current = false;
+    const recognition = new SpeechRecognitionApi();
+    recognitionRef.current = recognition;
+    recognition.lang = "zh-CN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => {
+      setVoiceState("listening");
+      setNotice("我在听，说一句你希望画里发生的魔法吧！");
+    };
+    recognition.onresult = async (event) => {
+      const voicePrompt = String(event.results?.[0]?.[0]?.transcript || "").trim().slice(0, 80);
+      if (!voicePrompt) return;
+      voiceResultRef.current = true;
+      setVoiceState("processing");
+      setNotice(`听见啦：“${voicePrompt}”——现在开始魔法！`);
+      let artwork = null;
+      try {
+        artwork = await readArtwork();
+      } catch {
+        artwork = null;
+      }
+      if (!artwork) {
+        setVoiceState("idle");
+        setNotice("没有看清画纸，请把整张画放进彩虹框再试一次。");
+        return;
+      }
+      stopCamera();
+      recognition.stop?.();
+      onArtwork(artwork, { voicePrompt });
+    };
+    recognition.onerror = (event) => {
+      if (voiceResultRef.current || event.error === "aborted") return;
+      setVoiceState("idle");
+      setNotice(event.error === "not-allowed"
+        ? "麦克风没有打开，请老师允许浏览器使用麦克风；也可以直接按橙色按钮。"
+        : "刚才没有听清，再说一次吧；也可以直接按橙色按钮。");
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      if (!voiceResultRef.current) setVoiceState("idle");
+    };
+    try {
+      recognition.start();
+    } catch {
+      recognitionRef.current = null;
+      setVoiceState("idle");
+      setNotice("语音伙伴还没准备好，也可以直接按橙色按钮开始。");
+    }
   };
 
   const chooseFile = async (event) => {
@@ -147,17 +214,33 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
 
         {notice && <div className="kid-kiosk__notice" role="status">{notice}</div>}
 
-        {cameraState === "live" ? (
-          <button className="kid-primary" type="button" onClick={capture} data-kiosk-primary data-testid="generate-artwork">
-            <Pointer aria-hidden="true" />
-            <span><b>{station.kidAction}</b><small>按一下就好，剩下的交给魔法</small></span>
+        <div className="kid-kiosk__actions">
+          {cameraState === "live" ? (
+            <button className="kid-primary" type="button" onClick={capture} data-kiosk-primary data-testid="generate-artwork">
+              <Pointer aria-hidden="true" />
+              <span><b>{station.kidAction}</b><small>按一下就好，剩下的交给魔法</small></span>
+            </button>
+          ) : (
+            <button className="kid-primary" type="button" onClick={startCamera} data-kiosk-primary>
+              <RefreshCw aria-hidden="true" />
+              <span><b>请老师帮我连接镜头</b><small>轻触这里，再试一次</small></span>
+            </button>
+          )}
+
+          <button
+            className={`kid-voice is-${voiceState}`}
+            type="button"
+            onClick={startVoiceMagic}
+            disabled={cameraState !== "live" || !voiceSupported || voiceState !== "idle"}
+            data-testid="voice-artwork-magic"
+          >
+            {voiceSupported ? <Mic aria-hidden="true" /> : <MicOff aria-hidden="true" />}
+            <span>
+              <b>{voiceState === "listening" ? "我在听，请说吧…" : voiceState === "processing" ? "听见啦，正在开始…" : voiceSupported ? "说一句魔法愿望" : "这台设备暂不支持语音"}</b>
+              <small>{voiceSupported ? "说完自动拍下画纸并生成" : "仍可按上面的橙色按钮"}</small>
+            </span>
           </button>
-        ) : (
-          <button className="kid-primary" type="button" onClick={startCamera} data-kiosk-primary>
-            <RefreshCw aria-hidden="true" />
-            <span><b>请老师帮我连接镜头</b><small>轻触这里，再试一次</small></span>
-          </button>
-        )}
+        </div>
 
         {!deviceMode && (
           <div className="kid-kiosk__test-tools" aria-label="教师测试工具">
@@ -166,7 +249,7 @@ function CameraScreen({ station, deviceMode, onArtwork }) {
           </div>
         )}
 
-        <p className="kid-kiosk__privacy">只拍画纸，不拍小朋友</p>
+        <p className="kid-kiosk__privacy">只拍画纸，不拍小朋友 · 本系统不保存录音</p>
       </section>
     </main>
   );
@@ -228,6 +311,7 @@ export function ArtworkKiosk({ station, health, deviceMode }) {
   const [result, setResult] = useState(null);
   const [vision, setVision] = useState(null);
   const [stage, setStage] = useState("health");
+  const [voicePrompt, setVoicePrompt] = useState("");
   const [session, setSession] = useState(0);
   const controllerRef = useRef(null);
 
@@ -239,13 +323,15 @@ export function ArtworkKiosk({ station, health, deviceMode }) {
     transformation: station.recipe.direction,
   }), [station]);
 
-  const generate = useCallback(async (sourceArtwork) => {
+  const generate = useCallback(async (sourceArtwork, options = {}) => {
+    const nextVoicePrompt = typeof options === "string" ? options : String(options.voicePrompt || "").trim().slice(0, 80);
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
     setArtwork(sourceArtwork);
     setResult(null);
     setVision(localVision());
+    setVoicePrompt(nextVoicePrompt);
     setStage("health");
     setPhase("creating");
 
@@ -261,7 +347,8 @@ export function ArtworkKiosk({ station, health, deviceMode }) {
             experience: station.experience,
             recipe: station.recipe,
             sourceImage: sourceArtwork,
-            interactionSummary: { source: station.captureSource, preset: station.recipe.id },
+            voicePrompt: nextVoicePrompt,
+            interactionSummary: { source: station.captureSource, preset: station.recipe.id, voiceMagic: Boolean(nextVoicePrompt) },
           }, { signal: controller.signal, timeoutMs: 90000 });
           interpreted = response.result?.vision || interpreted;
           setVision(interpreted);
@@ -277,6 +364,7 @@ export function ArtworkKiosk({ station, health, deviceMode }) {
         modelVision: interpreted,
         recipe: station.recipe,
         theme: station.slug,
+        voicePrompt: nextVoicePrompt,
         fallback: { imageDataUrl: sourceArtwork },
       }, { signal: controller.signal, timeoutMs: 210000 });
       setResult(response);
@@ -294,11 +382,12 @@ export function ArtworkKiosk({ station, health, deviceMode }) {
     setArtwork(null);
     setResult(null);
     setVision(null);
+    setVoicePrompt("");
     setPhase("camera");
     setSession((value) => value + 1);
   };
 
   if (phase === "creating") return <CreatingScreen station={station} artwork={artwork} stage={stage} vision={vision} />;
-  if (phase === "result") return <ResultScreen station={station} result={result} artwork={artwork} onNext={reset} onRetry={() => generate(artwork)} />;
+  if (phase === "result") return <ResultScreen station={station} result={result} artwork={artwork} onNext={reset} onRetry={() => generate(artwork, voicePrompt)} />;
   return <CameraScreen key={session} station={station} deviceMode={deviceMode} onArtwork={generate} />;
 }

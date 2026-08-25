@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { ArtworkKiosk } from "./ArtworkKiosk.jsx";
 import { FullscreenButton } from "./FullscreenButton.jsx";
 import { PortalScreen } from "./PortalScreen.jsx";
-import { resolveExperienceRoute } from "./stations.js";
+import { appBase, resolveExperienceRoute } from "./stations.js";
 import { getModelStatus } from "./model-client.js";
 
 function useSelectedStation() {
@@ -110,6 +111,10 @@ function StationExperience({ station }) {
       }}
       data-device-mode={deviceMode ? "true" : "false"}
     >
+      <a className="station-back-button" href={`${appBase}${deviceMode ? "?kiosk=1" : ""}`} data-testid="station-back-to-portal">
+        <ArrowLeft aria-hidden="true" />
+        <span>返回四个项目</span>
+      </a>
       <FullscreenButton className="fullscreen-button--station" />
       <ArtworkKiosk station={station} health={health} deviceMode={deviceMode} />
     </div>

@@ -3,6 +3,7 @@ import { FullscreenButton } from "./FullscreenButton.jsx";
 import { appBase, assetPath, stations } from "./stations.js";
 
 export function PortalScreen() {
+  const kioskQuery = new URLSearchParams(window.location.search).get("kiosk") === "1" ? "?kiosk=1" : "";
   return (
     <main className="kid-portal" data-testid="world-portal">
       <div
@@ -20,7 +21,7 @@ export function PortalScreen() {
       </header>
 
       <section className="kid-portal__hero">
-        <p><WandSparkles aria-hidden="true" />四台触屏一体机 · 四种画画魔法</p>
+        <p><WandSparkles aria-hidden="true" />四台触屏一体机 · 四种画画魔法 · 都能语音生图</p>
         <h1><span>选一个魔法，</span><strong>让你的画活起来！</strong></h1>
         <div className="kid-portal__touch-note"><Hand aria-hidden="true" />轻轻点一下，就能进去玩</div>
       </section>
@@ -30,7 +31,7 @@ export function PortalScreen() {
             <a
               key={station.id}
               className={`kid-world-card kid-world-card--${station.id}`}
-              href={`${appBase}station/${station.id}`}
+              href={`${appBase}station/${station.id}${kioskQuery}`}
               style={{ "--card-accent": station.accent, "--card-accent-rgb": station.accentRgb }}
               data-testid={`portal-station-${station.id}`}
             >
@@ -48,7 +49,7 @@ export function PortalScreen() {
 
       <footer className="kid-portal__footer">
         <span>只拍画纸，不拍小朋友</span>
-        <b>放好画纸 · 轻触一次 · 直接生成</b>
+        <b>放好画纸 · 轻触或说一句 · 直接生成</b>
       </footer>
     </main>
   );

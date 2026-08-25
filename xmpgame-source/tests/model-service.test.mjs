@@ -41,7 +41,7 @@ test("the four fixed generation recipes produce materially distinct prompts", ()
   assert.match(prompts[3], /动画电影关键帧/);
 });
 
-test("vision contract reads one A4 artwork and never asks for voice, portrait or choices", () => {
+test("vision contract reads one A4 artwork without requiring voice, portrait or choices", () => {
   const prompt = __test.buildInteractionPrompt({
     experience: "artwork-cinema",
     recipe: { label: "电影画面", direction: "直接理解原画事件并形成电影关键帧" },
@@ -51,6 +51,7 @@ test("vision contract reads one A4 artwork and never asks for voice, portrait or
   assert.match(prompt, /不要求任何额外选择/);
   assert.match(prompt, /"subject"/);
   assert.match(prompt, /"movement"/);
+  assert.doesNotMatch(prompt, /魔法愿望/);
   assert.doesNotMatch(prompt, /麦克风|声纹|人物照片/);
 
   const vision = __test.parseInteractionVision(JSON.stringify({
@@ -64,6 +65,21 @@ test("vision contract reads one A4 artwork and never asks for voice, portrait or
   assert.equal(vision.subject, "朝右游的蓝绿色鱼");
   assert.equal(vision.movement, "摆尾穿过发光水流");
   assert.equal(vision.elements.length, 3);
+});
+
+test("an optional spoken wish guides both model stages without overriding the artwork", () => {
+  const payload = {
+    experience: "artwork-awakening",
+    recipe: { label: "生命苏醒", direction: "保留小鱼的水彩线条，让它进入卡通海底世界" },
+    voicePrompt: "让小鱼和海龟一起游泳",
+  };
+  const visionPrompt = __test.buildInteractionPrompt(payload);
+  const imagePrompt = __test.buildImagePrompt(payload);
+  for (const prompt of [visionPrompt, imagePrompt]) {
+    assert.match(prompt, /让小鱼和海龟一起游泳/);
+    assert.match(prompt, /以.*原画为主|原画仍是唯一主体/);
+    assert.match(prompt, /儿童安全规则/);
+  }
 });
 
 test("non-artwork image or vision tasks are rejected at the prompt boundary", () => {
