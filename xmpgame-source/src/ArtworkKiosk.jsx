@@ -365,7 +365,6 @@ export function ArtworkKiosk({ station, health, deviceMode }) {
         recipe: station.recipe,
         theme: station.slug,
         voicePrompt: nextVoicePrompt,
-        fallback: { imageDataUrl: sourceArtwork },
       }, { signal: controller.signal, timeoutMs: 210000 });
       setResult(response);
       setPhase("result");

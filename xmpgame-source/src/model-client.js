@@ -40,6 +40,9 @@ async function compactImage(dataUrl, { preserveAlpha = false } = {}) {
 
 async function compactPayload(payload = {}) {
   const compacted = { ...payload };
+  // The UI already holds the source artwork for local fallback rendering.
+  // Never duplicate that base64 image in a nested request field.
+  delete compacted.fallback;
   await Promise.all(imageFields.map(async (field) => {
     if (!compacted[field]) return;
     compacted[field] = await compactImage(compacted[field], { preserveAlpha: field === "interactionImage" });

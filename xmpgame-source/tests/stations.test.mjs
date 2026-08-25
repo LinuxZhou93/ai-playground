@@ -111,5 +111,11 @@ test("reachable station UI keeps portrait capture out and adds optional text-onl
   assert.match(reachable, /recognition\.lang = "zh-CN"/);
   assert.match(reachable, /voicePrompt/);
   assert.doesNotMatch(reachable, /audioBlob|MediaRecorder|voiceRecording/);
+  assert.doesNotMatch(reachable, /fallback:\s*\{\s*imageDataUrl/);
   assert.match(reachable, /overhead-a4-artwork/);
+});
+
+test("model requests never duplicate the source artwork as a nested fallback image", () => {
+  const client = readFileSync(new URL("../src/model-client.js", import.meta.url), "utf8");
+  assert.match(client, /delete compacted\.fallback/);
 });
