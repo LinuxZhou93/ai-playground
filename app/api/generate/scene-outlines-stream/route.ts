@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Get API configuration from request headers
-    const { model: languageModel, modelInfo, modelString } = resolveModelFromHeaders(req);
+    const { model: languageModel, modelInfo, modelString, apiKey } = resolveModelFromHeaders(req);
 
     if (!body.requirements) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Requirements are required');
@@ -222,6 +222,59 @@ export async function POST(req: NextRequest) {
 
         try {
           startHeartbeat();
+
+          // Backgrace's OpenAI-compatible non-streaming response is more
+          // stable for long structured JSON. Use it for the verified
+          // production model, then continue emitting our own SSE events.
+          if (modelString === 'google:gemini-3.8-flash') {
+            const directResponse = await fetch('https://backgrace.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify({
+                model: 'gemini-3.8-flash',
+                messages: [
+                  { role: 'system', content: prompts.system },
+                  { role: 'user', content: prompts.user },
+                ],
+                max_tokens: Math.min(modelInfo?.outputWindow ?? 16384, 32768),
+                stream: false,
+              }),
+              cache: 'no-store',
+            });
+
+            if (!directResponse.ok) {
+              throw new Error(`Backgrace outline request failed (${directResponse.status})`);
+            }
+
+            const directPayload = await directResponse.json();
+            const directText = directPayload?.choices?.[0]?.message?.content;
+            const directOutlines =
+              typeof directText === 'string' ? extractNewOutlines(directText, 0) : [];
+
+            if (directOutlines.length === 0) {
+              throw new Error('Backgrace returned no parseable course outlines');
+            }
+
+            const enrichedOutlines = directOutlines.map((outline, index) => ({
+              ...outline,
+              id: outline.id || nanoid(),
+              order: index + 1,
+            }));
+            for (const [index, outline] of enrichedOutlines.entries()) {
+              const event = JSON.stringify({ type: 'outline', data: outline, index });
+              controller.enqueue(encoder.encode(`data: ${event}\n\n`));
+            }
+
+            const doneEvent = JSON.stringify({
+              type: 'done',
+              outlines: uniquifyMediaElementIds(enrichedOutlines),
+            });
+            controller.enqueue(encoder.encode(`data: ${doneEvent}\n\n`));
+            return;
+          }
 
           const streamParams = visionImages?.length
             ? {
