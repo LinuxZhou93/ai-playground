@@ -3,6 +3,14 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 
 const BACKGRACE_URL = 'https://backgrace.com/v1/chat/completions';
+const GEMINI_RELAY_MODELS = [
+  // Backgrace is LiteLLM-compatible. The explicit provider prefix prevents
+  // its reasoning router from turning the bare alias into an unresolvable
+  // `gemini-3.5-flash-low` model name.
+  'gemini/gemini-3.5-flash',
+  'google/gemini-3.5-flash',
+  'gemini-3.5-flash',
+] as const;
 
 const getCleanApiKey = () => {
   return (
@@ -43,34 +51,48 @@ export async function POST(req: Request) {
       );
     }
 
-    const targetModel = 'gemini-3.5-flash';
-
     const stream = body.stream === true;
-    const response = await fetch(upstreamUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${upstreamApiKey}`,
-      },
-      body: JSON.stringify({
-        model: targetModel,
-        messages: body.messages || [],
-        temperature: body.temperature ?? 0.7,
-        max_tokens: body.max_tokens ?? 4096,
-        stream,
-      }),
-      cache: 'no-store',
-    });
+    let response: Response | undefined;
+    let errorData = '';
+    let resolvedModel: (typeof GEMINI_RELAY_MODELS)[number] = GEMINI_RELAY_MODELS[0];
 
-    if (!response.ok) {
-        const errorData = await response.text();
+    for (const targetModel of GEMINI_RELAY_MODELS) {
+      resolvedModel = targetModel;
+      response = await fetch(upstreamUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${upstreamApiKey}`,
+        },
+        body: JSON.stringify({
+          model: targetModel,
+          messages: body.messages || [],
+          temperature: body.temperature ?? 0.7,
+          max_tokens: body.max_tokens ?? 4096,
+          stream,
+        }),
+        cache: 'no-store',
+      });
+
+      if (response.ok) break;
+
+      errorData = await response.text();
+      const isModelRoutingError =
+        response.status === 404 ||
+        response.status === 502 ||
+        /unknown provider|unknown model|model.*not found/i.test(errorData);
+      if (!isModelRoutingError) break;
+    }
+
+    if (!response || !response.ok) {
       return NextResponse.json(
-        { error: { message: `Upstream error: ${response.status} ${errorData}` } },
-        { status: response.status, headers: getCorsHeaders(req) },
+        { error: { message: `Upstream error: ${response?.status || 502} ${errorData}` } },
+        { status: response?.status || 502, headers: getCorsHeaders(req) },
       );
     }
 
     const headers = getCorsHeaders(req);
+    headers.set('X-AI-Model', resolvedModel);
     if (stream && response.body) {
       headers.set('Content-Type', response.headers.get('Content-Type') || 'text/event-stream');
       headers.set('Cache-Control', 'no-cache, no-transform');
