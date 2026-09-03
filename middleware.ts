@@ -139,7 +139,7 @@ export async function middleware(request: NextRequest) {
   }
   
   if (isRequestingHtml && targetFileName) {
-    const etagVal = `W/"${targetFileName}-20260613"`;
+    const etagVal = `W/"${targetFileName}-20260903-06"`;
     const ifNoneMatch = request.headers.get('If-None-Match');
     if (ifNoneMatch === etagVal) {
       return new NextResponse(null, {
