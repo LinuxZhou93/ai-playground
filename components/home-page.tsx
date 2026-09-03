@@ -566,42 +566,16 @@ export default function HomePage() {
   };
 
   const handleGenerate = async (autoStartFlag?: string, requirementOverride?: string) => {
-    // ⚔️ 【Titan Tech】主站全域身份鉴定防火墙
+    // 内测阶段开放课程生成：清理旧版浏览器次数，不再按登录/订阅状态拦截。
     try {
-      const userEmail = localStorage.getItem('current_user_email');
-      const authStatusStr = localStorage.getItem('fc_subscription_status');
-      
-      // 🚫 [Titan Bypass] 移除冷酷驱动拦截，改用智能引导逻辑（由 useEffect 兜底其身份）
-      if (!userEmail) {
-         console.warn("⚠️ 检测到访客身份缺失，尝试使用备用离线协议运行...");
-      }
-      
-      // 2. 付费 / 免费 分流与额度控制
-      let isPro = false;
-      if (authStatusStr) {
-         const authData = JSON.parse(authStatusStr);
-         if (authData && authData.status === 'active') isPro = true;
-      }
-      
-      if (!isPro) {
-         let usage = parseInt(localStorage.getItem('titan_free_usage') || '0', 10);
-         if (usage >= 5) {
-            if (window.confirm('🔒 系统过载保护：您的【启蒙版】5次大模型演算配额已完全燃尽！\n指挥官，若需继续构建更深的科技视界，请升级您的算力舱段。是否立即跳转增配平台？')) {
-               window.location.href = 'https://ai.zhouxiaomai.com/pricing-demo.html';
-            }
-            return;
-         }
-         // 增加磨损度
-         localStorage.setItem('titan_free_usage', (usage + 1).toString());
-         console.log(`[FC Auth] 免费算力储备燃烧警告... 剩余次数: ${4 - usage}`);
-      }
-    } catch(e) { console.warn('Auth checks skipped', e); }
+      localStorage.removeItem('titan_free_usage');
+    } catch(e) { console.warn('Legacy usage counter cleanup skipped', e); }
 
       // 🚀 [Titan Tech Override] 智能默认值：仅在用户未配置任何模型时，自动挂载预设。
       // 这保证了系统“拆箱即用”，但绝不干扰指挥官在设置中的手动调整。
       const settings = useSettingsStore.getState();
       if (!settings.modelId) {
-        settings.setModel('google', 'gemini-3-flash');
+        settings.setModel('google', 'gemini-3.8-flash');
       }
 
     // 🚀 [Titan OS] 自动发车时使用传入的 requirementOverride 绕过闭包陷阱
@@ -1765,4 +1739,3 @@ function ClassroomCard({
     </div>
   );
 }
-

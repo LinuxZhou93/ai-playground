@@ -180,14 +180,13 @@ export async function generateClassroom(
     scenesGenerated: 0,
   });
 
-  // 🛡️ [Titan Order] 强行锁死 Gemini-3-Flash，确保协议与模型类型绝对匹配
+  // 🛡️ [Titan Order] 课程生成统一走 Backgrace 已验证的 Gemini 3.8 Flash。
   const { model: languageModel, modelInfo, modelString, apiKey: effectiveKey } = resolveModel({
-    modelString: 'google:gemini-3-flash',
-    providerType: 'google' // 修正：明确指定 Google 提供商
+    modelString: 'google:gemini-3.8-flash',
   });
   
   if (!languageModel) {
-    throw new Error(`CRITICAL: Google Gemini-3-Flash model failed to initialize.`);
+    throw new Error(`CRITICAL: Gemini 3.8 Flash relay model failed to initialize.`);
   }
   
   log.info(`🚀 Starting FutureClass Pipeline | Model: ${modelString}`);

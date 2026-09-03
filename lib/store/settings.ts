@@ -540,7 +540,7 @@ export const useSettingsStore = create<SettingsState>()(
       return {
         // [Titan Tech Permanent Override] Initial state LLM credentials
         providerId: 'google',
-        modelId: 'gemini-3.5-flash',
+        modelId: 'gemini-3.8-flash',
         providersConfig: migratedData?.providersConfig || getDefaultProvidersConfig(),
         ttsModel: migratedData?.ttsModel || 'openai-tts',
         selectedAgentIds: migratedData?.selectedAgentIds || ['default-1', 'default-2', 'default-3'],
@@ -1224,7 +1224,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         // [Titan Tech Permanent Override] Hardcode Core LLM credentials (via Backgrace Proxy)
         merged.providerId = 'google'; // 使用 OpenAI 兼容协议
-        merged.modelId = 'gemini-3.5-flash';
+        merged.modelId = 'gemini-3.8-flash';
         
         // Ensure configs exist and are updated
         if (!merged.providersConfig) merged.providersConfig = {} as any;
@@ -1295,7 +1295,7 @@ if (typeof window !== 'undefined') {
         isStaleOrNonEmpty(currentGoogleKey) ||
         isStaleOrNonEmpty(currentOpenAIKey) ||
         store.providerId !== 'google' ||
-        store.modelId !== 'gemini-3.5-flash';
+        store.modelId !== 'gemini-3.8-flash';
         
       if (needsSync) {
         console.log('[Titan Tech] 检测到残留硬编码或旧配置，执行安全清理同步...');
@@ -1312,7 +1312,7 @@ if (typeof window !== 'undefined') {
           return {
             providersConfig: newConfig,
             providerId: 'google',
-            modelId: 'gemini-3.5-flash'
+            modelId: 'gemini-3.8-flash'
           };
         });
       }
