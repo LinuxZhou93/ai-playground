@@ -1149,12 +1149,12 @@ export function getModel(config: ModelConfig): ModelWithInfo {
   const effectiveBaseUrl = config.baseUrl || provider?.defaultBaseUrl || undefined;
 
   let targetModelId = config.modelId;
-  // 🚀 [Titan Tech Security Patch] 仅对文本/对话模型强制对齐为新 Key 唯一支持的 gemini-3.5-flash
-  // 排除掉生图模型(通常包含 -image)
+  // Keep Gemini text traffic on the Backgrace model verified in production.
+  // Image models are excluded because they use a separate media pipeline.
   if (targetModelId && 
       (targetModelId.includes('gemini') || config.providerId === 'google') && 
       !targetModelId.includes('image')) {
-    targetModelId = 'gemini-3.5-flash';
+    targetModelId = 'gemini-3.8-flash';
   }
 
   let model: LanguageModel;
