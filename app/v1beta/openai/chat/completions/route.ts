@@ -2,13 +2,14 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 
-const QWEN_COMPATIBLE_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-const PRODUCTION_MODEL = 'qwen-plus';
+const BACKGRACE_BASE_URL = 'https://backgrace.com/v1';
+const PRODUCTION_MODEL = 'gemini-3.8-flash';
 
 const getCleanApiKey = () => {
   return (
-    process.env.QWEN_API_KEY?.trim() ||
-    process.env.DASHSCOPE_API_KEY?.trim() ||
+    process.env.OPENAI_API_KEY?.trim() ||
+    process.env.GOOGLE_API_KEY?.trim() ||
+    process.env.GEMINI_API_KEY?.trim() ||
     ''
   );
 };
@@ -29,9 +30,9 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Roll back to the last known-good production model. Client-side cached
-    // model names must not alter the server-owned route.
-    const configuredBaseUrl = (process.env.QWEN_BASE_URL || QWEN_COMPATIBLE_BASE_URL).replace(/\/$/, '');
+    // Keep the browser free of credentials and pin production chat to the
+    // latest Backgrace model verified with the server-owned API key.
+    const configuredBaseUrl = (process.env.OPENAI_BASE_URL || process.env.GOOGLE_BASE_URL || BACKGRACE_BASE_URL).replace(/\/$/, '');
     const upstreamUrl = `${configuredBaseUrl}/chat/completions`;
     const upstreamApiKey = fallbackApiKey;
     if (!upstreamApiKey) {
