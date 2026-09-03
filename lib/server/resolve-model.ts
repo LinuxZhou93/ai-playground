@@ -8,7 +8,8 @@
 import type { NextRequest } from 'next/server';
 import { getModel, parseModelString, type ModelWithInfo } from '@/lib/ai/providers';
 import { resolveApiKey, resolveBaseUrl, resolveProxy } from '@/lib/server/provider-config';
-import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+
+export const PRODUCTION_TEXT_MODEL = 'google:gemini-3.8-flash';
 
 export interface ResolvedModel extends ModelWithInfo {
   /** Original model string (e.g. "openai/gpt-4o-mini") */
@@ -29,19 +30,15 @@ export function resolveModel(params: {
   providerType?: string;
   requiresApiKey?: boolean;
 }): ResolvedModel {
-  const modelString = params.modelString || process.env.DEFAULT_MODEL || 'gpt-4o-mini';
+  // All production text traffic is pinned to the Backgrace model verified by
+  // deployment health checks. This also migrates stale browser model headers.
+  const modelString = PRODUCTION_TEXT_MODEL;
   const { providerId, modelId } = parseModelString(modelString);
 
-  const clientBaseUrl = params.baseUrl || undefined;
-  if (clientBaseUrl && process.env.NODE_ENV === 'production') {
-    const ssrfError = validateUrlForSSRF(clientBaseUrl);
-    if (ssrfError) {
-      throw new Error(ssrfError);
-    }
-  }
-
-  const apiKey = resolveApiKey(providerId, params.apiKey || '');
-  const baseUrl = resolveBaseUrl(providerId, params.baseUrl);
+  // Credentials and relay URL remain server-owned; request headers are kept in
+  // the signature only for backwards compatibility with existing callers.
+  const apiKey = resolveApiKey(providerId);
+  const baseUrl = resolveBaseUrl(providerId);
   const proxy = resolveProxy(providerId);
   const { model, modelInfo } = getModel({
     providerId,
@@ -49,8 +46,6 @@ export function resolveModel(params: {
     apiKey,
     baseUrl,
     proxy,
-    providerType: params.providerType as 'openai' | 'anthropic' | 'google' | undefined,
-    requiresApiKey: params.requiresApiKey,
   });
 
   return { model, modelInfo, modelString, apiKey };
