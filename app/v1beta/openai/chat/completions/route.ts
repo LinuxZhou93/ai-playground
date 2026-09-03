@@ -4,12 +4,17 @@ import { NextResponse } from 'next/server';
 
 const BACKGRACE_URL = 'https://backgrace.com/v1/chat/completions';
 const GEMINI_RELAY_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-low',
   // Backgrace is LiteLLM-compatible. The explicit provider prefix prevents
   // its reasoning router from turning the bare alias into an unresolvable
   // `gemini-3.5-flash-low` model name.
   'gemini/gemini-3.5-flash',
+  'gemini/gemini-3.5-flash-low',
   'google/gemini-3.5-flash',
-  'gemini-3.5-flash',
+  'google/gemini-3.5-flash-low',
+  'gemini-3.5-flash-preview',
+  'gemini/gemini-3.5-flash-preview',
 ] as const;
 
 const getCleanApiKey = () => {
@@ -80,7 +85,7 @@ export async function POST(req: Request) {
       const isModelRoutingError =
         response.status === 404 ||
         response.status === 502 ||
-        /unknown provider|unknown model|model.*not found/i.test(errorData);
+        /unknown provider|unknown model|model.*not found|no access to model/i.test(errorData);
       if (!isModelRoutingError) break;
     }
 
